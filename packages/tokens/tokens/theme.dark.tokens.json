@@ -1,0 +1,343 @@
+{
+  "color": {
+    "$type": "color",
+    "surface": {
+      "$description": "The page is the darkest layer; every raised layer steps lighter. Nothing above the page is pure black, so large surfaces never smear on OLED.",
+      "page": {
+        "$value": "{color.neutral.0}"
+      },
+      "raised": {
+        "$value": "{color.neutral.4}"
+      },
+      "overlay": {
+        "$value": "{color.neutral.7}"
+      },
+      "top": {
+        "$value": "{color.neutral.9}"
+      },
+      "sunken": {
+        "$value": "{color.neutral.4}"
+      },
+      "sunken-strong": {
+        "$value": "{color.neutral.7}"
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{color.neutral.93}"
+      },
+      "secondary": {
+        "$value": "{color.neutral.63}"
+      },
+      "tertiary": {
+        "$value": "{color.neutral.52}",
+        "$description": "At least 4.5:1 on every surface. On a selected or hover wash, use secondary instead."
+      },
+      "disabled": {
+        "$value": "{color.neutral.36}",
+        "$description": "Disabled controls are exempt from WCAG contrast; never use for anything else."
+      },
+      "inverse": {
+        "$value": "{color.neutral.0}"
+      }
+    },
+    "border": {
+      "hairline": {
+        "$value": "{color.white.15}"
+      },
+      "divider": {
+        "$value": "{color.white.10}"
+      },
+      "input": {
+        "$value": "{color.white.38}"
+      },
+      "focus": {
+        "$value": "{color.neutral.63}"
+      }
+    },
+    "state": {
+      "hover": {
+        "$value": "{color.white.6}"
+      },
+      "selected": {
+        "$value": "{color.white.9}"
+      }
+    },
+    "action": {
+      "primary": {
+        "$value": "{color.neutral.93}"
+      },
+      "primary-hover": {
+        "$value": "{color.neutral.100}"
+      },
+      "primary-text": {
+        "$value": "{color.neutral.0}"
+      }
+    },
+    "status": {
+      "danger": {
+        "$value": "{color.status.danger-dark}"
+      },
+      "success": {
+        "$value": "{color.status.success-dark}"
+      },
+      "warning": {
+        "$value": "{color.status.warning-dark}"
+      }
+    },
+    "scrim": {
+      "$value": "{color.black.80}"
+    }
+  },
+  "shadow": {
+    "$description": "The second ring is the page colour behind the hairline, so the translucent line mixes against the same colour on any background.",
+    "hairline": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": "{color.white.15}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.neutral.0}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    "pill": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": "{color.white.15}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.black.40}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 1,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 2,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    "overlay": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": "{color.white.15}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.black.24}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 4,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 8,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -4,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.black.40}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 16,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 24,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -8,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.neutral.0}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    "modal": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": "{color.white.15}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.black.24}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 8,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 16,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -4,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.black.60}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 24,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 32,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -8,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "{color.neutral.0}",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          }
+        }
+      ]
+    }
+  }
+}

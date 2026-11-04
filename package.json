@@ -1,0 +1,12 @@
+{
+  "name": "basalt",
+  "private": true,
+  "description": "Basalt, the SRA Syndicate design system.",
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm test --workspaces"
+  },
+  "engines": { "node": ">=22" }
+}
