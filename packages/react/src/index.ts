@@ -35,3 +35,5 @@ export { ToastProvider, useToast } from "./toast";
 export type { ToastOptions, ToastStatus } from "./toast";
 export { CommandMenu } from "./command";
 export type { Command, CommandGroup, CommandMenuProps } from "./command";
+export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Spinner, Textarea } from "./feedback";
+export type { AccordionItemProps, CalloutProps, CalloutStatus, CodeBlockProps, PopoverContentProps, ProgressProps, SkeletonProps, SpinnerProps, TextareaProps } from "./feedback";

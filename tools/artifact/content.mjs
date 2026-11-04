@@ -212,6 +212,52 @@ A searchable list of every action, usually opened with ⌘K. Type to filter, arr
 
 **You provide** \`open\` and \`onOpenChange\` (bind the shortcut in your app), and \`groups\` of commands: \`{ id, label, icon?, shortcut?, keywords?, danger?, onSelect }\`. \`hints\` adds a footer naming the keys; it's off by default. \`keywords\` find a command by other words ("remove" finds "Delete sandbox").
 `),
+  Textarea: doc("Textarea", `
+Multi-line text: a task, a note, a description.
+
+**You provide** it inside a \`Field\` for its label, and \`rows\` (default 4). It resizes vertically and shares \`Input\`'s boundary, focus and invalid states.
+`),
+  Popover: doc("Popover", `
+Rich content anchored to a trigger: details, a short form, a confirmation that doesn't need a dialog. Esc or an outside click closes it, and focus returns to the trigger.
+
+**You provide** \`PopoverTrigger\` (usually \`render={<Button>…</Button>}\`), and \`PopoverContent\` with a \`PopoverTitle\` (it names the popover) and \`PopoverDescription\`.
+
+- Use \`Tooltip\` for a one-line hint, \`Menu\` for a list of actions, \`Dialog\` for a decision that blocks the page.
+`),
+  Callout: doc("Callout", `
+An inline message that stays until the situation changes: a warning or error that needs a decision, or information the reader shouldn't miss.
+
+**You provide** \`title\` (what's wrong), \`children\` (what to do), optional \`actions\`, and \`status\`: \`info\`, \`success\`, \`warning\` or \`danger\`. Set \`live\` only when it appears in response to something: \`"polite"\`, or \`"assertive"\` for an error that blocks the task.
+
+The surface stays neutral; status is the icon's shape and colour, and the words. No coloured fill, no coloured edge.
+`),
+  Progress: doc("Progress", `
+Progress of a task with a known end, such as a build. Pass \`value={null}\` while the end isn't known yet.
+
+**You provide** \`label\` (required: it names the bar), \`value\` (0–100), and \`showValue\`. The track's boundary meets 3:1, so the bar's extent reads without colour.
+`),
+  Spinner: doc("Spinner", `
+Work in progress with no measurable end, for short waits.
+
+**You provide** \`size\` (16, 20 or 24) and \`label\`, announced to screen readers. Omit the label when visible text beside it already says what's loading. Under reduced motion it fades instead of turning.
+`),
+  Skeleton: doc("Skeleton", `
+A placeholder for content that's loading, at its final size so nothing jumps when it arrives.
+
+**You provide** \`width\`, \`height\` and \`shape\` (\`text\`, \`block\` or \`circle\`). It's hidden from screen readers: announce loading once, elsewhere, with a \`Spinner\` or \`Progress\`.
+`),
+  CodeBlock: doc("CodeBlock", `
+Code, commands or logs in Geist Mono on a sunken surface. Long lines scroll sideways rather than wrap, and the block can be scrolled from the keyboard.
+
+**You provide** \`code\` (text), optional \`title\` (a file name or "terminal"), and \`copyable\` (on by default). Copying announces "Copied".
+`),
+  Accordion: doc("Accordion", `
+Sections that expand one at a time or several at once, for secondary detail.
+
+**You provide** \`Accordion\` (\`defaultValue\` or \`value\` as an array of open items; \`multiple\` to allow several) and \`AccordionItem\`s with a \`value\` and \`title\`.
+
+- Don't hide a page's main content in an accordion.
+`),
   Icon: doc("Icon", `
 A Phosphor icon at Basalt's weights: Bold at 16px, Regular at 20px and up, Fill when \`selected\`.
 
@@ -329,6 +375,24 @@ ${mount(`h(B.ToastProvider, null, h(Demo))`)}`, "\n.basalt-toast-viewport{positi
         { id: 'logs', label: 'Open logs', icon: B.TerminalIcon, onSelect: run }] }] }));
 }
 ${mount(`h(Demo)`)}`, "\n.basalt-dialog.basalt-command{top:16px}\n.basalt-command-list{max-height:none}"),
+  Textarea: preview("Forms", 168, mount(`h('div', { style: { maxWidth: 480 } }, h(B.Field, { label: 'Task', description: 'What the agent should do. Markdown is fine.' }, h(B.Textarea, { defaultValue: 'Fix the dimmed ride rows that never reset, and open a PR.' })))`)),
+  Popover: preview("Overlays", 180, mount(`h(B.Popover, { defaultOpen: true, modal: false },
+  h(B.PopoverTrigger, { render: h(B.Button, null, 'Route details') }),
+  h(B.PopoverContent, null, h(B.PopoverTitle, null, 'anthropic'), h(B.PopoverDescription, null, 'https://api.anthropic.com, key anthropic-key, 60 requests a minute.')))`)),
+  Callout: preview("Status", 260, mount(`h('div', { className: 'col' },
+  h(B.Callout, { status: 'warning', title: "The tools image isn't pinned", actions: h(B.Button, { size: 'sm' }, 'Pin to digest') }, 'Runs use whatever agent-tools:latest points to. Pin it to a digest so every run uses the same tools.'),
+  h(B.Callout, { status: 'danger', title: 'Route refused: api.example.com' }, "This run isn't allowed to reach that host."),
+  h(B.Callout, { title: 'Records are kept for 30 days' }))`)),
+  Progress: preview("Status", 84, mount(`h('div', { className: 'row', style: { gap: 24, alignItems: 'flex-start' } },
+  h('div', { style: { flex: 1 } }, h(B.Progress, { label: 'Building image', value: 42 })),
+  h('div', { style: { flex: 1 } }, h(B.Progress, { label: 'Waiting for a node', value: null })))`)),
+  Spinner: preview("Status", 56, mount(`h('div', { className: 'row', style: { gap: 16, fontSize: 13 } }, h(B.Spinner, { label: 'Loading' }), h(B.Spinner, { size: 20 }), h('span', { style: { display: 'inline-flex', gap: 8, alignItems: 'center' } }, h(B.Spinner), 'Starting sandbox'))`)),
+  Skeleton: preview("Status", 140, mount(`h('div', { className: 'col', style: { gap: 8, maxWidth: 360 } }, h(B.Skeleton, { width: '40%' }), h(B.Skeleton, { width: '90%' }), h(B.Skeleton, { shape: 'block', height: 48 }))`)),
+  CodeBlock: preview("Display", 132, mount(`h(B.CodeBlock, { title: 'terminal', code: './blacksand k8s run --repo ~/code/project --prompt-file task.md \\\\\\n  --agent claude --out runs/first-task' })`)),
+  Accordion: preview("Display", 190, mount(`h(B.Accordion, { defaultValue: ['routes'] },
+  h(B.AccordionItem, { value: 'routes', title: 'Routes' }, 'Each run reaches only the hosts you list, through the proxy.'),
+  h(B.AccordionItem, { value: 'keys', title: 'Keys' }, 'Keys stay outside the sandbox; the proxy adds them to requests it allows.'),
+  h(B.AccordionItem, { value: 'records', title: 'Records' }, 'Every run gets a record, including failed and cancelled ones.'))`)),
   Icon: preview("Display", 88, mount(`h('div', { className: 'col' },
   h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 16 }); }), h('span', { style: { fontSize: 12 } }, '16 · Bold')),
   h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 20, selected: i === 0 }); }), h('span', { style: { fontSize: 12 } }, '20 · Regular, first selected (Fill)')))`)),

@@ -228,13 +228,13 @@ const domLib = await esbuild.build({
 });
 write("components/lib/react-dom.js", classic(domLib.outputFiles[0].text, "react-dom.js"));
 
-const COMPONENTS = ["Button", "IconButton", "Field", "Input", "Menu", "MenuTrigger", "MenuContent", "MenuItem", "MenuGroup", "MenuGroupLabel", "MenuSeparator", "Dialog", "DialogTrigger", "DialogContent", "DialogTitle", "DialogDescription", "DialogActions", "DialogClose", "Tabs", "TabsList", "Tab", "TabsPanel", "SegmentedControl", "Segment", "Badge", "Kbd", "Card", "CardHeader", "CardTitle", "CardDescription", "CardContent", "CardFooter", "TableContainer", "Table", "TableHeader", "TableBody", "TableRow", "TableHead", "TableCell", "Tooltip", "TooltipProvider", "Icon", "Checkbox", "Switch", "RadioGroup", "Radio", "Select", "ToastProvider", "useToast", "CommandMenu"];
+const COMPONENTS = ["Button", "IconButton", "Field", "Input", "Menu", "MenuTrigger", "MenuContent", "MenuItem", "MenuGroup", "MenuGroupLabel", "MenuSeparator", "Dialog", "DialogTrigger", "DialogContent", "DialogTitle", "DialogDescription", "DialogActions", "DialogClose", "Tabs", "TabsList", "Tab", "TabsPanel", "SegmentedControl", "Segment", "Badge", "Kbd", "Card", "CardHeader", "CardTitle", "CardDescription", "CardContent", "CardFooter", "TableContainer", "Table", "TableHeader", "TableBody", "TableRow", "TableHead", "TableCell", "Tooltip", "TooltipProvider", "Icon", "Checkbox", "Switch", "RadioGroup", "Radio", "Select", "ToastProvider", "useToast", "CommandMenu", "Textarea", "Popover", "PopoverTrigger", "PopoverContent", "PopoverTitle", "PopoverDescription", "Callout", "Progress", "Spinner", "Skeleton", "CodeBlock", "Accordion", "AccordionItem"];
 const ICONS = ["CaretDownIcon", "CopyIcon", "DotsThreeIcon", "GearIcon", "MagnifyingGlassIcon", "PencilSimpleIcon", "PlayIcon", "PlusIcon", "TrashIcon", "CubeIcon", "TerminalIcon", "HouseIcon"];
 const entry = `export * from ${JSON.stringify(path.join(react, "src/index.ts"))};\nexport { ${ICONS.join(", ")} } from "@phosphor-icons/react";\n`;
 const bundle = await esbuild.build({
   stdin: { contents: entry, resolveDir: react, loader: "ts" },
   bundle: true, format: "iife", globalName: NS, minify: true, define: prod, write: false, jsx: "automatic", target: "es2020",
-  banner: { js: `/* @ds-bundle: ${JSON.stringify({ format: 4, namespace: NS, components: ["Button", "Field", "Checkbox", "Switch", "RadioGroup", "Select", "Menu", "Dialog", "CommandMenu", "Toast", "Tabs", "SegmentedControl", "Badge", "Card", "Table", "Tooltip", "Kbd", "Icon"].map((name) => ({ name })) })} */` },
+  banner: { js: `/* @ds-bundle: ${JSON.stringify({ format: 4, namespace: NS, components: ["Button", "Field", "Checkbox", "Switch", "RadioGroup", "Select", "Menu", "Dialog", "CommandMenu", "Toast", "Tabs", "SegmentedControl", "Badge", "Card", "Table", "Tooltip", "Kbd", "Icon", "Textarea", "Popover", "Callout", "Progress", "Spinner", "Skeleton", "CodeBlock", "Accordion"].map((name) => ({ name })) })} */` },
   plugins: [globals],
 });
 const bundleJs = classic(bundle.outputFiles[0].text, "bundle.js");

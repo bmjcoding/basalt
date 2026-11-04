@@ -6,6 +6,19 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 
 import {
+  Accordion,
+  AccordionItem,
+  Callout,
+  CodeBlock,
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+  PopoverTrigger,
+  Progress,
+  Skeleton,
+  Spinner,
+  Textarea,
   Checkbox,
   CommandMenu,
   Radio,
@@ -229,6 +242,50 @@ function App() {
             <ToastOnLoad />
             <CommandDemo />
           </div>
+        </Section>
+
+        <Section title="Status and content">
+          <div className="row" style={{ alignItems: "flex-start" }}>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <Field label="Task" description="What the agent should do. Markdown is fine.">
+                <Textarea defaultValue="Fix the dimmed ride rows that never reset, and open a PR." />
+              </Field>
+            </div>
+            <Popover defaultOpen={open === "popover"}>
+              <PopoverTrigger render={<Button>Route details</Button>} />
+              <PopoverContent>
+                <PopoverTitle>anthropic</PopoverTitle>
+                <PopoverDescription>https://api.anthropic.com, key anthropic-key, 60 requests a minute.</PopoverDescription>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <Callout status="warning" title="The tools image isn't pinned" actions={<Button size="sm">Pin to digest</Button>}>
+            Runs use whatever <code>agent-tools:latest</code> points to. Pin it to a digest so every run uses the same tools.
+          </Callout>
+          <Callout status="danger" title="Route refused: api.example.com">This run isn't allowed to reach that host. Add it to the run's routes to allow it.</Callout>
+          <Callout title="Records are kept for 30 days" />
+          <div className="row" style={{ gap: 24 }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <Progress label="Building image" value={42} />
+            </div>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <Progress label="Waiting for a node" value={null} />
+            </div>
+            <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+              <Spinner label="Starting sandbox" /> Starting sandbox
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 360 }}>
+            <Skeleton width="40%" />
+            <Skeleton width="90%" />
+            <Skeleton shape="block" height={48} />
+          </div>
+          <CodeBlock title="terminal" code={"./blacksand k8s run --repo ~/code/project --prompt-file task.md \\\n  --agent claude --out runs/first-task"} />
+          <Accordion defaultValue={["routes"]}>
+            <AccordionItem value="routes" title="Routes">Each run reaches only the hosts you list, through the proxy.</AccordionItem>
+            <AccordionItem value="keys" title="Keys">Keys stay outside the sandbox; the proxy adds them to requests it allows.</AccordionItem>
+            <AccordionItem value="records" title="Records">Every run gets a record, including failed and cancelled ones.</AccordionItem>
+          </Accordion>
         </Section>
 
         <Section title="Navigation">

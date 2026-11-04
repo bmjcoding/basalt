@@ -36,7 +36,11 @@ for (const theme of ["dark", "light"]) {
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     await page.goto("file://" + file);
     await page.waitForTimeout(500);
-    const blank = await page.evaluate(() => !document.body.innerText.trim() && !document.querySelector("svg"));
+    // blank: nothing drawn at a visible size (text-free previews, like Skeleton, still draw boxes)
+    const blank = await page.evaluate(() => ![...document.body.querySelectorAll("*")].some((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 2 && r.height > 2 && el !== document.getElementById("root");
+    }));
     if (shots) await page.screenshot({ path: path.join(shots, `${c}.${theme}.png`) });
     const ok = !errors.length && !blank;
     if (!ok) failed++;

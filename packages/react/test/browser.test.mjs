@@ -233,6 +233,54 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("popover: opens from the keyboard, named, Esc returns focus", async () => {
+      const { page } = await open(theme);
+      const trigger = page.getByRole("button", { name: "Route details" });
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      const pop = page.getByRole("dialog", { name: "anthropic" });
+      await pop.waitFor();
+      assert.deepEqual(await axe(page), [], "violations with the popover open");
+      await page.keyboard.press("Escape");
+      await pop.waitFor({ state: "hidden" });
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Route details");
+      await page.close();
+    });
+
+    test("textarea, progress and spinner are named; callouts announce only when live", async () => {
+      const { page } = await open(theme);
+      assert.equal(await page.getByRole("textbox", { name: "Task" }).count(), 1);
+      const bar = page.getByRole("progressbar", { name: "Building image" });
+      assert.equal(await bar.getAttribute("aria-valuenow"), "42");
+      assert.equal(await page.getByRole("progressbar", { name: "Waiting for a node" }).count(), 1);
+      assert.equal(await page.getByRole("status", { name: "Starting sandbox" }).count(), 1);
+      // a callout present on load is not a live region (it would be read out on every load)
+      assert.equal(await page.locator(".basalt-callout[role]").count(), 0);
+      await page.close();
+    });
+
+    test("code block: keyboard-scrollable, copies, and says so", async () => {
+      const { page } = await open(theme);
+      await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+      assert.equal(await page.locator(".basalt-code-pre").getAttribute("tabindex"), "0");
+      await page.getByRole("button", { name: "Copy code" }).click();
+      await page.getByRole("button", { name: "Copied" }).waitFor();
+      assert.match(await page.evaluate(() => navigator.clipboard.readText()), /blacksand k8s run/);
+      assert.equal(await page.locator(".basalt-code [role=status]").textContent(), "Copied");
+      await page.close();
+    });
+
+    test("accordion: Enter toggles a section and its state is announced", async () => {
+      const { page } = await open(theme);
+      const keys = page.getByRole("button", { name: "Keys" });
+      assert.equal(await keys.getAttribute("aria-expanded"), "false");
+      await keys.focus();
+      await page.keyboard.press("Enter");
+      assert.equal(await keys.getAttribute("aria-expanded"), "true");
+      await page.getByText("Keys stay outside the sandbox").waitFor();
+      await page.close();
+    });
+
     test("no horizontal page scroll at phone width", async () => {
       const { page } = await open(theme, "", { width: 390, height: 844 });
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
