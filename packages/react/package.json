@@ -32,7 +32,8 @@
   "dependencies": {
     "@base-ui/react": "1.9.0",
     "@phosphor-icons/react": "2.1.10",
-    "@srasyndicate/basalt-tokens": "0.1.0"
+    "@srasyndicate/basalt-tokens": "0.1.0",
+    "shiki": "4.6.0"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

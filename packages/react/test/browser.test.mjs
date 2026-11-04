@@ -40,8 +40,8 @@ after(async () => {
   server?.close();
 });
 
-async function open(theme, query = "", viewport = { width: 1000, height: 1200 }) {
-  const page = await browser.newPage({ viewport });
+async function open(theme, query = "", viewport = { width: 1000, height: 1200 }, options = {}) {
+  const page = await browser.newPage({ viewport, ...options });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -51,7 +51,17 @@ async function open(theme, query = "", viewport = { width: 1000, height: 1200 })
   return { page, errors };
 }
 
+async function settle(page) {
+  // Audit the settled state, not an overlay halfway through its entrance fade. Loading
+  // animations repeat forever and are deliberately excluded from this wait, not the audit.
+  await page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})));
+  });
+}
+
 async function axe(page) {
+  await settle(page);
   await page.addScriptTag({ content: axeSource });
   // Excluded: Base UI's focus guards (Floating UI's pattern). They are empty, aria-hidden spans
   // that take Tab only to forward focus at once to the right control, so neither a screen reader
@@ -99,6 +109,8 @@ for (const theme of ["light", "dark"]) {
       const dialog = page.getByRole("dialog", { name: "Delete blacksand-api?" });
       await dialog.waitFor();
       // a destructive confirmation opens with focus on the safe choice
+      // Base UI moves focus after mounting; visibility can resolve before that frame.
+      await page.waitForFunction(() => document.activeElement?.textContent?.trim() === "Cancel");
       assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Cancel");
       assert.deepEqual(await axe(page), [], "violations with the dialog open");
       for (let i = 0; i < 6; i++) {
@@ -225,6 +237,7 @@ for (const theme of ["light", "dark"]) {
       const openMenu = async () => {
         await page.getByRole("button", { name: /Commands/ }).click();
         await page.getByRole("dialog", { name: "Command menu" }).waitFor();
+        await page.waitForFunction(() => document.activeElement?.matches(".basalt-command-input"));
       };
       await openMenu();
       assert.deepEqual(await axe(page), [], "violations with the command menu open");
@@ -282,6 +295,106 @@ for (const theme of ["light", "dark"]) {
       await page.getByRole("button", { name: "Copied" }).waitFor();
       assert.match(await page.evaluate(() => navigator.clipboard.readText()), /blacksand k8s run/);
       assert.equal(await page.locator(".basalt-code [role=status]").textContent(), "Copied");
+      await page.close();
+    });
+
+    test("textarea: controlled values, field identity, validation and disabled state stay wired", async () => {
+      const { page, errors } = await open(theme, "&fixture=textarea");
+      const task = page.getByRole("textbox", { name: "Controlled task", exact: true });
+      assert.equal(await task.inputValue(), "Original task");
+      assert.equal(await task.getAttribute("id"), "controlled-task");
+      assert.equal(await task.getAttribute("name"), "task");
+      await page.getByText("Controlled task", { exact: true }).click();
+      assert.equal(await task.evaluate((el) => document.activeElement === el), true);
+      await task.fill("Updated task");
+      assert.equal(await page.getByRole("status", { name: "Task value" }).textContent(), "Updated task");
+      await page.getByRole("button", { name: "Clear task" }).click();
+      assert.equal(await task.inputValue(), "");
+      assert.equal(await task.getAttribute("aria-invalid"), "true");
+      await page.getByText("Use at least 3 characters.", { exact: true }).waitFor();
+      const described = await task.evaluate((el) => (el.getAttribute("aria-describedby") ?? "").split(" ").map((id) => document.getElementById(id)?.textContent).join(" "));
+      assert.match(described, /Describe the task/);
+      assert.match(described, /Use at least 3 characters/);
+      assert.equal(await page.getByRole("textbox", { name: "Disabled task" }).isDisabled(), true);
+      assert.equal(await page.getByRole("textbox", { name: "Read only task" }).getAttribute("readonly"), "");
+      assert.deepEqual(await axe(page), []);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("code syntax follows the theme, updates with its source and copies the exact text", async () => {
+      const { page, errors } = await open(theme, "&fixture=code");
+      const block = page.getByRole("region", { name: "Code fixtures" }).locator(".basalt-code");
+      const source = page.getByRole("textbox", { name: "Code source" });
+      const code = block.locator("code");
+      const original = await source.inputValue();
+      assert.equal(await code.textContent(), original);
+      const keyword = code.locator('span[style*="syntax-keyword"]').first();
+      const before = await keyword.evaluate((el) => getComputedStyle(el).color);
+      await page.evaluate((theme) => document.documentElement.dataset.theme = theme, theme === "light" ? "dark" : "light");
+      const after = await keyword.evaluate((el) => getComputedStyle(el).color);
+      assert.notEqual(before, after, "syntax colours did not follow the theme");
+      assert.match(await code.evaluate((el) => getComputedStyle(el).fontFamily), /Geist Mono/);
+      await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+      await block.getByRole("button", { name: "Copy code" }).click();
+      await block.getByRole("button", { name: "Copied" }).waitFor();
+      assert.equal(await page.evaluate(() => navigator.clipboard.readText()), original);
+      const updated = '<script>window.__codeExecuted = true</script>\n';
+      await page.getByRole("textbox", { name: "Code language" }).fill("html");
+      await source.fill(updated);
+      assert.equal(await code.textContent(), updated);
+      assert.equal(await code.locator("script").count(), 0);
+      assert.equal(await page.evaluate(() => window.__codeExecuted), undefined);
+      await page.getByRole("textbox", { name: "Code language" }).fill("unsupported");
+      assert.equal(await code.locator("span").count(), 0);
+      assert.equal(await code.textContent(), updated);
+      assert.deepEqual(await axe(page), []);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("compact density moves every control down a step, including portals, and can be reset", async () => {
+      const { page } = await open(theme, "&fixture=density");
+      const heights = () => page.getByRole("region", { name: "Density fixtures" }).locator(".basalt-button, .basalt-input, .basalt-select-trigger").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+      const normal = [24, 28, 32, 36, 40].flatMap((n) => [n, n, n]);
+      assert.deepEqual(await heights(), normal);
+      await page.evaluate(() => document.documentElement.dataset.density = "compact");
+      assert.deepEqual(await heights(), [24, 24, 28, 32, 36].flatMap((n) => [n, n, n]));
+      await page.getByRole("button", { name: "Actions", exact: true }).click();
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      await settle(page);
+      assert.equal(await menu.getByRole("menuitem").first().evaluate((el) => el.getBoundingClientRect().height), 28);
+      await page.keyboard.press("Escape");
+      await page.getByRole("region", { name: "Density fixtures" }).evaluate((el) => el.dataset.density = "default");
+      assert.deepEqual(await heights(), normal, "nested default scope did not restore the scale");
+      await page.close();
+    });
+
+    test("touch keeps 44px targets in compact mode and text inputs avoid focus zoom", async () => {
+      const { page } = await open(theme, "&fixture=density", { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+      await page.evaluate(() => document.documentElement.dataset.density = "compact");
+      assert.equal(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), true);
+      const controls = await page.locator(".basalt-button, .basalt-input, .basalt-select-trigger, .basalt-tab, .basalt-segment, .basalt-choice, .basalt-accordion-trigger").evaluateAll((els) => els.map((el) => {
+        const rect = el.getBoundingClientRect();
+        return { text: el.getAttribute("aria-label") ?? el.textContent, width: rect.width, height: rect.height };
+      }));
+      assert.deepEqual(controls.filter((c) => c.width < 44 || c.height < 44), [], "small touch target");
+      assert.equal(await page.getByRole("textbox", { name: "Input xs" }).evaluate((el) => getComputedStyle(el).fontSize), "16px");
+      await page.getByRole("button", { name: "Actions", exact: true }).click();
+      await page.getByRole("menu").waitFor();
+      await settle(page);
+      assert.equal(await page.getByRole("menuitem").first().evaluate((el) => el.getBoundingClientRect().height), 44);
+      await page.close();
+    });
+
+    test("loading and expansion honour reduced motion", async () => {
+      const { page } = await open(theme);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.equal(await page.locator(".basalt-spinner svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-skeleton").first().evaluate((el) => getComputedStyle(el).animationName), "none");
+      assert.equal(await page.locator(".basalt-progress-indicator[data-indeterminate]").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-accordion-caret").first().evaluate((el) => getComputedStyle(el).transitionDuration), "0s");
       await page.close();
     });
 

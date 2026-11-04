@@ -141,6 +141,47 @@ function CommandDemo() {
   );
 }
 
+function CodeFixture() {
+  const [language, setLanguage] = React.useState("typescript");
+  const [code, setCode] = React.useState('// Route\nconst route: string = "api.example.com";\nconst limit = 42;\n');
+  return (
+    <Section title="Code fixtures">
+      <Field label="Code language"><Input value={language} onChange={(e) => setLanguage(e.target.value)} /></Field>
+      <Field label="Code source"><Textarea value={code} onChange={(e) => setCode(e.target.value)} /></Field>
+      <CodeBlock title="Example" code={code} language={language} />
+    </Section>
+  );
+}
+
+function TextareaFixture() {
+  const [value, setValue] = React.useState("Original task");
+  return (
+    <Section title="Textarea fixtures">
+      <Field label="Controlled task" name="task" description="Describe the task." invalid={value.length < 3} error="Use at least 3 characters.">
+        <Textarea id="controlled-task" value={value} onChange={(e) => setValue(e.target.value)} required />
+      </Field>
+      <Button onClick={() => setValue("")}>Clear task</Button>
+      <output aria-label="Task value">{value}</output>
+      <Field label="Disabled task" disabled><Textarea defaultValue="Unavailable" /></Field>
+      <Field label="Read only task"><Textarea readOnly defaultValue="Fixed" /></Field>
+    </Section>
+  );
+}
+
+function DensityFixture() {
+  return (
+    <Section title="Density fixtures">
+      {(["xs", "sm", "md", "lg", "xl"] as const).map((size) => (
+        <div className="row" key={size} data-testid={`density-${size}`}>
+          <Button size={size}>{size}</Button>
+          <div style={{ width: 180 }}><Field label={`Input ${size}`}><Input controlSize={size} /></Field></div>
+          <div style={{ width: 180 }}><Field label={`Select ${size}`}><Select controlSize={size} options={[{ value: "one", label: "One" }]} defaultValue="one" /></Field></div>
+        </div>
+      ))}
+    </Section>
+  );
+}
+
 function App() {
   const [range, setRange] = React.useState("24h");
   return (
@@ -150,6 +191,10 @@ function App() {
         <h1 style={{ margin: 0, font: "var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size)/var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans)", letterSpacing: "var(--basalt-text-2xl-tracking)" }}>
           Basalt components
         </h1>
+
+        {params.get("fixture") === "code" ? <CodeFixture /> : null}
+        {params.get("fixture") === "textarea" ? <TextareaFixture /> : null}
+        {params.get("fixture") === "density" ? <DensityFixture /> : null}
 
         <Section title="Buttons">
           <div className="row">
@@ -280,7 +325,7 @@ function App() {
             <Skeleton width="90%" />
             <Skeleton shape="block" height={48} />
           </div>
-          <CodeBlock title="terminal" code={"./blacksand k8s run --repo ~/code/project --prompt-file task.md \\\n  --agent claude --out runs/first-task"} />
+          <CodeBlock title="terminal" language="bash" code={"./blacksand k8s run --repo ~/code/project --prompt-file task.md \\\n  --agent claude --out runs/first-task"} />
           <Accordion defaultValue={["routes"]}>
             <AccordionItem value="routes" title="Routes">Each run reaches only the hosts you list, through the proxy.</AccordionItem>
             <AccordionItem value="keys" title="Keys">Keys stay outside the sandbox; the proxy adds them to requests it allows.</AccordionItem>

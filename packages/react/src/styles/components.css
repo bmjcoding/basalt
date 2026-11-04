@@ -2,6 +2,30 @@
    colour. Inside @layer basalt, so an app's own unlayered CSS always wins without !important. */
 
 @layer basalt {
+  /* Density changes component sizes, never the public token values. Set it on <html> so
+     portalled menus share it. A nested default scope restores the regular scale. */
+  :where([data-density="compact"]) {
+    --_basalt-control-xs: var(--basalt-size-control-xs);
+    --_basalt-control-sm: var(--basalt-size-control-xs);
+    --_basalt-control-md: var(--basalt-size-control-sm);
+    --_basalt-control-lg: var(--basalt-size-control-md);
+    --_basalt-control-xl: var(--basalt-size-control-lg);
+    --_basalt-control-font: var(--basalt-text-sm-size);
+    --_basalt-control-lg-radius: var(--basalt-radius-sm);
+    --_basalt-menu-row: var(--basalt-size-control-sm);
+  }
+
+  :where([data-density="default"]) {
+    --_basalt-control-xs: initial;
+    --_basalt-control-sm: initial;
+    --_basalt-control-md: initial;
+    --_basalt-control-lg: initial;
+    --_basalt-control-xl: initial;
+    --_basalt-control-font: initial;
+    --_basalt-control-lg-radius: initial;
+    --_basalt-menu-row: initial;
+  }
+
   /* ---- shared ---- */
 
   .basalt-icon {
@@ -36,10 +60,10 @@
   /* ---- Button ---- */
 
   .basalt-button {
-    --_h: var(--basalt-size-control-md);
+    --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
     --_px: var(--basalt-space-3);
     --_radius: var(--basalt-radius-sm);
-    --_font: var(--basalt-text-base-size);
+    --_font: var(--_basalt-control-font, var(--basalt-text-base-size));
 
     box-sizing: border-box;
     display: inline-flex;
@@ -63,10 +87,10 @@
     transition-timing-function: var(--basalt-ease-out);
   }
 
-  .basalt-button[data-size="xs"] { --_h: var(--basalt-size-control-xs); --_px: var(--basalt-space-2); --_font: var(--basalt-text-sm-size); }
-  .basalt-button[data-size="sm"] { --_h: var(--basalt-size-control-sm); --_px: 10px; --_font: var(--basalt-text-sm-size); }
-  .basalt-button[data-size="lg"] { --_h: var(--basalt-size-control-lg); --_px: 14px; --_radius: var(--basalt-radius-md); }
-  .basalt-button[data-size="xl"] { --_h: var(--basalt-size-control-xl); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--basalt-text-md-size); }
+  .basalt-button[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); --_px: var(--basalt-space-2); --_font: var(--basalt-text-sm-size); }
+  .basalt-button[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); --_px: 10px; --_font: var(--basalt-text-sm-size); }
+  .basalt-button[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); --_px: 14px; --_radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-button[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); }
   .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
 
   .basalt-button[data-variant="primary"] {
@@ -141,7 +165,7 @@
   .basalt-field-error { color: var(--basalt-status-danger); }
 
   .basalt-input {
-    --_h: var(--basalt-size-control-md);
+    --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
 
     box-sizing: border-box;
     width: 100%;
@@ -153,14 +177,14 @@
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 1px var(--basalt-border-input);
     color: var(--basalt-text-primary);
-    font-size: var(--basalt-text-base-size);
+    font-size: var(--_basalt-control-font, var(--basalt-text-base-size));
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
   }
 
-  .basalt-input[data-size="xs"] { --_h: var(--basalt-size-control-xs); font-size: var(--basalt-text-sm-size); }
-  .basalt-input[data-size="sm"] { --_h: var(--basalt-size-control-sm); font-size: var(--basalt-text-sm-size); }
-  .basalt-input[data-size="lg"] { --_h: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
-  .basalt-input[data-size="xl"] { --_h: var(--basalt-size-control-xl); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); }
+  .basalt-input[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
+  .basalt-input[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
+  .basalt-input[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-input[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
 
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 1px var(--basalt-status-danger); }
@@ -193,7 +217,7 @@
     display: flex;
     align-items: center;
     gap: var(--basalt-space-2);
-    height: var(--basalt-size-menu-row);
+    height: var(--_basalt-menu-row, var(--basalt-size-menu-row));
     padding: 0 var(--basalt-space-2);
     /* nested radius: the popup's 12px minus its 6px padding */
     border-radius: var(--basalt-radius-sm);
@@ -297,7 +321,7 @@
 
   .basalt-tab {
     position: relative;
-    height: var(--basalt-size-control-lg);
+    height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     padding: 0 var(--basalt-space-2);
     margin: 0;
     border: 0;
@@ -344,7 +368,7 @@
   }
 
   .basalt-segment {
-    height: var(--basalt-size-control-sm);
+    height: var(--_basalt-control-sm, var(--basalt-size-control-sm));
     padding: 0 10px;
     margin: 0;
     border: 0;
@@ -523,8 +547,8 @@
     display: inline-flex;
     align-items: center;
     gap: var(--basalt-space-2);
-    min-height: var(--basalt-size-control-sm);
-    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    min-height: var(--_basalt-control-sm, var(--basalt-size-control-sm));
+    font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-primary);
     cursor: pointer;
   }
@@ -621,7 +645,7 @@
   /* ---- Select ---- */
 
   .basalt-select-trigger {
-    --_h: var(--basalt-size-control-md);
+    --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
 
     box-sizing: border-box;
     display: inline-flex;
@@ -638,13 +662,15 @@
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 1px var(--basalt-border-input);
     color: var(--basalt-text-primary);
-    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / 1 var(--basalt-font-family-sans);
+    font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / 1 var(--basalt-font-family-sans);
     text-align: left;
     cursor: pointer;
   }
 
-  .basalt-select-trigger[data-size="sm"] { --_h: var(--basalt-size-control-sm); font-size: var(--basalt-text-sm-size); }
-  .basalt-select-trigger[data-size="lg"] { --_h: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
+  .basalt-select-trigger[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
+  .basalt-select-trigger[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
+  .basalt-select-trigger[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-select-trigger[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
   .basalt-select-value[data-placeholder] { color: var(--basalt-text-tertiary); }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
@@ -909,6 +935,8 @@
 
   .basalt-code {
     position: relative;
+    min-width: 0;
+    max-width: 100%;
     margin: 0;
     border-radius: var(--basalt-radius-md);
     background: var(--basalt-surface-sunken);
@@ -934,6 +962,7 @@
   }
 
   .basalt-code[data-titled] .basalt-code-pre { padding-right: var(--basalt-space-4); }
+  .basalt-code-pre code { font: inherit; }
   .basalt-code-pre:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* Copy sits top right: in the title row when there is one, else over the code's corner. */
   .basalt-code-copy { position: absolute; top: var(--basalt-space-1-5); right: var(--basalt-space-1-5); }
@@ -978,6 +1007,26 @@
   .basalt-accordion-panel[data-starting-style],
   .basalt-accordion-panel[data-ending-style] { height: 0; }
   .basalt-accordion-content { padding-bottom: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
+
+  /* A touch target stays at least 44px even in compact mode. Labels provide the target for
+     choices without enlarging their checkbox/radio/switch glyphs. Native text entry is 16px
+     on touch, preventing iOS from zooming the viewport when the keyboard opens. */
+  @media (pointer: coarse) {
+    .basalt-button,
+    .basalt-input,
+    .basalt-select-trigger,
+    .basalt-tab,
+    .basalt-segment,
+    .basalt-choice,
+    .basalt-accordion-trigger {
+      min-height: var(--basalt-size-tap-min);
+      min-width: var(--basalt-size-tap-min);
+    }
+    .basalt-menu-item { height: max(var(--basalt-size-menu-row-touch), var(--basalt-size-tap-min)); }
+    .basalt-input[data-size],
+    .basalt-input.basalt-textarea,
+    .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
+  }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 

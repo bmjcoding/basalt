@@ -48,6 +48,15 @@ final class TokensTests: XCTestCase {
     check(Basalt.Colors.borderFocus, atLeast: 3, "border-focus")
   }
 
+  func testSyntaxMeetsAA() {
+    check(Basalt.Colors.syntaxKeyword, atLeast: 4.5, "syntax-keyword")
+    check(Basalt.Colors.syntaxString, atLeast: 4.5, "syntax-string")
+    check(Basalt.Colors.syntaxConstant, atLeast: 4.5, "syntax-constant")
+    check(Basalt.Colors.syntaxFunction, atLeast: 4.5, "syntax-function")
+    check(Basalt.Colors.syntaxType, atLeast: 4.5, "syntax-type")
+    check(Basalt.Colors.syntaxComment, atLeast: 4.5, "syntax-comment")
+  }
+
   func testThePageIsTheDarkestLayer() {
     for theme in [\Basalt.ThemedColor.light, \Basalt.ThemedColor.dark] {
       let page = luminance(Basalt.Colors.surfacePage[keyPath: theme])

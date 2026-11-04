@@ -1,5 +1,5 @@
 // Builds @srasyndicate/basalt:
-//   dist/index.js       the components, as ES modules (React, Base UI and Phosphor stay external)
+//   dist/index.js       the components, as ES modules (React, Base UI, Phosphor and Shiki stay external)
 //   dist/*.d.ts         type declarations
 //   dist/components.css the component styles alone, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
@@ -28,7 +28,7 @@ await esbuild.build({
   platform: "neutral",
   target: "es2022",
   jsx: "automatic",
-  external: ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react"],
+  external: ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "shiki", "shiki/*"],
   logLevel: "warning",
 });
 

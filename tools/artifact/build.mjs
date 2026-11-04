@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { inlineScript } from "../inline-script.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const react = path.join(repo, "packages", "react");
@@ -215,8 +216,9 @@ const globals = {
 };
 const prod = { "process.env.NODE_ENV": '"production"' };
 const classic = (code, name) => {
-  if (/<\/script|<!--/i.test(code)) throw new Error(`${name} contains </script or <!--`);
-  return code;
+  const safe = inlineScript(code);
+  if (/<\/script|<!--/i.test(safe)) throw new Error(`${name} contains </script or <!--`);
+  return safe;
 };
 
 const reactLib = await esbuild.build({ stdin: { contents: "import * as R from 'react'; window.React = R;", resolveDir: react }, bundle: true, format: "iife", minify: true, define: prod, write: false, legalComments: "inline" });

@@ -18,6 +18,8 @@ its own accent, in a few named roles, and nowhere else.
 - **Borders build structure; shadows exist only for things that float.**
 - **No ornament that signals "generated":** no top highlights on cards, no gradient
   borders, no glow, no press-shrink, no bounce. Colour never carries meaning alone.
+- **Code has its own syntax palette.** Colour inside code helps distinguish language roles;
+  it does not change the monochrome interface or carry a product status.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -86,6 +88,25 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 
 ## Type
 
+### Code syntax
+
+`CodeBlock` uses Shiki's TextMate grammars, the same grammar format used by editors, with a
+small Basalt theme. The interface stays monochrome; syntax is a functional exception confined
+to code. Keywords are blue, strings green, constants amber, functions purple, types and tags
+teal, and comments neutral grey. The colours are separate from status and product accents.
+Every syntax colour, including comments, meets 4.5:1 on every surface in both themes and stays
+inside sRGB. The source is the `color.syntax` group, generated into CSS, TypeScript and Swift.
+
+Pass the language explicitly; a title is a display label, not a language detector. Twelve
+grammars are bundled: shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift, TSX,
+TypeScript and YAML, including their common aliases. Plain text, unsupported languages and
+logs over 100,000 UTF-16 code units stay plain. No language is fetched from the network.
+Tokenization works during server rendering, and CSS variables switch colours with the theme.
+Source is rendered as React text, with its whitespace preserved; copying always uses the
+original source. Comments use the bundled upright Geist Mono rather than a synthetic italic.
+
+### Interface type
+
 Geist Sans and Geist Mono (SIL OFL 1.1), variable fonts, at three weights: 400, 500, 600.
 In-between weights such as 510 or 590 were considered: SwiftUI and Compose map only whole
 steps, so they'd render differently on native.
@@ -109,8 +130,13 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
 
 - **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px).
 - **Controls:** 24, 28, 32, 36 and 40px tall; 32 is the app default, and
-  `data-density="compact"` moves every control down one step. Menu rows are 32px (36px for
-  touch); touch targets are at least 44px.
+  `data-density="compact"` moves controls down one step (24px is the floor) and uses 13px
+  control text. Set it on `<html>` so portalled menus inherit it; a nested
+  `data-density="default"` restores regular sizes. Menu rows are 32px by default, 28px in
+  compact mode, and at least 44px on touch. All shared control targets stay at least 44px on
+  touch regardless of density. Choice labels provide their target without enlarging the
+  glyph; a standalone choice must be placed inside a target of at least that size by its
+  consumer. Text entry is 16px on touch to avoid iOS focus zoom.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (controls 36px and
   up, inputs), 12 (cards, menus, dialogs), 16 (sheets), full (avatars and dots only). A
   nested radius is the outer radius minus the padding.

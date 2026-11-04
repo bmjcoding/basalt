@@ -41,6 +41,42 @@ extension Basalt {
       dark: RGBA(red: 0.999125, green: 0.64163, blue: 0.003499, alpha: 1)
     )
 
+    /// Code keywords and storage declarations; blue, distinct from surrounding identifiers.
+    public static let syntaxKeyword = ThemedColor(
+      light: RGBA(red: 0.019609, green: 0.313725, blue: 0.682352, alpha: 1),
+      dark: RGBA(red: 0.626574, green: 0.788139, blue: 0.995929, alpha: 1)
+    )
+
+    /// Code strings and quoted values; green. Never used as a success indicator.
+    public static let syntaxString = ThemedColor(
+      light: RGBA(red: 0.066668, green: 0.388235, blue: 0.160785, alpha: 1),
+      dark: RGBA(red: 0.65098, green: 0.847058, blue: 0.658823, alpha: 1)
+    )
+
+    /// Code numbers, booleans and constants; amber. Never used as a warning indicator.
+    public static let syntaxConstant = ThemedColor(
+      light: RGBA(red: 0.47582, green: 0.244972, blue: 0.012931, alpha: 1),
+      dark: RGBA(red: 0.890195, green: 0.741177, blue: 0.509805, alpha: 1)
+    )
+
+    /// Code function declarations and calls; purple.
+    public static let syntaxFunction = ThemedColor(
+      light: RGBA(red: 0.4, green: 0.22353, blue: 0.729412, alpha: 1),
+      dark: RGBA(red: 0.788235, green: 0.701961, blue: 0.937255, alpha: 1)
+    )
+
+    /// Code types, classes and markup tags; teal.
+    public static let syntaxType = ThemedColor(
+      light: RGBA(red: 0.019608, green: 0.364706, blue: 0.396078, alpha: 1),
+      dark: RGBA(red: 0.552941, green: 0.858823, blue: 0.815686, alpha: 1)
+    )
+
+    /// Code comments; quiet, but still at least 4.5:1 on the code surface. No italic font is required.
+    public static let syntaxComment = ThemedColor(
+      light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
+      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+    )
+
     /// The page, and app sidebars. The darkest layer in both themes.
     public static let surfacePage = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),

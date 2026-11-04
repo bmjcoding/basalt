@@ -7,7 +7,6 @@ import {
   AccordionItem,
   Button,
   Callout,
-  CodeBlock,
   Field,
   Popover,
   PopoverContent,
@@ -20,6 +19,8 @@ import {
   Textarea,
 } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
+import { CodeDemo } from "./code-demo";
+import { DensityDemo } from "./density-demo";
 
 const row: React.CSSProperties = { display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" };
 const col: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12 };
@@ -81,6 +82,18 @@ export const ROUND_4: Round = {
   pr: "https://github.com/bmjcoding/basalt/pull/5",
   summary: "Components for the deploy console and the sites: long-form input, anchored detail, inline messages, progress and loading, code, and expandable sections.",
   steps: [
+    {
+      id: "density",
+      name: "Density and touch",
+      intro: "The same control sizes in regular and compact mode, with a 44px target floor on touch screens.",
+      decisions: [
+        "Compact moves controls down one size, with 24px as the floor. The token scale stays unchanged.",
+        "Set data-density on the app's html element so menus and other portalled controls inherit it. A nested default scope restores the regular scale.",
+        "Touch keeps a 44px target even in compact mode. Text entry stays 16px on touch to prevent focus zoom on iOS.",
+      ],
+      tryIt: ["Toggle Compact controls and compare the five sizes.", "Try the same walkthrough on a touch screen: the targets stay large."],
+      demo: () => <DensityDemo />,
+    },
     {
       id: "textarea",
       name: "Textarea",
@@ -163,14 +176,17 @@ export const ROUND_4: Round = {
     {
       id: "code",
       name: "Code block",
-      intro: "Code, commands or logs in Geist Mono. Long lines scroll sideways rather than wrap.",
+      intro: "Language-aware code, commands or logs in Geist Mono. Syntax colours follow the selected theme; long lines scroll sideways rather than wrap.",
       decisions: [
         "Copy sits top right, in the title row when there is one: bottom right drifted away on short snippets and hid on long ones.",
         "The block is focusable so keyboard users can scroll it.",
         "Copy says \"Copied\" to screen readers as well as switching its icon.",
+        "Shiki uses editor grammars. Blue keywords, green strings, amber constants, purple functions and teal types live only inside code; comments stay a readable grey.",
+        "Every syntax colour meets AA in both themes. Plain text, unknown languages and logs over 100,000 characters stay readable without highlighting.",
       ],
-      tryIt: ["Press Copy, then paste somewhere.", "Tab to the code and use the arrow keys to scroll."],
-      demo: () => <CodeBlock title="terminal" code={"./blacksand k8s run --repo ~/code/project --prompt-file task.md \\\n  --agent claude --route anthropic=https://api.anthropic.com@anthropic-key --out runs/first-task"} />,
+      tryIt: ["Choose a language, then switch themes.", "Press Copy, then paste: the original text is preserved.", "Tab to the code and use the arrow keys to scroll."],
+      states: ["typescript", "tsx", "swift", "json", "yaml", "python", "text", "html"],
+      demo: ({ state }) => <CodeDemo initialLanguage={state === "default" ? "bash" : state} />,
     },
     {
       id: "accordion",

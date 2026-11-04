@@ -7,6 +7,7 @@ import * as React from "react";
 
 import { IconButton } from "./button";
 import { Icon } from "./icon";
+import { highlightCode } from "./syntax";
 import { join, withClass } from "./utils";
 
 // ---- Textarea ----
@@ -18,8 +19,21 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
-export function Textarea({ className, rows = 4, ...props }: TextareaProps) {
-  return <BaseField.Control render={<textarea rows={rows} {...props} className={join("basalt-input basalt-textarea", className)} />} />;
+export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, ...props }: TextareaProps) {
+  return (
+    <BaseField.Control
+      id={id}
+      name={name}
+      value={value}
+      defaultValue={defaultValue}
+      disabled={disabled}
+      autoFocus={autoFocus}
+      required={required}
+      readOnly={readOnly}
+      className={join("basalt-input basalt-textarea", className)}
+      render={<textarea rows={rows} {...props} />}
+    />
+  );
 }
 
 // ---- Popover ----
@@ -173,6 +187,8 @@ export function Skeleton({ width = "100%", height, shape = "text", className, st
 export interface CodeBlockProps {
   /** The code, as text. */
   code: string;
+  /** A language or common alias (e.g. "typescript", "tsx", "sh", "swift"). Omit for plain text. */
+  language?: string;
   /** A file name or language shown above the code, e.g. "terminal" or "Package.swift". */
   title?: string;
   /** Show a copy button. On by default. */
@@ -181,7 +197,16 @@ export interface CodeBlockProps {
 }
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
-export function CodeBlock({ code, title, copyable = true, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, title, copyable = true, className }: CodeBlockProps) {
+  const tokens = React.useMemo(() => highlightCode(code, language), [code, language]);
+  // Preserve the original whitespace, including CRLF and trailing newlines. Token offsets
+  // locate spans in the source; source text is rendered by React, never injected as HTML.
+  let cursor = 0;
+  const content = tokens?.map((token, i) => {
+    const gap = code.slice(cursor, token.offset);
+    cursor = token.offset + token.content.length;
+    return <React.Fragment key={i}>{gap}<span style={{ color: token.color }}>{token.content}</span></React.Fragment>;
+  });
   const [copied, setCopied] = React.useState(false);
   React.useEffect(() => {
     if (!copied) return;
@@ -212,7 +237,7 @@ export function CodeBlock({ code, title, copyable = true, className }: CodeBlock
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
       <pre className="basalt-code-pre" tabIndex={0} aria-label={title ? `${title} code` : "Code"}>
-        <code>{code}</code>
+        <code data-language={language}>{tokens ? <>{content}{code.slice(cursor)}</> : code}</code>
       </pre>
       {title ? null : copyButton}
     </figure>

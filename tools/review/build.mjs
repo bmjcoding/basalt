@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { inlineScript } from "../inline-script.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
@@ -44,7 +45,7 @@ const bundle = await esbuild.build({
   loader: { ".png": "dataurl" },
   logLevel: "warning",
 });
-const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
+const js = inlineScript(bundle.outputFiles[0].text);
 
 // read the round list from the bundled module's source of truth, without running React
 const roundIds = fs

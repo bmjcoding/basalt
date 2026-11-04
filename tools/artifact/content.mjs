@@ -35,6 +35,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - The primary action (\`basalt-action-primary\`) is the inverse of the page: one per view.
 - Status colour is a dot beside a word, never a coloured fill. \`basalt-status-danger\` is also the text of destructive actions, on a red hairline. There is no filled red button.
 - Every colour sits inside sRGB, so every display shows the same colour.
+- Syntax colours stay inside code: blue keywords, green strings, amber constants, purple functions, teal types and neutral comments. Every \`basalt-syntax-*\` text colour meets 4.5:1; these are separate from status and product accents.
 
 ## Type
 
@@ -46,6 +47,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 
 - Space on a 4px base: \`basalt-space-4\` is 16px. Cards and table cells pad \`basalt-space-4\`; dialogs \`basalt-space-6\`.
 - Controls are 24, 28, 32, 36 or 40px tall; 32 (\`basalt-size-control-md\`) is the app default. Touch targets are at least 44px (\`basalt-size-tap-min\`).
+- Set \`data-density="compact"\` on \`html\` for controls one step smaller, with 24px as the floor; a nested \`data-density="default"\` restores regular sizes. Portalled menus inherit the app density. Touch retains 44px targets and 16px text entry regardless of density. A standalone choice needs its consumer to provide the labelled touch target.
 - Radius by role: \`basalt-radius-xs\` for badges and checkboxes, \`basalt-radius-sm\` for controls up to 32px, \`basalt-radius-md\` from 36px, \`basalt-radius-lg\` for cards, menus and dialogs, \`basalt-radius-full\` for avatars and dots only. A nested radius is the outer radius minus the padding.
 
 ## Elevation and motion
@@ -249,7 +251,11 @@ A placeholder for content that's loading, at its final size so nothing jumps whe
   CodeBlock: doc("CodeBlock", `
 Code, commands or logs in Geist Mono on a sunken surface. Long lines scroll sideways rather than wrap, and the block can be scrolled from the keyboard.
 
-**You provide** \`code\` (text), optional \`title\` (a file name or "terminal"), and \`copyable\` (on by default). Copying announces "Copied".
+**You provide** \`code\` (text), optional \`language\`, \`title\` (a file name or "terminal"), and \`copyable\` (on by default). Copying announces "Copied" and preserves the exact source.
+
+Shiki's editor grammars highlight shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift, TSX, TypeScript and YAML. Common aliases like \`sh\`, \`js\`, \`ts\`, \`py\` and \`yml\` work. The language is explicit; the title is only a label. Omit it, or use \`text\`, for plain logs. Unknown languages and logs over 100,000 UTF-16 code units stay plain.
+
+Syntax uses its own AA-tested tokens, follows light and dark immediately, and works offline and during server rendering. It never interprets source text as HTML.
 `),
   Accordion: doc("Accordion", `
 Sections that expand one at a time or several at once, for secondary detail.
@@ -388,7 +394,7 @@ ${mount(`h(Demo)`)}`, "\n.basalt-dialog.basalt-command{top:16px}\n.basalt-comman
   h('div', { style: { flex: 1 } }, h(B.Progress, { label: 'Waiting for a node', value: null })))`)),
   Spinner: preview("Status", 56, mount(`h('div', { className: 'row', style: { gap: 16, fontSize: 13 } }, h(B.Spinner, { label: 'Loading' }), h(B.Spinner, { size: 20 }), h('span', { style: { display: 'inline-flex', gap: 8, alignItems: 'center' } }, h(B.Spinner), 'Starting sandbox'))`)),
   Skeleton: preview("Status", 140, mount(`h('div', { className: 'col', style: { gap: 8, maxWidth: 360 } }, h(B.Skeleton, { width: '40%' }), h(B.Skeleton, { width: '90%' }), h(B.Skeleton, { shape: 'block', height: 48 }))`)),
-  CodeBlock: preview("Display", 132, mount(`h(B.CodeBlock, { title: 'terminal', code: './blacksand k8s run --repo ~/code/project --prompt-file task.md \\\\\\n  --agent claude --out runs/first-task' })`)),
+  CodeBlock: preview("Display", 132, mount(`h(B.CodeBlock, { title: 'terminal', language: 'bash', code: './blacksand k8s run --repo ~/code/project --prompt-file task.md \\\\\\n  --agent claude --out runs/first-task' })`)),
   Accordion: preview("Display", 190, mount(`h(B.Accordion, { defaultValue: ['routes'] },
   h(B.AccordionItem, { value: 'routes', title: 'Routes' }, 'Each run reaches only the hosts you list, through the proxy.'),
   h(B.AccordionItem, { value: 'keys', title: 'Keys' }, 'Keys stay outside the sandbox; the proxy adds them to requests it allows.'),
