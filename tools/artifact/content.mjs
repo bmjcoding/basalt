@@ -1,0 +1,300 @@
+// The words and previews of the Basalt reference. The values are not here: they come from
+// the tokens at build time. Keep this in step with docs/foundations.md.
+
+export const README = `Basalt is the design system for every SRA Syndicate product: Blacksand, srasyndicate.io, baileymjones.com, N1 and what comes next. It is monochrome. A product adds colour through its own accent, in a few named roles, and nowhere else.
+
+Build with the React package and its one stylesheet:
+
+\`\`\`tsx
+import "@srasyndicate/basalt/fonts.css";
+import "@srasyndicate/basalt/styles.css";
+import { Button } from "@srasyndicate/basalt";
+
+<Button variant="primary">Deploy</Button>
+\`\`\`
+
+Every value below is a token. Use the token, never its value: \`var(--basalt-surface-raised)\`, not \`#0a0a0a\`.
+
+## Content
+
+- Write plainly, in sentence case, in the second person when you address someone ("Your sandbox is ready"), never "we" for the product.
+- A button says what happens: **Deploy**, **Delete sandbox**, **Cancel**. Never "OK", "Submit" or "Click here".
+- A destructive confirmation names the thing and the consequence: "Delete blacksand-api? Its runs and records stay. The sandbox and its routes are removed, and this can't be undone."
+- Every field has a visible label. Placeholder text is an example, never the label.
+- Statuses are words: **Ready**, **Building**, **Error**. A dot may sit beside the word; it never replaces it.
+- No emoji, no exclamation marks, no filler ("Seamlessly", "Supercharge"). Numbers, times and identifiers are exact: \`4m 12s\`, \`a81f3c2\`.
+
+## Colour
+
+- The page is the darkest layer in both themes, and everything closer to you is lighter. Light mode never puts a full white page in front of anyone.
+- Dark: \`basalt-surface-page\` is true black, and raised layers step up in small increments (\`basalt-surface-raised\`, \`basalt-surface-overlay\`, \`basalt-surface-top\`). Nothing above the page is pure black, so large moving surfaces never smear on OLED screens.
+- Light: \`basalt-surface-page\` sits just below white, so white cards lift without a shadow; sunken areas (\`basalt-surface-sunken\`, \`basalt-surface-sunken-strong\`) step darker.
+- Text comes in three levels: \`basalt-text-primary\`, \`basalt-text-secondary\`, \`basalt-text-tertiary\`. All three meet 4.5:1 on every surface in both themes. On a hover or selected wash, tertiary text becomes secondary.
+- Lines: \`shadow-hairline\` frames raised surfaces; \`basalt-border-divider\` separates rows and groups; \`basalt-border-input\` bounds inputs at 3:1 or better.
+- Hover is a wash (\`basalt-state-hover\`) or one step brighter on a hairline (\`basalt-border-hover\`). Selected is a wash **plus** a second cue: a pill, a bar, a check.
+- The primary action (\`basalt-action-primary\`) is the inverse of the page: one per view.
+- Status colour is a dot beside a word, never a coloured fill. \`basalt-status-danger\` is also the text of destructive actions, on a red hairline. There is no filled red button.
+- Every colour sits inside sRGB, so every display shows the same colour.
+
+## Type
+
+- Geist for everything, Geist Mono for identifiers, hashes, keys and code. Three weights: 400 (\`basalt-font-weight-regular\`), 500 (\`basalt-font-weight-medium\`), 600 (\`basalt-font-weight-semibold\`).
+- Apps run on \`body\` (14/20); menus, tables and sidebars on \`small\` (13/18); docs and marketing on \`body-docs\` (16/24). Headings tighten as they grow, from \`card-title\` to \`display\`.
+- Numbers in tables, metrics and timestamps use tabular figures.
+
+## Space, size, radius
+
+- Space on a 4px base: \`basalt-space-4\` is 16px. Cards and table cells pad \`basalt-space-4\`; dialogs \`basalt-space-6\`.
+- Controls are 24, 28, 32, 36 or 40px tall; 32 (\`basalt-size-control-md\`) is the app default. Touch targets are at least 44px (\`basalt-size-tap-min\`).
+- Radius by role: \`basalt-radius-xs\` for badges and checkboxes, \`basalt-radius-sm\` for controls up to 32px, \`basalt-radius-md\` from 36px, \`basalt-radius-lg\` for cards, menus and dialogs, \`basalt-radius-full\` for avatars and dots only. A nested radius is the outer radius minus the padding.
+
+## Elevation and motion
+
+- The page and raised surfaces use the hairline only. Shadows start at things that float: \`shadow-overlay\` for menus, popovers and tooltips; \`shadow-modal\` for dialogs, over \`basalt-scrim\`.
+- No top highlights, gradient borders, glows or coloured left borders.
+- Entries ease out (\`basalt-ease-out\`) and settle without overshoot; exits run at three quarters of their entry with \`basalt-ease-in\`. Menus take \`basalt-duration-base\`, dialogs \`basalt-duration-slow\`.
+- A press is one colour step, never a scale. Under reduced motion nothing moves; state changes become short fades.
+
+## Iconography
+
+- Icons are [Phosphor](https://phosphoricons.com), in \`currentColor\`: Bold at 16px (\`basalt-size-icon-sm\`), Regular at 20px and up, Fill for a selected state. The \`Icon\` component picks the weight from the size.
+- Icons default to \`basalt-text-secondary\` and turn primary when active. An icon beside a label is decorative and hidden from screen readers; an icon-only button carries a label.
+- No icon repeats down a column unless it says something that differs by row.
+- On iOS, system ideas (back, share, settings) use SF Symbols.
+
+## Accessibility
+
+- Everything meets WCAG 2.2 AA: text 4.5:1 on every surface, control boundaries and focus 3:1, in both themes. The tokens are tested for it on every build.
+- Focus is a 2px outline in \`basalt-border-focus\`, offset 2px, on every focusable control. Outlines survive forced-colours mode.
+- Menus, dialogs, tabs and the segmented control work from the keyboard. Esc closes overlays and returns focus where it came from; a destructive dialog opens on Cancel.
+`;
+
+const doc = (title, body) => `# ${title}\n\n${body.trim()}\n`;
+
+export const COMPONENT_DOCS = {
+  Button: doc("Button", `
+A button runs an action; \`IconButton\` is the same with only an icon.
+
+**Variants.** \`primary\` for the one main action in a view; \`secondary\` (the default) for the rest; \`ghost\` for low-emphasis actions in toolbars and card footers; \`danger\` for destructive actions: red text on a red hairline, never a fill.
+
+**Sizes.** \`xs\` 24, \`sm\` 28, \`md\` 32 (the default), \`lg\` 36, \`xl\` 40.
+
+**You provide** the label (\`children\`), and optionally \`icon\` (before) or \`iconEnd\` (after, e.g. a caret), as Phosphor icons. \`IconButton\` requires \`label\`: it is the button's accessible name.
+
+- Do say what happens: "Deploy", "Delete sandbox".
+- Do put the primary action last in a row, after Cancel.
+- Don't use more than one \`primary\` per view, or \`danger\` for anything reversible.
+- Disabled keeps its variant's shape; prefer explaining why an action is unavailable to disabling it silently.
+`),
+  Field: doc("Field", `
+A labelled form field: label, control, description and error, wired together for screen readers.
+
+**You provide** \`label\` (always visible), the control as \`children\` (usually \`Input\`), and optionally \`description\` and \`error\`. Set \`invalid\` to show the error.
+
+\`Input\` takes \`controlSize\` (\`xs\` to \`xl\`, default \`md\`) and every native input prop. Its boundary is \`basalt-border-input\` (3:1 or better); invalid turns it \`basalt-status-danger\`.
+
+- Do write errors that say how to fix it: "Enter a host, for example api.anthropic.com."
+- Don't use placeholder text as the label.
+`),
+  Menu: doc("Menu", `
+A menu of actions on a trigger, opened by click or keyboard and dismissed by Esc or an outside click.
+
+**You provide** \`MenuTrigger\` (usually \`render={<Button>…</Button>}\`), \`MenuContent\`, and \`MenuItem\`s. Items take \`icon\`, \`shortcut\` (e.g. "⌘D") and \`danger\`. Group with \`MenuGroup\` and \`MenuGroupLabel\`; separate with \`MenuSeparator\`.
+
+Rows are 32px (\`basalt-size-menu-row\`) in \`small\` text; the popup is \`basalt-surface-overlay\` with \`shadow-overlay\`, radius \`basalt-radius-lg\`, items \`basalt-radius-sm\`.
+
+- Do put destructive items last, after a separator.
+- Don't hide the only way to do something in a menu.
+`),
+  Dialog: doc("Dialog", `
+A modal dialog for a decision that interrupts: focus moves into it, stays inside, and returns to the trigger when it closes; Esc closes it.
+
+**You provide** \`DialogTrigger\`, \`DialogContent\` with a \`DialogTitle\` (required: it names the dialog), a \`DialogDescription\`, and \`DialogActions\` holding \`DialogClose\` buttons: Cancel first, the action last.
+
+For destructive confirmations the action is \`variant="danger"\`, never primary, and focus starts on Cancel.
+
+- Do name the thing and the consequence in the title and description.
+- Don't open a dialog on page load, or stack dialogs.
+`),
+  Tabs: doc("Tabs", `
+Tabs switch between panels of one view.
+
+**You provide** \`Tabs\` with a \`defaultValue\` or \`value\`, a \`TabsList\` (give it an \`aria-label\`) of \`Tab\`s, and one \`TabsPanel\` per tab with the same \`value\`.
+
+The active tab is marked by a 2px bar in \`basalt-text-primary\` that slides between tabs, not by colour alone. Arrow keys move between tabs.
+
+- Use \`SegmentedControl\` instead when the options filter one view rather than switch panels.
+`),
+  SegmentedControl: doc("SegmentedControl", `
+One choice among a few options that filter or change the current view: a time range, a layout.
+
+**You provide** \`aria-label\` (required), \`value\` and \`onValueChange\` (or \`defaultValue\`), and \`Segment\`s with a \`value\` each. Exactly one segment is always selected: pressing the selected one again keeps it.
+
+The selected segment is a raised pill (\`basalt-surface-top\` with \`shadow-pill\`) on a \`basalt-surface-sunken-strong\` track, so it is visible without colour.
+`),
+  Badge: doc("Badge", `
+A small label, such as a deployment state.
+
+**You provide** the words as \`children\`, and optionally \`status\` (\`success\`, \`warning\`, \`danger\`) to add a dot. \`variant="plain"\` drops the frame: dot and word only, for statuses that repeat down a table column.
+
+- Do write the status as a word; the dot never carries it alone.
+- Don't fill a badge with colour.
+`),
+  Card: doc("Card", `
+A raised surface grouping one thing: a sandbox, a metric, a setting.
+
+**You provide** \`CardHeader\` (with \`CardTitle\` and \`CardDescription\`), \`CardContent\`, and optionally \`CardFooter\` for actions, right-aligned.
+
+Cards are \`basalt-surface-raised\` with \`shadow-hairline\` and radius \`basalt-radius-lg\`. No shadow, no top highlight, no coloured edge.
+`),
+  Table: doc("Table", `
+A data table in a rounded, bordered frame that scrolls sideways when it must.
+
+**You provide** \`TableContainer\` (set \`density\`: \`compact\` 32px rows for logs, \`default\` 40px, \`comfortable\` 44px), \`Table\` with a \`<caption>\`, \`TableHeader\` and \`TableBody\` of \`TableRow\`s, \`TableHead\`s and \`TableCell\`s. Cells take \`numeric\` (right-aligned, tabular figures) and \`mono\` (identifiers and hashes). Rows take \`selected\`.
+
+A selected row is a wash plus a 2px bar on its leading edge. Headers are \`small\`-weight labels on \`basalt-surface-sunken-strong\`.
+
+- Do show statuses as \`<Badge variant="plain">\`.
+- Don't put the same icon on every row.
+`),
+  Tooltip: doc("Tooltip", `
+A short hint on hover or focus that supplements a control's name; it never replaces a label.
+
+**You provide** \`content\`, and the control as the only child. Wrap the app once in \`TooltipProvider\`. Tooltips sit on \`basalt-surface-top\` in \`label\` text.
+`),
+  Kbd: doc("Kbd", `
+A key or shortcut, such as ⌘K, in Geist Mono on a hairline.
+
+**You provide** the keys as text. Inside a menu item, use the item's \`shortcut\` prop instead.
+`),
+  Icon: doc("Icon", `
+A Phosphor icon at Basalt's weights: Bold at 16px, Regular at 20px and up, Fill when \`selected\`.
+
+**You provide** \`icon\` (a component from \`@phosphor-icons/react\`), \`size\` (16, 20 or 24) and, only for an icon that means something on its own, \`label\`. Icons take the text colour.
+`),
+};
+
+const preview = (group, height, body, extra = "") => `<!-- @dsCard group="${group}" height=${height} -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>
+body{margin:0;padding:16px;background:var(--basalt-surface-page);color:var(--basalt-text-primary);font-family:var(--basalt-font-family-sans)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:12px}${extra}
+</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.Basalt, h = React.createElement;
+${body.trim()}
+</script>
+</body>
+</html>
+`;
+
+const mount = (expr) => `ReactDOM.createRoot(document.getElementById('root')).render(${expr});`;
+
+export const PREVIEWS = {
+  Button: preview("Actions", 132, mount(`h('div', { className: 'col' },
+  h('div', { className: 'row' },
+    h(B.Button, { variant: 'primary', icon: B.PlayIcon }, 'Deploy'),
+    h(B.Button, null, 'Cancel'),
+    h(B.Button, { variant: 'ghost' }, 'Preview'),
+    h(B.Button, { variant: 'danger', icon: B.TrashIcon }, 'Delete'),
+    h(B.IconButton, { icon: B.GearIcon, label: 'Settings', variant: 'secondary' })),
+  h('div', { className: 'row' },
+    ['xs', 'sm', 'md', 'lg', 'xl'].map(function (s) { return h(B.Button, { key: s, size: s }, 'Cancel'); }),
+    h(B.Button, { variant: 'primary', disabled: true }, 'Deploy')))`)),
+  Field: preview("Forms", 168, mount(`h('div', { className: 'row', style: { alignItems: 'flex-start' } },
+  h('div', { style: { flex: 1, minWidth: 200 } }, h(B.Field, { label: 'Sandbox name', description: 'Lowercase, 3 to 32 characters.' }, h(B.Input, { defaultValue: 'agent-runner-01' }))),
+  h('div', { style: { flex: 1, minWidth: 200 } }, h(B.Field, { label: 'Route', invalid: true, error: 'Enter a host, for example api.anthropic.com.' }, h(B.Input, { defaultValue: 'https://' }))))`)),
+  Menu: preview("Overlays", 280, mount(`h(B.Menu, { defaultOpen: true, modal: false },
+  h(B.MenuTrigger, { render: h(B.Button, { iconEnd: B.CaretDownIcon }, 'Actions') }),
+  h(B.MenuContent, null,
+    h(B.MenuGroup, null,
+      h(B.MenuGroupLabel, null, 'Sandbox'),
+      h(B.MenuItem, { icon: B.PlusIcon, shortcut: 'N' }, 'New sandbox'),
+      h(B.MenuItem, { icon: B.CopyIcon, shortcut: '⌘D' }, 'Duplicate'),
+      h(B.MenuItem, { icon: B.PencilSimpleIcon, shortcut: 'R' }, 'Rename')),
+    h(B.MenuSeparator),
+    h(B.MenuItem, { icon: B.TrashIcon, danger: true }, 'Delete')))`)),
+  Dialog: preview("Overlays", 300, mount(`h(B.Dialog, { defaultOpen: true, modal: false },
+  h(B.DialogTrigger, { render: h(B.Button, { variant: 'danger' }, 'Delete sandbox') }),
+  h(B.DialogContent, null,
+    h(B.DialogTitle, null, 'Delete blacksand-api?'),
+    h(B.DialogDescription, null, "Its runs and records stay. The sandbox and its routes are removed, and this can't be undone."),
+    h(B.DialogActions, null,
+      h(B.DialogClose, { render: h(B.Button, null, 'Cancel') }),
+      h(B.DialogClose, { render: h(B.Button, { variant: 'danger' }, 'Delete sandbox') }))))`)),
+  Tabs: preview("Navigation", 120, mount(`h(B.Tabs, { defaultValue: 'overview' },
+  h(B.TabsList, { 'aria-label': 'Sandbox' }, h(B.Tab, { value: 'overview' }, 'Overview'), h(B.Tab, { value: 'runs' }, 'Runs'), h(B.Tab, { value: 'settings' }, 'Settings')),
+  h(B.TabsPanel, { value: 'overview', style: { paddingTop: 12, fontSize: 13, color: 'var(--basalt-text-secondary)' } }, 'Three sandboxes on a single k3s node.'),
+  h(B.TabsPanel, { value: 'runs', style: { paddingTop: 12, fontSize: 13, color: 'var(--basalt-text-secondary)' } }, '142 runs this week.'),
+  h(B.TabsPanel, { value: 'settings', style: { paddingTop: 12, fontSize: 13, color: 'var(--basalt-text-secondary)' } }, 'Routes, keys and limits.'))`)),
+  SegmentedControl: preview("Navigation", 72, mount(`h(B.SegmentedControl, { 'aria-label': 'Time range', defaultValue: '24h' }, h(B.Segment, { value: '1h' }, '1h'), h(B.Segment, { value: '24h' }, '24h'), h(B.Segment, { value: '7d' }, '7d'), h(B.Segment, { value: '30d' }, '30d'))`)),
+  Badge: preview("Display", 72, mount(`h('div', { className: 'row' },
+  h(B.Badge, { status: 'success' }, 'Ready'), h(B.Badge, { status: 'warning' }, 'Building'), h(B.Badge, { status: 'danger' }, 'Error'), h(B.Badge, null, 'alpha'),
+  h('span', { style: { width: 16 } }),
+  h(B.Badge, { variant: 'plain', status: 'success' }, 'Ready'), h(B.Badge, { variant: 'plain', status: 'danger' }, 'Error'))`)),
+  Card: preview("Display", 196, mount(`h(B.Card, { style: { maxWidth: 420 } },
+  h(B.CardHeader, null, h(B.CardTitle, null, 'blacksand-api'), h(B.CardDescription, null, 'k3s · single node · 3 sandboxes')),
+  h(B.CardContent, null, h('div', { style: { fontSize: 24, lineHeight: '30px', fontWeight: 600, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' } }, '$0.0042 ', h('span', { style: { fontSize: 12, fontWeight: 400, letterSpacing: 0, color: 'var(--basalt-text-secondary)' } }, 'per 1k tokens'))),
+  h(B.CardFooter, null, h(B.Button, { size: 'sm', variant: 'ghost' }, 'View runs'), h(B.Button, { size: 'sm', variant: 'primary' }, 'Open')))`)),
+  Table: preview("Display", 220, `var RUNS = [['run-0142', 'success', 'Ready', 'claude', '4m 12s', 'a81f3c2'], ['run-0141', 'warning', 'Building', 'codex', '2m 50s', '9c04e1d'], ['run-0140', 'danger', 'Error', 'claude', '11m 03s', '5be7a90']];
+${mount(`h(B.TableContainer, null, h(B.Table, null,
+  h('caption', { style: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' } }, 'Recent runs'),
+  h(B.TableHeader, null, h(B.TableRow, null, h(B.TableHead, null, 'Run'), h(B.TableHead, null, 'Status'), h(B.TableHead, null, 'Agent'), h(B.TableHead, { numeric: true }, 'Duration'), h(B.TableHead, null, 'Commit'))),
+  h(B.TableBody, null, RUNS.map(function (r, i) {
+    return h(B.TableRow, { key: r[0], selected: i === 0 },
+      h(B.TableCell, { style: { fontWeight: 500 } }, r[0]),
+      h(B.TableCell, null, h(B.Badge, { variant: 'plain', status: r[1] }, r[2])),
+      h(B.TableCell, null, r[3]), h(B.TableCell, { numeric: true }, r[4]), h(B.TableCell, { mono: true }, r[5]));
+  }))))`)}`),
+  Tooltip: preview("Overlays", 96, mount(`h(B.TooltipProvider, null, h('div', { className: 'row', style: { paddingTop: 36 } },
+  h(B.Tooltip, { content: 'Settings', defaultOpen: true }, h(B.IconButton, { icon: B.GearIcon, label: 'Settings', variant: 'secondary' })),
+  h(B.Tooltip, { content: 'Search runs' }, h(B.IconButton, { icon: B.MagnifyingGlassIcon, label: 'Search' }))))`)),
+  Kbd: preview("Display", 56, mount(`h('div', { className: 'row' }, h(B.Kbd, null, '⌘K'), h(B.Kbd, null, '⌘D'), h(B.Kbd, null, 'Esc'), h(B.Kbd, null, '↵'))`)),
+  Icon: preview("Display", 88, mount(`h('div', { className: 'col' },
+  h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 16 }); }), h('span', { style: { fontSize: 12 } }, '16 · Bold')),
+  h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 20, selected: i === 0 }); }), h('span', { style: { fontSize: 12 } }, '20 · Regular, first selected (Fill)')))`)),
+};
+
+// The cover: Basalt's palette is its neutral ramp; its pattern is a dot grid at one
+// spacing step, the precise, technical, 4px-grid row. Blocks and dots sit right of x=480.
+export const COVER = `<!-- @dsCard height=288 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;background:var(--basalt-surface-page)}
+.cover{position:relative;width:960px;height:288px;overflow:hidden;font-family:var(--basalt-font-family-sans)}
+svg{position:absolute;inset:0}
+.ink{fill:var(--basalt-text-primary)}
+.mid{fill:var(--basalt-neutral-63)}
+.deep{fill:var(--basalt-neutral-30)}
+.raised{fill:var(--basalt-text-tertiary)}
+.dot{fill:var(--basalt-neutral-63)}
+.dot-on{fill:var(--basalt-surface-page)}
+.tile{rx:var(--basalt-radius-lg)}
+.name{position:absolute;left:48px;bottom:56px;width:440px;margin:0;font-weight:600;font-size:120px;line-height:.92;letter-spacing:-0.035em;color:var(--basalt-text-primary)}
+.tag{position:absolute;left:52px;bottom:28px;width:440px;margin:0;font-size:14px;line-height:20px;color:var(--basalt-text-secondary)}
+</style></head>
+<body>
+<div class="cover">
+<svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+<!-- blocks: text-primary 240x192, neutral-63 112x112, neutral-30 112x80, text-tertiary 208x96, sides in 16px (space-4) steps, radius-lg corners
+     arrangement: a staggered stack bleeding off the top and right edges, right of x=480
+     pattern: a dot grid at space-4 (16px) pitch; Basalt is precise, technical, mono and on a 4px grid ("a dot or plus grid at one spacing step")
+     scales: space-4 (16) pitch and gaps, radius-lg (12) corners, 2px dots -->
+<rect class="raised tile" x="512" y="176" width="208" height="96"/>
+<rect class="deep tile" x="736" y="192" width="112" height="80"/>
+<rect class="ink tile" x="736" y="-16" width="240" height="192"/>
+<rect class="mid tile" x="608" y="48" width="112" height="112"/>
+<g class="dot">${Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, c) => `<circle cx="${528 + c * 16}" cy="${32 + r * 16}" r="1.5"/>`).join("")).join("")}</g>
+<g class="dot-on">${Array.from({ length: 6 }, (_, r) => Array.from({ length: 8 }, (_, c) => `<circle cx="${776 + c * 16}" cy="${32 + r * 16}" r="1.5"/>`).join("")).join("")}</g>
+</svg>
+<p class="name">Basalt</p>
+<p class="tag">One monochrome foundation for every SRA Syndicate product.</p>
+</div>
+</body>
+</html>
+`;

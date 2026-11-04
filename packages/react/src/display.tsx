@@ -104,14 +104,16 @@ export interface TooltipProps {
   /** The element the tooltip describes, rendered as the trigger. */
   children: React.ReactElement;
   side?: React.ComponentProps<typeof BaseTooltip.Positioner>["side"];
+  /** Open on first render, e.g. in documentation. Normally tooltips open on hover and focus. */
+  defaultOpen?: boolean;
 }
 
 /** Wrap the app once in `TooltipProvider` so tooltips share their open delay. */
 export const TooltipProvider = BaseTooltip.Provider;
 
-export function Tooltip({ content, children, side = "top" }: TooltipProps) {
+export function Tooltip({ content, children, side = "top", defaultOpen }: TooltipProps) {
   return (
-    <BaseTooltip.Root>
+    <BaseTooltip.Root defaultOpen={defaultOpen}>
       <BaseTooltip.Trigger render={children} />
       <BaseTooltip.Portal>
         <BaseTooltip.Positioner side={side} sideOffset={6} className="basalt-positioner">
