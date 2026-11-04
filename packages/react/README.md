@@ -48,6 +48,9 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Sheet`, `SheetTrigger`, `SheetContent`, `SheetTitle`, `SheetDescription`, `SheetActions`, `SheetClose` | Dialog behaviour in a right, left or bottom panel. |
 | `Tabs`, `TabsList`, `Tab`, `TabsPanel` | For panels of one view. |
 | `SegmentedControl`, `Segment` | One choice that filters the current view; never empty. |
+| `Breadcrumbs`, `Pagination`, `Link` | Location, bounded page windows and native destination links. |
+| `Text`, `Heading`, `InlineCode` | Token type scale; Heading's semantic `level` is independent of visual `size`. |
+| `Avatar`, `Separator`, `EmptyState` | Named image/initials, semantic division and next-step guidance for empty views. |
 | `Badge` | Neutral pill; `status` adds a dot. The label says the status in words. |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
 | `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals; `mono` cells for IDs and hashes. |
@@ -108,6 +111,28 @@ necessary confirmation within that task; its Cancel part receives safe initial f
 Portalled Select, Combobox, Menu and Popover content inherit the parent modal's layer.
 Prefer a single focused task and avoid unnecessary nested dialogs.
 
+## Navigation and content
+
+```tsx
+<Breadcrumbs items={[
+  { label: "Sandboxes", href: "/sandboxes" },
+  { label: "blacksand-api" },
+]} />
+<Pagination page={page} pageCount={20} onPageChange={setPage} />
+<Pagination page={page} pageCount={20} hrefForPage={n => `/runs?page=${n}`} />
+<Heading level={1} size="3xl">Sandboxes</Heading>
+<Text tone="secondary">Start with <InlineCode>blacksand k8s run</InlineCode>.</Text>
+```
+
+Use button pagination for local results or link pagination for URL navigation. The consumer
+owns fetching, loading announcements and focus after a result change. Pagination renders
+a constant-sized page window and hides itself for zero or one page.
+
+Text supports all ten type sizes, the three weights, `tone`, `mono` and `as="p|span|div"`.
+Heading's `level` follows document structure; `size` follows the visual role. EmptyState
+uses a named section with an h2, description and optional actions. It does not announce an
+initial empty view as an error. Avatar requires a person's name and falls back to initials.
+
 ## Code
 
 ```tsx
@@ -144,8 +169,8 @@ Typechecks, builds, then runs the browser tests on a page with every component
 - density works across the full size scale and portalled menus, and touch keeps its target
   sizes even in compact mode.
 - required form values, combobox search/empty/disabled states, number bounds, slider thumbs,
-  safe confirmation focus, sheet layering, menu choices behave as composed;
-- forced colours retain structural control boundaries.
+  safe confirmation focus, sheet layering, menu choices and navigation behave as composed;
+- forced colours retain structural control boundaries and selection cues.
 
 Base UI's editable combobox temporarily hides siblings from assistive technology while its
 popup is open. The open-widget audit covers the input and popup, then verifies Tab closes

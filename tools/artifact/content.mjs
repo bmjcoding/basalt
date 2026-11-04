@@ -76,6 +76,8 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Form coordinates validation of named Fields. Fieldset gives related fields a visible legend and a shared disabled state. Labels stay visible even when the control has a placeholder.
 - Select chooses from a short list; Combobox searches a known single choice. NumberField enters an exact value; Slider adjusts a scalar or range with named thumbs.
 - AlertDialog puts safe initial focus on its cancel action and ignores outside clicks. Sheet uses the dialog contract in a scrolling right, left or bottom panel. Floating controls inherit their parent modal's layer.
+- Text and Heading use the shared scale; heading level follows document structure independently of visual size. Breadcrumbs, Pagination and Link retain native navigation semantics.
+- Avatar uses a named initials fallback. EmptyState explains the condition and the next useful action, without announcing an initial empty view as an error.
 `;
 
 const doc = (title, body) => `# ${title}\n\n${body.trim()}\n`;

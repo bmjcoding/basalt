@@ -188,6 +188,11 @@ adjusts a scalar or range, with distinct names for range thumbs. Confirmations u
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side or
 bottom panel, including safe-area padding and motion preferences.
 
+Text and Heading consume the shared type scale; structural heading level is independent
+of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
+window, and Link retains native navigation. Avatar, Separator and EmptyState provide
+neutral composition without replacing meaningful words with imagery.
+
 Forced-colours mode uses real borders and system colour keywords for boundaries, focus
 and selection. The web tests inspect these structural cues in addition to the themed
 contrast checks. Automated checks cover supported states; they are not a substitute for

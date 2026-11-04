@@ -56,7 +56,45 @@ Focus stays inside and returns to the trigger on close. The panel scrolls intern
 
 Use a controlled open/onOpenChange pair when a successful form submission should close the panel. Motion follows the slower token and reduces to a fade when requested by the operating system.
 `),
+  Breadcrumbs: doc("Breadcrumbs", `
+A named navigation path. Provide items as \`{ label: ReactNode, href?: string }[]\`; the final item is the current page. Intermediate items should have destinations. aria-label defaults to Breadcrumb and can be changed for multiple paths on a page.
 
+Native anchors retain browser navigation behaviour. Decorative separators are hidden from assistive technology. Paths wrap on narrow screens rather than forcing page overflow.
+`),
+  Pagination: doc("Pagination", `
+Move through a result set using a controlled, one-based page and pageCount. Provide onPageChange for local results or hrefForPage for URL navigation. Use a distinct aria-label when a page has multiple pagination regions.
+
+The current page has aria-current and an outlined surface; previous/next are unavailable at bounds. Large totals render a bounded page window with gaps, so a million results do not produce a million DOM nodes. Counts of zero or one render nothing.
+
+The consumer supplies the results, focus/loading behaviour after a page change, and any URL state. The component never fetches or announces data it does not own.
+`),
+  Link: doc("Link", `
+A native anchor for navigation, underlined so its meaning does not depend on colour. All native anchor props pass through. target=_blank preserves the supplied rel while adding noopener and noreferrer.
+
+Use href and meaningful destination text. Use Button for an action. Router integrations can use their native anchor-compatible wrapper and the basalt-link class when composition requires it.
+`),
+  Avatar: doc("Avatar", `
+A named image with initials fallback. Provide name, optional src, size (24, 32, 40 or 48) and optional custom fallback. The name is announced once; image and initials are decorative within that named image.
+
+Missing or failed images fall back to the first and last initials on a neutral circular surface. An avatar is not interactive by itself. Put it in a labelled trigger if it opens a profile menu.
+`),
+  EmptyState: doc("EmptyState", `
+A named section for a view with no content. Provide title, optional description, optional decorative Phosphor icon and actions. Children allow supporting content. It does not announce itself as an alert on initial load.
+
+Distinguish no content yet from no search results: explain the condition and offer an appropriate next action. Keep the surface neutral; an empty view is not automatically an error. The title uses h2; choose its surrounding document structure accordingly.
+`),
+  Separator: doc("Separator", `
+A semantic separator using the divider token. Props pass through to Base UI, including orientation and decorative. Horizontal is the default. Vertical separators require a containing layout with an explicit height.
+
+Use it between groups that need a visible division. Avoid adding a line between every pair of already separated elements.
+`),
+  Typography: doc("Text, Heading and InlineCode", `
+Text uses size=xs/sm/base/md/lg/xl/2xl/3xl/4xl/5xl, weight=regular/medium/semibold, tone=primary/secondary/tertiary/inherit, and optional mono. It renders a paragraph by default; as can be p, span or div.
+
+Heading separates structural level (1–6, default 2) from visual size (default 2xl). Choose level from the document hierarchy rather than the desired font size. Heading weight is semibold.
+
+InlineCode renders a short code fragment in Geist Mono on a quiet surface. Use CodeBlock for multiline examples. All three use tokens and accept normal DOM props, className and style. Unlayered application CSS can override the typography.
+`),
 };
 
 export const COMPLETION_PREVIEWS = {
@@ -66,5 +104,11 @@ export const COMPLETION_PREVIEWS = {
   Slider: preview("Forms", 225, "h(B.Examples.SliderExample)"),
   AlertDialog: preview("Overlays", 360, "h(B.Examples.AlertExample,{open:true})"),
   Sheet: preview("Overlays", 560, "h(B.Examples.SheetExample,{open:true})"),
-
+  Breadcrumbs: preview("Navigation", 80, "h(B.Breadcrumbs,{items:[{label:'Sandboxes',href:'#sandboxes'},{label:'blacksand-api',href:'#sandbox'},{label:'Runs'}]})"),
+  Pagination: preview("Navigation", 170, "h(B.Examples.NavigationExample)"),
+  Link: preview("Navigation", 70, "h(B.Link,{href:'#documentation'},'Read the deployment guide')"),
+  Avatar: preview("Display", 90, "h('div',{style:{display:'flex',alignItems:'center',gap:16}},[24,32,40,48].map(size=>h(B.Avatar,{key:size,name:'Bailey Jones',size})))"),
+  EmptyState: preview("Display", 350, "h(B.Examples.CompositionExample)"),
+  Separator: preview("Display", 110, "h('div',null,h(B.Text,{size:'sm'},'Sandbox details'),h(B.Separator),h(B.Text,{size:'sm',tone:'secondary'},'Run history'))"),
+  Typography: preview("Foundations", 290, "h(B.Examples.TypographyExample)"),
 };

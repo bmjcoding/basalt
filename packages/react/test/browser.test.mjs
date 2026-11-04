@@ -547,12 +547,33 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
-    test("completion: boundaries remain structural in forced colours", async () => {
+    test("completion: navigation, empty state and typography expose their semantics", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+      assert.equal(await crumbs.locator('[aria-current="page"]').textContent(), "Runs");
+      const pagination = page.getByRole("navigation", { name: "Pagination" });
+      assert.equal(await pagination.getByRole("button", { name: "Previous page" }).isDisabled(), true);
+      await pagination.getByRole("button", { name: "Next page" }).click();
+      await pagination.getByRole("button", { name: "Page 3", exact: true }).click();
+      assert.equal(await pagination.locator('[aria-current="page"]').textContent(), "3");
+      await page.getByText("Showing page 3 of 20.", { exact: true }).waitFor();
+      await page.getByRole("img", { name: "Bailey Jones" }).getByText("BJ").waitFor();
+      assert.equal(await page.getByRole("heading", { name: "Run agents on ground you trust" }).evaluate((el) => el.tagName), "H3");
+      assert.match(await page.locator(".basalt-inline-code").evaluate((el) => getComputedStyle(el).fontFamily), /Geist Mono/);
+      await page.getByRole("button", { name: "Create your first sandbox" }).click();
+      await page.getByText("Sandbox created in this example.", { exact: true }).waitFor();
+      await page.close();
+    });
+
+    test("completion: boundaries and selection remain structural in forced colours", async () => {
       const { page } = await open(theme, "&fixture=complete");
       await page.emulateMedia({ forcedColors: "active" });
       const input = page.getByRole("form", { name: "Create sandbox" }).getByRole("textbox", { name: "Sandbox name" });
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderStyle), "solid");
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderWidth), "1px");
+      const selected = page.getByRole("navigation", { name: "Pagination" }).locator('[aria-current="page"]');
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineStyle), "solid");
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineWidth), "2px");
       await page.close();
     });
 
@@ -560,7 +581,7 @@ for (const theme of ["light", "dark"]) {
       const { page, errors } = await open(theme, "&fixture=complete", { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
       await page.evaluate(() => document.documentElement.dataset.density = "compact");
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390);
-      const targets = await page.locator(".basalt-combobox-trigger, .basalt-number-group .basalt-button, .basalt-slider-control").evaluateAll((elements) => elements.map((el) => {
+      const targets = await page.locator(".basalt-combobox-trigger, .basalt-number-group .basalt-button, .basalt-pagination .basalt-button, .basalt-slider-control").evaluateAll((elements) => elements.map((el) => {
         const { width, height } = el.getBoundingClientRect();
         return { label: el.getAttribute("aria-label") ?? el.textContent, width, height };
       }));

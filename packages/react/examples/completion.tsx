@@ -1,9 +1,11 @@
+import { CubeIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger,
-  Button, Combobox, Field, Fieldset, Form, Input, Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger,
+  Avatar, Breadcrumbs, Button, Combobox, EmptyState, Field, Fieldset, Form, Heading, InlineCode, Input, Link,
+  Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger,
   Menu, MenuCheckboxItem, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuSubmenuTrigger, MenuTrigger,
-  NumberField, Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Select, Sheet, SheetActions, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger, Slider, Tooltip,
+  NumberField, Pagination, Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Select, Separator, Sheet, SheetActions, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger, Slider, Text, Tooltip,
 } from "../src/index";
 
 export const SUBSTRATES = [
@@ -114,7 +116,7 @@ export function MenuOptionsExample({ open = false }: { open?: boolean }) {
           </MenuSubmenu>
         </MenuContent>
       </Menu>
-      <p style={{ fontSize: 13, color: "var(--basalt-text-secondary)" }}>{archived ? "Archived shown" : "Archived hidden"} · {density} rows</p>
+      <Text size="sm" tone="secondary">{archived ? "Archived shown" : "Archived hidden"} · {density} rows</Text>
       <output aria-label="Export result">{exported}</output>
     </div>
   );
@@ -141,6 +143,42 @@ export function DialogCompositionExample({ open = false }: { open?: boolean }) {
   </Dialog>;
 }
 
+export function NavigationExample() {
+  const [page, setPage] = React.useState(1);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <Breadcrumbs items={[{ label: "Sandboxes", href: "#sandboxes" }, { label: "blacksand-api", href: "#sandbox" }, { label: "Runs" }]} />
+      <Pagination page={page} pageCount={20} onPageChange={setPage} />
+      <Text size="sm" tone="secondary">Showing page {page} of 20.</Text>
+      <Link href="#documentation">Read the deployment guide</Link>
+    </div>
+  );
+}
+
+export function TypographyExample() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Heading level={3} size="3xl">Run agents on ground you trust</Heading>
+      <Text size="md">One type scale for applications, documentation and sites.</Text>
+      <Text tone="secondary">Secondary text explains the main content.</Text>
+      <Text size="sm" tone="tertiary">run-0142 · 4m 12s · a81f3c2</Text>
+      <Text>Start with <InlineCode>blacksand k8s run</InlineCode>.</Text>
+      <Text mono size="sm">sha256:8b772e36</Text>
+    </div>
+  );
+}
+
+export function CompositionExample() {
+  const [created, setCreated] = React.useState(false);
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}><Avatar name="Bailey Jones" /><Avatar name="Alex Chen" size={40} /><Text size="sm" tone="secondary">Members</Text></div>
+      <Separator />
+      {created ? <Text>Sandbox created in this example.</Text> : <EmptyState icon={CubeIcon} title="No sandboxes yet" description="Create a sandbox to give your next agent run its own workspace." actions={<Button variant="primary" onClick={() => setCreated(true)}>Create your first sandbox</Button>} />}
+    </div>
+  );
+}
+
 export function CompletionFixtures() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32, minWidth: 0 }}>
@@ -151,6 +189,9 @@ export function CompletionFixtures() {
       <section aria-label="Sheet"><SheetExample /></section>
       <section aria-label="Menu options"><MenuOptionsExample /></section>
       <section aria-label="Overlay composition"><DialogCompositionExample /></section>
+      <section aria-label="Navigation"><NavigationExample /></section>
+      <section aria-label="Typography"><TypographyExample /></section>
+      <section aria-label="Composition"><CompositionExample /></section>
       <Fieldset legend="Disabled controls" disabled><Field label="Disabled number"><NumberField defaultValue={2} /></Field><Field label="Disabled search"><Combobox options={SUBSTRATES} /></Field></Fieldset>
     </div>
   );

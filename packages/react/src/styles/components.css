@@ -1096,10 +1096,55 @@
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
 
+  /* ---- Navigation, typography and composition ---- */
+
+  .basalt-link { color: var(--basalt-text-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; font-family: inherit; }
+  .basalt-link:hover { text-decoration-thickness: 2px; }
+  .basalt-link:focus-visible, .basalt-page-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
+  .basalt-breadcrumbs { font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); margin: 0; padding: 0; list-style: none; }
+  .basalt-breadcrumbs li { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }
+  .basalt-breadcrumbs .basalt-link { color: var(--basalt-text-secondary); text-decoration: none; }
+  .basalt-breadcrumbs .basalt-link:hover { color: var(--basalt-text-primary); text-decoration: underline; }
+  .basalt-breadcrumbs [aria-current="page"] { color: var(--basalt-text-primary); }
+  .basalt-breadcrumbs:dir(rtl) .basalt-icon { transform: rotate(180deg); }
+
+  .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; }
+  .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
+  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
+  .basalt-page-link[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
+  .basalt-page-link:hover { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  .basalt-pagination-gap { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-control-sm); color: var(--basalt-text-secondary); }
+
+  .basalt-separator { flex: none; border: 0; background: var(--basalt-border-divider); }
+  .basalt-separator[data-orientation="horizontal"] { height: var(--basalt-size-hairline); width: 100%; margin-block: var(--basalt-space-4); }
+  .basalt-separator[data-orientation="vertical"] { width: var(--basalt-size-hairline); align-self: stretch; margin-inline: var(--basalt-space-3); }
+  .basalt-avatar { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; overflow: hidden; border-radius: var(--basalt-radius-full); background: var(--basalt-surface-sunken-strong); color: var(--basalt-text-secondary); box-shadow: var(--basalt-shadow-hairline); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans); }
+  .basalt-avatar-image { width: 100%; height: 100%; object-fit: cover; }
+  .basalt-avatar-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .basalt-empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-8) var(--basalt-space-4); text-align: center; font-family: var(--basalt-font-family-sans); }
+  .basalt-empty-state-icon { color: var(--basalt-text-secondary); margin-bottom: var(--basalt-space-2); }
+  .basalt-empty-state-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  .basalt-empty-state-description { margin: 0; max-width: 42ch; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-empty-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--basalt-space-2); margin-top: var(--basalt-space-3); }
+
+  .basalt-text, .basalt-heading { margin: 0; font-family: var(--basalt-font-family-sans); font-size: var(--_basalt-type-size); line-height: var(--_basalt-type-line); letter-spacing: var(--_basalt-type-tracking); font-weight: var(--_basalt-type-weight); color: var(--basalt-text-primary); overflow-wrap: anywhere; }
+  .basalt-text[data-tone="secondary"] { color: var(--basalt-text-secondary); }
+  .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-tertiary); }
+  .basalt-text[data-tone="inherit"] { color: inherit; }
+  .basalt-text[data-mono] { font-family: var(--basalt-font-family-mono); }
+  [data-selected] .basalt-text[data-tone="tertiary"], [data-highlighted] .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
+  .basalt-inline-code { padding: var(--basalt-space-0-5) var(--basalt-space-1); border-radius: var(--basalt-radius-xs); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); box-shadow: inset 0 0 0 1px var(--basalt-border-hairline); font-family: var(--basalt-font-family-mono); font-size: 0.9em; font-weight: var(--basalt-font-weight-regular); line-height: inherit; }
+
+  @media (pointer: coarse) {
+    .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
+    .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }
+  }
+
   /* Borders and state markers remain structural when system high-contrast colours replace
      author colours and box shadows. System colour keywords preserve the user's palette. */
   @media (forced-colors: active) {
-    .basalt-button, .basalt-input, .basalt-select-trigger, .basalt-checkbox, .basalt-radio, .basalt-switch {
+    .basalt-button, .basalt-input, .basalt-select-trigger, .basalt-checkbox, .basalt-radio, .basalt-switch, .basalt-page-link {
       border: 1px solid ButtonText;
       box-shadow: none;
     }
@@ -1109,7 +1154,7 @@
     .basalt-radio-indicator[data-checked], .basalt-switch-thumb[data-checked] { background: HighlightText; }
     .basalt-slider-track, .basalt-progress-track { background: Canvas; border: 1px solid CanvasText; }
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
-    .basalt-segment[data-pressed], .basalt-tab[data-active] { outline: 2px solid Highlight; outline-offset: -2px; }
+    .basalt-segment[data-pressed], .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
     .basalt-dialog, .basalt-sheet, .basalt-menu, .basalt-popover { border: 1px solid CanvasText; }
   }
 

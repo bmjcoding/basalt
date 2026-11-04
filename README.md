@@ -3,8 +3,8 @@
 The SRA Syndicate design system: one monochrome foundation for Blacksand, srasyndicate.io,
 baileymjones.com, N1 and what comes next. Each product adds colour through its own accent.
 
-**Status:** Foundations and the core React components are built and tested. The forms and
-overlays completion stage is proposed for review. SwiftUI tokens are available; native
+**Status:** Foundations and the core React components are built and tested. The forms, overlays,
+navigation and composition completion stages are proposed for review. SwiftUI tokens are available; native
 components and package-readiness work follow in the final stage.
 See [what is complete and what remains](docs/status.md).
 

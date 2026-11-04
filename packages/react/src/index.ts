@@ -41,3 +41,7 @@ export { Combobox, Fieldset, Form, NumberField, Slider } from "./forms";
 export type { ComboboxOption, ComboboxProps, FieldsetProps, NumberFieldProps, SliderProps } from "./forms";
 export { AlertDialog, AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger, Sheet, SheetActions, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "./overlays";
 export type { SheetContentProps, SheetSide } from "./overlays";
+export { Breadcrumbs, Link, Pagination } from "./navigation";
+export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
+export { Avatar, EmptyState, Heading, InlineCode, Separator, Text } from "./composition";
+export type { AvatarProps, EmptyStateProps, HeadingProps, TextProps, TextSize, TextTone, TextWeight } from "./composition";

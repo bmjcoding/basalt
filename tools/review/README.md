@@ -5,7 +5,7 @@ Every round of component work ends with a walkthrough and screenshots for the ow
 ```sh
 npm run build
 npm run review            # every round, into .review/
-npm run review -- 5       # forms and overlays
+npm run review -- 5 6     # forms, navigation and composition
 npm run typecheck:review  # validate walkthrough examples
 ```
 
