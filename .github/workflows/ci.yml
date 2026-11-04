@@ -38,7 +38,7 @@ jobs:
           BASALT_SNAPSHOT_DIR: ${{ runner.temp }}/snapshots
       - name: Upload the SwiftUI renders for review
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: swiftui-snapshots
           path: ${{ runner.temp }}/snapshots
