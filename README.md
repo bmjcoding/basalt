@@ -45,6 +45,11 @@ on every surface it can appear on, that every colour is inside sRGB, and that th
 the darkest layer in both themes. Then builds the components and runs axe-core and keyboard
 tests on them in a real browser, in both themes.
 
+## Reference
+
+The browsable reference (tokens, type, components with live previews) is built from this
+repository by [`tools/artifact`](tools/artifact).
+
 ## Decisions
 
 [docs/foundations.md](docs/foundations.md) records every foundation and why it was chosen.
