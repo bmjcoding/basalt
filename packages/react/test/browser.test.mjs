@@ -148,6 +148,15 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("a selected table row has a cue besides colour (WCAG 1.4.11)", async () => {
+      const { page } = await open(theme);
+      const row = page.locator('tr[aria-selected="true"]');
+      assert.equal(await row.count(), 1);
+      const shadow = await row.locator("td").first().evaluate((td) => getComputedStyle(td).boxShadow);
+      assert.match(shadow, /\b2px 0px 0px 0px inset/, `selected row's leading bar is missing (${shadow})`);
+      await page.close();
+    });
+
     test("no horizontal page scroll at phone width", async () => {
       const { page } = await open(theme, "", { width: 390, height: 844 });
       const width = await page.evaluate(() => document.documentElement.scrollWidth);

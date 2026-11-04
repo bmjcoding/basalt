@@ -70,7 +70,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
   brightening to pure white or black on hover.
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
-  badge fill. Danger is also a text colour (4.68:1 or better).
+  badge fill. Danger is also a text colour (4.68:1 or better). There is no filled red button:
+  a destructive action is red text on a red hairline, quieter than the primary action, with
+  focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
+- **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
+- **Selected rows** carry a 2px bar on the leading edge besides the wash.
 
 ## Type
 
@@ -105,7 +109,8 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
 
 ## Elevation
 
-Page and raised surfaces use the hairline only. Shadows start at overlays: menus and
+Page and raised surfaces use the hairline only. Tables run 40px rows by default, 32px for
+logs (`density="compact"`) and 44px for touch. Shadows start at overlays: menus and
 popovers use `shadow-overlay`, dialogs and sheets `shadow-modal` over a scrim.
 
 ## Motion

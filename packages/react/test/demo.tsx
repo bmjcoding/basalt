@@ -1,7 +1,7 @@
 // Every component on one page, for the browser tests and for review screenshots.
 // ?theme=dark|light pins the theme; ?open=menu|dialog opens an overlay on load.
 
-import { CaretDownIcon, CopyIcon, CubeIcon, DotsThreeIcon, GearIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CopyIcon, DotsThreeIcon, GearIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 
@@ -22,7 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
   Field,
-  Icon,
   IconButton,
   Input,
   Kbd,
@@ -96,6 +95,19 @@ function App() {
                 New sandbox
               </Button>
             ))}
+          </div>
+          <div className="row">
+            {(["xs", "sm", "md", "lg", "xl"] as const).map((s) => (
+              <Button key={s} size={s}>
+                Cancel
+              </Button>
+            ))}
+            <Button variant="primary" disabled>
+              Deploy
+            </Button>
+            <Button variant="danger" disabled>
+              Delete
+            </Button>
           </div>
         </Section>
 
@@ -189,7 +201,7 @@ function App() {
                 <DialogDescription>Its runs and records stay. The sandbox and its routes are removed, and this can't be undone.</DialogDescription>
                 <DialogActions>
                   <DialogClose render={<Button>Cancel</Button>} />
-                  <DialogClose render={<Button variant="primary">Delete sandbox</Button>} />
+                  <DialogClose render={<Button variant="danger">Delete sandbox</Button>} />
                 </DialogActions>
               </DialogContent>
             </Dialog>
@@ -212,14 +224,11 @@ function App() {
               <TableBody>
                 {RUNS.map((r, i) => (
                   <TableRow key={r.id} selected={i === 0}>
-                    <TableCell style={{ fontWeight: 500 }}>
-                      <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-                        <Icon icon={CubeIcon} />
-                        {r.id}
-                      </span>
-                    </TableCell>
+                    <TableCell style={{ fontWeight: 500 }}>{r.id}</TableCell>
                     <TableCell>
-                      <Badge status={r.status}>{r.label}</Badge>
+                      <Badge variant="plain" status={r.status}>
+                        {r.label}
+                      </Badge>
                     </TableCell>
                     <TableCell>{r.agent}</TableCell>
                     <TableCell numeric>{r.time}</TableCell>

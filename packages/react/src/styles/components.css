@@ -85,10 +85,12 @@
     color: var(--basalt-text-secondary);
   }
 
+  /* Danger is red text on a red hairline. No filled red button: Basalt is monochrome, and the
+     one destructive control stays quieter than the primary action beside it. */
   .basalt-button[data-variant="danger"] {
     background: transparent;
     color: var(--basalt-status-danger);
-    box-shadow: inset 0 0 0 1px var(--basalt-border-hairline);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--basalt-status-danger) 45%, transparent);
   }
 
   /* Hover brightens: text up a step, the hairline up a step, a wash on transparent buttons.
@@ -99,7 +101,7 @@
       box-shadow: 0 0 0 1px var(--basalt-border-hover), 0 0 0 1px var(--basalt-surface-page);
     }
     .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
-    .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 1px var(--basalt-border-hover); }
+    .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
   }
 
   /* A press is one colour step, never a scale. */
@@ -109,12 +111,11 @@
     background: var(--basalt-state-selected);
   }
 
-  .basalt-button[data-disabled] {
-    cursor: not-allowed;
-    color: var(--basalt-text-disabled);
-    background: var(--basalt-state-hover);
-    box-shadow: none;
-  }
+  /* Disabled keeps its variant's shape, so it reads as the same control, unavailable. */
+  .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
+  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); }
+  .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 1px color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
+  .basalt-button[data-variant="danger"][data-disabled] { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
   /* ---- Field and Input ---- */
 
@@ -415,12 +416,16 @@
     gap: var(--basalt-space-1-5);
     height: 22px;
     padding: 0 var(--basalt-space-2);
-    border-radius: var(--basalt-radius-full);
+    border-radius: var(--basalt-radius-xs);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans);
     color: var(--basalt-text-secondary);
     box-shadow: inset 0 0 0 1px var(--basalt-border-hairline);
     white-space: nowrap;
+    /* an inline-flex box takes its baseline from its first child, the empty dot; centre it instead */
+    vertical-align: middle;
   }
+
+  .basalt-badge[data-variant="plain"] { height: auto; padding: 0; box-shadow: none; font-weight: var(--basalt-font-weight-regular); font-size: inherit; line-height: inherit; }
 
   .basalt-badge-dot { width: 6px; height: 6px; border-radius: var(--basalt-radius-full); background: currentColor; }
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
@@ -488,9 +493,16 @@
   }
 
   .basalt-table td {
-    height: 44px;
+    height: 40px;
     padding: 0 var(--basalt-space-4);
+    vertical-align: middle;
     box-shadow: inset 0 1px 0 var(--basalt-border-divider);
+  }
+
+  .basalt-table-container[data-density="compact"] .basalt-table td { height: var(--basalt-size-control-md); }
+  .basalt-table-container[data-density="comfortable"] .basalt-table td { height: var(--basalt-size-tap-min); }
+  @media (pointer: coarse) {
+    .basalt-table td { height: var(--basalt-size-tap-min); }
   }
 
   .basalt-table [data-numeric] { text-align: right; font-variant-numeric: tabular-nums; }
@@ -500,7 +512,10 @@
     .basalt-table tbody tr:hover { background: var(--basalt-state-hover); }
   }
 
+  /* Selected is a 2px bar on the row's leading edge as well as the wash: the wash alone is about
+     1.2:1, too faint to be the only cue (WCAG 1.4.11). */
   .basalt-table tr[data-selected] { background: var(--basalt-state-selected); }
+  .basalt-table tr[data-selected] td:first-child { box-shadow: inset 2px 0 0 var(--basalt-text-primary), inset 0 1px 0 var(--basalt-border-divider); }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 

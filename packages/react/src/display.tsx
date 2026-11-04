@@ -17,12 +17,17 @@ export type BadgeStatus = "neutral" | "success" | "warning" | "danger";
 export interface BadgeProps extends React.ComponentProps<"span"> {
   /** A status dot before the label. The label always says the status in words; the dot never carries it alone. */
   status?: BadgeStatus;
+  /**
+   * `outline` (default): a small hairline label. `plain`: dot and text only, for places a
+   * status repeats down a column, such as table cells, where a pill on every row is noise.
+   */
+  variant?: "outline" | "plain";
 }
 
-/** A small label, e.g. a deployment state. Neutral pill; colour only in the dot. */
-export function Badge({ status = "neutral", className, children, ...props }: BadgeProps) {
+/** A small label, e.g. a deployment state. Neutral; colour only in the dot. */
+export function Badge({ status = "neutral", variant = "outline", className, children, ...props }: BadgeProps) {
   return (
-    <span {...props} data-status={status} className={join("basalt-badge", className)}>
+    <span {...props} data-status={status} data-variant={variant} className={join("basalt-badge", className)}>
       {status === "neutral" ? null : <span className="basalt-badge-dot" aria-hidden="true" />}
       {children}
     </span>
@@ -57,9 +62,14 @@ export function CardFooter({ className, ...props }: React.ComponentProps<"div">)
 
 // ---- Table ----
 
-/** A data table. Wrap it in `TableContainer` for the rounded, bordered frame and horizontal scrolling. */
-export function TableContainer({ className, ...props }: React.ComponentProps<"div">) {
-  return <div {...props} className={join("basalt-table-container", className)} />;
+export type TableDensity = "compact" | "default" | "comfortable";
+
+/**
+ * A data table's frame: rounded, bordered, scrolling sideways when it must. `density` sets
+ * the row height: 32px for logs, 40px by default, 44px for touch.
+ */
+export function TableContainer({ density = "default", className, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
+  return <div {...props} data-density={density} className={join("basalt-table-container", className)} />;
 }
 
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
