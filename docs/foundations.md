@@ -78,6 +78,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
   also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
 - **Toasts** carry a dot only for warning and danger; the title says what happened.
+- **Callouts** keep a neutral surface; status is the icon and the words, and danger also
+  colours its title.
+- **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
+  `surface-placeholder` and a calm 2s pulse; spinners turn once a second. Under reduced motion
+  they fade or hold still.
 
 ## Type
 

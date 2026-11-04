@@ -196,19 +196,25 @@ export function CodeBlock({ code, title, copyable = true, className }: CodeBlock
       // clipboard refused (insecure context or permissions): leave the button as it was
     }
   };
+  const copyButton = copyable ? (
+    <span className="basalt-code-copy">
+      <IconButton icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy code"} size="sm" onClick={copy} />
+      <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
+    </span>
+  ) : null;
   return (
-    <figure className={join("basalt-code", className)}>
-      {title ? <figcaption className="basalt-code-title">{title}</figcaption> : null}
+    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined}>
+      {title ? (
+        <figcaption className="basalt-code-title">
+          <span>{title}</span>
+          {copyButton}
+        </figcaption>
+      ) : null}
       {/* a scrollable region must be reachable by keyboard */}
       <pre className="basalt-code-pre" tabIndex={0} aria-label={title ? `${title} code` : "Code"}>
         <code>{code}</code>
       </pre>
-      {copyable ? (
-        <span className="basalt-code-copy">
-          <IconButton icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy code"} size="sm" onClick={copy} />
-          <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
-        </span>
-      ) : null}
+      {title ? null : copyButton}
     </figure>
   );
 }

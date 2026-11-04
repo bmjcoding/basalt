@@ -26,6 +26,10 @@
       "sunken-strong": {
         "$value": "{color.neutral.7}",
         "$description": "Table headers and segmented-control tracks."
+      },
+      "placeholder": {
+        "$value": "{color.neutral.9}",
+        "$description": "Skeletons and other loading placeholders: visible on the page in both themes."
       }
     },
     "text": {

@@ -120,6 +120,7 @@ export const ROUND_4: Round = {
       intro: "An inline message that stays until the situation changes: a warning or error that needs a decision.",
       decisions: [
         "The surface stays neutral. Status is the icon's shape and colour, and the words: no coloured fill, no coloured left edge.",
+        "Danger also colours its title, so it stands out at a glance: both designers found the cards too alike with only the icon.",
         "Only a callout that appears in response to something is announced; one present when the page loads isn't read out every time.",
       ],
       tryIt: ["Compare the shapes of the four icons: each status reads without colour."],
@@ -138,7 +139,11 @@ export const ROUND_4: Round = {
       id: "progress",
       name: "Progress",
       intro: "Progress of a task with a known end; an indeterminate bar while the end isn't known yet.",
-      decisions: ["The track's ring meets 3:1, so the bar's extent reads without relying on fill colour.", "The label is required: it names the bar."],
+      decisions: [
+        "A 4px track filled with the input-boundary colour: its extent reads at 3:1 against the page. An outlined ring made it look like an input.",
+        "The label is required: it names the bar.",
+        "Under reduced motion the indeterminate bar pulses in place instead of sliding.",
+      ],
       tryIt: ["Step the value with the buttons."],
       demo: () => <ProgressDemo />,
     },
@@ -146,7 +151,12 @@ export const ROUND_4: Round = {
       id: "loading",
       name: "Spinner and Skeleton",
       intro: "A spinner for short waits; skeletons that hold the final layout so nothing jumps when content arrives.",
-      decisions: ["Skeletons are hidden from screen readers; loading is announced once, by the spinner's label or the region's busy state.", "Under reduced motion the spinner fades instead of turning, and skeletons hold still."],
+      decisions: [
+        "Calmed in review: the skeleton pulse is 2s and only dips to 70%, and the spinner turns once a second.",
+        "Skeletons use a new surface-placeholder token, visible on true black in dark mode.",
+        "Skeletons are hidden from screen readers; loading is announced once, by the spinner's label or the region's busy state.",
+        "Under reduced motion the spinner fades instead of turning, and skeletons hold still.",
+      ],
       tryIt: ["Toggle between loading and loaded: the layout doesn't move."],
       demo: () => <LoadingDemo />,
     },
@@ -154,7 +164,11 @@ export const ROUND_4: Round = {
       id: "code",
       name: "Code block",
       intro: "Code, commands or logs in Geist Mono. Long lines scroll sideways rather than wrap.",
-      decisions: ["The block is focusable so keyboard users can scroll it.", "Copy says \"Copied\" to screen readers as well as switching its icon."],
+      decisions: [
+        "Copy sits top right, in the title row when there is one: bottom right drifted away on short snippets and hid on long ones.",
+        "The block is focusable so keyboard users can scroll it.",
+        "Copy says \"Copied\" to screen readers as well as switching its icon.",
+      ],
       tryIt: ["Press Copy, then paste somewhere.", "Tab to the code and use the arrow keys to scroll."],
       demo: () => <CodeBlock title="terminal" code={"./blacksand k8s run --repo ~/code/project --prompt-file task.md \\\n  --agent claude --route anthropic=https://api.anthropic.com@anthropic-key --out runs/first-task"} />,
     },
@@ -162,7 +176,7 @@ export const ROUND_4: Round = {
       id: "accordion",
       name: "Accordion",
       intro: "Sections that expand, for secondary detail.",
-      decisions: ["The caret turns and the panel's height animates on Basalt's slow, out curve; under reduced motion it just opens."],
+      decisions: ["The caret and the panel move together, on the slow duration and the out curve; under reduced motion it just opens."],
       tryIt: ["Tab to a section and press Enter."],
       demo: () => (
         <div style={{ maxWidth: 560 }}>

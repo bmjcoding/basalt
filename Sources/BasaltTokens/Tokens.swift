@@ -77,6 +77,12 @@ extension Basalt {
       dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
     )
 
+    /// Skeletons and other loading placeholders: visible on the page in both themes.
+    public static let surfacePlaceholder = ThemedColor(
+      light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
+      dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
+    )
+
     /// Body text, headings and labels, on every surface.
     public static let textPrimary = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
