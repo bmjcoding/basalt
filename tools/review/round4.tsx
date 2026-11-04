@@ -78,7 +78,7 @@ function LoadingDemo() {
 export const ROUND_4: Round = {
   id: "4",
   title: "Status and content",
-  pr: "https://github.com/bmjcoding/basalt/pulls",
+  pr: "https://github.com/bmjcoding/basalt/pull/5",
   summary: "Components for the deploy console and the sites: long-form input, anchored detail, inline messages, progress and loading, code, and expandable sections.",
   steps: [
     {
