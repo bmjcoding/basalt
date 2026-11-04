@@ -90,6 +90,15 @@ function ToastDemo() {
   );
 }
 
+// A toast shown from an effect that depends on useToast(): must show once, not loop.
+function ToastOnLoad() {
+  const toast = useToast();
+  React.useEffect(() => {
+    if (open === "toast") toast.show({ title: "Shown on load", timeout: 0 });
+  }, [toast]);
+  return null;
+}
+
 function CommandDemo() {
   const [cmdOpen, setCmdOpen] = React.useState(open === "command");
   const [ran, setRan] = React.useState("");
@@ -217,6 +226,7 @@ function App() {
         <Section title="Feedback">
           <div className="row">
             <ToastDemo />
+            <ToastOnLoad />
             <CommandDemo />
           </div>
         </Section>

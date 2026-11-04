@@ -204,6 +204,15 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("useToast is stable: a toast shown from an effect shows once", async () => {
+      const { page, errors } = await open(theme, "&open=toast");
+      await page.getByText("Shown on load").waitFor();
+      await page.waitForTimeout(300);
+      assert.equal(await page.getByText("Shown on load").count(), 1);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
     test("command menu: filters by label and keyword, Enter runs, Esc closes", async () => {
       const { page } = await open(theme);
       const openMenu = async () => {

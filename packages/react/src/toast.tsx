@@ -56,21 +56,28 @@ function ToastList() {
   ));
 }
 
-/** Show a toast from anywhere inside `ToastProvider`. Returns its id, for `close`. */
+/**
+ * Show a toast from anywhere inside `ToastProvider`. Returns its id, for `close`. The returned
+ * object is stable across renders, so it is safe in effect dependencies.
+ */
 export function useToast() {
+  // Base UI's manager object changes whenever the toast list does; keep the latest in a ref so
+  // this hook's result never changes identity (an effect that shows a toast would loop).
   const manager = BaseToast.useToastManager();
+  const latest = React.useRef(manager);
+  latest.current = manager;
   return React.useMemo(
     () => ({
       show: ({ title, description, status = "neutral", action, timeout }: ToastOptions) =>
-        manager.add({
+        latest.current.add({
           title,
           description,
           type: status,
           timeout,
           actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
         }),
-      close: (id: string) => manager.close(id),
+      close: (id: string) => latest.current.close(id),
     }),
-    [manager],
+    [],
   );
 }
