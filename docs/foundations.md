@@ -65,7 +65,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Focus:** a 2px outline with a 2px offset in the secondary text colour, 6.9:1 or better.
   Outlines survive Windows forced-colours mode; box-shadow rings don't.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
-  surface. A selected tab or segment is a raised pill with a hairline, not a wash: a wash
+  surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected tab or segment is a raised pill with a hairline, not a wash: a wash
   alone is about 1.2:1 and fails 1.4.11.
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
   brightening to pure white or black on hover.

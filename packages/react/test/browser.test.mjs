@@ -1,0 +1,158 @@
+// Browser tests on the demo page (.demo, built by build.mjs), in both themes:
+// - axe-core finds no WCAG 2.2 A/AA violations, at rest and with the menu and dialog open
+// - keyboard behaviour: menus, dialogs, tabs and the segmented control work without a mouse,
+//   Esc closes overlays, and focus returns where it came from
+// - focus is visible: a 2px outline in the focus token
+// - no horizontal page scroll at phone width
+
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import http from "node:http";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { after, before, describe, test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { chromium } from "playwright";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const demo = path.join(here, "..", ".demo");
+const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
+
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2" };
+let server;
+let base;
+let browser;
+
+before(async () => {
+  server = http.createServer((req, res) => {
+    const file = path.join(demo, decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/\/$/, "/index.html"));
+    if (!file.startsWith(demo) || !fs.existsSync(file)) return res.writeHead(404).end();
+    res.writeHead(200, { "content-type": TYPES[path.extname(file)] ?? "application/octet-stream" }).end(fs.readFileSync(file));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  base = `http://127.0.0.1:${server.address().port}/`;
+  browser = await chromium.launch();
+});
+
+after(async () => {
+  await browser?.close();
+  server?.close();
+});
+
+async function open(theme, query = "", viewport = { width: 1000, height: 1200 }) {
+  const page = await browser.newPage({ viewport });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await page.goto(`${base}?theme=${theme}${query}`);
+  await page.getByRole("heading", { name: "Basalt components" }).waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  return { page, errors };
+}
+
+async function axe(page) {
+  await page.addScriptTag({ content: axeSource });
+  const result = await page.evaluate(() =>
+    window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] }),
+  );
+  return result.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join("; ")})`);
+}
+
+for (const theme of ["light", "dark"]) {
+  describe(theme, () => {
+    test("no WCAG 2.2 AA violations at rest, and no console errors", async () => {
+      const { page, errors } = await open(theme);
+      assert.deepEqual(await axe(page), []);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("menu: opens from the keyboard, arrows move, Esc closes and returns focus", async () => {
+      const { page } = await open(theme);
+      const trigger = page.getByRole("button", { name: "Actions", exact: true });
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      assert.deepEqual(await axe(page), [], "violations with the menu open");
+      await page.keyboard.press("ArrowDown");
+      const highlighted = await page.evaluate(() => document.activeElement?.textContent);
+      assert.ok(highlighted && /New sandbox|Duplicate/.test(highlighted), `focus moved into the menu (${highlighted})`);
+      await page.keyboard.press("Escape");
+      await menu.waitFor({ state: "hidden" });
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Actions");
+      await page.close();
+    });
+
+    test("dialog: named, traps focus, Esc closes and returns focus", async () => {
+      const { page } = await open(theme);
+      const trigger = page.getByRole("button", { name: "Delete sandbox" });
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: "Delete blacksand-api?" });
+      await dialog.waitFor();
+      // a destructive confirmation opens with focus on the safe choice
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Cancel");
+      assert.deepEqual(await axe(page), [], "violations with the dialog open");
+      for (let i = 0; i < 6; i++) {
+        await page.keyboard.press("Tab");
+        // Base UI's focus guards return focus to the dialog on the next frame; read it after that
+        const inside = await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(!!document.activeElement?.closest('[role="dialog"]'))))));
+        assert.ok(inside, `Tab ${i + 1} left the dialog`);
+      }
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Delete sandbox");
+      await page.close();
+    });
+
+    test("tabs: arrow keys move between tabs and switch the panel", async () => {
+      const { page } = await open(theme);
+      await page.getByRole("tab", { name: "Overview" }).focus();
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("Enter");
+      const runs = page.getByRole("tab", { name: "Runs" });
+      assert.equal(await runs.getAttribute("aria-selected"), "true");
+      await page.getByText("142 runs this week.").waitFor();
+      await page.close();
+    });
+
+    test("segmented control: always exactly one segment selected", async () => {
+      const { page } = await open(theme);
+      const seg = (name) => page.getByRole("button", { name, exact: true });
+      await seg("24h").click(); // already selected: must stay selected
+      assert.equal(await seg("24h").getAttribute("aria-pressed"), "true");
+      await seg("7d").click();
+      assert.equal(await seg("7d").getAttribute("aria-pressed"), "true");
+      assert.equal(await seg("24h").getAttribute("aria-pressed"), "false");
+      await page.close();
+    });
+
+    test("focus is visible: a 2px outline in the focus colour", async () => {
+      const { page } = await open(theme);
+      await page.keyboard.press("Tab"); // the first button, Deploy
+      const ring = await page.evaluate(() => {
+        const el = document.activeElement;
+        const s = getComputedStyle(el);
+        const probe = document.createElement("i");
+        probe.style.color = "var(--basalt-border-focus)";
+        document.body.append(probe);
+        const focus = getComputedStyle(probe).color;
+        probe.remove();
+        return { text: el.textContent, width: s.outlineWidth, style: s.outlineStyle, color: s.outlineColor, focus };
+      });
+      assert.equal(ring.text, "Deploy");
+      assert.equal(ring.width, "2px");
+      assert.equal(ring.style, "solid");
+      assert.equal(ring.color, ring.focus);
+      await page.close();
+    });
+
+    test("no horizontal page scroll at phone width", async () => {
+      const { page } = await open(theme, "", { width: 390, height: 844 });
+      const width = await page.evaluate(() => document.documentElement.scrollWidth);
+      assert.ok(width <= 390, `page is ${width}px wide at a 390px viewport`);
+      await page.close();
+    });
+  });
+}

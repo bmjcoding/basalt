@@ -1,0 +1,516 @@
+/* Basalt components. Every value comes from a token (packages/tokens); nothing here is a raw
+   colour. Inside @layer basalt, so an app's own unlayered CSS always wins without !important. */
+
+@layer basalt {
+  /* ---- shared ---- */
+
+  .basalt-icon {
+    flex: none;
+    display: block;
+  }
+
+  .basalt-button,
+  .basalt-input,
+  .basalt-menu-item,
+  .basalt-tab,
+  .basalt-segment {
+    font-family: var(--basalt-font-family-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .basalt-button:focus-visible,
+  .basalt-input:focus-visible,
+  .basalt-tab:focus-visible,
+  .basalt-segment:focus-visible,
+  .basalt-menu-trigger:focus-visible,
+  .basalt-dialog-trigger:focus-visible {
+    outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
+    outline-offset: var(--basalt-size-focus-offset);
+  }
+
+  .basalt-positioner {
+    z-index: var(--basalt-layer-popover);
+    outline: none;
+  }
+
+  /* ---- Button ---- */
+
+  .basalt-button {
+    --_h: var(--basalt-size-control-md);
+    --_px: var(--basalt-space-3);
+    --_radius: var(--basalt-radius-sm);
+    --_font: var(--basalt-text-base-size);
+
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-1-5);
+    height: var(--_h);
+    padding: 0 var(--_px);
+    margin: 0;
+    border: 0;
+    border-radius: var(--_radius);
+    font-size: var(--_font);
+    font-weight: var(--basalt-font-weight-medium);
+    line-height: 1;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  .basalt-button[data-size="xs"] { --_h: var(--basalt-size-control-xs); --_px: var(--basalt-space-2); --_font: var(--basalt-text-sm-size); }
+  .basalt-button[data-size="sm"] { --_h: var(--basalt-size-control-sm); --_px: 10px; --_font: var(--basalt-text-sm-size); }
+  .basalt-button[data-size="lg"] { --_h: var(--basalt-size-control-lg); --_px: 14px; --_radius: var(--basalt-radius-md); }
+  .basalt-button[data-size="xl"] { --_h: var(--basalt-size-control-xl); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--basalt-text-md-size); }
+  .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
+
+  .basalt-button[data-variant="primary"] {
+    background: var(--basalt-action-primary);
+    color: var(--basalt-action-primary-text);
+  }
+
+  .basalt-button[data-variant="secondary"] {
+    background: var(--basalt-surface-raised);
+    color: var(--basalt-text-primary);
+    box-shadow: var(--basalt-shadow-hairline);
+  }
+
+  .basalt-button[data-variant="ghost"] {
+    background: transparent;
+    color: var(--basalt-text-secondary);
+  }
+
+  .basalt-button[data-variant="danger"] {
+    background: transparent;
+    color: var(--basalt-status-danger);
+    box-shadow: inset 0 0 0 1px var(--basalt-border-hairline);
+  }
+
+  /* Hover brightens: text up a step, the hairline up a step, a wash on transparent buttons.
+     Never a scale. Only on devices that really hover, so touch doesn't stick. */
+  @media (hover: hover) {
+    .basalt-button[data-variant="primary"]:hover:not([data-disabled]) { background: var(--basalt-action-primary-hover); }
+    .basalt-button[data-variant="secondary"]:hover:not([data-disabled]) {
+      box-shadow: 0 0 0 1px var(--basalt-border-hover), 0 0 0 1px var(--basalt-surface-page);
+    }
+    .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
+    .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 1px var(--basalt-border-hover); }
+  }
+
+  /* A press is one colour step, never a scale. */
+  .basalt-button[data-variant="secondary"]:active:not([data-disabled]),
+  .basalt-button[data-variant="ghost"]:active:not([data-disabled]),
+  .basalt-button[data-variant="danger"]:active:not([data-disabled]) {
+    background: var(--basalt-state-selected);
+  }
+
+  .basalt-button[data-disabled] {
+    cursor: not-allowed;
+    color: var(--basalt-text-disabled);
+    background: var(--basalt-state-hover);
+    box-shadow: none;
+  }
+
+  /* ---- Field and Input ---- */
+
+  .basalt-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--basalt-space-1-5);
+    min-width: 0;
+  }
+
+  .basalt-field-label {
+    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-primary);
+  }
+
+  .basalt-field-description,
+  .basalt-field-error {
+    margin: 0;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-secondary);
+  }
+
+  .basalt-field-error { color: var(--basalt-status-danger); }
+
+  .basalt-input {
+    --_h: var(--basalt-size-control-md);
+
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--_h);
+    padding: 0 10px;
+    margin: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-raised);
+    box-shadow: inset 0 0 0 1px var(--basalt-border-input);
+    color: var(--basalt-text-primary);
+    font-size: var(--basalt-text-base-size);
+    transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+
+  .basalt-input[data-size="xs"] { --_h: var(--basalt-size-control-xs); font-size: var(--basalt-text-sm-size); }
+  .basalt-input[data-size="sm"] { --_h: var(--basalt-size-control-sm); font-size: var(--basalt-text-sm-size); }
+  .basalt-input[data-size="lg"] { --_h: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
+  .basalt-input[data-size="xl"] { --_h: var(--basalt-size-control-xl); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); }
+
+  .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  .basalt-input[data-invalid] { box-shadow: inset 0 0 0 1px var(--basalt-status-danger); }
+  .basalt-input[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
+
+  /* ---- Menu ---- */
+
+  .basalt-menu {
+    box-sizing: border-box;
+    min-width: 200px;
+    max-height: var(--available-height);
+    overflow-y: auto;
+    padding: var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-overlay);
+    box-shadow: var(--basalt-shadow-overlay);
+    color: var(--basalt-text-primary);
+    outline: none;
+    transform-origin: var(--transform-origin);
+    transition-property: opacity, transform;
+    transition-duration: var(--basalt-duration-base);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  .basalt-menu[data-starting-style],
+  .basalt-menu[data-ending-style] { opacity: 0; transform: scale(0.98); }
+  .basalt-menu[data-ending-style] { transition-duration: calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+
+  .basalt-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    height: var(--basalt-size-menu-row);
+    padding: 0 var(--basalt-space-2);
+    /* nested radius: the popup's 12px minus its 6px padding */
+    border-radius: var(--basalt-radius-sm);
+    font-size: var(--basalt-text-sm-size);
+    color: var(--basalt-text-primary);
+    cursor: default;
+    user-select: none;
+    outline: none;
+  }
+
+  .basalt-menu-item .basalt-icon { color: var(--basalt-text-secondary); }
+  .basalt-menu-item-label { flex: 1; }
+  .basalt-menu-item-shortcut { margin-left: var(--basalt-space-4); }
+  .basalt-menu-item[data-highlighted] { background: var(--basalt-state-hover); }
+  .basalt-menu-item[data-highlighted] .basalt-icon { color: var(--basalt-text-primary); }
+  .basalt-menu-item[data-danger],
+  .basalt-menu-item[data-danger] .basalt-icon { color: var(--basalt-status-danger); }
+  .basalt-menu-item[data-disabled] { color: var(--basalt-text-disabled); }
+
+  .basalt-menu-separator {
+    height: 1px;
+    margin: var(--basalt-space-1-5) calc(-1 * var(--basalt-space-1-5));
+    background: var(--basalt-border-divider);
+  }
+
+  .basalt-menu-group-label {
+    padding: var(--basalt-space-1-5) var(--basalt-space-2) var(--basalt-space-1);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-secondary);
+  }
+
+  .basalt-menu-trigger { cursor: pointer; }
+
+  /* ---- Dialog ---- */
+
+  .basalt-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--basalt-layer-overlay);
+    background: var(--basalt-scrim);
+    transition: opacity var(--basalt-duration-slow) var(--basalt-ease-out);
+  }
+
+  .basalt-dialog {
+    box-sizing: border-box;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: var(--basalt-layer-dialog);
+    width: min(480px, calc(100vw - 2 * var(--basalt-space-4)));
+    max-height: calc(100dvh - 2 * var(--basalt-space-4));
+    overflow-y: auto;
+    padding: var(--basalt-space-6);
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-overlay);
+    box-shadow: var(--basalt-shadow-modal);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+    outline: none;
+    transform: translate(-50%, -50%);
+    transition-property: opacity, transform;
+    transition-duration: var(--basalt-duration-slow);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  .basalt-dialog-backdrop[data-starting-style],
+  .basalt-dialog-backdrop[data-ending-style] { opacity: 0; }
+  .basalt-dialog[data-starting-style],
+  .basalt-dialog[data-ending-style] { opacity: 0; transform: translate(-50%, -50%) scale(0.98); }
+  .basalt-dialog[data-ending-style],
+  .basalt-dialog-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+
+  .basalt-dialog-title {
+    margin: 0;
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-lg-tracking);
+  }
+
+  .basalt-dialog-description {
+    margin: var(--basalt-space-2) 0 0;
+    font-size: var(--basalt-text-base-size);
+    line-height: var(--basalt-text-base-line-height);
+    color: var(--basalt-text-secondary);
+  }
+
+  .basalt-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--basalt-space-2);
+    margin-top: var(--basalt-space-6);
+  }
+
+  /* ---- Tabs ---- */
+
+  .basalt-tabs-list {
+    position: relative;
+    display: flex;
+    gap: var(--basalt-space-1);
+    box-shadow: inset 0 -1px 0 var(--basalt-border-divider);
+  }
+
+  .basalt-tab {
+    position: relative;
+    height: var(--basalt-size-control-lg);
+    padding: 0 var(--basalt-space-2);
+    margin: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font-size: var(--basalt-text-sm-size);
+    font-weight: var(--basalt-font-weight-medium);
+    cursor: pointer;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+
+  @media (hover: hover) {
+    .basalt-tab:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
+  }
+
+  .basalt-tab[data-active] { color: var(--basalt-text-primary); }
+  .basalt-tab[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
+
+  /* The active tab is marked by a 2px bar (shape, not only colour) that slides between tabs. */
+  .basalt-tabs-indicator {
+    position: absolute;
+    bottom: 0;
+    left: var(--active-tab-left);
+    width: var(--active-tab-width);
+    height: 2px;
+    background: var(--basalt-text-primary);
+    transition-property: left, width;
+    transition-duration: var(--basalt-duration-slow);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  .basalt-tabs-panel { outline: none; }
+  .basalt-tabs-panel:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+
+  /* ---- Segmented control ---- */
+
+  .basalt-segmented {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--basalt-radius-md);
+    background: var(--basalt-surface-sunken-strong);
+  }
+
+  .basalt-segment {
+    height: var(--basalt-size-control-sm);
+    padding: 0 10px;
+    margin: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-sm);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font-size: var(--basalt-text-sm-size);
+    font-weight: var(--basalt-font-weight-medium);
+    cursor: pointer;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  @media (hover: hover) {
+    .basalt-segment:hover:not([data-pressed]):not([data-disabled]) { color: var(--basalt-text-primary); }
+  }
+
+  /* Selected is a raised pill with a hairline, visible without colour (WCAG 1.4.11). */
+  .basalt-segment[data-pressed] {
+    background: var(--basalt-surface-top);
+    color: var(--basalt-text-primary);
+    box-shadow: var(--basalt-shadow-pill);
+  }
+
+  /* ---- Tooltip ---- */
+
+  .basalt-tooltip {
+    box-sizing: border-box;
+    max-width: 280px;
+    padding: var(--basalt-space-1) var(--basalt-space-2);
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-top);
+    box-shadow: var(--basalt-shadow-overlay);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    transform-origin: var(--transform-origin);
+    transition-property: opacity, transform;
+    transition-duration: var(--basalt-duration-base);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+
+  .basalt-tooltip[data-starting-style],
+  .basalt-tooltip[data-ending-style] { opacity: 0; transform: scale(0.98); }
+  .basalt-tooltip[data-instant] { transition-duration: 0ms; }
+
+  /* ---- Kbd ---- */
+
+  .basalt-kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: var(--basalt-radius-xs);
+    font: var(--basalt-font-weight-regular) 11px / 1 var(--basalt-font-family-mono);
+    color: var(--basalt-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--basalt-border-hairline);
+  }
+
+  .basalt-menu-item .basalt-kbd { height: auto; padding: 0; box-shadow: none; color: var(--basalt-text-tertiary); }
+  /* tertiary text on a wash falls below 4.5:1, so it steps up to secondary */
+  .basalt-menu-item[data-highlighted] .basalt-kbd { color: var(--basalt-text-secondary); }
+
+  /* ---- Badge ---- */
+
+  .basalt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-1-5);
+    height: 22px;
+    padding: 0 var(--basalt-space-2);
+    border-radius: var(--basalt-radius-full);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans);
+    color: var(--basalt-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--basalt-border-hairline);
+    white-space: nowrap;
+  }
+
+  .basalt-badge-dot { width: 6px; height: 6px; border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
+  .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
+  .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
+
+  /* ---- Card ---- */
+
+  .basalt-card {
+    box-sizing: border-box;
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-raised);
+    box-shadow: var(--basalt-shadow-hairline);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+
+  .basalt-card-header { padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
+  .basalt-card-content { padding: var(--basalt-space-4); }
+  .basalt-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--basalt-space-2);
+    padding: var(--basalt-space-3) var(--basalt-space-4);
+    box-shadow: inset 0 1px 0 var(--basalt-border-divider);
+  }
+
+  .basalt-card-title {
+    margin: 0;
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+  }
+
+  .basalt-card-description {
+    margin: 2px 0 0;
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    color: var(--basalt-text-secondary);
+  }
+
+  /* ---- Table ---- */
+
+  .basalt-table-container {
+    overflow-x: auto;
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-raised);
+    box-shadow: var(--basalt-shadow-hairline);
+  }
+
+  .basalt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-primary);
+  }
+
+  .basalt-table th {
+    height: var(--basalt-size-control-md);
+    padding: 0 var(--basalt-space-4);
+    background: var(--basalt-surface-sunken-strong);
+    font-size: var(--basalt-text-xs-size);
+    font-weight: var(--basalt-font-weight-medium);
+    color: var(--basalt-text-secondary);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .basalt-table td {
+    height: 44px;
+    padding: 0 var(--basalt-space-4);
+    box-shadow: inset 0 1px 0 var(--basalt-border-divider);
+  }
+
+  .basalt-table [data-numeric] { text-align: right; font-variant-numeric: tabular-nums; }
+  .basalt-table [data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
+
+  @media (hover: hover) {
+    .basalt-table tbody tr:hover { background: var(--basalt-state-hover); }
+  }
+
+  .basalt-table tr[data-selected] { background: var(--basalt-state-selected); }
+
+  /* ---- reduced motion: nothing moves; state changes become short fades ---- */
+
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-menu[data-starting-style],
+    .basalt-menu[data-ending-style],
+    .basalt-tooltip[data-starting-style],
+    .basalt-tooltip[data-ending-style] { transform: none; }
+    .basalt-dialog[data-starting-style],
+    .basalt-dialog[data-ending-style] { transform: translate(-50%, -50%); }
+    .basalt-tabs-indicator { transition: none; }
+  }
+}
