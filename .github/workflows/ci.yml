@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Tokens, components and browser tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the Chromium that the pinned Playwright expects
+        run: npx --workspace packages/react playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run artifact
+      - name: Generated Swift is up to date
+        run: git diff --exit-code -- Sources/BasaltTokens/Tokens.swift
+
+  apple:
+    name: Swift package (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift --version
+      - run: swift build
+      - run: swift test
+        env:
+          BASALT_SNAPSHOT_DIR: ${{ runner.temp }}/snapshots
+      - name: Upload the SwiftUI renders for review
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: swiftui-snapshots
+          path: ${{ runner.temp }}/snapshots
+          if-no-files-found: ignore
+      # The renders also go into the log, base64 in 76-column lines between markers, for
+      # environments that can read job logs but not artifact storage.
+      - name: Print the SwiftUI renders into the log
+        if: always()
+        run: |
+          for f in "$RUNNER_TEMP"/snapshots/*.png; do
+            [ -f "$f" ] || continue
+            echo "BASALT-SNAPSHOT-BEGIN $(basename "$f")"
+            base64 -b 76 -i "$f"
+            echo "BASALT-SNAPSHOT-END"
+          done

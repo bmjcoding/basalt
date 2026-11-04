@@ -19,7 +19,7 @@ its own accent, in a few named roles, and nowhere else.
 - **No ornament that signals "generated":** no top highlights on cards, no gradient
   borders, no glow, no press-shrink, no bounce. Colour never carries meaning alone.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
-  (next) Swift and Kotlin. Components are native per platform; tokens, icons and type are shared.
+  Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
 ## Colour
 

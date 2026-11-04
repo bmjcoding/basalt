@@ -41,12 +41,17 @@ const bundle = await esbuild.build({
   write: false,
   define: { "process.env.NODE_ENV": '"production"' },
   nodePaths: [path.join(repo, "node_modules")],
+  loader: { ".png": "dataurl" },
   logLevel: "warning",
 });
 const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 
 // read the round list from the bundled module's source of truth, without running React
-const roundIds = [...fs.readFileSync(path.join(here, "rounds.tsx"), "utf8").matchAll(/const ROUND_\w+: Round = \{\s*id: "([^"]+)"/g)].map((m) => m[1]);
+const roundIds = fs
+  .readdirSync(here)
+  .filter((f) => f.endsWith(".tsx"))
+  .flatMap((f) => [...fs.readFileSync(path.join(here, f), "utf8").matchAll(/(?:export )?const ROUND_\w+: Round = \{\s*id: "([^"]+)"/g)].map((m) => m[1]))
+  .sort();
 const rounds = wanted.length ? roundIds.filter((r) => wanted.includes(r)) : roundIds;
 if (!rounds.length) throw new Error(`no such round; rounds are ${roundIds.join(", ")}`);
 

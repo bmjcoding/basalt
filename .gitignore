@@ -3,5 +3,7 @@ dist/
 .demo/
 .artifact/
 .review/
+.build/
+.swiftpm/
 *.log
 .DS_Store
