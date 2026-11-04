@@ -13,8 +13,8 @@ jobs:
     name: Tokens, components and browser tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -30,7 +30,7 @@ jobs:
     name: Swift package (macOS)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: swift --version
       - run: swift build
       - run: swift test
@@ -38,8 +38,19 @@ jobs:
           BASALT_SNAPSHOT_DIR: ${{ runner.temp }}/snapshots
       - name: Upload the SwiftUI renders for review
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: swiftui-snapshots
           path: ${{ runner.temp }}/snapshots
           if-no-files-found: ignore
+      # The renders also go into the log, base64 in 76-column lines between markers, for
+      # environments that can read job logs but not artifact storage.
+      - name: Print the SwiftUI renders into the log
+        if: always()
+        run: |
+          for f in "$RUNNER_TEMP"/snapshots/*.png; do
+            [ -f "$f" ] || continue
+            echo "BASALT-SNAPSHOT-BEGIN $(basename "$f")"
+            base64 -b 76 -i "$f"
+            echo "BASALT-SNAPSHOT-END"
+          done
