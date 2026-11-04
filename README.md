@@ -50,6 +50,11 @@ tests on them in a real browser, in both themes.
 The browsable reference (tokens, type, components with live previews) is built from this
 repository by [`tools/artifact`](tools/artifact).
 
+## Review rounds
+
+Each round of work ships an interactive walkthrough and screenshots, built by
+[`tools/review`](tools/review) (`npm run review`).
+
 ## Decisions
 
 [docs/foundations.md](docs/foundations.md) records every foundation and why it was chosen.

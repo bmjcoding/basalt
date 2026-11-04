@@ -33,7 +33,7 @@ are achromatic (no tint) and named by HSL lightness: `neutral-4` is `#0a0a0a`.
 | `surface-page` | `#000` | `#fafafa` | The page, and app sidebars |
 | `surface-raised` | `#0a0a0a` | `#fff` | Cards, tables, secondary buttons |
 | `surface-overlay` | `#111111` | `#fff` | Menus, popovers, selects |
-| `surface-top` | `#171717` | `#fff` | Tooltips, the selected pill in a segmented control |
+| `surface-top` | `#171717` | `#fff` | Tooltips, toasts, the selected pill in a segmented control |
 | `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells, code blocks |
 | `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks |
 
@@ -75,6 +75,9 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
 - **Selected rows** carry a 2px bar on the leading edge besides the wash.
+- **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
+  also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
+- **Toasts** carry a dot only for warning and danger; the title says what happened.
 
 ## Type
 

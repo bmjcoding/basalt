@@ -167,6 +167,51 @@ A key or shortcut, such as ⌘K, in Geist Mono on a hairline.
 
 **You provide** the keys as text. Inside a menu item, use the item's \`shortcut\` prop instead.
 `),
+  Checkbox: doc("Checkbox", `
+An on/off choice that takes effect when a form is submitted, or one of several independent options.
+
+**You provide** the label as \`children\` (clickable with the box), and \`checked\`/\`onCheckedChange\` or \`defaultChecked\`. \`indeterminate\` shows a dash for a parent of mixed children.
+
+The box is bounded by \`basalt-border-input\` (3:1); checked fills with \`basalt-action-primary\`.
+
+- Use \`Switch\` instead for a setting that takes effect immediately.
+`),
+  Switch: doc("Switch", `
+A setting that takes effect immediately, on or off.
+
+**You provide** the label as \`children\`: name the setting ("Auto-deploy"), not the action. Control it with \`checked\`/\`onCheckedChange\` or \`defaultChecked\`.
+
+Off is a \`basalt-text-tertiary\` thumb; on is a full \`basalt-action-primary\` track with the thumb moved across: shape and position, not colour alone.
+`),
+  RadioGroup: doc("RadioGroup", `
+One choice among a few options, all visible at once.
+
+**You provide** \`aria-label\` (or a visible heading via \`aria-labelledby\`), \`value\`/\`onValueChange\` or \`defaultValue\`, and a \`Radio\` per option with its \`value\` and label. Arrow keys move the choice.
+
+- Use \`Select\` for more than five or so options; \`SegmentedControl\` when the choice filters a view.
+`),
+  Select: doc("Select", `
+One choice from a list too long for radios. The list opens below the trigger, like a menu.
+
+**You provide** \`options\` (\`{ value, label, disabled? }\`), \`value\`/\`onValueChange\` or \`defaultValue\`, and a \`placeholder\`. Put it inside a \`Field\` for its label, or give it \`aria-label\`.
+
+The trigger looks like an \`Input\`; the list is a menu, with a check on the selected option.
+`),
+  Toast: doc("Toast", `
+A short message about something that just happened, bottom-right, announced to screen readers.
+
+**You provide** \`ToastProvider\` once near the app's root, then \`useToast().show({ title, description?, status?, action?, timeout? })\`. \`status: "warning" | "danger"\` adds a dot (never for success: the title says it); \`action\` adds one button, such as Undo.
+
+Toasts sit on \`basalt-surface-top\`, stack, expand on hover or focus, and pause while hovered. Dismiss appears when the stack is expanded.
+
+- Do say what happened in the title: "Sandbox deleted".
+- Don't use a toast for errors that need a decision; use a \`Dialog\` or an inline message.
+`),
+  CommandMenu: doc("CommandMenu", `
+A searchable list of every action, usually opened with ⌘K. Type to filter, arrows to move, Enter to run, Esc to close.
+
+**You provide** \`open\` and \`onOpenChange\` (bind the shortcut in your app), and \`groups\` of commands: \`{ id, label, icon?, shortcut?, keywords?, danger?, onSelect }\`. \`hints\` adds a footer naming the keys; it's off by default. \`keywords\` find a command by other words ("remove" finds "Delete sandbox").
+`),
   Icon: doc("Icon", `
 A Phosphor icon at Basalt's weights: Bold at 16px, Regular at 20px and up, Fill when \`selected\`.
 
@@ -254,6 +299,36 @@ ${mount(`h(B.TableContainer, null, h(B.Table, null,
   h(B.Tooltip, { content: 'Settings', defaultOpen: true }, h(B.IconButton, { icon: B.GearIcon, label: 'Settings', variant: 'secondary' })),
   h(B.Tooltip, { content: 'Search runs' }, h(B.IconButton, { icon: B.MagnifyingGlassIcon, label: 'Search' }))))`)),
   Kbd: preview("Display", 56, mount(`h('div', { className: 'row' }, h(B.Kbd, null, '⌘K'), h(B.Kbd, null, '⌘D'), h(B.Kbd, null, 'Esc'), h(B.Kbd, null, '↵'))`)),
+  Checkbox: preview("Forms", 132, mount(`h('div', { className: 'col', style: { gap: 4 } },
+  h(B.Checkbox, { defaultChecked: true }, 'Keep run records'),
+  h(B.Checkbox, null, 'Allow outbound DNS'),
+  h(B.Checkbox, { indeterminate: true }, 'All routes'),
+  h(B.Checkbox, { disabled: true }, 'Signed commits only'))`)),
+  Switch: preview("Forms", 84, mount(`h('div', { className: 'col', style: { gap: 4 } }, h(B.Switch, { defaultChecked: true }, 'Auto-deploy'), h(B.Switch, null, 'Verbose logs'))`)),
+  RadioGroup: preview("Forms", 108, mount(`h(B.RadioGroup, { 'aria-label': 'Substrate', defaultValue: 'k3s' }, h(B.Radio, { value: 'k3s' }, 'Kubernetes (k3s)'), h(B.Radio, { value: 'vm' }, 'Virtual machine'), h(B.Radio, { value: 'gvisor' }, 'gVisor'))`)),
+  Select: preview("Forms", 280, mount(`h('div', { style: { width: 260 } }, h(B.Field, { label: 'Region' }, h(B.Select, { defaultOpen: true, modal: false, defaultValue: 'iad', options: [
+  { value: 'iad', label: 'Washington, D.C. (iad1)' }, { value: 'sfo', label: 'San Francisco (sfo1)' }, { value: 'fra', label: 'Frankfurt (fra1)' }, { value: 'hnd', label: 'Tokyo (hnd1)', disabled: true }] })))`)),
+  Toast: preview("Overlays", 150, `function Demo() {
+  var toast = B.useToast();
+  React.useEffect(function () { toast.show({ title: 'Sandbox deleted', description: 'blacksand-api and its routes were removed.', action: { label: 'Undo', onClick: function () {} }, timeout: 0 }); }, []);
+  return h(B.Button, { onClick: function () { toast.show({ title: 'Route refused', description: 'api.example.com is not allowed for this run.', status: 'warning', timeout: 0 }); } }, 'Show toast');
+}
+${mount(`h(B.ToastProvider, null, h(Demo))`)}`, "\n.basalt-toast-viewport{position:absolute}"),
+  CommandMenu: preview("Overlays", 360, `function Demo() {
+  var s = React.useState(true), open = s[0], setOpen = s[1];
+  var run = function () {};
+  return h(React.Fragment, null,
+    h(B.Button, { onClick: function () { setOpen(true); } }, 'Commands'),
+    h(B.CommandMenu, { open: open, onOpenChange: setOpen, groups: [
+      { label: 'Sandboxes', commands: [
+        { id: 'new', label: 'New sandbox', icon: B.PlusIcon, shortcut: 'N', onSelect: run },
+        { id: 'dup', label: 'Duplicate sandbox', icon: B.CopyIcon, shortcut: '⌘D', onSelect: run },
+        { id: 'del', label: 'Delete sandbox', icon: B.TrashIcon, keywords: ['remove'], danger: true, onSelect: run }] },
+      { label: 'Runs', commands: [
+        { id: 'deploy', label: 'Deploy', icon: B.PlayIcon, onSelect: run },
+        { id: 'logs', label: 'Open logs', icon: B.TerminalIcon, onSelect: run }] }] }));
+}
+${mount(`h(Demo)`)}`, "\n.basalt-dialog.basalt-command{top:16px}\n.basalt-command-list{max-height:none}"),
   Icon: preview("Display", 88, mount(`h('div', { className: 'col' },
   h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 16 }); }), h('span', { style: { fontSize: 12 } }, '16 · Bold')),
   h('div', { className: 'row', style: { gap: 16, color: 'var(--basalt-text-secondary)' } }, [B.HouseIcon, B.CubeIcon, B.TerminalIcon, B.MagnifyingGlassIcon, B.GearIcon].map(function (I, i) { return h(B.Icon, { key: i, icon: I, size: 20, selected: i === 0 }); }), h('span', { style: { fontSize: 12 } }, '20 · Regular, first selected (Fill)')))`)),
