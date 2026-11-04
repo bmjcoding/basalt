@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Tokens, components and browser tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the Chromium that the pinned Playwright expects
+        run: npx --workspace packages/react playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run artifact
+      - name: Generated Swift is up to date
+        run: git diff --exit-code -- Sources/BasaltTokens/Tokens.swift
+
+  apple:
+    name: Swift package (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build
+      - run: swift test

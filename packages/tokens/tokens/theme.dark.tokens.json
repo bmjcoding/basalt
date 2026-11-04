@@ -4,99 +4,120 @@
     "surface": {
       "$description": "The page is the darkest layer; every raised layer steps lighter. Nothing above the page is pure black, so large surfaces never smear on OLED.",
       "page": {
-        "$value": "{color.neutral.0}"
+        "$value": "{color.neutral.0}",
+        "$description": "The page, and app sidebars. The darkest layer in both themes."
       },
       "raised": {
-        "$value": "{color.neutral.4}"
+        "$value": "{color.neutral.4}",
+        "$description": "Cards, tables, inputs and secondary buttons, on surface-page."
       },
       "overlay": {
-        "$value": "{color.neutral.7}"
+        "$value": "{color.neutral.7}",
+        "$description": "Menus, popovers, selects and dialogs."
       },
       "top": {
-        "$value": "{color.neutral.9}"
+        "$value": "{color.neutral.9}",
+        "$description": "Tooltips, and the selected pill of a segmented control."
       },
       "sunken": {
-        "$value": "{color.neutral.4}"
+        "$value": "{color.neutral.4}",
+        "$description": "Wells and code blocks, set into a raised surface."
       },
       "sunken-strong": {
-        "$value": "{color.neutral.7}"
+        "$value": "{color.neutral.7}",
+        "$description": "Table headers and segmented-control tracks."
       }
     },
     "text": {
       "primary": {
-        "$value": "{color.neutral.93}"
+        "$value": "{color.neutral.93}",
+        "$description": "Body text, headings and labels, on every surface."
       },
       "secondary": {
-        "$value": "{color.neutral.63}"
+        "$value": "{color.neutral.63}",
+        "$description": "Descriptions, metadata, unselected tabs and icons by default. Also the focus colour."
       },
       "tertiary": {
         "$value": "{color.neutral.52}",
-        "$description": "At least 4.5:1 on every surface. On a selected or hover wash, use secondary instead."
+        "$description": "Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead."
       },
       "disabled": {
         "$value": "{color.neutral.36}",
-        "$description": "Disabled controls are exempt from WCAG contrast; never use for anything else."
+        "$description": "Disabled controls only (exempt from WCAG contrast); never for readable content."
       },
       "inverse": {
-        "$value": "{color.neutral.0}"
+        "$value": "{color.neutral.0}",
+        "$description": "Text on action-primary fills."
       }
     },
     "border": {
       "hairline": {
-        "$value": "{color.white.15}"
+        "$value": "{color.white.15}",
+        "$description": "Decorative 1px lines around cards, tables and secondary buttons, via shadow-hairline."
       },
       "hover": {
         "$value": "{color.white.24}",
-        "$description": "The hairline on a hovered control: one step brighter, never a colour."
+        "$description": "The hairline of a hovered control: one step brighter, never a colour."
       },
       "divider": {
-        "$value": "{color.white.10}"
+        "$value": "{color.white.10}",
+        "$description": "Rules between table rows, menu groups and card sections."
       },
       "input": {
-        "$value": "{color.white.38}"
+        "$value": "{color.white.38}",
+        "$description": "Input boundaries: 3:1 or better on every surface (WCAG 1.4.11)."
       },
       "focus": {
-        "$value": "{color.neutral.63}"
+        "$value": "{color.neutral.63}",
+        "$description": "The 2px focus outline, offset 2px, on every focusable control."
       }
     },
     "state": {
       "hover": {
-        "$value": "{color.white.6}"
+        "$value": "{color.white.6}",
+        "$description": "Hover wash over any surface; menu highlight."
       },
       "selected": {
-        "$value": "{color.white.9}"
+        "$value": "{color.white.9}",
+        "$description": "Selected wash, with a second cue (a bar, a pill, a check): a wash alone is about 1.2:1."
       }
     },
     "action": {
       "primary": {
-        "$value": "{color.neutral.93}"
+        "$value": "{color.neutral.93}",
+        "$description": "The one primary action per view: the inverse of the page."
       },
       "primary-hover": {
-        "$value": "{color.neutral.100}"
+        "$value": "{color.neutral.100}",
+        "$description": "action-primary on hover: pure white on dark, pure black on light."
       },
       "primary-text": {
-        "$value": "{color.neutral.0}"
+        "$value": "{color.neutral.0}",
+        "$description": "Text on action-primary."
       }
     },
     "status": {
       "danger": {
-        "$value": "{color.status.danger-dark}"
+        "$value": "{color.status.danger-dark}",
+        "$description": "Destructive actions and errors: red text, red hairline, a dot. Never a fill."
       },
       "success": {
-        "$value": "{color.status.success-dark}"
+        "$value": "{color.status.success-dark}",
+        "$description": "A success or healthy dot, always beside a word."
       },
       "warning": {
-        "$value": "{color.status.warning-dark}"
+        "$value": "{color.status.warning-dark}",
+        "$description": "A warning or in-progress dot, always beside a word."
       }
     },
     "scrim": {
-      "$value": "{color.black.80}"
+      "$value": "{color.black.80}",
+      "$description": "Behind modal dialogs and sheets."
     }
   },
   "shadow": {
     "$description": "The second ring is the page colour behind the hairline, so the translucent line mixes against the same colour on any background.",
     "hairline": {
-      "$type": "shadow",
       "$value": [
         {
           "color": "{color.white.15}",
@@ -136,10 +157,11 @@
             "unit": "px"
           }
         }
-      ]
+      ],
+      "$description": "Raised surfaces: a translucent line backed by the page colour, so it reads the same on any background.",
+      "$type": "shadow"
     },
     "pill": {
-      "$type": "shadow",
       "$value": [
         {
           "color": "{color.white.15}",
@@ -179,10 +201,11 @@
             "unit": "px"
           }
         }
-      ]
+      ],
+      "$description": "A selected segment, raised from its track.",
+      "$type": "shadow"
     },
     "overlay": {
-      "$type": "shadow",
       "$value": [
         {
           "color": "{color.white.15}",
@@ -260,10 +283,11 @@
             "unit": "px"
           }
         }
-      ]
+      ],
+      "$description": "Menus, popovers and tooltips.",
+      "$type": "shadow"
     },
     "modal": {
-      "$type": "shadow",
       "$value": [
         {
           "color": "{color.white.15}",
@@ -341,7 +365,9 @@
             "unit": "px"
           }
         }
-      ]
+      ],
+      "$description": "Dialogs and sheets.",
+      "$type": "shadow"
     }
   }
 }

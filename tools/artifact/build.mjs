@@ -67,37 +67,6 @@ for (const theme of THEMES) {
   }
 }
 
-const SEMANTIC_USAGE = {
-  "surface-page": "The page, and app sidebars. The darkest layer in both themes.",
-  "surface-raised": "Cards, tables, inputs and secondary buttons, on surface-page.",
-  "surface-overlay": "Menus, popovers, selects and dialogs.",
-  "surface-top": "Tooltips, and the selected pill of a segmented control.",
-  "surface-sunken": "Wells and code blocks, set into a raised surface.",
-  "surface-sunken-strong": "Table headers and segmented-control tracks.",
-  "text-primary": "Body text, headings and labels, on every surface.",
-  "text-secondary": "Descriptions, metadata, unselected tabs and icons by default. Also the focus colour.",
-  "text-tertiary": "Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead.",
-  "text-disabled": "Disabled controls only (exempt from WCAG contrast); never for readable content.",
-  "text-inverse": "Text on action-primary fills.",
-  "border-hairline": "Decorative 1px lines around cards, tables and secondary buttons, via shadow-hairline.",
-  "border-hover": "The hairline of a hovered control: one step brighter, never a colour.",
-  "border-divider": "Rules between table rows, menu groups and card sections.",
-  "border-input": "Input boundaries: 3:1 or better on every surface (WCAG 1.4.11).",
-  "border-focus": "The 2px focus outline, offset 2px, on every focusable control.",
-  "state-hover": "Hover wash over any surface; menu highlight.",
-  "state-selected": "Selected wash, with a second cue (a bar, a pill, a check): a wash alone is about 1.2:1.",
-  "action-primary": "The one primary action per view: the inverse of the page.",
-  "action-primary-hover": "action-primary on hover: pure white on dark, pure black on light.",
-  "action-primary-text": "Text on action-primary.",
-  "status-danger": "Destructive actions and errors: red text, red hairline, a dot. Never a fill.",
-  "status-success": "A success or healthy dot, always beside a word.",
-  "status-warning": "A warning or in-progress dot, always beside a word.",
-  scrim: "Behind modal dialogs and sheets.",
-  "shadow-hairline": "Raised surfaces: a translucent line backed by the page colour, so it reads the same on any background.",
-  "shadow-pill": "A selected segment, raised from its track.",
-  "shadow-overlay": "Menus, popovers and tooltips.",
-  "shadow-modal": "Dialogs and sheets.",
-};
 
 const colorTokens = [];
 const shadowTokens = [];
@@ -126,8 +95,9 @@ for (const [p, tok] of walk(themeSrc.dark)) {
     const b = built[t][key];
     return [t, b.oklch ?? b.css];
   }));
-  const usage = SEMANTIC_USAGE[key] ?? tok.$description;
-  if (!usage) throw new Error(`no usage note for ${key}`);
+  // usage notes live in the token source, so CSS, Swift and this reference share them
+  const usage = tok.$description;
+  if (!usage) throw new Error(`no $description for ${key} in packages/tokens/tokens/theme.*.tokens.json`);
   (p[0] === "shadow" ? shadowTokens : colorTokens).push({ name, value, usage });
 }
 
