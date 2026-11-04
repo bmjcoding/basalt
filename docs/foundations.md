@@ -198,10 +198,15 @@ and selection. The web tests inspect these structural cues in addition to the th
 contrast checks. Automated checks cover supported states; they are not a substitute for
 assistive-technology review in a consuming product.
 
+The SwiftPM `BasaltUI` product implements a core native layer over `BasaltTokens`, including
+native entry controls and reusable button/toggle/progress styles. Desktop keeps the token
+size scale; iOS and visionOS controls use a 44-point target floor. macOS appearance renders
+are verified; runtime checks on other Apple platforms remain app integration work.
+
 ## How these were decided
 
 Two design reviewers proposed the original foundations independently and converged on the
-initial rounds. The completion rounds await owner review and were not signed off
+initial rounds. The completion rounds 5–7 await owner review and were not signed off
 by that panel. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
 and Geist pages; Linear's public site and login screen), not recalled, and used only as
 reference: none of their CSS, icons or assets is in this repository.

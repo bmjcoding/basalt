@@ -9,6 +9,7 @@ let package = Package(
   platforms: [.iOS(.v17), .macOS(.v14), .visionOS(.v1)],
   products: [
     .library(name: "BasaltTokens", targets: ["BasaltTokens"]),
+    .library(name: "BasaltUI", targets: ["BasaltUI"]),
   ],
   targets: [
     .target(
@@ -19,5 +20,7 @@ let package = Package(
       name: "BasaltTokensTests",
       dependencies: ["BasaltTokens"]
     ),
+    .target(name: "BasaltUI", dependencies: ["BasaltTokens"], exclude: ["README.md"]),
+    .testTarget(name: "BasaltUITests", dependencies: ["BasaltUI", "BasaltTokens"]),
   ]
 )

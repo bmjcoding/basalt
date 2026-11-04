@@ -24,6 +24,8 @@ import { CopyIcon, PlayIcon } from "@phosphor-icons/react";
 
 Styles sit in `@layer basalt`, so an app's own CSS overrides them without `!important`.
 Every component takes `className`; Base UI parts also accept a function of their state.
+The package entry declares `"use client"` for React Server Component consumers. Import the
+styles and font sheet once in your application's root layout.
 
 Set `data-density="compact"` on `<html>` to move controls down one size (24px minimum).
 Portalled menus inherit it too; a nested `data-density="default"` restores regular sizing.

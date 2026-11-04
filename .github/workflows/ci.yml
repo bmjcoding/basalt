@@ -24,6 +24,7 @@ jobs:
       - run: npm test
       - run: npm run artifact
       - run: npm run typecheck:review
+      - run: npm run test:packages
       - name: Generated Swift is up to date
         run: git diff --exit-code -- Sources/BasaltTokens/Tokens.swift
 

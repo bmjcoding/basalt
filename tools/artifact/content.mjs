@@ -78,6 +78,8 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - AlertDialog puts safe initial focus on its cancel action and ignores outside clicks. Sheet uses the dialog contract in a scrolling right, left or bottom panel. Floating controls inherit their parent modal's layer.
 - Text and Heading use the shared scale; heading level follows document structure independently of visual size. Breadcrumbs, Pagination and Link retain native navigation semantics.
 - Avatar uses a named initials fallback. EmptyState explains the condition and the next useful action, without announcing an initial empty view as an error.
+- The native BasaltUI package implements core SwiftUI controls using the same tokens. macOS appearance renders are verified; iOS and visionOS runtime review is separate.
+- Completion rounds 5–7 await owner review. Generated reference material does not imply a published release or approval of those additions.
 `;
 
 const doc = (title, body) => `# ${title}\n\n${body.trim()}\n`;

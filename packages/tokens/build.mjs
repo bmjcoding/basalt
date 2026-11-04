@@ -178,7 +178,7 @@ write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport default tokens;\n`);
 write(
   "js/tokens.d.ts",
-  `${header}type Entry = { type: "color"; oklch: string; hex: string } | { type: string; css: string };\nexport declare const tokens: {\n  primitives: Record<string, Entry>;\n  light: Record<${lightNames.map((n) => JSON.stringify(n.slice(PREFIX.length + 3))).join(" | ")}, Entry>;\n  dark: Record<${lightNames.map((n) => JSON.stringify(n.slice(PREFIX.length + 3))).join(" | ")}, Entry>;\n};\nexport default tokens;\n`,
+  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
 );
 // ---- Swift: the tokens for the Apple apps, committed so SwiftPM can consume the repository.
 
@@ -292,4 +292,3 @@ fs.mkdirSync(path.dirname(swiftOut), { recursive: true });
 fs.writeFileSync(swiftOut, swift);
 
 console.log(`basalt tokens: ${primitives.length} primitives, ${lightNames.length} semantic per theme`);
-

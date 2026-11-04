@@ -28,7 +28,7 @@ export {
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgeProps, BadgeStatus, TooltipProps } from "./display";
+export type { BadgeProps, BadgeStatus, TableDensity, TooltipProps } from "./display";
 export { Checkbox, Radio, RadioGroup, Select, Switch } from "./choice";
 export type { CheckboxProps, RadioGroupProps, RadioProps, SelectOption, SelectProps, SwitchProps } from "./choice";
 export { ToastProvider, useToast } from "./toast";
