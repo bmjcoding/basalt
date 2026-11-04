@@ -14,6 +14,8 @@ export interface Command {
   shortcut?: string;
   /** Extra words that should find this command, e.g. ["remove"] for "Delete sandbox". */
   keywords?: string[];
+  /** A destructive command: shown in the danger colour, as in `Menu`. */
+  danger?: boolean;
   onSelect: () => void;
 }
 
@@ -27,6 +29,8 @@ export interface CommandMenuProps {
   onOpenChange: (open: boolean) => void;
   groups: CommandGroup[];
   placeholder?: string;
+  /** Show a footer naming the keys (↵ Run, Esc Close). Off by default: they're universal. */
+  hints?: boolean;
 }
 
 const matches = (c: Command, query: string) => {
@@ -38,7 +42,7 @@ const matches = (c: Command, query: string) => {
  * A searchable list of every action, opened with ⌘K. Type to filter, arrows to move,
  * Enter to run, Esc to close. Bind the shortcut in the app; this component is the dialog.
  */
-export function CommandMenu({ open, onOpenChange, groups, placeholder = "Search commands" }: CommandMenuProps) {
+export function CommandMenu({ open, onOpenChange, groups, placeholder = "Search commands", hints = false }: CommandMenuProps) {
   const items = groups.map((g) => ({ value: g.label, items: g.commands }));
   const hintId = React.useId();
   return (
@@ -57,7 +61,7 @@ export function CommandMenu({ open, onOpenChange, groups, placeholder = "Search 
           >
             <div className="basalt-command-search">
               <Icon icon={MagnifyingGlassIcon} size={16} />
-              <Autocomplete.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hintId} />
+              <Autocomplete.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints ? hintId : undefined} />
             </div>
             <Autocomplete.Empty className="basalt-command-empty">No commands match.</Autocomplete.Empty>
             <Autocomplete.List className="basalt-command-list">
@@ -69,6 +73,7 @@ export function CommandMenu({ open, onOpenChange, groups, placeholder = "Search 
                       <Autocomplete.Item
                         key={c.id}
                         value={c}
+                        data-danger={c.danger ? "" : undefined}
                         className="basalt-menu-item"
                         onClick={() => {
                           onOpenChange(false);
@@ -84,11 +89,12 @@ export function CommandMenu({ open, onOpenChange, groups, placeholder = "Search 
                 </Autocomplete.Group>
               )}
             </Autocomplete.List>
-            <div className="basalt-command-footer" id={hintId}>
-              <span><Kbd>↵</Kbd> Run</span>
-              <span><Kbd>↑</Kbd><Kbd>↓</Kbd> Move</span>
-              <span><Kbd>Esc</Kbd> Close</span>
-            </div>
+            {hints ? (
+              <div className="basalt-command-footer" id={hintId}>
+                <span><Kbd>↵</Kbd> Run</span>
+                <span><Kbd>Esc</Kbd> Close</span>
+              </div>
+            ) : null}
           </Autocomplete.Root>
         </BaseDialog.Popup>
       </BaseDialog.Portal>

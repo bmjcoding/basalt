@@ -595,7 +595,8 @@
     width: 14px;
     height: 14px;
     border-radius: var(--basalt-radius-full);
-    background: var(--basalt-text-secondary);
+    /* off is the quiet state: tertiary, still 3:1 or better against the track (WCAG 1.4.11) */
+    background: var(--basalt-text-tertiary);
     transition-property: transform, background-color;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
@@ -677,7 +678,8 @@
     width: 100%;
     height: var(--_height);
     border-radius: var(--basalt-radius-lg);
-    background: var(--basalt-surface-overlay);
+    /* surface-top, so a toast separates from an open menu or command menu beneath it */
+    background: var(--basalt-surface-top);
     box-shadow: var(--basalt-shadow-overlay);
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
@@ -711,7 +713,6 @@
   .basalt-toast-content[data-behind] { opacity: 0; }
   .basalt-toast-content[data-expanded] { opacity: 1; }
   .basalt-toast-dot { flex: none; margin-top: 7px; }
-  .basalt-toast[data-status="success"] .basalt-toast-dot { background: var(--basalt-status-success); }
   .basalt-toast[data-status="warning"] .basalt-toast-dot { background: var(--basalt-status-warning); }
   .basalt-toast[data-status="danger"] .basalt-toast-dot { background: var(--basalt-status-danger); }
   .basalt-toast-text { flex: 1; min-width: 0; padding-top: 1px; }

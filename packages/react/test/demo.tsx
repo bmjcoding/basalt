@@ -82,7 +82,7 @@ function ToastDemo() {
   return (
     <Button
       onClick={() =>
-        toast.show({ title: "Sandbox deleted", description: "blacksand-api and its routes were removed.", status: "success", action: { label: "Undo", onClick: () => {} }, timeout: 0 })
+        toast.show({ title: "Sandbox deleted", description: "blacksand-api and its routes were removed.", action: { label: "Undo", onClick: () => {} }, timeout: 0 })
       }
     >
       Show toast
@@ -107,7 +107,7 @@ function CommandDemo() {
           { label: "Sandboxes", commands: [
             { id: "new", label: "New sandbox", icon: PlusIcon, shortcut: "N", onSelect: run("New sandbox") },
             { id: "dup", label: "Duplicate sandbox", icon: CopyIcon, shortcut: "⌘D", onSelect: run("Duplicate sandbox") },
-            { id: "del", label: "Delete sandbox", icon: TrashIcon, keywords: ["remove"], onSelect: run("Delete sandbox") },
+            { id: "del", label: "Delete sandbox", icon: TrashIcon, keywords: ["remove"], danger: true, onSelect: run("Delete sandbox") },
           ] },
           { label: "Runs", commands: [
             { id: "rerun", label: "Re-run last task", icon: ArrowsClockwiseIcon, onSelect: run("Re-run last task") },

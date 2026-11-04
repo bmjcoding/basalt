@@ -11,7 +11,7 @@ export interface ToastOptions {
   title: string;
   /** Optional detail. */
   description?: string;
-  /** Adds a status dot; the title still says it in words. */
+  /** `warning` and `danger` add a dot; the title still says it in words. `success` is the same as neutral. */
   status?: ToastStatus;
   /** A single follow-up action, e.g. "Undo". */
   action?: { label: string; onClick: () => void };
@@ -41,7 +41,8 @@ function ToastList() {
   return toasts.map((toast) => (
     <BaseToast.Root key={toast.id} toast={toast} className="basalt-toast" data-status={(toast.type as ToastStatus | undefined) ?? "neutral"}>
       <BaseToast.Content className="basalt-toast-content">
-        {toast.type && toast.type !== "neutral" ? <span className="basalt-badge-dot basalt-toast-dot" aria-hidden="true" /> : null}
+        {/* a dot only where it warns; the title says what happened */}
+        {toast.type === "danger" || toast.type === "warning" ? <span className="basalt-badge-dot basalt-toast-dot" aria-hidden="true" /> : null}
         <div className="basalt-toast-text">
           <BaseToast.Title className="basalt-toast-title" />
           <BaseToast.Description className="basalt-toast-description" />
