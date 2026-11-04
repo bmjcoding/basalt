@@ -20,3 +20,12 @@ The build fails if any step logs an error, so a broken demo can't ship.
 
 Add a round to `rounds.tsx` at the end of each review: its steps, the decisions, and what
 to try.
+
+## SwiftUI renders
+
+The macOS CI job renders a sample SwiftUI screen from the tokens in light and dark, and prints
+the PNGs into its log. Pull them into a round's assets with:
+
+```sh
+node tools/review/fetch-swiftui-renders.mjs <commit-sha> <round>
+```

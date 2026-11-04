@@ -68,6 +68,7 @@ import {
   Tooltip,
   useToast,
 } from "../../packages/react/src/index";
+import { ROUND_3 } from "./round3";
 
 export interface Step {
   id: string;
@@ -579,4 +580,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3];

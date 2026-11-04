@@ -1,5 +1,14 @@
 {
   "extends": "../../packages/react/tsconfig.json",
-  "compilerOptions": { "noEmit": true, "emitDeclarationOnly": false, "declaration": false, "rootDir": "../.." },
-  "include": ["*.tsx"]
+  "compilerOptions": {
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "declaration": false,
+    "rootDir": "../..",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "*.tsx",
+    "*.d.ts"
+  ]
 }
