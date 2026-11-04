@@ -34,3 +34,12 @@ jobs:
       - run: swift --version
       - run: swift build
       - run: swift test
+        env:
+          BASALT_SNAPSHOT_DIR: ${{ runner.temp }}/snapshots
+      - name: Upload the SwiftUI renders for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftui-snapshots
+          path: ${{ runner.temp }}/snapshots
+          if-no-files-found: ignore
