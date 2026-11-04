@@ -53,8 +53,15 @@ async function open(theme, query = "", viewport = { width: 1000, height: 1200 })
 
 async function axe(page) {
   await page.addScriptTag({ content: axeSource });
+  // Excluded: Base UI's focus guards (Floating UI's pattern). They are empty, aria-hidden spans
+  // that take Tab only to forward focus at once to the right control, so neither a screen reader
+  // nor a keyboard user ever rests on one. axe flags them as aria-hidden-focus in some Chromium
+  // builds and not others; the popover test proves the behaviour instead: Tab never lands on one.
   const result = await page.evaluate(() =>
-    window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] }),
+    window.axe.run(
+      { exclude: [["[data-base-ui-focus-guard]"]] },
+      { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] },
+    ),
   );
   return result.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join("; ")})`);
 }
@@ -244,6 +251,14 @@ for (const theme of ["light", "dark"]) {
       await page.keyboard.press("Escape");
       await pop.waitFor({ state: "hidden" });
       assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Route details");
+      // focus guards forward focus: Tabbing through and out of the popover never rests on one
+      await page.keyboard.press("Enter");
+      await pop.waitFor();
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press("Tab");
+        const on = await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(document.activeElement?.hasAttribute("data-base-ui-focus-guard"))))));
+        assert.equal(on, false, `Tab ${i + 1} rested on a focus guard`);
+      }
       await page.close();
     });
 
