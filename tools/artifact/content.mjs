@@ -1,5 +1,6 @@
 // The words and previews of the Basalt reference. The values are not here: they come from
 // the tokens at build time. Keep this in step with docs/foundations.md.
+import { COMPLETION_DOCS, COMPLETION_PREVIEWS } from "./completion-content.mjs";
 
 export const README = `Basalt is the design system for every SRA Syndicate product: Blacksand, srasyndicate.io, baileymjones.com, N1 and what comes next. It is monochrome. A product adds colour through its own accent, in a few named roles, and nowhere else.
 
@@ -69,11 +70,18 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Everything meets WCAG 2.2 AA: text 4.5:1 on every surface, control boundaries and focus 3:1, in both themes. The tokens are tested for it on every build.
 - Focus is a 2px outline in \`basalt-border-focus\`, offset 2px, on every focusable control. Outlines survive forced-colours mode.
 - Menus, dialogs, tabs and the segmented control work from the keyboard. Esc closes overlays and returns focus where it came from; a destructive dialog opens on Cancel.
+
+## Composing tasks
+
+- Form coordinates validation of named Fields. Fieldset gives related fields a visible legend and a shared disabled state. Labels stay visible even when the control has a placeholder.
+- Select chooses from a short list; Combobox searches a known single choice. NumberField enters an exact value; Slider adjusts a scalar or range with named thumbs.
+- AlertDialog puts safe initial focus on its cancel action and ignores outside clicks. Sheet uses the dialog contract in a scrolling right, left or bottom panel. Floating controls inherit their parent modal's layer.
 `;
 
 const doc = (title, body) => `# ${title}\n\n${body.trim()}\n`;
 
 export const COMPONENT_DOCS = {
+  ...COMPLETION_DOCS,
   Button: doc("Button", `
 A button runs an action; \`IconButton\` is the same with only an icon.
 
@@ -103,6 +111,8 @@ A menu of actions on a trigger, opened by click or keyboard and dismissed by Esc
 
 **You provide** \`MenuTrigger\` (usually \`render={<Button>…</Button>}\`), \`MenuContent\`, and \`MenuItem\`s. Items take \`icon\`, \`shortcut\` (e.g. "⌘D") and \`danger\`. Group with \`MenuGroup\` and \`MenuGroupLabel\`; separate with \`MenuSeparator\`.
 
+Use MenuCheckboxItem for independent settings, MenuRadioGroup/MenuRadioItem for one choice, and MenuSubmenu/MenuSubmenuTrigger with a nested MenuContent for secondary actions. State marks accompany the wash. Choice changes keep the menu open by default; ArrowRight opens a submenu and Escape returns to its parent.
+
 Rows are 32px (\`basalt-size-menu-row\`) in \`small\` text; the popup is \`basalt-surface-overlay\` with \`shadow-overlay\`, radius \`basalt-radius-lg\`, items \`basalt-radius-sm\`.
 
 - Do put destructive items last, after a separator.
@@ -116,7 +126,7 @@ A modal dialog for a decision that interrupts: focus moves into it, stays inside
 For destructive confirmations the action is \`variant="danger"\`, never primary, and focus starts on Cancel.
 
 - Do name the thing and the consequence in the title and description.
-- Don't open a dialog on page load, or stack dialogs.
+- Don't open a dialog on page load. Prefer one task at a time; use AlertDialog for a necessary confirmation inside a task.
 `),
   Tabs: doc("Tabs", `
 Tabs switch between panels of one view.
@@ -292,6 +302,7 @@ ${body.trim()}
 const mount = (expr) => `ReactDOM.createRoot(document.getElementById('root')).render(${expr});`;
 
 export const PREVIEWS = {
+  ...COMPLETION_PREVIEWS,
   Button: preview("Actions", 132, mount(`h('div', { className: 'col' },
   h('div', { className: 'row' },
     h(B.Button, { variant: 'primary', icon: B.PlayIcon }, 'Deploy'),

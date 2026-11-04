@@ -17,6 +17,7 @@ const shots = process.argv[2];
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-check-"));
 
 const comps = fs.readdirSync(path.join(project, "components")).filter((d) => fs.existsSync(path.join(project, "components", d, "preview.html")));
+const api = JSON.parse(fs.readFileSync(path.join(project, "components/api.json"), "utf8"));
 const browser = await chromium.launch();
 let failed = 0;
 for (const theme of ["dark", "light"]) {
@@ -36,6 +37,8 @@ for (const theme of ["dark", "light"]) {
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     await page.goto("file://" + file);
     await page.waitForTimeout(500);
+    const missing = await page.evaluate((names) => names.filter((name) => !window.Basalt[name]), api.exports);
+    if (missing.length) errors.push(`Missing public exports: ${missing.join(", ")}`);
     // blank: nothing drawn at a visible size (text-free previews, like Skeleton, still draw boxes)
     const blank = await page.evaluate(() => ![...document.body.querySelectorAll("*")].some((el) => {
       const r = el.getBoundingClientRect();

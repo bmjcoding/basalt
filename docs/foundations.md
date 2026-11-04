@@ -147,6 +147,12 @@ Page and raised surfaces use the hairline only. Tables run 40px rows by default,
 logs (`density="compact"`) and 44px for touch. Shadows start at overlays: menus and
 popovers use `shadow-overlay`, dialogs and sheets `shadow-modal` over a scrim.
 
+Portals inherit a shared modal-depth context. A menu, select, combobox or popover opened
+inside a modal sits above its parent. A necessary nested confirmation has a backdrop above
+the previous popup. Tooltips use their intended layer, a tooltip role and an explicit
+trigger description while open, preserving any existing description. Keep one focused task at a
+time; layering support is not a reason to stack unrelated tasks.
+
 ## Motion
 
 | Token | Value | Use |
@@ -176,9 +182,21 @@ routes) will be drawn on a 16px grid, as Vercel and Linear draw theirs.
 Components build on Base UI (the default base in shadcn/ui since July 2026, from the team
 behind Radix), with shadcn/ui's variable names mapped onto Basalt's in `dist/css/shadcn.css`.
 
+Forms retain native labels, grouped legends and validation. Select is for a short known
+list; Combobox searches a single known choice. NumberField enters an exact value; Slider
+adjusts a scalar or range, with distinct names for range thumbs. Confirmations use
+AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side or
+bottom panel, including safe-area padding and motion preferences.
+
+Forced-colours mode uses real borders and system colour keywords for boundaries, focus
+and selection. The web tests inspect these structural cues in addition to the themed
+contrast checks. Automated checks cover supported states; they are not a substitute for
+assistive-technology review in a consuming product.
+
 ## How these were decided
 
-Two design reviewers proposed foundations independently, converged, and reviewed every
-change. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
+Two design reviewers proposed the original foundations independently and converged on the
+initial rounds. The completion rounds await owner review and were not signed off
+by that panel. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
 and Geist pages; Linear's public site and login screen), not recalled, and used only as
 reference: none of their CSS, icons or assets is in this repository.

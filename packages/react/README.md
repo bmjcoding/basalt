@@ -37,14 +37,21 @@ no `children`, its consumer must provide the surrounding touch target and access
 |---|---|
 | `Button`, `IconButton` | `primary`, `secondary`, `ghost`, `danger`; sizes `xs`–`xl` (24–40px). `IconButton` requires `label`. |
 | `Field`, `Input` | A visible label always; description and error are linked to the control. |
+| `Form`, `Fieldset` | Validated submission of named fields; a visible legend and group disabling. |
+| `Combobox` | Search a single selection from `{ value, label, disabled? }` options; labelled by Field. |
+| `NumberField` | Locale-aware number entry; min, max, step, format and bounded increment/decrement. |
+| `Slider` | Required `label`; scalar or range; `thumbLabels` and `getValueText` for meaningful spoken values. |
 | `Menu`, `MenuTrigger`, `MenuContent`, `MenuItem`, `MenuGroup`, `MenuGroupLabel`, `MenuSeparator` | Items take `icon`, `shortcut`, `danger`. |
+| `MenuCheckboxItem`, `MenuRadioGroup`, `MenuRadioItem`, `MenuSubmenu`, `MenuSubmenuTrigger` | Persistent settings and nested actions, with state marks and keyboard navigation. |
 | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogTitle`, `DialogDescription`, `DialogActions`, `DialogClose` | Focus is trapped; Esc closes; focus returns to the trigger. |
+| `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogActions`, `AlertDialogCancel`, `AlertDialogAction` | Explicit confirmation; cancel receives initial focus, outside clicks do not dismiss. |
+| `Sheet`, `SheetTrigger`, `SheetContent`, `SheetTitle`, `SheetDescription`, `SheetActions`, `SheetClose` | Dialog behaviour in a right, left or bottom panel. |
 | `Tabs`, `TabsList`, `Tab`, `TabsPanel` | For panels of one view. |
 | `SegmentedControl`, `Segment` | One choice that filters the current view; never empty. |
 | `Badge` | Neutral pill; `status` adds a dot. The label says the status in words. |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
 | `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals; `mono` cells for IDs and hashes. |
-| `Tooltip`, `TooltipProvider` | Supplements a name; never replaces a label. |
+| `Tooltip`, `TooltipProvider` | Supplements a name with a linked accessible description; never replaces a label. |
 | `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
 | `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. |
@@ -58,6 +65,48 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `CodeBlock` | `code`, optional `language`, `title`, `copyable`. Language-aware syntax; exact-text copying and keyboard scrolling. |
 | `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. |
 | `Icon`, `Kbd` | `Icon` picks Phosphor's weight by size: Bold at 16px, Regular at 20px and up, Fill when `selected`. |
+
+## Forms and tasks
+
+```tsx
+<Form<{ name: string; substrate: string }>
+  onFormSubmit={(values) => saveSandbox(values)}
+>
+  <Fieldset legend="Sandbox details">
+    <Field name="name" label="Sandbox name" error="Enter a sandbox name.">
+      <Input required />
+    </Field>
+    <Field name="substrate" label="Substrate" error="Choose a substrate.">
+      <Combobox required options={[
+        { value: "docker", label: "Local Docker" },
+        { value: "kubernetes", label: "Kubernetes" },
+      ]} />
+    </Field>
+  </Fieldset>
+  <Button type="submit" variant="primary">Create sandbox</Button>
+</Form>
+```
+
+`Form` preserves Base UI's `errors`, validation and generic `onFormSubmit`. Field names
+determine the keys. Native input constraints work alongside custom Field validation.
+Buttons default to `type="button"`; submit actions must opt in. The application still
+validates and persists values on its server.
+
+`Combobox` chooses one known string value and displays its option label. `inputProps`
+holds input-specific attributes. `NumberField` also accepts `inputProps`, plus Base UI's
+locale and formatting props. Use distinct `thumbLabels` for range sliders:
+
+```tsx
+<Slider label="Run duration" min={0} max={60} defaultValue={[10, 30]}
+  thumbLabels={["Minimum duration", "Maximum duration"]}
+  getValueText={(_, value) => `${value} minutes`} />
+```
+
+`SheetContent side="right"` defaults to a right panel; `left` and `bottom` are available.
+A controlled Sheet can close after a successful form submit. Use AlertDialog for a
+necessary confirmation within that task; its Cancel part receives safe initial focus.
+Portalled Select, Combobox, Menu and Popover content inherit the parent modal's layer.
+Prefer a single focused task and avoid unnecessary nested dialogs.
 
 ## Code
 
@@ -94,5 +143,15 @@ Typechecks, builds, then runs the browser tests on a page with every component
 - the page doesn't scroll sideways at phone width.
 - density works across the full size scale and portalled menus, and touch keeps its target
   sizes even in compact mode.
+- required form values, combobox search/empty/disabled states, number bounds, slider thumbs,
+  safe confirmation focus, sheet layering, menu choices behave as composed;
+- forced colours retain structural control boundaries.
+
+Base UI's editable combobox temporarily hides siblings from assistive technology while its
+popup is open. The open-widget audit covers the input and popup, then verifies Tab closes
+the popup before focus rests outside and runs the full-page audit. Other global axe rules
+remain enabled; only the library's transient focus guards are excluded.
+The submenu audit likewise covers its active menus while they intentionally cover page
+targets, then audits the full page after dismissal.
 
 The tests use the Playwright version pinned in `package.json` and its Chromium.

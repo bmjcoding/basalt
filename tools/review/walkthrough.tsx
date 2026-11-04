@@ -68,9 +68,7 @@ function App() {
       </header>
       <p className="wt-summary">
         {round.summary}{" "}
-        <a href={round.pr} target="_blank" rel="noreferrer">
-          Pull request
-        </a>
+        {round.pr ? <a href={round.pr} target="_blank" rel="noreferrer">Pull request</a> : <span>Awaiting owner review</span>}
       </p>
 
       <div className="wt-body">
@@ -104,7 +102,7 @@ function App() {
               </ul>
             </section>
             <section>
-              <h3>Decided in review</h3>
+              <h3>{(round.reviewed ?? Boolean(round.pr)) ? "Decided in review" : "Design decisions"}</h3>
               <ul>
                 {step.decisions.map((d) => (
                   <li key={d}>{d}</li>

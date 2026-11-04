@@ -9,6 +9,7 @@ import * as React from "react";
 import type { ControlSize } from "./button";
 import { Icon } from "./icon";
 import { join, withClass } from "./utils";
+import { useFloatingLayer } from "./layers";
 
 // ---- Checkbox ----
 
@@ -116,6 +117,7 @@ export interface SelectProps extends Omit<React.ComponentProps<typeof BaseSelect
  * The list opens below the trigger, like a menu.
  */
 export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, onValueChange, ...props }: SelectProps) {
+  const layer = useFloatingLayer();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
     <BaseSelect.Root {...props} items={items} onValueChange={onValueChange ? (v) => onValueChange(v as string | null) : undefined}>
@@ -126,7 +128,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner className="basalt-positioner" sideOffset={6} alignItemWithTrigger={false}>
+        <BaseSelect.Positioner className="basalt-positioner" style={layer} sideOffset={6} alignItemWithTrigger={false}>
           <BaseSelect.Popup className="basalt-menu basalt-select-popup">
             <BaseSelect.List>
               {options.map((o) => (

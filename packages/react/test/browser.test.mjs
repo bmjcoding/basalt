@@ -60,18 +60,18 @@ async function settle(page) {
   });
 }
 
-async function axe(page) {
+async function axe(page, include) {
   await settle(page);
   await page.addScriptTag({ content: axeSource });
   // Excluded: Base UI's focus guards (Floating UI's pattern). They are empty, aria-hidden spans
   // that take Tab only to forward focus at once to the right control, so neither a screen reader
   // nor a keyboard user ever rests on one. axe flags them as aria-hidden-focus in some Chromium
   // builds and not others; the popover test proves the behaviour instead: Tab never lands on one.
-  const result = await page.evaluate(() =>
+  const result = await page.evaluate((include) =>
     window.axe.run(
-      { exclude: [["[data-base-ui-focus-guard]"]] },
+      { ...(include ? { include } : {}), exclude: [["[data-base-ui-focus-guard]"]] },
       { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] },
-    ),
+    ), include,
   );
   return result.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join("; ")})`);
 }
@@ -350,6 +350,240 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await code.textContent(), updated);
       assert.deepEqual(await axe(page), []);
       assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("completion: new components have no accessibility or console errors", async () => {
+      const { page, errors } = await open(theme, "&fixture=complete");
+      assert.deepEqual(await axe(page), []);
+      assert.deepEqual(errors, []);
+      assert.equal(await page.getByRole("textbox", { name: "Disabled number" }).isDisabled(), true);
+      assert.equal(await page.getByRole("combobox", { name: "Disabled search" }).isDisabled(), true);
+      await page.close();
+    });
+
+    test("completion: Form validates required controls and submits the selected values", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const form = page.getByRole("form", { name: "Create sandbox" });
+      await form.getByRole("button", { name: "Create sandbox", exact: true }).click();
+      await form.getByText("Enter a sandbox name.", { exact: true }).waitFor();
+      assert.equal(await form.getByRole("textbox", { name: "Sandbox name" }).getAttribute("aria-invalid"), "true");
+      await form.getByRole("textbox", { name: "Sandbox name" }).fill("nightly-run");
+      const substrate = form.getByRole("combobox", { name: "Substrate" });
+      await substrate.fill("virtual");
+      await page.getByRole("option", { name: "Virtual machine", exact: true }).click();
+      await form.getByRole("button", { name: "Create sandbox", exact: true }).click();
+      await page.waitForFunction(() => document.querySelector('[aria-label="Saved form values"]')?.textContent?.includes("nightly-run"));
+      const values = JSON.parse(await page.getByRole("status", { name: "Saved form values" }).textContent());
+      assert.equal(values.sandbox, "nightly-run");
+      assert.equal(values.substrate, "vm");
+      assert.equal(Number(values.concurrency), 2);
+      await page.close();
+    });
+
+    test("completion: Combobox filters, skips disabled choices and reports an empty search", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const input = page.getByRole("form", { name: "Create sandbox" }).getByRole("combobox", { name: "Substrate" });
+      await input.fill("hosted");
+      const disabled = page.getByRole("option", { name: "Hosted sandbox" });
+      assert.equal(await disabled.getAttribute("aria-disabled"), "true");
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Enter");
+      assert.notEqual(await input.inputValue(), "Hosted sandbox");
+      await input.fill("zzz-no-match");
+      await page.getByText("No options match.", { exact: true }).waitFor();
+      // Base UI deliberately hides outside fields from AT while an editable list is open.
+      // Audit the active widget, then prove Tab closes it before resting on an outside field;
+      // the full-page audit below confirms all outside controls are exposed again.
+      assert.deepEqual(await axe(page, [[".basalt-combobox"], [".basalt-combobox-popup"]]), []);
+      for (let i = 0; i < 3 && await page.locator(".basalt-combobox-popup").isVisible(); i++) {
+        await page.keyboard.press("Tab");
+        await settle(page);
+        assert.equal(await page.evaluate(() => !!document.activeElement?.closest('[aria-hidden="true"], [inert]')), false);
+      }
+      await page.locator(".basalt-combobox-popup").waitFor({ state: "hidden" });
+      assert.deepEqual(await axe(page), []);
+      await page.close();
+    });
+
+    test("completion: numeric input steps, clamps and disables buttons at its bounds", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const region = page.getByRole("region", { name: "Number entry" });
+      const input = region.getByRole("textbox", { name: "Concurrent runs" });
+      await region.getByRole("button", { name: "Increase value" }).click();
+      await region.getByRole("button", { name: "Increase value" }).click();
+      assert.equal(await input.inputValue(), "4");
+      assert.equal(await region.getByRole("button", { name: "Increase value" }).isDisabled(), true);
+      await input.focus();
+      await page.keyboard.press("ArrowDown");
+      assert.equal(await input.inputValue(), "3");
+      await input.fill("99");
+      await page.keyboard.press("Tab");
+      assert.equal(await input.inputValue(), "4");
+      await page.close();
+    });
+
+    test("completion: slider and range thumbs are named and work from the keyboard", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const limit = page.getByRole("slider", { name: "Request limit", exact: true });
+      await limit.focus();
+      await page.keyboard.press("ArrowRight");
+      assert.equal(await limit.inputValue(), "45");
+      assert.equal(await limit.getAttribute("aria-valuetext"), "45 requests per minute");
+      await page.keyboard.press("Home");
+      assert.equal(await limit.inputValue(), "0");
+      await page.keyboard.press("End");
+      assert.equal(await limit.inputValue(), "100");
+      const lower = page.getByRole("slider", { name: "Minimum duration" });
+      await lower.focus();
+      await page.keyboard.press("ArrowRight");
+      assert.equal(await lower.inputValue(), "11");
+      assert.equal(await page.getByRole("slider", { name: "Maximum duration" }).inputValue(), "30");
+      await page.close();
+    });
+
+    test("completion: AlertDialog focuses Cancel even when it is second and ignores outside clicks", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const trigger = page.getByRole("region", { name: "Confirmations" }).getByRole("button", { name: "Remove sandbox", exact: true });
+      await trigger.click();
+      const alert = page.getByRole("alertdialog", { name: "Remove blacksand-api?" });
+      await alert.waitFor();
+      await page.waitForFunction(() => document.activeElement?.textContent?.trim() === "Keep sandbox");
+      assert.deepEqual(await axe(page), []);
+      await page.mouse.click(5, 5);
+      assert.equal(await alert.isVisible(), true);
+      await page.keyboard.press("Escape");
+      await alert.waitFor({ state: "hidden" });
+      assert.equal(await trigger.evaluate((el) => document.activeElement === el), true);
+      await page.close();
+    });
+
+    test("completion: Sheet supports nested popups and confirmations, then saves and returns focus", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      const trigger = page.getByRole("region", { name: "Sheet", exact: true }).getByRole("button", { name: "Sandbox settings" });
+      await trigger.click();
+      const sheet = page.getByRole("dialog", { name: "Sandbox settings", exact: true });
+      await sheet.waitFor();
+      const input = sheet.getByRole("combobox", { name: "Agent" });
+      await input.fill("Codex");
+      const option = page.getByRole("option", { name: "Codex", exact: true });
+      await option.waitFor();
+      const popupLayer = await option.evaluate((el) => Number(getComputedStyle(el.closest(".basalt-positioner")).zIndex));
+      const sheetLayer = await sheet.evaluate((el) => Number(getComputedStyle(el).zIndex));
+      assert.ok(popupLayer > sheetLayer, "the portalled list is behind the sheet");
+      await option.click();
+      await sheet.getByRole("button", { name: "Remove sandbox", exact: true }).click();
+      const alert = page.getByRole("alertdialog", { name: "Remove blacksand-api?" });
+      await alert.waitFor();
+      assert.ok(await alert.evaluate((el) => Number(getComputedStyle(el).zIndex)) > popupLayer);
+      await page.keyboard.press("Escape");
+      await alert.waitFor({ state: "hidden" });
+      assert.equal(await sheet.isVisible(), true);
+      assert.deepEqual(await axe(page), []);
+      await sheet.getByRole("button", { name: "Save settings" }).click();
+      await sheet.waitFor({ state: "hidden" });
+      assert.match(await page.getByRole("status", { name: "Saved settings" }).textContent(), /codex/);
+      assert.equal(await trigger.evaluate((el) => document.activeElement === el), true);
+      await page.close();
+    });
+
+    test("completion: Select, Menu, Popover and Tooltip remain above their parent dialog", async () => {
+      const { page, errors } = await open(theme, "&fixture=complete");
+      await page.getByRole("button", { name: "Route settings", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Route settings", exact: true });
+      const parentLayer = await dialog.evaluate((el) => Number(getComputedStyle(el).zIndex));
+      const layerOf = (locator) => locator.evaluate((el) => Number(getComputedStyle(el.closest(".basalt-positioner")).zIndex));
+      await dialog.getByRole("combobox", { name: "Transport" }).click();
+      const http = page.getByRole("option", { name: "HTTP", exact: true });
+      assert.ok(await layerOf(http) > parentLayer);
+      await http.click();
+      await dialog.getByRole("button", { name: "Route actions" }).click();
+      const duplicate = page.getByRole("menuitem", { name: "Duplicate route" });
+      assert.ok(await layerOf(duplicate) > parentLayer);
+      await duplicate.click();
+      await dialog.getByText("Route duplicated in this example.", { exact: true }).waitFor();
+      await dialog.getByRole("button", { name: "Inspect policy" }).click();
+      const policy = page.getByRole("dialog", { name: "Route policy", exact: true });
+      await policy.waitFor();
+      assert.ok(await layerOf(policy) > parentLayer);
+      assert.deepEqual(await axe(page), []);
+      await page.keyboard.press("Escape");
+      await policy.waitFor({ state: "hidden" });
+      const check = dialog.getByRole("button", { name: "Check route", exact: true });
+      await dialog.getByRole("button", { name: "Done" }).focus();
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(await check.evaluate((el) => document.activeElement === el), true);
+      const tip = page.getByRole("tooltip").filter({ hasText: "Validate the host against the route allowlist" });
+      await tip.waitFor();
+      assert.equal(await check.getAttribute("aria-describedby"), await tip.getAttribute("id"));
+      assert.ok(await layerOf(tip) > parentLayer);
+      await check.click();
+      await dialog.getByText("Route checked in this example.", { exact: true }).waitFor();
+      await dialog.getByRole("button", { name: "Done" }).click();
+      await dialog.waitFor({ state: "hidden" });
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("completion: menu checkbox, radio and submenu report their state and run an action", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      await page.getByRole("button", { name: "View options", exact: true }).click();
+      const checkbox = page.getByRole("menuitemcheckbox", { name: "Show archived" });
+      await checkbox.click();
+      assert.equal(await checkbox.getAttribute("aria-checked"), "true");
+      const compact = page.getByRole("menuitemradio", { name: "Compact rows" });
+      await compact.click();
+      assert.equal(await compact.getAttribute("aria-checked"), "true");
+      await page.getByRole("menuitem", { name: "Export", exact: true }).focus();
+      await page.keyboard.press("ArrowRight");
+      await page.getByRole("menuitem", { name: "Export JSON" }).waitFor();
+      // The open submenu deliberately covers background page targets. Audit the active
+      // menus, then the full page after dismissal, rather than treating covered buttons as
+      // partially usable targets of this interaction.
+      assert.deepEqual(await axe(page, [[".basalt-menu"]]), []);
+      await page.getByRole("menuitem", { name: "Export JSON" }).click();
+      assert.equal(await page.getByRole("status", { name: "Export result" }).textContent(), "JSON export selected");
+      assert.deepEqual(await axe(page), []);
+      await page.close();
+    });
+
+    test("completion: boundaries remain structural in forced colours", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      await page.emulateMedia({ forcedColors: "active" });
+      const input = page.getByRole("form", { name: "Create sandbox" }).getByRole("textbox", { name: "Sandbox name" });
+      assert.equal(await input.evaluate((el) => getComputedStyle(el).borderStyle), "solid");
+      assert.equal(await input.evaluate((el) => getComputedStyle(el).borderWidth), "1px");
+      await page.close();
+    });
+
+    test("completion: components fit a phone viewport", async () => {
+      const { page, errors } = await open(theme, "&fixture=complete", { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+      await page.evaluate(() => document.documentElement.dataset.density = "compact");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390);
+      const targets = await page.locator(".basalt-combobox-trigger, .basalt-number-group .basalt-button, .basalt-slider-control").evaluateAll((elements) => elements.map((el) => {
+        const { width, height } = el.getBoundingClientRect();
+        return { label: el.getAttribute("aria-label") ?? el.textContent, width, height };
+      }));
+      assert.deepEqual(targets.filter((target) => target.width < 44 || target.height < 44), [], "completion touch target below 44px");
+      await page.getByRole("button", { name: "Sandbox settings", exact: true }).click();
+      const sheet = page.getByRole("dialog", { name: "Sandbox settings" });
+      await settle(page);
+      const bounds = await sheet.boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= 390 && bounds.height <= 844, "sheet leaves phone viewport");
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("completion: a reduced-motion sheet fades without translation", async () => {
+      const { page } = await open(theme, "&fixture=complete");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.getByRole("button", { name: "Sandbox settings", exact: true }).click();
+      const sheet = page.getByRole("dialog", { name: "Sandbox settings" });
+      await sheet.waitFor();
+      const moving = await sheet.evaluate((el) => el.getAnimations().flatMap((animation) => animation.effect.getKeyframes()).filter((frame) => frame.transform && frame.transform !== "none"));
+      assert.deepEqual(moving, [], "sheet translated despite the reduced-motion preference");
+      await settle(page);
+      assert.equal(await sheet.evaluate((el) => getComputedStyle(el).transform), "none");
       await page.close();
     });
 

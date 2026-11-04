@@ -112,12 +112,17 @@ export interface TooltipProps {
 export const TooltipProvider = BaseTooltip.Provider;
 
 export function Tooltip({ content, children, side = "top", defaultOpen }: TooltipProps) {
+  const [open, setOpen] = React.useState(defaultOpen ?? false);
+  const id = React.useId();
+  const trigger = children as React.ReactElement<{ "aria-describedby"?: string }>;
+  // The pinned primitive supplies neither a tooltip role nor its trigger description.
+  const description = [trigger.props["aria-describedby"], open ? id : undefined].filter(Boolean).join(" ") || undefined;
   return (
-    <BaseTooltip.Root defaultOpen={defaultOpen}>
-      <BaseTooltip.Trigger render={children} />
+    <BaseTooltip.Root open={open} onOpenChange={setOpen}>
+      <BaseTooltip.Trigger render={React.cloneElement(trigger, { "aria-describedby": description })} />
       <BaseTooltip.Portal>
-        <BaseTooltip.Positioner side={side} sideOffset={6} className="basalt-positioner">
-          <BaseTooltip.Popup className="basalt-tooltip">{content}</BaseTooltip.Popup>
+        <BaseTooltip.Positioner side={side} sideOffset={6} className="basalt-positioner basalt-tooltip-positioner">
+          <BaseTooltip.Popup id={id} role="tooltip" className="basalt-tooltip">{content}</BaseTooltip.Popup>
         </BaseTooltip.Positioner>
       </BaseTooltip.Portal>
     </BaseTooltip.Root>

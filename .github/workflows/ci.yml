@@ -23,6 +23,7 @@ jobs:
         run: npx --workspace packages/react playwright install --with-deps chromium
       - run: npm test
       - run: npm run artifact
+      - run: npm run typecheck:review
       - name: Generated Swift is up to date
         run: git diff --exit-code -- Sources/BasaltTokens/Tokens.swift
 

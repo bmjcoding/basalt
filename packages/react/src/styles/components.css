@@ -56,6 +56,7 @@
     z-index: var(--basalt-layer-popover);
     outline: none;
   }
+  .basalt-tooltip-positioner { z-index: var(--basalt-layer-tooltip); }
 
   /* ---- Button ---- */
 
@@ -229,6 +230,9 @@
   }
 
   .basalt-menu-item .basalt-icon { color: var(--basalt-text-secondary); }
+  .basalt-menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; }
+  .basalt-menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-menu-submenu-trigger:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
   .basalt-menu-item-label { flex: 1; }
   .basalt-menu-item-shortcut { margin-left: var(--basalt-space-4); }
   .basalt-menu-item[data-highlighted] { background: var(--basalt-state-hover); }
@@ -1028,9 +1032,92 @@
     .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
   }
 
+  /* ---- Forms and editable choices ---- */
+
+  .basalt-form, .basalt-fieldset { display: flex; flex-direction: column; gap: var(--basalt-space-4); min-width: 0; }
+  .basalt-fieldset { margin: 0; padding: 0; border: 0; }
+  .basalt-fieldset-legend { padding: 0; margin-bottom: var(--basalt-space-3); color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+
+  .basalt-combobox { position: relative; min-width: 0; }
+  .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-space-10); }
+  .basalt-combobox-trigger { position: absolute; inset-inline-end: 0; top: 0; }
+  .basalt-combobox-popup { min-width: var(--anchor-width); max-width: var(--available-width); }
+  .basalt-combobox-empty { padding: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-combobox-empty:empty { display: none; }
+
+  .basalt-number-group { display: flex; gap: var(--basalt-space-1); align-items: center; min-width: 0; }
+  .basalt-input.basalt-number-input { min-width: 0; flex: 1; width: 100%; text-align: center; font-variant-numeric: tabular-nums; }
+  .basalt-number-group .basalt-button { flex: none; }
+
+  .basalt-slider { display: flex; flex-direction: column; gap: var(--basalt-space-1); min-width: 0; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
+  .basalt-slider-control { display: flex; align-items: center; position: relative; min-height: var(--basalt-size-control-md); touch-action: none; user-select: none; }
+  .basalt-slider-track { position: relative; width: 100%; height: 4px; border-radius: var(--basalt-radius-full); background: var(--basalt-border-input); }
+  .basalt-slider-indicator { position: absolute; height: 100%; border-radius: inherit; background: var(--basalt-action-primary); }
+  .basalt-slider-thumb { position: absolute; width: 16px; height: 16px; border-radius: var(--basalt-radius-full); background: var(--basalt-action-primary); outline: 2px solid var(--basalt-surface-page); }
+  .basalt-slider-thumb:focus-within { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-slider[data-disabled] { color: var(--basalt-text-disabled); }
+  .basalt-slider[data-disabled] .basalt-slider-thumb, .basalt-slider[data-disabled] .basalt-slider-indicator { background: var(--basalt-text-disabled); }
+  .basalt-slider[data-orientation="vertical"] .basalt-slider-control { width: var(--basalt-size-tap-min); height: 180px; justify-content: center; }
+  .basalt-slider[data-orientation="vertical"] .basalt-slider-track { width: 4px; height: 100%; }
+  .basalt-slider[data-orientation="vertical"] .basalt-slider-indicator { width: 100%; height: auto; }
+
+  /* ---- Sheets ---- */
+
+  .basalt-sheet {
+    box-sizing: border-box;
+    position: fixed;
+    z-index: var(--basalt-layer-dialog);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--basalt-space-6);
+    padding-top: max(var(--basalt-space-6), env(safe-area-inset-top));
+    padding-right: max(var(--basalt-space-6), env(safe-area-inset-right));
+    padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom));
+    padding-left: max(var(--basalt-space-6), env(safe-area-inset-left));
+    background: var(--basalt-surface-overlay);
+    color: var(--basalt-text-primary);
+    box-shadow: var(--basalt-shadow-modal);
+    font-family: var(--basalt-font-family-sans);
+    outline: none;
+    transition: transform var(--basalt-duration-slower) var(--basalt-ease-out), opacity var(--basalt-duration-slower) var(--basalt-ease-out);
+  }
+  .basalt-sheet[data-side="right"], .basalt-sheet[data-side="left"] { top: 0; bottom: 0; width: min(440px, 100%); }
+  .basalt-sheet[data-side="right"] { right: 0; border-radius: var(--basalt-radius-xl) 0 0 var(--basalt-radius-xl); }
+  .basalt-sheet[data-side="left"] { left: 0; border-radius: 0 var(--basalt-radius-xl) var(--basalt-radius-xl) 0; }
+  .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom)); }
+  .basalt-sheet[data-side="right"][data-starting-style], .basalt-sheet[data-side="right"][data-ending-style] { transform: translateX(100%); }
+  .basalt-sheet[data-side="left"][data-starting-style], .basalt-sheet[data-side="left"][data-ending-style] { transform: translateX(-100%); }
+  .basalt-sheet[data-side="bottom"][data-starting-style], .basalt-sheet[data-side="bottom"][data-ending-style] { transform: translateY(100%); }
+  .basalt-sheet[data-ending-style], .basalt-sheet-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+
+  @media (pointer: coarse) {
+    .basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
+    .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
+  }
+
+  /* Borders and state markers remain structural when system high-contrast colours replace
+     author colours and box shadows. System colour keywords preserve the user's palette. */
+  @media (forced-colors: active) {
+    .basalt-button, .basalt-input, .basalt-select-trigger, .basalt-checkbox, .basalt-radio, .basalt-switch {
+      border: 1px solid ButtonText;
+      box-shadow: none;
+    }
+    .basalt-button[data-disabled], .basalt-input[data-disabled], .basalt-select-trigger[data-disabled] { border-color: GrayText; color: GrayText; }
+    .basalt-checkbox[data-checked], .basalt-radio[data-checked], .basalt-switch[data-checked], .basalt-segment[data-pressed], .basalt-menu-item[data-highlighted] { background: Highlight; color: HighlightText; }
+    .basalt-checkbox-indicator, .basalt-menu-item[data-highlighted] .basalt-icon { color: HighlightText; }
+    .basalt-radio-indicator[data-checked], .basalt-switch-thumb[data-checked] { background: HighlightText; }
+    .basalt-slider-track, .basalt-progress-track { background: Canvas; border: 1px solid CanvasText; }
+    .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
+    .basalt-segment[data-pressed], .basalt-tab[data-active] { outline: 2px solid Highlight; outline-offset: -2px; }
+    .basalt-dialog, .basalt-sheet, .basalt-menu, .basalt-popover { border: 1px solid CanvasText; }
+  }
+
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 
   @media (prefers-reduced-motion: reduce) {
+    .basalt-sheet { transition-property: opacity; }
+    .basalt-sheet[data-side][data-starting-style], .basalt-sheet[data-side][data-ending-style] { transform: none; opacity: 0; }
     .basalt-menu[data-starting-style],
     .basalt-menu[data-ending-style],
     .basalt-tooltip[data-starting-style],

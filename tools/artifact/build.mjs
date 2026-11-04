@@ -14,6 +14,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { inlineScript } from "../inline-script.mjs";
+import { README, COMPONENT_DOCS, PREVIEWS, COVER } from "./content.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const react = path.join(repo, "packages", "react");
@@ -230,18 +231,21 @@ const domLib = await esbuild.build({
 });
 write("components/lib/react-dom.js", classic(domLib.outputFiles[0].text, "react-dom.js"));
 
-const COMPONENTS = ["Button", "IconButton", "Field", "Input", "Menu", "MenuTrigger", "MenuContent", "MenuItem", "MenuGroup", "MenuGroupLabel", "MenuSeparator", "Dialog", "DialogTrigger", "DialogContent", "DialogTitle", "DialogDescription", "DialogActions", "DialogClose", "Tabs", "TabsList", "Tab", "TabsPanel", "SegmentedControl", "Segment", "Badge", "Kbd", "Card", "CardHeader", "CardTitle", "CardDescription", "CardContent", "CardFooter", "TableContainer", "Table", "TableHeader", "TableBody", "TableRow", "TableHead", "TableCell", "Tooltip", "TooltipProvider", "Icon", "Checkbox", "Switch", "RadioGroup", "Radio", "Select", "ToastProvider", "useToast", "CommandMenu", "Textarea", "Popover", "PopoverTrigger", "PopoverContent", "PopoverTitle", "PopoverDescription", "Callout", "Progress", "Spinner", "Skeleton", "CodeBlock", "Accordion", "AccordionItem"];
+const COMPONENTS = [...fs.readFileSync(path.join(react, "src/index.ts"), "utf8").matchAll(/export \{([^}]+)\} from/g)].flatMap((match) => match[1].split(",").map((name) => name.trim()).filter(Boolean));
+const FAMILIES = Object.keys(COMPONENT_DOCS);
+if (FAMILIES.some((name) => !PREVIEWS[name]) || Object.keys(PREVIEWS).some((name) => !COMPONENT_DOCS[name])) throw new Error("Every component family needs a guide and a preview");
 const ICONS = ["CaretDownIcon", "CopyIcon", "DotsThreeIcon", "GearIcon", "MagnifyingGlassIcon", "PencilSimpleIcon", "PlayIcon", "PlusIcon", "TrashIcon", "CubeIcon", "TerminalIcon", "HouseIcon"];
-const entry = `export * from ${JSON.stringify(path.join(react, "src/index.ts"))};\nexport { ${ICONS.join(", ")} } from "@phosphor-icons/react";\n`;
+const entry = `export * from ${JSON.stringify(path.join(react, "src/index.ts"))};\nexport * as Examples from ${JSON.stringify(path.join(react, "examples/completion.tsx"))};\nexport { ${ICONS.join(", ")} } from "@phosphor-icons/react";\n`;
 const bundle = await esbuild.build({
   stdin: { contents: entry, resolveDir: react, loader: "ts" },
   bundle: true, format: "iife", globalName: NS, minify: true, define: prod, write: false, jsx: "automatic", target: "es2020",
-  banner: { js: `/* @ds-bundle: ${JSON.stringify({ format: 4, namespace: NS, components: ["Button", "Field", "Checkbox", "Switch", "RadioGroup", "Select", "Menu", "Dialog", "CommandMenu", "Toast", "Tabs", "SegmentedControl", "Badge", "Card", "Table", "Tooltip", "Kbd", "Icon", "Textarea", "Popover", "Callout", "Progress", "Spinner", "Skeleton", "CodeBlock", "Accordion"].map((name) => ({ name })) })} */` },
+  banner: { js: `/* @ds-bundle: ${JSON.stringify({ format: 4, namespace: NS, components: FAMILIES.map((name) => ({ name })) })} */` },
   plugins: [globals],
 });
 const bundleJs = classic(bundle.outputFiles[0].text, "bundle.js");
 for (const c of [...COMPONENTS, ...ICONS]) if (!new RegExp(`\\b${c}\\b`).test(bundleJs)) throw new Error(`bundle is missing ${c}`);
 write("components/bundle.js", bundleJs);
+write("components/api.json", JSON.stringify({ exports: COMPONENTS, families: FAMILIES }, null, 2));
 
 const componentsCss = fs.readFileSync(path.join(react, "src/styles/components.css"), "utf8");
 write(
@@ -261,21 +265,12 @@ write(
   ].join("\n"),
 );
 
-// Types as documentation: the built declarations, one file.
-const dts = fs.readdirSync(path.join(react, "dist")).filter((f) => f.endsWith(".d.ts") && f !== "index.d.ts").sort();
-write(
-  "components/index.d.ts",
-  [
-    "// Basalt component types (documentation). Import from \"@srasyndicate/basalt\".",
-    'import type * as React from "react";',
-    'import type { Icon as PhosphorIcon } from "@phosphor-icons/react";',
-    ...dts.map((f) => fs.readFileSync(path.join(react, "dist", f), "utf8").split("\n").filter((l) => !/^import |^export \{ .* \} from|^export \* from/.test(l)).join("\n")),
-  ].join("\n\n"),
-);
+// Preserve each declaration's imports and relative module links. Flattening and stripping
+// imports loses Base UI's generic types and can create duplicate type identifiers.
+for (const file of fs.readdirSync(path.join(react, "dist")).filter((f) => f.endsWith(".d.ts"))) write(`components/${file}`, fs.readFileSync(path.join(react, "dist", file), "utf8"));
 
 // ---------------------------------------------------------------- docs, previews, cover
 
-const { README, COMPONENT_DOCS, PREVIEWS, COVER } = await import("./content.mjs");
 write("README.md", README);
 for (const [name, doc] of Object.entries(COMPONENT_DOCS)) write(`components/${name}/README.md`, doc);
 for (const [name, html] of Object.entries(PREVIEWS)) write(`components/${name}/preview.html`, html);

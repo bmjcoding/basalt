@@ -8,6 +8,7 @@ import * as React from "react";
 import { IconButton } from "./button";
 import { Icon } from "./icon";
 import { highlightCode } from "./syntax";
+import { useFloatingLayer } from "./layers";
 import { join, withClass } from "./utils";
 
 // ---- Textarea ----
@@ -52,9 +53,10 @@ export interface PopoverContentProps extends React.ComponentProps<typeof BasePop
 }
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, ...props }: PopoverContentProps) {
+  const layer = useFloatingLayer();
   return (
     <BasePopover.Portal>
-      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} className="basalt-positioner">
+      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} style={layer} className="basalt-positioner">
         <BasePopover.Popup {...props} className={withClass("basalt-popover", className)} />
       </BasePopover.Positioner>
     </BasePopover.Portal>

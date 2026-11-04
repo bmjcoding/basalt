@@ -4,6 +4,7 @@
 import { ArrowsClockwiseIcon, CaretDownIcon, CopyIcon, DotsThreeIcon, GearIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
+import { CompletionFixtures } from "../examples/completion";
 
 import {
   Accordion,
@@ -195,6 +196,7 @@ function App() {
         {params.get("fixture") === "code" ? <CodeFixture /> : null}
         {params.get("fixture") === "textarea" ? <TextareaFixture /> : null}
         {params.get("fixture") === "density" ? <DensityFixture /> : null}
+        {params.get("fixture") === "complete" ? <CompletionFixtures /> : null}
 
         <Section title="Buttons">
           <div className="row">
