@@ -3,10 +3,14 @@
   "private": true,
   "description": "Basalt, the SRA Syndicate design system.",
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm test --workspaces"
+    "build": "npm run build -w packages/tokens && npm run build -w packages/react",
+    "test": "npm test -w packages/tokens && npm test -w packages/react"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

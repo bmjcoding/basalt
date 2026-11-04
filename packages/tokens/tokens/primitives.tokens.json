@@ -124,6 +124,7 @@
       "$description": "Achromatic neutrals, named by HSL lightness percent. Only the values the themes use exist."
     },
     "white": {
+      "$description": "White at fixed opacities, for washes and hairlines over any dark surface.",
       "6": {
         "$type": "color",
         "$value": {
@@ -157,6 +158,15 @@
         },
         "$description": "The hairline: 14.5% white, as #ffffff25."
       },
+      "24": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [1, 0, 0],
+          "alpha": 0.24
+        },
+        "$description": "Hairline on hover."
+      },
       "38": {
         "$type": "color",
         "$value": {
@@ -165,10 +175,10 @@
           "alpha": 0.38
         },
         "$description": "Input boundary: 3.4:1 or better on every dark surface."
-      },
-      "$description": "White at fixed opacities, for washes and hairlines over any dark surface."
+      }
     },
     "black": {
+      "$description": "Black at fixed opacities, for washes, hairlines and shadows over any light surface.",
       "4": {
         "$type": "color",
         "$value": {
@@ -209,6 +219,15 @@
           "components": [0, 0, 0],
           "alpha": 0.1
         }
+      },
+      "16": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0, 0, 0],
+          "alpha": 0.16
+        },
+        "$description": "Hairline on hover."
       },
       "18": {
         "$type": "color",
@@ -258,8 +277,7 @@
           "components": [0, 0, 0],
           "alpha": 0.8
         }
-      },
-      "$description": "Black at fixed opacities, for washes, hairlines and shadows over any light surface."
+      }
     },
     "status": {
       "$description": "Inside the sRGB gamut, so every display shows the same colour.",

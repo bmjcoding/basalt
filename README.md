@@ -3,13 +3,14 @@
 The SRA Syndicate design system: one monochrome foundation for Blacksand, srasyndicate.io,
 baileymjones.com, N1 and what comes next. Each product adds colour through its own accent.
 
-**Status: foundations.** The tokens are built and tested. Components come next.
+**Status: early.** Tokens and the first components are built and tested.
 
 ## Packages
 
 | Package | What it is |
 |---|---|
 | [`packages/tokens`](packages/tokens) | Colour, type, space, radius, elevation and motion, as DTCG tokens built into CSS, TypeScript and JSON |
+| [`packages/react`](packages/react) | React components on Base UI, styled with the tokens, with Phosphor icons |
 
 ## Use the tokens
 
@@ -41,7 +42,8 @@ npm test
 
 Builds the tokens and checks every text, boundary, focus and status pair against WCAG 2.2 AA
 on every surface it can appear on, that every colour is inside sRGB, and that the page is
-the darkest layer in both themes.
+the darkest layer in both themes. Then builds the components and runs axe-core and keyboard
+tests on them in a real browser, in both themes.
 
 ## Decisions
 

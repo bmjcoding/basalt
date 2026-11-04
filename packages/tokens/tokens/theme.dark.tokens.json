@@ -45,6 +45,10 @@
       "hairline": {
         "$value": "{color.white.15}"
       },
+      "hover": {
+        "$value": "{color.white.24}",
+        "$description": "The hairline on a hovered control: one step brighter, never a colour."
+      },
       "divider": {
         "$value": "{color.white.10}"
       },
