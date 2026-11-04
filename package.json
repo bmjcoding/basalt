@@ -9,7 +9,7 @@
   "scripts": {
     "build": "npm run build -w packages/tokens && npm run build -w packages/react",
     "test": "npm test -w packages/tokens && npm test -w packages/react",
-    "artifact": "node tools/artifact/build.mjs"
+    "artifact": "node tools/artifact/build.mjs && node tools/artifact/check.mjs"
   },
   "engines": {
     "node": ">=22"

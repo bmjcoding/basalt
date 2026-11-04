@@ -39,6 +39,11 @@ Every component takes `className`; Base UI parts also accept a function of their
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
 | `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals; `mono` cells for IDs and hashes. |
 | `Tooltip`, `TooltipProvider` | Supplements a name; never replaces a label. |
+| `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
+| `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
+| `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. |
+| `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, timeout? })`. |
+| `CommandMenu` | ⌘K: `groups` of `{ id, label, icon?, shortcut?, keywords?, onSelect }`; you bind the shortcut. |
 | `Icon`, `Kbd` | `Icon` picks Phosphor's weight by size: Bold at 16px, Regular at 20px and up, Fill when `selected`. |
 
 ## Test
@@ -51,8 +56,8 @@ Typechecks, builds, then runs the browser tests on a page with every component
 (`test/demo.tsx`), in both themes:
 
 - axe-core finds no WCAG 2.2 A or AA violations, at rest and with the menu and dialog open;
-- menus, dialogs, tabs and the segmented control work from the keyboard, and Esc returns
-  focus to where it came from;
+- menus, dialogs, tabs, the segmented control, choices, select and the command menu work
+  from the keyboard, and Esc returns focus to where it came from;
 - focus shows as a 2px outline in the focus colour;
 - the page doesn't scroll sideways at phone width.
 

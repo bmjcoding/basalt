@@ -1,11 +1,19 @@
 // Every component on one page, for the browser tests and for review screenshots.
 // ?theme=dark|light pins the theme; ?open=menu|dialog opens an overlay on load.
 
-import { CaretDownIcon, CopyIcon, DotsThreeIcon, GearIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon, CaretDownIcon, CopyIcon, DotsThreeIcon, GearIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 
 import {
+  Checkbox,
+  CommandMenu,
+  Radio,
+  RadioGroup,
+  Select,
+  Switch,
+  ToastProvider,
+  useToast,
   Badge,
   Button,
   Card,
@@ -69,10 +77,53 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function ToastDemo() {
+  const toast = useToast();
+  return (
+    <Button
+      onClick={() =>
+        toast.show({ title: "Sandbox deleted", description: "blacksand-api and its routes were removed.", status: "success", action: { label: "Undo", onClick: () => {} }, timeout: 0 })
+      }
+    >
+      Show toast
+    </Button>
+  );
+}
+
+function CommandDemo() {
+  const [cmdOpen, setCmdOpen] = React.useState(open === "command");
+  const [ran, setRan] = React.useState("");
+  const run = (label: string) => () => setRan(label);
+  return (
+    <>
+      <Button onClick={() => setCmdOpen(true)} iconEnd={undefined}>
+        Commands <Kbd>⌘K</Kbd>
+      </Button>
+      <span data-testid="ran" style={{ fontSize: 13, color: "var(--basalt-text-secondary)" }}>{ran}</span>
+      <CommandMenu
+        open={cmdOpen}
+        onOpenChange={setCmdOpen}
+        groups={[
+          { label: "Sandboxes", commands: [
+            { id: "new", label: "New sandbox", icon: PlusIcon, shortcut: "N", onSelect: run("New sandbox") },
+            { id: "dup", label: "Duplicate sandbox", icon: CopyIcon, shortcut: "⌘D", onSelect: run("Duplicate sandbox") },
+            { id: "del", label: "Delete sandbox", icon: TrashIcon, keywords: ["remove"], onSelect: run("Delete sandbox") },
+          ] },
+          { label: "Runs", commands: [
+            { id: "rerun", label: "Re-run last task", icon: ArrowsClockwiseIcon, onSelect: run("Re-run last task") },
+            { id: "deploy", label: "Deploy", icon: PlayIcon, onSelect: run("Deploy") },
+          ] },
+        ]}
+      />
+    </>
+  );
+}
+
 function App() {
   const [range, setRange] = React.useState("24h");
   return (
     <TooltipProvider>
+     <ToastProvider>
       <main className="theme" data-testid="page">
         <h1 style={{ margin: 0, font: "var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size)/var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans)", letterSpacing: "var(--basalt-text-2xl-tracking)" }}>
           Basalt components
@@ -127,6 +178,47 @@ function App() {
           <Field label="Search">
             <Input placeholder="Search runs" />
           </Field>
+        </Section>
+
+        <Section title="Choices">
+          <div className="row" style={{ alignItems: "flex-start", gap: 32 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Checkbox defaultChecked>Keep run records</Checkbox>
+              <Checkbox>Allow outbound DNS</Checkbox>
+              <Checkbox indeterminate>All routes</Checkbox>
+              <Checkbox disabled>Signed commits only</Checkbox>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Switch defaultChecked>Auto-deploy</Switch>
+              <Switch>Verbose logs</Switch>
+            </div>
+            <RadioGroup aria-label="Substrate" defaultValue="k3s">
+              <Radio value="k3s">Kubernetes (k3s)</Radio>
+              <Radio value="vm">Virtual machine</Radio>
+              <Radio value="gvisor">gVisor</Radio>
+            </RadioGroup>
+            <div style={{ width: 220 }}>
+              <Field label="Region">
+                <Select
+                  defaultOpen={open === "select"}
+                  defaultValue="iad"
+                  options={[
+                    { value: "iad", label: "Washington, D.C. (iad1)" },
+                    { value: "sfo", label: "San Francisco (sfo1)" },
+                    { value: "fra", label: "Frankfurt (fra1)" },
+                    { value: "hnd", label: "Tokyo (hnd1)", disabled: true },
+                  ]}
+                />
+              </Field>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Feedback">
+          <div className="row">
+            <ToastDemo />
+            <CommandDemo />
+          </div>
         </Section>
 
         <Section title="Navigation">
@@ -244,6 +336,7 @@ function App() {
           </div>
         </Section>
       </main>
+     </ToastProvider>
     </TooltipProvider>
   );
 }

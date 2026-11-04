@@ -157,6 +157,73 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("checkbox, switch and radio work from the keyboard and are named by their labels", async () => {
+      const { page } = await open(theme);
+      const dns = page.getByRole("checkbox", { name: "Allow outbound DNS" });
+      await dns.focus();
+      await page.keyboard.press("Space");
+      assert.equal(await dns.getAttribute("aria-checked"), "true");
+      const verbose = page.getByRole("switch", { name: "Verbose logs" });
+      await verbose.focus();
+      await page.keyboard.press("Space");
+      assert.equal(await verbose.getAttribute("aria-checked"), "true");
+      await page.getByRole("radio", { name: "Kubernetes (k3s)" }).focus();
+      await page.keyboard.press("ArrowDown");
+      assert.equal(await page.getByRole("radio", { name: "Virtual machine" }).getAttribute("aria-checked"), "true");
+      await page.close();
+    });
+
+    test("select: labelled by its field, opens from the keyboard, picks with Enter, skips disabled", async () => {
+      const { page } = await open(theme);
+      const trigger = page.getByRole("combobox", { name: "Region" });
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      const list = page.getByRole("listbox");
+      await list.waitFor();
+      assert.deepEqual(await axe(page), [], "violations with the select open");
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Enter");
+      await list.waitFor({ state: "hidden" });
+      assert.match(await trigger.textContent(), /San Francisco/);
+      assert.equal(await page.getByRole("option", { name: /Tokyo/, includeHidden: true }).count() <= 1, true);
+      await page.close();
+    });
+
+    test("toast: announced, dismissable, and accessible", async () => {
+      const { page } = await open(theme);
+      await page.getByRole("button", { name: "Show toast" }).click();
+      const title = page.getByText("Sandbox deleted");
+      await title.waitFor();
+      assert.ok(await page.locator('[aria-live]').count() > 0, "no live region for toasts");
+      assert.deepEqual(await axe(page), [], "violations with a toast shown");
+      // Base UI keeps Close out of the accessibility tree until the stack expands on hover or
+      // focus, which is how anyone reaches it
+      await page.locator(".basalt-toast").hover();
+      await page.getByRole("button", { name: "Dismiss" }).click();
+      await title.waitFor({ state: "hidden" });
+      await page.close();
+    });
+
+    test("command menu: filters by label and keyword, Enter runs, Esc closes", async () => {
+      const { page } = await open(theme);
+      const openMenu = async () => {
+        await page.getByRole("button", { name: /Commands/ }).click();
+        await page.getByRole("dialog", { name: "Command menu" }).waitFor();
+      };
+      await openMenu();
+      assert.deepEqual(await axe(page), [], "violations with the command menu open");
+      await page.keyboard.type("remove");
+      await page.keyboard.press("Enter");
+      await page.getByRole("dialog", { name: "Command menu" }).waitFor({ state: "hidden" });
+      assert.equal(await page.getByTestId("ran").textContent(), "Delete sandbox");
+      await openMenu();
+      await page.keyboard.type("zzz");
+      await page.getByText("No commands match.").waitFor();
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog", { name: "Command menu" }).waitFor({ state: "hidden" });
+      await page.close();
+    });
+
     test("no horizontal page scroll at phone width", async () => {
       const { page } = await open(theme, "", { width: 390, height: 844 });
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
