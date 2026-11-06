@@ -269,7 +269,7 @@ Code, commands or logs in Geist Mono on a sunken surface. Long lines scroll side
 
 Shiki's editor grammars highlight shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift, TSX, TypeScript and YAML. Common aliases like \`sh\`, \`js\`, \`ts\`, \`py\` and \`yml\` work. The language is explicit; the title is only a label. Omit it, or use \`text\`, for plain logs. Unknown languages and logs over 100,000 UTF-16 code units stay plain.
 
-Syntax uses its own AA-tested tokens, follows light and dark immediately, and works offline and during server rendering. It never interprets source text as HTML.
+Syntax uses its own AA-tested tokens, follows light and dark immediately, and works offline. Each language loads the first time it renders (plain text until then); call preloadCodeLanguages before server rendering for highlighted HTML. It never interprets source text as HTML.
 `),
   Accordion: doc("Accordion", `
 Sections that expand one at a time or several at once, for secondary detail.

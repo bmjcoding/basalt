@@ -7,7 +7,7 @@ import * as React from "react";
 
 import { IconButton } from "./button";
 import { Icon } from "./icon";
-import { highlightCode } from "./syntax";
+import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import { useFloatingLayer } from "./layers";
 import { join, withClass } from "./utils";
 
@@ -200,7 +200,17 @@ export interface CodeBlockProps {
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
 export function CodeBlock({ code, language, title, copyable = true, className }: CodeBlockProps) {
-  const tokens = React.useMemo(() => highlightCode(code, language), [code, language]);
+  // The code renders as plain text at once; colour follows when its grammar has loaded, with
+  // no change in layout. Languages loaded earlier (or preloaded for SSR) colour immediately.
+  const [loaded, setLoaded] = React.useState(0);
+  const status = codeLanguageStatus(language);
+  React.useEffect(() => {
+    if (status !== "loading" || !language) return;
+    let live = true;
+    loadCodeLanguage(language).then((ok) => { if (ok && live) setLoaded((n) => n + 1); });
+    return () => { live = false; };
+  }, [language, status]);
+  const tokens = React.useMemo(() => (status === "ready" ? highlightCode(code, language) : null), [code, language, status, loaded]);
   // Preserve the original whitespace, including CRLF and trailing newlines. Token offsets
   // locate spans in the source; source text is rendered by React, never injected as HTML.
   let cursor = 0;

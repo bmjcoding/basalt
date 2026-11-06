@@ -103,10 +103,13 @@ and danger colours, because there they are status. It needs +/− markers and li
 backgrounds as well, so it waits for that component; CodeBlock doesn't colour diffs. The source is the `color.syntax` group, generated into CSS, TypeScript and Swift.
 
 Pass the language explicitly; a title is a display label, not a language detector. Twelve
-grammars are bundled: shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift, TSX,
-TypeScript and YAML, including their common aliases. Plain text, unsupported languages and
-logs over 100,000 UTF-16 code units stay plain. No language is fetched from the network.
-Tokenization works during server rendering, and CSS variables switch colours with the theme.
+grammars ship with the package: shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift,
+TSX, TypeScript and YAML, including their common aliases. Plain text, unsupported languages
+and logs over 100,000 UTF-16 code units stay plain. Each grammar is its own chunk in the app's
+bundle, loaded the first time a block in that language renders; nothing comes from a CDN.
+Until then the code shows as plain text, and colour arrives without moving the layout. An app
+that wants highlighted HTML from the server awaits `preloadCodeLanguages([...])` before
+rendering. CSS variables switch colours with the theme.
 Source is rendered as React text, with its whitespace preserved; copying always uses the
 original source. Comments stay upright, by choice.
 

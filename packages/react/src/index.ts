@@ -36,6 +36,7 @@ export type { ToastOptions, ToastStatus } from "./toast";
 export { CommandMenu } from "./command";
 export type { Command, CommandGroup, CommandMenuProps } from "./command";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Spinner, Textarea } from "./feedback";
+export { preloadCodeLanguages } from "./syntax";
 export type { AccordionItemProps, CalloutProps, CalloutStatus, CodeBlockProps, PopoverContentProps, ProgressProps, SkeletonProps, SpinnerProps, TextareaProps } from "./feedback";
 export { Combobox, Fieldset, Form, NumberField, Slider } from "./forms";
 export type { ComboboxOption, ComboboxProps, FieldsetProps, NumberFieldProps, SliderProps } from "./forms";
