@@ -226,6 +226,8 @@ extension Basalt {
     public static let s24: Double = 96
     public static let s0_5: Double = 2
     public static let s1_5: Double = 6
+    public static let s2_5: Double = 10
+    public static let s3_5: Double = 14
   }
 
   public enum Radius {
@@ -252,6 +254,56 @@ extension Basalt {
     public static let focusWidth: Double = 2
     public static let focusOffset: Double = 2
     public static let hairline: Double = 1
+    /// The bar that marks the selected or active item: the active tab, the selected table row.
+    public static let indicator: Double = 2
+    /// The track of Progress and Slider.
+    public static let track: Double = 4
+    /// Status dots and the radio's checked dot.
+    public static let dot: Double = 6
+    /// Checkbox and radio box size.
+    public static let choice: Double = 16
+    /// The check glyph inside a checkbox.
+    public static let choiceMark: Double = 12
+    /// Switch track width.
+    public static let switchWidth: Double = 32
+    /// Switch track height.
+    public static let switchHeight: Double = 18
+    /// Switch thumb diameter.
+    public static let switchThumb: Double = 14
+    /// Keyboard-key height, everywhere a Kbd appears.
+    public static let kbd: Double = 20
+    /// Kbd glyph size. A component value, not a step of the type scale.
+    public static let kbdText: Double = 11
+    /// Badge height.
+    public static let badge: Double = 22
+    /// Default table row height; compact and touch densities override it.
+    public static let tableRow: Double = 40
+    /// The command menu's search row.
+    public static let commandInput: Double = 48
+    /// Line height of code blocks, independent of body text.
+    public static let codeLineHeight: Double = 20
+    /// Link underline offset: fixed, so it sits the same under every link.
+    public static let underlineOffset: Double = 3
+    /// Default length of a vertical slider; apps can override it.
+    public static let sliderLength: Double = 180
+    /// Dialog width, capped by the viewport.
+    public static let dialogWidth: Double = 480
+    /// Side sheet width, capped by the viewport.
+    public static let sheetWidth: Double = 440
+    /// Command menu width, capped by the viewport.
+    public static let commandWidth: Double = 560
+    /// Toast width, capped by the viewport.
+    public static let toastWidth: Double = 360
+    /// Popover maximum width.
+    public static let popoverMax: Double = 320
+    /// Tooltip maximum width.
+    public static let tooltipMax: Double = 280
+    /// Menu minimum width.
+    public static let menuMin: Double = 200
+    /// Select trigger minimum width.
+    public static let selectMin: Double = 160
+    /// Maximum height of a scrolling popup list, such as the command list.
+    public static let popupMaxHeight: Double = 360
   }
 
   /// A step of the type scale: size and line height in points, tracking in em.

@@ -136,7 +136,12 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
 
 ## Space, size, radius
 
-- **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px).
+- **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px), plus the half
+  steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing.
+- **Component sizes are tokens too:** indicator bars (2), tracks (4), dots (6), choice boxes,
+  the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
+  popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
+  lengths; Stylelint enforces it, with the screen-reader clip as the one exception.
 - **Controls:** 24, 28, 32, 36 and 40px tall; 32 is the app default, and
   `data-density="compact"` moves controls down one step (24px is the floor) and uses 13px
   control text. Set it on `<html>` so portalled menus inherit it; a nested

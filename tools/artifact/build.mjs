@@ -103,14 +103,25 @@ for (const [p, tok] of walk(themeSrc.dark)) {
   (p[0] === "shadow" ? shadowTokens : colorTokens).push({ name, value, usage });
 }
 
+// A primitive's own $description, e.g. "size-indicator" → size.indicator.$description.
+const primDesc = (name) => {
+  const [group, ...rest] = name.replace(/^basalt-/, "").split("-");
+  const node = primSrc[group];
+  if (!node) return undefined;
+  const key = rest.join("-");
+  if (node[key]?.$description) return node[key].$description;
+  // nested groups such as size.control.xs
+  const [sub, ...leaf] = rest;
+  return node[sub]?.[leaf.join("-")]?.$description;
+};
 const dim = (prefix) => Object.entries(built.primitives).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [`basalt-${k}`, v.css]);
 const SPACE_USE = { "0": "No gap.", "0-5": "Hairline gaps inside controls (segmented track padding).", "1": "Icon-to-text in tight spots; tooltip vertical padding.", "1-5": "Icon-to-label gap in buttons; menu popup padding.", "2": "Gaps between controls in a row; menu item padding.", "3": "Button padding at 32px; card footer vertical padding.", "4": "Card and table cell padding; field-to-field gaps.", "5": "Section gaps inside dense panels.", "6": "Dialog padding; gaps between page sections.", "8": "Gaps between major page regions.", "10": "Page side margins on desktop.", "12": "Section spacing on marketing pages.", "16": "Large vertical rhythm on marketing pages.", "24": "Hero spacing." };
 const RADIUS_USE = { xs: "Badges, checkboxes, kbd.", sm: "Controls up to 32px tall; menu items (12 − 6 padding).", md: "Controls 36px and up; segmented tracks.", lg: "Cards, tables, menus, dialogs.", xl: "Sheets and marketing panels.", full: "Avatars and status dots only." };
 
-const spacing = dim("space-").map(([name, value]) => ({ name, value, usage: SPACE_USE[name.slice(13)] ?? "Spacing step." }));
+const spacing = dim("space-").map(([name, value]) => ({ name, value, usage: SPACE_USE[name.slice(13)] ?? primDesc(name) ?? "Spacing step." }));
 const radius = dim("radius-").map(([name, value]) => ({ name, value, usage: RADIUS_USE[name.slice(14)] }));
 const SIZE_USE = { "control-xs": "24px controls, for dense toolbars.", "control-sm": "28px controls; segmented segments.", "control-md": "32px: the app default control height; table header; compact table rows.", "control-lg": "36px controls; tabs.", "control-xl": "40px controls, for marketing and touch-first forms.", "menu-row": "Menu rows with a pointer.", "menu-row-touch": "Menu rows on touch.", "tap-min": "The smallest touch target; table rows on touch.", "icon-sm": "16px icons: Phosphor Bold, in controls and beside 13–14px text.", "icon-md": "20px icons: Phosphor Regular, in navigation and 40px controls.", "icon-lg": "24px icons: tab bars and empty states.", "focus-width": "The focus outline's width.", "focus-offset": "The gap between a control and its focus outline.", hairline: "Line width for borders and dividers." };
-const size = dim("size-").map(([name, value]) => ({ name, value, usage: SIZE_USE[name.slice(12)] }));
+const size = dim("size-").map(([name, value]) => ({ name, value, usage: SIZE_USE[name.slice(12)] ?? primDesc(name) }));
 const text = dim("text-").map(([name, value]) => {
   const [, step, part] = name.match(/^basalt-text-(\w+)-(size|line-height|tracking)$/);
   return { name, value, usage: `The ${step} step's ${part.replace("-", " ")}; see the type scale.` };

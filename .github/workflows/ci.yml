@@ -19,6 +19,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - name: Install the Chromium that the pinned Playwright expects
         run: npx --workspace packages/react playwright install --with-deps chromium
       - run: npm test
