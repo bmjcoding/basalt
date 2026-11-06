@@ -54,8 +54,9 @@ task and pair status colour with words or distinct symbol shapes.
 
 `BasaltControlSize.minimumHeight` retains the 24–40 point desktop scale and enforces
 a 44-point floor on iOS and visionOS. Buttons also keep that minimum width. Content can
-grow vertically with large type. Native toggles and input focus use the same neutral ring
-as web controls. Reduced motion removes custom toggle/press animation.
+grow vertically with large type. On macOS, buttons, toggles and inputs draw the same neutral
+focus ring as web controls; iOS and visionOS keep the system ring that Full Keyboard Access
+draws, so the two never double up. Reduced motion removes custom toggle/press animation.
 
 ## Verify
 

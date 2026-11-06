@@ -27,7 +27,7 @@ export function CodeDemo({ initialLanguage = "bash" }: { initialLanguage?: strin
       </div>
       <CodeBlock title={sample.title} language={sample.value} code={sample.code} />
       <div aria-label="Syntax colours" style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", fontFamily: "var(--basalt-font-family-mono)", fontSize: 12 }}>
-        {["keyword", "string", "constant", "function", "type", "comment"].map((role) => <span key={role} style={{ color: `var(--basalt-syntax-${role})` }}>{role}</span>)}
+        {["keyword", "string", "constant", "function", "comment"].map((role) => <span key={role} style={{ color: `var(--basalt-syntax-${role})` }}>{role}</span>)}
       </div>
     </div>
   );

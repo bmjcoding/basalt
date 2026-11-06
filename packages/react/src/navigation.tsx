@@ -59,7 +59,7 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, classNa
   const control = (value: number, name: string, content: React.ReactNode, disabled = false) => {
     const selected = value === current && name.startsWith("Page ");
     if (hrefForPage && !disabled) return <Link href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link">{content}</Link>;
-    return <Button size="sm" variant={selected ? "secondary" : "ghost"} aria-label={name} aria-current={selected ? "page" : undefined} disabled={disabled} onClick={() => onPageChange?.(value)}>{content}</Button>;
+    return <Button size="sm" variant="ghost" aria-label={name} aria-current={selected ? "page" : undefined} disabled={disabled} onClick={() => onPageChange?.(value)}>{content}</Button>;
   };
   return (
     <nav {...props} aria-label={label} className={join("basalt-pagination", className)}>

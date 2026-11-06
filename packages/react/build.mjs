@@ -1,5 +1,5 @@
 // Builds @srasyndicate/basalt:
-//   dist/index.js       the components, as ES modules (React, Base UI, Phosphor and Shiki stay external)
+//   dist/*.js           the components, one ES module per source file (React, Base UI, Phosphor and Shiki stay external)
 //   dist/*.d.ts         type declarations
 //   dist/components.css the component styles alone, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
@@ -21,9 +21,13 @@ fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
 await esbuild.build({
-  entryPoints: [path.join(here, "src/index.ts")],
-  outfile: path.join(dist, "index.js"),
+  // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
+  // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
+  entryPoints: fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts")).map((f) => path.join(here, "src", f)),
+  outdir: dist,
   bundle: true,
+  splitting: true,
+  chunkNames: "chunks/[name]-[hash]",
   format: "esm",
   platform: "neutral",
   target: "es2022",

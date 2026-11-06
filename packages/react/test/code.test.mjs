@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { CodeBlock } from "../dist/index.js";
+import { CodeBlock, preloadCodeLanguages } from "../dist/index.js";
 
 const render = (code, language) => renderToStaticMarkup(createElement(CodeBlock, { code, language, copyable: false }));
 const codeText = (html) => html.match(/<code[^>]*>([\s\S]*?)<\/code>/)[1]
@@ -25,8 +25,22 @@ const samples = {
   yaml: '# Run\nagent: claude\nlimit: 42\nenabled: true',
 };
 
+// Top-level tests run in order: this one sees no grammar loaded yet.
+test("CodeBlock renders plain text until its language loads, then colours it", async () => {
+  const before = render(samples.typescript, "typescript");
+  assert.doesNotMatch(before, /<span/);
+  assert.equal(codeText(before), samples.typescript);
+  await preloadCodeLanguages(Object.keys(samples));
+  assert.match(render(samples.typescript, "typescript"), /style="color:var\(--basalt-syntax-/);
+});
+
+test("preloading an unknown language resolves and leaves it plain", async () => {
+  await preloadCodeLanguages(["does-not-exist", "__proto__", "constructor"]);
+  assert.doesNotMatch(render(samples.typescript, "constructor"), /<span/);
+});
+
 for (const [language, code] of Object.entries(samples)) {
-  test(`CodeBlock highlights ${language} during server rendering without changing its text`, () => {
+  test(`CodeBlock highlights ${language} during server rendering once preloaded, without changing its text`, () => {
     const html = render(code, language);
     assert.match(html, /style="color:var\(--basalt-syntax-/, `no syntax colour for ${language}`);
     assert.equal(codeText(html), code);
@@ -62,4 +76,16 @@ test("CodeBlock falls back to plain text for unknown languages and large logs", 
   const html = render(log, "typescript");
   assert.doesNotMatch(html, /<span/);
   assert.equal(codeText(html), log);
+});
+
+test("operators and punctuation stay neutral; types share the function colour; tags the keyword colour", () => {
+  const ts = render("const a: Route = make();", "typescript");
+  for (const op of ["=", ":", ";"]) {
+    const span = ts.match(new RegExp(`<span style="color:([^"]+)">[^<]*\\${op}[^<]*</span>`));
+    assert.ok(span, `no span for ${op}`);
+    assert.equal(span[1], "var(--basalt-text-secondary)", `${op} is ${span[1]}`);
+  }
+  assert.match(ts, /color:var\(--basalt-syntax-function\)">Route</);
+  assert.match(render("<main></main>", "html"), /color:var\(--basalt-syntax-keyword\)">main</);
+  assert.doesNotMatch(ts, /syntax-type/);
 });

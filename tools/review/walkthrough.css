@@ -2,7 +2,7 @@
 
 html, body { margin: 0; background: var(--basalt-surface-page); }
 body { color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); -webkit-font-smoothing: antialiased; }
-a { color: var(--basalt-text-primary); text-underline-offset: 3px; }
+a:not([class]) { color: var(--basalt-text-primary); text-underline-offset: 3px; }
 a:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: 2px; }
 
 .wt { max-width: 1160px; margin: 0 auto; padding: var(--basalt-space-8) var(--basalt-space-6) var(--basalt-space-16); }

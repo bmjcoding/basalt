@@ -53,7 +53,6 @@ final class TokensTests: XCTestCase {
     check(Basalt.Colors.syntaxString, atLeast: 4.5, "syntax-string")
     check(Basalt.Colors.syntaxConstant, atLeast: 4.5, "syntax-constant")
     check(Basalt.Colors.syntaxFunction, atLeast: 4.5, "syntax-function")
-    check(Basalt.Colors.syntaxType, atLeast: 4.5, "syntax-type")
     check(Basalt.Colors.syntaxComment, atLeast: 4.5, "syntax-comment")
   }
 
