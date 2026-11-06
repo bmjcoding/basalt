@@ -76,14 +76,12 @@ export function SheetExample({ open = false, side = "right" }: { open?: boolean;
         <SheetContent side={side}>
           <SheetTitle>Sandbox settings</SheetTitle>
           <SheetDescription>Choose the defaults for the next run.</SheetDescription>
-          <div style={{ marginTop: 24 }}>
-            <Form onFormSubmit={(values) => { setSaved(JSON.stringify(values)); setShown(false); }}>
+            <Form style={{ marginTop: 24 }} onFormSubmit={(values) => { setSaved(JSON.stringify(values)); setShown(false); }}>
               <Field label="Agent" name="agent"><Combobox options={[{ value: "claude", label: "Claude" }, { value: "codex", label: "Codex" }]} defaultValue="claude" /></Field>
               <Field label="CPU limit" name="cpu"><NumberField min={1} max={8} defaultValue={2} /></Field>
               <AlertExample />
               <SheetActions><SheetClose render={<Button>Cancel</Button>} /><Button type="submit" variant="primary">Save settings</Button></SheetActions>
             </Form>
-          </div>
         </SheetContent>
       </Sheet>
       <output aria-label="Saved settings">{saved}</output>

@@ -63,3 +63,15 @@ test("CodeBlock falls back to plain text for unknown languages and large logs", 
   assert.doesNotMatch(html, /<span/);
   assert.equal(codeText(html), log);
 });
+
+test("operators and punctuation stay neutral; types share the function colour; tags the keyword colour", () => {
+  const ts = render("const a: Route = make();", "typescript");
+  for (const op of ["=", ":", ";"]) {
+    const span = ts.match(new RegExp(`<span style="color:([^"]+)">[^<]*\\${op}[^<]*</span>`));
+    assert.ok(span, `no span for ${op}`);
+    assert.equal(span[1], "var(--basalt-text-secondary)", `${op} is ${span[1]}`);
+  }
+  assert.match(ts, /color:var\(--basalt-syntax-function\)">Route</);
+  assert.match(render("<main></main>", "html"), /color:var\(--basalt-syntax-keyword\)">main</);
+  assert.doesNotMatch(ts, /syntax-type/);
+});

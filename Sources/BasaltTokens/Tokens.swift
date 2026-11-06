@@ -41,34 +41,28 @@ extension Basalt {
       dark: RGBA(red: 0.999125, green: 0.64163, blue: 0.003499, alpha: 1)
     )
 
-    /// Code keywords and storage declarations; blue, distinct from surrounding identifiers.
+    /// Code keywords and storage declarations, and markup tags; blue. Operators and punctuation stay neutral.
     public static let syntaxKeyword = ThemedColor(
-      light: RGBA(red: 0.019609, green: 0.313725, blue: 0.682352, alpha: 1),
-      dark: RGBA(red: 0.626574, green: 0.788139, blue: 0.995929, alpha: 1)
+      light: RGBA(red: 0.180711, green: 0.391708, blue: 0.650139, alpha: 1),
+      dark: RGBA(red: 0.590347, green: 0.756173, blue: 0.969665, alpha: 1)
     )
 
     /// Code strings and quoted values; green. Never used as a success indicator.
     public static let syntaxString = ThemedColor(
-      light: RGBA(red: 0.066668, green: 0.388235, blue: 0.160785, alpha: 1),
-      dark: RGBA(red: 0.65098, green: 0.847058, blue: 0.658823, alpha: 1)
+      light: RGBA(red: 0.129366, green: 0.461038, blue: 0.235602, alpha: 1),
+      dark: RGBA(red: 0.579438, green: 0.809849, blue: 0.624342, alpha: 1)
     )
 
     /// Code numbers, booleans and constants; amber. Never used as a warning indicator.
     public static let syntaxConstant = ThemedColor(
-      light: RGBA(red: 0.47582, green: 0.244972, blue: 0.012931, alpha: 1),
-      dark: RGBA(red: 0.890195, green: 0.741177, blue: 0.509805, alpha: 1)
+      light: RGBA(red: 0.529492, green: 0.343604, blue: 0.077477, alpha: 1),
+      dark: RGBA(red: 0.891577, green: 0.705386, blue: 0.490284, alpha: 1)
     )
 
-    /// Code function declarations and calls; purple.
+    /// Code functions, types and classes; purple.
     public static let syntaxFunction = ThemedColor(
-      light: RGBA(red: 0.4, green: 0.22353, blue: 0.729412, alpha: 1),
-      dark: RGBA(red: 0.788235, green: 0.701961, blue: 0.937255, alpha: 1)
-    )
-
-    /// Code types, classes and markup tags; teal.
-    public static let syntaxType = ThemedColor(
-      light: RGBA(red: 0.019608, green: 0.364706, blue: 0.396078, alpha: 1),
-      dark: RGBA(red: 0.552941, green: 0.858823, blue: 0.815686, alpha: 1)
+      light: RGBA(red: 0.452414, green: 0.309894, blue: 0.601741, alpha: 1),
+      dark: RGBA(red: 0.796207, green: 0.68779, blue: 0.928451, alpha: 1)
     )
 
     /// Code comments; quiet, but still at least 4.5:1 on the code surface. No italic font is required.

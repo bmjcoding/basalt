@@ -21,22 +21,30 @@ const theme: ThemeRegistration = {
   bg: "var(--basalt-surface-sunken)",
   settings: [
     { scope: ["keyword", "storage"], settings: { foreground: "var(--basalt-syntax-keyword)" } },
-    { scope: ["entity.name.function", "support.function"], settings: { foreground: "var(--basalt-syntax-function)" } },
-    { scope: ["entity.name.type", "entity.name.class", "support.type", "support.class", "entity.name.tag"], settings: { foreground: "var(--basalt-syntax-type)" } },
+    // Operators and punctuation are structure, not vocabulary: they stay neutral.
+    { scope: ["keyword.operator", "punctuation", "meta.brace"], settings: { foreground: "var(--basalt-text-secondary)" } },
+    // Four hues, as in most editor themes: types share the function colour, tags the keyword colour.
+    { scope: ["entity.name.function", "support.function", "entity.name.type", "entity.name.class", "support.type", "support.class"], settings: { foreground: "var(--basalt-syntax-function)" } },
+    { scope: ["entity.name.tag"], settings: { foreground: "var(--basalt-syntax-keyword)" } },
     { scope: ["constant", "variable.language"], settings: { foreground: "var(--basalt-syntax-constant)" } },
     { scope: ["string"], settings: { foreground: "var(--basalt-syntax-string)" } },
     { scope: ["comment"], settings: { foreground: "var(--basalt-syntax-comment)" } },
   ],
 };
 
-const grammars = [bash, css, html, javascript, json, jsx, python, sql, swift, tsx, typescript, yaml];
-const supported = new Set(grammars.flatMap((bundle) => bundle.flatMap((lang) => [lang.name, ...(lang.aliases ?? [])])));
+// Everything is built on first use, never at module scope: the package ships as one file, and a
+// top-level call would make every consumer bundle the grammars even if it never renders code.
+let grammars: typeof bash[] | undefined;
+let supported: Set<string> | undefined;
 let highlighter: HighlighterCore | undefined;
 
 /** Unknown languages, plain text and large logs remain readable without running a grammar. */
 export function highlightCode(code: string, language?: string) {
   const lang = language?.trim().toLowerCase();
-  if (!lang || !supported.has(lang) || code.length > 100_000) return null;
+  if (!lang || code.length > 100_000) return null;
+  grammars ??= [bash, css, html, javascript, json, jsx, python, sql, swift, tsx, typescript, yaml];
+  supported ??= new Set(grammars.flatMap((bundle) => bundle.flatMap((l) => [l.name, ...(l.aliases ?? [])])));
+  if (!supported.has(lang)) return null;
   try {
     highlighter ??= createHighlighterCoreSync({
       themes: [theme],

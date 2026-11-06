@@ -42,7 +42,7 @@ for (const theme of THEMES) {
   });
 
   test(`${theme}: every syntax colour, including comments, meets 4.5:1 on every surface`, () => {
-    for (const t of ["keyword", "string", "constant", "function", "type", "comment"]) atLeast(theme, `syntax-${t}`, 4.5);
+    for (const t of ["keyword", "string", "constant", "function", "comment"]) atLeast(theme, `syntax-${t}`, 4.5);
   });
 
   test(`${theme}: control boundaries and focus meet 3:1 on every surface (1.4.11, 2.4.7)`, () => {

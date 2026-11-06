@@ -18,8 +18,6 @@ its own accent, in a few named roles, and nowhere else.
 - **Borders build structure; shadows exist only for things that float.**
 - **No ornament that signals "generated":** no top highlights on cards, no gradient
   borders, no glow, no press-shrink, no bounce. Colour never carries meaning alone.
-- **Code has its own syntax palette.** Colour inside code helps distinguish language roles;
-  it does not change the monochrome interface or carry a product status.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -92,10 +90,17 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 
 `CodeBlock` uses Shiki's TextMate grammars, the same grammar format used by editors, with a
 small Basalt theme. The interface stays monochrome; syntax is a functional exception confined
-to code. Keywords are blue, strings green, constants amber, functions purple, types and tags
-teal, and comments neutral grey. The colours are separate from status and product accents.
-Every syntax colour, including comments, meets 4.5:1 on every surface in both themes and stays
-inside sRGB. The source is the `color.syntax` group, generated into CSS, TypeScript and Swift.
+to code. Four hues, as in most editor themes: keywords and markup tags blue, strings green,
+constants amber, functions, types and classes purple. Comments are tertiary grey; operators and
+punctuation are secondary grey; identifiers stay in the text colour. Each hue has one
+lightness and chroma per theme (dark L 0.80 C 0.09, light L 0.50 C 0.12), so no role shouts
+and light mode is no louder than dark. The colours are separate from status and product
+accents. Every syntax colour, including comments, meets 4.5:1 on every surface in both
+themes and stays inside sRGB.
+
+Planned exception: a future diff view may show added and removed lines in the status success
+and danger colours, because there they are status. It needs +/− markers and line
+backgrounds as well, so it waits for that component; CodeBlock doesn't colour diffs. The source is the `color.syntax` group, generated into CSS, TypeScript and Swift.
 
 Pass the language explicitly; a title is a display label, not a language detector. Twelve
 grammars are bundled: shell, CSS, HTML, JavaScript, JSON, JSX, Python, SQL, Swift, TSX,
@@ -103,7 +108,7 @@ TypeScript and YAML, including their common aliases. Plain text, unsupported lan
 logs over 100,000 UTF-16 code units stay plain. No language is fetched from the network.
 Tokenization works during server rendering, and CSS variables switch colours with the theme.
 Source is rendered as React text, with its whitespace preserved; copying always uses the
-original source. Comments use the bundled upright Geist Mono rather than a synthetic italic.
+original source. Comments stay upright, by choice.
 
 ### Interface type
 
@@ -137,8 +142,8 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
   touch regardless of density. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
-- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (controls 36px and
-  up, inputs), 12 (cards, menus, dialogs), 16 (sheets), full (avatars and dots only). A
+- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8
+  (controls 36px and up), 12 (cards, menus, dialogs), 16 (bottom sheets; full-height side sheets are square), full (avatars and dots only). A
   nested radius is the outer radius minus the padding.
 
 ## Elevation
@@ -183,14 +188,14 @@ Components build on Base UI (the default base in shadcn/ui since July 2026, from
 behind Radix), with shadcn/ui's variable names mapped onto Basalt's in `dist/css/shadcn.css`.
 
 Forms retain native labels, grouped legends and validation. Select is for a short known
-list; Combobox searches a single known choice. NumberField enters an exact value; Slider
+list; Combobox searches a single known choice. NumberField enters an exact value in one bordered control sized to its content, steppers inside; Slider
 adjusts a scalar or range, with distinct names for range thumbs. Confirmations use
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side or
 bottom panel, including safe-area padding and motion preferences.
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
-window, and Link retains native navigation. Avatar, Separator and EmptyState provide
+window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover. Avatar, Separator and EmptyState provide
 neutral composition without replacing meaningful words with imagery.
 
 Forced-colours mode uses real borders and system colour keywords for boundaries, focus
@@ -206,7 +211,9 @@ are verified; runtime checks on other Apple platforms remain app integration wor
 ## How these were decided
 
 Two design reviewers proposed the original foundations independently and converged on the
-initial rounds. The completion rounds 5–7 await owner review and were not signed off
-by that panel. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
+initial rounds. Rounds 5–7 and the syntax palette were built without them and reviewed
+afterwards: the panel's changes (a four-hue syntax set replacing copied GitHub Primer values,
+neutral operators, square side sheets, a grouped NumberField and others) are applied, and the
+owner's review is still to come. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
 and Geist pages; Linear's public site and login screen), not recalled, and used only as
 reference: none of their CSS, icons or assets is in this repository.

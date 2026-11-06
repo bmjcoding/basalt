@@ -3,24 +3,20 @@
     "$type": "color",
     "syntax": {
       "keyword": {
-        "$value": { "colorSpace": "oklch", "components": [0.825313, 0.087, 254.951487] },
-        "$description": "Code keywords and storage declarations; blue, distinct from surrounding identifiers."
+        "$value": { "colorSpace": "oklch", "components": [0.8, 0.09, 255] },
+        "$description": "Code keywords and storage declarations, and markup tags; blue. Operators and punctuation stay neutral."
       },
       "string": {
-        "$value": { "colorSpace": "oklch", "components": [0.834527, 0.084227, 145.783266] },
+        "$value": { "colorSpace": "oklch", "components": [0.8, 0.09, 150] },
         "$description": "Code strings and quoted values; green. Never used as a success indicator."
       },
       "constant": {
-        "$value": { "colorSpace": "oklch", "components": [0.81825, 0.087595, 78.054223] },
+        "$value": { "colorSpace": "oklch", "components": [0.8, 0.09, 70] },
         "$description": "Code numbers, booleans and constants; amber. Never used as a warning indicator."
       },
       "function": {
-        "$value": { "colorSpace": "oklch", "components": [0.805871, 0.086419, 301.271186] },
-        "$description": "Code function declarations and calls; purple."
-      },
-      "type": {
-        "$value": { "colorSpace": "oklch", "components": [0.837723, 0.078712, 184.605535] },
-        "$description": "Code types, classes and markup tags; teal."
+        "$value": { "colorSpace": "oklch", "components": [0.8, 0.09, 305] },
+        "$description": "Code functions, types and classes; purple."
       },
       "comment": {
         "$value": "{color.text.tertiary}",

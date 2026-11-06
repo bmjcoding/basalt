@@ -50,7 +50,7 @@ Cancel receives initial focus even if it appears second. An outside click does n
 Use the action's onClick to perform the operation. Closing a dialog does not implement persistence, loading or error handling for a product. Give the safe action a specific label, such as Keep sandbox.
 `),
   Sheet: doc("Sheet", `
-A modal panel for a focused task that needs vertical space. Compose SheetTrigger, SheetContent, SheetTitle, SheetDescription, SheetActions and SheetClose. Content takes side=right (default), left or bottom.
+A modal panel for a focused task that needs vertical space. Compose SheetTrigger, SheetContent, SheetTitle, SheetDescription, SheetActions and SheetClose. Content takes side=right (default), left or bottom. SheetActions stays pinned to the foot when it is the last child of SheetContent, or of a Form placed directly in it.
 
 Focus stays inside and returns to the trigger on close. The panel scrolls internally and includes device safe-area padding. Menus and comboboxes remain above it; a necessary confirmation can layer above the panel. Prefer one task at a time and keep nested confirmation exceptional.
 

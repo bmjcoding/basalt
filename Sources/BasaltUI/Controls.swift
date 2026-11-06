@@ -2,6 +2,27 @@
 import SwiftUI
 import BasaltTokens
 
+extension View {
+  /// Basalt's focus ring, 4pt outside the control. macOS only: iOS and visionOS keep the
+  /// system ring that Full Keyboard Access draws, so the two never double up.
+  @ViewBuilder func basaltFocusRing(_ focused: Bool, radius: Double) -> some View {
+    #if os(macOS)
+    overlay(RoundedRectangle(cornerRadius: radius + 4).strokeBorder(focused ? Basalt.Colors.borderFocus.color : .clear, lineWidth: Basalt.Size.focusWidth).padding(-4))
+    #else
+    self
+    #endif
+  }
+
+  /// Hides the system focus effect only where Basalt draws its own ring.
+  @ViewBuilder func basaltFocusEffectDisabled() -> some View {
+    #if os(macOS)
+    focusEffectDisabled()
+    #else
+    self
+    #endif
+  }
+}
+
 public enum BasaltButtonVariant: Sendable, CaseIterable {
   case primary, secondary, ghost, danger
 }
@@ -86,7 +107,7 @@ public struct BasaltButtonStyle: ButtonStyle {
         .frame(minWidth: size.minimumHeight, minHeight: size.minimumHeight)
         .background(fill, in: RoundedRectangle(cornerRadius: size.radius))
         .overlay(RoundedRectangle(cornerRadius: size.radius).strokeBorder(edge))
-        .overlay(RoundedRectangle(cornerRadius: size.radius + 4).strokeBorder(focused ? Basalt.Colors.borderFocus.color : .clear, lineWidth: Basalt.Size.focusWidth).padding(-4))
+        .basaltFocusRing(focused, radius: size.radius)
         .contentShape(RoundedRectangle(cornerRadius: size.radius))
         .onHover { hovered = $0 }
         .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isPressed)
@@ -105,7 +126,7 @@ public struct BasaltButton: View {
   }
 
   public var body: some View {
-    Button(title, action: action).buttonStyle(BasaltButtonStyle(variant, size: size)).focusEffectDisabled()
+    Button(title, action: action).buttonStyle(BasaltButtonStyle(variant, size: size)).basaltFocusEffectDisabled()
   }
 }
 
@@ -122,7 +143,7 @@ public struct BasaltIconButton: View {
   public var body: some View {
     Button(action: action) { Image(systemName: symbol).frame(minWidth: 16) }
       .buttonStyle(BasaltButtonStyle(.ghost))
-      .focusEffectDisabled()
+      .basaltFocusEffectDisabled()
       .accessibilityLabel(Text(title))
   }
 }
@@ -145,7 +166,7 @@ public struct BasaltTextField: View {
       Text(title).basaltType(Basalt.TypeScale.sm, weight: .medium).foregroundStyle(Basalt.Colors.textPrimary.color)
       TextField(title, text: $text, prompt: prompt.map { Text($0) })
         .focused($focused)
-        .focusEffectDisabled()
+        .basaltFocusEffectDisabled()
         .textFieldStyle(.plain)
         .basaltType(Basalt.TypeScale.base)
         .foregroundStyle(enabled ? Basalt.Colors.textPrimary.color : Basalt.Colors.textDisabled.color)
@@ -154,7 +175,7 @@ public struct BasaltTextField: View {
         .frame(minHeight: BasaltControlSize.md.minimumHeight)
         .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.sm))
         .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm).strokeBorder(error == nil ? Basalt.Colors.borderInput.color : Basalt.Colors.statusDanger.color))
-        .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm + 4).strokeBorder(focused ? Basalt.Colors.borderFocus.color : .clear, lineWidth: Basalt.Size.focusWidth).padding(-4))
+        .basaltFocusRing(focused, radius: Basalt.Radius.sm)
         .accessibilityLabel(Text(title))
         .accessibilityHint(Text(error ?? help ?? ""))
       if let message = error ?? help {
@@ -177,7 +198,7 @@ public struct BasaltTextEditor: View {
       Text(title).basaltType(Basalt.TypeScale.sm, weight: .medium).foregroundStyle(Basalt.Colors.textPrimary.color)
       TextEditor(text: $text)
         .focused($focused)
-        .focusEffectDisabled()
+        .basaltFocusEffectDisabled()
         .basaltType(Basalt.TypeScale.base)
         .foregroundStyle(enabled ? Basalt.Colors.textPrimary.color : Basalt.Colors.textDisabled.color)
         .scrollContentBackground(.hidden)
@@ -185,7 +206,7 @@ public struct BasaltTextEditor: View {
         .frame(minHeight: 100)
         .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.sm))
         .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm).strokeBorder(Basalt.Colors.borderInput.color))
-        .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm + 4).strokeBorder(focused ? Basalt.Colors.borderFocus.color : .clear, lineWidth: Basalt.Size.focusWidth).padding(-4))
+        .basaltFocusRing(focused, radius: Basalt.Radius.sm)
         .accessibilityLabel(Text(title))
     }
   }
@@ -218,8 +239,8 @@ public struct BasaltToggleStyle: ToggleStyle {
       }
       .buttonStyle(.plain)
       .focused($focused)
-      .focusEffectDisabled()
-      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm + 4).strokeBorder(focused ? Basalt.Colors.borderFocus.color : .clear, lineWidth: Basalt.Size.focusWidth).padding(-4))
+      .basaltFocusEffectDisabled()
+      .basaltFocusRing(focused, radius: Basalt.Radius.sm)
       .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isOn)
       .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label }.toggleStyle(.switch) }
     }
