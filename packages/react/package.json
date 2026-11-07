@@ -33,6 +33,7 @@
     "@base-ui/react": "1.9.0",
     "@phosphor-icons/react": "2.1.10",
     "@srasyndicate/basalt-tokens": "0.1.0",
+    "cmdk": "1.1.1",
     "shiki": "4.6.0"
   },
   "devDependencies": {
@@ -40,10 +41,10 @@
     "@types/react-dom": "19.3.0",
     "axe-core": "4.14.0",
     "esbuild": "0.28.2",
+    "geist": "1.9.0",
+    "playwright": "1.63.0",
     "react": "19.1.10",
     "react-dom": "19.1.10",
-    "typescript": "7.0.2",
-    "playwright": "1.63.0",
-    "geist": "1.9.0"
+    "typescript": "7.0.2"
   }
 }

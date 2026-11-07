@@ -2,11 +2,13 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Field as BaseField } from "@base-ui/react/field";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckCircleIcon, InfoIcon, WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Button } from "./button";
 import { Icon } from "./icon";
+import { MorphIcon } from "./morph-icon";
+import { useGlide } from "./motion";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import { useFloatingLayer } from "./layers";
 import { join, withClass } from "./utils";
@@ -150,17 +152,34 @@ export interface NumberTickerProps {
   value: number;
   /** Shown to everyone, including screen readers. Defaults to a grouped integer. */
   format?: (value: number) => string;
+  /** Ease the visible digits toward `value`. The readable text is still the target, once. */
+  glide?: boolean;
   className?: string;
 }
 
 const TICKER_DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
+function tickerText(value: number, format?: (value: number) => string) {
+  return format ? format(value) : new Intl.NumberFormat("en-US").format(value);
+}
+
 /** Rolls each digit into place. Reduced motion snaps. The readable value is always in the text. */
-export function NumberTicker({ value, format, className }: NumberTickerProps) {
-  const text = format ? format(value) : new Intl.NumberFormat("en-US").format(value);
+export function NumberTicker({ value, format, glide = false, className }: NumberTickerProps) {
+  if (glide) return <GlidingTicker value={value} format={format} className={className} />;
+  return <TickerBody value={value} shown={value} format={format} className={className} />;
+}
+
+function GlidingTicker({ value, format, className }: Omit<NumberTickerProps, "glide">) {
+  const eased = useGlide(value);
+  return <TickerBody value={value} shown={Math.round(eased)} format={format} className={className} />;
+}
+
+function TickerBody({ value, shown, format, className }: NumberTickerProps & { shown: number }) {
+  const text = tickerText(shown, format);
+  const spoken = tickerText(value, format);
   return (
     <span className={join("basalt-ticker", className)}>
-      <span className="basalt-visually-hidden">{text}</span>
+      <span className="basalt-visually-hidden">{spoken}</span>
       <span aria-hidden="true" className="basalt-ticker-visual">
         {Array.from(text).map((character, index) =>
           TICKER_DIGITS.includes(character) ? (
@@ -256,7 +275,7 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
       <Button variant="ghost" size="sm" aria-label={copied ? "Copied" : "Copy code"} data-icon-only="" onClick={copy}>
-        <Icon icon={copied ? CheckIcon : CopyIcon} size={16} />
+        <MorphIcon name={copied ? "check" : "copy"} size={16} />
       </Button>
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>

@@ -34,7 +34,7 @@ await esbuild.build({
   // A published component boundary must retain this for React Server Component consumers.
   banner: { js: '"use client";' },
   jsx: "automatic",
-  external: ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "shiki", "shiki/*"],
+  external: ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"],
   logLevel: "warning",
 });
 

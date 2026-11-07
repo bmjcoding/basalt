@@ -19,6 +19,8 @@ its own accent, in a few named roles, and nowhere else.
 - **No ornament that signals "generated":** no top highlights on cards, no gradient
   borders, no glow, no bounce. Colour never carries meaning alone. A press is a small
   scale plus a darken, and it is off under reduced motion.
+- **What persists, stays.** A control or word that is in both states does not remount.
+  Only the part that changed moves. Shared elements travel; shared letters stay put.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 

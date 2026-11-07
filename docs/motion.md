@@ -8,7 +8,7 @@ Sources, as inspiration:
 
 - [grok.com](https://grok.com) motion tokens: durations 120 / 180 / 200 / 260 / 320ms, and the curves standard `(.2, 0, 0, 1)`, decelerate `(0, 0, 0, 1)`, accelerate `(.3, 0, 1, 1)`, settle `(.22, 1, .36, 1)`.
 - [x.ai](https://x.ai) tooltip entry (scale .96, 2px, 150ms ease-out), menu entry (scale .95, 4px), and the idea of a dot-grid loader. Basalt's grid walks in its own snake, not that site's sequence.
-- [benji.org](https://benji.org) measured a staggered list entry and a morphing icon swap. Those two are not in this release; they are waiting on a review. Benji Taylor is head of design at X and SpaceXSI ([x.com/benjitaylor](https://x.com/benjitaylor)).
+- [benji.org/morphing-icons-with-claude](https://benji.org/morphing-icons-with-claude), [family values](https://benji.org/family-values), [liveline](https://benji.org/liveline) and [honkish](https://benji.org/honkish). The ideas are rebuilt here. Benji Taylor is head of design at X and SpaceXSI ([x.com/benjitaylor](https://x.com/benjitaylor)). The command menu uses [cmdk](https://www.npmjs.com/package/cmdk) (MIT). Live preview before save: [the note on X](https://x.com/benjitaylor/status/2116227521645588644).
 
 Live demos are review round 8: `npm run review -- 8`.
 
@@ -59,7 +59,27 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 
 A press darkens the primary fill and scales: .94 on an icon button, .98 on a button, .99 on a menu row. Put `basalt-press` on a card or a custom row for the same .99. Reduced motion keeps the colour step and drops the scale.
 
-The code-block copy control swaps the icon for a check. The name changes from "Copy code" to "Copied".
+The code-block copy control morphs its icon into a check. The name changes from "Copy code" to "Copied".
+
+## Rebuilt from benji.org
+
+These follow the posts above. None of the post source is copied. The palette and type are still Basalt's.
+
+| Piece | What it does | Reduced motion |
+|---|---|---|
+| `MorphIcon` | Three strokes. Unused strokes collapse to points. Arrows, chevrons, and plus/close rotate as a group. | Instant swap |
+| `TextMorph` | Shared letters stay on their measured positions. Leaving letters fade and do not keep their width; the line width eases to the new word. One polite live region reads the whole string. | The letters change, with no motion |
+| Tabs and `Slide` | The new panel enters from the direction you moved. | A short fade |
+| `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
+| `SharedElement` | A `layoutId` travels from its previous place instead of appearing twice. | It is simply in the new place |
+| `Chart` | A flat line breathes while loading, then eases into the samples. An empty list is a quiet sentence. The range snaps outward. | The line is already the data, or the sentence |
+| `NumberTicker glide` | The visible digits ease about 8% of the way each frame. The readable text is the target. | The target, immediately |
+| `TravelSpinner` | After you accept work, the spinner moves to where that work now lives. | It fades in at the destination |
+| Toast drain | A hairline along the bottom shrinks for the timeout. Hover or focus pauses it. No glow. | The line does not shrink |
+| `CommandMenu` | The same props as before, with cmdk doing filter and keyboard selection. | No extra motion |
+| `LivePreview` | The draft is shown before Save commits it. | The preview text changes in place |
+
+`MorphIcon` includes menu, close, plus, minus, check, play, pause, four arrows, four chevrons, copy, equals, asterisk and external.
 
 Text inputs blink the caret on a 1.25s cycle, opaque for the first 70%. Reduced motion and forced colours leave the caret alone.
 

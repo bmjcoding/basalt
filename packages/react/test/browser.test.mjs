@@ -649,7 +649,7 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
       assert.equal(await page.getByRole("status", { name: "Loading grid" }).count(), 1);
       assert.match(await page.locator(".basalt-spinner[data-variant=braille]").evaluate((el) => getComputedStyle(el, "::before").animationTimingFunction), /step/);
-      const ticker = page.locator(".basalt-ticker .basalt-visually-hidden");
+      const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-visually-hidden");
       assert.equal(await ticker.textContent(), "1,284");
       await page.getByRole("button", { name: "Add a run" }).click();
       await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-visually-hidden")?.textContent === "1,285");
@@ -695,6 +695,75 @@ for (const theme of ["light", "dark"]) {
       await page.keyboard.press("Enter");
       assert.equal(await keys.getAttribute("aria-expanded"), "true");
       await page.getByText("Keys stay outside the sandbox").waitFor();
+      await page.close();
+    });
+
+    test("benji primitives keep names, keyboard, chart, toast drain and reduced motion", async () => {
+      const { page } = await open(theme);
+      const benji = page.getByRole("region", { name: "Benji" });
+      await benji.getByRole("button", { name: "Menu icon" }).click();
+      assert.equal(await benji.locator(".basalt-morph").first().getAttribute("data-icon"), "close");
+      const action = benji.getByRole("button", { name: "Continue" });
+      await action.locator(".basalt-text-morph[data-font='ready']").waitFor();
+      assert.equal(await action.locator("[aria-live=polite]").textContent(), "Continue");
+      const readGlyphs = () => benji.locator(".basalt-text-morph").first().locator(".basalt-text-morph-glyph").evaluateAll((els) => {
+        const root = els[0]?.parentElement?.parentElement?.getBoundingClientRect();
+        return els.map((el) => {
+          const box = el.getBoundingClientRect();
+          return { t: el.textContent ?? "", x: box.x - (root?.x ?? 0), right: box.right - (root?.x ?? 0), kind: el.getAttribute("data-kind"), pos: getComputedStyle(el).position };
+        });
+      });
+      const before = await readGlyphs();
+      const prefix = ["C", "o", "n"].map((letter) => before.find((glyph) => glyph.t === letter && glyph.kind === "stay"));
+      assert.ok(prefix.every(Boolean), "shared prefix is missing before the morph");
+      await action.click();
+      await page.waitForTimeout(40);
+      const mid = await readGlyphs();
+      for (const letter of prefix) {
+        const again = mid.find((glyph) => glyph.t === letter.t && glyph.kind === "stay");
+        assert.ok(again && Math.abs(again.x - letter.x) < 1, `${letter.t} moved from ${letter.x} to ${again?.x}`);
+      }
+      assert.ok(mid.some((glyph) => glyph.kind === "exit" && glyph.pos === "absolute"), "leaving letters still take layout");
+      assert.ok(mid.every((glyph) => glyph.pos === "absolute"));
+      await page.waitForFunction(() => {
+        const root = document.querySelector("[aria-label='Benji'] .basalt-text-morph");
+        const glyphs = [...(root?.querySelectorAll(".basalt-text-morph-glyph") ?? [])];
+        const text = glyphs.slice().sort((a, b) => a.getBoundingClientRect().x - b.getBoundingClientRect().x).map((glyph) => glyph.textContent).join("");
+        return text === "Confirm" && glyphs.every((glyph) => glyph.getAttribute("data-kind") !== "exit");
+      });
+      const settled = (await readGlyphs()).sort((a, b) => a.x - b.x);
+      for (let index = 1; index < settled.length; index += 1) {
+        assert.ok(settled[index].x >= settled[index - 1].right - 0.5, "settled glyphs overlap");
+      }
+      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Confirm" }).textContent(), "Confirm");
+      const next = benji.getByRole("button", { name: "Next" });
+      await next.focus();
+      await page.keyboard.press("Enter");
+      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Choose a route" }).textContent(), "Choose a route");
+      await benji.getByRole("button", { name: "Week" }).click();
+      assert.equal(await benji.locator(".basalt-segmented").getAttribute("data-direction"), "forward");
+      await page.getByRole("tab", { name: "Runs" }).click();
+      assert.equal(await page.locator(".basalt-tabs-root").getAttribute("data-direction"), "forward");
+      assert.equal(await benji.getByText("No runs yet").count(), 1);
+      await benji.getByRole("button", { name: "Show runs" }).click();
+      await benji.getByRole("img", { name: /Run volume/ }).waitFor();
+      await benji.getByRole("button", { name: "Show timed toast" }).click();
+      const drain = page.locator(".basalt-toast-drain");
+      await drain.waitFor();
+      assert.equal(await drain.evaluate((el) => getComputedStyle(el).animationName), "basalt-drain");
+      await page.locator(".basalt-toast").hover();
+      assert.equal(await drain.evaluate((el) => getComputedStyle(el).animationPlayState), "paused");
+      const preview = benji.getByRole("textbox", { name: "Display name" });
+      await preview.fill("n1");
+      assert.equal(await benji.locator(".basalt-preview [aria-live=polite]").textContent(), "n1");
+      assert.equal(await page.getByLabel("Saved name").textContent(), "blacksand");
+      await benji.getByRole("button", { name: "Save" }).click();
+      assert.equal(await page.getByLabel("Saved name").textContent(), "n1");
+      await benji.getByRole("button", { name: "Send run" }).click();
+      await page.getByRole("status", { name: "Run pending" }).waitFor();
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.waitForFunction(() => document.querySelector(".basalt-morph")?.hasAttribute("data-reduced"));
+      assert.equal(await page.locator(".basalt-tabs-root[data-direction] .basalt-tabs-panel").evaluate((el) => getComputedStyle(el).animationName), "basalt-fade-in");
       await page.close();
     });
 

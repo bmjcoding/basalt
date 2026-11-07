@@ -36,10 +36,15 @@ export function ToastProvider({ children, limit = 3 }: { children: React.ReactNo
   );
 }
 
+const toastTimeouts = new Map<string, number>();
+
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
-  return toasts.map((toast) => (
+  return toasts.map((toast) => {
+    const timeout = toastTimeouts.get(String(toast.id)) ?? 0;
+    return (
     <BaseToast.Root key={toast.id} toast={toast} className="basalt-toast" data-status={(toast.type as ToastStatus | undefined) ?? "neutral"}>
+      {timeout > 0 ? <span className="basalt-toast-drain" style={{ animationDuration: `${timeout}ms` }} /> : null}
       <BaseToast.Content className="basalt-toast-content">
         {/* a dot only where it warns; the title says what happened */}
         {toast.type === "danger" || toast.type === "warning" ? <span className="basalt-badge-dot basalt-toast-dot" aria-hidden="true" /> : null}
@@ -53,7 +58,8 @@ function ToastList() {
         </BaseToast.Close>
       </BaseToast.Content>
     </BaseToast.Root>
-  ));
+    );
+  });
 }
 
 /**
@@ -68,14 +74,17 @@ export function useToast() {
   latest.current = manager;
   return React.useMemo(
     () => ({
-      show: ({ title, description, status = "neutral", action, timeout }: ToastOptions) =>
-        latest.current.add({
+      show: ({ title, description, status = "neutral", action, timeout }: ToastOptions) => {
+        const id = latest.current.add({
           title,
           description,
           type: status,
           timeout,
           actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
-        }),
+        });
+        toastTimeouts.set(String(id), timeout === undefined ? 5000 : timeout);
+        return id;
+      },
       close: (id: string) => latest.current.close(id),
     }),
     [],

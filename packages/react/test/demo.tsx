@@ -6,6 +6,7 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { CompletionFixtures } from "../examples/completion";
 
+import type { MorphName } from "../src/index";
 import {
   Accordion,
   AccordionItem,
@@ -16,8 +17,16 @@ import {
   PopoverDescription,
   PopoverTitle,
   PopoverTrigger,
+  Chart,
+  LivePreview,
+  MorphIcon,
   NumberTicker,
   Progress,
+  Slide,
+  Stepper,
+  TextMorph,
+  TravelSpinner,
+  useSlideDirection,
   Skeleton,
   Spinner,
   Textarea,
@@ -99,6 +108,72 @@ function MotionFixture() {
       </div>
       <Button variant="primary" loading onClick={() => setClicks((n) => n + 1)}>Saving</Button>
       <span data-testid="saving-clicks">{clicks}</span>
+    </Section>
+  );
+}
+
+function BenjiFixture() {
+  const toast = useToast();
+  const [icon, setIcon] = React.useState<MorphName>("menu");
+  const [action, setAction] = React.useState("Continue");
+  const [step, setStep] = React.useState("name");
+  const [windowRange, setWindowRange] = React.useState("day");
+  const [loading, setLoading] = React.useState(false);
+  const [series, setSeries] = React.useState<number[]>([]);
+  const [saved, setSaved] = React.useState("blacksand");
+  const [travel, setTravel] = React.useState(false);
+  const fromRef = React.useRef<HTMLSpanElement>(null);
+  const toRef = React.useRef<HTMLSpanElement>(null);
+  const direction = useSlideDirection(windowRange, ["day", "week", "month"]);
+  return (
+    <Section title="Benji">
+      <div className="row">
+        <Button onClick={() => setIcon((current) => (current === "menu" ? "close" : "menu"))}>
+          <MorphIcon name={icon} />
+          Menu icon
+        </Button>
+        <Button onClick={() => setAction((current) => (current === "Continue" ? "Confirm" : "Continue"))}>
+          <TextMorph text={action} />
+        </Button>
+      </div>
+      <Stepper
+        steps={[
+          { id: "name", label: "Name the sandbox" },
+          { id: "route", label: "Choose a route" },
+          { id: "review", label: "Review" },
+        ]}
+        value={step}
+        onValueChange={setStep}
+      />
+      <div>
+        <SegmentedControl aria-label="Window" value={windowRange} onValueChange={setWindowRange}>
+          <Segment value="day">Day</Segment>
+          <Segment value="week">Week</Segment>
+          <Segment value="month">Month</Segment>
+        </SegmentedControl>
+        <Slide direction={direction} changeKey={windowRange}>
+          <span>Showing the {windowRange}</span>
+        </Slide>
+      </div>
+      <Chart label="Run volume" data={series} loading={loading} empty="No runs yet" />
+      <Button
+        onClick={() => {
+          setSeries([2, 3, 2, 5, 4, 6]);
+          setLoading(false);
+        }}
+      >
+        Show runs
+      </Button>
+      <div className="row">
+        <span ref={fromRef}>
+          <Button onClick={() => setTravel(true)}>Send run</Button>
+        </span>
+        <span ref={toRef}>Runs nav</span>
+        <TravelSpinner active={travel} fromRef={fromRef} toRef={toRef} label="Run pending" />
+      </div>
+      <Button onClick={() => toast.show({ title: "Route saved", timeout: 8000 })}>Show timed toast</Button>
+      <LivePreview label="Display name" saved={saved} onSave={setSaved} />
+      <output aria-label="Saved name">{saved}</output>
     </Section>
   );
 }
@@ -471,6 +546,7 @@ function App() {
           </div>
         </Section>
         <MotionFixture />
+        <BenjiFixture />
       </main>
      </ToastProvider>
     </TooltipProvider>
