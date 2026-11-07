@@ -44,8 +44,9 @@ design decisions have already been approved.
 
 ## Deliberately outside this pass
 
-Date/calendar/time-zone pickers, uploads, rich text, charts, virtualized data grids and
+Date/calendar/time-zone pickers, uploads, rich text, virtualized data grids and
 full product layouts need concrete product requirements. They are not unfinished pieces
-of the paused session. Custom 16px product icons and Kotlin output remain future work.
+of the paused session. `Chart` is a monochrome line for a loading morph and a live value,
+not a general chart grammar. Custom 16px product icons and Kotlin output remain future work.
 The native core is not a one-for-one port of every web overlay; apps should use platform
 navigation, menus, sheets and alerts with Basalt tokens as their requirements emerge.
