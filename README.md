@@ -3,8 +3,9 @@
 The SRA Syndicate design system: one monochrome foundation for Blacksand, srasyndicate.io,
 baileymjones.com, N1 and what comes next. Each product adds colour through its own accent.
 
-**Status:** Foundations, React components and a core SwiftUI component layer are built and
-reviewed; no release has been published. See [what is complete and what remains](docs/status.md).
+**Status:** Foundations, React components and a core SwiftUI component layer are on main.
+Rounds 5–7 shipped through #9. The mineral-and-accent redesign is in review and is not
+released. See [status](docs/status.md) and [brand accents](docs/brands.md).
 Agents working here follow [AGENTS.md](AGENTS.md).
 
 ## Packages
@@ -36,7 +37,9 @@ body {
 ```
 
 The theme follows the operating system. To pin it, set `data-theme="dark"` or
-`data-theme="light"` (or the `dark` / `light` class) on `<html>`.
+`data-theme="light"` (or the `dark` / `light` class) on `<html>`. Set `data-brand` to
+`sra`, `blacksand`, `n1` or `portfolio` on that same element. Leave it unset for the
+mineral Basalt accent. For N1, set `--basalt-accent-h` to any hue; lightness and chroma stay fixed.
 
 ## Use the tokens in SwiftUI
 

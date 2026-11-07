@@ -3,19 +3,47 @@
     "$type": "color",
     "syntax": {
       "keyword": {
-        "$value": { "colorSpace": "oklch", "components": [0.5, 0.12, 255] },
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.48,
+            0.12,
+            255
+          ]
+        },
         "$description": "Code keywords and storage declarations, and markup tags; blue. Operators and punctuation stay neutral."
       },
       "string": {
-        "$value": { "colorSpace": "oklch", "components": [0.5, 0.12, 150] },
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.47,
+            0.12,
+            150
+          ]
+        },
         "$description": "Code strings and quoted values; green. Never used as a success indicator."
       },
       "constant": {
-        "$value": { "colorSpace": "oklch", "components": [0.5, 0.1, 70] },
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.48,
+            0.1,
+            70
+          ]
+        },
         "$description": "Code numbers, booleans and constants; amber. Never used as a warning indicator."
       },
       "function": {
-        "$value": { "colorSpace": "oklch", "components": [0.5, 0.12, 305] },
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.48,
+            0.12,
+            305
+          ]
+        },
         "$description": "Code functions, types and classes; purple."
       },
       "comment": {
@@ -24,17 +52,17 @@
       }
     },
     "surface": {
-      "$description": "The page sits below white so white surfaces lift without a shadow; sunken areas step darker.",
+      "$description": "Warm paper. Raised, overlay and top each lift a step; sunken steps down. None of them is pure white.",
       "page": {
-        "$value": "{color.neutral.98}",
+        "$value": "{color.neutral.95}",
         "$description": "The page, and app sidebars. The darkest layer in both themes."
       },
       "raised": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.neutral.98}",
         "$description": "Cards, tables, inputs and secondary buttons, on surface-page."
       },
       "overlay": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.neutral.99}",
         "$description": "Menus, popovers, selects and dialogs."
       },
       "top": {
@@ -42,37 +70,42 @@
         "$description": "Tooltips, and the selected pill of a segmented control."
       },
       "sunken": {
-        "$value": "{color.neutral.96}",
+        "$value": "{color.neutral.93}",
         "$description": "Wells and code blocks, set into a raised surface."
       },
       "sunken-strong": {
-        "$value": "{color.neutral.94}",
+        "$value": "{color.neutral.91}",
         "$description": "Table headers and segmented-control tracks."
       },
       "placeholder": {
-        "$value": "{color.neutral.94}",
+        "$value": "{color.neutral.90}",
         "$description": "Skeletons and other loading placeholders: visible on the page in both themes."
+      },
+      "brand": {
+        "$type": "color",
+        "$value": "{color.surface.page}",
+        "$description": "Product ground. The page, except Blacksand, where data-brand sets a flat backlight. Controls never use it."
       }
     },
     "text": {
       "primary": {
-        "$value": "{color.neutral.9}",
+        "$value": "{color.neutral.25}",
         "$description": "Body text, headings and labels, on every surface."
       },
       "secondary": {
-        "$value": "{color.neutral.30}",
-        "$description": "Descriptions, metadata, unselected tabs and icons by default. Also the focus colour."
+        "$value": "{color.neutral.42}",
+        "$description": "Descriptions, metadata, unselected tabs and icons by default."
       },
       "tertiary": {
-        "$value": "{color.neutral.42}",
+        "$value": "{color.neutral.48}",
         "$description": "Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead."
       },
       "disabled": {
-        "$value": "{color.neutral.64}",
+        "$value": "{color.neutral.70}",
         "$description": "Disabled controls only (exempt from WCAG contrast); never for readable content."
       },
       "inverse": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.neutral.98}",
         "$description": "Text on action-primary fills."
       }
     },
@@ -90,12 +123,13 @@
         "$description": "Rules between table rows, menu groups and card sections."
       },
       "input": {
-        "$value": "{color.black.45}",
+        "$value": "{color.black.50}",
         "$description": "Input boundaries: 3:1 or better on every surface (WCAG 1.4.11)."
       },
       "focus": {
-        "$value": "{color.neutral.30}",
-        "$description": "The 2px focus outline, offset 2px, on every focusable control."
+        "$type": "color",
+        "$value": "{color.accent-text}",
+        "$description": "The 2px focus outline. It follows the brand accent and stays at least 3:1 on every surface."
       }
     },
     "state": {
@@ -110,16 +144,21 @@
     },
     "action": {
       "primary": {
-        "$value": "{color.neutral.9}",
+        "$value": "{color.neutral.25}",
         "$description": "The one primary action per view: the inverse of the page."
       },
       "primary-hover": {
-        "$value": "{color.neutral.0}",
-        "$description": "action-primary on hover: pure white on dark, pure black on light."
+        "$value": "{color.neutral.18}",
+        "$description": "The primary action, hovered. One step lighter in the dark theme, one step darker in the light."
       },
       "primary-text": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.neutral.98}",
         "$description": "Text on action-primary."
+      },
+      "primary-pressed": {
+        "$type": "color",
+        "$value": "{color.neutral.14}",
+        "$description": "The primary action, pressed. Darker than rest in both themes: a key bottoming out, not a scale."
       }
     },
     "status": {
@@ -139,6 +178,132 @@
     "scrim": {
       "$value": "{color.black.40}",
       "$description": "Behind modal dialogs and sheets."
+    },
+    "accent": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.42,
+          0.016,
+          85
+        ]
+      },
+      "$description": "Default Basalt accent fill: a warm stone, distinct from the neutral primary action. data-brand replaces it."
+    },
+    "accent-hover": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.36,
+          0.016,
+          85
+        ]
+      },
+      "$description": "Accent fill, hovered."
+    },
+    "accent-pressed": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.31,
+          0.015,
+          85
+        ]
+      },
+      "$description": "Accent fill, pressed. Darker than rest."
+    },
+    "accent-text": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.4,
+          0.018,
+          85
+        ]
+      },
+      "$description": "Accent as text, focus and chart stroke. At least 4.5:1 on every surface."
+    },
+    "on-accent": {
+      "$type": "color",
+      "$value": "{color.neutral.98}",
+      "$description": "Text on an accent fill."
+    },
+    "accent-subtle": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.42,
+          0.016,
+          85
+        ],
+        "alpha": 0.14
+      },
+      "$description": "A quiet accent wash. Not a border."
+    },
+    "accent-counter": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [
+          0.42,
+          0.016,
+          85
+        ]
+      },
+      "$description": "A second accent. Basalt keeps it on the same stone; Portfolio sets it to peach."
+    },
+    "on-accent-counter": {
+      "$type": "color",
+      "$value": "{color.neutral.98}",
+      "$description": "Text on the counter-accent fill."
+    },
+    "chart": {
+      "$description": "Chart grammar. Shape carries the meaning: outlined band, solid mark, hatched gap. Colour is the accent or the ink, never a palette of hues.",
+      "grid": {
+        "$type": "color",
+        "$value": "{color.border.divider}",
+        "$description": "Gridlines. Decorative; the series is also named."
+      },
+      "axis": {
+        "$type": "color",
+        "$value": "{color.text.tertiary}",
+        "$description": "Axis lines. Axis words use text, at the caption size or larger."
+      },
+      "plan": {
+        "$type": "color",
+        "$value": "{color.accent-text}",
+        "$description": "Plan band stroke. The band is outlined."
+      },
+      "plan-fill": {
+        "$type": "color",
+        "$value": "{color.accent-subtle}",
+        "$description": "Quiet wash inside a plan band. The outline still carries the meaning."
+      },
+      "observation": {
+        "$type": "color",
+        "$value": "{color.text.primary}",
+        "$description": "Observation mark. A solid shape, distinct from the outlined plan."
+      },
+      "missing": {
+        "$type": "color",
+        "$value": "{color.text.tertiary}",
+        "$description": "Hatch for a missing span. Missing is a gap, not a zero."
+      },
+      "series": {
+        "$type": "color",
+        "$value": "{color.accent-text}",
+        "$description": "The emphasised series, named in the caption."
+      },
+      "series-muted": {
+        "$type": "color",
+        "$value": "{color.text.secondary}",
+        "$description": "A comparison series, quieter than the emphasised one, and named."
+      }
     }
   },
   "shadow": {
@@ -165,7 +330,7 @@
           }
         },
         {
-          "color": "{color.neutral.98}",
+          "color": "{color.neutral.95}",
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -291,7 +456,7 @@
           }
         },
         {
-          "color": "{color.neutral.98}",
+          "color": "{color.neutral.95}",
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -373,7 +538,7 @@
           }
         },
         {
-          "color": "{color.neutral.98}",
+          "color": "{color.neutral.95}",
           "offsetX": {
             "value": 0,
             "unit": "px"

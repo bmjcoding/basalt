@@ -143,21 +143,99 @@ export function Progress({ label, showValue = true, className, ...props }: Progr
 
 // ---- Spinner ----
 
+export type SpinnerVariant = "ring" | "dots" | "braille";
+
+const BRAILLE = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
 export interface SpinnerProps {
   size?: 16 | 20 | 24;
   /** What is loading, announced to screen readers. Omit when a visible label beside it already says so. */
   label?: string;
   className?: string;
+  /** `ring` is the compact arc, `dots` is three marks, `braille` is the mono CLI frame. */
+  variant?: SpinnerVariant;
 }
 
 /** Work in progress with no measurable end, for short waits. Prefer `Progress` when you know how far along it is. */
-export function Spinner({ size = 16, label, className }: SpinnerProps) {
+export function Spinner({ size = 16, label, className, variant = "ring" }: SpinnerProps) {
+  const [frame, setFrame] = React.useState(0);
+  React.useEffect(() => {
+    if (variant !== "braille") return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) return;
+    const step = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--basalt-duration-tick")) || 70;
+    const id = window.setInterval(() => setFrame((n) => (n + 1) % BRAILLE.length), step);
+    const stop = () => {
+      if (media.matches) window.clearInterval(id);
+    };
+    media.addEventListener("change", stop);
+    return () => {
+      window.clearInterval(id);
+      media.removeEventListener("change", stop);
+    };
+  }, [variant]);
+
+  const status = label ? ({ role: "status" as const, "aria-label": label }) : ({ "aria-hidden": true as const });
+  if (variant === "braille") {
+    return (
+      <span {...status} data-variant="braille" className={join("basalt-spinner", className)} style={{ fontSize: size }}>
+        <span aria-hidden="true">{BRAILLE[frame]}</span>
+      </span>
+    );
+  }
+  if (variant === "dots") {
+    return (
+      <span {...status} data-variant="dots" className={join("basalt-spinner", className)} style={{ height: size }}>
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+      </span>
+    );
+  }
   return (
-    <span role={label ? "status" : undefined} aria-label={label} aria-hidden={label ? undefined : true} className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
-      <svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+    <span {...status} data-variant="ring" className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
+      <svg viewBox="0 0 16 16" width={size} height={size} fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" />
         <path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
+    </span>
+  );
+}
+
+// ---- Number ticker ----
+
+export interface NumberTickerProps {
+  value: number;
+  /** Shown to everyone, including screen readers. Defaults to a grouped integer. */
+  format?: (value: number) => string;
+  className?: string;
+}
+
+const TICKER_DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+/** Rolls each digit into place. Reduced motion snaps. The readable value is always in the text. */
+export function NumberTicker({ value, format, className }: NumberTickerProps) {
+  const text = format ? format(value) : new Intl.NumberFormat("en-US").format(value);
+  return (
+    <span className={join("basalt-ticker", className)}>
+      <span className="basalt-visually-hidden">{text}</span>
+      <span aria-hidden="true" className="basalt-ticker-visual">
+        {Array.from(text).map((character, index) =>
+          TICKER_DIGITS.includes(character) ? (
+            <span key={`${index}-${text.length}`} className="basalt-ticker-digit" style={{ "--_d": TICKER_DIGITS.indexOf(character) } as React.CSSProperties}>
+              <span className="basalt-ticker-strip">
+                {TICKER_DIGITS.map((digit) => (
+                  <span key={digit}>{digit}</span>
+                ))}
+              </span>
+            </span>
+          ) : (
+            <span key={`${index}-mark`} className="basalt-ticker-char">
+              {character}
+            </span>
+          ),
+        )}
+      </span>
     </span>
   );
 }

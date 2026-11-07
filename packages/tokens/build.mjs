@@ -22,6 +22,82 @@ const src = (name) => path.join(here, "tokens", name);
 const dist = path.join(here, "dist");
 const PREFIX = "basalt";
 const THEMES = ["light", "dark"];
+const brandsSrc = JSON.parse(fs.readFileSync(src("brands.tokens.json"), "utf8"));
+
+/** [l, c, h] or [l, c, h, alpha] as an OKLCH CSS color. */
+function partsCss(parts) {
+  const [l, c, h, alpha] = parts;
+  const body = `${round(l, 4)} ${round(c, 4)} ${round(h ?? 0, 2)}`;
+  return alpha == null ? `oklch(${body})` : `oklch(${body} / ${round(alpha, 4)})`;
+}
+
+function colorEntry(parts) {
+  const [l, c, h, alpha] = parts;
+  const value = { colorSpace: "oklch", components: [l, c, h ?? 0] };
+  if (alpha != null) value.alpha = alpha;
+  const paint = toColor(value);
+  return { type: "color", oklch: cssColor(value), hex: paint.alpha === 1 ? formatHex(paint) : formatHex8(paint) };
+}
+
+/** N1 roles with the cobalt hue filled in, plus the derived subtle wash. */
+function n1Parts(mode) {
+  const hue = brandsSrc.n1.hue;
+  const spec = brandsSrc.n1[mode];
+  const out = {};
+  for (const [role, parts] of Object.entries(spec)) {
+    out[role] = parts.length === 2 ? [parts[0], parts[1], hue] : parts;
+  }
+  out["accent-subtle"] = [spec.accent[0], spec.accent[1], hue, mode === "dark" ? 0.16 : 0.14];
+  return out;
+}
+
+function brandSpec(name, mode) {
+  return name === "n1" ? n1Parts(mode) : brandsSrc[name][mode];
+}
+
+function n1CssLines(mode) {
+  const spec = brandsSrc.n1[mode];
+  const hue = "var(--basalt-accent-h)";
+  const lines = [`  --basalt-accent-h: ${brandsSrc.n1.hue};`];
+  for (const role of ["accent", "accent-hover", "accent-pressed", "accent-text", "accent-counter"]) {
+    const [l, c] = spec[role];
+    lines.push(`  --basalt-${role}: oklch(${round(l, 4)} ${round(c, 4)} ${hue});`);
+  }
+  const alpha = mode === "dark" ? 0.16 : 0.14;
+  lines.push(`  --basalt-accent-subtle: oklch(${round(spec.accent[0], 4)} ${round(spec.accent[1], 4)} ${hue} / ${alpha});`);
+  for (const role of ["on-accent", "on-accent-counter"]) lines.push(`  --basalt-${role}: ${partsCss(spec[role])};`);
+  return lines;
+}
+
+function staticCssLines(spec) {
+  return Object.entries(spec).map(([role, parts]) => `  --basalt-${role}: ${partsCss(parts)};`);
+}
+
+function brandBlocks() {
+  const names = Object.keys(brandsSrc).filter((k) => !k.startsWith("$"));
+  const lines = ["", "/* Product accents. Set data-brand on the same element as the theme. N1's hue is", "   --basalt-accent-h (cobalt unless an app sets it). Focus and chart plan follow accent-text. */"];
+  for (const name of names) {
+    const lightLines = name === "n1" ? n1CssLines("light") : staticCssLines(brandSpec(name, "light"));
+    const darkLines = name === "n1" ? n1CssLines("dark") : staticCssLines(brandSpec(name, "dark"));
+    lines.push(
+      `:root[data-brand="${name}"], [data-theme="light"][data-brand="${name}"], .light[data-brand="${name}"] {`,
+      ...lightLines,
+      "}",
+      "",
+      `[data-theme="dark"][data-brand="${name}"], .dark[data-brand="${name}"] {`,
+      ...darkLines,
+      "}",
+      "",
+    );
+  }
+  lines.push("@media (prefers-color-scheme: dark) {");
+  for (const name of names) {
+    const darkLines = (name === "n1" ? n1CssLines("dark") : staticCssLines(brandSpec(name, "dark"))).map((l) => `  ${l}`);
+    lines.push(`  :root:not([data-theme="light"]):not(.light)[data-brand="${name}"] {`, ...darkLines, "  }", "");
+  }
+  lines.push("}", "");
+  return lines;
+}
 
 const round = (n, digits) => Math.round(n * 10 ** digits) / 10 ** digits;
 
@@ -124,6 +200,7 @@ const css = [
   "  }",
   "}",
   "",
+  ...brandBlocks(),
   "/* Reduced motion: no movement; state changes become short fades. Components remove their",
   "   transforms under the same query. */",
   "@media (prefers-reduced-motion: reduce) {",
@@ -162,9 +239,20 @@ const entry = (token) => {
   }
   return { type: token.$type, css: cssValue(token) };
 };
+const brandNames = Object.keys(brandsSrc).filter((k) => !k.startsWith("$"));
+const brandJson = Object.fromEntries(brandNames.map((name) => {
+  const themes = Object.fromEntries(THEMES.map((mode) => [mode, Object.fromEntries(Object.entries(brandSpec(name, mode)).map(([role, parts]) => [role, colorEntry(parts)]))]));
+  if (name !== "n1") return [name, themes];
+  const parametric = {
+    hue: brandsSrc.n1.hue,
+    ...Object.fromEntries(THEMES.map((mode) => [mode, Object.fromEntries(Object.entries(brandsSrc.n1[mode]).filter(([, parts]) => parts.length === 2).map(([role, parts]) => [role, { l: parts[0], c: parts[1] }]))])),
+  };
+  return [name, { ...themes, parametric }];
+}));
 const json = {
   primitives: Object.fromEntries(primitives.map((t) => [varName(t.path).slice(PREFIX.length + 3), entry(t)])),
   ...Object.fromEntries(THEMES.map((th) => [th, Object.fromEntries(themed(th).map((t) => [varName(t.path).slice(PREFIX.length + 3), entry(t)]))])),
+  brands: brandJson,
 };
 
 const write = (rel, text) => {
@@ -176,9 +264,12 @@ write("css/tokens.css", css);
 write("css/shadcn.css", shadcn);
 write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport default tokens;\n`);
+const brandRoles = Object.keys(brandJson.sra.light);
+const brandField = (name, value) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`;
+const themeScopes = Object.entries(json).filter(([scope]) => scope !== "brands");
 write(
   "js/tokens.d.ts",
-  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
+  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport interface BrandTheme {\n${brandRoles.map((role) => `  ${JSON.stringify(role)}: ColorToken;`).join("\n")}\n  "surface-brand"?: ColorToken;\n}\nexport interface N1Parametric {\n  hue: number;\n  light: { accent: { l: number; c: number }; "accent-hover": { l: number; c: number }; "accent-pressed": { l: number; c: number }; "accent-text": { l: number; c: number }; "accent-counter": { l: number; c: number } };\n  dark: { accent: { l: number; c: number }; "accent-hover": { l: number; c: number }; "accent-pressed": { l: number; c: number }; "accent-text": { l: number; c: number }; "accent-counter": { l: number; c: number } };\n}\nexport declare const tokens: {\n${themeScopes.map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => brandField(name, value)).join("\n")}\n  };`).join("\n")}\n  brands: {\n${brandNames.map((name) => `    ${name}: { light: BrandTheme; dark: BrandTheme }${name === "n1" ? " & { parametric: N1Parametric }" : ""};`).join("\n")}\n  };\n};\nexport default tokens;\n`,
 );
 // ---- Swift: the tokens for the Apple apps, committed so SwiftPM can consume the repository.
 
@@ -203,6 +294,30 @@ const swiftColors = themed("light")
     const dark = resolved.dark.find((d) => d.path.join(".") === t.path.join("."));
     return `${doc(t, "    ")}    public static let ${camel(t.path.slice(1).join("-"))} = ThemedColor(\n      light: ${swiftRGBA(t.$value)},\n      dark: ${swiftRGBA(dark.$value)}\n    )`;
   });
+const swiftFromParts = (parts) => {
+  const [l, c, h, alpha] = parts;
+  const value = { colorSpace: "oklch", components: [l, c, h ?? 0] };
+  if (alpha != null) value.alpha = alpha;
+  return swiftRGBA(value);
+};
+const BRAND_ROLES = ["accent", "accent-hover", "accent-pressed", "accent-text", "on-accent", "accent-subtle", "accent-counter", "on-accent-counter"];
+const swiftRole = (name, role) => `ThemedColor(\n        light: ${swiftFromParts(brandSpec(name, "light")[role])},\n        dark: ${swiftFromParts(brandSpec(name, "dark")[role])}\n      )`;
+const swiftBrand = (name) => {
+  const fields = BRAND_ROLES.map((role) => `      ${camel(role)}: ${swiftRole(name, role)}`);
+  const surface = brandSpec(name, "light")["surface-brand"]
+    ? `      surfaceBrand: ThemedColor(\n        light: ${swiftFromParts(brandSpec(name, "light")["surface-brand"])},\n        dark: ${swiftFromParts(brandSpec(name, "dark")["surface-brand"])}\n      )`
+    : `      surfaceBrand: Colors.surfacePage`;
+  return `    public static let ${name === "n1" ? "n1" : camel(name)} = BrandAccent(\n${fields.concat(surface).join(",\n")}\n    )`;
+};
+const n1Channels = ["light", "dark"].flatMap((mode) =>
+  Object.entries(brandsSrc.n1[mode])
+    .filter(([, parts]) => parts.length === 2)
+    .flatMap(([role, parts]) => {
+      const prop = camel(role);
+      const name = `${mode}${prop[0].toUpperCase()}${prop.slice(1)}`;
+      return [`    public static let ${name}L: Double = ${parts[0]}`, `    public static let ${name}C: Double = ${parts[1]}`];
+    }),
+);
 const ident = (k) => (/^\d/.test(k) ? `s${k.replace("-", "_")}` : camel(k));
 const textSteps = [...new Set(byPrefix("text").map((t) => t.path[1]))];
 const stepName = (k) => ({ "2xl": "xl2", "3xl": "xl3", "4xl": "xl4", "5xl": "xl5" })[k] ?? k;
@@ -232,6 +347,64 @@ extension Basalt {
   /// Semantic colours. Use these, never raw values.
   public enum Colors {
 ${swiftColors.join("\n\n")}
+  }
+
+  /// One product's accent. \`surfaceBrand\` is the page, except Blacksand's flat backlight.
+  public struct BrandAccent: Sendable, Equatable {
+    public let accent: ThemedColor
+    public let accentHover: ThemedColor
+    public let accentPressed: ThemedColor
+    public let accentText: ThemedColor
+    public let onAccent: ThemedColor
+    public let accentSubtle: ThemedColor
+    public let accentCounter: ThemedColor
+    public let onAccentCounter: ThemedColor
+    public let surfaceBrand: ThemedColor
+  }
+
+  /// Product accents. The default mineral accent also lives on \`Colors\`.
+  public enum Brands {
+    public static let basalt = BrandAccent(
+      accent: Colors.accent,
+      accentHover: Colors.accentHover,
+      accentPressed: Colors.accentPressed,
+      accentText: Colors.accentText,
+      onAccent: Colors.onAccent,
+      accentSubtle: Colors.accentSubtle,
+      accentCounter: Colors.accentCounter,
+      onAccentCounter: Colors.onAccentCounter,
+      surfaceBrand: Colors.surfaceBrand
+    )
+
+${brandNames.map(swiftBrand).join("\n\n")}
+  }
+
+  /// N1's fixed-lightness accent. \`color\` is any hue at the lightness and chroma of a role.
+  /// The web equivalent is \`--basalt-accent-h\`.
+  public enum N1 {
+    public static let cobaltHue: Double = ${brandsSrc.n1.hue}
+${n1Channels.join("\n")}
+
+    /// OKLCH to sRGB, matching the CSS and the generated brand colours for in-gamut values.
+    public static func color(lightness l: Double, chroma c: Double, hue h: Double) -> RGBA {
+      let rad = h * .pi / 180
+      let a = c * cos(rad)
+      let b = c * sin(rad)
+      let l_ = l + 0.3963377774 * a + 0.2158037573 * b
+      let m_ = l - 0.1055613458 * a - 0.0638541728 * b
+      let s_ = l - 0.0894841775 * a - 1.2914855480 * b
+      let l3 = l_ * l_ * l_
+      let m3 = m_ * m_ * m_
+      let s3 = s_ * s_ * s_
+      func encode(_ x: Double) -> Double {
+        let v = min(1, max(0, x))
+        return v <= 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1 / 2.4) - 0.055
+      }
+      let red = encode(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3)
+      let green = encode(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3)
+      let blue = encode(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3)
+      return RGBA(red: red, green: green, blue: blue, alpha: 1)
+    }
   }
 
   /// Spacing on a 4pt base: \`s4\` is 16.
@@ -266,6 +439,11 @@ ${textSteps
   /// Geist's three weights. In-between weights render differently on native, so Basalt uses whole steps.
   public enum Weight: Int, Sendable, CaseIterable {
 ${byPrefix("font").filter((t) => t.path[1] === "weight").map((t) => `    case ${t.path[2]} = ${t.$value}`).join("\n")}
+  }
+
+  /// Tracking in em. Label is the uppercase mono eyebrow; it is not a smaller size.
+  public enum Tracking {
+${byPrefix("font").filter((t) => t.path[1] === "tracking").map((t) => `    public static let ${camel(t.path[2])}: Double = ${t.$value.value}`).join("\n")}
   }
 
   /// Durations in seconds. Exits run at 0.75 of their entry.

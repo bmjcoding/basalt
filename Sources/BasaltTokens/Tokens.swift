@@ -25,122 +25,128 @@ extension Basalt {
   public enum Colors {
     /// Destructive actions and errors: red text, red hairline, a dot. Never a fill.
     public static let statusDanger = ThemedColor(
-      light: RGBA(red: 0.786912, green: 0.184, blue: 0.19888, alpha: 1),
-      dark: RGBA(red: 0.99979, green: 0.385669, blue: 0.401313, alpha: 1)
+      light: RGBA(red: 0.650352, green: 0.123653, blue: 0.294333, alpha: 1),
+      dark: RGBA(red: 0.984464, green: 0.536509, blue: 0.627589, alpha: 1)
     )
 
     /// A success or healthy dot, always beside a word.
     public static let statusSuccess = ThemedColor(
-      light: RGBA(red: 0.002391, green: 0.537818, blue: 0.208007, alpha: 1),
-      dark: RGBA(red: 0.0064, green: 0.789524, blue: 0.319767, alpha: 1)
+      light: RGBA(red: 0.017766, green: 0.467767, blue: 0.233128, alpha: 1),
+      dark: RGBA(red: 0.185851, green: 0.791302, blue: 0.434816, alpha: 1)
     )
 
     /// A warning or in-progress dot, always beside a word.
     public static let statusWarning = ThemedColor(
-      light: RGBA(red: 0.757548, green: 0.43506, blue: 0.010186, alpha: 1),
-      dark: RGBA(red: 0.999125, green: 0.64163, blue: 0.003499, alpha: 1)
+      light: RGBA(red: 0.460083, green: 0.417224, blue: 0.046424, alpha: 1),
+      dark: RGBA(red: 0.86378, green: 0.813838, blue: 0.083901, alpha: 1)
     )
 
     /// Code keywords and storage declarations, and markup tags; blue. Operators and punctuation stay neutral.
     public static let syntaxKeyword = ThemedColor(
-      light: RGBA(red: 0.180711, green: 0.391708, blue: 0.650139, alpha: 1),
+      light: RGBA(red: 0.157261, green: 0.368615, blue: 0.625052, alpha: 1),
       dark: RGBA(red: 0.590347, green: 0.756173, blue: 0.969665, alpha: 1)
     )
 
     /// Code strings and quoted values; green. Never used as a success indicator.
     public static let syntaxString = ThemedColor(
-      light: RGBA(red: 0.129366, green: 0.461038, blue: 0.235602, alpha: 1),
+      light: RGBA(red: 0.079539, green: 0.426223, blue: 0.202871, alpha: 1),
       dark: RGBA(red: 0.579438, green: 0.809849, blue: 0.624342, alpha: 1)
     )
 
     /// Code numbers, booleans and constants; amber. Never used as a warning indicator.
     public static let syntaxConstant = ThemedColor(
-      light: RGBA(red: 0.529492, green: 0.343604, blue: 0.077477, alpha: 1),
+      light: RGBA(red: 0.505521, green: 0.321237, blue: 0.038626, alpha: 1),
       dark: RGBA(red: 0.891577, green: 0.705386, blue: 0.490284, alpha: 1)
     )
 
     /// Code functions, types and classes; purple.
     public static let syntaxFunction = ThemedColor(
-      light: RGBA(red: 0.452414, green: 0.309894, blue: 0.601741, alpha: 1),
+      light: RGBA(red: 0.429779, green: 0.287402, blue: 0.577139, alpha: 1),
       dark: RGBA(red: 0.796207, green: 0.68779, blue: 0.928451, alpha: 1)
     )
 
     /// Code comments; quiet, but still at least 4.5:1 on the code surface. No italic font is required.
     public static let syntaxComment = ThemedColor(
-      light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
-      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+      light: RGBA(red: 0.37335, green: 0.367091, blue: 0.342643, alpha: 1),
+      dark: RGBA(red: 0.602421, green: 0.597023, blue: 0.575755, alpha: 1)
     )
 
     /// The page, and app sidebars. The darkest layer in both themes.
     public static let surfacePage = ThemedColor(
-      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
-      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+      light: RGBA(red: 0.947303, green: 0.939229, blue: 0.907413, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
     )
 
     /// Cards, tables, inputs and secondary buttons, on surface-page.
     public static let surfaceRaised = ThemedColor(
-      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
-      dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
+      light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+      dark: RGBA(red: 0.114629, green: 0.111489, blue: 0.099284, alpha: 1)
     )
 
     /// Menus, popovers, selects and dialogs.
     public static let surfaceOverlay = ThemedColor(
-      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
-      dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+      light: RGBA(red: 0.985651, green: 0.981981, blue: 0.967427, alpha: 1),
+      dark: RGBA(red: 0.146287, green: 0.143051, blue: 0.130432, alpha: 1)
     )
 
     /// Tooltips, and the selected pill of a segmented control.
     public static let surfaceTop = ThemedColor(
-      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
-      dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
+      light: RGBA(red: 0.994545, green: 0.992345, blue: 0.983601, alpha: 1),
+      dark: RGBA(red: 0.175689, green: 0.171804, blue: 0.156671, alpha: 1)
     )
 
     /// Wells and code blocks, set into a raised surface.
     public static let surfaceSunken = ThemedColor(
-      light: RGBA(red: 0.960849, green: 0.960849, blue: 0.960849, alpha: 1),
-      dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
+      light: RGBA(red: 0.920776, green: 0.912002, blue: 0.877471, alpha: 1),
+      dark: RGBA(red: 0.061641, green: 0.058699, blue: 0.047344, alpha: 1)
     )
 
     /// Table headers and segmented-control tracks.
     public static let surfaceSunkenStrong = ThemedColor(
-      light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
-      dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+      light: RGBA(red: 0.898268, green: 0.888793, blue: 0.851548, alpha: 1),
+      dark: RGBA(red: 0.087641, green: 0.084595, blue: 0.072793, alpha: 1)
     )
 
     /// Skeletons and other loading placeholders: visible on the page in both themes.
     public static let surfacePlaceholder = ThemedColor(
-      light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
-      dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
+      light: RGBA(red: 0.879409, green: 0.870706, blue: 0.836469, alpha: 1),
+      dark: RGBA(red: 0.13312, green: 0.129923, blue: 0.11747, alpha: 1)
+    )
+
+    /// Product ground. The page, except Blacksand, where data-brand sets a flat backlight. Controls never use it.
+    public static let surfaceBrand = ThemedColor(
+      light: RGBA(red: 0.947303, green: 0.939229, blue: 0.907413, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
     )
 
     /// Body text, headings and labels, on every surface.
     public static let textPrimary = ThemedColor(
-      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
-      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+      light: RGBA(red: 0.137339, green: 0.131893, blue: 0.110948, alpha: 1),
+      dark: RGBA(red: 0.927935, green: 0.922107, blue: 0.89907, alpha: 1)
     )
 
-    /// Descriptions, metadata, unselected tabs and icons by default. Also the focus colour.
+    /// Descriptions, metadata, unselected tabs and icons by default.
     public static let textSecondary = ThemedColor(
-      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      light: RGBA(red: 0.308333, green: 0.302257, blue: 0.278583, alpha: 1),
+      dark: RGBA(red: 0.724506, green: 0.718931, blue: 0.696931, alpha: 1)
     )
 
     /// Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead.
     public static let textTertiary = ThemedColor(
-      light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
-      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+      light: RGBA(red: 0.37335, green: 0.367091, blue: 0.342643, alpha: 1),
+      dark: RGBA(red: 0.602421, green: 0.597023, blue: 0.575755, alpha: 1)
     )
 
     /// Disabled controls only (exempt from WCAG contrast); never for readable content.
     public static let textDisabled = ThemedColor(
-      light: RGBA(red: 0.639248, green: 0.639248, blue: 0.639248, alpha: 1),
-      dark: RGBA(red: 0.360806, green: 0.360806, blue: 0.360806, alpha: 1)
+      light: RGBA(red: 0.626502, green: 0.621067, blue: 0.599647, alpha: 1),
+      dark: RGBA(red: 0.392712, green: 0.388962, blue: 0.37419, alpha: 1)
     )
 
     /// Text on action-primary fills.
     public static let textInverse = ThemedColor(
-      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
-      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+      light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
     )
 
     /// Decorative 1px lines around cards, tables and secondary buttons, via shadow-hairline.
@@ -163,14 +169,14 @@ extension Basalt {
 
     /// Input boundaries: 3:1 or better on every surface (WCAG 1.4.11).
     public static let borderInput = ThemedColor(
-      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
-      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.5),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.46)
     )
 
-    /// The 2px focus outline, offset 2px, on every focusable control.
+    /// The 2px focus outline. It follows the brand accent and stays at least 3:1 on every surface.
     public static let borderFocus = ThemedColor(
-      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      light: RGBA(red: 0.298557, green: 0.278844, blue: 0.238586, alpha: 1),
+      dark: RGBA(red: 0.757049, green: 0.743026, blue: 0.705062, alpha: 1)
     )
 
     /// Hover wash over any surface; menu highlight.
@@ -187,20 +193,26 @@ extension Basalt {
 
     /// The one primary action per view: the inverse of the page.
     public static let actionPrimary = ThemedColor(
-      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
-      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+      light: RGBA(red: 0.137339, green: 0.131893, blue: 0.110948, alpha: 1),
+      dark: RGBA(red: 0.927935, green: 0.922107, blue: 0.89907, alpha: 1)
     )
 
-    /// action-primary on hover: pure white on dark, pure black on light.
+    /// The primary action, hovered. One step lighter in the dark theme, one step darker in the light.
     public static let actionPrimaryHover = ThemedColor(
-      light: RGBA(red: 0, green: 0, blue: 0, alpha: 1),
-      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+      light: RGBA(red: 0.073, green: 0.068965, blue: 0.053495, alpha: 1),
+      dark: RGBA(red: 0.972019, green: 0.967622, blue: 0.950199, alpha: 1)
     )
 
     /// Text on action-primary.
     public static let actionPrimaryText = ThemedColor(
-      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
-      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+      light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+    )
+
+    /// The primary action, pressed. Darker than rest in both themes: a key bottoming out, not a scale.
+    public static let actionPrimaryPressed = ThemedColor(
+      light: RGBA(red: 0.038376, green: 0.035638, blue: 0.026205, alpha: 1),
+      dark: RGBA(red: 0.825043, green: 0.819337, blue: 0.796801, alpha: 1)
     )
 
     /// Behind modal dialogs and sheets.
@@ -208,6 +220,324 @@ extension Basalt {
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.4),
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.8)
     )
+
+    /// Default Basalt accent fill: a warm stone, distinct from the neutral primary action. data-brand replaces it.
+    public static let accent = ThemedColor(
+      light: RGBA(red: 0.317884, green: 0.300199, blue: 0.264099, alpha: 1),
+      dark: RGBA(red: 0.730131, green: 0.718206, blue: 0.685896, alpha: 1)
+    )
+
+    /// Accent fill, hovered.
+    public static let accentHover = ThemedColor(
+      light: RGBA(red: 0.254737, green: 0.237673, blue: 0.202829, alpha: 1),
+      dark: RGBA(red: 0.805413, green: 0.793275, blue: 0.760374, alpha: 1)
+    )
+
+    /// Accent fill, pressed. Darker than rest.
+    public static let accentPressed = ThemedColor(
+      light: RGBA(red: 0.203065, green: 0.187629, blue: 0.156095, alpha: 1),
+      dark: RGBA(red: 0.631976, green: 0.620353, blue: 0.588886, alpha: 1)
+    )
+
+    /// Accent as text, focus and chart stroke. At least 4.5:1 on every surface.
+    public static let accentText = ThemedColor(
+      light: RGBA(red: 0.298557, green: 0.278844, blue: 0.238586, alpha: 1),
+      dark: RGBA(red: 0.757049, green: 0.743026, blue: 0.705062, alpha: 1)
+    )
+
+    /// Text on an accent fill.
+    public static let onAccent = ThemedColor(
+      light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+    )
+
+    /// A quiet accent wash. Not a border.
+    public static let accentSubtle = ThemedColor(
+      light: RGBA(red: 0.317884, green: 0.300199, blue: 0.264099, alpha: 0.14),
+      dark: RGBA(red: 0.730131, green: 0.718206, blue: 0.685896, alpha: 0.16)
+    )
+
+    /// A second accent. Basalt keeps it on the same stone; Portfolio sets it to peach.
+    public static let accentCounter = ThemedColor(
+      light: RGBA(red: 0.317884, green: 0.300199, blue: 0.264099, alpha: 1),
+      dark: RGBA(red: 0.730131, green: 0.718206, blue: 0.685896, alpha: 1)
+    )
+
+    /// Text on the counter-accent fill.
+    public static let onAccentCounter = ThemedColor(
+      light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+      dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+    )
+
+    /// Gridlines. Decorative; the series is also named.
+    public static let chartGrid = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.1)
+    )
+
+    /// Axis lines. Axis words use text, at the caption size or larger.
+    public static let chartAxis = ThemedColor(
+      light: RGBA(red: 0.37335, green: 0.367091, blue: 0.342643, alpha: 1),
+      dark: RGBA(red: 0.602421, green: 0.597023, blue: 0.575755, alpha: 1)
+    )
+
+    /// Plan band stroke. The band is outlined.
+    public static let chartPlan = ThemedColor(
+      light: RGBA(red: 0.298557, green: 0.278844, blue: 0.238586, alpha: 1),
+      dark: RGBA(red: 0.757049, green: 0.743026, blue: 0.705062, alpha: 1)
+    )
+
+    /// Quiet wash inside a plan band. The outline still carries the meaning.
+    public static let chartPlanFill = ThemedColor(
+      light: RGBA(red: 0.317884, green: 0.300199, blue: 0.264099, alpha: 0.14),
+      dark: RGBA(red: 0.730131, green: 0.718206, blue: 0.685896, alpha: 0.16)
+    )
+
+    /// Observation mark. A solid shape, distinct from the outlined plan.
+    public static let chartObservation = ThemedColor(
+      light: RGBA(red: 0.137339, green: 0.131893, blue: 0.110948, alpha: 1),
+      dark: RGBA(red: 0.927935, green: 0.922107, blue: 0.89907, alpha: 1)
+    )
+
+    /// Hatch for a missing span. Missing is a gap, not a zero.
+    public static let chartMissing = ThemedColor(
+      light: RGBA(red: 0.37335, green: 0.367091, blue: 0.342643, alpha: 1),
+      dark: RGBA(red: 0.602421, green: 0.597023, blue: 0.575755, alpha: 1)
+    )
+
+    /// The emphasised series, named in the caption.
+    public static let chartSeries = ThemedColor(
+      light: RGBA(red: 0.298557, green: 0.278844, blue: 0.238586, alpha: 1),
+      dark: RGBA(red: 0.757049, green: 0.743026, blue: 0.705062, alpha: 1)
+    )
+
+    /// A comparison series, quieter than the emphasised one, and named.
+    public static let chartSeriesMuted = ThemedColor(
+      light: RGBA(red: 0.308333, green: 0.302257, blue: 0.278583, alpha: 1),
+      dark: RGBA(red: 0.724506, green: 0.718931, blue: 0.696931, alpha: 1)
+    )
+  }
+
+  /// One product's accent. `surfaceBrand` is the page, except Blacksand's flat backlight.
+  public struct BrandAccent: Sendable, Equatable {
+    public let accent: ThemedColor
+    public let accentHover: ThemedColor
+    public let accentPressed: ThemedColor
+    public let accentText: ThemedColor
+    public let onAccent: ThemedColor
+    public let accentSubtle: ThemedColor
+    public let accentCounter: ThemedColor
+    public let onAccentCounter: ThemedColor
+    public let surfaceBrand: ThemedColor
+  }
+
+  /// Product accents. The default mineral accent also lives on `Colors`.
+  public enum Brands {
+    public static let basalt = BrandAccent(
+      accent: Colors.accent,
+      accentHover: Colors.accentHover,
+      accentPressed: Colors.accentPressed,
+      accentText: Colors.accentText,
+      onAccent: Colors.onAccent,
+      accentSubtle: Colors.accentSubtle,
+      accentCounter: Colors.accentCounter,
+      onAccentCounter: Colors.onAccentCounter,
+      surfaceBrand: Colors.surfaceBrand
+    )
+
+    public static let sra = BrandAccent(
+      accent: ThemedColor(
+        light: RGBA(red: 0.611374, green: 0.224522, blue: 0.077832, alpha: 1),
+        dark: RGBA(red: 0.956711, green: 0.496236, blue: 0.331674, alpha: 1)
+      ),
+      accentHover: ThemedColor(
+        light: RGBA(red: 0.517896, green: 0.197073, blue: 0.080635, alpha: 1),
+        dark: RGBA(red: 0.977791, green: 0.591655, blue: 0.439967, alpha: 1)
+      ),
+      accentPressed: ThemedColor(
+        light: RGBA(red: 0.427263, green: 0.169553, blue: 0.07927, alpha: 1),
+        dark: RGBA(red: 0.839861, green: 0.402896, blue: 0.255062, alpha: 1)
+      ),
+      accentText: ThemedColor(
+        light: RGBA(red: 0.5707, green: 0.216715, blue: 0.086887, alpha: 1),
+        dark: RGBA(red: 0.968717, green: 0.555447, blue: 0.391636, alpha: 1)
+      ),
+      onAccent: ThemedColor(
+        light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      accentSubtle: ThemedColor(
+        light: RGBA(red: 0.611374, green: 0.224522, blue: 0.077832, alpha: 0.14),
+        dark: RGBA(red: 0.956711, green: 0.496236, blue: 0.331674, alpha: 0.16)
+      ),
+      accentCounter: ThemedColor(
+        light: RGBA(red: 0.611374, green: 0.224522, blue: 0.077832, alpha: 1),
+        dark: RGBA(red: 0.956711, green: 0.496236, blue: 0.331674, alpha: 1)
+      ),
+      onAccentCounter: ThemedColor(
+        light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      surfaceBrand: Colors.surfacePage
+    )
+
+    public static let blacksand = BrandAccent(
+      accent: ThemedColor(
+        light: RGBA(red: 0.280604, green: 0.280604, blue: 0.280604, alpha: 1),
+        dark: RGBA(red: 0.71834, green: 0.71834, blue: 0.71834, alpha: 1)
+      ),
+      accentHover: ThemedColor(
+        light: RGBA(red: 0.198916, green: 0.198916, blue: 0.198916, alpha: 1),
+        dark: RGBA(red: 0.818727, green: 0.818727, blue: 0.818727, alpha: 1)
+      ),
+      accentPressed: ThemedColor(
+        light: RGBA(red: 0.140871, green: 0.140871, blue: 0.140871, alpha: 1),
+        dark: RGBA(red: 0.596461, green: 0.596461, blue: 0.596461, alpha: 1)
+      ),
+      accentText: ThemedColor(
+        light: RGBA(red: 0.259762, green: 0.259762, blue: 0.259762, alpha: 1),
+        dark: RGBA(red: 0.768227, green: 0.768227, blue: 0.768227, alpha: 1)
+      ),
+      onAccent: ThemedColor(
+        light: RGBA(red: 0.960587, green: 0.960587, blue: 0.960587, alpha: 1),
+        dark: RGBA(red: 0.051758, green: 0.051758, blue: 0.051758, alpha: 1)
+      ),
+      accentSubtle: ThemedColor(
+        light: RGBA(red: 0.280604, green: 0.280604, blue: 0.280604, alpha: 0.1),
+        dark: RGBA(red: 0.71834, green: 0.71834, blue: 0.71834, alpha: 0.14)
+      ),
+      accentCounter: ThemedColor(
+        light: RGBA(red: 0.280604, green: 0.280604, blue: 0.280604, alpha: 1),
+        dark: RGBA(red: 0.71834, green: 0.71834, blue: 0.71834, alpha: 1)
+      ),
+      onAccentCounter: ThemedColor(
+        light: RGBA(red: 0.960587, green: 0.960587, blue: 0.960587, alpha: 1),
+        dark: RGBA(red: 0.051758, green: 0.051758, blue: 0.051758, alpha: 1)
+      ),
+      surfaceBrand: ThemedColor(
+        light: RGBA(red: 0.869817, green: 0.869817, blue: 0.869817, alpha: 1),
+        dark: RGBA(red: 0.094978, green: 0.094978, blue: 0.094978, alpha: 1)
+      )
+    )
+
+    public static let portfolio = BrandAccent(
+      accent: ThemedColor(
+        light: RGBA(red: 0.095645, green: 0.398221, blue: 0.351196, alpha: 1),
+        dark: RGBA(red: 0.374386, green: 0.776447, blue: 0.703504, alpha: 1)
+      ),
+      accentHover: ThemedColor(
+        light: RGBA(red: 0.049002, green: 0.339427, blue: 0.297044, alpha: 1),
+        dark: RGBA(red: 0.48312, green: 0.832589, blue: 0.764724, alpha: 1)
+      ),
+      accentPressed: ThemedColor(
+        light: RGBA(red: 0.019616, green: 0.293007, blue: 0.2548, alpha: 1),
+        dark: RGBA(red: 0.291569, green: 0.672523, blue: 0.60558, alpha: 1)
+      ),
+      accentText: ThemedColor(
+        light: RGBA(red: 0.078689, green: 0.386961, blue: 0.34033, alpha: 1),
+        dark: RGBA(red: 0.423572, green: 0.798101, blue: 0.727778, alpha: 1)
+      ),
+      onAccent: ThemedColor(
+        light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      accentSubtle: ThemedColor(
+        light: RGBA(red: 0.095645, green: 0.398221, blue: 0.351196, alpha: 0.14),
+        dark: RGBA(red: 0.374386, green: 0.776447, blue: 0.703504, alpha: 0.16)
+      ),
+      accentCounter: ThemedColor(
+        light: RGBA(red: 0.730998, green: 0.517204, blue: 0.398176, alpha: 1),
+        dark: RGBA(red: 0.866349, green: 0.670294, blue: 0.563036, alpha: 1)
+      ),
+      onAccentCounter: ThemedColor(
+        light: RGBA(red: 0.137339, green: 0.131893, blue: 0.110948, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      surfaceBrand: Colors.surfacePage
+    )
+
+    public static let n1 = BrandAccent(
+      accent: ThemedColor(
+        light: RGBA(red: 0.24123, green: 0.373291, blue: 0.541349, alpha: 1),
+        dark: RGBA(red: 0.499492, green: 0.681277, blue: 0.914384, alpha: 1)
+      ),
+      accentHover: ThemedColor(
+        light: RGBA(red: 0.206112, green: 0.318339, blue: 0.461317, alpha: 1),
+        dark: RGBA(red: 0.58737, green: 0.743323, blue: 0.944257, alpha: 1)
+      ),
+      accentPressed: ThemedColor(
+        light: RGBA(red: 0.182018, green: 0.275552, blue: 0.394996, alpha: 1),
+        dark: RGBA(red: 0.424112, green: 0.583166, blue: 0.787075, alpha: 1)
+      ),
+      accentText: ThemedColor(
+        light: RGBA(red: 0.228871, green: 0.351172, blue: 0.506973, alpha: 1),
+        dark: RGBA(red: 0.532778, green: 0.706123, blue: 0.92883, alpha: 1)
+      ),
+      onAccent: ThemedColor(
+        light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      accentSubtle: ThemedColor(
+        light: RGBA(red: 0.24123, green: 0.373291, blue: 0.541349, alpha: 0.14),
+        dark: RGBA(red: 0.499492, green: 0.681277, blue: 0.914384, alpha: 0.16)
+      ),
+      accentCounter: ThemedColor(
+        light: RGBA(red: 0.24123, green: 0.373291, blue: 0.541349, alpha: 1),
+        dark: RGBA(red: 0.499492, green: 0.681277, blue: 0.914384, alpha: 1)
+      ),
+      onAccentCounter: ThemedColor(
+        light: RGBA(red: 0.974147, green: 0.969008, blue: 0.94867, alpha: 1),
+        dark: RGBA(red: 0.031873, green: 0.029863, blue: 0.02282, alpha: 1)
+      ),
+      surfaceBrand: Colors.surfacePage
+    )
+  }
+
+  /// N1's fixed-lightness accent. `color` is any hue at the lightness and chroma of a role.
+  /// The web equivalent is `--basalt-accent-h`.
+  public enum N1 {
+    public static let cobaltHue: Double = 255
+    public static let lightAccentL: Double = 0.48
+    public static let lightAccentC: Double = 0.08
+    public static let lightAccentHoverL: Double = 0.43
+    public static let lightAccentHoverC: Double = 0.07
+    public static let lightAccentPressedL: Double = 0.39
+    public static let lightAccentPressedC: Double = 0.06
+    public static let lightAccentTextL: Double = 0.46
+    public static let lightAccentTextC: Double = 0.075
+    public static let lightAccentCounterL: Double = 0.48
+    public static let lightAccentCounterC: Double = 0.08
+    public static let darkAccentL: Double = 0.74
+    public static let darkAccentC: Double = 0.1
+    public static let darkAccentHoverL: Double = 0.79
+    public static let darkAccentHoverC: Double = 0.085
+    public static let darkAccentPressedL: Double = 0.66
+    public static let darkAccentPressedC: Double = 0.09
+    public static let darkAccentTextL: Double = 0.76
+    public static let darkAccentTextC: Double = 0.095
+    public static let darkAccentCounterL: Double = 0.74
+    public static let darkAccentCounterC: Double = 0.1
+
+    /// OKLCH to sRGB, matching the CSS and the generated brand colours for in-gamut values.
+    public static func color(lightness l: Double, chroma c: Double, hue h: Double) -> RGBA {
+      let rad = h * .pi / 180
+      let a = c * cos(rad)
+      let b = c * sin(rad)
+      let l_ = l + 0.3963377774 * a + 0.2158037573 * b
+      let m_ = l - 0.1055613458 * a - 0.0638541728 * b
+      let s_ = l - 0.0894841775 * a - 1.2914855480 * b
+      let l3 = l_ * l_ * l_
+      let m3 = m_ * m_ * m_
+      let s3 = s_ * s_ * s_
+      func encode(_ x: Double) -> Double {
+        let v = min(1, max(0, x))
+        return v <= 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1 / 2.4) - 0.055
+      }
+      let red = encode(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3)
+      let green = encode(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3)
+      let blue = encode(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3)
+      return RGBA(red: red, green: green, blue: blue, alpha: 1)
+    }
   }
 
   /// Spacing on a 4pt base: `s4` is 16.
@@ -324,6 +654,7 @@ extension Basalt {
     public static let xl3 = TypeStyle(size: 30, lineHeight: 36, tracking: -0.025)
     public static let xl4 = TypeStyle(size: 40, lineHeight: 44, tracking: -0.03)
     public static let xl5 = TypeStyle(size: 56, lineHeight: 60, tracking: -0.035)
+    public static let label = TypeStyle(size: 12, lineHeight: 16, tracking: 0.06)
   }
 
   /// Geist's three weights. In-between weights render differently on native, so Basalt uses whole steps.
@@ -333,6 +664,11 @@ extension Basalt {
     case semibold = 600
   }
 
+  /// Tracking in em. Label is the uppercase mono eyebrow; it is not a smaller size.
+  public enum Tracking {
+    public static let label: Double = 0.06
+  }
+
   /// Durations in seconds. Exits run at 0.75 of their entry.
   public enum Duration {
     public static let instant: Double = 0
@@ -340,6 +676,10 @@ extension Basalt {
     public static let base: Double = 0.15
     public static let slow: Double = 0.2
     public static let slower: Double = 0.3
+    public static let press: Double = 0.08
+    public static let tick: Double = 0.07
+    public static let spin: Double = 0.64
+    public static let fade: Double = 1.2
   }
 
   /// A cubic Bézier timing curve.
@@ -355,5 +695,6 @@ extension Basalt {
     public static let out = Curve(x1: 0.16, y1: 1, x2: 0.3, y2: 1)
     public static let inOut = Curve(x1: 0.65, y1: 0, x2: 0.35, y2: 1)
     public static let `in` = Curve(x1: 0.4, y1: 0, x2: 1, y2: 1)
+    public static let linear = Curve(x1: 0, y1: 0, x2: 1, y2: 1)
   }
 }

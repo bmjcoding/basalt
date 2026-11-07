@@ -84,7 +84,7 @@
     cursor: pointer;
     text-decoration: none;
     transition-property: background-color, color, box-shadow;
-    transition-duration: var(--basalt-duration-fast);
+    transition-duration: var(--basalt-duration-press);
     transition-timing-function: var(--basalt-ease-out);
   }
 
@@ -97,6 +97,12 @@
   .basalt-button[data-variant="primary"] {
     background: var(--basalt-action-primary);
     color: var(--basalt-action-primary-text);
+  }
+
+  /* Accent is the product hue. Primary stays the neutral action beside it. */
+  .basalt-button[data-variant="accent"] {
+    background: var(--basalt-accent);
+    color: var(--basalt-on-accent);
   }
 
   .basalt-button[data-variant="secondary"] {
@@ -122,6 +128,7 @@
      Never a scale. Only on devices that really hover, so touch doesn't stick. */
   @media (hover: hover) {
     .basalt-button[data-variant="primary"]:hover:not([data-disabled]) { background: var(--basalt-action-primary-hover); }
+    .basalt-button[data-variant="accent"]:hover:not([data-disabled]) { background: var(--basalt-accent-hover); }
     .basalt-button[data-variant="secondary"]:hover:not([data-disabled]) {
       box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-page);
     }
@@ -129,7 +136,9 @@
     .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
   }
 
-  /* A press is one colour step, never a scale. */
+  /* A press bottoms out: darker than rest, in 80ms, never a scale. */
+  .basalt-button[data-variant="primary"]:active:not([data-disabled]) { background: var(--basalt-action-primary-pressed); }
+  .basalt-button[data-variant="accent"]:active:not([data-disabled]) { background: var(--basalt-accent-pressed); }
   .basalt-button[data-variant="secondary"]:active:not([data-disabled]),
   .basalt-button[data-variant="ghost"]:active:not([data-disabled]),
   .basalt-button[data-variant="danger"]:active:not([data-disabled]) {
@@ -138,7 +147,8 @@
 
   /* Disabled keeps its variant's shape, so it reads as the same control, unavailable. */
   .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
-  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); }
+  .basalt-button[data-variant="primary"][data-disabled],
+  .basalt-button[data-variant="accent"][data-disabled] { background: var(--basalt-state-selected); }
   .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
   .basalt-button[data-variant="danger"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
@@ -904,12 +914,74 @@
 
   /* ---- Spinner ---- */
 
-  .basalt-spinner { display: inline-flex; flex: none; color: var(--basalt-text-secondary); }
-  .basalt-spinner svg { animation: basalt-spin 1s linear infinite; }
+  .basalt-spinner { display: inline-flex; flex: none; align-items: center; color: var(--basalt-text-secondary); }
+  .basalt-spinner[data-variant="ring"] svg { animation: basalt-spin var(--basalt-duration-spin) var(--basalt-ease-linear) infinite; }
+  .basalt-spinner[data-variant="braille"] {
+    font-family: var(--basalt-font-family-mono);
+    font-size: var(--basalt-text-base-size);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .basalt-spinner[data-variant="dots"] { gap: var(--basalt-space-0-5); }
+  .basalt-spinner[data-variant="dots"] span {
+    width: var(--basalt-space-1);
+    height: var(--basalt-space-1);
+    border-radius: var(--basalt-radius-full);
+    background: currentColor;
+    animation: basalt-dot var(--basalt-duration-spin) var(--basalt-ease-in-out) infinite;
+  }
+  .basalt-spinner[data-variant="dots"] span:nth-child(2) { animation-delay: var(--basalt-duration-tick); }
+  .basalt-spinner[data-variant="dots"] span:nth-child(3) { animation-delay: calc(var(--basalt-duration-tick) * 2); }
 
   @keyframes basalt-spin {
     to { transform: rotate(360deg); }
   }
+
+  @keyframes basalt-dot {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+
+  /* ---- Number ticker ---- */
+
+  .basalt-ticker { display: inline-flex; align-items: flex-end; font-family: var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; }
+  .basalt-ticker-visual { display: inline-flex; align-items: flex-end; }
+  .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; }
+  .basalt-ticker-strip {
+    display: flex;
+    flex-direction: column;
+    transform: translateY(calc(var(--_d, 0) * -1em));
+    transition: transform var(--basalt-duration-slow) var(--basalt-ease-out);
+  }
+  .basalt-ticker-strip > span { display: block; height: 1em; line-height: 1; }
+  .basalt-ticker-char { line-height: 1; }
+
+  /* ---- Eyebrow, tabular figures, brand ground, chart grammar ---- */
+
+  .basalt-eyebrow {
+    margin: 0;
+    font-family: var(--basalt-font-family-mono);
+    font-size: var(--basalt-text-label-size);
+    font-weight: var(--basalt-font-weight-medium);
+    line-height: var(--basalt-text-label-line-height);
+    letter-spacing: var(--basalt-text-label-tracking);
+    text-transform: uppercase;
+    color: var(--basalt-text-secondary);
+  }
+  .basalt-tabular { font-variant-numeric: tabular-nums; }
+  .basalt-brand-surface {
+    background: var(--basalt-surface-brand);
+    color: var(--basalt-text-primary);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline);
+  }
+  .basalt-chart { display: flex; flex-direction: column; gap: var(--basalt-space-3); margin: 0; min-width: 0; }
+  .basalt-chart > svg { display: block; width: 100%; height: auto; }
+  .basalt-chart-legend { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3); margin: 0; padding: 0; list-style: none; color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-chart-legend li { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-chart-swatch { width: var(--basalt-size-dot); height: var(--basalt-size-dot); flex: none; }
+  .basalt-chart-swatch[data-kind="plan"] { background: var(--basalt-chart-plan-fill); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-chart-plan); }
+  .basalt-chart-swatch[data-kind="observation"] { border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observation); }
+  .basalt-chart-swatch[data-kind="missing"] { background: var(--basalt-surface-sunken); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-chart-missing); }
 
   /* ---- Skeleton ---- */
 
@@ -1220,7 +1292,10 @@
     .basalt-popover[data-starting-style],
     .basalt-popover[data-ending-style] { transform: none; }
     /* the spinner and indeterminate bar still have to show work happening: a slow fade, no movement */
-    .basalt-spinner svg { animation: basalt-pulse 1.2s ease-in-out infinite alternate; }
+    .basalt-spinner[data-variant="ring"] svg,
+    .basalt-spinner[data-variant="dots"] { animation: basalt-pulse var(--basalt-duration-fade) var(--basalt-ease-in-out) infinite alternate; }
+    .basalt-spinner[data-variant="dots"] span { animation: none; opacity: 1; }
+    .basalt-ticker-strip { transition: none; }
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse 1.2s ease-in-out infinite alternate; }
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }

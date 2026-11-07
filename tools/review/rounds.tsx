@@ -73,6 +73,7 @@ import { ROUND_4 } from "./round4";
 import { ROUND_5 } from "./round5";
 import { ROUND_6 } from "./round6";
 import { ROUND_7 } from "./round7";
+import { ROUND_8 } from "./round8";
 
 export interface Step {
   id: string;
@@ -364,7 +365,7 @@ const ROUND_1: Round = {
       name: "Card",
       intro: "A raised surface grouping one thing: a sandbox, a metric, a setting.",
       decisions: ["A hairline only: no shadow, no top highlight, no coloured edge. Footer actions sit right."],
-      tryIt: ["Switch themes: in light mode the white card lifts off the #fafafa page without a shadow."],
+      tryIt: ["Switch themes: in light mode the raised card lifts off the warm paper page without a shadow."],
       demo: () => (
         <Card style={{ maxWidth: 420 }}>
           <CardHeader>
@@ -586,4 +587,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8];

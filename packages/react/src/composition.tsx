@@ -65,10 +65,25 @@ export interface TextProps extends React.ComponentProps<"p"> {
   tone?: TextTone;
   weight?: TextWeight;
   mono?: boolean;
+  /** Tabular figures, for columns of numbers. */
+  tabular?: boolean;
 }
 
-export function Text({ as = "p", size = "base", tone = "primary", weight = "regular", mono = false, className, style, ...props }: TextProps) {
-  return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, className: join("basalt-text", className), style: { ...typeStyle(size, weight), ...style } });
+export function Text({ as = "p", size = "base", tone = "primary", weight = "regular", mono = false, tabular = false, className, style, ...props }: TextProps) {
+  return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, className: join("basalt-text", tabular && "basalt-tabular", className), style: { ...typeStyle(size, weight), ...style } });
+}
+
+/** A mono, uppercase, tracked label. 12px, which is the floor for reading text. */
+export function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
+  return <p {...props} className={join("basalt-eyebrow", className)} />;
+}
+
+/**
+ * The product ground. For Blacksand this is the flat backlight panel. It is not a control style:
+ * buttons, fields and menus stay on the normal surfaces.
+ */
+export function BrandSurface({ className, ...props }: React.ComponentProps<"div">) {
+  return <div {...props} className={join("basalt-brand-surface", className)} />;
 }
 
 export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {

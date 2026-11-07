@@ -10,12 +10,14 @@ import {
   Accordion,
   AccordionItem,
   Callout,
+  ChartGrammar,
   CodeBlock,
   Popover,
   PopoverContent,
   PopoverDescription,
   PopoverTitle,
   PopoverTrigger,
+  NumberTicker,
   Progress,
   Skeleton,
   Spinner,
@@ -29,6 +31,7 @@ import {
   ToastProvider,
   useToast,
   Badge,
+  BrandSurface,
   Button,
   Card,
   CardContent,
@@ -38,6 +41,7 @@ import {
   CardTitle,
   Dialog,
   DialogActions,
+  Eyebrow,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -67,6 +71,7 @@ import {
   Tabs,
   TabsList,
   TabsPanel,
+  Text,
   Tooltip,
   TooltipProvider,
 } from "../src/index";
@@ -81,6 +86,16 @@ const RUNS = [
   { id: "run-0141", agent: "codex", time: "2m 50s", commit: "9c04e1d", status: "warning" as const, label: "Building" },
   { id: "run-0140", agent: "claude", time: "11m 03s", commit: "5be7a90", status: "danger" as const, label: "Error" },
 ];
+
+function TickerDemo() {
+  const [value, setValue] = React.useState(1284);
+  return (
+    <div className="row">
+      <NumberTicker value={value} />
+      <Button onClick={() => setValue((n) => n + 1)}>Add a run</Button>
+    </div>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -448,6 +463,21 @@ function App() {
             <IconButton icon={MagnifyingGlassIcon} label="Search" />
             <IconButton icon={DotsThreeIcon} label="More actions" />
           </div>
+        </Section>
+
+        <Section title="Craft">
+          <Eyebrow>Instrument</Eyebrow>
+          <div className="row">
+            <Button variant="accent">Mark</Button>
+            <Spinner variant="dots" label="Loading marks" />
+            <Spinner variant="braille" label="Loading runs" />
+          </div>
+          <TickerDemo />
+          <BrandSurface style={{ padding: 16 }}>
+            <Eyebrow>Blacksand ground</Eyebrow>
+            <Text tabular>1,284 runs</Text>
+          </BrandSurface>
+          <ChartGrammar />
         </Section>
       </main>
      </ToastProvider>

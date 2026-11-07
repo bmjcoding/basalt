@@ -1,7 +1,10 @@
 # Review the Basalt completion stack
 
-The completion work is proposed as three focused stages. Each has a signed commit and is
-reviewable independently of later work. The original unsigned source/patch bundle remains
+Rounds 5–7 have since merged to main, through PR #9. This page describes that stack as it
+was reviewed. It is not a list of open proposals. The mineral redesign is a later change;
+its decisions are in [foundations](foundations.md), [brands](brands.md) and the changelog.
+
+The completion work shipped as three stages. The original unsigned source/patch bundle remains
 an archived pre-PR backup; it does not describe the current Git state.
 
 | Stage | PR / branch | Review scope |

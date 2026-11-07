@@ -7,6 +7,15 @@ a:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-bor
 
 .wt { max-width: 1160px; margin: 0 auto; padding: var(--basalt-space-8) var(--basalt-space-6) var(--basalt-space-16); }
 .wt-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--basalt-space-4); flex-wrap: wrap; }
+.wt-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--basalt-space-3); }
+.wt-brands { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1); }
+.wt-hue { display: inline-flex; align-items: center; gap: var(--basalt-space-2); color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); letter-spacing: var(--basalt-text-label-tracking); text-transform: uppercase; }
+.wt-specimen { display: flex; flex-direction: column; gap: var(--basalt-space-4); max-width: 640px; }
+.wt-specimen h3 { margin: 0; font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); }
+.wt-specimen p { margin: 0; color: var(--basalt-text-secondary); }
+.wt-specimen-instrument { font-family: "Instrument Serif", Georgia, serif; }
+.wt-specimen-newsreader { font-family: Newsreader, Georgia, serif; }
+.wt-specimen-fraunces { font-family: Fraunces, Georgia, serif; }
 .wt-eyebrow { font-size: var(--basalt-text-sm-size); color: var(--basalt-text-secondary); }
 .wt-title { margin: var(--basalt-space-1) 0 0; font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); font-weight: var(--basalt-font-weight-semibold); }
 .wt-summary { max-width: 720px; margin: var(--basalt-space-3) 0 var(--basalt-space-8); color: var(--basalt-text-secondary); }

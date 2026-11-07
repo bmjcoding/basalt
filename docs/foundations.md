@@ -5,8 +5,8 @@ The decisions under every Basalt component, and why each was made. The values li
 and change the reason here.
 
 Basalt is one system for every SRA Syndicate product: Blacksand, srasyndicate.io,
-baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through
-its own accent, in a few named roles, and nowhere else.
+baileymjones.com, N1 and what comes after. The foundation is one warm mineral neutral.
+A product adds colour through its own accent, in a few named roles, and nowhere else.
 
 ## Principles
 
@@ -24,31 +24,34 @@ its own accent, in a few named roles, and nowhere else.
 ## Colour
 
 All colours are OKLCH and inside sRGB, so every display shows the same colour. The neutrals
-are achromatic (no tint) and named by HSL lightness: `neutral-4` is `#0a0a0a`.
+are a warm mineral ramp: hue 95, chroma about 0.005 to 0.013. Keys such as `neutral-95`
+are OKLCH lightness × 100, not HSL percent. The page is volcanic in the dark (`#080806`,
+not pure black) and warm paper in the light (`#f2f0e7`, not `#fafafa`). Every surface is
+its own step. The full brand palettes and measured contrast are in [brands.md](brands.md).
 
 ### Surfaces
 
 | Role | Dark | Light | Use |
 |---|---|---|---|
-| `surface-page` | `#000` | `#fafafa` | The page, and app sidebars |
-| `surface-raised` | `#0a0a0a` | `#fff` | Cards, tables, secondary buttons |
-| `surface-overlay` | `#111111` | `#fff` | Menus, popovers, selects |
-| `surface-top` | `#171717` | `#fff` | Tooltips, toasts, the selected pill in a segmented control |
-| `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells, code blocks |
-| `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks |
+| `surface-page` | `#080806` | `#f2f0e7` | The page, and app sidebars. Darkest of the raised layers. |
+| `surface-sunken` | `#100f0c` | `#ebe9e0` | Wells and code blocks. Darker than a card, lighter than the dark page. |
+| `surface-sunken-strong` | `#161613` | `#e5e3d9` | Table headers, segmented-control tracks. |
+| `surface-raised` | `#1d1c19` | `#f8f7f2` | Cards, tables, secondary buttons. |
+| `surface-overlay` | `#252421` | `#fbfaf7` | Menus, popovers, selects. |
+| `surface-top` | `#2d2c28` | `#fefdfb` | Tooltips, toasts, the selected pill in a segmented control. |
+| `surface-brand` | the page | the page | Product ground. Blacksand replaces it with a flat backlight. Controls never use it. |
 
-Dark steps up from true black in small increments, as Linear does. Nothing above the page
-is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
-off and lag when they turn back on). Light sits the page just below white, as Vercel does,
-so white cards lift without a shadow.
+Nothing is pure black or pure white. Dark steps up from a volcanic near-black so large
+surfaces are not fully off on OLED. Light sits the page on warm paper so a raised card
+lifts without a shadow. Raised, overlay and top are three different steps in both themes.
 
 ### Text
 
 | Role | Dark | Light | Worst case on any surface |
 |---|---|---|---|
-| `text-primary` | `#ededed` | `#171717` | 15.3:1 / 15.7:1 |
-| `text-secondary` | `#a1a1a1` | `#4d4d4d` | 6.9:1 / 7.4:1 |
-| `text-tertiary` | `#858585` | `#6b6b6b` | 4.86:1 / 4.68:1 |
+| `text-primary` | `#edebe5` | `#23221c` | 11.8:1 / 12.4:1 |
+| `text-secondary` | `#b9b7b2` | `#4f4d47` | 7.0:1 / 6.6:1 |
+| `text-tertiary` | `#9a9893` | `#5f5e57` | 4.87:1 / 5.07:1 |
 | `text-disabled` | `#5c5c5c` | `#a3a3a3` | Exempt (disabled controls only) |
 
 On a hover or selected wash, tertiary text becomes secondary; the wash would take it below
@@ -62,8 +65,17 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   on any background (Vercel's technique). Decorative; it carries no required information.
 - **Input boundary:** 38% white or 45% black, 3.4:1 or better on every surface (WCAG 1.4.11).
   Vercel's inputs measure 1.35:1, and Linear's borders 1.3:1; neither passes.
-- **Focus:** a 2px outline with a 2px offset in the secondary text colour, 6.9:1 or better.
-  Outlines survive Windows forced-colours mode; box-shadow rings don't.
+- **Focus:** a 2px outline with a 2px offset in `accent-text`, which follows `data-brand`
+  and stays at least 4.5:1 on every surface (so it also clears 3:1). Outlines survive
+  Windows forced-colours mode; box-shadow rings don't.
+- **Accent:** `accent`, `accent-hover`, `accent-pressed`, `accent-subtle`, `on-accent` and
+  `accent-text`, plus `accent-counter` for a second small colour. The default is mineral
+  Basalt, distinct from the neutral primary action. `data-brand` selects `sra` (ember),
+  `blacksand` (no hue; a neutral highlight), `n1` (cobalt, or any hue at fixed lightness
+  and chroma via `--basalt-accent-h`) or `portfolio` (teal, with a peach counter).
+- **Status:** danger is rose (hue 8), warning is yellow (hue 102–105), success is green
+  (hue 152). They stay at least 24° from ember, teal, peach and cobalt. Danger is still
+  text plus a hairline, never a fill.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
   surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected tab or segment is a raised pill with a hairline, not a wash: a wash
   alone is about 1.2:1 and fails 1.4.11.
@@ -81,8 +93,10 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
   colours its title.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm 2s pulse; spinners turn once a second. Under reduced motion
-  they fade or hold still.
+  `surface-placeholder` and a calm 2s pulse. The ring spinner turns in 640ms, the braille
+  frame steps every 70ms, and the dots fade on that same turn. Under reduced motion they
+  fade or hold still. A `NumberTicker` rolls tabular digits in 200ms and snaps when motion
+  is reduced; the value is always in the text.
 
 ## Type
 
@@ -130,9 +144,18 @@ steps, so they'd render differently on native.
 | `text-md` | 16 / 24 | −0.005em | Body in docs and marketing |
 | `text-base` | 14 / 20 | 0 | Body and controls in apps |
 | `text-sm` | 13 / 18 | 0 | Menus, tables, sidebars |
-| `text-xs` | 12 / 16 | 0.01em | Labels, captions |
+| `text-xs` | 12 / 16 | 0.01em | Captions |
+| `text-label` | 12 / 16 | 0.06em | Mono uppercase eyebrows. Same size as captions, wider tracking. Nothing smaller. |
 
-Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
+A product view should use the eyebrow, the UI size (`text-base`), one title (`text-2xl`) and
+at most one display size. The 12 and 13 steps both stay: captions and compact controls are
+different jobs. `text-5xl` stays for the rare editorial display and is not a default UI size.
+Tabular numerals (`Text tabular`, or `.basalt-tabular`) for tables, metrics and timestamps.
+Mono for identifiers, code, keys and eyebrows.
+
+Geist and Geist Mono remain the UI faces. Instrument Serif, Newsreader and Fraunces are OFL
+candidates for editorial moments only, shown in [type-specimens.md](type-specimens.md). None
+is the default.
 
 ## Space, size, radius
 
@@ -178,9 +201,8 @@ time; layering support is not a reason to stack unrelated tasks.
 
 Entries ease out with `cubic-bezier(.16, 1, .3, 1)`; exits run at three quarters of their
 entry with `ease-in`. Nothing overshoots: Vercel's overlays overshoot by 10%
-(`cubic-bezier(.175, .885, .32, 1.1)`); Basalt's settle. A press is a one-step colour
-change, never a scale. Under `prefers-reduced-motion`, nothing moves and state changes
-become short fades.
+(`cubic-bezier(.175, .885, .32, 1.1)`); Basalt's settle. A press is a darker colour step in 80ms, never a scale. Under `prefers-reduced-motion`,
+nothing moves and state changes become short fades. Spinners may loop; nothing else does.
 
 ## Icons
 

@@ -66,7 +66,8 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverTitle`, `PopoverDescription`, `PopoverClose` | Anchored details or a short form; Esc returns focus. |
 | `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Set `live` only when it appears in response to something. |
 | `Progress` | Required `label`; `value={null}` for an indeterminate task. |
-| `Spinner`, `Skeleton` | Calm loading states; honour reduced motion. |
+| `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default), `dots`, `braille`. Honour reduced motion. |
+| `Eyebrow`, `BrandSurface`, `ChartGrammar` | Mono uppercase label, the product ground (Blacksand's flat backlight), and the plan/observation/missing chart grammar. |
 | `CodeBlock` | `code`, optional `language`, `title`, `copyable`. Language-aware syntax; exact-text copying and keyboard scrolling. Each language loads on first use: plain text first, colour moments later. For highlighted server-rendered HTML, `await preloadCodeLanguages(["ts", "bash"])` before rendering. |
 | `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. |
 | `Icon`, `Kbd` | `Icon` picks Phosphor's weight by size: Bold at 16px, Regular at 20px and up, Fill when `selected`. |

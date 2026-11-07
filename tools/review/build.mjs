@@ -57,9 +57,19 @@ const rounds = wanted.length ? roundIds.filter((r) => wanted.includes(r)) : roun
 if (!rounds.length) throw new Error(`no such round; rounds are ${roundIds.join(", ")}`);
 
 const font = (file) => fs.readFileSync(path.join(reactPkg, "dist", "fonts", file)).toString("base64");
+const displayFace = (family, file, weight, style) => {
+  const data = fs.readFileSync(path.join(repo, "docs/fonts", file)).toString("base64");
+  return `@font-face{font-family:"${family}";src:url(data:font/woff2;base64,${data}) format("woff2");font-weight:${weight};font-style:${style};font-display:swap}`;
+};
 const css = [
   `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
   `@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
+  displayFace("Instrument Serif", "InstrumentSerif-Regular.woff2", 400, "normal"),
+  displayFace("Instrument Serif", "InstrumentSerif-Italic.woff2", 400, "italic"),
+  displayFace("Newsreader", "Newsreader-Regular.woff2", 400, "normal"),
+  displayFace("Newsreader", "Newsreader-SemiBold.woff2", 600, "normal"),
+  displayFace("Fraunces", "Fraunces-Regular.woff2", 400, "normal"),
+  displayFace("Fraunces", "Fraunces-SemiBold.woff2", 600, "normal"),
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/tokens.css"), "utf8"),
   fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
   fs.readFileSync(path.join(here, "walkthrough.css"), "utf8"),

@@ -1,0 +1,96 @@
+{
+  "$description": "Product accents on the shared mineral core. A brand replaces accent roles only. Blacksand also replaces surface-brand with a flat backlight; controls never use that surface.",
+  "sra": {
+    "$description": "SRA Syndicate. Ember, one hue in two shades.",
+    "light": {
+      "accent": [0.48, 0.14, 39],
+      "accent-hover": [0.43, 0.12, 39],
+      "accent-pressed": [0.38, 0.1, 39],
+      "accent-text": [0.46, 0.13, 39],
+      "on-accent": [0.976, 0.007, 95],
+      "accent-subtle": [0.48, 0.14, 39, 0.14],
+      "accent-counter": [0.48, 0.14, 39],
+      "on-accent-counter": [0.976, 0.007, 95]
+    },
+    "dark": {
+      "accent": [0.72, 0.155, 40],
+      "accent-hover": [0.77, 0.13, 42],
+      "accent-pressed": [0.64, 0.15, 39],
+      "accent-text": [0.75, 0.14, 42],
+      "on-accent": [0.132, 0.005, 95],
+      "accent-subtle": [0.72, 0.155, 40, 0.16],
+      "accent-counter": [0.72, 0.155, 40],
+      "on-accent-counter": [0.132, 0.005, 95]
+    }
+  },
+  "blacksand": {
+    "$description": "Blacksand. No hue. The accent is a neutral backlight highlight. surface-brand is the flat backlight panel.",
+    "light": {
+      "accent": [0.4, 0, 0],
+      "accent-hover": [0.32, 0, 0],
+      "accent-pressed": [0.26, 0, 0],
+      "accent-text": [0.38, 0, 0],
+      "on-accent": [0.97, 0, 0],
+      "accent-subtle": [0.4, 0, 0, 0.1],
+      "accent-counter": [0.4, 0, 0],
+      "on-accent-counter": [0.97, 0, 0],
+      "surface-brand": [0.9, 0, 0]
+    },
+    "dark": {
+      "accent": [0.78, 0, 0],
+      "accent-hover": [0.86, 0, 0],
+      "accent-pressed": [0.68, 0, 0],
+      "accent-text": [0.82, 0, 0],
+      "on-accent": [0.16, 0, 0],
+      "accent-subtle": [0.78, 0, 0, 0.14],
+      "accent-counter": [0.78, 0, 0],
+      "on-accent-counter": [0.16, 0, 0],
+      "surface-brand": [0.21, 0, 0]
+    }
+  },
+  "portfolio": {
+    "$description": "Bailey's portfolio. Teal on the mineral paper, with a peach counter-accent used small.",
+    "light": {
+      "accent": [0.46, 0.075, 180],
+      "accent-hover": [0.41, 0.07, 180],
+      "accent-pressed": [0.37, 0.065, 180],
+      "accent-text": [0.45, 0.075, 180],
+      "on-accent": [0.976, 0.007, 95],
+      "accent-subtle": [0.46, 0.075, 180, 0.14],
+      "accent-counter": [0.66, 0.08, 50],
+      "on-accent-counter": [0.25, 0.01, 95]
+    },
+    "dark": {
+      "accent": [0.76, 0.1, 180],
+      "accent-hover": [0.81, 0.09, 180],
+      "accent-pressed": [0.68, 0.095, 180],
+      "accent-text": [0.78, 0.095, 180],
+      "on-accent": [0.132, 0.005, 95],
+      "accent-subtle": [0.76, 0.1, 180, 0.16],
+      "accent-counter": [0.78, 0.07, 50],
+      "on-accent-counter": [0.132, 0.005, 95]
+    }
+  },
+  "n1": {
+    "$description": "N1. Cobalt unless --basalt-accent-h is set. Lightness and chroma stay fixed so every hue keeps text contrast and stays inside sRGB.",
+    "hue": 255,
+    "light": {
+      "accent": [0.48, 0.08],
+      "accent-hover": [0.43, 0.07],
+      "accent-pressed": [0.39, 0.06],
+      "accent-text": [0.46, 0.075],
+      "on-accent": [0.976, 0.007, 95],
+      "accent-counter": [0.48, 0.08],
+      "on-accent-counter": [0.976, 0.007, 95]
+    },
+    "dark": {
+      "accent": [0.74, 0.1],
+      "accent-hover": [0.79, 0.085],
+      "accent-pressed": [0.66, 0.09],
+      "accent-text": [0.76, 0.095],
+      "on-accent": [0.132, 0.005, 95],
+      "accent-counter": [0.74, 0.1],
+      "on-accent-counter": [0.132, 0.005, 95]
+    }
+  }
+}

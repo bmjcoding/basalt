@@ -429,10 +429,10 @@ html,body{margin:0;height:100%;background:var(--basalt-surface-page)}
 .cover{position:relative;width:960px;height:288px;overflow:hidden;font-family:var(--basalt-font-family-sans)}
 svg{position:absolute;inset:0}
 .ink{fill:var(--basalt-text-primary)}
-.mid{fill:var(--basalt-neutral-63)}
-.deep{fill:var(--basalt-neutral-30)}
+.mid{fill:var(--basalt-text-secondary)}
+.deep{fill:var(--basalt-text-primary)}
 .raised{fill:var(--basalt-text-tertiary)}
-.dot{fill:var(--basalt-neutral-63)}
+.dot{fill:var(--basalt-text-secondary)}
 .dot-on{fill:var(--basalt-surface-page)}
 .tile{rx:var(--basalt-radius-lg)}
 .name{position:absolute;left:48px;bottom:56px;width:440px;margin:0;font-weight:600;font-size:120px;line-height:.92;letter-spacing:-0.035em;color:var(--basalt-text-primary)}

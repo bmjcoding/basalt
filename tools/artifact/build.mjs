@@ -127,9 +127,9 @@ const text = dim("text-").map(([name, value]) => {
   return { name, value, usage: `The ${step} step's ${part.replace("-", " ")}; see the type scale.` };
 });
 const weight = dim("font-weight-").map(([name, value]) => ({ name, value, usage: { regular: "Body text and descriptions.", medium: "Labels, buttons, tabs, table headers.", semibold: "Headings, titles and numbers that lead." }[name.slice(19)] }));
-const DUR_USE = { instant: "Hover-in colour, selection.", fast: "Hover-out, toggles, colour changes.", base: "Tooltips, menus, popovers entering.", slow: "Dialogs and accordions; the tab indicator.", slower: "Sheets and drawers." };
+const DUR_USE = { instant: "Hover-in colour, selection.", fast: "Hover-out, toggles, colour changes.", press: "A button press.", tick: "One frame of the braille spinner.", spin: "One turn of the ring spinner.", fade: "The reduced-motion fade that replaces a moving spinner.", base: "Tooltips, menus, popovers entering.", slow: "Dialogs and accordions; the tab indicator. Also a digit roll.", slower: "Sheets and drawers." };
 const duration = dim("duration-").map(([name, value]) => ({ name, value, usage: `${DUR_USE[name.slice(16)]} Exits run at 0.75 of the entry.` }));
-const easing = dim("ease-").map(([name, value]) => ({ name, value, usage: { out: "Every entry. Settles without overshoot.", "in-out": "Sheets that slide.", in: "Every exit." }[name.slice(12)] }));
+const easing = dim("ease-").map(([name, value]) => ({ name, value, usage: { out: "Every entry. Settles without overshoot.", "in-out": "Sheets that slide.", in: "Every exit.", linear: "Spinners only." }[name.slice(12)] }));
 const layer = dim("layer-").map(([name, value]) => ({ name, value, usage: `Stacking order for ${name.slice(13)} layers.` }));
 
 const TYPE = [

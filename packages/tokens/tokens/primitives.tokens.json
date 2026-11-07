@@ -1,135 +1,342 @@
 {
   "color": {
     "neutral": {
-      "0": {
+      "13": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
-          "hex": "#000000"
-        }
+          "components": [
+            0.132,
+            0.005,
+            95
+          ]
+        },
+        "$description": "Volcanic page. Near-black, not pure black, so OLED pixels are not fully off."
       },
-      "4": {
+      "14": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.1448, 0, 0],
-          "hex": "#0a0a0a"
-        }
+          "components": [
+            0.14,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Light primary action, pressed."
       },
-      "7": {
+      "16": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.1776, 0, 0],
-          "hex": "#111111"
-        }
+          "components": [
+            0.16,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark ink used where a theme needs a step above the page."
       },
-      "9": {
+      "17": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.2046, 0, 0],
-          "hex": "#171717"
-        }
+          "components": [
+            0.168,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark sunken well."
       },
-      "30": {
+      "18": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.4202, 0, 0],
-          "hex": "#4d4d4d"
-        }
+          "components": [
+            0.18,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Light primary action, hover."
       },
-      "36": {
+      "20": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.4748, 0, 0],
-          "hex": "#5c5c5c"
-        }
+          "components": [
+            0.198,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark sunken-strong: table headers and segment tracks."
+      },
+      "23": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.228,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark raised surface."
+      },
+      "24": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.248,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark loading placeholder."
+      },
+      "25": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.25,
+            0.01,
+            95
+          ]
+        },
+        "$description": "Light text and the light primary action."
+      },
+      "26": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.262,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark overlay."
+      },
+      "29": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.292,
+            0.007,
+            95
+          ]
+        },
+        "$description": "Dark top surface: tooltips and the selected pill."
       },
       "42": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.5278, 0, 0],
-          "hex": "#6b6b6b"
-        }
+          "components": [
+            0.42,
+            0.01,
+            95
+          ]
+        },
+        "$description": "Light secondary text."
       },
-      "52": {
+      "48": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.6167, 0, 0],
-          "hex": "#858585"
-        }
+          "components": [
+            0.48,
+            0.01,
+            95
+          ]
+        },
+        "$description": "Light tertiary text."
       },
-      "63": {
+      "50": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.709, 0, 0],
-          "hex": "#a1a1a1"
-        }
+          "components": [
+            0.5,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark disabled text."
       },
-      "64": {
+      "68": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.7155, 0, 0],
-          "hex": "#a3a3a3"
-        }
+          "components": [
+            0.68,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Dark tertiary text."
+      },
+      "70": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.7,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Light disabled text."
+      },
+      "78": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.78,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Dark secondary text."
+      },
+      "86": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.86,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Dark primary action, pressed."
+      },
+      "90": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.9,
+            0.012,
+            95
+          ]
+        },
+        "$description": "Light loading placeholder."
+      },
+      "91": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.914,
+            0.013,
+            95
+          ]
+        },
+        "$description": "Light sunken-strong."
       },
       "93": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.9461, 0, 0],
-          "hex": "#ededed"
-        }
+          "components": [
+            0.932,
+            0.012,
+            95
+          ]
+        },
+        "$description": "Light sunken well."
       },
       "94": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.9551, 0, 0],
-          "hex": "#f0f0f0"
-        }
+          "components": [
+            0.94,
+            0.008,
+            95
+          ]
+        },
+        "$description": "Dark text and the dark primary action."
       },
-      "96": {
+      "95": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.9702, 0, 0],
-          "hex": "#f5f5f5"
-        }
+          "components": [
+            0.953,
+            0.011,
+            95
+          ]
+        },
+        "$description": "Light page. Warm paper, not white."
+      },
+      "97": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.975,
+            0.006,
+            95
+          ]
+        },
+        "$description": "Dark primary action, hover. Warm, not pure white."
       },
       "98": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.9851, 0, 0],
-          "hex": "#fafafa"
-        }
+          "components": [
+            0.976,
+            0.007,
+            95
+          ]
+        },
+        "$description": "Light raised surface, and text on the light primary action."
+      },
+      "99": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [
+            0.986,
+            0.005,
+            95
+          ]
+        },
+        "$description": "Light overlay."
       },
       "100": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
-          "hex": "#ffffff"
-        }
+          "components": [
+            0.994,
+            0.003,
+            95
+          ]
+        },
+        "$description": "Light top surface. Warm, not pure white."
       },
-      "$description": "Achromatic neutrals, named by HSL lightness percent. Only the values the themes use exist."
+      "$description": "Warm mineral neutrals, one hue (95) at very low chroma. Keys are OKLCH lightness × 100, rounded. Not an HSL ramp."
     },
     "white": {
-      "$description": "White at fixed opacities, for washes and hairlines over any dark surface.",
       "6": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
+          "components": [
+            1,
+            0,
+            0
+          ],
           "alpha": 0.06
         }
       },
@@ -137,7 +344,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
+          "components": [
+            1,
+            0,
+            0
+          ],
           "alpha": 0.09
         }
       },
@@ -145,7 +356,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
+          "components": [
+            1,
+            0,
+            0
+          ],
           "alpha": 0.1
         }
       },
@@ -153,7 +368,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
+          "components": [
+            1,
+            0,
+            0
+          ],
           "alpha": 0.145
         },
         "$description": "The hairline: 14.5% white, as #ffffff25."
@@ -162,28 +381,40 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
+          "components": [
+            1,
+            0,
+            0
+          ],
           "alpha": 0.24
         },
         "$description": "Hairline on hover."
       },
-      "38": {
+      "46": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [1, 0, 0],
-          "alpha": 0.38
+          "components": [
+            1,
+            0,
+            0
+          ],
+          "alpha": 0.46
         },
-        "$description": "Input boundary: 3.4:1 or better on every dark surface."
-      }
+        "$description": "Input boundary on dark surfaces: 3.4:1 or better."
+      },
+      "$description": "White at fixed opacities, for washes and hairlines over any dark surface."
     },
     "black": {
-      "$description": "Black at fixed opacities, for washes, hairlines and shadows over any light surface.",
       "4": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.04
         }
       },
@@ -191,7 +422,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.06
         }
       },
@@ -199,7 +434,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.07
         }
       },
@@ -207,7 +446,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.08
         },
         "$description": "The hairline: 8% black, as #00000014."
@@ -216,7 +459,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.1
         }
       },
@@ -224,7 +471,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.16
         },
         "$description": "Hairline on hover."
@@ -233,7 +484,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.18
         }
       },
@@ -241,7 +496,11 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.24
         }
       },
@@ -249,24 +508,36 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.4
         }
       },
-      "45": {
+      "50": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
-          "alpha": 0.45
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "alpha": 0.5
         },
-        "$description": "Input boundary: 3.3:1 or better on every light surface."
+        "$description": "Input boundary on light surfaces: 3.4:1 or better."
       },
       "60": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.6
         }
       },
@@ -274,53 +545,82 @@
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0, 0, 0],
+          "components": [
+            0,
+            0,
+            0
+          ],
           "alpha": 0.8
         }
-      }
+      },
+      "$description": "Black at fixed opacities, for washes, hairlines and shadows over any light surface."
     },
     "status": {
-      "$description": "Inside the sRGB gamut, so every display shows the same colour.",
+      "$description": "Status hues sit clear of ember, teal, peach and cobalt. Danger is rose, warning is yellow, success is green.",
       "danger-dark": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.7, 0.191, 22]
+          "components": [
+            0.76,
+            0.14,
+            8
+          ]
         }
       },
       "success-dark": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.73, 0.211, 148]
+          "components": [
+            0.74,
+            0.18,
+            152
+          ]
         }
       },
       "warning-dark": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.79, 0.171, 70]
+          "components": [
+            0.84,
+            0.175,
+            105
+          ]
         }
       },
       "danger-light": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.55, 0.19, 25]
+          "components": [
+            0.48,
+            0.17,
+            8
+          ]
         }
       },
       "success-light": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.55, 0.159, 148]
+          "components": [
+            0.5,
+            0.13,
+            152
+          ]
         }
       },
       "warning-light": {
         "$type": "color",
         "$value": {
           "colorSpace": "oklch",
-          "components": [0.62, 0.142, 62]
+          "components": [
+            0.52,
+            0.105,
+            102
+          ]
         }
       }
     }
@@ -825,6 +1125,16 @@
         "$type": "fontWeight",
         "$value": 600
       }
+    },
+    "tracking": {
+      "label": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.06,
+          "unit": "em"
+        },
+        "$description": "Tracking for uppercase mono labels. The size stays at the caption step, never under 12px."
+      }
     }
   },
   "text": {
@@ -1057,6 +1367,29 @@
           "unit": "em"
         }
       }
+    },
+    "label": {
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.06,
+          "unit": "em"
+        }
+      }
     }
   },
   "duration": {
@@ -1095,21 +1428,78 @@
         "value": 300,
         "unit": "ms"
       }
+    },
+    "press": {
+      "$type": "duration",
+      "$value": {
+        "value": 80,
+        "unit": "ms"
+      },
+      "$description": "A press. Faster than hover, still an ease-out."
+    },
+    "tick": {
+      "$type": "duration",
+      "$value": {
+        "value": 70,
+        "unit": "ms"
+      },
+      "$description": "One frame of the braille spinner."
+    },
+    "spin": {
+      "$type": "duration",
+      "$value": {
+        "value": 640,
+        "unit": "ms"
+      },
+      "$description": "One turn of the ring spinner. A loop, so it may exceed the 300ms entry budget."
+    },
+    "fade": {
+      "$type": "duration",
+      "$value": {
+        "value": 1200,
+        "unit": "ms"
+      },
+      "$description": "The reduced-motion fade that replaces a spinner. Not shortened when motion is reduced."
     }
   },
   "ease": {
     "$description": "No overshoot anywhere.",
     "out": {
       "$type": "cubicBezier",
-      "$value": [0.16, 1, 0.3, 1]
+      "$value": [
+        0.16,
+        1,
+        0.3,
+        1
+      ]
     },
     "in-out": {
       "$type": "cubicBezier",
-      "$value": [0.65, 0, 0.35, 1]
+      "$value": [
+        0.65,
+        0,
+        0.35,
+        1
+      ]
     },
     "in": {
       "$type": "cubicBezier",
-      "$value": [0.4, 0, 1, 1]
+      "$value": [
+        0.4,
+        0,
+        1,
+        1
+      ]
+    },
+    "linear": {
+      "$type": "cubicBezier",
+      "$value": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "$description": "Spinners only. Entries still ease out."
     }
   },
   "layer": {

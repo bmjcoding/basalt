@@ -5,7 +5,7 @@ import * as React from "react";
 import { Icon } from "./icon";
 import { withClass } from "./utils";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "accent";
 export type ControlSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 type BaseProps = Omit<React.ComponentProps<typeof BaseButton>, "children"> & {

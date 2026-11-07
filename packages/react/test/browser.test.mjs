@@ -643,6 +643,18 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("craft announces loading and the ticker value", async () => {
+      const { page } = await open(theme);
+      assert.equal(await page.getByRole("status", { name: "Loading runs" }).count(), 1);
+      assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
+      const ticker = page.locator(".basalt-ticker .basalt-visually-hidden");
+      assert.equal(await ticker.textContent(), "1,284");
+      await page.getByRole("button", { name: "Add a run" }).click();
+      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-visually-hidden")?.textContent === "1,285");
+      assert.equal(await page.getByRole("img", { name: /fourth day is missing/ }).count(), 1);
+      await page.close();
+    });
+
     test("loading and expansion honour reduced motion", async () => {
       const { page } = await open(theme);
       await page.emulateMedia({ reducedMotion: "reduce" });

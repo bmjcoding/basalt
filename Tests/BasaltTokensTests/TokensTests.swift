@@ -65,6 +65,24 @@ final class TokensTests: XCTestCase {
     }
   }
 
+  func testBrandAccentsMeetAA() {
+    for brand in [Basalt.Brands.basalt, Basalt.Brands.sra, Basalt.Brands.blacksand, Basalt.Brands.n1, Basalt.Brands.portfolio] {
+      check(brand.accentText, atLeast: 4.5, "accent-text")
+      for theme in [\Basalt.ThemedColor.light, \Basalt.ThemedColor.dark] {
+        for fill in [brand.accent, brand.accentHover, brand.accentPressed] {
+          let r = contrast(brand.onAccent[keyPath: theme], fill[keyPath: theme])
+          XCTAssertGreaterThanOrEqual(r, 4.5, "on-accent is \(String(format: "%.2f", r)):1")
+        }
+        let counter = contrast(brand.onAccentCounter[keyPath: theme], brand.accentCounter[keyPath: theme])
+        XCTAssertGreaterThanOrEqual(counter, 4.5, "on-accent-counter is \(String(format: "%.2f", counter)):1")
+      }
+    }
+    let cobalt = Basalt.N1.color(lightness: Basalt.N1.lightAccentL, chroma: Basalt.N1.lightAccentC, hue: Basalt.N1.cobaltHue)
+    XCTAssertEqual(cobalt.red, Basalt.Brands.n1.accent.light.red, accuracy: 0.002)
+    XCTAssertEqual(cobalt.green, Basalt.Brands.n1.accent.light.green, accuracy: 0.002)
+    XCTAssertEqual(cobalt.blue, Basalt.Brands.n1.accent.light.blue, accuracy: 0.002)
+  }
+
   func testScales() {
     XCTAssertEqual(Basalt.Space.s4, 16)
     XCTAssertEqual(Basalt.Size.controlMd, 32)
