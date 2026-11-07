@@ -294,7 +294,8 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   on the selected wash (secondary ink is 4.42:1 there on a touch device, where a press is the only state; primary is
   9.75:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
 - **No danger Button on the bar.** Destructive actions don't belong in global chrome (the owner's rule). Danger
-  text on the bar's hover and pressed washes is 4.32:1 and 3.92:1, below AA; on the bare bar it passes.
+  text on the bar's washes is below AA where the bar sits over a contrasting backdrop: hover 4.32:1 and pressed
+  3.92:1 in dark over white, pressed 4.36:1 in light over black. On the bare bar it passes (5.17:1 and 5.09:1).
 - **Under a dialog's scrim the bar stays filtered.** It is the one blurred surface and the scrim over it is
   unblurred, so the two never stack blur (the council decided this 4-0, and it is what is built).
 - **Use it once per viewport.** This is a usage rule, not a guarantee. Basalt ships one filtered class and

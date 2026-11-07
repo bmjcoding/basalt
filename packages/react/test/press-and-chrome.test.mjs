@@ -20,6 +20,8 @@ after(async () => { await browser?.close(); });
 // is a grouping rule (@media, @supports, @layer) or a style rule with nested rules, and they carry the enclosing style rule's
 // selector down so a nested `&:hover` is reported as `.basalt-menu &:hover`. A walker that stopped at a rule with a
 // `selectorText` was blind to nesting, and one that read only `transform` was blind to the individual `scale` property.
+// Declarations written after a nested rule (`.a { &:hover {} scale: .98; }`) become a `CSSNestedDeclarations` rule with a
+// style and no selector of its own; the walkers read those too, under the enclosing rule's selector.
 
 /** Every rule that sets a backdrop-filter (either spelling) or a filter, as `[kind, full selector]`. */
 function filteredRules() {
@@ -27,7 +29,7 @@ function filteredRules() {
   const walk = (list, parent) => {
     for (const rule of list) {
       const selector = rule.selectorText ? (parent ? `${parent} ${rule.selectorText}` : rule.selectorText) : parent;
-      if (rule.selectorText && rule.style) {
+      if ((rule.selectorText || rule instanceof CSSNestedDeclarations) && rule.style) {
         const backdrop = rule.style.backdropFilter || rule.style.getPropertyValue("-webkit-backdrop-filter");
         if (backdrop && backdrop !== "none") found.push(["backdrop-filter", selector]);
         if (rule.style.filter && rule.style.filter !== "none") found.push(["filter", selector]);
@@ -46,7 +48,7 @@ function scalingOnActive() {
   const walk = (list, parent) => {
     for (const rule of list) {
       const selector = rule.selectorText ? (parent ? `${parent} ${rule.selectorText}` : rule.selectorText) : parent;
-      if (rule.selectorText && rule.style && /:active/.test(selector) && (set(rule.style.transform) || set(rule.style.scale))) found.push(selector);
+      if ((rule.selectorText || rule instanceof CSSNestedDeclarations) && rule.style && /:active/.test(selector) && (set(rule.style.transform) || set(rule.style.scale))) found.push(selector);
       if (rule.cssRules) walk(rule.cssRules, selector);
     }
   };
@@ -60,7 +62,7 @@ function tertiaryInk() {
   const walk = (list, parent) => {
     for (const rule of list) {
       const selector = rule.selectorText ? (parent ? `${parent} ${rule.selectorText}` : rule.selectorText) : parent;
-      if (rule.selectorText && rule.style && /text-tertiary/.test(rule.style.getPropertyValue("color"))) found.push(selector);
+      if ((rule.selectorText || rule instanceof CSSNestedDeclarations) && rule.style && /text-tertiary/.test(rule.style.getPropertyValue("color"))) found.push(selector);
       if (rule.cssRules) walk(rule.cssRules, selector);
     }
   };
@@ -264,6 +266,22 @@ for (const theme of ["dark", "light"]) {
       assert.notDeepEqual(found, [".basalt-button:active:not([data-disabled]):not([data-loading])"]);
       // and the mutation is real, not only visible to the walker: a card really shrinks
       const held = await pressed(page, page.locator('[data-name="card"]'), "scale");
+      assert.equal(held.scale, "0.98", "the injected rule really scales the card");
+      await page.close();
+    });
+
+    test("the guards catch declarations written after a nested rule, which have no selector of their own", async () => {
+      const { page } = await fixturePage(browser, fixture, { theme });
+      await page.addStyleTag({ content: ".basalt-card { &:hover { color: var(--basalt-text-primary); } backdrop-filter: blur(var(--basalt-blur-chrome)); }" });
+      await page.addStyleTag({ content: ".basalt-card:active { &:hover { color: var(--basalt-text-primary); } scale: .98; }" });
+      const filtered = (await page.evaluate(filteredRules)).map(([kind, selector]) => `${kind}: ${selector}`);
+      assert.ok(filtered.includes("backdrop-filter: .basalt-card"), `a trailing backdrop-filter slipped past the guard: ${filtered}`);
+      const scaling = await page.evaluate(scalingOnActive);
+      assert.ok(scaling.includes(".basalt-card:active"), `a trailing scale slipped past the guard: ${scaling}`);
+      // and both mutations are real: the card is blurred, and it shrinks while held
+      const card = page.locator('[data-name="card"]');
+      assert.equal(await card.evaluate((el) => getComputedStyle(el).backdropFilter), "blur(12px)", "the injected rule really blurs the card");
+      const held = await pressed(page, card, "scale");
       assert.equal(held.scale, "0.98", "the injected rule really scales the card");
       await page.close();
     });

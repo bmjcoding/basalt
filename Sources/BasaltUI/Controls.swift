@@ -110,10 +110,12 @@ public struct BasaltButtonStyle: ButtonStyle {
         .background(fill, in: RoundedRectangle(cornerRadius: size.radius))
         .overlay(RoundedRectangle(cornerRadius: size.radius).strokeBorder(edge))
         .basaltFocusRing(focused, radius: size.radius)
-        .contentShape(RoundedRectangle(cornerRadius: size.radius))
-        .onHover { hovered = $0 }
         .scaleEffect(enabled && configuration.isPressed && !reducedMotion ? 0.98 : 1)
         .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isPressed)
+        // The hit shape goes on after the scale: scaleEffect keeps the layout size, so the target stays its full rest size
+        // (44pt on iOS) while the drawn surface shrinks, as the web's pressed ::after does.
+        .contentShape(RoundedRectangle(cornerRadius: size.radius))
+        .onHover { hovered = $0 }
     }
   }
 }
