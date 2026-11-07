@@ -37,7 +37,7 @@ function TickerDemo() {
 export const ROUND_8: Round = {
   id: "8",
   title: "Motion and primitives",
-  pr: "https://github.com/bmjcoding/basalt/pull/12",
+  pr: "https://github.com/bmjcoding/basalt/pull/13",
   summary:
     "Spinners, press, ticker, morphing icons, text that keeps its letters, a breathing chart, a draining toast, and a preview before save. Colours and type are unchanged.",
   steps: [
