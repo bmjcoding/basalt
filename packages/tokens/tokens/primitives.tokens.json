@@ -423,6 +423,22 @@
         "value": 6,
         "unit": "px"
       }
+    },
+    "2-5": {
+      "$type": "dimension",
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      },
+      "$description": "Tailwind's 2.5: horizontal padding of small buttons and text inputs."
+    },
+    "3-5": {
+      "$type": "dimension",
+      "$value": {
+        "value": 14,
+        "unit": "px"
+      },
+      "$description": "Tailwind's 3.5: horizontal padding of large buttons."
     }
   },
   "radius": {
@@ -572,17 +588,228 @@
         "value": 1,
         "unit": "px"
       }
+    },
+    "indicator": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The bar that marks the selected or active item: the active tab, the selected table row."
+    },
+    "track": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      },
+      "$description": "The track of Progress and Slider."
+    },
+    "dot": {
+      "$type": "dimension",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      },
+      "$description": "Status dots and the radio's checked dot."
+    },
+    "choice": {
+      "$type": "dimension",
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      },
+      "$description": "Checkbox and radio box size."
+    },
+    "choice-mark": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "The check glyph inside a checkbox."
+    },
+    "switch-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      },
+      "$description": "Switch track width."
+    },
+    "switch-height": {
+      "$type": "dimension",
+      "$value": {
+        "value": 18,
+        "unit": "px"
+      },
+      "$description": "Switch track height."
+    },
+    "switch-thumb": {
+      "$type": "dimension",
+      "$value": {
+        "value": 14,
+        "unit": "px"
+      },
+      "$description": "Switch thumb diameter."
+    },
+    "kbd": {
+      "$type": "dimension",
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      },
+      "$description": "Keyboard-key height, everywhere a Kbd appears."
+    },
+    "kbd-text": {
+      "$type": "dimension",
+      "$value": {
+        "value": 11,
+        "unit": "px"
+      },
+      "$description": "Kbd glyph size. A component value, not a step of the type scale."
+    },
+    "badge": {
+      "$type": "dimension",
+      "$value": {
+        "value": 22,
+        "unit": "px"
+      },
+      "$description": "Badge height."
+    },
+    "table-row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      },
+      "$description": "Default table row height; compact and touch densities override it."
+    },
+    "command-input": {
+      "$type": "dimension",
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "The command menu's search row."
+    },
+    "code-line-height": {
+      "$type": "dimension",
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      },
+      "$description": "Line height of code blocks, independent of body text."
+    },
+    "underline-offset": {
+      "$type": "dimension",
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      },
+      "$description": "Link underline offset: fixed, so it sits the same under every link."
+    },
+    "slider-length": {
+      "$type": "dimension",
+      "$value": {
+        "value": 180,
+        "unit": "px"
+      },
+      "$description": "Default length of a vertical slider; apps can override it."
+    },
+    "dialog-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "Dialog width, capped by the viewport."
+    },
+    "sheet-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 440,
+        "unit": "px"
+      },
+      "$description": "Side sheet width, capped by the viewport."
+    },
+    "command-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 560,
+        "unit": "px"
+      },
+      "$description": "Command menu width, capped by the viewport."
+    },
+    "toast-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 360,
+        "unit": "px"
+      },
+      "$description": "Toast width, capped by the viewport."
+    },
+    "popover-max": {
+      "$type": "dimension",
+      "$value": {
+        "value": 320,
+        "unit": "px"
+      },
+      "$description": "Popover maximum width."
+    },
+    "tooltip-max": {
+      "$type": "dimension",
+      "$value": {
+        "value": 280,
+        "unit": "px"
+      },
+      "$description": "Tooltip maximum width."
+    },
+    "menu-min": {
+      "$type": "dimension",
+      "$value": {
+        "value": 200,
+        "unit": "px"
+      },
+      "$description": "Menu minimum width."
+    },
+    "select-min": {
+      "$type": "dimension",
+      "$value": {
+        "value": 160,
+        "unit": "px"
+      },
+      "$description": "Select trigger minimum width."
+    },
+    "popup-max-height": {
+      "$type": "dimension",
+      "$value": {
+        "value": 360,
+        "unit": "px"
+      },
+      "$description": "Maximum height of a scrolling popup list, such as the command list."
     }
   },
   "font": {
     "family": {
       "sans": {
         "$type": "fontFamily",
-        "$value": ["Geist", "ui-sans-serif", "system-ui", "sans-serif"]
+        "$value": [
+          "Geist",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif"
+        ]
       },
       "mono": {
         "$type": "fontFamily",
-        "$value": ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"]
+        "$value": [
+          "Geist Mono",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace"
+        ]
       }
     },
     "weight": {

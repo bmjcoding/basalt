@@ -7,15 +7,20 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "lint": "stylelint \"packages/react/src/styles/**/*.css\" && node scripts/check-deps.mjs",
     "build": "npm run build -w packages/tokens && npm run build -w packages/react",
     "test": "npm test -w packages/tokens && npm test -w packages/react",
     "artifact": "node tools/artifact/build.mjs && node tools/artifact/check.mjs",
     "review": "node tools/review/build.mjs",
     "test:packages": "node scripts/verify-packages.mjs",
     "typecheck:review": "tsc -p tools/review/tsconfig.json",
-    "check": "npm test && npm run artifact && npm run typecheck:review && npm run test:packages"
+    "check": "npm run lint && npm test && npm run artifact && npm run typecheck:review && npm run test:packages"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "stylelint": "17.16.0"
   }
 }

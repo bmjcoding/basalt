@@ -1,0 +1,127 @@
+# Working on Basalt
+
+Rules for any coding agent (Claude, Codex or another) working in this repository. They
+exist because work has gone wrong here before: design decisions made without review,
+another system's colours copied, and 1 MB of dependencies shipped to every app. Read
+`docs/foundations.md` before changing anything visual; it is the contract.
+
+## Who decides what
+
+Basalt has one owner (Bailey) and a design panel of two independent design reviewers.
+
+- **Visual and design-token changes are decided before they are built.** That means:
+  any colour, type, spacing, radius, motion or shadow; a new component or variant; a
+  change to how a component looks or behaves; any edit to `docs/foundations.md` beyond
+  fixing a fact. The order is: the panel reviews (each designer on their own first,
+  then converged), then the owner approves the proposal with previews. If you can't
+  reach the panel, stop and say so. Don't decide alone, and don't build on an
+  undecided proposal.
+- **The panel is two separate reviewer sessions.** The agent doing the work convenes them
+  on the owner's behalf, but never plays either reviewer and never substitutes its own
+  judgment, even when the owner has handed a decision to "the panel" or "the council".
+  Handing a decision to the panel means asking the panel, not deciding.
+  Each reviewer gets the brief alone, never the other's answer, until the convergence
+  round; otherwise the reviews aren't independent.
+  Nothing counts as converged until both reviewers have answered in their own words, and
+  the PR quotes each reviewer's final position as written, not merged into a summary.
+- **The owner's word is in the conversation or on the PR.** A merge of a PR means
+  approval to go ahead with what it described, nothing more.
+- **Where the line falls.** A change that alters any rendered pixel is visual, even inside
+  a refactor, and even when it only snaps a raw value to a token. A new token is design,
+  even when its value already exists inline. A new variant, size or state is design. A new
+  prop or API that changes no pixel is engineering, as is a rename with identical output.
+  If `docs/foundations.md` doesn't cover a case, it's a design decision.
+- **Engineering inside the agreed design** (refactors, tests, build, performance,
+  bug fixes that restore documented behaviour) needs no panel. Say in the PR what you
+  changed and why. "Fixing a fact" in foundations means making the text match shipped,
+  approved behaviour.
+- **Never mark your own work as reviewed.** If something skipped review, the PR says
+  so in plain words.
+
+## Design rules (from `docs/foundations.md`)
+
+`docs/foundations.md` wins if this file and it disagree; fix this file.
+
+- **Monochrome.** Colour appears only in named roles: a product's accent, status, and
+  syntax inside code. Never decorative. Colour never carries meaning alone: pair it with
+  a word, icon or shape. Syntax colours never carry status (diff colours are a deferred
+  exception).
+- **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on
+  every surface the pair can appear on, in both themes. Contrast tests prove it; add a
+  pair to them when you add a token.
+- **Borders build structure; shadows are only for things that float.** No top
+  highlights, gradient borders, glow, press-shrink or bounce. Hover brightens text and
+  border slightly.
+- **Danger is text plus a hairline in the danger colour,** never a red fill.
+- **Selected is shown by shape, not a wash alone:** the raised pill with a hairline, or
+  the 2px indicator bar. One state, one look, across components (tabs, segments,
+  pagination, table rows).
+- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up),
+  12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
+  radius is the outer radius minus the padding.
+- **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
+  0.75× with ease-in. Nothing overshoots or loops, except spinners. Under reduced motion,
+  opacity only.
+- **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
+  targets stay at least 44px whatever the density. Text entry is 16px on touch.
+- **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
+  light.
+- **Styling comes from tokens.** No raw colours in component CSS. Lengths come from
+  `--basalt-*` tokens; a raw length needs a lint exception that says why (see Checks).
+- **Don't copy another system's values.** Vercel, Linear, GitHub Primer and the rest
+  can be measured for reference and cited in the panel's reasoning. Their colours,
+  sizes, CSS, icons and assets never land here as-is.
+- **Icons:** Phosphor on the web (Bold at 16, Regular at 20 and up, Fill when selected).
+  On Apple platforms, SF Symbols for system concepts (info, warning, error, success),
+  Phosphor for product concepts. Status icons pair with words.
+- **Type:** Geist and Geist Mono at 400, 500 and 600 only.
+
+## Engineering rules
+
+- **Base UI underneath, our styling on top.** Components wrap Base UI primitives and
+  keep their accessibility behaviour. Styles live in `@layer basalt` so an app's own
+  CSS wins.
+- **No module-scope side effects in `packages/react/src`.** `dist` is one module per
+  source file, and bundlers drop modules nothing imports, but only if loading a module
+  does nothing. Build registries, sets and caches lazily, inside functions.
+- **Heavy dependencies load on demand.** A component that needs a large library
+  imports it dynamically, the way `CodeBlock` loads Shiki and each grammar.
+- **No third-party types in the public API.** Declare our own types for exported
+  signatures, so an app's type-check never compiles a dependency's declarations.
+- **New runtime dependencies need the owner's approval.** Add the package to
+  `dependencies.allowed.json` in the same PR, with the reason; the lint fails until you do.
+- **Tokens are generated.** Edit `packages/tokens/tokens/*.tokens.json`, then
+  `npm run build`. Commit the regenerated `Sources/BasaltTokens/Tokens.swift`; CI fails
+  if it drifts.
+- **Swift can't be compiled here.** The macOS CI job is the only check: push and read
+  it before you call Swift work done.
+
+## Checks
+
+| Command | What it checks | When |
+|---|---|---|
+| `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
+| `npm test` | Token contrast, component behaviour, accessibility (axe) in both themes, bundle size | Before every push |
+| `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+
+`npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
+every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, change it in
+a PR that says why.
+
+A lint exception is a comment on the line before, with a reason:
+`/* stylelint-disable-next-line declaration-property-unit-disallowed-list -- reason */`.
+A disable without a reason fails the lint.
+
+Never skip, weaken or delete a test to get green. Fix the cause.
+
+## Every round ships
+
+1. A branch and a draft PR. The description says what the panel and the owner decided,
+   with links, and anything that skipped review.
+2. Tests for new behaviour, and `npm run check` passing.
+3. A walkthrough and screenshots for the owner: `npm run review -- <round>` writes
+   `basalt-round-<n>-walkthrough.html` and the screenshots zip under `.review/`. Look at
+   your own screenshots first, at 2x in both themes and at 390px wide. Make sure the review
+   page's own CSS can't override `@layer basalt`: a stray unlayered rule there once made
+   correct breadcrumbs look broken.
+4. After merge: republish the hosted reference (`tools/artifact/README.md`).

@@ -1,0 +1,13 @@
+{
+  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies don't ship and aren't listed.",
+  "packages/react": {
+    "@base-ui/react": "Accessible unstyled primitives under every component (foundations: Components).",
+    "@phosphor-icons/react": "The web icon set (foundations: Iconography).",
+    "@srasyndicate/basalt-tokens": "Basalt's own tokens.",
+    "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
+    "react": "Peer: the host app's React.",
+    "react-dom": "Peer: the host app's React DOM."
+  },
+  "packages/tokens": {},
+  "Package.swift": {}
+}
