@@ -1045,10 +1045,6 @@
     from { opacity: 0; }
   }
 
-  @keyframes basalt-glyph-in {
-    from { opacity: 0; transform: translateY(var(--basalt-space-1)); }
-  }
-
   @keyframes basalt-breathe {
     from { opacity: 0.35; }
     to { opacity: 1; }
@@ -1056,8 +1052,23 @@
 
   .basalt-morph { display: block; flex: none; overflow: visible; transform-origin: center; }
   .basalt-morph[data-spin] { transition: transform var(--basalt-duration-slow) var(--basalt-ease-settle); }
-  .basalt-text-morph { display: inline; white-space: pre; }
-  .basalt-glyph-in { display: inline-block; animation: basalt-glyph-in var(--basalt-duration-base) var(--basalt-ease-decelerate); }
+  .basalt-text-morph {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    white-space: pre;
+    transition: width var(--basalt-duration-base) var(--basalt-ease-decelerate);
+  }
+  .basalt-text-morph[data-static] { transition: none; }
+  .basalt-text-morph-glyph {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition:
+      transform var(--basalt-duration-base) var(--basalt-ease-decelerate),
+      opacity var(--basalt-duration-base) var(--basalt-ease-decelerate);
+  }
+  .basalt-text-morph[data-static] .basalt-text-morph-glyph { transition: none; }
   .basalt-chart { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
   .basalt-chart-head, .basalt-chart-axis { display: flex; justify-content: space-between; gap: var(--basalt-space-2); }
   .basalt-chart-label { font-weight: var(--basalt-font-weight-medium); }
@@ -1425,8 +1436,9 @@
     .basalt-spinner[data-variant="braille"]::before { animation: none; opacity: 1; }
     .basalt-input, .basalt-textarea { animation: none; }
     .basalt-ticker-strip { transition: none; transform: none; }
-    .basalt-morph[data-spin] { transition: none; }
-    .basalt-glyph-in,
+    .basalt-morph[data-spin],
+    .basalt-text-morph,
+    .basalt-text-morph-glyph { transition: none; }
     .basalt-chart[data-loading] .basalt-chart-line,
     .basalt-toast-drain,
     .basalt-tabs-root[data-direction] .basalt-tabs-panel,

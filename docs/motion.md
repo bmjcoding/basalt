@@ -68,7 +68,7 @@ These follow the posts above. None of the post source is copied. The palette and
 | Piece | What it does | Reduced motion |
 |---|---|---|
 | `MorphIcon` | Three strokes. Unused strokes collapse to points. Arrows, chevrons, and plus/close rotate as a group. | Instant swap |
-| `TextMorph` | Shared letters stay. Changed glyphs move. One polite live region reads the whole string. | The letters change, with no motion |
+| `TextMorph` | Shared letters stay on their measured positions. Leaving letters fade and do not keep their width; the line width eases to the new word. One polite live region reads the whole string. | The letters change, with no motion |
 | Tabs and `Slide` | The new panel enters from the direction you moved. | A short fade |
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
 | `SharedElement` | A `layoutId` travels from its previous place instead of appearing twice. | It is simply in the new place |

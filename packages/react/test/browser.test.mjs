@@ -704,9 +704,37 @@ for (const theme of ["light", "dark"]) {
       await benji.getByRole("button", { name: "Menu icon" }).click();
       assert.equal(await benji.locator(".basalt-morph").first().getAttribute("data-icon"), "close");
       const action = benji.getByRole("button", { name: "Continue" });
+      await action.locator(".basalt-text-morph[data-font='ready']").waitFor();
       assert.equal(await action.locator("[aria-live=polite]").textContent(), "Continue");
-      await action.focus();
-      await page.keyboard.press("Enter");
+      const readGlyphs = () => benji.locator(".basalt-text-morph").first().locator(".basalt-text-morph-glyph").evaluateAll((els) => {
+        const root = els[0]?.parentElement?.parentElement?.getBoundingClientRect();
+        return els.map((el) => {
+          const box = el.getBoundingClientRect();
+          return { t: el.textContent ?? "", x: box.x - (root?.x ?? 0), right: box.right - (root?.x ?? 0), kind: el.getAttribute("data-kind"), pos: getComputedStyle(el).position };
+        });
+      });
+      const before = await readGlyphs();
+      const prefix = ["C", "o", "n"].map((letter) => before.find((glyph) => glyph.t === letter && glyph.kind === "stay"));
+      assert.ok(prefix.every(Boolean), "shared prefix is missing before the morph");
+      await action.click();
+      await page.waitForTimeout(40);
+      const mid = await readGlyphs();
+      for (const letter of prefix) {
+        const again = mid.find((glyph) => glyph.t === letter.t && glyph.kind === "stay");
+        assert.ok(again && Math.abs(again.x - letter.x) < 1, `${letter.t} moved from ${letter.x} to ${again?.x}`);
+      }
+      assert.ok(mid.some((glyph) => glyph.kind === "exit" && glyph.pos === "absolute"), "leaving letters still take layout");
+      assert.ok(mid.every((glyph) => glyph.pos === "absolute"));
+      await page.waitForFunction(() => {
+        const root = document.querySelector("[aria-label='Benji'] .basalt-text-morph");
+        const glyphs = [...(root?.querySelectorAll(".basalt-text-morph-glyph") ?? [])];
+        const text = glyphs.slice().sort((a, b) => a.getBoundingClientRect().x - b.getBoundingClientRect().x).map((glyph) => glyph.textContent).join("");
+        return text === "Confirm" && glyphs.every((glyph) => glyph.getAttribute("data-kind") !== "exit");
+      });
+      const settled = (await readGlyphs()).sort((a, b) => a.x - b.x);
+      for (let index = 1; index < settled.length; index += 1) {
+        assert.ok(settled[index].x >= settled[index - 1].right - 0.5, "settled glyphs overlap");
+      }
       assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Confirm" }).textContent(), "Confirm");
       const next = benji.getByRole("button", { name: "Next" });
       await next.focus();
