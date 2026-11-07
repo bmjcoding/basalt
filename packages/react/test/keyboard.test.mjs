@@ -132,6 +132,12 @@ describe("the reveal", () => {
     ["an arrow", (page) => page.keyboard.press("ArrowDown"), false],
     ["a letter", (page) => page.keyboard.press("k"), false],
     ["Unidentified", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Unidentified", bubbles: true }))), false],
+    ["Unidentified with Control held, composing", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Unidentified", ctrlKey: true, isComposing: true, bubbles: true }))), false],
+    ["Unidentified with Control held", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Unidentified", ctrlKey: true, bubbles: true }))), false],
+    ["Process with Alt held", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Process", altKey: true, bubbles: true }))), false],
+    ["Dead with Command held", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Dead", metaKey: true, bubbles: true }))), false],
+    ["Control held while composing", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, isComposing: true, bubbles: true }))), false],
+    ["Tab while composing", (page) => page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", isComposing: true, bubbles: true }))), false],
   ];
   for (const [name, press, reveals] of cases) {
     test(`${name} ${reveals ? "reveals" : "does not reveal"} the chips`, async () => {

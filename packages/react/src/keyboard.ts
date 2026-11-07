@@ -8,12 +8,17 @@ import * as React from "react";
 
 const KEY = "basalt-keyboard";
 const TOUCH = "(hover: none) and (pointer: coarse)";
-const subscribers = new Set<() => void>();
+// Allocated by the first subscription, never at import.
+let subscribers: Set<() => void> | undefined;
 let installed = false;
 let hardware = false;
 
-/** Tab and Escape, or any key with Command, Control or Alt held. Never Shift alone, an arrow, or "Unidentified". */
-export function isHardwareKey(event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey">): boolean {
+/**
+ * Tab and Escape, or any key with Command, Control or Alt held. Never Shift alone, an arrow, or a key a soft keyboard
+ * or an input method sends: "Unidentified", "Process" and "Dead", or anything while composing, even with a modifier held.
+ */
+export function isHardwareKey(event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey"> & { isComposing?: boolean }): boolean {
+  if (event.isComposing || event.key === "Unidentified" || event.key === "Process" || event.key === "Dead") return false;
   return event.key === "Tab" || event.key === "Escape" || event.metaKey || event.ctrlKey || event.altKey;
 }
 
@@ -22,7 +27,7 @@ function reveal() {
   document.documentElement.dataset.keyboard = "hardware";
   try { sessionStorage.setItem(KEY, "hardware"); } catch { /* storage can be blocked; the page still reveals */ }
   document.removeEventListener("keydown", onKeyDown, { capture: true });
-  for (const notify of subscribers) notify();
+  for (const notify of subscribers ?? []) notify();
 }
 
 function onKeyDown(event: KeyboardEvent) {
@@ -39,10 +44,10 @@ function install() {
 
 function subscribe(notify: () => void) {
   install();
-  subscribers.add(notify);
+  (subscribers ??= new Set()).add(notify);
   const query = window.matchMedia(TOUCH);
   query.addEventListener("change", notify);
-  return () => { subscribers.delete(notify); query.removeEventListener("change", notify); };
+  return () => { subscribers?.delete(notify); query.removeEventListener("change", notify); };
 }
 
 function snapshot() {

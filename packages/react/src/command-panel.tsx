@@ -15,17 +15,21 @@ export interface CommandPanelProps {
   placeholder: string;
   hints: boolean;
   onOpenChange: (open: boolean) => void;
+  /** What was typed into the placeholder search row while this panel loaded. */
+  initialSearch?: string;
 }
 
-export function CommandPanel({ groups, placeholder, hints, onOpenChange }: CommandPanelProps) {
+export function CommandPanel({ groups, placeholder, hints, onOpenChange, initialSearch = "" }: CommandPanelProps) {
   const hintId = React.useId();
+  const [search, setSearch] = React.useState(initialSearch);
   // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
   const chipsShow = useShortcutsVisible();
   return (
     <Command label="Command menu" loop>
       <div className="basalt-command-search">
         <Icon icon={MagnifyingGlassIcon} size={16} />
-        <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} autoFocus />
+        <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
+        <span className="basalt-command-slot" aria-hidden="true" />
       </div>
       <Command.List className="basalt-command-list" label="Commands">
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>

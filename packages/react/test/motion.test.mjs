@@ -83,9 +83,15 @@ describe("MorphIcon", () => {
     await page.evaluate(() => window.show("icon", { name: "menu" }));
     await page.evaluate(() => window.show("icon", { name: "close" }));
     await page.waitForTimeout(70);
-    const shown = await lines(page);
-    await page.evaluate(() => window.show("icon", { name: "check" }));
-    const first = await lines(page);
+    // Read what is on screen, interrupt, and read again in one go: a round trip between the reads is a frame or two of
+    // a morph that is still moving, which the test would count as a jump.
+    const [shown, first] = await page.evaluate(async () => {
+      const read = () => [...document.querySelectorAll(".basalt-morph line")].map((el) => ["x1", "y1", "x2", "y2"].map((a) => Number(el.getAttribute(a))));
+      const before = read();
+      window.show("icon", { name: "check" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return [before, read()];
+    });
     assert.ok(distance(shown, first) < 0.5, `jumped ${distance(shown, first)} units`);
     assert.ok(distance(first, [[5, 7, 19, 7], [5, 12, 19, 12], [5, 17, 19, 17]]) > 1, "it did not go back to the start");
     await page.waitForTimeout(400);

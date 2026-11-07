@@ -26,7 +26,9 @@ function pointY(value: number, ceiling: number) {
   return HEIGHT - 2 - (value / scale) * (HEIGHT - 4);
 }
 
-const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+// Built on first use, not when the module loads.
+let formatter: Intl.NumberFormat | undefined;
+const formatCount = (value: number) => (formatter ??= new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })).format(value);
 
 /**
  * A monochrome line with its latest value, for a live number that needs a shape beside it. While
@@ -69,8 +71,8 @@ export function Sparkline({ data, loading = false, paused = false, label, empty 
           <span>0</span>
           {/* the scale as drawn, frame by frame, as plain figures; the target is what is read */}
           <span>
-            <span className="basalt-visually-hidden">{number.format(peak)}</span>
-            <span aria-hidden="true">{number.format(Math.round(ceiling))}</span>
+            <span className="basalt-visually-hidden">{formatCount(peak)}</span>
+            <span aria-hidden="true">{formatCount(Math.round(ceiling))}</span>
           </span>
         </div>
       ) : null}

@@ -2,6 +2,7 @@
 // declares only its CSS as side effects. Guards the regression where Shiki's grammars (≈1 MB)
 // landed in every bundle, even one importing just Button.
 import assert from "node:assert/strict";
+import nodeFs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,50 @@ async function bundle(name) {
   const used = Object.values(result.metafile.outputs)[0].inputs;
   return { bytes: result.outputFiles[0].contents.length, inputs: Object.keys(used).filter((f) => used[f].bytesInOutput > 0) };
 }
+
+/**
+ * What an app that splits its bundle loads up front for one root import: the entry and every chunk it imports
+ * statically, all the way down (dynamic imports excluded, and React). The entry file alone understates it, because
+ * esbuild moves code shared with a lazy entry into chunks the entry imports.
+ */
+async function graph(name) {
+  const result = await esbuild.build({
+    stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
+    bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, metafile: true,
+    external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+  });
+  const outputs = result.metafile.outputs;
+  const entry = Object.keys(outputs).find((file) => outputs[file].entryPoint === "<stdin>");
+  const seen = new Set();
+  const visit = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path);
+  };
+  visit(entry);
+  const files = [...seen];
+  const inputs = [...new Set(files.flatMap((file) => Object.entries(outputs[file].inputs).filter(([, input]) => input.bytesInOutput > 0).map(([input]) => input)))];
+  return { bytes: files.reduce((sum, file) => sum + outputs[file].bytes, 0), chunks: files.length, inputs, entryBytes: outputs[entry].bytes };
+}
+
+// The whole static chunk graph, under splitting, for single imports. CommandMenu's lazy panel must not drag the
+// keyboard machinery, the icons or anything else into an import that never mentions it.
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 15_000], ["Kbd", 11_000]]) {
+  test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
+    const { bytes, chunks, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
+    if (!["Button", "Kbd"].includes(name)) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), []);
+  });
+}
+
+test("Spinner and Sparkline, with splitting, pull neither the keyboard machinery nor any icon", async () => {
+  for (const name of ["Spinner", "Sparkline"]) {
+    const { inputs } = await graph(name);
+    const own = inputs.filter((f) => /\/dist\/(keyboard|kbd|shortcut|icon)\.js$|@phosphor-icons|\/dist\/command/.test(f));
+    assert.deepEqual(own, [], `${name} loads ${own.join(", ")}`);
+  }
+});
 
 test("Button alone stays small and pulls in neither Shiki nor other Base UI parts", async () => {
   const { bytes, inputs } = await bundle("Button");
@@ -74,6 +119,10 @@ test("CommandMenu loads cmdk and Radix on first open, not with the import", asyn
   const entry = outputs.find((o) => o.file.endsWith("stdin.js"));
   assert.deepEqual(entry.third, [], "cmdk or Radix code is in the initial bundle");
   assert.ok(entry.bytes < 100_000, `initial bundle is ${entry.bytes} bytes`);
+  // not only the entry file: every chunk it imports up front
+  const initial = await graph("CommandMenu");
+  assert.deepEqual(initial.inputs.filter((f) => /node_modules\/(cmdk|@radix-ui)\//.test(f)), [], "cmdk or Radix code is in the initial static graph");
+  assert.ok(initial.bytes < 100_000, `initial static graph is ${initial.bytes} bytes in ${initial.chunks} chunks`);
   const lazy = outputs.filter((o) => o.third.some((f) => f.includes("cmdk")));
   assert.equal(lazy.length, 1, "cmdk arrives in one chunk of its own");
   assert.ok(lazy[0].file.includes("command-panel"), `loaded with ${lazy[0].file}`);
@@ -84,12 +133,62 @@ test("CommandMenu loads cmdk and Radix on first open, not with the import", asyn
 test("no module in dist builds a registry or reads a primitive's part when it loads", async () => {
   const fs = await import("node:fs");
   const dist = path.join(pkg, "dist");
-  const files = [...fs.readdirSync(dist).filter((f) => f.endsWith(".js")).map((f) => path.join(dist, f)), ...fs.readdirSync(path.join(dist, "chunks")).map((f) => path.join(dist, "chunks", f))];
+  const files = fs.readdirSync(dist).filter((f) => f.endsWith(".js")).map((f) => path.join(dist, f));
   assert.ok(files.length > 20);
   const offenders = [];
   for (const file of files) {
+    // command-panel.js is the lazy module: it loads on first open, and its Maps are Phosphor's icon tables, bundled in
+    if (path.basename(file) === "command-panel.js") continue;
     const source = fs.readFileSync(file, "utf8");
-    for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:new (?:Map|Set|WeakMap|WeakSet)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
+    // `var x = /* @__PURE__ */ new Set()` is still an allocation at load
+    for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:\/\*.*?\*\/ )?(?:new (?:Map|Set|WeakMap|WeakSet|Intl\.\w+|RegExp)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
   }
   assert.deepEqual(offenders, []);
+});
+
+// The regex above is a net; this is the behaviour. Loading a module allocates no Set, Map, WeakMap, WeakSet or Intl
+// formatter. React is loaded first, so only our own modules are counted.
+test("importing the keyboard, motion, sparkline and ticker modules allocates no registry or formatter", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const script = `
+    import { pathToFileURL } from "node:url";
+    await import("react"); await import("react/jsx-runtime");
+    const counts = {};
+    const count = (key, Base) => class extends Base { constructor(...args) { super(...args); counts[key] = (counts[key] ?? 0) + 1; } };
+    for (const key of ["Set", "Map", "WeakMap", "WeakSet"]) globalThis[key] = count(key, globalThis[key]);
+    for (const key of ["NumberFormat", "DateTimeFormat"]) Intl[key] = count("Intl." + key, Intl[key]);
+    const dist = process.argv[1];
+    const modules = ["keyboard", "shortcut", "motion", "number-ticker", "sparkline", "spinner", "utils"];
+    for (const name of modules) await import(pathToFileURL(dist + "/" + name + ".js"));
+    console.log(JSON.stringify(counts));
+  `;
+  const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, path.join(pkg, "dist")], { encoding: "utf8", cwd: pkg });
+  assert.deepEqual(JSON.parse(out.trim().split("\n").at(-1)), {});
+});
+
+// A relative specifier that points nowhere is the quietest way to ship a broken package: the module loads, and the lazy
+// import 404s on first use. Every relative import in dist, static or dynamic, names a file that exists.
+test("every relative import in dist resolves to a file in dist", async () => {
+  const fs = await import("node:fs");
+  const dist = path.join(pkg, "dist");
+  const missing = [];
+  for (const name of fs.readdirSync(dist).filter((f) => f.endsWith(".js"))) {
+    const source = fs.readFileSync(path.join(dist, name), "utf8");
+    for (const match of source.matchAll(/(?:from\s*|import\s*\(\s*|^import\s*)"(\.\.?\/[^"]+)"/gm)) {
+      if (!fs.existsSync(path.resolve(dist, match[1]))) missing.push(`${name}: ${match[1]}`);
+    }
+  }
+  assert.deepEqual(missing, []);
+  assert.ok(fs.readdirSync(dist).some((f) => /^command-panel\.js$/.test(f)));
+});
+
+// Phosphor's MIT licence requires its copyright and permission notice with every copy. command-panel.js inlines four of its
+// icons, so it carries the whole notice as a legal comment (/*!), which a consumer's minifier keeps.
+test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal comment, even through a minifier", async () => {
+  const mit = nodeFs.readFileSync(path.join(pkg, "..", "..", "node_modules", "@phosphor-icons", "react", "LICENSE"), "utf8").trim();
+  const source = nodeFs.readFileSync(path.join(pkg, "dist", "command-panel.js"), "utf8");
+  assert.ok(source.includes(mit), "the whole licence text is in the file");
+  assert.match(source, /\/\*! Bundles four icons from @phosphor-icons\/react/);
+  const minified = await esbuild.transform(source, { minify: true, format: "esm", loader: "js", legalComments: "inline" });
+  assert.ok(minified.code.includes(mit), "and survives minification");
 });

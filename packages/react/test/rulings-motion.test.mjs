@@ -190,6 +190,48 @@ describe("Sparkline", () => {
   });
 });
 
+describe("the sparkline headline has one clock", () => {
+  const fixture = `function App(){const[d,s]=React.useState([10,20,50]);window.set=s;return <B.Sparkline label="Runs" data={d}/>}
+    createRoot(document.getElementById("root")).render(<App/>);`;
+
+  test("what is drawn is where the glide puts it: no digit strip is mid-transition, and none outlasts the glide", async () => {
+    const { page } = await fixturePage(browser, fixture);
+    await settle(page);
+    const samples = await page.evaluate(async () => {
+      window.set([10, 20, 20]);
+      const out = [];
+      const start = performance.now();
+      while (performance.now() - start < 420) {
+        const ms = performance.now() - start;
+        const strips = [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((digit) => {
+          const strip = digit.firstElementChild;
+          const drawn = -new DOMMatrix(getComputedStyle(strip).transform).m42 / parseFloat(getComputedStyle(digit).fontSize);
+          return Math.abs(drawn - Number(digit.style.getPropertyValue("--_d")));
+        });
+        out.push({ ms: Math.round(ms), off: Math.max(0, ...strips), transitions: document.getAnimations().filter((a) => a.transitionProperty === "transform").length });
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      return out;
+    });
+    assert.ok(samples.length > 10);
+    for (const sample of samples) {
+      assert.equal(sample.transitions, 0, `a transform transition is running at ${sample.ms}ms`);
+      assert.ok(sample.off < 0.01, `a digit is ${sample.off} digits from its target at ${sample.ms}ms`);
+    }
+    await page.close();
+  });
+
+  test("the ordinary ticker still rolls its digits", async () => {
+    const { page } = await fixturePage(browser, `function App(){const[n,s]=React.useState(10);window.set=s;return <B.NumberTicker value={n}/>}
+      createRoot(document.getElementById("root")).render(<App/>);`);
+    await settle(page);
+    await page.evaluate(() => window.set(29));
+    await page.waitForTimeout(40);
+    assert.ok(await page.evaluate(() => document.getAnimations().some((a) => a.transitionProperty === "transform")), "an ordinary ticker transitions its strip");
+    await page.close();
+  });
+});
+
 describe("the toast drain", () => {
   const toasts = `function Show(){const t=B.useToast();React.useEffect(()=>{t.show({title:"Saved",timeout:5000})},[t]);return null}
     createRoot(document.getElementById("root")).render(<B.ToastProvider><Show/></B.ToastProvider>);`;

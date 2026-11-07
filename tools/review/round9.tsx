@@ -62,6 +62,8 @@ import {
   Tooltip,
   useToast,
 } from "../../packages/react/src/index";
+import { CommandMenuShell } from "../../packages/react/src/command";
+import type { PanelState } from "../../packages/react/src/command";
 import type { Round } from "./rounds";
 
 const col: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 16, alignItems: "flex-start" };
@@ -349,6 +351,27 @@ function CommandDemo({ state }: { state: string }) {
       </Button>
       <Text size="sm" tone="secondary">No animation on open or close, backdrop included.</Text>
       <CommandMenu open={open} onOpenChange={setOpen} groups={COMMANDS} hints />
+    </div>
+  );
+}
+
+// ---- 4b. The command menu while it loads, and when it fails
+
+type CommandStatus = "loading" | "error" | "error-again";
+
+/** The real dialog with a fixed load state: the panel's chunk cannot be held back inside a single-file walkthrough. */
+function CommandStatusDemo({ state }: { state: string }) {
+  const [shown, setShown] = React.useState<CommandStatus | null>(state === "default" ? null : (state as CommandStatus));
+  const status: PanelState = shown === "error" ? { status: "error", failures: 1 } : shown === "error-again" ? { status: "error", failures: 2 } : { status: "loading" };
+  return (
+    <div style={col}>
+      <div style={row}>
+        <Button onClick={() => setShown("loading")}>Loading, after 300ms</Button>
+        <Button onClick={() => setShown("error")}>First failure</Button>
+        <Button onClick={() => setShown("error-again")}>Second failure</Button>
+      </div>
+      <Text size="sm" tone="secondary">Each opens the real command dialog held in that state. Retry does nothing here.</Text>
+      <CommandMenuShell open={shown !== null} onOpenChange={(open) => !open && setShown(null)} groups={COMMANDS} state={status} retry={() => {}} hints />
     </div>
   );
 }
@@ -858,6 +881,20 @@ export const ROUND_9: Round = {
       tryIt: ["Open a menu from each button, in each block.", "Compare how long a held look reads: the press fill held for seconds can look selected."],
       states: ["open-hover", "open-press"],
       demo: ({ state }) => <OpenTriggerDemo state={state} />,
+    },
+    {
+      id: "command-status",
+      name: "CommandMenu loading and error",
+      intro: "Reviewed by the panel (each reviewer on their own, then converged); awaiting the owner. The menu's panel loads on first open, so these are the two states before it arrives.",
+      decisions: [
+        "Loading is the band exactly as it will be: the search icon, the placeholder, the focused input, the same 48px. Typing is kept and becomes the first search. A 16px ring in text-tertiary appears at the band's end only after 300ms of waiting, so a fast load shows no spinner at all.",
+        "The ring is aria-hidden and sits in a slot the ready band also keeps (empty), so nothing moves when loading ends. \"Loading commands\" is the input's description, not a live region, and the dialog is not aria-busy.",
+        "First failure: \"Couldn't load commands.\" in text-primary, then Retry (focused) and Close. The alert is the sentence alone.",
+        "After a second failure the words become \"Still couldn't load commands. Reloading the page usually fixes this.\" and Reload page comes first with focus, because a browser keeps a failed file for the life of the page.",
+      ],
+      tryIt: ["Open each of the three states.", "In the second failure, check that Reload page has focus and comes before Retry."],
+      states: ["loading", "error", "error-again"],
+      demo: ({ state }) => <CommandStatusDemo state={state} />,
     },
   ],
 };
