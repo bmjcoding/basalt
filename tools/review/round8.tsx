@@ -36,6 +36,7 @@ function TickerDemo() {
 export const ROUND_8: Round = {
   id: "8",
   title: "Motion and primitives",
+  pr: "https://github.com/bmjcoding/basalt/pull/12",
   summary:
     "Spinners, a press, a loading button, rolling digits and a copy check. Colours, type and themes are unchanged. A press darkens and scales; reduced motion drops the scale.",
   steps: [
