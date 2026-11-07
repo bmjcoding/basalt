@@ -352,14 +352,23 @@ describe("the palette", () => {
     }
     assert.equal(errors.length, hrefs.length);
     assert.ok(errors.every((e) => /palette link must be relative, http, https or mailto/.test(e)), errors.join("\n"));
-    for (const href of ["#changes", "?page=2", "/other", "https://basalt.test/abs", "http://basalt.test/plain", "mailto:hello@example.com"]) {
-      await page.evaluate((h) => { window.__target = h; window.Basalt.openPalette({ groups: [{ items: [{ label: "Go", href: h }] }] }); }, href);
-      const blocked = errors.length;
-      await Promise.all([page.waitForURL((u) => true, { timeout: 500 }).catch(() => null), page.keyboard.press("Enter")]);
-      assert.equal(errors.length, blocked, `${href} is allowed`);
-      await page.goto("https://basalt.test/");
-    }
     await context.close();
+    // Each allowed link gets its own page, and the test waits for the navigation that link starts. One shared page went
+    // back with goto while a relative link's navigation could still be in flight, which a slow runner turned into an
+    // interrupted goto (the old wait, waitForURL(() => true), matched the current URL and returned at once).
+    for (const href of ["#changes", "?page=2", "/other", "https://basalt.test/abs", "http://basalt.test/plain", "mailto:hello@example.com"]) {
+      const { page, context, errors } = await open("template-static.html");
+      const target = href.startsWith("mailto:") ? null : new URL(href, "https://basalt.test/").href;
+      // A hash link stays in the document, so it changes the URL without a request; mailto leaves the page alone.
+      const navigated = target === null ? null : href.startsWith("#") ? page.waitForURL(target) : page.waitForRequest(target);
+      await page.evaluate((h) => window.Basalt.openPalette({ groups: [{ items: [{ label: "Go", href: h }] }] }), href);
+      await page.keyboard.press("Enter");
+      if (navigated) await navigated; // a refused link starts no navigation, so this wait would time out
+      else await page.waitForTimeout(30);
+      // only the refusal counts: an unserved http:// page can log its own load failure, which says nothing about the palette
+      assert.deepEqual(errors.filter((e) => /palette link must be/.test(e)), [], `${href} is allowed`);
+      await context.close();
+    }
   });
 
   test("a palette that fails to render leaves the page usable: not inert, scrollable, no listener, and the next palette opens", async () => {
