@@ -45,6 +45,10 @@ describe("CommandMenu when its chunk fails", () => {
       if (file === chunk) {
         state.requests += 1;
         if (state.mode === "fail") return void response.writeHead(503).end("unavailable");
+        if (state.mode === "quick") {
+          const body = fs.readFileSync(path.join(dir, file));
+          return void setTimeout(() => response.writeHead(200, { "content-type": "text/javascript" }).end(body), 100);
+        }
         if (state.mode === "slow") {
           const body = fs.readFileSync(path.join(dir, file));
           return void setTimeout(() => response.writeHead(200, { "content-type": "text/javascript" }).end(body), 700);
@@ -75,8 +79,10 @@ describe("CommandMenu when its chunk fails", () => {
       const dialog = page.getByRole("dialog", { name: "Command menu" });
       const alert = dialog.getByRole("alert");
       await alert.waitFor();
-      assert.match(await alert.textContent(), /could not be loaded/);
+      assert.equal(await alert.textContent(), "Couldn't load commands.", "the alert is the sentence alone, without the buttons");
       assert.ok(await dialog.getByRole("button", { name: "Retry" }).isVisible());
+      assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Retry", "Close"], "first failure: Retry, then Close");
+      assert.equal(await alert.evaluate((el) => getComputedStyle(el).color), await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--basalt-text-primary)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }), "the message is text-primary");
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Retry", "focus is on the recovery action");
       await settle(page);
       await page.addScriptTag({ content: axeSource });
@@ -103,11 +109,72 @@ describe("CommandMenu when its chunk fails", () => {
       await page.locator("#trigger").click();
       const dialog = page.getByRole("dialog", { name: "Command menu" });
       await dialog.waitFor();
-      assert.equal(await dialog.getByRole("status").textContent(), "Loading commands");
-      assert.equal(await dialog.getAttribute("aria-busy"), "true");
-      await page.waitForFunction(() => document.querySelector(".basalt-command")?.contains(document.activeElement), null, { timeout: 500 });
-      await page.waitForFunction(() => document.activeElement?.matches(".basalt-command-input"));
+      // the real input is there at once: same placeholder, focused, described as loading, and the dialog is not aria-busy
+      const early = dialog.getByRole("textbox", { name: "Search commands" });
+      await early.waitFor();
+      assert.equal(await early.getAttribute("placeholder"), "Search commands");
+      assert.equal(await page.evaluate(() => document.activeElement?.matches(".basalt-command-input")), true, "focus is in the input while it loads");
+      assert.equal(await early.evaluate((el) => document.getElementById(el.getAttribute("aria-describedby")).textContent), "Loading commands");
       assert.equal(await dialog.getAttribute("aria-busy"), null);
+      assert.equal(await dialog.getByRole("status").count(), 0);
+      assert.equal(await page.locator(".basalt-command-search .basalt-spinner").count(), 0, "no spinner yet: the panel is deciding");
+      // after 300ms of waiting the ring appears, in the slot at the band's end; the input does not move when it does
+      const band = () => page.evaluate(() => {
+        const row = document.querySelector(".basalt-command-search").getBoundingClientRect();
+        const input = document.querySelector(".basalt-command-input").getBoundingClientRect();
+        return { height: row.height, inputLeft: input.left, inputRight: input.right };
+      });
+      const waiting = await band();
+      await page.waitForSelector(".basalt-command-search .basalt-spinner", { timeout: 2000 });
+      const ring = await page.evaluate(() => {
+        const el = document.querySelector(".basalt-command-search .basalt-spinner");
+        const box = el.getBoundingClientRect();
+        const row = document.querySelector(".basalt-command-search").getBoundingClientRect();
+        const text = document.createElement("i"); text.style.color = "var(--basalt-text-tertiary)"; document.body.append(text);
+        const tertiary = getComputedStyle(text).color; text.remove();
+        return { size: [box.width, box.height], aria: el.getAttribute("aria-hidden"), role: el.getAttribute("role"), color: getComputedStyle(el).color, tertiary, atEnd: Math.round(row.right - box.right), rowHeight: row.height };
+      });
+      assert.deepEqual(ring.size, [16, 16]);
+      assert.equal(ring.aria, "true");
+      assert.equal(ring.role, null, "the ring says nothing; the input's description does");
+      assert.equal(ring.color, ring.tertiary, "text-tertiary");
+      assert.equal(ring.atEnd, 16, "at the band's inline end, inside its padding");
+      assert.deepEqual(await band(), waiting, "the ring changes nothing about the band");
+      // what is typed is kept, and is the panel's first search
+      await page.keyboard.type("zz");
+      assert.equal(await early.inputValue(), "zz");
+      await page.waitForFunction(() => document.querySelector(".basalt-command-input")?.closest("[cmdk-root]"), null, { timeout: 4000 });
+      assert.equal(await page.locator(".basalt-command-input").inputValue(), "zz", "the typed text survives the panel arriving");
+      const ready = await band();
+      assert.equal(await page.locator(".basalt-spinner").count(), 0, "the ring is gone when the panel is ready");
+      assert.deepEqual(ready, waiting, "the ready band is the loading band: nothing moved when loading ended");
+      assert.equal(await page.evaluate(() => document.activeElement?.matches(".basalt-command-input")), true);
+      assert.equal(await dialog.getByText("No commands match.").count(), 1, "and it filters");
+      await page.keyboard.press("Backspace");
+      await page.keyboard.press("Backspace");
+      assert.equal(await dialog.getByRole("option", { name: "One" }).count(), 1);
+    } finally {
+      await page.close();
+      await site.close();
+    }
+  });
+
+  test("a load that finishes within 300ms never puts a spinner in the DOM", async () => {
+    const site = await serve("quick");
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    try {
+      await page.addInitScript(() => {
+        window.__rings = 0;
+        new MutationObserver((records) => {
+          for (const record of records) for (const node of record.addedNodes) if (node.nodeType === 1 && (node.matches?.(".basalt-spinner") || node.querySelector?.(".basalt-spinner"))) window.__rings += 1;
+        }).observe(document, { subtree: true, childList: true });
+      });
+      await page.goto(site.url);
+      await page.locator("#trigger").click();
+      await page.waitForFunction(() => document.querySelector(".basalt-command-input")?.closest("[cmdk-root]"));
+      await page.waitForTimeout(500);
+      assert.equal(await page.evaluate(() => window.__rings), 0, "no ring was ever added");
     } finally {
       await page.close();
       await site.close();
@@ -128,6 +195,9 @@ describe("CommandMenu when its chunk fails", () => {
       await dialog.getByRole("button", { name: "Reload page" }).waitFor();
       assert.ok(site.state.requests >= 1);
       assert.equal(await dialog.getByRole("alert").count(), 1);
+      assert.equal(await dialog.getByRole("alert").textContent(), "Still couldn't load commands. Reloading the page usually fixes this.");
+      assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Reload page", "Retry", "Close"], "Reload page first");
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Reload page", "and it has focus");
       await page.keyboard.press("Escape");
       await dialog.waitFor({ state: "hidden" });
     } finally {
@@ -153,16 +223,16 @@ describe("CommandMenu when its chunk fails", () => {
       plugins: [{
         name: "controlled-panel-import",
         setup(build) {
-          build.onLoad({ filter: /dist[\\/]chunks[\\/].*\.js$/ }, (args) => {
+          build.onLoad({ filter: /dist[\\/][^\\/]*\.js$/ }, (args) => {
             const source = fs.readFileSync(args.path, "utf8");
-            if (!source.includes('import("../command-panel.js")')) return undefined;
-            return { contents: source.replace('import("../command-panel.js")', "window.__loadPanel()"), loader: "js" };
+            if (!source.includes('import("./command-panel.js")')) return undefined;
+            return { contents: source.replace('import("./command-panel.js")', "window.__loadPanel()"), loader: "js" };
           });
         },
       }],
     });
     const script = built.outputFiles[0].text;
-    assert.ok(!script.includes("../command-panel.js"), "the fixture replaced the import");
+    assert.ok(!script.includes("./command-panel.js"), "the fixture replaced the import");
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
@@ -180,6 +250,52 @@ describe("CommandMenu when its chunk fails", () => {
       await page.keyboard.press("Enter");
       await dialog.waitFor({ state: "hidden" });
       assert.equal(await page.evaluate(() => window.selected), "one");
+    } finally {
+      await page.close();
+    }
+  });
+
+  test("closing and reopening while one load is still failing counts that failure once: the first message, with Retry focused", async () => {
+    // Both openings subscribe to the one cached request. The abandoned one used to add to the failure count as well,
+    // so the first failure a person saw read as the second ("Still couldn't load...") with Reload page focused.
+    const built = await esbuild.build({
+      stdin: {
+        contents: `import * as React from "react"; import { createRoot } from "react-dom/client"; import * as B from "./dist/index.js";
+          window.calls = 0;
+          window.__loadPanel = () => { window.calls += 1; return new Promise((_, reject) => setTimeout(() => reject(new Error("offline")), 600)); };
+          function App(){const[o,s]=React.useState(false);window.setOpen=s;return <><button id="trigger" onClick={()=>s(true)}>Commands</button><B.CommandMenu open={o} onOpenChange={s} groups={[{label:"Test",commands:[{id:"one",label:"One",onSelect:()=>{}}]}]}/></>}
+          createRoot(document.getElementById("root")).render(<App/>);`,
+        resolveDir: pkg, loader: "tsx",
+      },
+      bundle: true, format: "iife", write: false, jsx: "automatic", platform: "browser", logLevel: "silent",
+      define: { "process.env.NODE_ENV": '"production"' },
+      plugins: [{
+        name: "controlled-panel-import",
+        setup(build) {
+          build.onLoad({ filter: /dist[\\/][^\\/]*\.js$/ }, (args) => {
+            const source = fs.readFileSync(args.path, "utf8");
+            if (!source.includes('import("./command-panel.js")')) return undefined;
+            return { contents: source.replace('import("./command-panel.js")', "window.__loadPanel()"), loader: "js" };
+          });
+        },
+      }],
+    });
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    try {
+      await page.setContent(`<html data-theme="light"><head><style>${css()}</style></head><body><div id="root"></div></body></html>`);
+      await page.addScriptTag({ content: built.outputFiles[0].text });
+      const dialog = page.getByRole("dialog", { name: "Command menu" });
+      await page.locator("#trigger").click();
+      await dialog.waitFor();
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      await page.locator("#trigger").click();
+      await dialog.getByRole("alert").waitFor();
+      assert.equal(await page.evaluate(() => window.calls), 1, "one request served both openings");
+      assert.equal(await dialog.getByRole("alert").textContent(), "Couldn't load commands.");
+      assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Retry", "Close"]);
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Retry");
     } finally {
       await page.close();
     }

@@ -20,21 +20,55 @@ const require = createRequire(import.meta.url);
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
+// Finds an installed package's directory. Some (geist) don't export their package.json, so look for the directory itself.
+const packageDir = (name) => {
+  for (let dir = here; dir !== path.dirname(dir); dir = path.dirname(dir)) {
+    const candidate = path.join(dir, "node_modules", name);
+    if (fs.existsSync(path.join(candidate, "package.json"))) return candidate;
+  }
+  throw new Error(`can't find ${name}; run npm install`);
+};
+
+// The command panel is the one lazy module (CommandMenu loads it on first open), and it is built on its own: the
+// siblings it needs and the four Phosphor icons it draws are inlined into command-panel.js, so it shares no file with
+// the rest of the package. A bundler that finds its dynamic import must make command-panel.js an entry of its own, and
+// every file that entry shares with an ordinary import (utils, icon, kbd, Phosphor's icon base) is merged into one chunk
+// that the ordinary import then loads, whatever it needs: Spinner paid 12.7 KB for a 1 KB component, Skeleton 12 KB.
+// The panel is loaded on demand, so a second copy of those few files costs nothing until a menu opens.
+const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"];
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/command-panel.tsx")],
+  outdir: dist,
+  external: external.filter((name) => !name.startsWith("@phosphor-icons")),
+  // A published component boundary must retain this for React Server Component consumers.
+  // The second comment is a legal comment (/*!): Phosphor's whole MIT notice, which its licence requires beside any copy of the
+  // icons, and which a consumer's minifier keeps.
+  banner: { js: `"use client";\n/*! Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}\n*/` },
+});
+
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
-  entryPoints: fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts")).map((f) => path.join(here, "src", f)),
+  entryPoints: fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx").map((f) => path.join(here, "src", f)),
+  plugins: [{ name: "lazy-panel", setup(build) { build.onResolve({ filter: /^\.\/command-panel$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./command-panel.js", external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
   splitting: true,
-  chunkNames: "chunks/[name]-[hash]",
+  // Beside the entries, not in a folder: the lazy panel is imported as "./command-panel.js" from wherever its importer lands.
+  chunkNames: "[name]-[hash]",
   format: "esm",
   platform: "neutral",
   target: "es2022",
   // A published component boundary must retain this for React Server Component consumers.
   banner: { js: '"use client";' },
   jsx: "automatic",
-  external: ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"],
+  external,
   logLevel: "warning",
 });
 
@@ -43,14 +77,6 @@ execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")),
 const components = fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8");
 
 // Geist Sans and Mono, variable (SIL OFL 1.1, licence shipped beside the files).
-// geist's package.json isn't exported, so find the package directory itself.
-const packageDir = (name) => {
-  for (let dir = here; dir !== path.dirname(dir); dir = path.dirname(dir)) {
-    const candidate = path.join(dir, "node_modules", name);
-    if (fs.existsSync(path.join(candidate, "package.json"))) return candidate;
-  }
-  throw new Error(`can't find ${name}; run npm install`);
-};
 const geist = path.join(packageDir("geist"), "dist", "fonts");
 fs.mkdirSync(path.join(dist, "fonts"), { recursive: true });
 for (const [dir, file] of [["geist-sans", "Geist-Variable.woff2"], ["geist-mono", "GeistMono-Variable.woff2"]]) {

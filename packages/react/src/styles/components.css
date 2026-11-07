@@ -921,13 +921,16 @@
     outline: none;
   }
 
+  /* The band's trailing slot: 16px wide in the loading row (where the ring appears) and in the ready row (where it stays
+     empty), so the input is the same width in both and nothing moves when loading ends. */
+  .basalt-command-slot { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .basalt-command-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-command-list { max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-1-5); }
   .basalt-command-list:empty { display: none; }
   .basalt-command-empty { padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font-size: var(--basalt-text-sm-size); color: var(--basalt-text-secondary); }
   .basalt-command-empty:empty { display: none; }
   .basalt-command-error-actions { display: flex; justify-content: center; gap: var(--basalt-space-2); padding-bottom: var(--basalt-space-4); }
-  .basalt-command-error .basalt-command-empty { padding-bottom: var(--basalt-space-3); }
+  .basalt-command-error .basalt-command-empty { padding-bottom: var(--basalt-space-3); color: var(--basalt-text-primary); }
   .basalt-command-group + .basalt-command-group { margin-top: var(--basalt-space-1-5); }
 
   .basalt-command-footer {
@@ -1077,6 +1080,7 @@
      dot matrix for mono and terminal lines. Both are loops, so they sit outside the entry scale. */
   .basalt-spinner { display: inline-flex; flex: none; align-items: center; color: var(--basalt-text-secondary); }
   .basalt-button .basalt-spinner { color: inherit; }
+  .basalt-command-slot .basalt-spinner { color: inherit; }
   .basalt-spinner[data-variant="ring"] svg { animation: basalt-spin var(--basalt-duration-loop-ring) var(--basalt-ease-linear) infinite; }
 
   /* Ten frames, 530ms, stepped. A dot is lit (full) or unlit (faint); the first frame is the base look, so a
@@ -1203,6 +1207,8 @@
     transform: translateY(calc(var(--_d, 0) * -1em));
     transition: transform var(--basalt-duration-slow) var(--basalt-ease-out);
   }
+  /* A gliding ticker is already easing its value in script; the strip follows that clock and never starts its own. */
+  .basalt-ticker[data-glide] .basalt-ticker-strip { transition: none; }
   .basalt-ticker-strip > span { display: block; height: 1em; line-height: 1; }
   .basalt-ticker-char { line-height: 1; }
   .basalt-tabular { font-variant-numeric: tabular-nums; }

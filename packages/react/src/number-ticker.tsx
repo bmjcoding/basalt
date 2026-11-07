@@ -30,15 +30,17 @@ export function NumberTicker({ value, format, glide = false, className }: Number
 function GlidingTicker({ value, format, className }: Omit<NumberTickerProps, "glide">) {
   // The eased value goes to the formatter as it is: a custom format decides its own rounding.
   const eased = useGlide(value);
-  return <TickerBody value={value} shown={eased} format={format} className={className} />;
+  return <TickerBody value={value} shown={eased} format={format} className={className} glide />;
 }
 
-function TickerBody({ value, shown, format, className }: NumberTickerProps & { shown: number }) {
+// `glide`: the digits follow a value that is already easing, one frame at a time. The strip must not ease them again,
+// or every frame restarts a second transition and the headline outlasts the axis it moves with.
+function TickerBody({ value, shown, format, className, glide }: NumberTickerProps & { shown: number }) {
   const show = format ?? defaultFormat(value);
   const text = show(shown);
   const spoken = show(value);
   return (
-    <span className={join("basalt-ticker", className)}>
+    <span className={join("basalt-ticker", className)} data-glide={glide ? "" : undefined}>
       {/* The real number, always in the text: read aloud, copied, found. Hidden while the strip is drawn;
           under reduced motion it is what shows, in place of the strip. */}
       <span className="basalt-ticker-text basalt-visually-hidden">{spoken}</span>
