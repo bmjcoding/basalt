@@ -79,32 +79,39 @@ describe("MorphIcon", () => {
   const distance = (a, b) => Math.max(...a.flat().map((v, i) => Math.abs(v - b.flat()[i])));
 
   test("an interrupted morph starts from what is on screen, not from where it began", async () => {
-    const { page } = await fixturePage(browser, icon);
+    // The morph steps on requestAnimationFrame and performance.now, so the clock is Playwright's: time moves only on runFor.
+    const { page } = await fixturePage(browser, icon, { clock: true });
     await page.evaluate(() => window.show("icon", { name: "menu" }));
     await page.evaluate(() => window.show("icon", { name: "close" }));
-    await page.waitForTimeout(70);
-    // Read what is on screen, interrupt, and read again in one go: a round trip between the reads is a frame or two of
-    // a morph that is still moving, which the test would count as a jump.
-    const [shown, first] = await page.evaluate(async () => {
-      const read = () => [...document.querySelectorAll(".basalt-morph line")].map((el) => ["x1", "y1", "x2", "y2"].map((a) => Number(el.getAttribute(a))));
-      const before = read();
-      window.show("icon", { name: "check" });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      return [before, read()];
-    });
+    await page.clock.runFor(70);
+    // With time frozen, what is on screen cannot move between reading it, interrupting, and reading again.
+    const shown = await lines(page);
+    assert.ok(distance(shown, [[5, 7, 19, 7], [5, 12, 19, 12], [5, 17, 19, 17]]) > 1, "the morph has not started moving");
+    await page.evaluate(() => window.show("icon", { name: "check" }));
+    const first = await lines(page);
     assert.ok(distance(shown, first) < 0.5, `jumped ${distance(shown, first)} units`);
     assert.ok(distance(first, [[5, 7, 19, 7], [5, 12, 19, 12], [5, 17, 19, 17]]) > 1, "it did not go back to the start");
-    await page.waitForTimeout(400);
+    await page.clock.runFor(400);
     assert.deepEqual(await lines(page), [[5, 13, 10, 18], [10, 18, 19, 7], [10, 18, 10, 18]]);
     await page.close();
   });
 
   test("a morph interrupted part-way through a spin starts from the angle on screen", async () => {
-    const { page } = await fixturePage(browser, icon);
+    // After the interrupt the strokes morph on requestAnimationFrame. On the fake clock no frame runs until runFor, so
+    // nothing can move them between the interrupt and the read (on the real clock a slow runner let one frame through).
+    const { page } = await fixturePage(browser, icon, { clock: true });
     await page.evaluate(() => window.show("icon", { name: "plus" }));
-    await settle(page); // let the plus be drawn once, so the turn to close has a before and an after
+    // Let the plus be drawn once, so the turn to close is a transition from a computed start. settle waits on animation
+    // frames, which the fake clock holds, so force the style instead.
+    await page.locator(".basalt-morph").evaluate((svg) => getComputedStyle(svg).transform);
     await page.evaluate(() => window.show("icon", { name: "close" }));
-    await page.waitForTimeout(40);
+    // The spin is a CSS transition, which runs on the document timeline and not on any fake clock. Hold it at 40ms, so
+    // the angle on screen is a fixed point of the transition and not wherever a slow runner got to.
+    await page.evaluate(() => {
+      const spin = document.querySelector(".basalt-morph").getAnimations().find((a) => a.transitionProperty === "transform");
+      spin.pause();
+      spin.currentTime = 40;
+    });
     const angle = await page.locator(".basalt-morph").evaluate((svg) => { const m = new DOMMatrix(getComputedStyle(svg).transform); return (Math.atan2(m.b, m.a) * 180) / Math.PI; });
     assert.ok(angle > 1 && angle < 44, `the spin is part-way at ${angle}°`);
     await page.evaluate(() => window.show("icon", { name: "check" }));
@@ -112,7 +119,7 @@ describe("MorphIcon", () => {
     const [first] = await lines(page);
     assert.ok(Math.abs(Math.hypot(first[2] - first[0], first[3] - first[1]) - 14) < 0.01);
     const turned = (Math.atan2(first[3] - first[1], first[2] - first[0]) * 180) / Math.PI;
-    assert.ok(Math.abs(turned - angle) < 3, `strokes at ${turned}° against a displayed ${angle}°`);
+    assert.ok(Math.abs(turned - angle) < 0.01, `strokes at ${turned}° against a displayed ${angle}°`);
     await page.close();
   });
 

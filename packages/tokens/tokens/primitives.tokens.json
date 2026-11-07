@@ -1070,6 +1070,17 @@
       }
     }
   },
+  "blur": {
+    "$description": "Backdrop blur. Use the chrome class once per viewport: translucent layers never stack.",
+    "chrome": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "The blur behind a sticky header bar (basalt-chrome), with surface-chrome as its fill. No saturate and no brightness filter. The only blur in Basalt. Web only: native bars use the platform bar material or stay opaque."
+    }
+  },
   "duration": {
     "$description": "Exits run at 0.75 of their entry. Loops (the group at the end) are not entries and are not on this scale.",
     "instant": {

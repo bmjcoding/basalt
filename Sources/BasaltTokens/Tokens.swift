@@ -149,6 +149,12 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
+    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 92%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
+    public static let surfaceChrome = ThemedColor(
+      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.92),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.85)
+    )
+
     /// Skeletons and other loading placeholders: visible on the page in both themes.
     public static let surfacePlaceholder = ThemedColor(
       light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
@@ -251,7 +257,7 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
     )
 
-    /// action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step, never a scale.
+    /// action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step; Button and IconButton also scale to .98.
     public static let actionPrimaryPress = ThemedColor(
       light: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1),
       dark: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1)
@@ -297,6 +303,12 @@ extension Basalt {
     public static let lg: Double = 12
     public static let xl: Double = 16
     public static let full: Double = 9999
+  }
+
+  /// Backdrop blur radii in points. Use the header blur once per screen: translucent layers never stack.
+  public enum Blur {
+    /// The blur behind a sticky header bar (basalt-chrome), with surface-chrome as its fill. No saturate and no brightness filter. The only blur in Basalt. Web only: native bars use the platform bar material or stay opaque.
+    public static let chrome: Double = 12
   }
 
   public enum Size {

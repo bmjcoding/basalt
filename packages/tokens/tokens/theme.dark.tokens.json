@@ -77,6 +77,10 @@
         "$value": "{color.white.8}",
         "$description": "The fill of a keyboard-key chip. No border. Text on it is text-secondary, or text-primary on a hover or selected wash."
       },
+      "chrome": {
+        "$value": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.85 },
+        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #000, at 85%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
+      },
       "placeholder": {
         "$value": "{color.neutral.9}",
         "$description": "Skeletons and other loading placeholders: visible on the page in both themes."
@@ -155,7 +159,7 @@
       },
       "primary-press": {
         "$value": "{color.neutral.75}",
-        "$description": "action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step, never a scale."
+        "$description": "action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step; Button and IconButton also scale to .98."
       },
       "primary-text": {
         "$value": "{color.neutral.0}",

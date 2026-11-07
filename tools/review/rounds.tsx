@@ -75,6 +75,7 @@ import { ROUND_6 } from "./round6";
 import { ROUND_7 } from "./round7";
 import { ROUND_8 } from "./round8";
 import { ROUND_9 } from "./round9";
+import { ROUND_10 } from "./round10";
 
 export interface Step {
   id: string;
@@ -588,4 +589,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9, ROUND_10];
