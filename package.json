@@ -8,14 +8,16 @@
   ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
-    "lint": "stylelint \"packages/react/src/styles/**/*.css\" && node scripts/check-deps.mjs",
-    "build": "npm run build -w packages/tokens && npm run build -w packages/react",
-    "test": "npm test -w packages/tokens && npm test -w packages/react",
+    "lint": "stylelint \"packages/react/src/styles/**/*.css\" \"tools/html-skill/src/*.css\" && node scripts/check-deps.mjs",
+    "build": "npm run build -w packages/tokens && npm run build -w packages/react && node tools/html-skill/build.mjs",
+    "test": "npm test -w packages/tokens && npm test -w packages/react && npm run test:html-skill",
     "artifact": "node tools/artifact/build.mjs && node tools/artifact/check.mjs",
     "review": "node tools/review/build.mjs",
     "test:packages": "node scripts/verify-packages.mjs",
     "typecheck:review": "tsc -p tools/review/tsconfig.json",
-    "check": "npm run lint && npm test && npm run artifact && npm run typecheck:review && npm run test:packages"
+    "check": "npm run lint && npm test && npm run artifact && npm run typecheck:review && npm run test:packages",
+    "test:html-skill": "node --test tools/html-skill/test/*.test.mjs",
+    "html-skill:shots": "node tools/html-skill/shoot.mjs"
   },
   "engines": {
     "node": ">=22"

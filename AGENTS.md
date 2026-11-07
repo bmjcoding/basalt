@@ -115,6 +115,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Swift can't be compiled here.** The macOS CI job is the only check: push and read
   it before you call Swift work done.
 
+## Generating HTML
+
+Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
+dashboard for this project follows `.claude/skills/basalt-html/SKILL.md`: copy a template, inline
+`basalt-html.css` and `basalt-html.js`, no CDN or framework. Its sources are in `tools/html-skill/`;
+edit those and run `npm run build`, never the files in the skill folder.
 
 ## Checks
 
