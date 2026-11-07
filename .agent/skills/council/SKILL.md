@@ -73,3 +73,8 @@ providers, every one at xhigh reasoning effort. Resolve each provider's current 
 - Every member scores out of 10 in every round, design reviews included.
 - `docs/foundations.md` and AGENTS.md stay the contract. The council proposes changes to them; the owner approves with previews in
   both themes before anything merges.
+- Members work in parallel, each in its own worktree, and don't see each other's answers until every independent answer is in.
+  A convergence round then shares them on purpose.
+- The council settles its own splits by majority vote; don't put each split to the owner. A 2–2 tie keeps what is built or already
+  decided. The owner keeps the direction calls (what to build, which logo, scope), sees previews of what the council chose, and can
+  overrule it. The PR records each vote: who voted which way.
