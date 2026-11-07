@@ -1,86 +1,69 @@
 # Motion and primitives
 
-The vocabulary is borrowed from the feel of the X and SpaceXSI sites, not from their brand.
-No xAI type, colour, shimmer, border beam, or gradient text. Measured from production CSS
-on 6 Nov 2026 and folded into Basalt's own tokens.
+The tokens and rules are in [foundations](foundations.md#motion); this page says what each motion
+component does and why. The feel is Basalt's own. Another site's motion was measured for reference,
+cited here by job, and nothing of its CSS, icons, loaders or assets is in this repository.
 
-Sources, as inspiration:
+Measured for reference (production CSS and the designers' own posts, 6 Nov 2026):
 
-- [grok.com](https://grok.com) motion tokens: durations 120 / 180 / 200 / 260 / 320ms, and the curves standard `(.2, 0, 0, 1)`, decelerate `(0, 0, 0, 1)`, accelerate `(.3, 0, 1, 1)`, settle `(.22, 1, .36, 1)`.
-- [x.ai](https://x.ai) tooltip entry (scale .96, 2px, 150ms ease-out), menu entry (scale .95, 4px), and the idea of a dot-grid loader. Basalt's grid walks in its own snake, not that site's sequence.
-- [benji.org/morphing-icons-with-claude](https://benji.org/morphing-icons-with-claude), [family values](https://benji.org/family-values), [liveline](https://benji.org/liveline) and [honkish](https://benji.org/honkish). The ideas are rebuilt here. Benji Taylor is head of design at X and SpaceXSI ([x.com/benjitaylor](https://x.com/benjitaylor)). The command menu uses [cmdk](https://www.npmjs.com/package/cmdk) (MIT). Live preview before save: [the note on X](https://x.com/benjitaylor/status/2116227521645588644).
+- [grok.com](https://grok.com) and [x.ai](https://x.ai): their duration and curve sets, a tooltip and menu entry from a scale of about .95, and the idea of a dot-matrix loader. Basalt uses main's 0 / 100 / 150 / 200 / 300ms scale and its four curves, a popup scale of .98, and a loader drawn as its own SVG.
+- [benji.org/morphing-icons-with-claude](https://benji.org/morphing-icons-with-claude), [family values](https://benji.org/family-values), [liveline](https://benji.org/liveline) and [honkish](https://benji.org/honkish): the ideas behind MorphIcon, TextMorph, Sparkline and the toast drain, rebuilt here. The command menu uses [cmdk](https://www.npmjs.com/package/cmdk) (MIT). Live preview before save: [the note on X](https://x.com/benjitaylor/status/2116227521645588644).
 
-Live demos are review round 8: `npm run review -- 8`.
+The panel's rulings on all of this, and the options it left to the owner, are review round 9: `npm run review -- 9`. The first version, round 8, was built before the panel saw it.
 
-## Durations
-
-Interactive motion under `prefers-reduced-motion` collapses to 90ms, and transforms are removed. Looping indicators do not collapse to 90ms, or they flicker: the ring and the three dots fade on `duration-fade`, and the braille frame and the grid hold still.
+## Durations and curves
 
 | Token | Value | Use |
 |---|---|---|
-| `duration-instant` | 0 | Selection, an instant tooltip |
-| `duration-press` | 80ms | Press in. Release uses `ease-settle` |
-| `duration-fast` | 120ms | Small colour changes |
-| `duration-pop` | 150ms | Tooltip and menu entry |
-| `duration-base` | 180ms | Other entries |
-| `duration-slow` | 200ms | Dialogs and a digit roll |
-| `duration-plate` | 260ms | A larger surface |
-| `duration-slower` | 320ms | Sheets |
-| `duration-frame` | 530ms | One braille cycle, `step-end` |
-| `duration-spin` | 640ms | One ring turn |
-| `duration-grid` | 660ms | One dot-grid cycle |
-| `duration-fade` | 1200ms | Reduced-motion spinner fade |
-| `duration-caret` | 1250ms | Input caret. Solid for 70%, then a short fade |
+| `duration-instant` | 0 | Hover-in colour, selection |
+| `duration-fast` | 100ms | Hover-out, toggles, colour changes |
+| `duration-base` | 150ms | Tooltips, menus, popovers, text morph |
+| `duration-slow` | 200ms | Dialogs, accordions, the tab indicator and panel, a digit roll, the glide, a morph |
+| `duration-slower` | 300ms | Sheets, a travelling spinner |
 
-## Curves
+Under `prefers-reduced-motion`, `duration-base`, `duration-slow` and `duration-slower` are 100ms and nothing moves, grows or travels: state changes become short fades.
 
-| Token | Curve | Use |
+Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 530ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
+
+| Curve | Value | Use |
 |---|---|---|
-| `ease-standard` | `cubic-bezier(.2, 0, 0, 1)` | The press in |
-| `ease-decelerate` | `cubic-bezier(0, 0, 0, 1)` | Tooltips and menus arriving |
-| `ease-accelerate` | `cubic-bezier(.3, 0, 1, 1)` | Those same things leaving |
-| `ease-settle` | `cubic-bezier(.22, 1, .36, 1)` | The press releasing |
-| `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinner loops only |
+| `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and moves that answer input: popups, the tab indicator and panel, a morph, the glide |
+| `ease-in` | `cubic-bezier(.4, 0, 1, 1)` | Exits, at 0.75 of the entry |
+| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows (TravelSpinner only), and loop pulses |
+| `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinner turns |
 
-`ease-out`, `ease-in`, and `ease-in-out` stay at their previous values so older transitions do not jump.
+## Popups, press, copy
+
+A popup (Menu, Select, Combobox, Popover, Tooltip) enters from opacity 0 and scale .98 at the point it grew from (`--transform-origin`), with no translate, over `duration-base` on `ease-out`; it leaves at 0.75 on `ease-in`. Because it scales from its origin it grows away from the trigger on every side. The CommandMenu has no open or close animation at all, its backdrop included.
+
+A press is a colour step, never a scale: the primary fill goes to `action-primary-press`; the other variants go to the selected wash. There is no `basalt-press` utility.
+
+The code-block copy control swaps its Phosphor Copy icon for Check, instantly. The name changes from "Copy code" to "Copied".
 
 ## Spinners
 
 | Variant | Use it |
 |---|---|
-| `ring` | The default arc, including inside a loading button. |
-| `dots` | Three marks in a tight row. |
-| `grid` | A 2×3 field. Dots fade in a snake down the left column and back up the right. |
-| `braille` | Mono and CLI lines. Ten frames, one 530ms cycle, hard `step-end`. |
+| `ring` | The default arc, including inside a loading button. One turn in 640ms. |
+| `braille` | Mono and CLI lines. Basalt's own 2 by 4 dot matrix drawn in SVG, ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 530ms cycle, hard `step-end`. It holds its first frame under reduced motion. |
 
-Pass `label` when the spinner is the status (`role="status"`). Omit it when a word beside it already says so.
+Pass `label` when the spinner is the status (`role="status"`). Omit it when a word beside it already says so. There is no blinking caret: an input keeps the native caret, which follows the system's blink rate and its setting to stop blinking.
 
-## Press, copy, caret
-
-A press darkens the primary fill and scales: .94 on an icon button, .98 on a button, .99 on a menu row. Put `basalt-press` on a card or a custom row for the same .99. Reduced motion keeps the colour step and drops the scale.
-
-The code-block copy control swaps its Phosphor Copy icon for Check, instantly. The name changes from "Copy code" to "Copied".
-
-## Rebuilt from benji.org
-
-These follow the posts above. None of the post source is copied. The palette and type are still Basalt's.
+## Components
 
 | Piece | What it does | Reduced motion |
 |---|---|---|
-| `MorphIcon` | Three strokes. Unused strokes collapse to points. Arrows, chevrons, and plus/close rotate as a group. | Instant swap |
-| `TextMorph` | Shared letters stay on their measured positions. Leaving letters fade and do not keep their width; the line width eases to the new word. One polite live region reads the whole string. | The letters change, with no motion |
-| Tabs and `Slide` | The new panel enters from the direction you moved. | A short fade |
+| `MorphIcon` | Three strokes (2.25 on the 24 grid) that morph at `slow` on `ease-out`. Only shapes Phosphor also draws: menu, close, plus, minus, check, four chevrons, four arrows, so one concept never has two drawings in a UI. Arrows, chevrons and plus/close rotate as a group. | Instant swap |
+| `TextMorph` | For short action labels only ("Save" to "Saved"). Shared letters stay on their measured positions; leaving letters fade; the width eases. One polite live region reads the whole string. | The letters change, with no motion |
+| Tabs and `Slide` | The indicator moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are the same tabs on their side. | A 100ms crossfade; the bar does not move |
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
-| `SharedElement` | A `layoutId` travels from its previous place instead of appearing twice. | It is simply in the new place |
-| `Chart` | A flat line breathes while loading, then eases into the samples. An empty list is a quiet sentence. The range snaps outward. | The line is already the data, or the sentence |
-| `NumberTicker glide` | The visible digits ease about 8% of the way each frame. The readable text is the target. | The target, immediately |
-| `TravelSpinner` | After you accept work, the spinner moves to where that work now lives. | It fades in at the destination |
-| Toast drain | A hairline along the bottom shrinks for the timeout. Hover or focus pauses it. No glow. | The line does not shrink |
-| `CommandMenu` | The same props as before, with cmdk doing filter and keyboard selection. cmdk loads the first time the menu opens, so an app that never opens one does not download it. | No extra motion |
-| `LivePreview` | The draft is shown before Save commits it. | The preview text changes in place |
+| `Sparkline` | A monochrome line and its latest value: not a charting component. A flat line breathes while loading (the one loop here), then eases into the samples. When the range changes the line, the scale and the labels move together over `slow` on `ease-out`; a new peak widens the scale at once. An empty list is a quiet sentence. | Everything snaps |
+| `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |
+| `TravelSpinner` | Opt in. After you accept work, the spinner moves to where that work now lives, by transform on `slower` and `ease-in-out`: the one move between two resting places that the eye has to follow. | It appears at the destination with a 100ms fade |
+| Toast drain | A 1px line, drawn on the straight part of the bottom rim, shrinks for the timeout. Hover, focus and a blurred window pause it with the timers. No glow. | The line is not drawn |
+| `CommandMenu` | cmdk filters and selects. It loads the first time the menu opens, so an app that never opens one does not download it. No open or close animation. | No extra motion |
+| `LivePreview` | The draft is shown in a panel before Save commits it. | The preview text changes in place |
 
-`MorphIcon` includes menu, close, plus, minus, check, play, pause, four arrows, four chevrons, equals, asterisk and external.
-
-Text inputs blink the caret on a 1.25s cycle, opaque for the first 70%. Reduced motion and forced colours leave the caret alone.
+`SharedElement` was withdrawn from the public API by the panel: nothing in Basalt needs an element to keep its identity across places. It remains as an internal module.
 
 `NumberTicker` rolls tabular digits on `duration-slow`. `Text tabular` is the figures without the roll. `loading` on a button keeps the label's width and the variant colour.

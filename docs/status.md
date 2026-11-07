@@ -42,11 +42,20 @@ design decisions have already been approved.
 6. Choose release versioning and distribution before publishing. npm tarballs are local
    adoption artifacts, not a registry release.
 
+## Known defects for the next round
+
+- **Ctrl / Alt / Shift labels off Apple platforms.** Shortcut chips draw the Apple glyphs
+  (⌘ ⌥ ⌃ ⇧) everywhere. Off Apple platforms Ctrl, Alt and Shift should be Geist Mono text
+  ("Ctrl", "Alt", "Shift"), read from the platform after mount. Recorded by the kit panel
+  (owner decision pending); not built.
+
 ## Deliberately outside this pass
 
 Date/calendar/time-zone pickers, uploads, rich text, virtualized data grids and
 full product layouts need concrete product requirements. They are not unfinished pieces
-of the paused session. `Chart` is a monochrome line for a loading morph and a live value,
-not a general chart grammar. Custom 16px product icons and Kotlin output remain future work.
+of the paused session. `Sparkline` (renamed from `Chart`, which was never released) is a
+monochrome line and its latest value, for a live number that needs a shape beside it. It is not
+a charting component and has no general chart grammar. `SharedElement` was withdrawn from the
+public API by the panel and remains an internal module. Custom 16px product icons and Kotlin output remain future work.
 The native core is not a one-for-one port of every web overlay; apps should use platform
 navigation, menus, sheets and alerts with Basalt tokens as their requirements emerge.

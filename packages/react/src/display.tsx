@@ -1,6 +1,9 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import * as React from "react";
 
+import { Kbd } from "./kbd";
+import { inLevel, usePanelLevel } from "./layers";
+import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Side } from "./types";
 import { join } from "./utils";
 
@@ -32,8 +35,10 @@ export function Badge({ status = "neutral", variant = "outline", className, chil
 
 // ---- Card ----
 
-export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div {...props} className={join("basalt-card", className)} />;
+export function Card({ className, children, ...props }: React.ComponentProps<"div">) {
+  // A panel is one level above what it sits in (the page is 0), and 3 is the cap.
+  const level = usePanelLevel();
+  return <div {...props} data-level={level} className={join("basalt-card", className)}>{inLevel(level, children)}</div>;
 }
 
 export function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -64,9 +69,10 @@ export type TableDensity = "compact" | "default" | "comfortable";
  * A data table's frame: rounded, bordered, scrolling sideways when it must. `density` sets
  * the row height: 32px for logs, 40px by default, 44px for touch.
  */
-export function TableContainer({ density = "default", className, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
+export function TableContainer({ density = "default", className, children, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
   // Its own attribute: `data-density` would also reset the size of every control in the table.
-  return <div {...props} data-row-density={density} className={join("basalt-table-container", className)} />;
+  const level = usePanelLevel();
+  return <div {...props} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
 }
 
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
@@ -103,6 +109,8 @@ export interface TooltipProps {
   side?: Side;
   /** Open on first render, e.g. in documentation. Normally tooltips open on hover and focus. */
   defaultOpen?: boolean;
+  /** A real shortcut for the control, shown as chips at the end of the tooltip, e.g. "⌘K". */
+  shortcut?: string;
 }
 
 export interface TooltipProviderProps {
@@ -119,18 +127,28 @@ export function TooltipProvider(props: TooltipProviderProps) {
   return <BaseTooltip.Provider {...props} />;
 }
 
-export function Tooltip({ content, children, side = "top", defaultOpen }: TooltipProps) {
+export function Tooltip({ content, children, side = "top", defaultOpen, shortcut }: TooltipProps) {
   const [open, setOpen] = React.useState(defaultOpen ?? false);
   const id = React.useId();
   const trigger = children as React.ReactElement<{ "aria-describedby"?: string }>;
   // The pinned primitive supplies neither a tooltip role nor its trigger description.
   const description = [trigger.props["aria-describedby"], open ? id : undefined].filter(Boolean).join(" ") || undefined;
+  const keys = shortcut ? shortcutKeys(shortcut) : [];
   return (
     <BaseTooltip.Root open={open} onOpenChange={setOpen}>
-      <BaseTooltip.Trigger render={React.cloneElement(trigger, { "aria-describedby": description })} />
+      <BaseTooltip.Trigger render={React.cloneElement(trigger, { "aria-describedby": description, "aria-keyshortcuts": keys.length ? ariaShortcut(keys) : undefined } as object)} />
       <BaseTooltip.Portal>
         <BaseTooltip.Positioner side={side} sideOffset={6} className="basalt-positioner basalt-tooltip-positioner">
-          <BaseTooltip.Popup id={id} role="tooltip" className="basalt-tooltip">{content}</BaseTooltip.Popup>
+          {/* a tooltip is always level 3: it floats above whatever opened it */}
+          <BaseTooltip.Popup id={id} role="tooltip" data-level={3} className="basalt-tooltip">
+            {content}
+            {shortcut ? (
+              <>
+                <Kbd shortcut aria-hidden="true" className="basalt-tooltip-shortcut">{shortcut}</Kbd>
+                <span className="basalt-visually-hidden"> ({spokenShortcut(keys)})</span>
+              </>
+            ) : null}
+          </BaseTooltip.Popup>
         </BaseTooltip.Positioner>
       </BaseTooltip.Portal>
     </BaseTooltip.Root>

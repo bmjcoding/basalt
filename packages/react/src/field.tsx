@@ -3,7 +3,7 @@ import { Input as BaseInput } from "@base-ui/react/input";
 import * as React from "react";
 
 import type { ControlSize } from "./button";
-import type { ChangeDetails, PartProps } from "./types";
+import type { ChangeDetails, PartProps, ValidateActions } from "./types";
 import { withClass } from "./utils";
 
 export type InputProps = PartProps<"input"> & {
@@ -30,6 +30,8 @@ export interface FieldProps extends Omit<PartProps<"div">, "children"> {
   validate?: (value: unknown, formValues: Record<string, unknown>) => string | string[] | null | void | Promise<string | string[] | null | void>;
   validationMode?: "onSubmit" | "onBlur" | "onChange";
   validationDebounceTime?: number;
+  /** Validate this field on demand: `actionsRef.current?.validate()`. */
+  actionsRef?: React.RefObject<ValidateActions | null>;
   /** The visible label. Every field has one; placeholder text is not a label. */
   label: React.ReactNode;
   /** Help shown under the control, linked to it for screen readers. */

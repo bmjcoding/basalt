@@ -7,7 +7,7 @@ export interface NumberTickerProps {
   value: number;
   /** Shown to everyone, including screen readers. Defaults to a grouped number. */
   format?: (value: number) => string;
-  /** Ease the visible digits toward `value`. The readable text is still the target, once. */
+  /** Ease the visible digits toward `value` (over `slow`, on `ease-out`). The readable text is still the target, once. */
   glide?: boolean;
   className?: string;
 }
@@ -21,7 +21,7 @@ function defaultFormat(value: number) {
   return (shown: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(shown);
 }
 
-/** Rolls each digit into place. Reduced motion snaps. The readable value is always in the text. */
+/** Rolls each digit into place. Under reduced motion it is plain tabular text. The readable value is always in the text. */
 export function NumberTicker({ value, format, glide = false, className }: NumberTickerProps) {
   if (glide) return <GlidingTicker value={value} format={format} className={className} />;
   return <TickerBody value={value} shown={value} format={format} className={className} />;
@@ -39,7 +39,9 @@ function TickerBody({ value, shown, format, className }: NumberTickerProps & { s
   const spoken = show(value);
   return (
     <span className={join("basalt-ticker", className)}>
-      <span className="basalt-visually-hidden">{spoken}</span>
+      {/* The real number, always in the text: read aloud, copied, found. Hidden while the strip is drawn;
+          under reduced motion it is what shows, in place of the strip. */}
+      <span className="basalt-ticker-text basalt-visually-hidden">{spoken}</span>
       <span aria-hidden="true" className="basalt-ticker-visual">
         {Array.from(text).map((character, index) =>
           TICKER_DIGITS.includes(character) ? (

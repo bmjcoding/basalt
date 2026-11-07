@@ -66,11 +66,11 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverTitle`, `PopoverDescription`, `PopoverClose` | Anchored details or a short form; Esc returns focus. |
 | `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Set `live` only when it appears in response to something. |
 | `Progress` | Required `label`; `value={null}` for an indeterminate task. |
-| `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default), `dots`, `grid`, `braille`. `glide` eases a ticker toward its value. Honour reduced motion. |
-| `MorphIcon`, `TextMorph`, `Chart`, `Stepper`, `LivePreview`, `TravelSpinner`, `SharedElement` | Motion primitives. See [docs/motion.md](../../docs/motion.md). |
+| `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default) and `braille`. `glide` eases a ticker toward its value over `slow`. Honour reduced motion. |
+| `MorphIcon`, `TextMorph`, `Sparkline`, `Stepper`, `LivePreview`, `TravelSpinner` | Motion primitives. `Sparkline` is a line and its latest value, not a charting component. See [docs/motion.md](../../docs/motion.md). |
 | `CodeBlock` | `code`, optional `language`, `title`, `copyable`. Language-aware syntax; exact-text copying and keyboard scrolling. Each language loads on first use: plain text first, colour moments later. For highlighted server-rendered HTML, `await preloadCodeLanguages(["ts", "bash"])` before rendering. |
 | `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. |
-| `Icon`, `Kbd` | `Icon` picks Phosphor's weight by size: Bold at 16px, Regular at 20px and up, Fill when `selected`. Every `icon` prop takes any component that accepts `size` and `weight` (Phosphor's do), and Basalt's declarations name no icon or primitive package. |
+| `Icon`, `Kbd` | `Kbd` draws one chip per key from a string (`"⌘K"`), with ⌘ ⌥ ⌃ as Phosphor icons; show real shortcuts only. `Icon` picks Phosphor's weight by size: Bold at 16px, Regular at 20px and up, Fill when `selected`. Every `icon` prop takes any component that accepts `size` and `weight` (Phosphor's do), and Basalt's declarations name no icon or primitive package. |
 
 ## Forms and tasks
 

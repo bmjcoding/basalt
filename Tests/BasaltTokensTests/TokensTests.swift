@@ -65,11 +65,17 @@ final class TokensTests: XCTestCase {
     }
   }
 
+  func testDarkSurfaceLevelsStrictlyIncrease() {
+    let levels = [Basalt.Colors.surface0, Basalt.Colors.surface1, Basalt.Colors.surface2, Basalt.Colors.surface3].map { luminance($0.dark) }
+    XCTAssertEqual(levels, levels.sorted())
+    XCTAssertEqual(Set(levels).count, levels.count, "every level is a distinct step")
+  }
+
   func testScales() {
     XCTAssertEqual(Basalt.Space.s4, 16)
     XCTAssertEqual(Basalt.Size.controlMd, 32)
     XCTAssertEqual(Basalt.TypeScale.base, .init(size: 14, lineHeight: 20, tracking: 0))
-    XCTAssertEqual(Basalt.Duration.fast, 0.12)
+    XCTAssertEqual(Basalt.Duration.fast, 0.1)
     XCTAssertEqual(Basalt.Easing.out.y1, 1, "entries settle without overshoot")
   }
 

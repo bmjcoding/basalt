@@ -32,7 +32,11 @@ public struct BasaltCard<Content: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(Basalt.Space.s4)
       .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.lg))
-      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderHairline.color))
+      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderRim.color))
+      // The rim's top edge is one solid line a little lighter in dark, over the straight part only. No gradient.
+      .overlay(alignment: .top) {
+        Rectangle().fill(Basalt.Colors.borderRimTop.color).frame(height: 1).padding(.horizontal, Basalt.Radius.lg)
+      }
   }
 }
 

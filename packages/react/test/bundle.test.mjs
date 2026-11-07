@@ -35,13 +35,23 @@ test("Menu does not pull in Shiki", async () => {
 
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Kbd", 2_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Chart", 8_000]]) {
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
   });
 }
+
+// Kbd draws ⌘ ⌥ ⌃ as Phosphor's Command, Option and Control, so those three icons come with it. Nothing else:
+// not the rest of Phosphor, and no Base UI.
+test("Kbd alone is small and carries only the three modifier icons", async () => {
+  const { bytes, inputs } = await bundle("Kbd");
+  assert.ok(bytes < 10_000, `Kbd bundle is ${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /@base-ui|cmdk|@radix-ui|shiki/.test(f)), []);
+  const icons = inputs.filter((f) => /@phosphor-icons\/react\/dist\/csr\//.test(f)).map((f) => path.basename(f)).sort();
+  assert.deepEqual(icons, ["Command.es.js", "Control.es.js", "Option.es.js"]);
+});
 
 test("a Tooltip does not pull in Popover, and a Popover does not pull in Tooltip", async () => {
   const tooltip = await bundle("Tooltip");

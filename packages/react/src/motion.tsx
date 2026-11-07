@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import { Spinner } from "./spinner";
-import { join } from "./utils";
 
 /** True after mount when the reader asked for reduced motion. */
 export function useReducedMotion() {
@@ -16,37 +15,87 @@ export function useReducedMotion() {
   return reduced;
 }
 
+// ---- Glide ----
+
+/** [x1, y1, x2, y2] of a cubic-bezier timing curve. */
+export type Curve = readonly [number, number, number, number];
+const EASE_OUT: Curve = [0.16, 1, 0.3, 1];
+const SLOW_MS = 200;
+
+/** The duration and curve a glide runs on are the stylesheet's `slow` and `ease-out`; these are only the fallback. */
+export function glideTiming(): { duration: number; curve: Curve } {
+  const style = getComputedStyle(document.documentElement);
+  const time = /^\s*([\d.]+)(ms|s)\s*$/.exec(style.getPropertyValue("--basalt-duration-slow"));
+  const bezier = /cubic-bezier\(([^)]+)\)/.exec(style.getPropertyValue("--basalt-ease-out"));
+  const numbers = bezier?.[1]?.split(",").map(Number);
+  return {
+    duration: time ? Number(time[1]) * (time[2] === "s" ? 1000 : 1) : SLOW_MS,
+    curve: numbers?.length === 4 && numbers.every(Number.isFinite) ? (numbers as unknown as Curve) : EASE_OUT,
+  };
+}
+
+/** Progress (0 to 1) along a cubic-bezier curve at time `t` (0 to 1). */
+export function bezier([x1, y1, x2, y2]: Curve, t: number) {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const at = (a: number, b: number, s: number) => 3 * a * (1 - s) * (1 - s) * s + 3 * b * (1 - s) * s * s + s * s * s;
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (low + high) / 2;
+    if (at(x1, x2, mid) < t) low = mid;
+    else high = mid;
+  }
+  return at(y1, y2, (low + high) / 2);
+}
+
+export interface EasedOptions {
+  /** A move away from what is drawn that grows (a new peak) can `snap` instead of easing, so it is never clipped. */
+  growth?: "ease" | "snap";
+  /** Hold what is drawn. Resuming eases on from where it stopped. */
+  paused?: boolean;
+}
+
 /**
- * Eases toward `target` by about 8% of the remaining distance each frame.
- * Reduced motion snaps. Screen readers should be given `target`, not this in-between value.
+ * The glide, with its options. Time-based on the stylesheet's `slow` and `ease-out`, so it takes as long
+ * on a 60Hz and a 120Hz screen, and a new target restarts from what is on screen. Reduced motion snaps.
+ * Internal: `useGlide` and Sparkline are what the package exports.
  */
-export function useGlide(target: number, factor = 0.08) {
+export function useEased(target: number, { growth = "ease", paused = false }: EasedOptions = {}) {
   const reduced = useReducedMotion();
   const [value, setValue] = React.useState(target);
-  const valueRef = React.useRef(target);
+  const shown = React.useRef(target);
   React.useEffect(() => {
-    if (reduced) {
-      valueRef.current = target;
+    const snap = reduced || (growth === "snap" && target >= shown.current);
+    if (snap || shown.current === target) {
+      // Paused only holds an ease: a snap still lands, so what is drawn is never stale or clipped.
+      shown.current = target;
       setValue(target);
       return;
     }
+    if (paused) return;
+    const from = shown.current;
+    const { duration, curve } = glideTiming();
+    const start = performance.now();
     let frame = 0;
-    const tick = () => {
-      const current = valueRef.current;
-      const next = current + (target - current) * factor;
-      if (Math.abs(target - next) < Math.max(0.01, Math.abs(target) * 0.001)) {
-        valueRef.current = target;
-        setValue(target);
-        return;
-      }
-      valueRef.current = next;
-      setValue(next);
-      frame = requestAnimationFrame(tick);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      shown.current = t >= 1 ? target : from + (target - from) * bezier(curve, t);
+      setValue(shown.current);
+      if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [target, factor, reduced]);
+  }, [target, reduced, growth, paused]);
   return reduced ? target : value;
+}
+
+/**
+ * Eases toward `target` over `slow` on `ease-out`, the same motion as everything else that answers a
+ * change. Reduced motion snaps. Give screen readers `target`, not this in-between value.
+ */
+export function useGlide(target: number) {
+  return useEased(target);
 }
 
 /** Which way a value moved through an ordered list. Empty until the first change. */
@@ -60,66 +109,6 @@ export function useSlideDirection(value: string | undefined, order: readonly str
     previous.current = value;
   }, [value, order]);
   return direction;
-}
-
-interface SharedPlacement {
-  left: number;
-  top: number;
-}
-
-// Where each `layoutId` was last drawn. Made on first use and dropped when the last element
-// leaves, so an app that never moves one holds nothing, and nothing outlives its element.
-let sharedPositions: Map<string, SharedPlacement> | undefined;
-
-function sharedStore() {
-  sharedPositions ??= new Map();
-  return sharedPositions;
-}
-
-function forgetShared(layoutId: string, placement: SharedPlacement | undefined) {
-  if (!placement || sharedPositions?.get(layoutId) !== placement) return; // another element took over
-  sharedPositions.delete(layoutId);
-  if (sharedPositions.size === 0) sharedPositions = undefined;
-}
-
-/**
- * An element that keeps its identity across states. When `layoutId` appears in a new
- * place, it travels from the old one. Reduced motion leaves it where it is.
- */
-export function SharedElement({ layoutId, className, children }: { layoutId: string; className?: string; children: React.ReactNode }) {
-  const ref = React.useRef<HTMLSpanElement>(null);
-  const placed = React.useRef<SharedPlacement | undefined>(undefined);
-  const reduced = useReducedMotion();
-  React.useLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    const next = element.getBoundingClientRect();
-    const store = sharedStore();
-    const previous = store.get(layoutId);
-    placed.current = { left: next.left, top: next.top };
-    store.set(layoutId, placed.current);
-    if (!previous || reduced) return;
-    const dx = previous.left - next.left;
-    const dy = previous.top - next.top;
-    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-    element.animate(
-      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
-      { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
-    );
-  });
-  React.useEffect(
-    () => () => {
-      // Its successor, mounted in the same commit, has already read this place; forget it after.
-      const mine = placed.current;
-      window.setTimeout(() => forgetShared(layoutId, mine), 0);
-    },
-    [layoutId],
-  );
-  return (
-    <span ref={ref} className={join("basalt-shared", className)} data-layout={layoutId}>
-      {children}
-    </span>
-  );
 }
 
 /**
@@ -148,8 +137,10 @@ export function Slide({ direction, changeKey, children }: { direction: "" | "for
 }
 
 /**
- * Moves a spinner from one anchor to another. Call it when work is accepted and the
- * pending item now lives somewhere else. Reduced motion fades it in at the destination.
+ * Moves a spinner from one anchor to another. Opt in, and use it only when work is accepted and the
+ * pending item now lives somewhere else: it is the one move between two resting places that the eye has
+ * to follow. It travels by transform on `slower` and `ease-in-out`. Under reduced motion it does not
+ * travel: it appears at the destination with a short fade.
  */
 export function TravelSpinner({
   active,
@@ -163,33 +154,20 @@ export function TravelSpinner({
   label?: string;
 }) {
   const ref = React.useRef<HTMLSpanElement>(null);
-  const reduced = useReducedMotion();
   React.useLayoutEffect(() => {
     const element = ref.current;
     const from = fromRef.current?.getBoundingClientRect();
     const to = toRef.current?.getBoundingClientRect();
     if (!active || !element || !from || !to) return;
-    const place = (box: DOMRect) => {
-      element.style.left = `${box.left + box.width / 2}px`;
-      element.style.top = `${box.top + box.height / 2}px`;
-    };
-    if (reduced) {
-      place(to);
-      return;
-    }
-    place(from);
-    const animation = element.animate(
-      [
-        { left: `${from.left + from.width / 2}px`, top: `${from.top + from.height / 2}px`, opacity: 1 },
-        { left: `${to.left + to.width / 2}px`, top: `${to.top + to.height / 2}px`, opacity: 1 },
-      ],
-      { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" },
-    );
-    return () => animation.cancel();
-  }, [active, fromRef, toRef, reduced]);
+    // The stylesheet runs the move (and the reduced-motion fade); this only says where from and to are.
+    element.style.setProperty("--_from-x", `${from.left + from.width / 2}px`);
+    element.style.setProperty("--_from-y", `${from.top + from.height / 2}px`);
+    element.style.setProperty("--_to-x", `${to.left + to.width / 2}px`);
+    element.style.setProperty("--_to-y", `${to.top + to.height / 2}px`);
+  }, [active, fromRef, toRef]);
   if (!active) return null;
   return (
-    <span ref={ref} className="basalt-travel" data-reduced={reduced ? "" : undefined}>
+    <span ref={ref} className="basalt-travel">
       <Spinner label={label} />
     </span>
   );

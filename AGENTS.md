@@ -49,21 +49,38 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on
   every surface the pair can appear on, in both themes. Contrast tests prove it; add a
   pair to them when you add a token.
-- **Borders build structure; shadows are only for things that float.** No top
-  highlights, gradient borders, glow or bounce. Hover brightens text and
-  border slightly.
+- **Borders build structure; shadows are only for things that float.** No gradient
+  borders, glow, press-shrink or bounce. Hover brightens text and border slightly.
+- **Panels have one rim:** a 1px edge in two solid colours, at most 8% white on top and 6%
+  on the other sides in dark, uniform in light. No gradient along or across an edge, no
+  inner glow or sheen, no blur, no animation, no outer frame, no light falloff on the page.
+  Never on controls or chips.
+- **Level is position, not importance.** An in-flow surface is its parent plus one, whatever
+  its role (a hero or console on the page is level 1, its input band and inner panels level
+  2); only a surface that leaves the flow (menu, popover, dialog, sheet, toast, tooltip) is
+  level 2 or above and carries a shadow. Never promote a panel with `float` or an explicit
+  level; use space, type and content.
+- **Depth is four levels, and the level is not a prop.** A panel is one level above what
+  it sits in (3 is the cap), a popup is its opener plus one (never below 2), a modal resets
+  to 2, a tooltip and a toast are 3. In light, levels 1 to 3 are one white: nesting shows by
+  the rim, never by a darker fill. Group with space or a divider first; a panel is for a
+  distinct object, at most one deeper inside any panel; bands (the command menu's input row,
+  a table header) are not boxes.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape, not a wash alone:** the raised pill with a hairline, or
   the 2px indicator bar. One state, one look, across components (tabs, segments,
-  pagination, table rows).
+  pagination, table rows). The active row in a menu, select, combobox or command menu is
+  the selected wash plus a 2px by 16px bar (WCAG 1.4.1, not 1.4.11).
+- **Keyboard keys are chips:** a fill with no border, one per key, 2px apart; ⌘ ⌥ ⌃ are
+  Phosphor icons. Only real shortcuts, one per row, never on the primary fill; the chip is
+  `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
+  (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up),
   12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
-  0.75× with ease-in. A press darkens and scales (.94 icon, .98 button, .99 row); the
-  scale is off under reduced motion. Nothing overshoots. Loops are spinners only. Under
-  reduced motion, interactive durations drop to 90ms and transforms are removed. See
-  `docs/motion.md`.
+  0.75× with ease-in. A press is a colour step, never a scale. Nothing overshoots or
+  loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density. Text entry is 16px on touch.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
@@ -97,6 +114,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   if it drifts.
 - **Swift can't be compiled here.** The macOS CI job is the only check: push and read
   it before you call Swift work done.
+
 
 ## Checks
 

@@ -176,8 +176,10 @@ describe("Toast", () => {
   });
 });
 
-describe("SharedElement", () => {
-  const shared = mountable("", `{ shared: (p) => <div style={{ display: "flex", gap: 200 }}><div>{!p.moved && !p.gone && <B.SharedElement layoutId="same"><b>Item</b></B.SharedElement>}</div><div>{p.moved && <B.SharedElement layoutId="same"><b>Item</b></B.SharedElement>}</div></div> }`);
+// SharedElement is withdrawn from the public API (see "public API" in modules.test.mjs). It stays as an
+// internal module, so its behaviour is still proved, through that module.
+describe("SharedElement (internal)", () => {
+  const shared = mountable(`import * as S from "./dist/shared-element.js";`, `{ shared: (p) => <div style={{ display: "flex", gap: 200 }}><div>{!p.moved && !p.gone && <S.SharedElement layoutId="same"><b>Item</b></S.SharedElement>}</div><div>{p.moved && <S.SharedElement layoutId="same"><b>Item</b></S.SharedElement>}</div></div> }`);
 
   test("an element that moves between places in one update still travels", async () => {
     const { page } = await fixturePage(browser, shared);

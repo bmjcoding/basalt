@@ -7,16 +7,18 @@ import { CaretUpDownIcon, CheckIcon, MinusIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import type { ControlSize } from "./button";
-import type { ChangeDetails, PartProps } from "./types";
+import type { ChangeDetails, ChoiceValue, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import { join, withClass } from "./utils";
-import { useFloatingLayer } from "./layers";
+import { useFloatingLayer, usePopupLevel } from "./layers";
 
 // ---- Checkbox ----
 
 export interface CheckboxProps extends PartProps<"span", "onChange" | "defaultChecked" | "children" | "value"> {
   id?: string;
+  /** Set to false when `render` produces something other than a native `<button>`. */
+  nativeButton?: boolean;
   name?: string;
   form?: string;
   checked?: boolean;
@@ -64,6 +66,8 @@ export function Checkbox({ children, className, disabled, ...props }: CheckboxPr
 
 export interface SwitchProps extends PartProps<"span", "onChange" | "defaultChecked" | "children"> {
   id?: string;
+  /** Set to false when `render` produces something other than a native `<button>`. */
+  nativeButton?: boolean;
   name?: string;
   form?: string;
   checked?: boolean;
@@ -98,28 +102,32 @@ export function Switch({ children, className, disabled, ...props }: SwitchProps)
 
 // ---- RadioGroup ----
 
-export interface RadioGroupProps extends PartProps<"div", "defaultValue" | "onChange" | "value"> {
+export interface RadioGroupProps<Value extends ChoiceValue = string> extends PartProps<"div", "defaultValue" | "value"> {
   name?: string;
   form?: string;
-  value?: string;
-  defaultValue?: string;
+  /** The chosen radio's `value`; `null` when none is chosen yet. */
+  value?: Value | null;
+  defaultValue?: Value | null;
   disabled?: boolean;
   readOnly?: boolean;
   required?: boolean;
-  onValueChange?: (value: string, details: ChangeDetails) => void;
+  onValueChange?: (value: Value, details: ChangeDetails) => void;
   inputRef?: React.Ref<HTMLInputElement>;
   /** Required unless the group is labelled by a visible heading via `aria-labelledby`. */
   "aria-label"?: string;
 }
 
 /** One choice among a few options, all visible. For more than five or so, use `Select`. */
-export function RadioGroup({ className, disabled, ...props }: RadioGroupProps) {
+export function RadioGroup<Value extends ChoiceValue = string>({ className, disabled, value, defaultValue, ...props }: RadioGroupProps<Value>) {
   const fieldsetDisabled = useFieldsetDisabled();
-  return <BaseRadioGroup {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio-group", className)} />;
+  // `null` is "none chosen yet": Base UI accepts it, though its own type leaves it out.
+  return <BaseRadioGroup {...props} value={value as Value | undefined} defaultValue={defaultValue as Value | undefined} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio-group", className)} />;
 }
 
-export interface RadioProps extends PartProps<"span", "children" | "defaultValue" | "onChange" | "value"> {
-  value: string;
+export interface RadioProps extends PartProps<"span", "children" | "defaultValue" | "value"> {
+  value: ChoiceValue;
+  /** Set to false when `render` produces something other than a native `<button>`. */
+  nativeButton?: boolean;
   disabled?: boolean;
   readOnly?: boolean;
   required?: boolean;
@@ -158,14 +166,16 @@ export interface SelectProps {
   disabled?: boolean;
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
   onOpenChangeComplete?: (open: boolean) => void;
+  /** Imperative handle: `unmount()` ends a closing animation you ran yourself (call `details.preventUnmountOnClose()` first); `close()` closes. */
+  actionsRef?: React.RefObject<PopupActions | null>;
   modal?: boolean;
   highlightItemOnHover?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   value?: string | null;
   defaultValue?: string | null;
-  onValueChange?: (value: string | null) => void;
+  onValueChange?: (value: string | null, details: ChangeDetails) => void;
   /** Shown when nothing is selected. */
   placeholder?: string;
   controlSize?: ControlSize;
@@ -178,11 +188,12 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, onValueChange, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, ...props }: SelectProps) {
   const layer = useFloatingLayer();
+  const level = usePopupLevel();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
-    <BaseSelect.Root {...props} items={items} onValueChange={onValueChange ? (v) => onValueChange(v as string | null) : undefined}>
+    <BaseSelect.Root {...props} items={items}>
       <BaseSelect.Trigger aria-label={ariaLabel} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
         <BaseSelect.Icon className="basalt-select-icon">
@@ -191,7 +202,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
         <BaseSelect.Positioner className="basalt-positioner" style={layer} sideOffset={6} alignItemWithTrigger={false}>
-          <BaseSelect.Popup className="basalt-menu basalt-select-popup">
+          <BaseSelect.Popup data-level={level} className="basalt-menu basalt-select-popup">
             <BaseSelect.List>
               {options.map((o) => (
                 <BaseSelect.Item key={o.value} value={o.value} disabled={o.disabled} className="basalt-menu-item basalt-select-item">

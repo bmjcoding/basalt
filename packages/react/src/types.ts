@@ -35,6 +35,41 @@ export interface ChangeDetails extends CommitDetails {
   allowPropagation(): void;
 }
 
+/** What an open/close callback also learns: it may hold the popup mounted while an outside animation plays, then call `actions.unmount()`. */
+export interface OpenChangeDetails extends ChangeDetails {
+  preventUnmountOnClose(): void;
+}
+
+/** What a form's submit callback learns. It is not cancellable: the values are already valid. */
+export interface SubmitDetails {
+  readonly reason: string;
+  readonly event: Event;
+}
+
+/** What a highlight callback learns: how the highlight moved. */
+export interface HighlightDetails {
+  readonly reason: string;
+  readonly event: Event;
+}
+
+/** Imperative handles a popup offers through `actionsRef`. */
+export interface PopupActions {
+  /** Ends the closing phase after an animation you ran yourself; call `details.preventUnmountOnClose()` first. */
+  unmount(): void;
+  close(): void;
+}
+
+/** `actionsRef` of a form or field: validate on demand, e.g. before a multi-step form moves on. */
+export interface ValidateActions {
+  validate(fieldName?: string): void;
+}
+
+/** What `initialFocus` and `finalFocus` accept: `true` for the default, `false` for none, an element or ref, or a function that picks one. */
+export type FocusTarget = boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
+
+/** A value a choice can take: a string, or a number when the app's own ids are numbers. */
+export type ChoiceValue = string | number;
+
 export type Side = "top" | "bottom" | "left" | "right" | "inline-start" | "inline-end";
 export type Align = "start" | "center" | "end";
 export type Orientation = "horizontal" | "vertical";

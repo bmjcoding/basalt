@@ -7,6 +7,8 @@ import * as React from "react";
 import type { CommandGroup } from "./command";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
+import { useShortcutsVisible } from "./keyboard";
+import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 
 export interface CommandPanelProps {
   groups: CommandGroup[];
@@ -17,40 +19,53 @@ export interface CommandPanelProps {
 
 export function CommandPanel({ groups, placeholder, hints, onOpenChange }: CommandPanelProps) {
   const hintId = React.useId();
+  // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
+  const chipsShow = useShortcutsVisible();
   return (
     <Command label="Command menu" loop>
       <div className="basalt-command-search">
         <Icon icon={MagnifyingGlassIcon} size={16} />
-        <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints ? hintId : undefined} autoFocus />
+        <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} autoFocus />
       </div>
       <Command.List className="basalt-command-list" label="Commands">
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
         {groups.map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
-            {group.commands.map((command) => (
-              <Command.Item
-                key={command.id}
-                value={`${command.label} ${command.id}`}
-                keywords={command.keywords}
-                data-danger={command.danger ? "" : undefined}
-                className="basalt-menu-item"
-                onSelect={() => {
-                  onOpenChange(false);
-                  command.onSelect();
-                }}
-              >
-                {command.icon ? <Icon icon={command.icon} size={16} /> : null}
-                <span className="basalt-menu-item-label">{command.label}</span>
-                {command.shortcut ? <Kbd className="basalt-menu-item-shortcut">{command.shortcut}</Kbd> : null}
-              </Command.Item>
-            ))}
+            {group.commands.map((command) => {
+              const keys = command.shortcut ? shortcutKeys(command.shortcut) : [];
+              const spoken = `${hintId}-${command.id}`;
+              return (
+                <Command.Item
+                  key={command.id}
+                  value={`${command.label} ${command.id}`}
+                  keywords={command.keywords}
+                  data-danger={command.danger ? "" : undefined}
+                  aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
+                  aria-describedby={keys.length ? spoken : undefined}
+                  className="basalt-menu-item"
+                  onSelect={() => {
+                    onOpenChange(false);
+                    command.onSelect();
+                  }}
+                >
+                  {command.icon ? <Icon icon={command.icon} size={16} /> : null}
+                  <span className="basalt-menu-item-label">{command.label}</span>
+                  {command.shortcut ? (
+                    <>
+                      <Kbd shortcut aria-hidden="true" className="basalt-menu-item-shortcut">{command.shortcut}</Kbd>
+                      <span id={spoken} hidden>{spokenShortcut(keys)}</span>
+                    </>
+                  ) : null}
+                </Command.Item>
+              );
+            })}
           </Command.Group>
         ))}
       </Command.List>
       {hints ? (
-        <div className="basalt-command-footer" id={hintId}>
-          <span><Kbd>↵</Kbd> Run</span>
-          <span><Kbd>Esc</Kbd> Close</span>
+        <div className="basalt-command-footer" id={hintId} data-kbd-hint="">
+          <span><Kbd shortcut>↵</Kbd> Run</span>
+          <span><Kbd shortcut>Esc</Kbd> Close</span>
         </div>
       ) : null}
     </Command>

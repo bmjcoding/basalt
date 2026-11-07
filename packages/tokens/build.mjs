@@ -128,7 +128,9 @@ const css = [
   "   transforms under the same query. */",
   "@media (prefers-reduced-motion: reduce) {",
   "  :root {",
-  ...["press", "fast", "tick", "base", "slow", "slower", "plate", "pop"].map((name) => `    ${varName(["duration", name])}: 90ms;`),
+  `    ${varName(["duration", "base"])}: 100ms;`,
+  `    ${varName(["duration", "slow"])}: 100ms;`,
+  `    ${varName(["duration", "slower"])}: 100ms;`,
   "  }",
   "}",
   "",
@@ -268,7 +270,7 @@ ${byPrefix("font").filter((t) => t.path[1] === "weight").map((t) => `    case ${
 
   /// Durations in seconds. Exits run at 0.75 of their entry.
   public enum Duration {
-${byPrefix("duration").map((t) => `    public static let ${t.path[1]}: Double = ${t.$value.value / 1000}`).join("\n")}
+${byPrefix("duration").filter((t) => t.path.length === 2).map((t) => `    public static let ${t.path[1]}: Double = ${t.$value.value / 1000}`).join("\n")}
   }
 
   /// A cubic Bézier timing curve.
@@ -281,7 +283,7 @@ ${byPrefix("duration").map((t) => `    public static let ${t.path[1]}: Double = 
 
   /// Timing curves. None overshoots.
   public enum Easing {
-${byPrefix("ease").map((t) => `    public static let ${t.path[1] === "in" ? "`in`" : camel(t.path[1])} = Curve(x1: ${t.$value[0]}, y1: ${t.$value[1]}, x2: ${t.$value[2]}, y2: ${t.$value[3]})`).join("\n")}
+${byPrefix("ease").filter((t) => t.path[1] !== "linear").map((t) => `    public static let ${t.path[1] === "in" ? "`in`" : camel(t.path[1])} = Curve(x1: ${t.$value[0]}, y1: ${t.$value[1]}, x2: ${t.$value[2]}, y2: ${t.$value[3]})`).join("\n")}
   }
 }
 `;

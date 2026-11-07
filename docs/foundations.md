@@ -16,11 +16,12 @@ its own accent, in a few named roles, and nowhere else.
 - **The page is the darkest layer, in both themes.** Anything closer to you is lighter.
   Light mode never puts a full white page in front of you.
 - **Borders build structure; shadows exist only for things that float.**
-- **No ornament that signals "generated":** no top highlights on cards, no gradient
-  borders, no glow, no bounce. Colour never carries meaning alone. A press is a small
-  scale plus a darken, and it is off under reduced motion.
-- **What persists, stays.** A control or word that is in both states does not remount.
-  Only the part that changed moves. Shared elements travel; shared letters stay put.
+- **Panels have one rim:** a 1px edge in two solid colours, at most 8% white on top and 6%
+  on the other sides in dark, uniform in light. No gradient along or across an edge, no inner
+  glow or sheen, no blur, no animation, no outer frame, no light falloff on the page. Never
+  on controls or chips. See [Elevation](#elevation).
+- **No ornament that signals "generated":** no gradient borders, no glow, no press-shrink,
+  no bounce. Colour never carries meaning alone.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -31,19 +32,53 @@ are achromatic (no tint) and named by HSL lightness: `neutral-4` is `#0a0a0a`.
 
 ### Surfaces
 
+Depth is four levels, `surface-0` to `surface-3`. A role token is one of them, so naming the
+levels changed no pixel.
+
+| Level | Dark | Light | Roles that use it |
+|---|---|---|---|
+| `surface-0` | `#000` | `#fafafa` | `surface-page`: the page, and app sidebars |
+| `surface-1` | `#0a0a0a` | `#fff` | `surface-raised`: a panel on the page (cards, tables, code blocks); inputs and secondary buttons |
+| `surface-2` | `#111111` | `#fff` | `surface-overlay`: a panel in a panel, menus, popovers, selects, dialogs |
+| `surface-3` | `#171717` | `#fff` | `surface-top`: the deepest panel, a popup opened from a dialog, tooltips, toasts, the selected pill in a segmented control |
+
 | Role | Dark | Light | Use |
 |---|---|---|---|
-| `surface-page` | `#000` | `#fafafa` | The page, and app sidebars |
-| `surface-raised` | `#0a0a0a` | `#fff` | Cards, tables, secondary buttons |
-| `surface-overlay` | `#111111` | `#fff` | Menus, popovers, selects |
-| `surface-top` | `#171717` | `#fff` | Tooltips, toasts, the selected pill in a segmented control |
-| `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells, code blocks |
-| `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks |
+| `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells and code blocks on the page |
+| `surface-well-2`, `surface-well-3` | `#111111`, `#171717` | `#f5f5f5` | A well one or two levels deeper (see below) |
+| `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks (bands, not boxes) |
 
 Dark steps up from true black in small increments, as Linear does. Nothing above the page
 is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
 off and lag when they turn back on). Light sits the page just below white, as Vercel does,
 so white cards lift without a shadow.
+
+**Depth is by level, and the level is not a prop.** It is a private context, rendered as
+`data-level`, that crosses portals as the modal depth does:
+
+- an in-flow panel (Card, TableContainer, CodeBlock, Callout, the preview card) is its parent's
+  level plus one, with level 3 the cap;
+- a non-modal popup (Menu, Select, Combobox, Popover) is its opener's level plus one, and never
+  below 2;
+- a modal (Dialog, AlertDialog, Sheet, CommandMenu) resets to 2 above its scrim, so what it
+  holds starts again from 3;
+- a Tooltip and a Toast are 3.
+
+In light, levels 1 to 3 are one white. Nesting shows by the rim (and a shadow when the panel
+floats), never by a darker fill: a darker panel on a lighter one would read as sunken, the
+opposite of raised. Wells follow the same rule in dark (a code block in a card is level 2,
+`#111111`; in a dialog, level 3, `#171717`) and stay `#f5f5f5` in light. Inputs keep their fill and their 3:1
+border at every level.
+
+**The nesting guard.** Most grouping is not a panel:
+
+1. Group with space or a divider first.
+2. A panel is for a distinct object: a code block, a table, a preview, a callout.
+3. Go at most one panel deeper inside any in-flow panel (a card holding a preview that holds a
+   code block is three rimmed boxes whose fills step about 1.05:1 each: nested boxes).
+4. Level 3 is the cap; beyond it, use a divider.
+5. Bands (the command menu's input row, a table header) are not boxes.
+6. Floating surfaces are a layer, not nesting: they follow the popup and modal rules above.
 
 ### Text
 
@@ -62,18 +97,41 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 
 - **Hairline:** `0 0 0 1px` at 14.5% white (dark) or 8% black (light), with a second 1px
   ring in the page colour behind it, so the translucent line mixes against the same colour
-  on any background (Vercel's technique). Decorative; it carries no required information.
+  on any background (Vercel's technique). Controls, badges and avatars keep it. Decorative; it
+  carries no required information.
+- **Rim:** a panel's edge, and the only edge a panel has. A real 1px `border` (so forced colours
+  keep it), 6% white on the sides and bottom and 8% white on top in dark (`border-rim` and
+  `border-rim-top`), and 8% black on every side in light, where a lit top on a white panel would
+  not show. On Card, TableContainer, CodeBlock, Callout, the preview card, Popover, Menu, Select
+  and Combobox popups, Dialog, AlertDialog, CommandMenu, Sheet (its inner edge), Toast and
+  Tooltip. Never on a control, chip, badge or pill.
+- **Divider:** rules between table rows, menu groups and card sections: 6% white in dark, 8% black
+  in light, never brighter than the rim.
 - **Input boundary:** 38% white or 45% black, 3.4:1 or better on every surface (WCAG 1.4.11).
   Vercel's inputs measure 1.35:1, and Linear's borders 1.3:1; neither passes.
 - **Focus:** a 2px outline with a 2px offset in the secondary text colour, 6.9:1 or better.
+  A field flush with a clipping edge takes the focus outline inset (offset −2px) around its visible
+  band. A modal palette whose input is its only focus stop shows none. Against the fills and rim
+  composites it touches the inset ring is 6.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
   surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected tab or segment is a raised pill with a hairline, not a wash: a wash
-  alone is about 1.2:1 and fails 1.4.11.
+  alone is about 1.2:1, and a state that only a change of colour shows fails WCAG 1.4.1 (the
+  change of a background inside a component is outside 1.4.11's scope, which is why the
+  cue has to be a shape).
+- **The active row** (the row a keyboard or pointer is on, in Menu, Select, Combobox and
+  CommandMenu) is the selected wash plus a 2px by 16px bar, square ended, in the primary text
+  colour, at the row's inline start and centred on it, 11.95:1 or better on the wash in dark
+  and 13.48:1 in light. In forced colours the row is `Highlight`, with the bar drawn in
+  `HighlightText` so it shows on it. The bar is the cue that does not rest on colour (1.4.1),
+  and it says where focus is (2.4.7).
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
-  brightening to pure white or black on hover.
+  brightening to pure white or black on hover, and stepping to `action-primary-press` (the
+  action colour 85% toward the page: about `#bfbfbf` in dark, `#333333` in light) while pressed.
+  Its text is 11.4:1 or better on the pressed fill. Secondary, ghost and danger buttons press to
+  the selected wash. A press is a colour step, never a scale.
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
-  badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes). There is no filled red button:
+  badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes; light `#ba1d27`). There is no filled red button:
   a destructive action is red text on a red hairline, quieter than the primary action, with
   focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
@@ -84,10 +142,38 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
   colours its title.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm opacity pulse, not a shimmer. The ring spinner turns in
-  640ms, the braille frame steps through one 530ms cycle, the dot grid walks its own
-  snake in 660ms, and the three dots share the ring's turn. Under reduced motion they
-  fade or hold still. See [Motion and primitives](motion.md).
+  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each: the ring turns in 640ms
+  (the default, and the one inside a button), and braille is Basalt's own 2 by 4 dot matrix
+  stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 530ms, for mono and terminal lines. Under reduced
+  motion the ring fades and braille holds its first frame.
+
+### Keyboard keys
+
+A key is a chip: a fill (`surface-kbd`, 8% white or 6% black) with no border, 20px tall and at
+least 20 wide, 4px of padding either side, radius 4, in Geist Mono 400 at 12/16. One chip per
+key, 2px apart, so the keys of a shortcut read as one object. Text is `text-secondary` (5.59:1 or
+better in dark, 6.50:1 in light, on the chip over every surface), and `text-primary` on a hover or
+selected wash. ⌘ ⌥ ⌃ have no glyph in Geist, so they are Phosphor's Command, Option and Control,
+Bold at 12px in the text colour; "Esc" is the word; letters, ⇧ ↵ ⌫ ⇥ and the arrows stay in Geist
+Mono.
+
+Show a chip only for a real shortcut the app binds, at most one shortcut per row, at the row's end
+in Menu and CommandMenu, in the CommandMenu footer and in tooltips; never on the primary fill (the
+chip is 2.23:1 there). The chip is `aria-hidden`. The item carries `aria-keyshortcuts` ("Meta+K")
+and an `aria-describedby` that says it in words ("Command K"), so the name stays "Copy" and not
+"Copy C".
+
+On a touch device with no keyboard a shortcut chip has nothing to show, so it hides. A chip that
+stands for a key the app binds (`data-shortcut`: Menu and CommandMenu rows, the CommandMenu footer,
+tooltip shortcuts, a trigger's chip) and any words that only make sense beside one (`data-kbd-hint`:
+a legend, the footer whole, its divider included) are `display: none` on `(hover: none) and
+(pointer: coarse)` until a hardware key is pressed. The first Tab or Escape, or any key with
+Command, Control or Alt held (never Shift alone, an arrow or "Unidentified"), sets
+`<html data-keyboard="hardware">` and remembers it in `sessionStorage` for the tab. Nothing replaces
+a hidden chip: the row keeps its word, and a trigger is [icon][word][chip] on a fine pointer and
+[icon][word] on touch, at least 44px. A bare `Kbd` in running text is documentation and shows on
+every device. The CommandMenu input carries `aria-describedby` for its footer only while the chips
+show; `aria-keyshortcuts` always stays. A hybrid device shows chips after its first hardware key.
 
 ## Type
 
@@ -161,9 +247,18 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
 
 ## Elevation
 
-Page and raised surfaces use the hairline only. Tables run 40px rows by default, 32px for
-logs (`density="compact"`) and 44px for touch. Shadows start at overlays: menus and
-popovers use `shadow-overlay`, dialogs and sheets `shadow-modal` over a scrim.
+Depth is [levels](#surfaces), and a panel's edge is its rim. Page-level panels have a rim and
+nothing else; shadows start at things that float. Menus and popovers use `shadow-overlay`,
+dialogs and sheets `shadow-modal` over a scrim, and both are the drop shadow alone: no 1px ring
+layer and no page-coloured backing ring, because the rim is the edge. Tables run 40px rows by
+default, 32px for logs (`density="compact"`) and 44px for touch.
+
+The rim is one thing, kept to one rule: two solid colours, no gradient along or across the edge, no
+inner glow or sheen, no blur, no animation, no outer frame, and no light falloff on the page. The
+top is lit by 2 points in dark (8% against 6% white), capped at 8% so it reads as an edge and
+not as a highlight. In light every side is the same.
+
+The Toast's drain line is drawn on the straight part of its bottom rim, 1px, in `text-tertiary`.
 
 Portals inherit a shared modal-depth context. A menu, select, combobox or popover opened
 inside a modal sits above its parent. A necessary nested confirmation has a backdrop above
@@ -171,31 +266,61 @@ the previous popup. Tooltips use their intended layer, a tooltip role and an exp
 trigger description while open, preserving any existing description. Keep one focused task at a
 time; layering support is not a reason to stack unrelated tasks.
 
+**Level is position, not importance.** A surface in the page's flow is its parent plus one, whatever its
+role: a hero, a console or a featured card on the page is level 1, and its input band and the panels
+inside it are level 2. Only a surface that leaves the flow (opened above the page, out of the flow,
+overlapping other content: a menu, popover, dialog, sheet, toast or tooltip) is level 2 or above and
+carries a shadow. Don't use `float` or an explicit level to make an in-flow panel look more important;
+use space, type and the content. A static picture of a floating surface in documentation is drawn as
+that surface. `data-level` is written only to re-base a subtree (a page, a portal, a specimen frame),
+never to promote a panel.
+
+The command menu is a modal panel at level 2. Its input row is a full-bleed band one level above
+the panel (level 3, `#171717`, in dark; white in light), 48px, with a divider below and no rim or
+radius of its own. Its rows are Menu rows: 6px in from each side, radius 6. It is summoned from the
+keyboard many times a day, so it neither opens nor closes with motion, its backdrop included.
+
 ## Motion
 
 | Token | Value | Use |
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
-| `duration-press` | 80ms | A button press: darken and scale |
-| `duration-fast` | 120ms | Small colour changes |
-| `duration-pop` | 150ms | Tooltip and menu entry |
-| `duration-base` | 180ms | Other entries |
-| `duration-slow` | 200ms | Dialogs and a digit roll |
-| `duration-plate` | 260ms | A larger surface settling |
-| `duration-slower` | 320ms | Sheets and drawers |
-| `duration-frame` | 530ms | One stepped braille cycle |
-| `duration-spin` | 640ms | One turn of the ring |
-| `duration-grid` | 660ms | One cycle of the dot grid |
-| `duration-caret` | 1250ms | A text caret blink |
-| `duration-fade` | 1200ms | The reduced-motion spinner fade |
+| `duration-fast` | 100ms | Hover-out, toggles, colour changes |
+| `duration-base` | 150ms | Tooltips, menus, popovers |
+| `duration-slow` | 200ms | Dialogs, accordions, tab indicator and panel, glide |
+| `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
 
-Entries ease out with `cubic-bezier(.16, 1, .3, 1)`; exits run at three quarters of their
-entry with `ease-in`. Nothing overshoots: Vercel's overlays overshoot by 10%
-(`cubic-bezier(.175, .885, .32, 1.1)`); Basalt's settle. A press darkens and scales in 80ms: .94 on an icon button, .98 on a button, .99 on a row.
-Under `prefers-reduced-motion` the scale is off and interactive durations drop to 90ms.
-Menus enter from scale .95 with a 4px offset, tooltips from scale .96 with a 2px offset,
-both on the decelerate curve. Nothing overshoots. The curves and the sources are in
-[Motion and primitives](motion.md).
+Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
+`duration-loop-braille` 530ms and `duration-loop-fade` 1200ms.
+
+| Curve | Value | For |
+|---|---|---|
+| `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and every move that answers input |
+| `ease-in` | `cubic-bezier(.4, 0, 1, 1)` | Exits, at three quarters of the entry |
+| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows (TravelSpinner only), and loop pulses |
+| `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinners |
+
+Nothing overshoots: Vercel's overlays overshoot by 10% (`cubic-bezier(.175, .885, .32, 1.1)`);
+Basalt's settle. A press is a one-step colour change, never a scale. A popup (Menu, Select,
+Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
+(`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
+quarters of that on `ease-in`. The tab indicator, and the panel that moves 8px with it, run on
+`duration-slow` `ease-out`; the panel never remounts. Nothing loops except spinners and the line of a
+loading Sparkline.
+
+**What persists, stays.** A control or word that is in both states does not remount. Only the
+part that changed moves: shared letters stay put, and a change to a panel moves the panel, not the
+page.
+
+Under `prefers-reduced-motion`: no transform, no size and no position animates. `duration-base`,
+`duration-slow` and `duration-slower` are 100ms, so state changes become short fades; the toast
+stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
+tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
+scale and labels; a travelling spinner appears at its destination with the same fade; a tab change is
+a 100ms crossfade; the vertical tab bar does not move. Spinners fade or hold still, and a loop is
+never cut to 100ms.
+
+The components and what each does are in [Motion and primitives](motion.md).
 
 ## Icons
 
@@ -240,3 +365,8 @@ neutral operators, square side sheets, a grouped NumberField and others) are app
 owner's review is still to come. Vercel's and Linear's values were measured from their live CSS (Vercel's dashboard
 and Geist pages; Linear's public site and login screen), not recalled, and used only as
 reference: none of their CSS, icons or assets is in this repository.
+
+Motion and primitives (PR #12, #13) were built without the panel and reviewed afterwards; the
+surface rules (levels, the rim, the nesting guard, kbd chips, the active-row bar, the pressed
+primary colour) and the motion rulings were reviewed by the panel in three rounds. The owner has not
+approved either yet.

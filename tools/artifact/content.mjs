@@ -31,7 +31,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Dark: \`basalt-surface-page\` is true black, and raised layers step up in small increments (\`basalt-surface-raised\`, \`basalt-surface-overlay\`, \`basalt-surface-top\`). Nothing above the page is pure black, so large moving surfaces never smear on OLED screens.
 - Light: \`basalt-surface-page\` sits just below white, so white cards lift without a shadow; sunken areas (\`basalt-surface-sunken\`, \`basalt-surface-sunken-strong\`) step darker.
 - Text comes in three levels: \`basalt-text-primary\`, \`basalt-text-secondary\`, \`basalt-text-tertiary\`. All three meet 4.5:1 on every surface in both themes. On a hover or selected wash, tertiary text becomes secondary.
-- Lines: \`shadow-hairline\` frames raised surfaces; \`basalt-border-divider\` separates rows and groups; \`basalt-border-input\` bounds inputs at 3:1 or better.
+- Lines: a panel's edge is its rim (\`basalt-border-rim\`, a real 1px border, lit 2 points more on top in dark); \`shadow-hairline\` frames controls; \`basalt-border-divider\` separates rows and groups; \`basalt-border-input\` bounds inputs at 3:1 or better.
 - Hover is a wash (\`basalt-state-hover\`) or one step brighter on a hairline (\`basalt-border-hover\`). Selected is a wash **plus** a second cue: a pill, a bar, a check.
 - The primary action (\`basalt-action-primary\`) is the inverse of the page: one per view.
 - Status colour is a dot beside a word, never a coloured fill. \`basalt-status-danger\` is also the text of destructive actions, on a red hairline. There is no filled red button.
@@ -53,8 +53,8 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 
 ## Elevation and motion
 
-- The page and raised surfaces use the hairline only. Shadows start at things that float: \`shadow-overlay\` for menus, popovers and tooltips; \`shadow-modal\` for dialogs, over \`basalt-scrim\`.
-- No top highlights, gradient borders, glows or coloured left borders.
+- Depth is four levels (\`basalt-surface-0\` to \`3\`); a panel is one level above what it sits in and 3 is the cap. Every panel has a rim and nothing else. Shadows start at things that float: \`shadow-overlay\` for menus, popovers and tooltips; \`shadow-modal\` for dialogs, over \`basalt-scrim\`.
+- One rim per panel, in two solid colours: no gradient along or across an edge, no glow or sheen, no coloured left borders.
 - Entries ease out (\`basalt-ease-out\`) and settle without overshoot; exits run at three quarters of their entry with \`basalt-ease-in\`. Menus take \`basalt-duration-base\`, dialogs \`basalt-duration-slow\`.
 - A press is one colour step, never a scale. Under reduced motion nothing moves; state changes become short fades.
 
@@ -161,7 +161,7 @@ A raised surface grouping one thing: a sandbox, a metric, a setting.
 
 **You provide** \`CardHeader\` (with \`CardTitle\` and \`CardDescription\`), \`CardContent\`, and optionally \`CardFooter\` for actions, right-aligned.
 
-Cards are \`basalt-surface-raised\` with \`shadow-hairline\` and radius \`basalt-radius-lg\`. No shadow, no top highlight, no coloured edge.
+Cards are \`basalt-surface-raised\` with the rim (\`basalt-border-rim\`) and radius \`basalt-radius-lg\`. No shadow, no gradient, no coloured edge.
 `),
   Table: doc("Table", `
 A data table in a rounded, bordered frame that scrolls sideways when it must.
@@ -179,9 +179,9 @@ A short hint on hover or focus that supplements a control's name; it never repla
 **You provide** \`content\`, and the control as the only child. Wrap the app once in \`TooltipProvider\`. Tooltips sit on \`basalt-surface-top\` in \`label\` text.
 `),
   Kbd: doc("Kbd", `
-A key or shortcut, such as ⌘K, in Geist Mono on a hairline.
+A key or shortcut, such as ⌘K: one chip per key, a fill with no border, in Geist Mono, with ⌘ ⌥ ⌃ drawn as Phosphor icons.
 
-**You provide** the keys as text. Inside a menu item, use the item's \`shortcut\` prop instead.
+**You provide** the keys as text. Inside a menu item, use the item's \`shortcut\` prop instead. Show real shortcuts only, one per row.
 `),
   Checkbox: doc("Checkbox", `
 An on/off choice that takes effect when a form is submitted, or one of several independent options.

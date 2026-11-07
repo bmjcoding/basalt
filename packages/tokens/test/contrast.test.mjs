@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
 
-import { inGamut, parse, rgb, wcagContrast } from "culori";
+import { inGamut, interpolate, parse, rgb, wcagContrast } from "culori";
 
 const tokens = JSON.parse(fs.readFileSync(new URL("../dist/json/tokens.json", import.meta.url), "utf8"));
 const THEMES = ["light", "dark"];
@@ -23,10 +23,14 @@ const over = (top, under) => {
   return { mode: "rgb", r: top.r * a + under.r * (1 - a), g: top.g * a + under.g * (1 - a), b: top.b * a + under.b * (1 - a) };
 };
 
-const SURFACES = ["surface-page", "surface-raised", "surface-overlay", "surface-top", "surface-sunken", "surface-sunken-strong"];
+// The role tokens, then the wells that follow the level rule in dark. surface-0..3 are the same
+// colours as page/raised/overlay/top (the roles alias them), so they are proved as roles.
+const SURFACES = ["surface-page", "surface-raised", "surface-overlay", "surface-top", "surface-sunken", "surface-sunken-strong", "surface-well-2", "surface-well-3"];
+const LEVELS = ["surface-0", "surface-1", "surface-2", "surface-3"];
 const surfaces = (theme) => SURFACES.map((s) => [s, color(theme, s)]);
 
 const ratio = (fg, bg) => Math.round(wcagContrast(fg, bg) * 100) / 100;
+const alphaOf = (theme, name) => color(theme, name).alpha ?? 1;
 
 function atLeast(theme, fgName, min, onto = surfaces(theme)) {
   for (const [bgName, bg] of onto) {
@@ -65,8 +69,8 @@ for (const theme of THEMES) {
     atLeast(theme, "status-danger", 4.5, washed);
   });
 
-  test(`${theme}: primary action text meets 4.5:1 on the primary action, at rest and hovered`, () => {
-    for (const bg of ["action-primary", "action-primary-hover"]) {
+  test(`${theme}: primary action text meets 4.5:1 on the primary action, at rest, hovered and pressed`, () => {
+    for (const bg of ["action-primary", "action-primary-hover", "action-primary-press"]) {
       const r = ratio(color(theme, "action-primary-text"), color(theme, bg));
       assert.ok(r >= 4.5, `${theme}: action-primary-text on ${bg} is ${r}:1`);
     }
@@ -99,4 +103,111 @@ test("the page is the darkest layer in both themes (no flashbang)", () => {
       assert.ok(lum(color(theme, s)) >= page, `${theme}: ${s} is darker than the page`);
     }
   }
+});
+
+// ---- Surface levels, the rim, kbd chips, the active-row bar (the panel's rulings) ----
+
+/** The surfaces a row or chip can sit on, and the washes that can be under it. */
+const rowSurfaces = (theme) => [...LEVELS, "surface-sunken", "surface-sunken-strong"].map((n) => [n, color(theme, n)]);
+const washes = ["state-hover", "state-selected"];
+
+for (const theme of THEMES) {
+  test(`${theme}: the role surfaces are the levels, so naming them changes no pixel`, () => {
+    const pairs = [["surface-page", "surface-0"], ["surface-raised", "surface-1"], ["surface-overlay", "surface-2"], ["surface-top", "surface-3"]];
+    for (const [role, level] of pairs) assert.deepEqual(color(theme, role), color(theme, level), `${role} is not ${level}`);
+  });
+
+  test(`${theme}: kbd text meets 4.5:1 on its chip over every level, sunken and sunken-strong, with no wash, hover and selected`, () => {
+    // secondary on the bare surface, primary once a hover or selected wash is under the chip.
+    for (const [name, surface] of rowSurfaces(theme)) {
+      const cases = [["no wash", surface, "text-secondary"], ...washes.map((w) => [w, over(color(theme, w), surface), "text-primary"])];
+      for (const [wash, base, text] of cases) {
+        const chip = over(color(theme, "surface-kbd"), base);
+        const r = ratio(color(theme, text), chip);
+        assert.ok(r >= 4.5, `${theme}: ${text} on the kbd chip over ${wash} on ${name} is ${r}:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the active-row bar is at least 3:1 against the wash it sits on, over every level`, () => {
+    for (const [name, surface] of rowSurfaces(theme)) {
+      for (const w of washes) {
+        const row = over(color(theme, w), surface);
+        const r = ratio(color(theme, "text-primary"), row);
+        assert.ok(r >= 3, `${theme}: the bar on ${w} over ${name} is ${r}:1`);
+      }
+    }
+  });
+
+  test(`${theme}: tertiary text is promoted to secondary on a wash, and secondary holds 4.5:1 there at every level`, () => {
+    const onWashes = [...rowSurfaces(theme), ...["surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)])].flatMap(([n, s]) => washes.map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
+    atLeast(theme, "text-secondary", 4.5, onWashes);
+    // and the reason for the promotion: tertiary alone does not hold on at least one wash at level 3
+    const tertiary = onWashes.some(([, bg]) => ratio(over(color(theme, "text-tertiary"), bg), bg) < 4.5);
+    assert.ok(tertiary || theme === "light", `${theme}: tertiary holds on every wash, so the promotion is no longer needed`);
+  });
+
+  test(`${theme}: a primary press is a visible step from the hover fill, and is action-primary 85% toward the page`, () => {
+    const hover = color(theme, "action-primary-hover");
+    const press = color(theme, "action-primary-press");
+    const step = ratio(hover, press);
+    assert.ok(step >= 1.5, `${theme}: press is ${step}:1 from hover`);
+    // the token is the colour the spec names: color-mix(in oklch, action-primary 85%, surface-page)
+    const mixed = rgb(interpolate([color(theme, "surface-page"), color(theme, "action-primary")], "oklch")(0.85));
+    for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(mixed[channel] - press[channel]) < 0.002, `${theme}: action-primary-press ${channel} is ${press[channel]}, the mix is ${mixed[channel]}`);
+  });
+}
+
+// An inset focus ring on a command-menu-style input band (docs/foundations.md, Focus): the 2px outline
+// sits inside the band, so its neighbours are the band's own fill within, and the panel's rim at the edge.
+// Each of them is a boundary the ring has to hold 3:1 against (1.4.11, 2.4.7).
+for (const theme of THEMES) {
+  test(`${theme}: border-focus holds 3:1 against the input band fills and the rim composites it touches`, () => {
+    const focus = color(theme, "border-focus");
+    const neighbours = theme === "dark"
+      ? [
+          ["band fill surface-2", color(theme, "surface-2")],
+          ["band fill surface-3", color(theme, "surface-3")],
+          ["border-rim-top over surface-1", over(color(theme, "border-rim-top"), color(theme, "surface-1"))],
+          ["border-rim-top over surface-2", over(color(theme, "border-rim-top"), color(theme, "surface-2"))],
+          ["border-rim over surface-1", over(color(theme, "border-rim"), color(theme, "surface-1"))],
+        ]
+      : [
+          ["band fill (white)", color(theme, "surface-1")],
+          ["border-rim over white", over(color(theme, "border-rim"), color(theme, "surface-1"))],
+          ["page (surface-0)", color(theme, "surface-0")],
+        ];
+    for (const [name, bg] of neighbours) {
+      const r = ratio(over(focus, bg), bg);
+      assert.ok(r >= 3, `${theme}: border-focus on ${name} is ${r}:1, needs 3:1`);
+    }
+  });
+}
+
+test("depth: dark levels strictly increase, and light levels 1 to 3 are one white (nesting shows by rim, not by value)", () => {
+  const lum = (c) => wcagContrast(c, { mode: "rgb", r: 0, g: 0, b: 0 });
+  const dark = LEVELS.map((n) => lum(color("dark", n)));
+  for (let i = 1; i < dark.length; i++) assert.ok(dark[i] > dark[i - 1], `dark ${LEVELS[i]} is not lighter than ${LEVELS[i - 1]}`);
+  const light = LEVELS.slice(1).map((n) => JSON.stringify(color("light", n)));
+  assert.equal(new Set(light).size, 1, "light levels 1 to 3 differ");
+  assert.ok(lum(color("light", "surface-0")) < lum(color("light", "surface-1")), "light page is not below the panels");
+});
+
+test("rim guards: dark rim at most 8% white, rim-top above rim in dark and equal in light, divider no brighter than the rim", () => {
+  assert.ok(alphaOf("dark", "border-rim") <= 0.08 && alphaOf("dark", "border-rim-top") <= 0.08, "a dark rim is brighter than 8% white");
+  assert.ok(alphaOf("dark", "border-rim-top") > alphaOf("dark", "border-rim"), "dark rim-top is not above the rim");
+  assert.deepEqual(color("light", "border-rim-top"), color("light", "border-rim"), "light rim-top differs from the rim");
+  for (const theme of THEMES) {
+    assert.ok(alphaOf(theme, "border-divider") <= alphaOf(theme, "border-rim"), `${theme}: the divider is brighter than the rim`);
+    for (const n of ["border-rim", "border-rim-top"]) {
+      // a rim is a hairline-weight colour: white or black at a fixed alpha, nothing in between
+      const c = color(theme, n);
+      assert.ok(Math.abs(c.r - Math.round(c.r)) < 1e-4 && Math.abs(c.r - c.g) < 1e-4 && Math.abs(c.g - c.b) < 1e-4, `${theme}: ${n} is not pure white or black at an alpha`);
+    }
+  }
+});
+
+test("the kbd chip is a fill and nothing else: no border token exists for it", () => {
+  assert.ok(!Object.keys(tokens.dark).some((k) => k.startsWith("border-kbd")));
+  assert.ok(alphaOf("dark", "surface-kbd") <= 0.08 && alphaOf("light", "surface-kbd") <= 0.06);
 });
