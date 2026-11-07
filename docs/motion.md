@@ -36,7 +36,7 @@ Loops are grouped apart, because they are not entries: `duration-loop-ring` 640m
 
 A popup (Menu, Select, Combobox, Popover, Tooltip) enters from opacity 0 and scale .98 at the point it grew from (`--transform-origin`), with no translate, over `duration-base` on `ease-out`; it leaves at 0.75 on `ease-in`. Because it scales from its origin it grows away from the trigger on every side. The CommandMenu has no open or close animation at all, its backdrop included.
 
-A press is a colour step, never a scale: the primary fill goes to `action-primary-press`; the other variants go to the selected wash. There is no `basalt-press` utility.
+A press is a colour step: the primary fill goes to `action-primary-press`; the other variants go to the selected wash. Button and IconButton (both are `.basalt-button`) also scale to .98 on `:active` over `duration-fast` on `ease-out`, and back when released. Under `prefers-reduced-motion` the scale is 1 and the colour step stays. It never applies to a disabled or loading button, a menu item, a row, a card or a command row, and there is no `basalt-press` utility.
 
 The code-block copy control swaps its Phosphor Copy icon for Check, instantly. The name changes from "Copy code" to "Copied".
 

@@ -109,7 +109,7 @@
     position: relative;
     cursor: pointer;
     text-decoration: none;
-    transition-property: background-color, color, box-shadow;
+    transition-property: background-color, color, box-shadow, transform;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
   }
@@ -155,13 +155,16 @@
     .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
   }
 
-  /* A press is one colour step, never a scale. Primary steps to action-primary-press; the rest to the selected wash. */
+  /* A press is a colour step, and Button and IconButton (which are this class) also scale to .98 over
+     duration-fast on ease-out. Primary steps to action-primary-press; the rest to the selected wash.
+     Never on a disabled or loading button, and never on a row, card, menu item or command row. */
   .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-loading]) { background: var(--basalt-action-primary-press); }
   .basalt-button[data-variant="secondary"]:active:not([data-disabled]),
   .basalt-button[data-variant="ghost"]:active:not([data-disabled]),
   .basalt-button[data-variant="danger"]:active:not([data-disabled]) {
     background: var(--basalt-state-selected);
   }
+  .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: scale(0.98); }
   /* An icon placed inside the label (a MorphIcon beside the words) sits on the same line, 6px away. */
   .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
@@ -1318,6 +1321,46 @@
   .basalt-accordion-panel[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
   .basalt-accordion-content { padding-bottom: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
 
+  /* ---- Chrome: an app's own sticky header bar ----
+     The one smoked surface in Basalt: surface-glass-chrome over a 12px blur, a divider below, primary ink.
+     Put the class on the app's <header>. It is the only backdrop-filter in the library (dialogs, sheets, menus,
+     popovers, toasts and the command menu stay solid), so at most one filtered element can be in a viewport,
+     and translucent layers never stack. Only primary and secondary text may sit on it: tertiary text is
+     promoted to secondary below, and no Basalt part draws tertiary text without a fill of its own. */
+  .basalt-chrome {
+    position: sticky;
+    top: 0;
+    z-index: var(--basalt-layer-sticky);
+    box-sizing: border-box;
+    background: var(--basalt-surface-glass-chrome);
+    -webkit-backdrop-filter: blur(var(--basalt-blur-chrome));
+    backdrop-filter: blur(var(--basalt-blur-chrome));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-chrome .basalt-text[data-tone="tertiary"],
+  .basalt-chrome .basalt-sparkline-axis { color: var(--basalt-text-secondary); }
+
+  /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .basalt-chrome { background: var(--basalt-surface-page); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .basalt-chrome {
+      background: var(--basalt-surface-page);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  @media print {
+    .basalt-chrome {
+      background: var(--basalt-surface-page);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
   /* A touch target stays at least 44px even in compact mode. Labels provide the target for
      choices without enlarging their checkbox/radio/switch glyphs. Native text entry is 16px
      on touch, preventing iOS from zooming the viewport when the keyboard opens. */
@@ -1523,6 +1566,8 @@
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
     .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast { border-color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
+    /* The header is Canvas with a real border and no filter or alpha fill. */
+    .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .basalt-toast-drain { forced-color-adjust: none; background: CanvasText; }
     .basalt-spinner-dot { forced-color-adjust: none; fill: CanvasText; }
   }
@@ -1530,6 +1575,8 @@
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 
   @media (prefers-reduced-motion: reduce) {
+    /* A press is its colour step alone: scale 1. Same specificity as the press rule, and later. */
+    .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: none; }
     .basalt-sheet { transition-property: opacity; }
     .basalt-sheet[data-side][data-starting-style], .basalt-sheet[data-side][data-ending-style] { transform: none; opacity: 0; }
     .basalt-menu[data-starting-style],

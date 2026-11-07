@@ -428,19 +428,10 @@ function ActiveRowDemo({ state }: { state: string }) {
 
 // ---- 6. Buttons
 
-const optionPressCss = `@layer review-options {
-  .wt-press-b .basalt-button, .wt-press-a .basalt-button { transition-property: background-color, color, box-shadow, transform; transition-duration: var(--basalt-duration-fast); transition-timing-function: var(--basalt-ease-out); }
-  .wt-press-b .basalt-button:active:not([data-disabled]):not([data-loading]),
-  .wt-press-a .basalt-button:not([data-icon-only]):active:not([data-disabled]):not([data-loading]) { transform: scale(0.98); }
-  @media (prefers-reduced-motion: reduce) {
-    .wt-press-b .basalt-button:active, .wt-press-a .basalt-button:active { transform: none; }
-  }
-}`;
-
 function ButtonsDemo() {
   return (
     <div style={col}>
-      <Caption>Hold each button down: a press is a colour step</Caption>
+      <Caption>Hold each button down: a colour step, and a .98 scale on Button and IconButton</Caption>
       <div style={row}>
         <Button variant="primary">Deploy</Button>
         <Button>Cancel</Button>
@@ -464,28 +455,6 @@ function ButtonsDemo() {
         <span className="wt-wash" style={{ background: "var(--basalt-state-selected)", color: "var(--basalt-status-danger)" }}>Delete sandbox</span>
         <span className="wt-wash" style={{ background: "var(--basalt-state-selected)", color: "var(--basalt-status-danger)", fontWeight: 500 }}>Run failed</span>
       </div>
-      <Option title="A .98 press scale. B recommends it on Button and IconButton; A would take it on Button only, and recommends against.">
-        <style>{optionPressCss}</style>
-        <div style={grid}>
-          <div className="wt-press-b" style={col}>
-            <Caption>B: Button and IconButton</Caption>
-            <div style={row}>
-              <Button variant="primary">Deploy</Button>
-              <Button>Cancel</Button>
-              <IconButton icon={CopyIcon} label="Copy option B" />
-            </div>
-          </div>
-          <div className="wt-press-a" style={col}>
-            <Caption>A: Button only</Caption>
-            <div style={row}>
-              <Button variant="primary">Deploy</Button>
-              <Button>Cancel</Button>
-              <IconButton icon={CopyIcon} label="Copy option A" />
-            </div>
-          </div>
-        </div>
-        <Text size="sm" tone="secondary">100ms ease-out, the colour step always applies, none under reduced motion. Never on rows, cards or command rows.</Text>
-      </Option>
     </div>
   );
 }
@@ -804,11 +773,11 @@ export const ROUND_9: Round = {
       intro: "A press is a colour step. Primary goes to a pressed fill; the other variants go to the selected wash. Danger is light #ba1d27 on the washes.",
       decisions: [
         "action-primary-press is the action colour 85% toward the page: about #bfbfbf in dark and #333333 in light. Its text is 11.4:1 or better.",
-        "No scale on press: PR #12's .98, .94 and .99 and the basalt-press utility are gone. The native apps already press by colour.",
+        "At this round PR #12's .98, .94 and .99 and the basalt-press utility were gone and a press was a colour step alone. The owner has since decided the .98 scale on Button and IconButton only: see round 10.",
         "Light danger moved from oklch(.55) to oklch(.51), about #ba1d27, so red text holds 4.77:1 on the hover and selected washes. Dark is unchanged.",
-        "The .98 scale is the owner's call. B recommends it on Button and IconButton; A recommends against, and would take it on Button only. The option is below.",
+        "The .98 scale was the owner's call, with B recommending it on Button and IconButton and A recommending against; the owner chose B's version (round 10).",
       ],
-      tryIt: ["Hold each button down.", "Compare the two options below with the built buttons above."],
+      tryIt: ["Hold each button down: the colour steps and the button scales to .98 (round 10)."],
       demo: () => <ButtonsDemo />,
     },
     {

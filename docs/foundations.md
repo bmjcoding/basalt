@@ -20,8 +20,11 @@ its own accent, in a few named roles, and nowhere else.
   on the other sides in dark, uniform in light. No gradient along or across an edge, no inner
   glow or sheen, no blur, no animation, no outer frame, no light falloff on the page. Never
   on controls or chips. See [Elevation](#elevation).
-- **No ornament that signals "generated":** no gradient borders, no glow, no press-shrink,
-  no bounce. Colour never carries meaning alone.
+- **No ornament that signals "generated":** no gradient borders, no glow, no bounce, and no
+  scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
+- **One smoked surface.** The only translucent, blurred surface is an app's sticky header
+  bar ([Chrome](#chrome-the-smoked-header)). Every dialog, sheet, menu, popover, toast and the
+  command menu is solid. One `backdrop-filter` per viewport; translucent layers never stack.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -47,6 +50,7 @@ levels changed no pixel.
 | `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells and code blocks on the page |
 | `surface-well-2`, `surface-well-3` | `#111111`, `#171717` | `#f5f5f5` | A well one or two levels deeper (see below) |
 | `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks (bands, not boxes) |
+| `surface-glass-chrome` | `#000` at 85% | `#fafafa` at 92% | The fill of a sticky header bar, the page colour with alpha. The only translucent surface; see [Chrome](#chrome-the-smoked-header) |
 
 Dark steps up from true black in small increments, as Linear does. Nothing above the page
 is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
@@ -129,7 +133,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   brightening to pure white or black on hover, and stepping to `action-primary-press` (the
   action colour 85% toward the page: about `#bfbfbf` in dark, `#333333` in light) while pressed.
   Its text is 11.4:1 or better on the pressed fill. Secondary, ghost and danger buttons press to
-  the selected wash. A press is a colour step, never a scale.
+  the selected wash. A press is a colour step, and Button and IconButton also scale to .98 (see
+  [Motion](#motion)).
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
   badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes; light `#ba1d27`). There is no filled red button:
   a destructive action is red text on a red hairline, quieter than the primary action, with
@@ -256,9 +261,38 @@ default, 32px for logs (`density="compact"`) and 44px for touch.
 The rim is one thing, kept to one rule: two solid colours, no gradient along or across the edge, no
 inner glow or sheen, no blur, no animation, no outer frame, and no light falloff on the page. The
 top is lit by 2 points in dark (8% against 6% white), capped at 8% so it reads as an edge and
-not as a highlight. In light every side is the same.
+not as a highlight. In light every side is the same. Blur belongs only to the header chrome material
+(below), never to a panel or its rim.
 
 The Toast's drain line is drawn on the straight part of its bottom rim, 1px, in `text-tertiary`.
+
+### Chrome: the smoked header
+
+An app's own sticky header bar is the one smoked surface in Basalt. Dialogs, sheets, menus, popovers,
+toasts, tooltips and the command menu stay solid, as they are: an opaque panel on a scrim is the
+overlay, and a translucent layer on a translucent layer is the failure mode.
+
+- **Tokens.** `surface-glass-chrome` is the page colour with alpha: `#000` at 85% in dark, `#fafafa` at
+  92% in light. `blur-chrome` is 12px. There is no `saturate()` and no brightness filter: on a
+  monochrome page they tint noise or do nothing.
+- **The class.** Put `basalt-chrome` on the app's `<header>`. It is a plain class (no component: a header
+  is the app's own layout) that sets `position: sticky; top: 0` on the sticky layer, the fill,
+  `backdrop-filter: blur(var(--basalt-blur-chrome))` with the `-webkit-` prefix, a 1px bottom
+  `border-divider` line, and primary ink.
+- **Fallbacks, all to opaque.** Without `backdrop-filter` (`@supports not`), under
+  `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
+  no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
+- **Ink.** Only `text-primary` and `text-secondary` may sit on it. Over a pure white plate the dark bar
+  holds secondary at 5.84:1 (tertiary falls to 4.09:1, below AA), and over a pure black plate the light
+  bar holds it at 6.77:1 (tertiary 4.27:1); primary is 12.88:1 or better. The class sets primary ink and
+  promotes tertiary text (`Text tone="tertiary"`, a Sparkline axis) to secondary inside it, and no Basalt
+  part draws tertiary text on the bar without a fill of its own. An app does not put tertiary there.
+- **One filter per viewport.** Nothing else in Basalt has a `backdrop-filter`, a browser test opens the
+  dialogs, sheet, command menu, menus, popovers, tooltip and toast together and asserts it, so at most one
+  filtered element (the header) can be in a viewport. Translucent layers never stack: no smoked dialog
+  under, over or inside the header, and no blur on a scrim (80% in dark, 40% in light, unblurred).
+- **Use it where something scrolls under the bar.** If nothing does, an opaque `surface-page` bar is
+  the same bar without the layer.
 
 Portals inherit a shared modal-depth context. A menu, select, combobox or popover opened
 inside a modal sits above its parent. A necessary nested confirmation has a backdrop above
@@ -301,7 +335,9 @@ Loops are not on this scale: they repeat while work is happening. `duration-loop
 | `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinners |
 
 Nothing overshoots: Vercel's overlays overshoot by 10% (`cubic-bezier(.175, .885, .32, 1.1)`);
-Basalt's settle. A press is a one-step colour change, never a scale. A popup (Menu, Select,
+Basalt's settle. A press is a colour step; Button and IconButton also scale to .98 over `duration-fast`
+on `ease-out` while pressed, and back, on `:active` only, never when disabled or loading, and on nothing
+else (no row, card, menu item or command row; there is no `basalt-press` utility). A popup (Menu, Select,
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. The tab indicator, and the panel that moves 8px with it, run on
@@ -312,7 +348,8 @@ loading Sparkline.
 part that changed moves: shared letters stay put, and a change to a panel moves the panel, not the
 page.
 
-Under `prefers-reduced-motion`: no transform, no size and no position animates. `duration-base`,
+Under `prefers-reduced-motion`: no transform, no size and no position animates (a press keeps its
+colour step and its scale is 1). `duration-base`,
 `duration-slow` and `duration-slower` are 100ms, so state changes become short fades; the toast
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
 tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
@@ -370,3 +407,7 @@ Motion and primitives (PR #12, #13) were built without the panel and reviewed af
 surface rules (levels, the rim, the nesting guard, kbd chips, the active-row bar, the pressed
 primary colour) and the motion rulings were reviewed by the panel in three rounds. The owner has not
 approved either yet.
+
+The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
+between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their
+implementation has not been reviewed by the panel.

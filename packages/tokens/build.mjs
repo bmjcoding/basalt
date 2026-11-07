@@ -243,6 +243,11 @@ ${byPrefix("space").map((t) => `    public static let ${ident(t.path[1])}: Doubl
 ${byPrefix("radius").map((t) => `    public static let ${t.path[1]}: Double = ${px(t)}`).join("\n")}
   }
 
+  /// Backdrop blur radii in points. One backdrop blur per screen: translucent layers never stack.
+  public enum Blur {
+${byPrefix("blur").map((t) => `${doc(t, "    ")}    public static let ${camel(t.path.slice(1).join("-"))}: Double = ${px(t)}`).join("\n")}
+  }
+
   public enum Size {
 ${byPrefix("size").map((t) => `${doc(t, "    ")}    public static let ${camel(t.path.slice(1).join("-"))}: Double = ${px(t)}`).join("\n")}
   }
