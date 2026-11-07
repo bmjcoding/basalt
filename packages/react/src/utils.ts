@@ -1,14 +1,14 @@
 import type * as React from "react";
 
-/** A Base UI className: a string, or a function of the component's state. */
-export type ClassName<State> = string | ((state: State) => string | undefined) | undefined;
+import type { PartClassName, PartState, PartStyle } from "./types";
 
 /**
  * Basalt's class first, then the caller's, keeping Base UI's state-function form so
- * callers can still style by state.
+ * callers can still style by state. The state is whatever the primitive passes.
  */
-export function withClass<State>(base: string, className: ClassName<State>): string | ((state: State) => string) {
-  if (typeof className === "function") return (state: State) => join(base, className(state));
+// The state type belongs to whichever primitive the class lands on, so it is `any` here.
+export function withClass(base: string, className: PartClassName): string | ((state: any) => string) {
+  if (typeof className === "function") return (state: any) => join(base, className(state as PartState));
   return join(base, className);
 }
 
@@ -16,6 +16,6 @@ export function join(...parts: Array<string | false | null | undefined>): string
   return parts.filter(Boolean).join(" ");
 }
 
-export function withStyle<State>(base: React.CSSProperties, style?: React.CSSProperties | ((state: State) => React.CSSProperties | undefined)) {
-  return typeof style === "function" ? (state: State) => ({ ...base, ...style(state) }) : { ...base, ...style };
+export function withStyle(base: React.CSSProperties, style?: PartStyle): React.CSSProperties | ((state: any) => React.CSSProperties) {
+  return typeof style === "function" ? (state: any) => ({ ...base, ...style(state as PartState) }) : { ...base, ...style };
 }

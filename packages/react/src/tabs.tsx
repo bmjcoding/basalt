@@ -3,6 +3,7 @@ import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
+import type { ChangeDetails, Orientation, PartProps } from "./types";
 import { withClass } from "./utils";
 
 const TabsMotion = React.createContext<{
@@ -10,12 +11,31 @@ const TabsMotion = React.createContext<{
   previous: React.MutableRefObject<string | null>;
 } | null>(null);
 
+export interface TabsProps extends PartProps<"div", "defaultValue" | "onChange"> {
+  value?: string;
+  defaultValue?: string;
+  orientation?: Orientation;
+  onValueChange?: (value: string, details: ChangeDetails) => void;
+}
+
 /** Tabs switch between panels of one view. The new panel slides in from the direction you moved. */
-export function Tabs({ className, onValueChange, value, defaultValue, ...props }: React.ComponentProps<typeof BaseTabs.Root>) {
+export function Tabs({ className, onValueChange, value, defaultValue, ...props }: TabsProps) {
   const order = React.useRef<string[]>([]);
   const previous = React.useRef<string | null>(value == null && defaultValue == null ? null : String(value ?? defaultValue));
   const motion = React.useMemo(() => ({ order, previous }), []);
   const [direction, setDirection] = React.useState<"" | "forward" | "back">("");
+  // The committed value: the prop when controlled, otherwise what the last change set. Direction
+  // follows this, so a controlled update (a router, a reset) slides the same way a click does.
+  const [chosen, setChosen] = React.useState(defaultValue);
+  const current = value !== undefined ? value : chosen;
+  React.useLayoutEffect(() => {
+    if (current == null) return;
+    const nextValue = String(current);
+    const from = previous.current == null ? -1 : order.current.indexOf(previous.current);
+    const to = order.current.indexOf(nextValue);
+    if (from >= 0 && to >= 0 && from !== to) setDirection(to > from ? "forward" : "back");
+    previous.current = nextValue;
+  }, [current]);
   return (
     <TabsMotion.Provider value={motion}>
       <div className="basalt-tabs-root" data-direction={direction || undefined}>
@@ -25,12 +45,8 @@ export function Tabs({ className, onValueChange, value, defaultValue, ...props }
           defaultValue={defaultValue}
           className={withClass("basalt-tabs", className)}
           onValueChange={(next, details) => {
-            const nextValue = String(next);
-            const from = previous.current == null ? -1 : order.current.indexOf(previous.current);
-            const to = order.current.indexOf(nextValue);
-            if (from >= 0 && to >= 0 && from !== to) setDirection(to > from ? "forward" : "back");
-            previous.current = nextValue;
-            onValueChange?.(next, details);
+            setChosen(String(next));
+            onValueChange?.(String(next), details);
           }}
         />
       </div>
@@ -38,7 +54,14 @@ export function Tabs({ className, onValueChange, value, defaultValue, ...props }
   );
 }
 
-export function TabsList({ className, children, ...props }: React.ComponentProps<typeof BaseTabs.List>) {
+export interface TabsListProps extends PartProps<"div"> {
+  /** Wrap focus from the last tab to the first. On by default. */
+  loopFocus?: boolean;
+  /** Select a tab when it takes focus, rather than on Enter or Space. */
+  activateOnFocus?: boolean;
+}
+
+export function TabsList({ className, children, ...props }: TabsListProps) {
   return (
     <BaseTabs.List {...props} className={withClass("basalt-tabs-list", className)}>
       {children}
@@ -47,7 +70,13 @@ export function TabsList({ className, children, ...props }: React.ComponentProps
   );
 }
 
-export function Tab({ className, value, ...props }: React.ComponentProps<typeof BaseTabs.Tab>) {
+export interface TabProps extends PartProps<"button", "value"> {
+  value: string;
+  nativeButton?: boolean;
+  disabled?: boolean;
+}
+
+export function Tab({ className, value, ...props }: TabProps) {
   const motion = React.useContext(TabsMotion);
   React.useLayoutEffect(() => {
     if (!motion || value == null) return;
@@ -58,11 +87,20 @@ export function Tab({ className, value, ...props }: React.ComponentProps<typeof 
   return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)} />;
 }
 
-export function TabsPanel({ className, ...props }: React.ComponentProps<typeof BaseTabs.Panel>) {
+export interface TabsPanelProps extends PartProps<"div"> {
+  value: string;
+  /** Keep the panel in the document while it is hidden. */
+  keepMounted?: boolean;
+}
+
+export function TabsPanel({ className, ...props }: TabsPanelProps) {
   return <BaseTabs.Panel {...props} className={withClass("basalt-tabs-panel", className)} />;
 }
 
-export interface SegmentedControlProps extends Omit<React.ComponentProps<typeof ToggleGroup>, "value" | "defaultValue" | "onValueChange" | "multiple"> {
+export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "onChange" | "value"> {
+  disabled?: boolean;
+  orientation?: Orientation;
+  loopFocus?: boolean;
   /** The selected segment. */
   value?: string;
   defaultValue?: string;
@@ -106,6 +144,12 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
   );
 }
 
-export function Segment({ className, ...props }: React.ComponentProps<typeof Toggle> & { value: string }) {
+export interface SegmentProps extends PartProps<"button", "value"> {
+  value: string;
+  disabled?: boolean;
+  nativeButton?: boolean;
+}
+
+export function Segment({ className, ...props }: SegmentProps) {
   return <Toggle {...props} className={withClass("basalt-segment", className)} />;
 }

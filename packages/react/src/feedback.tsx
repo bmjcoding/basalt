@@ -2,15 +2,14 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Field as BaseField } from "@base-ui/react/field";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { CaretDownIcon, CheckCircleIcon, InfoIcon, WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
-import { Button } from "./button";
+import { IconButton } from "./button";
 import { Icon } from "./icon";
-import { MorphIcon } from "./morph-icon";
-import { useGlide } from "./motion";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import { useFloatingLayer } from "./layers";
+import type { Align, ChangeDetails, PartProps, Side } from "./types";
 import { join, withClass } from "./utils";
 
 // ---- Textarea ----
@@ -41,17 +40,41 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
 
 // ---- Popover ----
 
-/** Rich content anchored to a trigger: a short form, details, a confirmation. Esc or an outside click closes it. */
-export const Popover = BasePopover.Root;
+export interface PopoverProps {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  /** Called after the open or close transition has finished. */
+  onOpenChangeComplete?: (open: boolean) => void;
+  /** `true` locks scroll and makes the page inert; `"trap-focus"` traps focus only. Off by default. */
+  modal?: boolean | "trap-focus";
+  children?: React.ReactNode;
+}
 
-export function PopoverTrigger({ className, ...props }: React.ComponentProps<typeof BasePopover.Trigger>) {
+/** Rich content anchored to a trigger: a short form, details, a confirmation. Esc or an outside click closes it. */
+export function Popover(props: PopoverProps) {
+  return <BasePopover.Root {...props} />;
+}
+
+export interface PopoverTriggerProps extends PartProps<"button"> {
+  nativeButton?: boolean;
+  /** Open when hovered, as well as when pressed. */
+  openOnHover?: boolean;
+  delay?: number;
+  closeDelay?: number;
+}
+
+export function PopoverTrigger({ className, ...props }: PopoverTriggerProps) {
   return <BasePopover.Trigger {...props} className={withClass("basalt-popover-trigger", className)} />;
 }
 
-export interface PopoverContentProps extends React.ComponentProps<typeof BasePopover.Popup> {
-  side?: React.ComponentProps<typeof BasePopover.Positioner>["side"];
-  align?: React.ComponentProps<typeof BasePopover.Positioner>["align"];
+export interface PopoverContentProps extends PartProps<"div"> {
+  side?: Side;
+  align?: Align;
   sideOffset?: number;
+  /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
+  initialFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
+  finalFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
 }
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, ...props }: PopoverContentProps) {
@@ -65,15 +88,21 @@ export function PopoverContent({ side = "bottom", align = "start", sideOffset = 
   );
 }
 
-export function PopoverTitle({ className, ...props }: React.ComponentProps<typeof BasePopover.Title>) {
+export function PopoverTitle({ className, ...props }: PartProps<"h2">) {
   return <BasePopover.Title {...props} className={withClass("basalt-popover-title", className)} />;
 }
 
-export function PopoverDescription({ className, ...props }: React.ComponentProps<typeof BasePopover.Description>) {
+export function PopoverDescription({ className, ...props }: PartProps<"p">) {
   return <BasePopover.Description {...props} className={withClass("basalt-popover-description", className)} />;
 }
 
-export const PopoverClose = BasePopover.Close;
+export interface PopoverCloseProps extends PartProps<"button"> {
+  nativeButton?: boolean;
+}
+
+export function PopoverClose(props: PopoverCloseProps) {
+  return <BasePopover.Close {...props} />;
+}
 
 // ---- Callout ----
 
@@ -121,7 +150,16 @@ export function Callout({ status = "info", title, children, actions, live, class
 
 // ---- Progress ----
 
-export interface ProgressProps extends Omit<React.ComponentProps<typeof BaseProgress.Root>, "children"> {
+export interface ProgressProps extends Omit<PartProps<"div">, "children"> {
+  /** How far along, from `min` to `max`. `null` while the end isn't known. */
+  value: number | null;
+  min?: number;
+  max?: number;
+  /** How the value is written, as `Intl.NumberFormat` options. */
+  format?: Intl.NumberFormatOptions;
+  locale?: string | string[];
+  /** The spoken value, e.g. "3 of 5 steps". */
+  getAriaValueText?: (formattedValue: string, value: number | null) => string;
   /** What is progressing: "Building image". Required: it names the progress bar. */
   label: React.ReactNode;
   /** Show the value (e.g. 42%) beside the label. */
@@ -145,61 +183,6 @@ export function Progress({ label, showValue = true, className, ...props }: Progr
 
 export { Spinner } from "./spinner";
 export type { SpinnerProps, SpinnerVariant } from "./spinner";
-
-// ---- Number ticker ----
-
-export interface NumberTickerProps {
-  value: number;
-  /** Shown to everyone, including screen readers. Defaults to a grouped integer. */
-  format?: (value: number) => string;
-  /** Ease the visible digits toward `value`. The readable text is still the target, once. */
-  glide?: boolean;
-  className?: string;
-}
-
-const TICKER_DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
-function tickerText(value: number, format?: (value: number) => string) {
-  return format ? format(value) : new Intl.NumberFormat("en-US").format(value);
-}
-
-/** Rolls each digit into place. Reduced motion snaps. The readable value is always in the text. */
-export function NumberTicker({ value, format, glide = false, className }: NumberTickerProps) {
-  if (glide) return <GlidingTicker value={value} format={format} className={className} />;
-  return <TickerBody value={value} shown={value} format={format} className={className} />;
-}
-
-function GlidingTicker({ value, format, className }: Omit<NumberTickerProps, "glide">) {
-  const eased = useGlide(value);
-  return <TickerBody value={value} shown={Math.round(eased)} format={format} className={className} />;
-}
-
-function TickerBody({ value, shown, format, className }: NumberTickerProps & { shown: number }) {
-  const text = tickerText(shown, format);
-  const spoken = tickerText(value, format);
-  return (
-    <span className={join("basalt-ticker", className)}>
-      <span className="basalt-visually-hidden">{spoken}</span>
-      <span aria-hidden="true" className="basalt-ticker-visual">
-        {Array.from(text).map((character, index) =>
-          TICKER_DIGITS.includes(character) ? (
-            <span key={`${index}-${text.length}`} className="basalt-ticker-digit" style={{ "--_d": TICKER_DIGITS.indexOf(character) } as React.CSSProperties}>
-              <span className="basalt-ticker-strip">
-                {TICKER_DIGITS.map((digit) => (
-                  <span key={digit}>{digit}</span>
-                ))}
-              </span>
-            </span>
-          ) : (
-            <span key={`${index}-mark`} className="basalt-ticker-char">
-              {character}
-            </span>
-          ),
-        )}
-      </span>
-    </span>
-  );
-}
 
 // ---- Skeleton ----
 
@@ -274,9 +257,7 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
   };
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <Button variant="ghost" size="sm" aria-label={copied ? "Copied" : "Copy code"} data-icon-only="" onClick={copy}>
-        <MorphIcon name={copied ? "check" : "copy"} size={16} />
-      </Button>
+      <IconButton size="sm" icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy code"} onClick={copy} />
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>
   ) : null;
@@ -300,11 +281,30 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
 // ---- Accordion ----
 
 /** Sections that expand one at a time or several at once. For a page's secondary detail, not its main content. */
-export function Accordion({ className, ...props }: React.ComponentProps<typeof BaseAccordion.Root>) {
+export interface AccordionProps extends PartProps<"div", "defaultValue" | "onChange"> {
+  /** The values of the open items. */
+  value?: string[];
+  defaultValue?: string[];
+  onValueChange?: (value: string[], details: ChangeDetails) => void;
+  /** Allow several items open at once. Off by default. */
+  multiple?: boolean;
+  disabled?: boolean;
+  loopFocus?: boolean;
+  orientation?: "horizontal" | "vertical";
+  /** Keep closed panels in the document, so the browser's find-in-page can open them. */
+  hiddenUntilFound?: boolean;
+  keepMounted?: boolean;
+}
+
+export function Accordion({ className, ...props }: AccordionProps) {
   return <BaseAccordion.Root {...props} className={withClass("basalt-accordion", className)} />;
 }
 
-export interface AccordionItemProps extends Omit<React.ComponentProps<typeof BaseAccordion.Item>, "title"> {
+export interface AccordionItemProps extends Omit<PartProps<"div", "title" | "onChange">, "children"> {
+  /** Names the item in `value`. Generated when omitted. */
+  value?: string;
+  disabled?: boolean;
+  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
   /** The always-visible header. */
   title: React.ReactNode;
   children: React.ReactNode;

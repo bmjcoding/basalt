@@ -72,29 +72,51 @@ function offsets(widths: number[]) {
   return starts;
 }
 
-/** Longest common subsequence, preferring earlier letters so a shared prefix stays put. */
+// The most cells of the diff table to fill. Past it the differing middle is treated as one
+// replacement, so a long label that changes completely costs a little, not a quadratic amount.
+const MAX_DIFF_CELLS = 40_000;
+
+/**
+ * Shared letters, in order. A common head and tail are matched directly, so identical strings
+ * and edits near one end cost a scan. Only the differing middle gets a longest common
+ * subsequence, preferring earlier letters, and only while it stays within `MAX_DIFF_CELLS`.
+ */
 function sharedPairs(from: string[], to: string[]) {
-  const cell = (row: number, column: number) => grid[row]?.[column] ?? 0;
-  const glyph = (list: string[], index: number) => list[index] ?? "";
-  const grid = Array.from({ length: from.length + 1 }, () => Array<number>(to.length + 1).fill(0));
-  for (let i = from.length - 1; i >= 0; i--) {
-    for (let j = to.length - 1; j >= 0; j--) {
-      const row = grid[i];
-      if (!row) continue;
-      row[j] = glyph(from, i) === glyph(to, j) ? cell(i + 1, j + 1) + 1 : Math.max(cell(i + 1, j), cell(i, j + 1));
+  const pairs: { from: number; to: number }[] = [];
+  const shortest = Math.min(from.length, to.length);
+  let head = 0;
+  while (head < shortest && from[head] === to[head]) {
+    pairs.push({ from: head, to: head });
+    head += 1;
+  }
+  let tail = 0;
+  while (tail < shortest - head && from[from.length - 1 - tail] === to[to.length - 1 - tail]) tail += 1;
+  const rows = from.length - head - tail;
+  const columns = to.length - head - tail;
+  if (rows > 0 && columns > 0 && rows * columns <= MAX_DIFF_CELLS) {
+    const width = columns + 1;
+    // counts never exceed min(rows, columns), which the cell limit keeps far below 65,535
+    const grid = new Uint16Array((rows + 1) * width);
+    for (let i = rows - 1; i >= 0; i--) {
+      for (let j = columns - 1; j >= 0; j--) {
+        grid[i * width + j] =
+          from[head + i] === to[head + j]
+            ? (grid[(i + 1) * width + j + 1] ?? 0) + 1
+            : Math.max(grid[(i + 1) * width + j] ?? 0, grid[i * width + j + 1] ?? 0);
+      }
+    }
+    let i = 0;
+    let j = 0;
+    while (i < rows && j < columns) {
+      if (from[head + i] === to[head + j]) {
+        pairs.push({ from: head + i, to: head + j });
+        i += 1;
+        j += 1;
+      } else if ((grid[(i + 1) * width + j] ?? 0) >= (grid[i * width + j + 1] ?? 0)) i += 1;
+      else j += 1;
     }
   }
-  const pairs: { from: number; to: number }[] = [];
-  let i = 0;
-  let j = 0;
-  while (i < from.length && j < to.length) {
-    if (glyph(from, i) === glyph(to, j)) {
-      pairs.push({ from: i, to: j });
-      i += 1;
-      j += 1;
-    } else if (cell(i + 1, j) >= cell(i, j + 1)) i += 1;
-    else j += 1;
-  }
+  for (let k = tail; k > 0; k--) pairs.push({ from: from.length - k, to: to.length - k });
   return pairs;
 }
 
@@ -136,6 +158,10 @@ function measure(host: HTMLElement, value: string) {
   probe.remove();
   return { widths, height };
 }
+
+// A label or counter, not a paragraph: past this many characters the text changes in place,
+// without measuring each glyph.
+const MAX_MORPH_LENGTH = 200;
 
 export interface TextMorphProps {
   /** The full string. Shared letters stay; only the changed glyphs animate. */
@@ -182,6 +208,13 @@ export function TextMorph({ text, className }: TextMorphProps) {
   React.useLayoutEffect(() => {
     const element = host.current;
     if (!element) return;
+    if (text.length > MAX_MORPH_LENGTH) {
+      setMotion(false);
+      setBox(null);
+      setGlyphs(null);
+      shown.current = text;
+      return;
+    }
     const next = measure(element, text);
     const settle = () => {
       const plan = planTextMorph(text, text, { previous: next.widths, next: next.widths });
@@ -228,17 +261,20 @@ export function TextMorph({ text, className }: TextMorphProps) {
       data-font={metricsReady ? "ready" : undefined}
       style={box ? { width: box.width, height: box.height } : undefined}
     >
+      {/* The text itself on the server and before the first measurement, so the label is never blank. */}
       <span aria-hidden="true" inert={true}>
-        {glyphs?.map((glyph) => (
-          <span
-            key={glyph.key}
-            className="basalt-text-morph-glyph"
-            data-kind={glyph.kind}
-            style={{ transform: `translateX(${glyph.x}px)`, opacity: glyph.opacity }}
-          >
-            {glyph.char}
-          </span>
-        ))}
+        {glyphs
+          ? glyphs.map((glyph) => (
+              <span
+                key={glyph.key}
+                className="basalt-text-morph-glyph"
+                data-kind={glyph.kind}
+                style={{ transform: `translateX(${glyph.x}px)`, opacity: glyph.opacity }}
+              >
+                {glyph.char}
+              </span>
+            ))
+          : text}
       </span>
       <span className="basalt-visually-hidden" aria-live="polite">
         {text}

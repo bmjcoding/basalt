@@ -73,7 +73,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
   brightening to pure white or black on hover.
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
-  badge fill. Danger is also a text colour (4.68:1 or better). There is no filled red button:
+  badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes). There is no filled red button:
   a destructive action is red text on a red hairline, quieter than the primary action, with
   focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.

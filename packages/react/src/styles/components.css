@@ -141,6 +141,8 @@
   .basalt-button[data-variant="danger"]:active:not([data-disabled]) {
     background: var(--basalt-state-selected);
   }
+  /* An icon placed inside the label (a MorphIcon beside the words) sits on the same line, 6px away. */
+  .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
   .basalt-button[data-loading] > .basalt-icon { opacity: 0; }
   .basalt-button-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
@@ -551,10 +553,12 @@
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
 
-  .basalt-table-container[data-density="compact"] .basalt-table td { height: var(--basalt-size-control-md); }
-  .basalt-table-container[data-density="comfortable"] .basalt-table td { height: var(--basalt-size-tap-min); }
+  .basalt-table-container[data-row-density="compact"] .basalt-table td { height: var(--basalt-size-control-md); }
+  .basalt-table-container[data-row-density="comfortable"] .basalt-table td { height: var(--basalt-size-tap-min); }
+  /* A touch row is 44px whatever the density: this matches the density rules' specificity and comes after them. */
   @media (pointer: coarse) {
-    .basalt-table td { height: var(--basalt-size-tap-min); }
+    .basalt-table td,
+    .basalt-table-container[data-row-density] .basalt-table td { height: var(--basalt-size-tap-min); }
   }
 
   .basalt-table [data-numeric] { text-align: right; font-variant-numeric: tabular-nums; }
@@ -657,6 +661,8 @@
   /* On is a full fill and the thumb moves: shape and position, not only colour. */
   .basalt-switch[data-checked] { background: var(--basalt-action-primary); box-shadow: none; }
   .basalt-switch-thumb[data-checked] { transform: translateX(calc(var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5))); background: var(--basalt-action-primary-text); }
+  /* The track fills from the inline start: in a right-to-left page the thumb travels left. */
+  .basalt-switch-thumb[data-checked]:dir(rtl) { transform: translateX(calc(-1 * (var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5)))); }
 
   .basalt-checkbox[data-disabled],
   .basalt-radio[data-disabled],
@@ -739,7 +745,9 @@
     font-family: var(--basalt-font-family-sans);
     transform-origin: bottom center;
     z-index: calc(1000 - var(--toast-index));
-    transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - (var(--toast-index) * var(--_peek)) - (var(--_shrink) * var(--_height)))) scale(var(--_scale));
+    /* Where this toast rests in the stack; reduced motion holds it here while it enters and leaves. */
+    --_rest: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - (var(--toast-index) * var(--_peek)) - (var(--_shrink) * var(--_height)))) scale(var(--_scale));
+    transform: var(--_rest);
     transition:
       transform var(--basalt-duration-slow) var(--basalt-ease-out),
       opacity var(--basalt-duration-slow) var(--basalt-ease-out),
@@ -747,9 +755,14 @@
     user-select: none;
   }
 
-  .basalt-toast[data-expanded] { transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--_offset-y)); height: var(--toast-height); }
+  .basalt-toast[data-expanded] { --_rest: translateX(var(--toast-swipe-movement-x)) translateY(var(--_offset-y)); height: var(--toast-height); }
   .basalt-toast[data-starting-style],
   .basalt-toast[data-ending-style] { opacity: 0; transform: translateY(calc(100% + var(--basalt-space-4))); }
+  /* Leaving runs at 0.75 of its entry, easing in. */
+  .basalt-toast[data-ending-style] {
+    transition-duration: calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-base) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+  }
   .basalt-toast[data-limited] { opacity: 0; }
   .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
   .basalt-toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
@@ -832,7 +845,8 @@
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-secondary);
   }
-  .basalt-command .basalt-menu-item { width: 100%; cursor: pointer; color: var(--basalt-text-primary); }
+  /* Rows fill the list's padding like Menu rows: 6px in from each side, a 6px radius, no sideways scroll. */
+  .basalt-command .basalt-menu-item { cursor: pointer; color: var(--basalt-text-primary); }
   .basalt-command .basalt-menu-item-label { color: var(--basalt-text-primary); }
   .basalt-command .basalt-menu-item[data-danger],
   .basalt-command .basalt-menu-item[data-danger] .basalt-menu-item-label { color: var(--basalt-status-danger); }
@@ -850,8 +864,10 @@
     pointer-events: none;
     animation: basalt-drain linear forwards;
   }
-  .basalt-toast:hover .basalt-toast-drain,
-  .basalt-toast:focus-within .basalt-toast-drain { animation-play-state: paused; }
+  /* The line pauses exactly when Base UI pauses every toast's timer: the stack hovered or focused
+     (it is then expanded), or the window out of focus. One toast's hover pauses them all. */
+  .basalt-toast[data-expanded] .basalt-toast-drain,
+  .basalt-toast-viewport[data-window-blurred] .basalt-toast-drain { animation-play-state: paused; }
   
   /* ---- Textarea ---- */
 
@@ -940,15 +956,18 @@
     transition: width var(--basalt-duration-slow) var(--basalt-ease-out);
   }
 
+  /* The bar is 30% of the track and travels from just off the start to just off the end. It moves
+     by transform (percentages of its own width), so nothing is laid out again each frame. */
   .basalt-progress-indicator[data-indeterminate] {
     position: absolute;
+    left: 0;
     width: 30%;
     animation: basalt-indeterminate 1.4s var(--basalt-ease-in-out) infinite;
   }
 
   @keyframes basalt-indeterminate {
-    from { left: -30%; }
-    to { left: 100%; }
+    from { transform: translateX(-100%); }
+    to { transform: translateX(333.333%); }
   }
 
   /* ---- Spinner ---- */
@@ -1213,6 +1232,8 @@
 
   .basalt-accordion-panel[data-starting-style],
   .basalt-accordion-panel[data-ending-style] { height: 0; }
+  /* Closing runs at 0.75 of opening, easing in. */
+  .basalt-accordion-panel[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
   .basalt-accordion-content { padding-bottom: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
 
   /* A touch target stays at least 44px even in compact mode. Labels provide the target for
@@ -1394,10 +1415,18 @@
       box-shadow: none;
     }
     .basalt-button[data-disabled], .basalt-input[data-disabled], .basalt-select-trigger[data-disabled] { border-color: GrayText; color: GrayText; }
-    .basalt-checkbox[data-checked], .basalt-radio[data-checked], .basalt-switch[data-checked], .basalt-segment[data-pressed], .basalt-menu-item[data-highlighted],
+    /* Choices: off is a ButtonText border on Canvas; on (or mixed) is a Highlight fill with the mark in
+       HighlightText. The mark elements opt out of colour adjustment so exactly these colours apply. */
+    .basalt-checkbox, .basalt-radio, .basalt-switch { background: Canvas; color: ButtonText; }
+    .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked], .basalt-segment[data-pressed], .basalt-menu-item[data-highlighted],
     .basalt-command .basalt-menu-item[data-selected="true"] { background: Highlight; color: HighlightText; }
+    .basalt-checkbox-indicator, .basalt-radio-indicator, .basalt-switch-thumb { forced-color-adjust: none; }
     .basalt-checkbox-indicator, .basalt-menu-item[data-highlighted] .basalt-icon { color: HighlightText; }
-    .basalt-radio-indicator[data-checked], .basalt-switch-thumb[data-checked] { background: HighlightText; }
+    .basalt-radio-indicator[data-checked] { background: HighlightText; }
+    .basalt-switch-thumb { background: ButtonText; }
+    .basalt-switch-thumb[data-checked] { background: HighlightText; }
+    /* A real border, not a box-shadow (shadows are dropped here): the selected row keeps its bar. */
+    .basalt-table tr[data-selected] td:first-child { border-inline-start: var(--basalt-size-indicator) solid Highlight; }
     .basalt-slider-track, .basalt-progress-track { background: Canvas; border: var(--basalt-size-hairline) solid CanvasText; }
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
     .basalt-segment[data-pressed], .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
@@ -1418,8 +1447,11 @@
     .basalt-dialog[data-ending-style] { transform: translate(-50%, -50%); }
     .basalt-tabs-indicator { transition: none; }
     .basalt-switch-thumb { transition-property: background-color; }
+    /* The stack sits at its final offsets: only opacity changes, and no height or position eases. */
+    .basalt-toast { transition-property: opacity; }
     .basalt-toast[data-starting-style],
-    .basalt-toast[data-ending-style] { transform: none; }
+    .basalt-toast[data-ending-style] { transform: var(--_rest); }
+    .basalt-toast[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); }
     .basalt-command[data-starting-style],
     .basalt-command[data-ending-style] { transform: translateX(-50%); }
     .basalt-popover[data-starting-style],
@@ -1444,6 +1476,7 @@
     .basalt-tabs-root[data-direction] .basalt-tabs-panel,
     .basalt-slide[data-direction] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-decelerate); }
     .basalt-toast-drain { transform: none; }
+    .basalt-progress-indicator { transition: none; }
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse 1.2s ease-in-out infinite alternate; }
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }

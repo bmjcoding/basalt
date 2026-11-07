@@ -61,7 +61,8 @@ function resolve(language?: string): string | undefined {
 
 let highlighter: HighlighterCore | undefined;
 let core: Promise<HighlighterCore> | undefined;
-const loading = new Map<string, Promise<boolean>>();
+// Made on first load, not on import: loading this module builds nothing.
+let loading: Map<string, Promise<boolean>> | undefined;
 
 function createCore() {
   core ??= Promise.all([import("shiki/core"), import("shiki/engine/javascript")]).then(([shiki, engine]) => {
@@ -91,6 +92,7 @@ export function loadCodeLanguage(language: string): Promise<boolean> {
   const key = resolve(language);
   const grammar = key ? grammars[key] : undefined;
   if (!key || !grammar) return Promise.resolve(false);
+  loading ??= new Map();
   let pending = loading.get(key);
   if (!pending) {
     pending = Promise.all([createCore(), grammar()])

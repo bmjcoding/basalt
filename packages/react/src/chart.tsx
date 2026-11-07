@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { NumberTicker } from "./feedback";
+import { NumberTicker } from "./number-ticker";
 import { useReducedMotion } from "./motion";
 import { join } from "./utils";
 

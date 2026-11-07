@@ -25,7 +25,7 @@ extension Basalt {
   public enum Colors {
     /// Destructive actions and errors: red text, red hairline, a dot. Never a fill.
     public static let statusDanger = ThemedColor(
-      light: RGBA(red: 0.786912, green: 0.184, blue: 0.19888, alpha: 1),
+      light: RGBA(red: 0.731201, green: 0.115003, blue: 0.151737, alpha: 1),
       dark: RGBA(red: 0.99979, green: 0.385669, blue: 0.401313, alpha: 1)
     )
 

@@ -1,15 +1,19 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Icon } from "./icon";
 import { Spinner } from "./spinner";
+import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ControlSize = "xs" | "sm" | "md" | "lg" | "xl";
 
-type BaseProps = Omit<React.ComponentProps<typeof BaseButton>, "children"> & {
+type BaseProps = Omit<PartProps<"button">, "children"> & {
+  /** Set to false when `render` produces something other than a native `<button>`, such as a link. */
+  nativeButton?: boolean;
+  /** Stay focusable while disabled, so a keyboard user can still reach it and read why. */
+  focusableWhenDisabled?: boolean;
   variant?: ButtonVariant;
   /** Control height: 24, 28, 32, 36 or 40px. md (32px) is the app default. */
   size?: ControlSize;
@@ -19,9 +23,9 @@ type BaseProps = Omit<React.ComponentProps<typeof BaseButton>, "children"> & {
 
 export type ButtonProps = BaseProps & {
   /** An icon before the label. */
-  icon?: PhosphorIcon;
+  icon?: IconComponent;
   /** An icon after the label, e.g. a caret. */
-  iconEnd?: PhosphorIcon;
+  iconEnd?: IconComponent;
   children: React.ReactNode;
 };
 
@@ -40,7 +44,11 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, load
       data-size={size}
       className={withClass("basalt-button", className)}
       onClick={(event) => {
-        if (loading) return;
+        // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
+        if (loading) {
+          event.preventDefault();
+          return;
+        }
         onClick?.(event);
       }}
     >
@@ -53,7 +61,7 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, load
 }
 
 export type IconButtonProps = BaseProps & {
-  icon: PhosphorIcon;
+  icon: IconComponent;
   /** Required: an icon-only button has no visible text, so this is its name. Also shown as its tooltip by convention. */
   label: string;
 };
@@ -73,7 +81,11 @@ export function IconButton({ variant = "ghost", size = "md", icon, label, loadin
       data-icon-only=""
       className={withClass("basalt-button", className)}
       onClick={(event) => {
-        if (loading) return;
+        // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
+        if (loading) {
+          event.preventDefault();
+          return;
+        }
         onClick?.(event);
       }}
     >
