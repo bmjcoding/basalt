@@ -25,29 +25,57 @@
     },
     "surface": {
       "$description": "The page sits below white so white surfaces lift without a shadow; sunken areas step darker.",
-      "page": {
+      "0": {
         "$value": "{color.neutral.98}",
+        "$description": "Level 0, the page. A depth is one of four levels; a panel is one level above what it sits on, and level 3 is the cap."
+      },
+      "1": {
+        "$value": "{color.neutral.100}",
+        "$description": "Level 1: a panel directly on the page. In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher."
+      },
+      "2": {
+        "$value": "{color.neutral.100}",
+        "$description": "Level 2: a panel on a level-1 panel, a floating menu or popover, a dialog."
+      },
+      "3": {
+        "$value": "{color.neutral.100}",
+        "$description": "Level 3: the deepest panel, a popup opened from a dialog, a tooltip, a toast. Nothing nests below it."
+      },
+      "page": {
+        "$value": "{color.surface.0}",
         "$description": "The page, and app sidebars. The darkest layer in both themes."
       },
       "raised": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.surface.1}",
         "$description": "Cards, tables, inputs and secondary buttons, on surface-page."
       },
       "overlay": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.surface.2}",
         "$description": "Menus, popovers, selects and dialogs."
       },
       "top": {
-        "$value": "{color.neutral.100}",
+        "$value": "{color.surface.3}",
         "$description": "Tooltips, and the selected pill of a segmented control."
       },
       "sunken": {
         "$value": "{color.neutral.96}",
         "$description": "Wells and code blocks, set into a raised surface."
       },
+      "well-2": {
+        "$value": "{color.surface.sunken}",
+        "$description": "A well one level deeper. In light every well is surface-sunken; only dark steps by level."
+      },
+      "well-3": {
+        "$value": "{color.surface.sunken}",
+        "$description": "A well at level 3. In light every well is surface-sunken; only dark steps by level."
+      },
       "sunken-strong": {
         "$value": "{color.neutral.94}",
-        "$description": "Table headers and segmented-control tracks."
+        "$description": "Table headers and segmented-control tracks: bands, not boxes."
+      },
+      "kbd": {
+        "$value": "{color.black.6}",
+        "$description": "The fill of a keyboard-key chip. No border. Text on it is text-secondary, or text-primary on a hover or selected wash."
       },
       "placeholder": {
         "$value": "{color.neutral.94}",
@@ -77,9 +105,17 @@
       }
     },
     "border": {
+      "rim": {
+        "$value": "{color.black.8}",
+        "$description": "A panel's rim: a real 1px border, uniform in light. Panels only, never controls or chips."
+      },
+      "rim-top": {
+        "$value": "{color.black.8}",
+        "$description": "A panel's top edge: the same colour as the rim in light (a top highlight on white would be invisible)."
+      },
       "hairline": {
         "$value": "{color.black.8}",
-        "$description": "Decorative 1px lines around cards, tables and secondary buttons, via shadow-hairline."
+        "$description": "Decorative 1px lines around secondary buttons, badges and avatars, via shadow-hairline. Panels use the rim."
       },
       "hover": {
         "$value": "{color.black.16}",
@@ -117,6 +153,10 @@
         "$value": "{color.neutral.0}",
         "$description": "action-primary on hover: pure white on dark, pure black on light."
       },
+      "primary-press": {
+        "$value": "{color.neutral.20}",
+        "$description": "action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step, never a scale."
+      },
       "primary-text": {
         "$value": "{color.neutral.100}",
         "$description": "Text on action-primary."
@@ -142,7 +182,7 @@
     }
   },
   "shadow": {
-    "$description": "The second ring is the page colour behind the hairline, so the translucent line mixes against the same colour on any background.",
+    "$description": "Controls and small marks keep the hairline (the second ring is the page colour behind it, so the translucent line reads the same on any background). Panels have a rim instead: border-rim.",
     "hairline": {
       "$value": [
         {
@@ -184,7 +224,7 @@
           }
         }
       ],
-      "$description": "Raised surfaces: a translucent line backed by the page colour, so it reads the same on any background.",
+      "$description": "Secondary buttons, avatars and the current page: a translucent line backed by the page colour. Panels use the rim, not this.",
       "$type": "shadow"
     },
     "pill": {
@@ -234,25 +274,6 @@
     "overlay": {
       "$value": [
         {
-          "color": "{color.black.8}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
-        },
-        {
           "color": "{color.black.6}",
           "offsetX": {
             "value": 0,
@@ -289,51 +310,13 @@
             "value": -8,
             "unit": "px"
           }
-        },
-        {
-          "color": "{color.neutral.98}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
         }
       ],
-      "$description": "Menus, popovers and tooltips.",
+      "$description": "Menus, popovers and tooltips. The drop only: the edge is the rim (border-rim), never a ring here.",
       "$type": "shadow"
     },
     "modal": {
       "$value": [
-        {
-          "color": "{color.black.8}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
-        },
         {
           "color": "{color.black.6}",
           "offsetX": {
@@ -371,28 +354,9 @@
             "value": -8,
             "unit": "px"
           }
-        },
-        {
-          "color": "{color.neutral.98}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
         }
       ],
-      "$description": "Dialogs and sheets.",
+      "$description": "Dialogs and sheets. The drop only: the edge is the rim (border-rim).",
       "$type": "shadow"
     }
   }

@@ -3,7 +3,7 @@ import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
-import type { ChangeDetails, Orientation, PartProps } from "./types";
+import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { withClass } from "./utils";
 
 const TabsMotion = React.createContext<{
@@ -11,21 +11,25 @@ const TabsMotion = React.createContext<{
   previous: React.MutableRefObject<string | null>;
 } | null>(null);
 
-export interface TabsProps extends PartProps<"div", "defaultValue" | "onChange"> {
-  value?: string;
-  defaultValue?: string;
+export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"div", "defaultValue"> {
+  /** The selected tab's `value`. `null` selects none. */
+  value?: Value | null;
+  defaultValue?: Value | null;
   orientation?: Orientation;
-  onValueChange?: (value: string, details: ChangeDetails) => void;
+  /** Called with the new tab's `value`, unchanged (`null` when no tab can be selected). Call `details.cancel()` to refuse. */
+  onValueChange?: (value: Value | null, details: ChangeDetails) => void;
 }
 
 /** Tabs switch between panels of one view. The new panel slides in from the direction you moved. */
-export function Tabs({ className, onValueChange, value, defaultValue, ...props }: TabsProps) {
+export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, ...props }: TabsProps<Value>) {
   const order = React.useRef<string[]>([]);
+  // Order and direction are looked up by the value's text, a private key: what the app sees is never changed.
   const previous = React.useRef<string | null>(value == null && defaultValue == null ? null : String(value ?? defaultValue));
   const motion = React.useMemo(() => ({ order, previous }), []);
   const [direction, setDirection] = React.useState<"" | "forward" | "back">("");
-  // The committed value: the prop when controlled, otherwise what the last change set. Direction
-  // follows this, so a controlled update (a router, a reset) slides the same way a click does.
+  // The committed value: the prop when controlled, otherwise what the last accepted change set. Direction
+  // follows this, so a controlled update (a router, a reset) slides the same way a click does, and a change
+  // the app refused (`details.cancel()`) moves nothing.
   const [chosen, setChosen] = React.useState(defaultValue);
   const current = value !== undefined ? value : chosen;
   React.useLayoutEffect(() => {
@@ -44,9 +48,9 @@ export function Tabs({ className, onValueChange, value, defaultValue, ...props }
           value={value}
           defaultValue={defaultValue}
           className={withClass("basalt-tabs", className)}
-          onValueChange={(next, details) => {
-            setChosen(String(next));
-            onValueChange?.(String(next), details);
+          onValueChange={(next: Value | null, details: ChangeDetails) => {
+            onValueChange?.(next, details);
+            if (!details.isCanceled) setChosen(next);
           }}
         />
       </div>
@@ -71,7 +75,7 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
 }
 
 export interface TabProps extends PartProps<"button", "value"> {
-  value: string;
+  value: ChoiceValue;
   nativeButton?: boolean;
   disabled?: boolean;
 }
@@ -87,8 +91,8 @@ export function Tab({ className, value, ...props }: TabProps) {
   return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)} />;
 }
 
-export interface TabsPanelProps extends PartProps<"div"> {
-  value: string;
+export interface TabsPanelProps extends PartProps<"div", "value"> {
+  value: ChoiceValue;
   /** Keep the panel in the document while it is hidden. */
   keepMounted?: boolean;
 }
@@ -97,7 +101,7 @@ export function TabsPanel({ className, ...props }: TabsPanelProps) {
   return <BaseTabs.Panel {...props} className={withClass("basalt-tabs-panel", className)} />;
 }
 
-export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "onChange" | "value"> {
+export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "value"> {
   disabled?: boolean;
   orientation?: Orientation;
   loopFocus?: boolean;

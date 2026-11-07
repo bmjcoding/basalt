@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": true, "emitDeclarationOnly": false, "declaration": false, "rootDir": "." },
-  "include": ["src", "test/**/*.tsx"]
+  "include": ["src", "test/**/*.tsx"],
+  "exclude": ["test/fixtures"]
 }

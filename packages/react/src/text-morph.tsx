@@ -159,8 +159,8 @@ function measure(host: HTMLElement, value: string) {
   return { widths, height };
 }
 
-// A label or counter, not a paragraph: past this many characters the text changes in place,
-// without measuring each glyph.
+// A label or counter, not a paragraph: past this many characters, in the old text or the new, the text
+// changes in place, without measuring each glyph.
 const MAX_MORPH_LENGTH = 200;
 
 export interface TextMorphProps {
@@ -223,7 +223,8 @@ export function TextMorph({ text, className }: TextMorphProps) {
       setGlyphs(place(plan.glyphs, "to"));
       shown.current = text;
     };
-    if (reduced || shown.current === text) {
+    // A long previous value is never measured or mounted glyph by glyph, going on to a short one included.
+    if (reduced || shown.current === text || shown.current.length > MAX_MORPH_LENGTH) {
       settle();
       return;
     }
@@ -242,7 +243,7 @@ export function TextMorph({ text, className }: TextMorphProps) {
         shown.current = text;
       });
     });
-    const duration = parseFloat(getComputedStyle(element).getPropertyValue("--basalt-duration-base")) || 180;
+    const duration = parseFloat(getComputedStyle(element).getPropertyValue("--basalt-duration-base")) || 150;
     const done = window.setTimeout(() => {
       setGlyphs((current) => current?.filter((glyph) => glyph.kind !== "exit") ?? null);
     }, duration + 40);

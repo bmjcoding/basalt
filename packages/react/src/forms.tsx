@@ -9,9 +9,9 @@ import * as React from "react";
 import { IconButton, type ControlSize } from "./button";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
-import type { ChangeDetails, CommitDetails, PartProps } from "./types";
+import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails, PartProps, PopupActions, SubmitDetails, ValidateActions } from "./types";
 import { join, withClass } from "./utils";
-import { useFloatingLayer } from "./layers";
+import { useFloatingLayer, usePopupLevel } from "./layers";
 
 export type FormProps<Values extends Record<string, unknown> = Record<string, unknown>> = PartProps<"form"> & {
   /** When fields first show their errors. */
@@ -19,11 +19,13 @@ export type FormProps<Values extends Record<string, unknown> = Record<string, un
   /** Errors from outside the form, e.g. a server response, keyed by field name. */
   errors?: Record<string, string | string[]>;
   /** Called with the values of every named control once the form is valid. */
-  onFormSubmit?: (values: Values, details: ChangeDetails) => void;
+  onFormSubmit?: (values: Values, details: SubmitDetails) => void;
+  /** Validate every field, or one by name, on demand: `actionsRef.current?.validate()`. */
+  actionsRef?: React.RefObject<ValidateActions | null>;
 };
 
 export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, ...props }: FormProps<Values>) {
-  return <BaseForm {...(props as object)} className={withClass("basalt-form", className)} />;
+  return <BaseForm {...props} className={withClass("basalt-form", className)} />;
 }
 
 export interface FieldsetProps extends PartProps<"fieldset"> {
@@ -60,11 +62,19 @@ export interface ComboboxProps {
   onInputValueChange?: (value: string, details: ChangeDetails) => void;
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
   onOpenChangeComplete?: (open: boolean) => void;
+  /** Called as the highlight moves; the value is `undefined` when nothing is highlighted. */
+  onItemHighlighted?: (value: string | undefined, details: HighlightDetails) => void;
+  /** Imperative handle: `unmount()` ends a closing animation you ran yourself (call `details.preventUnmountOnClose()` first); `close()` closes. */
+  actionsRef?: React.RefObject<PopupActions | null>;
   name?: string;
   form?: string;
   id?: string;
+  /** The browser's autofill hint for the field, e.g. "email". */
+  autoComplete?: string;
+  /** Your own match test, over the option values: return false to hide one. `null` turns filtering off. */
+  filter?: null | ((value: string, query: string, itemToString?: (value: string) => string) => boolean);
   required?: boolean;
   readOnly?: boolean;
   disabled?: boolean;
@@ -90,6 +100,7 @@ export interface ComboboxProps {
 /** A searchable Select. The chosen value must come from the supplied options. Label it with Field. */
 export function Combobox({ options, placeholder = "Search…", emptyMessage = "No options match.", controlSize = "md", className, inputProps, modal = false, "aria-label": label, ...props }: ComboboxProps) {
   const layer = useFloatingLayer();
+  const level = usePopupLevel();
   const byValue = new Map(options.map((option) => [option.value, option]));
   return (
     <BaseCombobox.Root {...props} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
@@ -99,7 +110,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
       </BaseCombobox.InputGroup>
       <BaseCombobox.Portal>
         <BaseCombobox.Positioner sideOffset={6} style={layer} className="basalt-positioner">
-          <BaseCombobox.Popup className="basalt-menu basalt-combobox-popup">
+          <BaseCombobox.Popup data-level={level} className="basalt-menu basalt-combobox-popup">
             <BaseCombobox.Empty className="basalt-combobox-empty">{emptyMessage}</BaseCombobox.Empty>
             <BaseCombobox.List>
               {(value: string) => (
@@ -116,7 +127,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
   );
 }
 
-export interface NumberFieldProps extends Omit<PartProps<"div", "onChange" | "defaultValue" | "children" | "value">, "render"> {
+export interface NumberFieldProps extends PartProps<"div", "onChange" | "defaultValue" | "children" | "value"> {
   value?: number | null;
   defaultValue?: number;
   min?: number;
@@ -161,7 +172,7 @@ export function NumberField({ controlSize = "md", className, inputProps, "aria-l
   );
 }
 
-export type SliderProps<Value extends number | readonly number[] = number> = Omit<PartProps<"div", "defaultValue" | "onChange" | "value" | "children">, "render"> & {
+export type SliderProps<Value extends number | readonly number[] = number> = PartProps<"div", "defaultValue" | "value" | "children"> & {
   value?: Value;
   defaultValue?: Value;
   min?: number;
@@ -171,6 +182,10 @@ export type SliderProps<Value extends number | readonly number[] = number> = Omi
   /** The least distance allowed between range thumbs. */
   minStepsBetweenValues?: number;
   orientation?: "horizontal" | "vertical";
+  /** Whether a thumb's edge or its centre stops at the ends of the track. */
+  thumbAlignment?: "center" | "edge" | "edge-client-only";
+  /** What range thumbs do when one meets another. */
+  thumbCollisionBehavior?: "push" | "swap" | "none";
   disabled?: boolean;
   name?: string;
   form?: string;

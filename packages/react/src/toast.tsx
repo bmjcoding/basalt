@@ -24,14 +24,11 @@ export interface ToastOptions {
  * or focus, pause while hovered, and are announced to screen readers.
  */
 export function ToastProvider({ children, limit = 3 }: { children: React.ReactNode; limit?: number }) {
-  const blurred = useWindowBlurred();
   return (
     <BaseToast.Provider limit={limit} timeout={DEFAULT_TIMEOUT}>
       {children}
       <BaseToast.Portal>
-        <BaseToast.Viewport className="basalt-toast-viewport" data-window-blurred={blurred ? "" : undefined}>
-          <ToastList />
-        </BaseToast.Viewport>
+        <ToastStack />
       </BaseToast.Portal>
     </BaseToast.Provider>
   );
@@ -40,13 +37,28 @@ export function ToastProvider({ children, limit = 3 }: { children: React.ReactNo
 // Stated here rather than left to Base UI, because the drain line must last as long as the timer.
 const DEFAULT_TIMEOUT = 5000;
 
+function ToastStack() {
+  const { toasts } = BaseToast.useToastManager();
+  const blurred = useWindowBlurred(toasts.length > 0);
+  return (
+    <BaseToast.Viewport className="basalt-toast-viewport" data-window-blurred={blurred ? "" : undefined}>
+      <ToastList />
+    </BaseToast.Viewport>
+  );
+}
+
 /**
  * Base UI holds every toast's timer while the window is not focused, as it does while the stack
  * is hovered or focused. The drain line pauses with them, so the line and the timer stay in step.
+ *
+ * Base UI watches the window only while a toast is on screen, so a blur or focus while the stack is empty
+ * never reaches its timers. This watches over exactly the same span (`watching`): otherwise a first
+ * toast shown after a blur would have a paused line and a running timer.
  */
-function useWindowBlurred() {
+function useWindowBlurred(watching: boolean) {
   const [blurred, setBlurred] = React.useState(false);
   React.useEffect(() => {
+    if (!watching) return;
     let refocus = 0;
     const blur = (event: Event) => {
       if (event.target !== window) return;
@@ -61,11 +73,11 @@ function useWindowBlurred() {
     window.addEventListener("blur", blur, true);
     window.addEventListener("focus", focus, true);
     return () => {
-      window.clearTimeout(refocus);
+      // A refocus already under way is left to finish, so the state is never stuck on blurred.
       window.removeEventListener("blur", blur, true);
       window.removeEventListener("focus", focus, true);
     };
-  }, []);
+  }, [watching]);
   return blurred;
 }
 
@@ -75,7 +87,7 @@ function ToastList() {
     // The timeout lives on the toast itself, so nothing outlives it.
     const timeout = toast.timeout ?? DEFAULT_TIMEOUT;
     return (
-    <BaseToast.Root key={toast.id} toast={toast} className="basalt-toast" data-status={(toast.type as ToastStatus | undefined) ?? "neutral"}>
+    <BaseToast.Root key={toast.id} toast={toast} data-level={3} className="basalt-toast" data-status={(toast.type as ToastStatus | undefined) ?? "neutral"}>
       {timeout > 0 ? <span className="basalt-toast-drain" style={{ animationDuration: `${timeout}ms` }} /> : null}
       <BaseToast.Content className="basalt-toast-content">
         {/* a dot only where it warns; the title says what happened */}

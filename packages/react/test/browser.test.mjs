@@ -647,8 +647,7 @@ for (const theme of ["light", "dark"]) {
       const { page } = await open(theme);
       assert.equal(await page.getByRole("status", { name: "Loading runs" }).count(), 1);
       assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
-      assert.equal(await page.getByRole("status", { name: "Loading grid" }).count(), 1);
-      assert.match(await page.locator(".basalt-spinner[data-variant=braille]").evaluate((el) => getComputedStyle(el, "::before").animationTimingFunction), /step/);
+      assert.match(await page.locator(".basalt-spinner[data-variant=braille] [data-dot='1']").evaluate((el) => getComputedStyle(el).animationTimingFunction), /step/);
       const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-visually-hidden");
       assert.equal(await ticker.textContent(), "1,284");
       await page.getByRole("button", { name: "Add a run" }).click();
@@ -665,7 +664,8 @@ for (const theme of ["light", "dark"]) {
       await page.keyboard.press("Enter");
       assert.equal(await page.getByTestId("saving-clicks").textContent(), "0");
       await page.emulateMedia({ reducedMotion: "reduce" });
-      assert.equal(await page.locator(".basalt-spinner[data-variant=dots]").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-spinner[data-variant=ring] svg").first().evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-spinner[data-variant=braille] [data-dot='1']").evaluate((el) => getComputedStyle(el).animationName), "none", "braille holds under reduced motion");
       const add = page.getByRole("button", { name: "Add a run" });
       const box = await add.boundingBox();
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

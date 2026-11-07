@@ -71,6 +71,30 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// Level 0, the page. A depth is one of four levels; a panel is one level above what it sits on, and level 3 is the cap.
+    public static let surface0 = ThemedColor(
+      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+    )
+
+    /// Level 1: a panel directly on the page. In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher.
+    public static let surface1 = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
+      dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
+    )
+
+    /// Level 2: a panel on a level-1 panel, a floating menu or popover, a dialog.
+    public static let surface2 = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
+      dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+    )
+
+    /// Level 3: the deepest panel, a popup opened from a dialog, a tooltip, a toast. Nothing nests below it.
+    public static let surface3 = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
+      dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
+    )
+
     /// The page, and app sidebars. The darkest layer in both themes.
     public static let surfacePage = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
@@ -101,10 +125,28 @@ extension Basalt {
       dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
     )
 
-    /// Table headers and segmented-control tracks.
+    /// A well one level deeper. In light every well is surface-sunken; only dark steps by level.
+    public static let surfaceWell2 = ThemedColor(
+      light: RGBA(red: 0.960849, green: 0.960849, blue: 0.960849, alpha: 1),
+      dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+    )
+
+    /// A well at level 3. In light every well is surface-sunken; only dark steps by level.
+    public static let surfaceWell3 = ThemedColor(
+      light: RGBA(red: 0.960849, green: 0.960849, blue: 0.960849, alpha: 1),
+      dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
+    )
+
+    /// Table headers and segmented-control tracks: bands, not boxes.
     public static let surfaceSunkenStrong = ThemedColor(
       light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
       dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+    )
+
+    /// The fill of a keyboard-key chip. No border. Text on it is text-secondary, or text-primary on a hover or selected wash.
+    public static let surfaceKbd = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.06),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
     /// Skeletons and other loading placeholders: visible on the page in both themes.
@@ -143,7 +185,19 @@ extension Basalt {
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
     )
 
-    /// Decorative 1px lines around cards, tables and secondary buttons, via shadow-hairline.
+    /// A panel's rim: a real 1px border, uniform in light. Panels only, never controls or chips.
+    public static let borderRim = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06)
+    )
+
+    /// A panel's top edge: the same colour as the rim in light (a top highlight on white would be invisible).
+    public static let borderRimTop = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
+    )
+
+    /// Decorative 1px lines around secondary buttons, badges and avatars, via shadow-hairline. Panels use the rim.
     public static let borderHairline = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.145)
@@ -158,7 +212,7 @@ extension Basalt {
     /// Rules between table rows, menu groups and card sections.
     public static let borderDivider = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
-      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.1)
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06)
     )
 
     /// Input boundaries: 3:1 or better on every surface (WCAG 1.4.11).
@@ -195,6 +249,12 @@ extension Basalt {
     public static let actionPrimaryHover = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 1),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+    )
+
+    /// action-primary while pressed: 85% of action-primary toward the page colour (about #bfbfbf in dark, #333333 in light). A press is a colour step, never a scale.
+    public static let actionPrimaryPress = ThemedColor(
+      light: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1),
+      dark: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1)
     )
 
     /// Text on action-primary.
@@ -272,8 +332,6 @@ extension Basalt {
     public static let switchThumb: Double = 14
     /// Keyboard-key height, everywhere a Kbd appears.
     public static let kbd: Double = 20
-    /// Kbd glyph size. A component value, not a step of the type scale.
-    public static let kbdText: Double = 11
     /// Badge height.
     public static let badge: Double = 22
     /// Default table row height; compact and touch densities override it.
@@ -336,19 +394,10 @@ extension Basalt {
   /// Durations in seconds. Exits run at 0.75 of their entry.
   public enum Duration {
     public static let instant: Double = 0
-    public static let fast: Double = 0.12
-    public static let press: Double = 0.08
-    public static let tick: Double = 0.07
-    public static let spin: Double = 0.64
-    public static let fade: Double = 1.2
-    public static let plate: Double = 0.26
-    public static let pop: Double = 0.15
-    public static let frame: Double = 0.53
-    public static let grid: Double = 0.66
-    public static let caret: Double = 1.25
-    public static let base: Double = 0.18
+    public static let fast: Double = 0.1
+    public static let base: Double = 0.15
     public static let slow: Double = 0.2
-    public static let slower: Double = 0.32
+    public static let slower: Double = 0.3
   }
 
   /// A cubic Bézier timing curve.
@@ -364,10 +413,5 @@ extension Basalt {
     public static let out = Curve(x1: 0.16, y1: 1, x2: 0.3, y2: 1)
     public static let inOut = Curve(x1: 0.65, y1: 0, x2: 0.35, y2: 1)
     public static let `in` = Curve(x1: 0.4, y1: 0, x2: 1, y2: 1)
-    public static let linear = Curve(x1: 0, y1: 0, x2: 1, y2: 1)
-    public static let standard = Curve(x1: 0.2, y1: 0, x2: 0, y2: 1)
-    public static let decelerate = Curve(x1: 0, y1: 0, x2: 0, y2: 1)
-    public static let accelerate = Curve(x1: 0.3, y1: 0, x2: 1, y2: 1)
-    public static let settle = Curve(x1: 0.22, y1: 1, x2: 0.36, y2: 1)
   }
 }

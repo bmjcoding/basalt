@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { useReducedMotion } from "./motion";
+import { glideTiming, bezier, useReducedMotion } from "./motion";
 import { join } from "./utils";
 
 /** One straight stroke in a 24px grid. A collapsed line is a point. */
@@ -60,22 +60,6 @@ const ICONS = {
     ],
     rotate: 0,
   },
-  play: {
-    lines: [
-      [8, 6, 18, 12],
-      [18, 12, 8, 18],
-      [8, 18, 8, 6],
-    ],
-    rotate: 0,
-  },
-  pause: {
-    lines: [
-      [8, 6, 8, 18],
-      [16, 6, 16, 18],
-      point(12, 12),
-    ],
-    rotate: 0,
-  },
   "arrow-right": { lines: ARROW, rotate: 0, group: "arrow" },
   "arrow-down": { lines: ARROW, rotate: 90, group: "arrow" },
   "arrow-left": { lines: ARROW, rotate: 180, group: "arrow" },
@@ -84,30 +68,6 @@ const ICONS = {
   "chevron-down": { lines: CHEVRON, rotate: 90, group: "chevron" },
   "chevron-left": { lines: CHEVRON, rotate: 180, group: "chevron" },
   "chevron-up": { lines: CHEVRON, rotate: 270, group: "chevron" },
-  equals: {
-    lines: [
-      [5, 9, 19, 9],
-      [5, 15, 19, 15],
-      point(12, 12),
-    ],
-    rotate: 0,
-  },
-  asterisk: {
-    lines: [
-      [12, 4, 12, 20],
-      [5, 8, 19, 16],
-      [5, 16, 19, 8],
-    ],
-    rotate: 0,
-  },
-  external: {
-    lines: [
-      [6, 18, 17, 7],
-      [17, 7, 10, 7],
-      [17, 7, 17, 14],
-    ],
-    rotate: 0,
-  },
 } as const satisfies Record<string, IconDef>;
 
 export type MorphName = keyof typeof ICONS;
@@ -145,7 +105,9 @@ export interface MorphIconProps {
 }
 
 /**
- * An icon drawn with exactly three strokes, so one icon can become another.
+ * An icon drawn with exactly three strokes, so one icon can become another. Only shapes that Phosphor
+ * also draws are here (menu, close, plus, minus, check, four chevrons, four arrows), so one concept never
+ * has two drawings in a UI; the stroke is 2.25 on the 24 grid, and a morph runs at `slow` on `ease-out`.
  * Arrows, chevrons, and plus/close share a shape and rotate. Anything else
  * interpolates its endpoints. A stroke that an icon does not need collapses to a point.
  * Reduced motion swaps immediately.
@@ -192,11 +154,12 @@ export function MorphIcon({ name, size = 16, className }: MorphIconProps) {
     const end = next.lines.map((line) => rotateLine(line, next.rotate)) as unknown as Lines;
     setSpin(false);
     show(start, 0);
+    const { duration, curve } = glideTiming(); // slow, ease-out
     const started = performance.now();
     let frame = 0;
     const step = (now: number) => {
-      const t = Math.min(1, (now - started) / 200);
-      const eased = 1 - (1 - t) ** 3;
+      const t = Math.min(1, (now - started) / duration);
+      const eased = bezier(curve, t);
       if (t < 1) {
         show(start.map((line, index) => {
           const to = end[index];
@@ -226,7 +189,7 @@ export function MorphIcon({ name, size = 16, className }: MorphIconProps) {
       fill="none"
     >
       {lines.map((line, index) => (
-        <line key={index} x1={line[0]} y1={line[1]} x2={line[2]} y2={line[3]} stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line key={index} x1={line[0]} y1={line[1]} x2={line[2]} y2={line[3]} stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
       ))}
     </svg>
   );

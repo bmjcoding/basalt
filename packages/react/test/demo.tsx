@@ -17,7 +17,7 @@ import {
   PopoverDescription,
   PopoverTitle,
   PopoverTrigger,
-  Chart,
+  Sparkline,
   LivePreview,
   MorphIcon,
   NumberTicker,
@@ -98,9 +98,8 @@ function MotionFixture() {
   return (
     <Section title="Motion">
       <div className="row">
-        <Spinner variant="dots" label="Loading marks" />
-        <Spinner variant="grid" label="Loading grid" />
-        <Spinner variant="braille" label="Loading runs" />
+        <Spinner label="Loading runs" />
+        <Spinner variant="braille" label="Loading marks" />
       </div>
       <div className="row">
         <NumberTicker value={value} />
@@ -155,7 +154,7 @@ function BenjiFixture() {
           <span>Showing the {windowRange}</span>
         </Slide>
       </div>
-      <Chart label="Run volume" data={series} loading={loading} empty="No runs yet" />
+      <Sparkline label="Run volume" data={series} loading={loading} empty="No runs yet" />
       <Button
         onClick={() => {
           setSeries([2, 3, 2, 5, 4, 6]);

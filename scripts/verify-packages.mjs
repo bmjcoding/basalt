@@ -49,8 +49,15 @@ tokens.light['missing-token'];
 const density: TableDensity = 'compact';
 const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase()}><Field label="Name"><Input /></Field><Combobox options={[{value:'one',label:'One'}]} /><Slider label="Range" defaultValue={[10,20]} onValueChange={value => value[0]} /><Button>Deploy</Button><Text>{colour}{size}{density}</Text>{icons}</Form>;
 `);
-  fs.writeFileSync(path.join(consumer, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "Bundler", jsx: "react-jsx", strict: true, noEmit: true, skipLibCheck: false, lib: ["ES2022", "DOM", "DOM.Iterable"] }, include: ["index.tsx"] }));
+  // What the wrappers still accept (finalFocus, actionsRef, null and numeric selections, ...), compiled as an installed
+  // package: the same file packages/react/test/types.test.mjs checks against dist.
+  fs.copyFileSync(path.join(repo, "packages", "react", "test", "fixtures", "capabilities.tsx"), path.join(consumer, "capabilities.tsx"));
+  fs.writeFileSync(path.join(consumer, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "Bundler", jsx: "react-jsx", strict: true, noEmit: true, skipLibCheck: false, lib: ["ES2022", "DOM", "DOM.Iterable"] }, include: ["index.tsx", "capabilities.tsx"] }));
   run(path.join(repo, "node_modules", ".bin", "tsc"), ["-p", consumer], consumer);
+  // ...and that those wider declarations still name nothing from a dependency.
+  const wide = run(path.join(repo, "node_modules", ".bin", "tsc"), ["-p", consumer, "--listFilesOnly"], consumer).trim().split("\n");
+  const wideForeign = wide.filter((file) => /node_modules\/(@base-ui|cmdk|@radix-ui|shiki)\//.test(file));
+  assert.deepEqual(wideForeign, [], `the package's declarations compile ${wideForeign.length} dependency declaration files`);
   // Declarations are Basalt's own: an app that imports one Button compiles React's types and
   // Basalt's, and nothing from Base UI, Phosphor, cmdk, Radix or Shiki (about 3,700 files once).
   fs.writeFileSync(path.join(consumer, "button-only.tsx"), `import { Button } from '@srasyndicate/basalt';\nexport const app = <Button>Deploy</Button>;\n`);

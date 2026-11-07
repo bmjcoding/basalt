@@ -1,7 +1,7 @@
 import { PlayIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
-import { Button, Chart, CodeBlock, LivePreview, MorphIcon, NumberTicker, Segment, SegmentedControl, Skeleton, Slide, Spinner, Stepper, Tab, Tabs, TabsList, TabsPanel, Text, TextMorph, TravelSpinner, useSlideDirection, useToast } from "../../packages/react/src/index";
+import { Button, CodeBlock, LivePreview, MorphIcon, NumberTicker, Segment, SegmentedControl, Skeleton, Slide, Spinner, Sparkline, Stepper, Tab, Tabs, TabsList, TabsPanel, Text, TextMorph, TravelSpinner, useSlideDirection, useToast } from "../../packages/react/src/index";
 import type { MorphName } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
@@ -40,23 +40,21 @@ export const ROUND_8: Round = {
   pr: "https://github.com/bmjcoding/basalt/pull/13",
   reviewed: false,
   summary:
-    "Spinners, press, ticker, morphing icons, text that keeps its letters, a breathing chart, a draining toast, and a preview before save. Colours and type are unchanged.",
+    "Spinners, press, ticker, morphing icons, text that keeps its letters, a breathing line, a draining toast, and a preview before save. Colours and type are unchanged. This round was built before the panel saw it, and shows the result of the panel's later rulings (round 9): fewer spinners and icons, a colour press, main's motion scale and Sparkline in place of Chart.",
   steps: [
     {
       id: "spinners",
       name: "Spinners",
-      intro: "Ring for a compact wait, dots for a tight row, braille for mono and CLI lines. Pass a label when the spinner is the status.",
+      intro: "Ring for a compact wait, braille for mono and CLI lines. Pass a label when the spinner is the status.",
       decisions: [
-        "The ring turns in 640ms. The grid walks its own snake in 660ms. Braille steps through one 530ms cycle.",
-        "Reduced motion fades the ring and the dots, and holds the braille frame.",
+        "The ring turns in 640ms. Braille is a 2 by 4 SVG dot matrix that steps through one 530ms cycle.",
+        "Reduced motion fades the ring, and holds the braille frame.",
         "A label makes it role=status. Without one, it is hidden from assistive technology.",
       ],
-      tryIt: ["Compare the three.", "Turn on reduced motion: the ring fades and the braille frame holds."],
+      tryIt: ["Compare the two.", "Turn on reduced motion: the ring fades and the braille frame holds."],
       demo: () => (
         <div style={row}>
           <Spinner label="Loading" />
-          <Spinner variant="dots" label="Loading marks" />
-          <Spinner variant="grid" label="Loading grid" />
           <Spinner variant="braille" label="Loading runs" />
           <Text size="sm" tone="secondary">Loading runs</Text>
         </div>
@@ -65,9 +63,9 @@ export const ROUND_8: Round = {
     {
       id: "buttons",
       name: "Buttons",
-      intro: "Hover and press ease out in 80ms. Primary darkens. Loading keeps the label's width and the variant colour, and draws a ring.",
+      intro: "Hover and press ease out in 100ms. A press is a colour step. Loading keeps the label's width and the variant colour, and draws a ring.",
       decisions: [
-        "Primary darkens, and the control scales: .98 for a button, .94 for an icon button, .99 for a row.",
+        "Primary steps to a pressed fill and the other variants to the selected wash. There is no scale on press.",
         "The focus ring stays instant.",
         "Loading is busy, not the disabled colour.",
       ],
@@ -110,7 +108,7 @@ export const ROUND_8: Round = {
       id: "morph",
       name: "Morphing icons",
       intro: "Every icon is three strokes. Arrows, chevrons, and plus/close rotate. Everything else interpolates, and unused strokes collapse to a point.",
-      decisions: ["The set includes menu, close, plus, minus, check, play, pause, the four arrows, the four chevrons, and a few more.", "Reduced motion swaps with no in-between."],
+      decisions: ["The set is menu, close, plus, minus, check, the four arrows and the four chevrons: only shapes Phosphor also draws.", "Reduced motion swaps with no in-between."],
       tryIt: ["Cycle the icon.", "Turn on reduced motion and cycle again."],
       demo: () => <MorphDemo />,
     },
@@ -124,9 +122,9 @@ export const ROUND_8: Round = {
     },
     {
       id: "chart",
-      name: "Chart and pending",
+      name: "Sparkline and pending",
       intro: "A flat line breathes, then eases into the samples. A spinner can travel to where the pending work now lives. A toast drains a hairline, and it pauses while you hover.",
-      decisions: ["No fill and no glow. An empty chart is a sentence.", "The range snaps outward so a new peak is not clipped."],
+      decisions: ["No fill and no glow. An empty sparkline is a sentence.", "The range widens at once so a new peak is not clipped, and eases back in."],
       tryIt: ["Show the runs.", "Send the run.", "Show the toast and hover it."],
       demo: () => <ChartDemo />,
     },
@@ -141,7 +139,7 @@ export const ROUND_8: Round = {
   ],
 };
 
-const MORPH_CYCLE: MorphName[] = ["menu", "close", "plus", "minus", "check", "play", "pause", "arrow-right", "chevron-right"];
+const MORPH_CYCLE: MorphName[] = ["menu", "close", "plus", "minus", "check", "arrow-right", "chevron-right"];
 
 function MorphDemo() {
   const [index, setIndex] = React.useState(0);
@@ -205,7 +203,7 @@ function ChartDemo() {
   const toRef = React.useRef<HTMLSpanElement>(null);
   return (
     <div style={{ ...col, width: "100%", maxWidth: 420 }}>
-      <Chart label="Run volume" data={data} loading={loading} empty="No runs yet" />
+      <Sparkline label="Run volume" data={data} loading={loading} empty="No runs yet" />
       <div style={row}>
         <Button onClick={() => { setData([2, 3, 2, 5, 4, 6]); setLoading(false); }}>Show runs</Button>
         <span ref={fromRef}><Button onClick={() => setTravel(true)}>Send run</Button></span>

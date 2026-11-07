@@ -1,18 +1,26 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
-import { ModalDepth, useModalLayer } from "./layers";
-import type { ChangeDetails, PartProps } from "./types";
+import { inLevel, ModalDepth, useModalLayer } from "./layers";
+import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { withClass, withStyle } from "./utils";
 
 export interface DialogProps {
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
   /** Called after the open or close transition has finished. */
   onOpenChangeComplete?: (open: boolean) => void;
   /** `true` (the default) locks scroll and makes the page inert; `"trap-focus"` keeps scroll and traps focus only. */
   modal?: boolean | "trap-focus";
+  /**
+   * Imperative handle: `unmount()` ends a closing animation you ran yourself, after `details.preventUnmountOnClose()`
+   * in `onOpenChange`; `close()` closes the dialog.
+   */
+  actionsRef?: React.RefObject<PopupActions | null>;
+  /** Which trigger the dialog belongs to when it has several: the `id` of one `DialogTrigger`. Use with `open`. */
+  triggerId?: string | null;
+  defaultTriggerId?: string | null;
   /** Ignore clicks outside the dialog. */
   disablePointerDismissal?: boolean;
   children?: React.ReactNode;
@@ -36,18 +44,18 @@ export function DialogTrigger({ className, ...props }: DialogTriggerProps) {
 
 export interface DialogContentProps extends PartProps<"div"> {
   /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
-  initialFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
+  initialFocus?: FocusTarget;
   /** Where focus goes on close. By default, back to the trigger. */
-  finalFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
+  finalFocus?: FocusTarget;
 }
 
-export function DialogContent({ className, style, ...props }: DialogContentProps) {
+export function DialogContent({ className, style, children, ...props }: DialogContentProps) {
   const layer = useModalLayer();
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)} />
+      <BaseDialog.Popup {...props} data-level={2} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(2, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

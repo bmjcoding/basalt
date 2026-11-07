@@ -61,8 +61,13 @@ const css = [
   `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
   `@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/tokens.css"), "utf8"),
+  // The page's own layout sits in a layer below `basalt`, so a rule here can never override a component:
+  // an unlayered rule would beat @layer basalt, and once made correct breadcrumbs look broken. `review-options`
+  // comes after `basalt` on purpose: it is where a round shows an option the owner has not decided ("Option, not
+  // shipped"), scoped to a wrapper that says so.
+  "@layer review, basalt, review-options;",
   fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
-  fs.readFileSync(path.join(here, "walkthrough.css"), "utf8"),
+  `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,
 ].join("\n");
 
 const pages = {};
@@ -117,20 +122,23 @@ for (const id of rounds) {
   await probe.close();
   if (meta.length !== steps.length) throw new Error(`round ${id}: ${meta.length} steps, page shows ${steps.length}`);
 
+  // Every step and state at the desktop width and at a phone's 390px, in both themes.
   let n = 1;
   for (const step of meta) {
     for (const state of ["default", ...step.states]) {
-      for (const theme of ["dark", "light"]) {
-        const overlay = state !== "default";
-        const page = await browser.newPage({ viewport: { width: 960, height: overlay ? 640 : 400 }, deviceScaleFactor: 2 });
-        page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
-        page.on("console", (m) => m.type() === "error" && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
-        await page.goto(url({ step: step.id, theme, state, shot: "1" }));
-        await page.evaluate(() => document.fonts.ready);
-        await page.waitForTimeout(overlay ? 700 : 300);
-        const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}-${theme}.png`;
-        await page.screenshot({ path: path.join(dir, name), fullPage: !overlay });
-        await page.close();
+      for (const [width, tag] of [[960, ""], [390, "-390"]]) {
+        for (const theme of ["dark", "light"]) {
+          const overlay = state !== "default";
+          const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2 });
+          page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
+          page.on("console", (m) => m.type() === "error" && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
+          await page.goto(url({ step: step.id, theme, state, shot: "1" }));
+          await page.evaluate(() => document.fonts.ready);
+          await page.waitForTimeout(overlay ? 700 : 300);
+          const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}${tag}-${theme}.png`;
+          await page.screenshot({ path: path.join(dir, name), fullPage: !overlay });
+          await page.close();
+        }
       }
     }
     n++;

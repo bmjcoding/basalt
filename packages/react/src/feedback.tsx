@@ -8,8 +8,8 @@ import * as React from "react";
 import { IconButton } from "./button";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
-import { useFloatingLayer } from "./layers";
-import type { Align, ChangeDetails, PartProps, Side } from "./types";
+import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
+import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 
 // ---- Textarea ----
@@ -43,9 +43,14 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
 export interface PopoverProps {
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
   /** Called after the open or close transition has finished. */
   onOpenChangeComplete?: (open: boolean) => void;
+  /** Imperative handle: `unmount()` ends a closing animation you ran yourself (call `details.preventUnmountOnClose()` first); `close()` closes. */
+  actionsRef?: React.RefObject<PopupActions | null>;
+  /** Which trigger the popover belongs to when it has several: the `id` of one `PopoverTrigger`. Use with `open`. */
+  triggerId?: string | null;
+  defaultTriggerId?: string | null;
   /** `true` locks scroll and makes the page inert; `"trap-focus"` traps focus only. Off by default. */
   modal?: boolean | "trap-focus";
   children?: React.ReactNode;
@@ -73,16 +78,18 @@ export interface PopoverContentProps extends PartProps<"div"> {
   align?: Align;
   sideOffset?: number;
   /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
-  initialFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
-  finalFocus?: boolean | React.RefObject<HTMLElement | null> | ((interaction: string) => boolean | HTMLElement | null | void);
+  initialFocus?: FocusTarget;
+  finalFocus?: FocusTarget;
 }
 
-export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, ...props }: PopoverContentProps) {
+export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
+  // One level above its opener, and never below 2.
+  const level = usePopupLevel();
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} style={layer} className="basalt-positioner">
-        <BasePopover.Popup {...props} className={withClass("basalt-popover", className)} />
+        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{inLevel(level, children)}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>
   );
@@ -131,18 +138,20 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
  * the words; the surface stays neutral.
  */
 export function Callout({ status = "info", title, children, actions, live, className, ...props }: CalloutProps) {
+  const level = usePanelLevel();
   return (
     <div
       {...props}
       role={live === "assertive" ? "alert" : live === "polite" ? "status" : undefined}
       data-status={status}
+      data-level={level}
       className={join("basalt-callout", className)}
     >
       <Icon icon={CALLOUT_ICON[status]} size={16} className="basalt-callout-icon" />
       <div className="basalt-callout-body">
         <div className="basalt-callout-title">{title}</div>
-        {children ? <div className="basalt-callout-text">{children}</div> : null}
-        {actions ? <div className="basalt-callout-actions">{actions}</div> : null}
+        {children ? <div className="basalt-callout-text">{inLevel(level, children)}</div> : null}
+        {actions ? <div className="basalt-callout-actions">{inLevel(level, actions)}</div> : null}
       </div>
     </div>
   );
@@ -222,6 +231,8 @@ export interface CodeBlockProps {
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
 export function CodeBlock({ code, language, title, copyable = true, className }: CodeBlockProps) {
+  // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
+  const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
   // no change in layout. Languages loaded earlier (or preloaded for SSR) colour immediately.
   const [loaded, setLoaded] = React.useState(0);
@@ -262,7 +273,7 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
     </span>
   ) : null;
   return (
-    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined}>
+    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-level={level}>
       {title ? (
         <figcaption className="basalt-code-title">
           <span>{title}</span>
@@ -281,7 +292,7 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
 // ---- Accordion ----
 
 /** Sections that expand one at a time or several at once. For a page's secondary detail, not its main content. */
-export interface AccordionProps extends PartProps<"div", "defaultValue" | "onChange"> {
+export interface AccordionProps extends PartProps<"div", "defaultValue"> {
   /** The values of the open items. */
   value?: string[];
   defaultValue?: string[];
@@ -300,7 +311,7 @@ export function Accordion({ className, ...props }: AccordionProps) {
   return <BaseAccordion.Root {...props} className={withClass("basalt-accordion", className)} />;
 }
 
-export interface AccordionItemProps extends Omit<PartProps<"div", "title" | "onChange">, "children"> {
+export interface AccordionItemProps extends Omit<PartProps<"div", "title">, "children"> {
   /** Names the item in `value`. Generated when omitted. */
   value?: string;
   disabled?: boolean;
