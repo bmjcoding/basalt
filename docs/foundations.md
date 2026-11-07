@@ -17,7 +17,8 @@ its own accent, in a few named roles, and nowhere else.
   Light mode never puts a full white page in front of you.
 - **Borders build structure; shadows exist only for things that float.**
 - **No ornament that signals "generated":** no top highlights on cards, no gradient
-  borders, no glow, no press-shrink, no bounce. Colour never carries meaning alone.
+  borders, no glow, no bounce. Colour never carries meaning alone. A press is a small
+  scale plus a darken, and it is off under reduced motion.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -81,8 +82,10 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
   colours its title.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm 2s pulse; spinners turn once a second. Under reduced motion
-  they fade or hold still.
+  `surface-placeholder` and a calm opacity pulse, not a shimmer. The ring spinner turns in
+  640ms, the braille frame steps through one 530ms cycle, the dot grid walks its own
+  snake in 660ms, and the three dots share the ring's turn. Under reduced motion they
+  fade or hold still. See [Motion and primitives](motion.md).
 
 ## Type
 
@@ -171,16 +174,26 @@ time; layering support is not a reason to stack unrelated tasks.
 | Token | Value | Use |
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
-| `duration-fast` | 100ms | Hover-out, toggles, colour changes |
-| `duration-base` | 150ms | Tooltips, menus, popovers |
-| `duration-slow` | 200ms | Dialogs, accordions |
-| `duration-slower` | 300ms | Sheets and drawers |
+| `duration-press` | 80ms | A button press: darken and scale |
+| `duration-fast` | 120ms | Small colour changes |
+| `duration-pop` | 150ms | Tooltip and menu entry |
+| `duration-base` | 180ms | Other entries |
+| `duration-slow` | 200ms | Dialogs and a digit roll |
+| `duration-plate` | 260ms | A larger surface settling |
+| `duration-slower` | 320ms | Sheets and drawers |
+| `duration-frame` | 530ms | One stepped braille cycle |
+| `duration-spin` | 640ms | One turn of the ring |
+| `duration-grid` | 660ms | One cycle of the dot grid |
+| `duration-caret` | 1250ms | A text caret blink |
+| `duration-fade` | 1200ms | The reduced-motion spinner fade |
 
 Entries ease out with `cubic-bezier(.16, 1, .3, 1)`; exits run at three quarters of their
 entry with `ease-in`. Nothing overshoots: Vercel's overlays overshoot by 10%
-(`cubic-bezier(.175, .885, .32, 1.1)`); Basalt's settle. A press is a one-step colour
-change, never a scale. Under `prefers-reduced-motion`, nothing moves and state changes
-become short fades.
+(`cubic-bezier(.175, .885, .32, 1.1)`); Basalt's settle. A press darkens and scales in 80ms: .94 on an icon button, .98 on a button, .99 on a row.
+Under `prefers-reduced-motion` the scale is off and interactive durations drop to 90ms.
+Menus enter from scale .95 with a 4px offset, tooltips from scale .96 with a 2px offset,
+both on the decelerate curve. Nothing overshoots. The curves and the sources are in
+[Motion and primitives](motion.md).
 
 ## Icons
 

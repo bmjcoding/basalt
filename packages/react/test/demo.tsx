@@ -16,6 +16,7 @@ import {
   PopoverDescription,
   PopoverTitle,
   PopoverTrigger,
+  NumberTicker,
   Progress,
   Skeleton,
   Spinner,
@@ -81,6 +82,26 @@ const RUNS = [
   { id: "run-0141", agent: "codex", time: "2m 50s", commit: "9c04e1d", status: "warning" as const, label: "Building" },
   { id: "run-0140", agent: "claude", time: "11m 03s", commit: "5be7a90", status: "danger" as const, label: "Error" },
 ];
+
+function MotionFixture() {
+  const [value, setValue] = React.useState(1284);
+  const [clicks, setClicks] = React.useState(0);
+  return (
+    <Section title="Motion">
+      <div className="row">
+        <Spinner variant="dots" label="Loading marks" />
+        <Spinner variant="grid" label="Loading grid" />
+        <Spinner variant="braille" label="Loading runs" />
+      </div>
+      <div className="row">
+        <NumberTicker value={value} />
+        <Button onClick={() => setValue((n) => n + 1)}>Add a run</Button>
+      </div>
+      <Button variant="primary" loading onClick={() => setClicks((n) => n + 1)}>Saving</Button>
+      <span data-testid="saving-clicks">{clicks}</span>
+    </Section>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -449,6 +470,7 @@ function App() {
             <IconButton icon={DotsThreeIcon} label="More actions" />
           </div>
         </Section>
+        <MotionFixture />
       </main>
      </ToastProvider>
     </TooltipProvider>
