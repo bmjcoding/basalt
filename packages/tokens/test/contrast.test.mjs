@@ -29,14 +29,16 @@ const SURFACES = ["surface-page", "surface-raised", "surface-overlay", "surface-
 const LEVELS = ["surface-0", "surface-1", "surface-2", "surface-3"];
 const surfaces = (theme) => SURFACES.map((s) => [s, color(theme, s)]);
 
-const ratio = (fg, bg) => Math.round(wcagContrast(fg, bg) * 100) / 100;
+// The raw ratio: WCAG forbids rounding it up, so 4.499 must not pass as 4.5. Round only to print.
+const ratio = (fg, bg) => wcagContrast(fg, bg);
+const fmt = (r) => r.toFixed(3);
 const alphaOf = (theme, name) => color(theme, name).alpha ?? 1;
 
 function atLeast(theme, fgName, min, onto = surfaces(theme)) {
   for (const [bgName, bg] of onto) {
     const fg = over(color(theme, fgName), bg);
     const r = ratio(fg, bg);
-    assert.ok(r >= min, `${theme}: ${fgName} on ${bgName} is ${r}:1, needs ${min}:1`);
+    assert.ok(r >= min, `${theme}: ${fgName} on ${bgName} is ${fmt(r)}:1, needs ${min}:1`);
   }
 }
 
@@ -72,7 +74,7 @@ for (const theme of THEMES) {
   test(`${theme}: primary action text meets 4.5:1 on the primary action, at rest, hovered and pressed`, () => {
     for (const bg of ["action-primary", "action-primary-hover", "action-primary-press"]) {
       const r = ratio(color(theme, "action-primary-text"), color(theme, bg));
-      assert.ok(r >= 4.5, `${theme}: action-primary-text on ${bg} is ${r}:1`);
+      assert.ok(r >= 4.5, `${theme}: action-primary-text on ${bg} is ${fmt(r)}:1`);
     }
   });
 
@@ -124,7 +126,7 @@ for (const theme of THEMES) {
       for (const [wash, base, text] of cases) {
         const chip = over(color(theme, "surface-kbd"), base);
         const r = ratio(color(theme, text), chip);
-        assert.ok(r >= 4.5, `${theme}: ${text} on the kbd chip over ${wash} on ${name} is ${r}:1`);
+        assert.ok(r >= 4.5, `${theme}: ${text} on the kbd chip over ${wash} on ${name} is ${fmt(r)}:1`);
       }
     }
   });
@@ -134,7 +136,7 @@ for (const theme of THEMES) {
       for (const w of washes) {
         const row = over(color(theme, w), surface);
         const r = ratio(color(theme, "text-primary"), row);
-        assert.ok(r >= 3, `${theme}: the bar on ${w} over ${name} is ${r}:1`);
+        assert.ok(r >= 3, `${theme}: the bar on ${w} over ${name} is ${fmt(r)}:1`);
       }
     }
   });
@@ -151,7 +153,7 @@ for (const theme of THEMES) {
     const hover = color(theme, "action-primary-hover");
     const press = color(theme, "action-primary-press");
     const step = ratio(hover, press);
-    assert.ok(step >= 1.5, `${theme}: press is ${step}:1 from hover`);
+    assert.ok(step >= 1.5, `${theme}: press is ${fmt(step)}:1 from hover`);
     // the token is the colour the spec names: color-mix(in oklch, action-primary 85%, surface-page)
     const mixed = rgb(interpolate([color(theme, "surface-page"), color(theme, "action-primary")], "oklch")(0.85));
     for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(mixed[channel] - press[channel]) < 0.002, `${theme}: action-primary-press ${channel} is ${press[channel]}, the mix is ${mixed[channel]}`);
@@ -179,7 +181,7 @@ for (const theme of THEMES) {
         ];
     for (const [name, bg] of neighbours) {
       const r = ratio(over(focus, bg), bg);
-      assert.ok(r >= 3, `${theme}: border-focus on ${name} is ${r}:1, needs 3:1`);
+      assert.ok(r >= 3, `${theme}: border-focus on ${name} is ${fmt(r)}:1, needs 3:1`);
     }
   });
 }
@@ -212,7 +214,7 @@ test("the kbd chip is a fill and nothing else: no border token exists for it", (
   assert.ok(alphaOf("dark", "surface-kbd") <= 0.08 && alphaOf("light", "surface-kbd") <= 0.06);
 });
 
-// ---- The smoked header (surface-glass-chrome, blur-chrome): the one translucent surface ----
+// ---- The smoked header (surface-chrome, blur-chrome): the one translucent surface ----
 //
 // The fill is the page colour at a fixed alpha (85% in dark, 92% in light) over a backdrop blurred by 12px, so what sits
 // behind the bar can be anything. The worst case is the plate that fights the fill hardest: pure white under the dark bar,
@@ -224,7 +226,7 @@ const PLATES = { white: { mode: "rgb", r: 1, g: 1, b: 1 }, black: { mode: "rgb",
 
 for (const theme of THEMES) {
   test(`${theme}: the header fill is the page colour at 85% (dark) or 92% (light), and its blur is 12px`, () => {
-    const fill = color(theme, "surface-glass-chrome");
+    const fill = color(theme, "surface-chrome");
     const page = color(theme, "surface-page");
     assert.equal(Math.round((fill.alpha ?? 1) * 100), theme === "dark" ? 85 : 92, `${theme}: header fill alpha`);
     for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(fill[channel] - page[channel]) < 1e-4, `${theme}: the header fill is not the page colour (${channel})`);
@@ -232,36 +234,54 @@ for (const theme of THEMES) {
   });
 
   test(`${theme}: primary and secondary text meet 4.5:1 on the header fill over a pure white and a pure black plate`, () => {
-    const fill = color(theme, "surface-glass-chrome");
+    const fill = color(theme, "surface-chrome");
     for (const [plate, under] of Object.entries(PLATES)) {
       const bar = over(fill, under);
       for (const t of ["text-primary", "text-secondary"]) {
         const r = ratio(over(color(theme, t), bar), bar);
-        assert.ok(r >= 4.5, `${theme}: ${t} on the header over a ${plate} plate is ${r}:1, needs 4.5:1`);
+        assert.ok(r >= 4.5, `${theme}: ${t} on the header over a ${plate} plate is ${fmt(r)}:1, needs 4.5:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the pairs a control in the bar draws meet 4.5:1 over a pure white and a pure black plate (hover wash, selected wash, kbd chip, danger on the bare fill)`, () => {
+    // Opus round-3 finding 2c. Every layer is composited in order: plate, bar fill, then the wash or chip.
+    const fill = color(theme, "surface-chrome");
+    for (const [plate, under] of Object.entries(PLATES)) {
+      const bar = over(fill, under);
+      const pairs = [
+        ["text-primary on the hover wash", "text-primary", over(color(theme, "state-hover"), bar)],
+        ["text-primary on the selected wash", "text-primary", over(color(theme, "state-selected"), bar)],
+        ["text-secondary on the kbd chip", "text-secondary", over(color(theme, "surface-kbd"), bar)],
+        ["status-danger on the bare fill", "status-danger", bar],
+      ];
+      for (const [name, text, bg] of pairs) {
+        const r = ratio(over(color(theme, text), bg), bg);
+        assert.ok(r >= 4.5, `${theme}: ${name} in the bar over a ${plate} plate is ${fmt(r)}:1, needs 4.5:1`);
       }
     }
   });
 
   test(`${theme}: tertiary text fails on the header over at least one plate, which is why the rule bars it`, () => {
-    const fill = color(theme, "surface-glass-chrome");
+    const fill = color(theme, "surface-chrome");
     const worst = Math.min(...Object.values(PLATES).map((under) => { const bar = over(fill, under); return ratio(over(color(theme, "text-tertiary"), bar), bar); }));
-    assert.ok(worst < 4.5, `${theme}: tertiary holds ${worst}:1 on every plate, so the rule against it is no longer needed`);
+    assert.ok(worst < 4.5, `${theme}: tertiary holds ${fmt(worst)}:1 on every plate, so the rule against it is no longer needed`);
   });
 
   test(`${theme}: a focus ring in the header keeps 3:1 over both plates`, () => {
     // A focus ring on a control in the bar is drawn on the same composite, and needs 3:1 (2.4.7, 1.4.11).
-    const fill = color(theme, "surface-glass-chrome");
+    const fill = color(theme, "surface-chrome");
     for (const [plate, under] of Object.entries(PLATES)) {
       const bar = over(fill, under);
       const r = ratio(over(color(theme, "border-focus"), bar), bar);
-      assert.ok(r >= 3, `${theme}: border-focus on the header over a ${plate} plate is ${r}:1, needs 3:1`);
+      assert.ok(r >= 3, `${theme}: border-focus on the header over a ${plate} plate is ${fmt(r)}:1, needs 3:1`);
     }
   });
 }
 
 test("the header's worst cases are the ones the panel measured: secondary is about 5.86:1 in dark over white and 6.77:1 in light over black", () => {
-  const dark = over(color("dark", "surface-glass-chrome"), PLATES.white);
-  const light = over(color("light", "surface-glass-chrome"), PLATES.black);
+  const dark = over(color("dark", "surface-chrome"), PLATES.white);
+  const light = over(color("light", "surface-chrome"), PLATES.black);
   // The council rounded the composite to 8 bits; this one keeps it exact. They agree to the second decimal place.
   assert.ok(Math.abs(ratio(over(color("dark", "text-secondary"), dark), dark) - 5.86) <= 0.03, "dark secondary over white");
   assert.ok(Math.abs(ratio(over(color("light", "text-secondary"), light), light) - 6.77) <= 0.03, "light secondary over black");

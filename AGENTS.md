@@ -56,9 +56,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   on the other sides in dark, uniform in light. No gradient along or across an edge, no
   inner glow or sheen, no blur, no animation, no outer frame, no light falloff on the page.
   Never on controls or chips.
-- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-glass-chrome`,
+- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`,
   `blur-chrome`, 12px, no saturate) is the only translucent, blurred surface. Dialogs, sheets,
-  menus, popovers, toasts and the command menu stay solid. One `backdrop-filter` per viewport;
+  menus, popovers, toasts and the command menu stay solid. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
   back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, in
   print, and in forced colours (`Canvas`).
@@ -87,8 +87,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
-  (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows
-  or a disabled or loading button). Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
+  (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,
+  the parts of a field or a disabled or loading button). Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density. Text entry is 16px on touch.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and

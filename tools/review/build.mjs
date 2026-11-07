@@ -95,6 +95,106 @@ for (const id of rounds) {
 
 // ---- screenshots
 
+/**
+ * The press filmstrip: hold every `[data-wt-film]` button `:active` (Chromium's forced pseudo-state, so no pointer is
+ * needed), then seek each button's own colour and scale transitions to the time on its attribute, and write the scale
+ * the browser computed under the frame. The frames are the real transition, paused, not a drawing.
+ */
+async function seekFilmstrip(page) {
+  const client = await page.context().newCDPSession(page);
+  await client.send("DOM.enable");
+  await client.send("CSS.enable");
+  const { root } = await client.send("DOM.getDocument", { depth: 0 });
+  const { nodeIds } = await client.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: "[data-wt-film]" });
+  if (!nodeIds.length) throw new Error("the press filmstrip has no buttons");
+  for (const nodeId of nodeIds) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
+  const frames = await page.evaluate(() => [...document.querySelectorAll("[data-wt-film]")].map((el) => {
+    const time = Number(el.getAttribute("data-wt-film"));
+    const running = el.getAnimations().filter((a) => a.transitionProperty === "transform" || a.transitionProperty === "background-color");
+    for (const a of running) { a.pause(); a.currentTime = time; }
+    const scale = new DOMMatrix(getComputedStyle(el).transform).a;
+    el.parentElement.querySelector("[data-wt-film-readout]").textContent = `${time} ms\nscale ${scale.toFixed(3)}`;
+    return { time, scale, transitions: running.length };
+  }));
+  if (frames.some((f) => f.transitions === 0 && f.time > 0)) throw new Error(`the press filmstrip has a button with no running transition: ${JSON.stringify(frames)}`);
+  // The scale must fall from 1 to .98 and never overshoot, or the strip is not showing what ships.
+  const first = frames.slice(0, 6).map((f) => f.scale);
+  if (Math.abs(first[0] - 1) > 1e-4 || Math.abs(first.at(-1) - 0.98) > 1e-4 || first.some((v, i) => i && v > first[i - 1] + 1e-9)) throw new Error(`the press filmstrip's scale is not 1 to .98 and falling: ${first}`);
+  return frames;
+}
+
+/**
+ * The pressed ghost Button in the bar: hold every `[data-wt-pressed]` button `:active` (Chromium's forced pseudo-state,
+ * reaching into the shadow root that holds today's stylesheet), then measure each frame: the button's own computed ink
+ * over the real composite (plate, bar fill, the button's wash), and write the ratio under it. A frame whose ink is not the
+ * one it claims fails the build, so the "before" and "after" cannot be mislabelled.
+ */
+async function measureGhostPress(page) {
+  const client = await page.context().newCDPSession(page);
+  await client.send("DOM.enable");
+  await client.send("CSS.enable");
+  const { root } = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+  const found = [];
+  const walk = (node) => {
+    const attrs = node.attributes ?? [];
+    if (attrs.includes("data-wt-pressed")) found.push(node.nodeId);
+    for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? []), ...(node.contentDocument ? [node.contentDocument] : [])]) walk(child);
+  };
+  walk(root);
+  if (!found.length) throw new Error("the ghost press has no pressed buttons");
+  for (const nodeId of found) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
+  await page.waitForTimeout(400);
+  const frames = await page.evaluate(() => {
+    const deepAll = (selector, scope = document) => [...scope.querySelectorAll(selector), ...[...scope.querySelectorAll("*")].flatMap((el) => (el.shadowRoot ? deepAll(selector, el.shadowRoot) : []))];
+    const parent = (el) => el.parentElement ?? el.getRootNode().host ?? null;
+    // Exact, unrounded sRGB (the contrast tests are exact too): parse what getComputedStyle writes, in any of the forms
+    // Chromium uses for these tokens, rather than reading 8-bit pixels back from a canvas.
+    const toSrgb = (css) => {
+      const m = css.match(/^(oklab|oklch|rgba?|color)\(([^)]*)\)$/);
+      if (!m) throw new Error(`cannot read the colour ${css}`);
+      const [body, alpha = "1"] = m[2].split("/").map((x) => x.trim());
+      const nums = body.replace(/^srgb\s+/, "").split(/[\s,]+/).map((x) => (x.endsWith("%") ? parseFloat(x) / 100 : parseFloat(x)));
+      const a = parseFloat(alpha) / (alpha.endsWith("%") ? 100 : 1);
+      const gamma = (v) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+      if (m[1] === "rgb" || m[1] === "rgba") return { c: nums.slice(0, 3).map((v) => v / 255), a: nums[3] ?? a };
+      if (m[1] === "color") return { c: nums.slice(0, 3), a };
+      let [L, A, B] = nums;
+      if (m[1] === "oklch") { const hue = (B * Math.PI) / 180; [A, B] = [nums[1] * Math.cos(hue), nums[1] * Math.sin(hue)]; }
+      const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, mm = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, ss = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+      const lin = [4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss, -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss, -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * ss];
+      return { c: lin.map((v) => Math.min(1, Math.max(0, gamma(v)))), a };
+    };
+    const compose = (layers) => layers.reduce((under, css) => { const { c, a } = toSrgb(css); return under.map((u, i) => c[i] * a + u * (1 - a)); }, [0, 0, 0]);
+    const channel = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const lum = ([r, g, b]) => 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+    const resolveColor = (token) => { const probe = document.createElement("div"); probe.style.color = `var(--basalt-${token})`; document.body.append(probe); const v = getComputedStyle(probe).color; probe.remove(); return v; };
+    const names = { [resolveColor("text-primary")]: "primary ink", [resolveColor("text-secondary")]: "secondary ink" };
+    return deepAll("[data-wt-ghost]").map((button) => {
+      const kind = button.getAttribute("data-wt-ghost");
+      const layers = [];
+      for (let el = button; el; el = parent(el)) layers.unshift(getComputedStyle(el).backgroundColor);
+      const backdrop = compose(layers);
+      const ink = getComputedStyle(button).color;
+      const text = compose([...layers, ink]);
+      let plate = button;
+      while (plate && !plate.hasAttribute?.("data-wt-plate")) plate = parent(plate);
+      const value = ratio(text, backdrop);
+      const label = deepAll("[data-wt-ratio]", plate).find((n) => n.getAttribute("data-wt-ratio") === kind);
+      return { kind, ink: names[ink] ?? ink, value, wash: layers.at(-1), plate: plate.querySelector(".wt-ghost-name").textContent, writeTo: !!label,
+        write: (() => { const text = `${names[ink] ?? ink}: ${value.toFixed(2)}:1, ${value >= 4.5 ? "passes" : "fails"} AA`; if (label) label.textContent = text; return text; })() };
+    });
+  });
+  const want = { rest: "secondary ink", before: "secondary ink", after: "primary ink" };
+  for (const f of frames) {
+    if (f.ink !== want[f.kind]) throw new Error(`the ghost press ${f.kind} frame shows ${f.ink}, not ${want[f.kind]}: ${JSON.stringify(f)}`);
+    if (!f.writeTo) throw new Error(`no ratio label for the ${f.kind} frame`);
+  }
+  if (frames.length !== 6) throw new Error(`expected 3 frames on 2 plates, found ${frames.length}`);
+  console.log(`ghost press (${await page.evaluate(() => document.documentElement.dataset.theme)}): ${frames.map((f) => `${f.plate} ${f.kind} ${f.write}`).join("; ")}`);
+  return frames;
+}
+
 const browser = await chromium.launch();
 for (const id of rounds) {
   const dir = path.join(out, `basalt-round-${id}-screenshots`);
@@ -128,13 +228,18 @@ for (const id of rounds) {
     for (const state of ["default", ...step.states]) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = state !== "default";
+          const overlay = state !== "default" && state !== "film" && state !== "ghost"; // the filmstrip and the ghost press are pages, not open overlays
           const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2 });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
-          page.on("console", (m) => m.type() === "error" && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
+          // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
+          // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
+          const inspectorNoise = (text) => (state === "film" || state === "ghost") && /^Unsafe attempt to load URL file:/.test(text);
+          page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
+          if (state === "film") await seekFilmstrip(page);
+          if (state === "ghost") await measureGhostPress(page);
           const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}${tag}-${theme}.png`;
           await page.screenshot({ path: path.join(dir, name), fullPage: !overlay });
           await page.close();

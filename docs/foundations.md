@@ -24,7 +24,7 @@ its own accent, in a few named roles, and nowhere else.
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
   bar ([Chrome](#chrome-the-smoked-header)). Every dialog, sheet, menu, popover, toast and the
-  command menu is solid. One `backdrop-filter` per viewport; translucent layers never stack.
+  command menu is solid. Use the class once per viewport; translucent layers never stack.
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -50,7 +50,7 @@ levels changed no pixel.
 | `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells and code blocks on the page |
 | `surface-well-2`, `surface-well-3` | `#111111`, `#171717` | `#f5f5f5` | A well one or two levels deeper (see below) |
 | `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks (bands, not boxes) |
-| `surface-glass-chrome` | `#000` at 85% | `#fafafa` at 92% | The fill of a sticky header bar, the page colour with alpha. The only translucent surface; see [Chrome](#chrome-the-smoked-header) |
+| `surface-chrome` | `#000` at 85% | `#fafafa` at 92% | The fill of a sticky header bar, the page colour with alpha. The only translucent surface; see [Chrome](#chrome-the-smoked-header) |
 
 Dark steps up from true black in small increments, as Linear does. Nothing above the page
 is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
@@ -110,7 +110,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   and Combobox popups, Dialog, AlertDialog, CommandMenu, Sheet (its inner edge), Toast and
   Tooltip. Never on a control, chip, badge or pill.
 - **Divider:** rules between table rows, menu groups and card sections: 6% white in dark, 8% black
-  in light, never brighter than the rim.
+  in light, never brighter than the rim (the header bar's line is the one exception; see
+  [Chrome](#chrome-the-smoked-header)).
 - **Input boundary:** 38% white or 45% black, 3.4:1 or better on every surface (WCAG 1.4.11).
   Vercel's inputs measure 1.35:1, and Linear's borders 1.3:1; neither passes.
 - **Focus:** a 2px outline with a 2px offset in the secondary text colour, 6.9:1 or better.
@@ -272,13 +273,15 @@ An app's own sticky header bar is the one smoked surface in Basalt. Dialogs, she
 toasts, tooltips and the command menu stay solid, as they are: an opaque panel on a scrim is the
 overlay, and a translucent layer on a translucent layer is the failure mode.
 
-- **Tokens.** `surface-glass-chrome` is the page colour with alpha: `#000` at 85% in dark, `#fafafa` at
+- **Tokens.** `surface-chrome` is the page colour with alpha: `#000` at 85% in dark, `#fafafa` at
   92% in light. `blur-chrome` is 12px. There is no `saturate()` and no brightness filter: on a
   monochrome page they tint noise or do nothing.
 - **The class.** Put `basalt-chrome` on the app's `<header>`. It is a plain class (no component: a header
   is the app's own layout) that sets `position: sticky; top: 0` on the sticky layer, the fill,
   `backdrop-filter: blur(var(--basalt-blur-chrome))` with the `-webkit-` prefix, a 1px bottom
-  `border-divider` line, and primary ink.
+  `border-hairline` line, and primary ink. The bar's line is the exception to "a divider is never brighter than the
+  rim" (see Lines): the bar sits on level 0, is not a panel and has no rim, so in dark its line is the hairline
+  (14.5% white) where a divider is 6%. In light it is black 8% either way. The council decided this by majority (3-1).
 - **Fallbacks, all to opaque.** Without `backdrop-filter` (`@supports not`), under
   `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
   no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
@@ -287,10 +290,22 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   bar holds it at 6.77:1 (tertiary 4.27:1); primary is 12.88:1 or better. The class sets primary ink and
   promotes tertiary text (`Text tone="tertiary"`, a Sparkline axis) to secondary inside it, and no Basalt
   part draws tertiary text on the bar without a fill of its own. An app does not put tertiary there.
-- **One filter per viewport.** Nothing else in Basalt has a `backdrop-filter`, a browser test opens the
-  dialogs, sheet, command menu, menus, popovers, tooltip and toast together and asserts it, so at most one
-  filtered element (the header) can be in a viewport. Translucent layers never stack: no smoked dialog
-  under, over or inside the header, and no blur on a scrim (80% in dark, 40% in light, unblurred).
+- **A pressed ghost Button takes primary ink.** Inside the bar only, a ghost Button held down shows `text-primary`
+  on the selected wash (secondary ink is 4.42:1 there on a touch device, where a press is the only state; primary is
+  9.75:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
+- **No danger Button on the bar.** Destructive actions don't belong in global chrome (the owner's rule). Danger
+  text on the bar's hover and pressed washes is 4.32:1 and 3.92:1, below AA; on the bare bar it passes.
+- **Under a dialog's scrim the bar stays filtered.** It is the one blurred surface and the scrim over it is
+  unblurred, so the two never stack blur (the council decided this 4-0, and it is what is built).
+- **Use it once per viewport.** This is a usage rule, not a guarantee. Basalt ships one filtered class and
+  no filtered overlay, and a browser test opens the dialogs, sheet, command menu, menus, popovers, tooltip
+  and toast together to prove that, but an app can put `basalt-chrome` on a second element. Don't:
+  translucent layers never stack, so no smoked dialog under, over or inside the header, and no blur on a
+  scrim (80% in dark, 40% in light, unblurred).
+- **Where it can go.** The bar sticks to its scroller, so an `overflow` ancestor between the bar and the
+  scroller (anything but the scroller itself) stops it sticking. `backdrop-filter` also makes the bar the
+  containing block for any `position: fixed` descendant, so a fixed element inside the `<header>` is
+  clipped to the bar: portal it out. Basalt's own overlays already portal.
 - **Use it where something scrolls under the bar.** If nothing does, an opaque `surface-page` bar is
   the same bar without the layer.
 
@@ -337,7 +352,7 @@ Loops are not on this scale: they repeat while work is happening. `duration-loop
 Nothing overshoots: Vercel's overlays overshoot by 10% (`cubic-bezier(.175, .885, .32, 1.1)`);
 Basalt's settle. A press is a colour step; Button and IconButton also scale to .98 over `duration-fast`
 on `ease-out` while pressed, and back, on `:active` only, never when disabled or loading, and on nothing
-else (no row, card, menu item or command row; there is no `basalt-press` utility). A popup (Menu, Select,
+else (no row, card, menu item, command row or the parts of a field; there is no `basalt-press` utility). A popup (Menu, Select,
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. The tab indicator, and the panel that moves 8px with it, run on

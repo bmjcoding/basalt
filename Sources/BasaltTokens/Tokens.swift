@@ -149,8 +149,8 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
-    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 92%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print.
-    public static let surfaceGlassChrome = ThemedColor(
+    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 92%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
+    public static let surfaceChrome = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.92),
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.85)
     )
@@ -305,9 +305,9 @@ extension Basalt {
     public static let full: Double = 9999
   }
 
-  /// Backdrop blur radii in points. One backdrop blur per screen: translucent layers never stack.
+  /// Backdrop blur radii in points. Use the header blur once per screen: translucent layers never stack.
   public enum Blur {
-    /// The blur behind a sticky header bar (basalt-chrome), with surface-glass-chrome as its fill. No saturate and no brightness filter. The only blur in Basalt.
+    /// The blur behind a sticky header bar (basalt-chrome), with surface-chrome as its fill. No saturate and no brightness filter. The only blur in Basalt. Web only: native bars use the platform bar material or stay opaque.
     public static let chrome: Double = 12
   }
 

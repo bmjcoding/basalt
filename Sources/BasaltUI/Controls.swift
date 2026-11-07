@@ -49,7 +49,8 @@ public enum BasaltControlSize: Sendable, CaseIterable {
   var radius: Double { self == .lg || self == .xl ? Basalt.Radius.md : Basalt.Radius.sm }
 }
 
-/// Style any native SwiftUI Button with Basalt's variants. Press and hover change colour only.
+/// Style any native SwiftUI Button with Basalt's variants. Hover is a colour step. A press is a colour step
+/// and a scale to 0.98 over `Basalt.Duration.fast` on ease-out: not under Reduce Motion, not when disabled.
 public struct BasaltButtonStyle: ButtonStyle {
   public var variant: BasaltButtonVariant
   public var size: BasaltControlSize
@@ -85,7 +86,8 @@ public struct BasaltButtonStyle: ButtonStyle {
     var fill: Color {
       if variant == .primary {
         if !enabled { return Basalt.Colors.stateSelected.color }
-        return hovered || configuration.isPressed ? Basalt.Colors.actionPrimaryHover.color : Basalt.Colors.actionPrimary.color
+        if configuration.isPressed { return Basalt.Colors.actionPrimaryPress.color }
+        return hovered ? Basalt.Colors.actionPrimaryHover.color : Basalt.Colors.actionPrimary.color
       }
       if enabled && configuration.isPressed { return Basalt.Colors.stateSelected.color }
       if enabled && hovered && variant != .secondary { return Basalt.Colors.stateHover.color }
@@ -110,6 +112,7 @@ public struct BasaltButtonStyle: ButtonStyle {
         .basaltFocusRing(focused, radius: size.radius)
         .contentShape(RoundedRectangle(cornerRadius: size.radius))
         .onHover { hovered = $0 }
+        .scaleEffect(enabled && configuration.isPressed && !reducedMotion ? 0.98 : 1)
         .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isPressed)
     }
   }
