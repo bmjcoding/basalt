@@ -65,10 +65,12 @@ export interface TextProps extends React.ComponentProps<"p"> {
   tone?: TextTone;
   weight?: TextWeight;
   mono?: boolean;
+  /** Tabular figures, so columns of numbers don't shift. */
+  tabular?: boolean;
 }
 
-export function Text({ as = "p", size = "base", tone = "primary", weight = "regular", mono = false, className, style, ...props }: TextProps) {
-  return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, className: join("basalt-text", className), style: { ...typeStyle(size, weight), ...style } });
+export function Text({ as = "p", size = "base", tone = "primary", weight = "regular", mono = false, tabular = false, className, style, ...props }: TextProps) {
+  return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, className: join("basalt-text", tabular && "basalt-tabular", className), style: { ...typeStyle(size, weight), ...style } });
 }
 
 export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {

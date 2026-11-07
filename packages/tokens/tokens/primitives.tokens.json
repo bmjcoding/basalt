@@ -1071,14 +1071,86 @@
     "fast": {
       "$type": "duration",
       "$value": {
-        "value": 100,
+        "value": 120,
         "unit": "ms"
       }
+    },
+    "press": {
+      "$type": "duration",
+      "$value": {
+        "value": 80,
+        "unit": "ms"
+      },
+      "$description": "A button press: darken and a small scale. Release uses the settle curve."
+    },
+    "tick": {
+      "$type": "duration",
+      "$value": {
+        "value": 70,
+        "unit": "ms"
+      },
+      "$description": "The offset between the three dots. The braille loop itself is duration-frame."
+    },
+    "spin": {
+      "$type": "duration",
+      "$value": {
+        "value": 640,
+        "unit": "ms"
+      },
+      "$description": "One turn of the ring spinner. A loop, so it may run longer than an entry."
+    },
+    "fade": {
+      "$type": "duration",
+      "$value": {
+        "value": 1200,
+        "unit": "ms"
+      },
+      "$description": "The reduced-motion fade that replaces a moving spinner. Looping indicators are not cut to 90ms, or they flicker."
+    },
+    "plate": {
+      "$type": "duration",
+      "$value": {
+        "value": 260,
+        "unit": "ms"
+      },
+      "$description": "A larger surface settling, between a pane and the slow duration."
+    },
+    "pop": {
+      "$type": "duration",
+      "$value": {
+        "value": 150,
+        "unit": "ms"
+      },
+      "$description": "Tooltip entry. Menus use the same pop, with a slightly deeper scale."
+    },
+    "frame": {
+      "$type": "duration",
+      "$value": {
+        "value": 530,
+        "unit": "ms"
+      },
+      "$description": "One full cycle of the braille spinner, stepped, not interpolated."
+    },
+    "grid": {
+      "$type": "duration",
+      "$value": {
+        "value": 660,
+        "unit": "ms"
+      },
+      "$description": "One cycle of the 2 by 3 dot grid."
+    },
+    "caret": {
+      "$type": "duration",
+      "$value": {
+        "value": 1250,
+        "unit": "ms"
+      },
+      "$description": "A text caret blink. Solid for most of the cycle, then a short fade."
     },
     "base": {
       "$type": "duration",
       "$value": {
-        "value": 150,
+        "value": 180,
         "unit": "ms"
       }
     },
@@ -1092,7 +1164,7 @@
     "slower": {
       "$type": "duration",
       "$value": {
-        "value": 300,
+        "value": 320,
         "unit": "ms"
       }
     }
@@ -1110,6 +1182,31 @@
     "in": {
       "$type": "cubicBezier",
       "$value": [0.4, 0, 1, 1]
+    },
+    "linear": {
+      "$type": "cubicBezier",
+      "$value": [0, 0, 1, 1],
+      "$description": "Spinner loops only. Entries do not use it."
+    },
+    "standard": {
+      "$type": "cubicBezier",
+      "$value": [0.2, 0, 0, 1],
+      "$description": "The default productive curve: quick start, settled end."
+    },
+    "decelerate": {
+      "$type": "cubicBezier",
+      "$value": [0, 0, 0, 1],
+      "$description": "Ease-out for things arriving, such as a tooltip or menu."
+    },
+    "accelerate": {
+      "$type": "cubicBezier",
+      "$value": [0.3, 0, 1, 1],
+      "$description": "Ease-in for things leaving."
+    },
+    "settle": {
+      "$type": "cubicBezier",
+      "$value": [0.22, 1, 0.36, 1],
+      "$description": "A press releasing. No overshoot."
     }
   },
   "layer": {

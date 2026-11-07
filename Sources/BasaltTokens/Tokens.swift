@@ -336,10 +336,19 @@ extension Basalt {
   /// Durations in seconds. Exits run at 0.75 of their entry.
   public enum Duration {
     public static let instant: Double = 0
-    public static let fast: Double = 0.1
-    public static let base: Double = 0.15
+    public static let fast: Double = 0.12
+    public static let press: Double = 0.08
+    public static let tick: Double = 0.07
+    public static let spin: Double = 0.64
+    public static let fade: Double = 1.2
+    public static let plate: Double = 0.26
+    public static let pop: Double = 0.15
+    public static let frame: Double = 0.53
+    public static let grid: Double = 0.66
+    public static let caret: Double = 1.25
+    public static let base: Double = 0.18
     public static let slow: Double = 0.2
-    public static let slower: Double = 0.3
+    public static let slower: Double = 0.32
   }
 
   /// A cubic Bézier timing curve.
@@ -355,5 +364,10 @@ extension Basalt {
     public static let out = Curve(x1: 0.16, y1: 1, x2: 0.3, y2: 1)
     public static let inOut = Curve(x1: 0.65, y1: 0, x2: 0.35, y2: 1)
     public static let `in` = Curve(x1: 0.4, y1: 0, x2: 1, y2: 1)
+    public static let linear = Curve(x1: 0, y1: 0, x2: 1, y2: 1)
+    public static let standard = Curve(x1: 0.2, y1: 0, x2: 0, y2: 1)
+    public static let decelerate = Curve(x1: 0, y1: 0, x2: 0, y2: 1)
+    public static let accelerate = Curve(x1: 0.3, y1: 0, x2: 1, y2: 1)
+    public static let settle = Curve(x1: 0.22, y1: 1, x2: 0.36, y2: 1)
   }
 }

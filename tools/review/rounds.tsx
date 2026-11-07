@@ -73,6 +73,7 @@ import { ROUND_4 } from "./round4";
 import { ROUND_5 } from "./round5";
 import { ROUND_6 } from "./round6";
 import { ROUND_7 } from "./round7";
+import { ROUND_8 } from "./round8";
 
 export interface Step {
   id: string;
@@ -187,12 +188,12 @@ const ROUND_1: Round = {
       name: "Button",
       intro: "Runs an action. Primary for the one main action in a view, secondary for the rest, ghost for quiet actions, danger for destructive ones.",
       decisions: [
-        "Hover brightens: the hairline steps up on secondary, a wash appears on ghost. Never a scale on press: a press is one colour step.",
+        "Hover brightens: the hairline steps up on secondary, a wash appears on ghost. A press darkens and scales slightly: .98 on a button, .94 on an icon button. Reduced motion keeps the colour and drops the scale.",
         "Danger is red text on a red hairline. There is no filled red button: Basalt is monochrome, and a destructive action stays quieter than the primary beside it.",
         "Disabled keeps its variant's shape, so it reads as the same control, unavailable, not as a different button.",
         "Five heights, 24 to 40px; 32px is the app default.",
       ],
-      tryIt: ["Hover each variant.", "Press Tab to move focus: a 2px outline in the focus colour, 2px off the button.", "Hold the mouse down on Cancel: one colour step, no shrink."],
+      tryIt: ["Hover each variant.", "Press Tab to move focus: a 2px outline in the focus colour, 2px off the button.", "Hold the mouse down on Cancel: the fill darkens and the button scales to .98."],
       demo: () => (
         <div style={col}>
           <div style={row}>
@@ -586,4 +587,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8];

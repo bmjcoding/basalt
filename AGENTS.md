@@ -50,7 +50,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   every surface the pair can appear on, in both themes. Contrast tests prove it; add a
   pair to them when you add a token.
 - **Borders build structure; shadows are only for things that float.** No top
-  highlights, gradient borders, glow, press-shrink or bounce. Hover brightens text and
+  highlights, gradient borders, glow or bounce. Hover brightens text and
   border slightly.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape, not a wash alone:** the raised pill with a hairline, or
@@ -60,8 +60,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
-  0.75× with ease-in. Nothing overshoots or loops, except spinners. Under reduced motion,
-  opacity only.
+  0.75× with ease-in. A press darkens and scales (.94 icon, .98 button, .99 row); the
+  scale is off under reduced motion. Nothing overshoots. Loops are spinners only. Under
+  reduced motion, interactive durations drop to 90ms and transforms are removed. See
+  `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density. Text entry is 16px on touch.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and

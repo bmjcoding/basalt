@@ -643,10 +643,44 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    test("motion primitives keep their names, width and reduced-motion fallback", async () => {
+      const { page } = await open(theme);
+      assert.equal(await page.getByRole("status", { name: "Loading runs" }).count(), 1);
+      assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
+      assert.equal(await page.getByRole("status", { name: "Loading grid" }).count(), 1);
+      assert.match(await page.locator(".basalt-spinner[data-variant=braille]").evaluate((el) => getComputedStyle(el, "::before").animationTimingFunction), /step/);
+      const ticker = page.locator(".basalt-ticker .basalt-visually-hidden");
+      assert.equal(await ticker.textContent(), "1,284");
+      await page.getByRole("button", { name: "Add a run" }).click();
+      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-visually-hidden")?.textContent === "1,285");
+      const saving = page.getByRole("button", { name: "Saving" });
+      assert.equal(await saving.getAttribute("aria-busy"), "true");
+      const width = await saving.evaluate((el) => {
+        const button = el.getBoundingClientRect().width;
+        const label = el.querySelector(".basalt-button-label").getBoundingClientRect().width;
+        return { button, label };
+      });
+      assert.ok(width.button + 1 >= width.label, "loading button is narrower than its label");
+      await saving.focus();
+      await page.keyboard.press("Enter");
+      assert.equal(await page.getByTestId("saving-clicks").textContent(), "0");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.equal(await page.locator(".basalt-spinner[data-variant=dots]").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      const add = page.getByRole("button", { name: "Add a run" });
+      const box = await add.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      assert.equal(await add.evaluate((el) => getComputedStyle(el).transform), "none", "reduced motion drops the press scale");
+      await page.mouse.up();
+      await page.emulateMedia({ forcedColors: "active" });
+      assert.equal(await saving.evaluate((el) => getComputedStyle(el).borderStyle), "solid");
+      await page.close();
+    });
+
     test("loading and expansion honour reduced motion", async () => {
       const { page } = await open(theme);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      assert.equal(await page.locator(".basalt-spinner svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.getByRole("status", { name: "Starting sandbox" }).locator("svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
       assert.equal(await page.locator(".basalt-skeleton").first().evaluate((el) => getComputedStyle(el).animationName), "none");
       assert.equal(await page.locator(".basalt-progress-indicator[data-indeterminate]").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
       assert.equal(await page.locator(".basalt-accordion-caret").first().evaluate((el) => getComputedStyle(el).transitionDuration), "0s");

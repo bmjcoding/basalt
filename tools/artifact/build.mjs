@@ -127,9 +127,24 @@ const text = dim("text-").map(([name, value]) => {
   return { name, value, usage: `The ${step} step's ${part.replace("-", " ")}; see the type scale.` };
 });
 const weight = dim("font-weight-").map(([name, value]) => ({ name, value, usage: { regular: "Body text and descriptions.", medium: "Labels, buttons, tabs, table headers.", semibold: "Headings, titles and numbers that lead." }[name.slice(19)] }));
-const DUR_USE = { instant: "Hover-in colour, selection.", fast: "Hover-out, toggles, colour changes.", base: "Tooltips, menus, popovers entering.", slow: "Dialogs and accordions; the tab indicator.", slower: "Sheets and drawers." };
+const DUR_USE = {
+  instant: "Hover-in colour, selection.",
+  press: "A button press: darken and scale.",
+  fast: "Small colour changes.",
+  tick: "The offset between the three dots.",
+  spin: "One turn of the ring spinner.",
+  fade: "The reduced-motion fade that replaces a moving spinner.",
+  plate: "A larger surface settling.",
+  pop: "Tooltip and menu entry.",
+  frame: "One braille spinner cycle, stepped.",
+  grid: "One cycle of the dot grid.",
+  caret: "A text caret blink.",
+  base: "Menus and other entries, when not using the pop duration.",
+  slow: "Dialogs and a digit roll.",
+  slower: "Sheets and drawers.",
+};
 const duration = dim("duration-").map(([name, value]) => ({ name, value, usage: `${DUR_USE[name.slice(16)]} Exits run at 0.75 of the entry.` }));
-const easing = dim("ease-").map(([name, value]) => ({ name, value, usage: { out: "Every entry. Settles without overshoot.", "in-out": "Sheets that slide.", in: "Every exit." }[name.slice(12)] }));
+const easing = dim("ease-").map(([name, value]) => ({ name, value, usage: { out: "Legacy entry curve, kept so existing motion does not jump.", "in-out": "Sheets that slide.", in: "Legacy exit curve.", linear: "Spinner loops only.", standard: "Productive motion, including the press in.", decelerate: "Arrivals: tooltips and menus.", accelerate: "Departures.", settle: "A press releasing." }[name.slice(12)] }));
 const layer = dim("layer-").map(([name, value]) => ({ name, value, usage: `Stacking order for ${name.slice(13)} layers.` }));
 
 const TYPE = [

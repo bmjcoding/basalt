@@ -5,7 +5,7 @@ baileymjones.com, N1 and what comes next. Each product adds colour through its o
 
 **Status:** Foundations, React components and a core SwiftUI component layer are built and
 reviewed; no release has been published. See [what is complete and what remains](docs/status.md).
-Agents working here follow [AGENTS.md](AGENTS.md).
+Agents working here follow [AGENTS.md](AGENTS.md). Motion primitives are in [docs/motion.md](docs/motion.md).
 
 ## Packages
 
