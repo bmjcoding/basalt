@@ -34,20 +34,23 @@ export async function launch() {
  *
  * `clock: true` installs Playwright's fake clock before the page's scripts run, so timers,
  * requestAnimationFrame and performance.now only move when the test calls `page.clock.runFor`.
- * It is paused once the fixture has loaded. CSS transitions and animations are not on that clock: pause
- * them through `document.getAnimations()`.
+ * It is paused before the fixture loads, so the fixture loads with time frozen. CSS transitions and
+ * animations are not on that clock: pause them through `document.getAnimations()`.
  */
 export async function fixturePage(browser, body, { theme = "light", clock = false, ...options } = {}) {
   const page = await browser.newPage(options);
   page.setDefaultTimeout(5000);
-  if (clock) await page.clock.install({ time: 0 });
+  // Pause straight after installing, before the page loads anything. pauseAt throws if its time has already passed, and
+  // the clock runs in real time until it is paused, so pausing after the fixture loads raced a slow runner. Nothing runs
+  // between these two calls; the margin only has to cover one round trip.
+  if (clock) {
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(10_000);
+  }
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setContent(`<html data-theme="${theme}"><head><style>${css()}</style></head><body><div id="root"></div></body></html>`);
   await page.addScriptTag({ content: await bundleFixture(body) });
-  // The clock runs while the fixture loads, which can take more than any fixed time on a slow runner, and pauseAt can't go
-  // back: pause 1ms ahead of the page's own now.
-  if (clock) await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1);
   return { page, errors };
 }
 
