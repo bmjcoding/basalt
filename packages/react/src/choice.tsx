@@ -7,21 +7,41 @@ import { CaretUpDownIcon, CheckIcon, MinusIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import type { ControlSize } from "./button";
+import type { ChangeDetails, PartProps } from "./types";
+import { useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import { join, withClass } from "./utils";
 import { useFloatingLayer } from "./layers";
 
 // ---- Checkbox ----
 
-export interface CheckboxProps extends Omit<React.ComponentProps<typeof BaseCheckbox.Root>, "children"> {
+export interface CheckboxProps extends PartProps<"span", "onChange" | "defaultChecked" | "children" | "value"> {
+  id?: string;
+  name?: string;
+  form?: string;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  /** Neither checked nor unchecked: a parent of partly selected children. */
+  indeterminate?: boolean;
+  /** Controls the checkboxes of a group as a whole. */
+  parent?: boolean;
+  value?: string;
+  /** What a form submits when the box is unchecked. Nothing by default. */
+  uncheckedValue?: string;
+  onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
   /** The label, clickable with the box. Omit only when the checkbox is labelled another way (e.g. a table row's `aria-label`). */
   children?: React.ReactNode;
 }
 
 /** An on/off choice that takes effect when a form is submitted, or one of several independent options. */
-export function Checkbox({ children, className, ...props }: CheckboxProps) {
+export function Checkbox({ children, className, disabled, ...props }: CheckboxProps) {
+  const fieldsetDisabled = useFieldsetDisabled();
   const box = (
-    <BaseCheckbox.Root {...props} className={withClass("basalt-checkbox", className)}>
+    <BaseCheckbox.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-checkbox", className)}>
       <BaseCheckbox.Indicator
         className="basalt-checkbox-indicator"
         keepMounted
@@ -42,15 +62,28 @@ export function Checkbox({ children, className, ...props }: CheckboxProps) {
 
 // ---- Switch ----
 
-export interface SwitchProps extends Omit<React.ComponentProps<typeof BaseSwitch.Root>, "children"> {
+export interface SwitchProps extends PartProps<"span", "onChange" | "defaultChecked" | "children"> {
+  id?: string;
+  name?: string;
+  form?: string;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  value?: string;
+  uncheckedValue?: string;
+  onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
   /** The label. A switch takes effect immediately; name the setting, not the action ("Auto-deploy", not "Turn on"). */
   children?: React.ReactNode;
 }
 
 /** A setting that takes effect immediately, on or off. */
-export function Switch({ children, className, ...props }: SwitchProps) {
+export function Switch({ children, className, disabled, ...props }: SwitchProps) {
+  const fieldsetDisabled = useFieldsetDisabled();
   const control = (
-    <BaseSwitch.Root {...props} className={withClass("basalt-switch", className)}>
+    <BaseSwitch.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-switch", className)}>
       <BaseSwitch.Thumb className="basalt-switch-thumb" />
     </BaseSwitch.Root>
   );
@@ -65,25 +98,40 @@ export function Switch({ children, className, ...props }: SwitchProps) {
 
 // ---- RadioGroup ----
 
-export interface RadioGroupProps extends React.ComponentProps<typeof BaseRadioGroup> {
+export interface RadioGroupProps extends PartProps<"div", "defaultValue" | "onChange" | "value"> {
+  name?: string;
+  form?: string;
+  value?: string;
+  defaultValue?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  onValueChange?: (value: string, details: ChangeDetails) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
   /** Required unless the group is labelled by a visible heading via `aria-labelledby`. */
   "aria-label"?: string;
 }
 
 /** One choice among a few options, all visible. For more than five or so, use `Select`. */
-export function RadioGroup({ className, ...props }: RadioGroupProps) {
-  return <BaseRadioGroup {...props} className={withClass("basalt-radio-group", className)} />;
+export function RadioGroup({ className, disabled, ...props }: RadioGroupProps) {
+  const fieldsetDisabled = useFieldsetDisabled();
+  return <BaseRadioGroup {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio-group", className)} />;
 }
 
-export interface RadioProps extends Omit<React.ComponentProps<typeof BaseRadio.Root>, "children"> {
+export interface RadioProps extends PartProps<"span", "children" | "defaultValue" | "onChange" | "value"> {
   value: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
   children: React.ReactNode;
 }
 
-export function Radio({ children, className, ...props }: RadioProps) {
+export function Radio({ children, className, disabled, ...props }: RadioProps) {
+  const fieldsetDisabled = useFieldsetDisabled();
   return (
     <label className="basalt-choice">
-      <BaseRadio.Root {...props} className={withClass("basalt-radio", className)}>
+      <BaseRadio.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio", className)}>
         <BaseRadio.Indicator className="basalt-radio-indicator" />
       </BaseRadio.Root>
       <span className="basalt-choice-label">{children}</span>
@@ -99,8 +147,22 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<React.ComponentProps<typeof BaseSelect.Root>, "items" | "children" | "value" | "defaultValue" | "onValueChange"> {
+export interface SelectProps {
   options: SelectOption[];
+  name?: string;
+  form?: string;
+  id?: string;
+  autoComplete?: string;
+  required?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChangeComplete?: (open: boolean) => void;
+  modal?: boolean;
+  highlightItemOnHover?: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
   value?: string | null;
   defaultValue?: string | null;
   onValueChange?: (value: string | null) => void;

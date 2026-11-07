@@ -24,11 +24,12 @@ export interface ToastOptions {
  * or focus, pause while hovered, and are announced to screen readers.
  */
 export function ToastProvider({ children, limit = 3 }: { children: React.ReactNode; limit?: number }) {
+  const blurred = useWindowBlurred();
   return (
-    <BaseToast.Provider limit={limit}>
+    <BaseToast.Provider limit={limit} timeout={DEFAULT_TIMEOUT}>
       {children}
       <BaseToast.Portal>
-        <BaseToast.Viewport className="basalt-toast-viewport">
+        <BaseToast.Viewport className="basalt-toast-viewport" data-window-blurred={blurred ? "" : undefined}>
           <ToastList />
         </BaseToast.Viewport>
       </BaseToast.Portal>
@@ -36,12 +37,43 @@ export function ToastProvider({ children, limit = 3 }: { children: React.ReactNo
   );
 }
 
-const toastTimeouts = new Map<string, number>();
+// Stated here rather than left to Base UI, because the drain line must last as long as the timer.
+const DEFAULT_TIMEOUT = 5000;
+
+/**
+ * Base UI holds every toast's timer while the window is not focused, as it does while the stack
+ * is hovered or focused. The drain line pauses with them, so the line and the timer stay in step.
+ */
+function useWindowBlurred() {
+  const [blurred, setBlurred] = React.useState(false);
+  React.useEffect(() => {
+    let refocus = 0;
+    const blur = (event: Event) => {
+      if (event.target !== window) return;
+      window.clearTimeout(refocus);
+      setBlurred(true);
+    };
+    const focus = (event: FocusEvent) => {
+      if (event.relatedTarget) return;
+      // After focus events have settled, as Base UI waits before it lets its timers run.
+      refocus = window.setTimeout(() => setBlurred(false), 0);
+    };
+    window.addEventListener("blur", blur, true);
+    window.addEventListener("focus", focus, true);
+    return () => {
+      window.clearTimeout(refocus);
+      window.removeEventListener("blur", blur, true);
+      window.removeEventListener("focus", focus, true);
+    };
+  }, []);
+  return blurred;
+}
 
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
   return toasts.map((toast) => {
-    const timeout = toastTimeouts.get(String(toast.id)) ?? 0;
+    // The timeout lives on the toast itself, so nothing outlives it.
+    const timeout = toast.timeout ?? DEFAULT_TIMEOUT;
     return (
     <BaseToast.Root key={toast.id} toast={toast} className="basalt-toast" data-status={(toast.type as ToastStatus | undefined) ?? "neutral"}>
       {timeout > 0 ? <span className="basalt-toast-drain" style={{ animationDuration: `${timeout}ms` }} /> : null}
@@ -75,15 +107,13 @@ export function useToast() {
   return React.useMemo(
     () => ({
       show: ({ title, description, status = "neutral", action, timeout }: ToastOptions) => {
-        const id = latest.current.add({
+        return latest.current.add({
           title,
           description,
           type: status,
           timeout,
           actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
         });
-        toastTimeouts.set(String(id), timeout === undefined ? 5000 : timeout);
-        return id;
       },
       close: (id: string) => latest.current.close(id),
     }),

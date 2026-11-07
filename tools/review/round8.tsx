@@ -38,6 +38,7 @@ export const ROUND_8: Round = {
   id: "8",
   title: "Motion and primitives",
   pr: "https://github.com/bmjcoding/basalt/pull/13",
+  reviewed: false,
   summary:
     "Spinners, press, ticker, morphing icons, text that keeps its letters, a breathing chart, a draining toast, and a preview before save. Colours and type are unchanged.",
   steps: [
@@ -94,7 +95,7 @@ export const ROUND_8: Round = {
     {
       id: "copy",
       name: "Copy and skeleton",
-      intro: "Copy morphs into a check. Skeletons pulse their opacity. A shimmer would be a gradient, so they don't.",
+      intro: "Copy swaps to a check, both Phosphor Bold. Skeletons pulse their opacity. A shimmer would be a gradient, so they don't.",
       decisions: ["The button name changes to Copied, and a status says so.", "Reduced motion swaps the icon immediately and holds the skeleton still."],
       tryIt: ["Copy the line.", "Watch the placeholder hold its size."],
       demo: () => (
@@ -109,7 +110,7 @@ export const ROUND_8: Round = {
       id: "morph",
       name: "Morphing icons",
       intro: "Every icon is three strokes. Arrows, chevrons, and plus/close rotate. Everything else interpolates, and unused strokes collapse to a point.",
-      decisions: ["The set includes menu, close, plus, minus, check, play, pause, the four arrows, the four chevrons, copy, and a few more.", "Reduced motion swaps with no in-between."],
+      decisions: ["The set includes menu, close, plus, minus, check, play, pause, the four arrows, the four chevrons, and a few more.", "Reduced motion swaps with no in-between."],
       tryIt: ["Cycle the icon.", "Turn on reduced motion and cycle again."],
       demo: () => <MorphDemo />,
     },
@@ -140,7 +141,7 @@ export const ROUND_8: Round = {
   ],
 };
 
-const MORPH_CYCLE: MorphName[] = ["menu", "close", "plus", "minus", "check", "play", "pause", "arrow-right", "chevron-right", "copy"];
+const MORPH_CYCLE: MorphName[] = ["menu", "close", "plus", "minus", "check", "play", "pause", "arrow-right", "chevron-right"];
 
 function MorphDemo() {
   const [index, setIndex] = React.useState(0);

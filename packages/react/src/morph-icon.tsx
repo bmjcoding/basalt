@@ -84,14 +84,6 @@ const ICONS = {
   "chevron-down": { lines: CHEVRON, rotate: 90, group: "chevron" },
   "chevron-left": { lines: CHEVRON, rotate: 180, group: "chevron" },
   "chevron-up": { lines: CHEVRON, rotate: 270, group: "chevron" },
-  copy: {
-    lines: [
-      [8, 8, 8, 19],
-      [8, 19, 18, 19],
-      [11, 6, 18, 6],
-    ],
-    rotate: 0,
-  },
   equals: {
     lines: [
       [5, 9, 19, 9],
@@ -161,51 +153,59 @@ export interface MorphIconProps {
 export function MorphIcon({ name, size = 16, className }: MorphIconProps) {
   const reduced = useReducedMotion();
   const def = ICONS[name];
-  const shown = React.useRef<IconDef>(def);
+  const svg = React.useRef<SVGSVGElement>(null);
+  // The drawing the icon is heading for, and the geometry on screen right now. They differ
+  // while a morph runs, and a change that interrupts one has to start from the second.
+  const target = React.useRef<IconDef>(def);
+  const view = React.useRef<{ lines: Lines; rotate: number }>({ lines: def.lines, rotate: def.rotate });
   const [lines, setLines] = React.useState<Lines>(def.lines);
-  const [rotate, setRotate] = React.useState(def.rotate);
+  const [rotate, setRotate] = React.useState<number>(def.rotate);
   const [spin, setSpin] = React.useState(false);
+  const show = (nextLines: Lines, nextRotate: number) => {
+    view.current = { lines: nextLines, rotate: nextRotate };
+    setLines(nextLines);
+    setRotate(nextRotate);
+  };
 
   React.useEffect(() => {
     const next = ICONS[name];
-    const previous = shown.current;
+    const previous = target.current;
+    target.current = next;
     if (reduced) {
-      setLines(next.lines);
-      setRotate(next.rotate);
+      show(next.lines, next.rotate);
       setSpin(false);
-      shown.current = next;
       return;
     }
+    // Nothing to do on the first render, or when the effect re-runs with the same drawing in place.
+    if (next === previous && view.current.lines === next.lines && view.current.rotate === next.rotate) return;
     const previousGroup = "group" in previous ? previous.group : undefined;
     const nextGroup = "group" in next ? next.group : undefined;
-    if (previousGroup && previousGroup === nextGroup) {
-      setLines(next.lines);
-      setRotate(next.rotate);
+    if (previousGroup && previousGroup === nextGroup && view.current.lines === previous.lines) {
+      show(next.lines, next.rotate);
       setSpin(true);
-      shown.current = next;
       return;
     }
-    const start = previous.lines.map((line) => rotateLine(line, previous.rotate)) as unknown as Lines;
+    // From what is drawn now: the strokes as last set, turned by the angle the browser is
+    // showing (a spin may be part way round), not from the drawing the last change aimed at.
+    const turned = angleOf(svg.current);
+    const start = view.current.lines.map((line) => rotateLine(line, turned ?? view.current.rotate)) as unknown as Lines;
     const end = next.lines.map((line) => rotateLine(line, next.rotate)) as unknown as Lines;
     setSpin(false);
-    setRotate(0);
-    setLines(start);
+    show(start, 0);
     const started = performance.now();
     let frame = 0;
     const step = (now: number) => {
       const t = Math.min(1, (now - started) / 200);
       const eased = 1 - (1 - t) ** 3;
-      setLines(start.map((line, index) => {
-        const target = end[index];
-        return target ? lerpLine(line, target, eased) : line;
-      }) as unknown as Lines);
       if (t < 1) {
+        show(start.map((line, index) => {
+          const to = end[index];
+          return to ? lerpLine(line, to, eased) : line;
+        }) as unknown as Lines, 0);
         frame = requestAnimationFrame(step);
         return;
       }
-      setLines(next.lines);
-      setRotate(next.rotate);
-      shown.current = next;
+      show(next.lines, next.rotate);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
@@ -213,6 +213,7 @@ export function MorphIcon({ name, size = 16, className }: MorphIconProps) {
 
   return (
     <svg
+      ref={svg}
       className={join("basalt-morph", className)}
       width={size}
       height={size}
@@ -229,4 +230,13 @@ export function MorphIcon({ name, size = 16, className }: MorphIconProps) {
       ))}
     </svg>
   );
+}
+
+/** The rotation the browser is drawing the element at, in degrees, or null before it is in the page. */
+function angleOf(element: SVGSVGElement | null) {
+  if (!element) return null;
+  const matrix = getComputedStyle(element).transform;
+  if (!matrix || matrix === "none") return 0;
+  const [a = 1, b = 0] = matrix.replace(/^matrix\(|\)$/g, "").split(",").map(Number);
+  return (Math.atan2(b, a) * 180) / Math.PI;
 }

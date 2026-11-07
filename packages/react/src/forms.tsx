@@ -7,24 +7,39 @@ import { CaretUpDownIcon, CheckIcon, MinusIcon, PlusIcon } from "@phosphor-icons
 import * as React from "react";
 
 import { IconButton, type ControlSize } from "./button";
+import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
+import type { ChangeDetails, CommitDetails, PartProps } from "./types";
 import { join, withClass } from "./utils";
 import { useFloatingLayer } from "./layers";
 
-export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, ...props }: BaseForm.Props<Values>) {
-  return <BaseForm {...props} className={withClass("basalt-form", className)} />;
+export type FormProps<Values extends Record<string, unknown> = Record<string, unknown>> = PartProps<"form"> & {
+  /** When fields first show their errors. */
+  validationMode?: "onSubmit" | "onBlur" | "onChange";
+  /** Errors from outside the form, e.g. a server response, keyed by field name. */
+  errors?: Record<string, string | string[]>;
+  /** Called with the values of every named control once the form is valid. */
+  onFormSubmit?: (values: Values, details: ChangeDetails) => void;
+};
+
+export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, ...props }: FormProps<Values>) {
+  return <BaseForm {...(props as object)} className={withClass("basalt-form", className)} />;
 }
 
-export interface FieldsetProps extends React.ComponentProps<typeof BaseFieldset.Root> {
+export interface FieldsetProps extends PartProps<"fieldset"> {
   legend: React.ReactNode;
+  disabled?: boolean;
 }
 
 /** A named group of related fields. Disabling the group disables its controls. */
-export function Fieldset({ legend, children, className, ...props }: FieldsetProps) {
+export function Fieldset({ legend, children, className, disabled = false, ...props }: FieldsetProps) {
+  const disabledByParent = useFieldsetDisabled();
   return (
-    <BaseFieldset.Root {...props} className={withClass("basalt-fieldset", className)}>
-      <BaseFieldset.Legend className="basalt-fieldset-legend">{legend}</BaseFieldset.Legend>
-      {children}
+    <BaseFieldset.Root {...props} disabled={disabled || disabledByParent} className={withClass("basalt-fieldset", className)}>
+      <FieldsetDisabledProvider value={disabled || disabledByParent}>
+        <BaseFieldset.Legend className="basalt-fieldset-legend">{legend}</BaseFieldset.Legend>
+        {children}
+      </FieldsetDisabledProvider>
     </BaseFieldset.Root>
   );
 }
@@ -35,14 +50,41 @@ export interface ComboboxOption {
   disabled?: boolean;
 }
 
-export interface ComboboxProps extends Omit<BaseCombobox.Root.Props<string>, "items" | "children" | "itemToStringLabel" | "itemToStringValue"> {
+export interface ComboboxProps {
   options: readonly ComboboxOption[];
+  value?: string | null;
+  defaultValue?: string | null;
+  onValueChange?: (value: string | null, details: ChangeDetails) => void;
+  inputValue?: string;
+  defaultInputValue?: string;
+  onInputValueChange?: (value: string, details: ChangeDetails) => void;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  onOpenChangeComplete?: (open: boolean) => void;
+  name?: string;
+  form?: string;
+  id?: string;
+  required?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  /** Open the list when the input is clicked, not only when it is typed in. */
+  openOnInputClick?: boolean;
+  /** Highlight the first match as you type, so Enter chooses it. */
+  autoHighlight?: boolean;
+  highlightItemOnHover?: boolean;
+  loopFocus?: boolean;
+  /** Show at most this many matches. */
+  limit?: number;
+  modal?: boolean;
+  locale?: string | string[];
+  inputRef?: React.Ref<HTMLInputElement>;
   placeholder?: string;
   emptyMessage?: string;
   controlSize?: ControlSize;
   className?: string;
   "aria-label"?: string;
-  inputProps?: Omit<React.ComponentProps<typeof BaseCombobox.Input>, "className" | "value" | "defaultValue" | "children">;
+  inputProps?: Omit<React.ComponentProps<"input">, "className" | "value" | "defaultValue" | "children">;
 }
 
 /** A searchable Select. The chosen value must come from the supplied options. Label it with Field. */
@@ -74,12 +116,36 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
   );
 }
 
-export interface NumberFieldProps extends Omit<React.ComponentProps<typeof BaseNumberField.Root>, "children"> {
+export interface NumberFieldProps extends Omit<PartProps<"div", "onChange" | "defaultValue" | "children" | "value">, "render"> {
+  value?: number | null;
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number | "any";
+  /** Step used with Alt held. */
+  smallStep?: number;
+  /** Step used with Shift held or Page Up and Down. */
+  largeStep?: number;
+  allowOutOfRange?: boolean;
+  allowWheelScrub?: boolean;
+  snapOnStep?: boolean;
+  /** How the number is written, as `Intl.NumberFormat` options. */
+  format?: Intl.NumberFormatOptions;
+  locale?: string | string[];
+  id?: string;
+  name?: string;
+  form?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  onValueChange?: (value: number | null, details: ChangeDetails) => void;
+  onValueCommitted?: (value: number | null, details: CommitDetails) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
   controlSize?: ControlSize;
   "aria-label"?: string;
   decrementLabel?: string;
   incrementLabel?: string;
-  inputProps?: Omit<React.ComponentProps<typeof BaseNumberField.Input>, "className" | "value" | "defaultValue">;
+  inputProps?: Omit<React.ComponentProps<"input">, "className" | "value" | "defaultValue">;
 }
 
 /** Numeric entry with locale-aware formatting and bounded keyboard/button stepping. */
@@ -95,12 +161,29 @@ export function NumberField({ controlSize = "md", className, inputProps, "aria-l
   );
 }
 
-export type SliderProps<Value extends number | readonly number[] = number> = Omit<BaseSlider.Root.Props<Value>, "children"> & {
+export type SliderProps<Value extends number | readonly number[] = number> = Omit<PartProps<"div", "defaultValue" | "onChange" | "value" | "children">, "render"> & {
+  value?: Value;
+  defaultValue?: Value;
+  min?: number;
+  max?: number;
+  step?: number;
+  largeStep?: number;
+  /** The least distance allowed between range thumbs. */
+  minStepsBetweenValues?: number;
+  orientation?: "horizontal" | "vertical";
+  disabled?: boolean;
+  name?: string;
+  form?: string;
+  format?: Intl.NumberFormatOptions;
+  locale?: string | string[];
+  onValueChange?: (value: Value extends number ? number : Value, details: ChangeDetails) => void;
+  onValueCommitted?: (value: Value extends number ? number : Value, details: CommitDetails) => void;
   label: string;
   showValue?: boolean;
   /** Names for each range thumb, e.g. ["Minimum budget", "Maximum budget"]. */
   thumbLabels?: readonly string[];
-  getValueText?: React.ComponentProps<typeof BaseSlider.Thumb>["getAriaValueText"];
+  /** The spoken value of a thumb, e.g. "$20". */
+  getValueText?: (formattedValue: string, value: number, index: number) => string;
 };
 
 /** A bounded scalar or range; arrow keys step, Home/End jump to bounds. */

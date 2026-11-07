@@ -1,23 +1,51 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Icon } from "./icon";
-import { Kbd } from "./display";
+import { Kbd } from "./kbd";
+import type { Align, ChangeDetails, IconComponent, PartProps, Side } from "./types";
 import { withClass } from "./utils";
 import { useFloatingLayer } from "./layers";
 
-/** A menu of actions. Compose `Menu`, `MenuTrigger`, `MenuContent` and `MenuItem`s. */
-export const Menu = BaseMenu.Root;
+export interface MenuProps {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean, details: ChangeDetails) => void;
+  /** Called after the open or close transition has finished. */
+  onOpenChangeComplete?: (open: boolean) => void;
+  /** Lock page scroll and make the rest of the page inert while open. On by default. */
+  modal?: boolean;
+  disabled?: boolean;
+  /** Wrap from the last item back to the first. On by default. */
+  loopFocus?: boolean;
+  highlightItemOnHover?: boolean;
+  orientation?: "horizontal" | "vertical";
+  closeParentOnEsc?: boolean;
+  children?: React.ReactNode;
+}
 
-export function MenuTrigger({ className, ...props }: React.ComponentProps<typeof BaseMenu.Trigger>) {
+/** A menu of actions. Compose `Menu`, `MenuTrigger`, `MenuContent` and `MenuItem`s. */
+export function Menu(props: MenuProps) {
+  return <BaseMenu.Root {...props} />;
+}
+
+export interface MenuTriggerProps extends PartProps<"button"> {
+  nativeButton?: boolean;
+  disabled?: boolean;
+  /** Open when hovered, as well as when pressed. */
+  openOnHover?: boolean;
+  delay?: number;
+  closeDelay?: number;
+}
+
+export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
   return <BaseMenu.Trigger {...props} className={withClass("basalt-menu-trigger", className)} />;
 }
 
-export interface MenuContentProps extends React.ComponentProps<typeof BaseMenu.Popup> {
-  side?: React.ComponentProps<typeof BaseMenu.Positioner>["side"];
-  align?: React.ComponentProps<typeof BaseMenu.Positioner>["align"];
+export interface MenuContentProps extends PartProps<"div"> {
+  side?: Side;
+  align?: Align;
   sideOffset?: number;
 }
 
@@ -33,8 +61,17 @@ export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, 
   );
 }
 
-export interface MenuItemProps extends React.ComponentProps<typeof BaseMenu.Item> {
-  icon?: PhosphorIcon;
+export interface MenuRowProps extends PartProps<"div"> {
+  nativeButton?: boolean;
+  disabled?: boolean;
+  /** Text for type-to-select, when the children aren't plain text. */
+  label?: string;
+  /** Close the menu when the row is chosen. On for items, off for checkboxes and radios. */
+  closeOnClick?: boolean;
+}
+
+export interface MenuItemProps extends MenuRowProps {
+  icon?: IconComponent;
   /** A keyboard shortcut shown at the end of the row, e.g. "⌘D". */
   shortcut?: string;
   /** A destructive action: shown in the danger colour. */
@@ -51,17 +88,25 @@ export function MenuItem({ icon, shortcut, danger, className, children, ...props
   );
 }
 
-export function MenuSeparator({ className, ...props }: React.ComponentProps<typeof BaseMenu.Separator>) {
+export function MenuSeparator({ className, ...props }: PartProps<"div">) {
   return <BaseMenu.Separator {...props} className={withClass("basalt-menu-separator", className)} />;
 }
 
-export const MenuGroup = BaseMenu.Group;
+export function MenuGroup(props: PartProps<"div">) {
+  return <BaseMenu.Group {...props} />;
+}
 
-export function MenuGroupLabel({ className, ...props }: React.ComponentProps<typeof BaseMenu.GroupLabel>) {
+export function MenuGroupLabel({ className, ...props }: PartProps<"div">) {
   return <BaseMenu.GroupLabel {...props} className={withClass("basalt-menu-group-label", className)} />;
 }
 
-export function MenuCheckboxItem({ className, children, ...props }: React.ComponentProps<typeof BaseMenu.CheckboxItem>) {
+export interface MenuCheckboxItemProps extends MenuRowProps {
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
+}
+
+export function MenuCheckboxItem({ className, children, ...props }: MenuCheckboxItemProps) {
   return (
     <BaseMenu.CheckboxItem {...props} className={withClass("basalt-menu-item", className)}>
       <span className="basalt-menu-check"><BaseMenu.CheckboxItemIndicator><Icon icon={CheckIcon} /></BaseMenu.CheckboxItemIndicator></span>
@@ -70,9 +115,22 @@ export function MenuCheckboxItem({ className, children, ...props }: React.Compon
   );
 }
 
-export const MenuRadioGroup = BaseMenu.RadioGroup;
+export interface MenuRadioGroupProps extends PartProps<"div", "defaultValue" | "onChange"> {
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string, details: ChangeDetails) => void;
+  disabled?: boolean;
+}
 
-export function MenuRadioItem({ className, children, ...props }: React.ComponentProps<typeof BaseMenu.RadioItem>) {
+export function MenuRadioGroup(props: MenuRadioGroupProps) {
+  return <BaseMenu.RadioGroup {...props} />;
+}
+
+export interface MenuRadioItemProps extends MenuRowProps {
+  value: string;
+}
+
+export function MenuRadioItem({ className, children, ...props }: MenuRadioItemProps) {
   return (
     <BaseMenu.RadioItem {...props} className={withClass("basalt-menu-item", className)}>
       <span className="basalt-menu-check"><BaseMenu.RadioItemIndicator><span className="basalt-menu-radio-dot" /></BaseMenu.RadioItemIndicator></span>
@@ -81,9 +139,19 @@ export function MenuRadioItem({ className, children, ...props }: React.Component
   );
 }
 
-export const MenuSubmenu = BaseMenu.SubmenuRoot;
+export interface MenuSubmenuProps extends Omit<MenuProps, "modal"> {}
 
-export function MenuSubmenuTrigger({ className, children, ...props }: React.ComponentProps<typeof BaseMenu.SubmenuTrigger>) {
+export function MenuSubmenu(props: MenuSubmenuProps) {
+  return <BaseMenu.SubmenuRoot {...props} />;
+}
+
+export interface MenuSubmenuTriggerProps extends MenuRowProps {
+  openOnHover?: boolean;
+  delay?: number;
+  closeDelay?: number;
+}
+
+export function MenuSubmenuTrigger({ className, children, ...props }: MenuSubmenuTriggerProps) {
   return (
     <BaseMenu.SubmenuTrigger {...props} className={withClass("basalt-menu-item basalt-menu-submenu-trigger", className)}>
       <span className="basalt-menu-item-label">{children}</span>

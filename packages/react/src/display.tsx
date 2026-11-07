@@ -1,14 +1,10 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import * as React from "react";
 
+import type { Side } from "./types";
 import { join } from "./utils";
 
-// ---- Kbd ----
-
-/** A key or shortcut, e.g. "⌘K". */
-export function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
-  return <kbd {...props} className={join("basalt-kbd", className)} />;
-}
+export { Kbd } from "./kbd";
 
 // ---- Badge ----
 
@@ -69,7 +65,8 @@ export type TableDensity = "compact" | "default" | "comfortable";
  * the row height: 32px for logs, 40px by default, 44px for touch.
  */
 export function TableContainer({ density = "default", className, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
-  return <div {...props} data-density={density} className={join("basalt-table-container", className)} />;
+  // Its own attribute: `data-density` would also reset the size of every control in the table.
+  return <div {...props} data-row-density={density} className={join("basalt-table-container", className)} />;
 }
 
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
@@ -103,13 +100,24 @@ export interface TooltipProps {
   content: React.ReactNode;
   /** The element the tooltip describes, rendered as the trigger. */
   children: React.ReactElement;
-  side?: React.ComponentProps<typeof BaseTooltip.Positioner>["side"];
+  side?: Side;
   /** Open on first render, e.g. in documentation. Normally tooltips open on hover and focus. */
   defaultOpen?: boolean;
 }
 
+export interface TooltipProviderProps {
+  /** Milliseconds a tooltip waits before opening on hover. */
+  delay?: number;
+  closeDelay?: number;
+  /** After one tooltip closes, how long the next opens at once. */
+  timeout?: number;
+  children?: React.ReactNode;
+}
+
 /** Wrap the app once in `TooltipProvider` so tooltips share their open delay. */
-export const TooltipProvider = BaseTooltip.Provider;
+export function TooltipProvider(props: TooltipProviderProps) {
+  return <BaseTooltip.Provider {...props} />;
+}
 
 export function Tooltip({ content, children, side = "top", defaultOpen }: TooltipProps) {
   const [open, setOpen] = React.useState(defaultOpen ?? false);

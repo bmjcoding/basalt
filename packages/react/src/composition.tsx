@@ -1,12 +1,16 @@
 import { Avatar as BaseAvatar } from "@base-ui/react/avatar";
 import { Separator as BaseSeparator } from "@base-ui/react/separator";
-import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Icon } from "./icon";
+import type { IconComponent, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
 
-export function Separator({ className, ...props }: React.ComponentProps<typeof BaseSeparator>) {
+export interface SeparatorProps extends PartProps<"div"> {
+  orientation?: Orientation;
+}
+
+export function Separator({ className, ...props }: SeparatorProps) {
   return <BaseSeparator {...props} className={withClass("basalt-separator", className)} />;
 }
 
@@ -31,7 +35,7 @@ export function Avatar({ name, src, size = 32, fallback, className, style, ...pr
 export interface EmptyStateProps extends Omit<React.ComponentProps<"section">, "title"> {
   title: React.ReactNode;
   description?: React.ReactNode;
-  icon?: PhosphorIcon;
+  icon?: IconComponent;
   actions?: React.ReactNode;
   /** The title's heading level in the page outline; its size stays the same. */
   headingLevel?: 2 | 3 | 4 | 5 | 6;

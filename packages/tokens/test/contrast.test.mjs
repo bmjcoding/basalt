@@ -59,6 +59,12 @@ for (const theme of THEMES) {
     for (const t of ["text-primary", "text-secondary"]) atLeast(theme, t, 4.5, washed);
   });
 
+  test(`${theme}: danger text meets 4.5:1 on hover and selected washes over every surface`, () => {
+    // Danger buttons and menu rows are drawn over these washes, so the pair is the one a reader sees.
+    const washed = surfaces(theme).flatMap(([n, s]) => ["state-hover", "state-selected"].map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
+    atLeast(theme, "status-danger", 4.5, washed);
+  });
+
   test(`${theme}: primary action text meets 4.5:1 on the primary action, at rest and hovered`, () => {
     for (const bg of ["action-primary", "action-primary-hover"]) {
       const r = ratio(color(theme, "action-primary-text"), color(theme, bg));

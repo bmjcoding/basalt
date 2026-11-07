@@ -59,7 +59,7 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 
 A press darkens the primary fill and scales: .94 on an icon button, .98 on a button, .99 on a menu row. Put `basalt-press` on a card or a custom row for the same .99. Reduced motion keeps the colour step and drops the scale.
 
-The code-block copy control morphs its icon into a check. The name changes from "Copy code" to "Copied".
+The code-block copy control swaps its Phosphor Copy icon for Check, instantly. The name changes from "Copy code" to "Copied".
 
 ## Rebuilt from benji.org
 
@@ -76,10 +76,10 @@ These follow the posts above. None of the post source is copied. The palette and
 | `NumberTicker glide` | The visible digits ease about 8% of the way each frame. The readable text is the target. | The target, immediately |
 | `TravelSpinner` | After you accept work, the spinner moves to where that work now lives. | It fades in at the destination |
 | Toast drain | A hairline along the bottom shrinks for the timeout. Hover or focus pauses it. No glow. | The line does not shrink |
-| `CommandMenu` | The same props as before, with cmdk doing filter and keyboard selection. | No extra motion |
+| `CommandMenu` | The same props as before, with cmdk doing filter and keyboard selection. cmdk loads the first time the menu opens, so an app that never opens one does not download it. | No extra motion |
 | `LivePreview` | The draft is shown before Save commits it. | The preview text changes in place |
 
-`MorphIcon` includes menu, close, plus, minus, check, play, pause, four arrows, four chevrons, copy, equals, asterisk and external.
+`MorphIcon` includes menu, close, plus, minus, check, play, pause, four arrows, four chevrons, equals, asterisk and external.
 
 Text inputs blink the caret on a 1.25s cycle, opaque for the first 70%. Reduced motion and forced colours leave the caret alone.
 
