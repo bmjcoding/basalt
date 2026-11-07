@@ -56,7 +56,8 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Depth is four levels (\`basalt-surface-0\` to \`3\`); a panel is one level above what it sits in and 3 is the cap. Every panel has a rim and nothing else. Shadows start at things that float: \`shadow-overlay\` for menus, popovers and tooltips; \`shadow-modal\` for dialogs, over \`basalt-scrim\`.
 - One rim per panel, in two solid colours: no gradient along or across an edge, no glow or sheen, no coloured left borders.
 - Entries ease out (\`basalt-ease-out\`) and settle without overshoot; exits run at three quarters of their entry with \`basalt-ease-in\`. Menus take \`basalt-duration-base\`, dialogs \`basalt-duration-slow\`.
-- A press is one colour step, never a scale. Under reduced motion nothing moves; state changes become short fades.
+- A press is a colour step, and Button and IconButton also scale to .98 for 100ms on ease-out (scale 1 under reduced motion). Never on a disabled or loading button, a row, a card, a menu item, a command row or the parts of a field. A Button that opens a Menu doesn't press; the menu opening is the response. Under reduced motion nothing else moves; state changes become short fades.
+- The only smoked surface is the sticky header, \`basalt-chrome\`: the page colour at 85% in dark and 92% in light, blur 12px, no saturate. Dialogs, sheets, menus, popovers and toasts stay solid.
 
 ## Iconography
 

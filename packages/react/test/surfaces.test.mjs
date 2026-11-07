@@ -392,7 +392,7 @@ describe("press", () => {
   const fixture = `<><B.Button variant="primary" data-t="primary">Deploy</B.Button><B.Button data-t="secondary">Cancel</B.Button><B.Button variant="ghost" data-t="ghost">Skip</B.Button><B.Button variant="danger" data-t="danger">Delete</B.Button><B.IconButton icon={B.CopyIcon ?? (()=>null)} label="Copy" data-t="icon" /></>`;
 
   for (const theme of ["dark", "light"]) {
-    test(`a press is a colour step with no transform, on every variant (${theme})`, async () => {
+    test(`a press is a colour step and a .98 scale, on every variant (${theme})`, async () => {
       const { page } = await fixturePage(browser, render(`<><B.Button variant="primary" data-t="primary">Deploy</B.Button><B.Button data-t="secondary">Cancel</B.Button><B.Button variant="ghost" data-t="ghost">Skip</B.Button><B.Button variant="danger" data-t="danger">Delete</B.Button></>`), { theme });
       const down = async (t) => {
         const el = page.locator(`[data-t=${t}]`);
@@ -405,23 +405,24 @@ describe("press", () => {
         return s;
       };
       const press = await down("primary");
-      assert.equal(press.transform, "none");
+      assert.equal(press.transform, "matrix(0.98, 0, 0, 0.98, 0, 0)");
       assert.equal(press.backgroundColor, await resolve(page, "action-primary-press"), "primary steps to action-primary-press");
-      assert.ok(!/transform/.test(press.transitionProperty), "nothing about a press transitions a transform");
+      assert.ok(/transform/.test(press.transitionProperty), "the scale is part of the button's own transition");
       for (const t of ["secondary", "ghost", "danger"]) {
         const s = await down(t);
-        assert.equal(s.transform, "none", t);
+        assert.equal(s.transform, "matrix(0.98, 0, 0, 0.98, 0, 0)", t);
         assert.equal(s.backgroundColor, await resolve(page, "state-selected"), `${t} keeps the selected wash`);
       }
       await page.close();
     });
   }
 
-  test("there is no press scale, and no .basalt-press utility, left in the stylesheet", async () => {
+  test("there is no .basalt-press utility, and the button is the only thing that scales on :active", async () => {
     const { page } = await fixturePage(browser, render(`<B.Button>Go</B.Button>`), { theme: "dark" });
     const css = await page.evaluate(() => [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules]).map((rule) => rule.cssText).join("\n"));
     assert.ok(!css.includes(".basalt-press"), ".basalt-press is back");
-    assert.ok(!/:active[^{]*\{[^}]*scale\(/.test(css), "a :active rule scales");
+    const scaling = [...css.matchAll(/([^{}]*:active[^{}]*)\{[^}]*scale\(/g)].map((m) => m[1].trim().replace(/\s+/g, " "));
+    assert.ok(scaling.length > 0 && scaling.every((selector) => selector.split(",").every((part) => part.trim().startsWith(".basalt-button:active"))), `something other than a button scales on :active: ${scaling}`);
     assert.ok(!/--basalt-(?:duration-press|ease-settle)/.test(css));
     await page.close();
   });

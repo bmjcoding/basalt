@@ -36,7 +36,7 @@ system concepts; BasaltIconButton requires an accessible title separate from its
 
 | Component/style | Use |
 |---|---|
-| `BasaltButton`, `BasaltButtonStyle` | primary, secondary, ghost, danger; xs–xl. Press changes colour without scaling. `.disabled` propagates. |
+| `BasaltButton`, `BasaltButtonStyle` | primary, secondary, ghost, danger; xs–xl. A press is a colour step and a scale to 0.98 (not under Reduce Motion). `.disabled` propagates. |
 | `BasaltIconButton` | A ghost action with a required title and SF Symbol name. |
 | `BasaltTextField` | Required visible label, binding, optional prompt/help/error, monochrome focus outline. Validation is supplied by the app. |
 | `BasaltTextEditor` | A labelled native editor with a binding, internal scrolling and focus outline. Give it height appropriate to its task. |

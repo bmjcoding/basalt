@@ -31,10 +31,22 @@ export async function launch() {
 /**
  * A page with the stylesheet and a fixture. The fixture defines `window.show(kind, props)` and/or
  * renders on its own into `#root`. Returns the page and the errors it logged.
+ *
+ * `clock: true` installs Playwright's fake clock before the page's scripts run, so timers,
+ * requestAnimationFrame and performance.now only move when the test calls `page.clock.runFor`.
+ * It is paused before the fixture loads, so the fixture loads with time frozen. CSS transitions and
+ * animations are not on that clock: pause them through `document.getAnimations()`.
  */
-export async function fixturePage(browser, body, { theme = "light", ...options } = {}) {
+export async function fixturePage(browser, body, { theme = "light", clock = false, ...options } = {}) {
   const page = await browser.newPage(options);
   page.setDefaultTimeout(5000);
+  // Pause straight after installing, before the page loads anything. pauseAt throws if its time has already passed, and
+  // the clock runs in real time until it is paused, so pausing after the fixture loads raced a slow runner. Nothing runs
+  // between these two calls; the margin only has to cover one round trip.
+  if (clock) {
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(10_000);
+  }
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setContent(`<html data-theme="${theme}"><head><style>${css()}</style></head><body><div id="root"></div></body></html>`);
