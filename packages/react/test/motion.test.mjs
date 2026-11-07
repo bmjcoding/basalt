@@ -97,9 +97,13 @@ describe("MorphIcon", () => {
   });
 
   test("a morph interrupted part-way through a spin starts from the angle on screen", async () => {
-    const { page } = await fixturePage(browser, icon);
+    // After the interrupt the strokes morph on requestAnimationFrame. On the fake clock no frame runs until runFor, so
+    // nothing can move them between the interrupt and the read (on the real clock a slow runner let one frame through).
+    const { page } = await fixturePage(browser, icon, { clock: true });
     await page.evaluate(() => window.show("icon", { name: "plus" }));
-    await settle(page); // let the plus be drawn once, so the turn to close has a before and an after
+    // Let the plus be drawn once, so the turn to close is a transition from a computed start. settle waits on animation
+    // frames, which the fake clock holds, so force the style instead.
+    await page.locator(".basalt-morph").evaluate((svg) => getComputedStyle(svg).transform);
     await page.evaluate(() => window.show("icon", { name: "close" }));
     // The spin is a CSS transition, which runs on the document timeline and not on any fake clock. Hold it at 40ms, so
     // the angle on screen is a fixed point of the transition and not wherever a slow runner got to.
