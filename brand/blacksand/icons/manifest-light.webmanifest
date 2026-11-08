@@ -1,0 +1,27 @@
+{
+  "name": "Blacksand",
+  "short_name": "Blacksand",
+  "icons": [
+    {
+      "src": "/icons/tile-192-on-light.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/tile-512-on-light.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512-on-light.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#fafafa",
+  "background_color": "#fafafa",
+  "display": "standalone"
+}

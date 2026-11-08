@@ -1,0 +1,20 @@
+<!-- Browser tab: unchanged from the approved family. Chrome takes the ICO whose media matches the browser's
+     colour scheme, and follows it when the scheme changes; browsers that prefer SVG take favicon.svg. -->
+<link rel="icon" href="/favicon-on-light.ico" sizes="16x16 32x32" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/favicon-on-dark.ico" sizes="16x16 32x32" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<!-- Home screen and installed app. These platforms keep ONE icon, taken when the person adds or installs the site,
+     and never switch it afterwards. The static links name the default (dark); the script below swaps both to the
+     theme the device is in at that moment, before anything can be added. Without the script, dark ships. -->
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-on-dark.png">
+<link rel="manifest" href="/icons/manifest-dark.webmanifest">
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<script>
+  // Pick the light icons when the device is in light mode at load. Runs before the browser reads the manifest.
+  if (matchMedia('(prefers-color-scheme: light)').matches) {
+    document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/apple-touch-icon-on-light.png';
+    document.querySelector('link[rel="manifest"]').href = '/icons/manifest-light.webmanifest';
+  }
+</script>
