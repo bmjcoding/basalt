@@ -33,7 +33,7 @@ describe("the skill files", () => {
   for (const name of Object.keys(files)) {
     test(`${name} equals the build output (run \`npm run build\` if this fails)`, () => {
       const committed = path.join(skillDir, name);
-      assert.ok(fs.existsSync(committed), `${name} is missing from .claude/skills/basalt-html`);
+      assert.ok(fs.existsSync(committed), `${name} is missing from .agent/skills/basalt-html`);
       assert.equal(fs.readFileSync(committed, "utf8"), files[name]);
     });
   }
@@ -55,7 +55,7 @@ describe("the skill files", () => {
     const skill = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf8");
     assert.match(skill, /^---\nname: basalt-html\ndescription: .{40,}\n---/);
     const agents = fs.readFileSync(path.join(skillDir, "..", "..", "..", "AGENTS.md"), "utf8");
-    assert.match(agents, /\.claude\/skills\/basalt-html\/SKILL\.md/);
+    assert.match(agents, /\.agent\/skills\/basalt-html\/SKILL\.md/);
   });
 
   test("the CSS uses tokens and the two themes: data-theme and prefers-color-scheme", () => {
@@ -1043,7 +1043,7 @@ describe("touch and anchors", () => {
 describe("the SKILL's rules", () => {
   test("the new rules are written down", () => {
     for (const rule of [
-      /For any file a person will open, run `node \.claude\/skills\/basalt-html\/inline-fonts\.mjs <file>` after writing it\. Never paste font data\. Skip it only for files that tools read\./,
+      /For any file a person will open, run `node \.agent\/skills\/basalt-html\/inline-fonts\.mjs <file>` after writing it\. Never paste font data\. Skip it only for files that tools read\./,
       /At 390 a table's name column and any status column come first and fit on screen; only numbers may scroll\. Don't hide a column to make it fit\./,
       /No row of stat tiles\.\*\* `\.stats` > `\.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number/,
       /A badge\*\* labels one object's status or count, always with a word; never decoration\./,
