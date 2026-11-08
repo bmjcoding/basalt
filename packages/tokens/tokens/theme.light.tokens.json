@@ -23,6 +23,14 @@
         "$description": "Code comments; quiet, but still at least 4.5:1 on the code surface. No italic font is required."
       }
     },
+    "accent": {
+      "n1": {
+        "needs-you": {
+          "$value": { "colorSpace": "oklch", "components": [0.47, 0.17, 264] },
+          "$description": "N1's one accent, cobalt, for the role \"needs you\" only: a dot, icon or text that always sits beside a word (never colour alone). Never in code styling, a status, or decoration; syntax-keyword blue is nine degrees away at hue 255."
+        }
+      }
+    },
     "surface": {
       "$description": "The page sits below white so white surfaces lift without a shadow; sunken areas step darker.",
       "0": {

@@ -71,6 +71,12 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// N1's one accent, cobalt, for the role "needs you" only: a dot, icon or text that always sits beside a word (never colour alone). Never in code styling, a status, or decoration; syntax-keyword blue is nine degrees away at hue 255.
+    public static let accentN1NeedsYou = ThemedColor(
+      light: RGBA(red: 0.152232, green: 0.318959, blue: 0.722968, alpha: 1),
+      dark: RGBA(red: 0.4678, green: 0.635138, blue: 0.988509, alpha: 1)
+    )
+
     /// Level 0, the page. A depth is one of four levels; a panel is one level above what it sits on, and level 3 is the cap.
     public static let surface0 = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),

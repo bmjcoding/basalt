@@ -153,6 +153,20 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 530ms, for mono and terminal lines. Under reduced
   motion the ring fades and braille holds its first frame.
 
+### Product accents
+
+A product adds colour only through accent tokens, one per council-approved role, named
+`accent-<product>-<role>`, each with its own contrast pairs in both themes. Basalt's own components never
+use one, and none sits on the smoked header.
+
+- **N1: cobalt, for "needs you" only.** `accent-n1-needs-you` is `oklch(0.72 0.14 264)` in dark and
+  `oklch(0.47 0.17 264)` in light, inside sRGB, 8.36:1 and 6.78:1 on the page (4.5:1 or better as text and
+  3:1 or better as a dot or icon on every surface and wash, in the contrast tests). As text, a dot or an
+  icon, it always sits with a word: never colour alone. Syntax-keyword blue is at hue 255, nine degrees away,
+  close enough to read as one blue, so the accent is never code styling (a test keeps it out of the
+  highlighter and every code rule, aliases included). The council decided the value and the name 4–0 on
+  8 Nov 2026.
+
 ### Keyboard keys
 
 A key is a chip: a fill (`surface-kbd`, 8% white or 6% black) with no border, 20px tall and at
