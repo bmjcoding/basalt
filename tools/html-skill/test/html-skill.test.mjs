@@ -16,12 +16,14 @@ import { iconData } from "../icons.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const files = build();
-// The inline budget: the built size of the skill with its 24 icons in Bold and Regular (79,055 bytes, which includes Phosphor's
-// 1,071-byte MIT notice: the licence requires it with the icon paths) under the 78 KiB cap. The notices did not need a larger cap.
+// The inline budget: the built size of the skill with its 24 icons in Bold and Regular (81,606 bytes, which includes Phosphor's
+// 1,071-byte MIT notice: the licence requires it with the icon paths) under the cap. The notices did not need a larger cap.
 // History: 60 KiB, then 64 KiB for the review fixes; 78 KiB for the surfaces-and-fixes round (13 panel-agreed items, and
-// Regular icons: 72.7 KB with 12 icons, 77.3 KB with 24; even fully minified the 12-icon build is 63.1 KB), which the owner
-// approved. A new name in icons.json or a new primitive has to fit in what is left, or say why it should not.
-const BUDGET = 78 * 1024;
+// Regular icons: 72.7 KB with 12 icons, 77.3 KB with 24; even fully minified the 12-icon build is 63.1 KB); 80 KiB for bringing
+// the skill in line with approved Basalt (the smoked header and its fallbacks, the .98 press, 44px standalone links, the
+// forced-colours active row). The owner approved each raise, the last on 2026-11-08. A new name in icons.json or a new
+// primitive has to fit in what is left, or say why it should not.
+const BUDGET = 80 * 1024;
 const repoRoot = path.join(skillDir, "..", "..", "..");
 const TEMPLATES = ["template-static.html", "template-interactive.html"];
 
@@ -62,7 +64,7 @@ describe("the skill files", () => {
     const css = files["basalt-html.css"];
     assert.match(css, /\[data-theme="dark"\]/);
     assert.match(css, /prefers-color-scheme: dark/);
-    const primitives = css.slice(css.indexOf("@layer basalt-html"));
+    const primitives = css.slice(css.indexOf("@layer basalt {"));
     assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, "no raw colour or gradient in the primitives");
   });
 
@@ -523,9 +525,10 @@ describe("the copy button", () => {
 });
 
 describe("the layers", () => {
-  test("the CSS declares reset before basalt-html, and both templates ship an empty reset block to write into", () => {
-    assert.match(files["basalt-html.css"], /^@layer reset, basalt-html;/m);
-    assert.ok(files["basalt-html.css"].indexOf("@layer reset, basalt-html;") < files["basalt-html.css"].indexOf("@layer basalt-html {"));
+  test("the CSS declares reset before basalt (the layer @basalt/react uses), and both templates ship an empty reset block to write into", () => {
+    assert.match(files["basalt-html.css"], /^@layer reset, basalt;/m);
+    assert.ok(files["basalt-html.css"].indexOf("@layer reset, basalt;") < files["basalt-html.css"].indexOf("@layer basalt {"));
+    assert.doesNotMatch(files["basalt-html.css"], /@layer basalt-html/, "no second layer name");
     for (const name of TEMPLATES) assert.ok(files[name].includes("<style>@layer reset { }</style>"), name);
   });
 
@@ -1055,5 +1058,323 @@ describe("the SKILL's rules", () => {
       /never on the primary fill/,
       /Tabs don't slide their indicator in static files/,
     ]) assert.match(skill, rule);
+  });
+});
+
+// ---- Brought into line with approved Basalt behaviour (foundations: Chrome, Motion, touch targets, forced colours) ----
+
+/** What a token (or any CSS value) computes to for a property: the page's own resolution, in its current theme. */
+const resolveCss = (page, value, prop = "color") => page.evaluate(([v, p]) => {
+  const probe = document.createElement("div");
+  probe.style.setProperty(p, v);
+  document.body.append(probe);
+  const out = getComputedStyle(probe).getPropertyValue(p);
+  probe.remove();
+  return out;
+}, [value, prop]);
+const token = (page, name, prop = "color") => resolveCss(page, `var(--basalt-${name})`, prop);
+
+describe("the smoked header (.topbar)", () => {
+  for (const scheme of ["dark", "light"]) {
+    const read = (page, ...props) => page.evaluate((p) => { const s = getComputedStyle(document.querySelector(".topbar")); return Object.fromEntries(p.map((k) => [k, s[k]])); }, props);
+
+    test(`surface-chrome over a 12px blur with no saturate, a hairline below, primary ink, sticky (${scheme})`, async () => {
+      const { page, context } = await open("template-static.html", { scheme });
+      const s = await read(page, "backgroundColor", "backdropFilter", "borderBottomColor", "borderBottomStyle", "borderBottomWidth", "color", "position", "top");
+      assert.equal(s.backgroundColor, await token(page, "surface-chrome", "background-color"));
+      assert.match(s.backgroundColor, scheme === "dark" ? /\/ 0\.85\)$|, 0\.85\)$/ : /\/ 0\.92\)$|, 0\.92\)$/, "the page colour with alpha: 85% in dark, 92% in light");
+      assert.equal(s.backdropFilter, "blur(12px)", "blur-chrome and nothing else: no saturate, no brightness");
+      assert.equal(s.borderBottomWidth, "1px");
+      assert.equal(s.borderBottomStyle, "solid");
+      assert.equal(s.borderBottomColor, await token(page, "border-hairline", "border-bottom-color"), "the hairline, not the divider");
+      if (scheme === "dark") assert.notEqual(s.borderBottomColor, await token(page, "border-divider", "border-bottom-color"), "in dark the hairline is brighter than a divider");
+      assert.equal(s.color, await token(page, "text-primary"));
+      assert.deepEqual([s.position, s.top], ["sticky", "0px"]);
+      assert.ok(files["basalt-html.css"].includes("-webkit-backdrop-filter: blur(var(--basalt-blur-chrome))"), "the -webkit- prefix is written");
+      await context.close();
+    });
+
+    test(`tertiary text on the bar is promoted to secondary, and only there (${scheme})`, async () => {
+      const { page, context } = await open("template-static.html", { scheme });
+      const ink = await page.evaluate(() => {
+        document.querySelector(".topbar-inner").insertAdjacentHTML("beforeend", '<span class="faint" id="in-bar">in</span>');
+        document.querySelector("main").insertAdjacentHTML("beforeend", '<span class="faint" id="out-bar">out</span>');
+        return [getComputedStyle(document.querySelector("#in-bar")).color, getComputedStyle(document.querySelector("#out-bar")).color];
+      });
+      assert.equal(ink[0], await token(page, "text-secondary"));
+      assert.equal(ink[1], await token(page, "text-tertiary"), "unchanged outside the bar");
+      await context.close();
+    });
+
+    test(`a pressed ghost button on the bar takes primary ink; at rest, and anywhere else, a ghost keeps secondary (${scheme})`, async () => {
+      // On touch, where a press is the only state: a fine pointer's hover would brighten the ghost's ink on its own.
+      const { page, context } = await open("template-static.html", { scheme, touch: true, width: 390 });
+      await page.evaluate(() => document.querySelector("main").insertAdjacentHTML("afterbegin", '<button class="btn" data-variant="ghost" id="ghost-out">Elsewhere</button>'));
+      const ink = (sel) => page.locator(sel).evaluate((el) => getComputedStyle(el).color);
+      const secondary = await token(page, "text-secondary");
+      const primary = await token(page, "text-primary");
+      assert.equal(await ink("[data-theme-toggle]"), secondary, "at rest");
+      const press = async (sel) => { const box = await page.locator(sel).boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.waitForTimeout(250); };
+      await press("[data-theme-toggle]");
+      assert.equal(await ink("[data-theme-toggle]"), primary, "pressed on the bar");
+      await page.mouse.move(5, 5); // release off the button, so it doesn't click and flip the theme
+      await page.mouse.up();
+      await page.locator("#ghost-out").scrollIntoViewIfNeeded();
+      await press("#ghost-out");
+      assert.equal(await ink("#ghost-out"), secondary, "a pressed ghost elsewhere keeps its ink");
+      await page.mouse.up();
+      await context.close();
+    });
+  }
+
+  test("reduced transparency: opaque surface-page and no filter", async () => {
+    const { page, context } = await open("template-static.html", { scheme: "dark" });
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
+    assert.ok(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches), "the query is emulated");
+    const s = await page.evaluate(() => { const c = getComputedStyle(document.querySelector(".topbar")); return [c.backgroundColor, c.backdropFilter]; });
+    assert.equal(s[0], await token(page, "surface-page", "background-color"));
+    assert.equal(s[1], "none");
+    await context.close();
+  });
+
+  test("without backdrop-filter (@supports not): opaque surface-page", async () => {
+    // Make the @supports test fail the way it does in a browser without the property, by renaming the property it probes.
+    const probe = /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\)/;
+    assert.ok(probe.test(files["basalt-html.css"]), "the fallback is in the stylesheet");
+    const { page, context } = await open("template-static.html", { scheme: "dark", transform: (html) => html.replace(probe, "@supports not ((x-backdrop-filter: blur(1px)) or (-webkit-x-backdrop-filter: blur(1px)))") });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".topbar")).backgroundColor), await token(page, "surface-page", "background-color"));
+    await context.close();
+  });
+
+  test("forced colours: Canvas and CanvasText, a real border, no filter", async () => {
+    const { page, context } = await open("template-static.html");
+    await page.emulateMedia({ forcedColors: "active" });
+    const s = await page.evaluate(() => { const c = getComputedStyle(document.querySelector(".topbar")); return [c.backgroundColor, c.color, c.backdropFilter, c.borderBottomStyle, c.borderBottomWidth, c.borderBottomColor]; });
+    const canvas = await resolveCss(page, "Canvas", "background-color");
+    const text = await resolveCss(page, "CanvasText");
+    assert.deepEqual(s, [canvas, text, "none", "solid", "1px", text]);
+    await context.close();
+  });
+
+  test("print: the bar is not printed, whatever the page says about its display, and its own fallback is opaque with no filter", async () => {
+    const { page, context } = await open("template-static.html", { scheme: "dark" });
+    await page.addStyleTag({ content: ".topbar { display: flex }" });
+    await page.emulateMedia({ media: "print" });
+    const s = await page.evaluate(() => { const c = getComputedStyle(document.querySelector(".topbar")); return [c.display, c.backgroundColor, c.backdropFilter]; });
+    assert.equal(s[0], "none");
+    assert.equal(s[1], await token(page, "surface-page", "background-color"));
+    assert.equal(s[2], "none");
+    await context.close();
+  });
+});
+
+describe("the press scale", () => {
+  const press = async (page, selector) => {
+    const box = await page.locator(selector).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(250);
+  };
+  const transform = (page, selector) => page.locator(selector).evaluate((el) => getComputedStyle(el).transform);
+  const probes = '<div id="press" style="display:flex;gap:16px;padding:16px"><button class="btn" id="b-ok">Save</button><button class="btn" id="b-aria" aria-disabled="true">Off</button><button class="btn" id="b-busy" aria-busy="true"><span>Busy</span></button><button class="btn" data-variant="primary" id="b-primary">Primary</button><div class="row" id="r" style="width:120px">Row</div><button class="tab" role="tab" id="t">Tab</button><button class="disclosure" id="d" style="width:120px">More</button></div>';
+  const setup = (page) => page.evaluate((html) => document.querySelector("main").insertAdjacentHTML("afterbegin", html), probes);
+
+  test("a pressed button scales to .98 over 100ms on ease-out, and goes back on release", async () => {
+    const { page, context } = await open("template-static.html");
+    await setup(page);
+    assert.equal(await transform(page, "#b-ok"), "none");
+    await press(page, "#b-ok");
+    assert.equal(await transform(page, "#b-ok"), "matrix(0.98, 0, 0, 0.98, 0, 0)");
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    assert.equal(await transform(page, "#b-ok"), "none");
+    await press(page, "#b-primary");
+    assert.equal(await transform(page, "#b-primary"), "matrix(0.98, 0, 0, 0.98, 0, 0)", "every variant");
+    await page.mouse.up();
+    const t = await page.locator("#b-ok").evaluate((el) => { const s = getComputedStyle(el); return [s.transitionProperty, s.transitionDuration, s.transitionTimingFunction]; });
+    assert.deepEqual(t, ["background-color, color, box-shadow, transform", "0.1s", await resolveCss(page, "var(--basalt-ease-out)", "transition-timing-function")]);
+    await context.close();
+  });
+
+  test("never on a disabled or busy button, and on nothing else (a row, a tab, a disclosure)", async () => {
+    const { page, context } = await open("template-static.html");
+    await setup(page);
+    for (const sel of ["#b-aria", "#b-busy", "#r", "#t", "#d"]) {
+      await press(page, sel);
+      assert.equal(await transform(page, sel), "none", sel);
+      await page.mouse.up();
+    }
+    await context.close();
+  });
+
+  test("the pressed hit box is extended so the scale can't lose the click at the edge", async () => {
+    const { page, context } = await open("template-static.html");
+    await setup(page);
+    await press(page, "#b-ok");
+    assert.deepEqual(await page.locator("#b-ok").evaluate((el) => { const s = getComputedStyle(el, "::after"); return [s.content, s.position]; }), ['""', "absolute"]);
+    await page.mouse.up();
+    await context.close();
+  });
+
+  test("reduced motion: a press keeps its colour step and its scale is 1, and transform leaves the transition list", async () => {
+    const { page, context } = await open("template-static.html", { reducedMotion: "reduce" });
+    await setup(page);
+    const rest = await page.locator("#b-primary").evaluate((el) => getComputedStyle(el).backgroundColor);
+    await press(page, "#b-primary");
+    assert.equal(await transform(page, "#b-primary"), "none");
+    const s = await page.locator("#b-primary").evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).transitionProperty]);
+    assert.notEqual(s[0], rest, "the colour step stays");
+    assert.equal(s[1], "background-color, color, box-shadow");
+    await page.mouse.up();
+    await context.close();
+  });
+
+  test("the Rules no longer ban press-shrink, and say what the press is", () => {
+    assert.doesNotMatch(skill, /press-shrink/);
+    assert.match(skill, /`\.btn` also scales to \.98 \(100ms, ease-out\) while pressed, never when disabled or busy and never under reduced motion/);
+  });
+});
+
+describe("standalone links on touch", () => {
+  const html = '<div id="probes"><div id="own" style="line-height:20px"><a href="#top" id="l-own">On its own</a></div><nav><ul><li><a href="#top" id="l-nav">Nav link</a></li></ul></nav><p id="para">Some words <a href="#top" id="l-inline">an inline link</a> in running text.</p><div id="tapped" style="line-height:20px"><a href="#top" class="tap" id="l-tap">Opted in</a></div><div class="prose"><p><a href="#top" id="l-prose">prose</a></p></div></div>';
+  const measure = (page) => page.evaluate((h) => {
+    document.querySelector("main").insertAdjacentHTML("afterbegin", h);
+    const box = (sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return [Math.round(r.height * 10) / 10, Math.round(r.width * 10) / 10]; };
+    return { own: box("#l-own"), nav: box("#l-nav"), inline: box("#l-inline"), tap: box("#l-tap"), prose: box("#l-prose"), ownRow: box("#own")[0], navRow: box("nav")[0], para: box("#para")[0], tapRow: box("#tapped")[0] };
+  }, html);
+
+  test("a link on its own is 44px tall and a link in running text is not; none of them moves the layout", async () => {
+    const touch = await open("template-static.html", { touch: true, width: 390 });
+    const fine = await open("template-static.html", { width: 390 });
+    const [t, f] = [await measure(touch.page), await measure(fine.page)];
+    for (const k of ["own", "nav", "tap"]) assert.ok(t[k][0] >= 43.5, `${k} is ${t[k][0]}px tall`);
+    assert.ok(t.inline[0] < 30, `an inline link stays inline (${t.inline[0]}px)`);
+    assert.ok(t.prose[0] < 30, `and so does a link in .prose (${t.prose[0]}px)`);
+    for (const k of ["ownRow", "navRow", "para", "tapRow"]) assert.ok(Math.abs(t[k] - f[k]) <= 1, `${k}: ${t[k]}px on touch, ${f[k]}px on a fine pointer`);
+    assert.ok(await touch.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    await touch.context.close();
+    await fine.context.close();
+  });
+
+  test("on a fine pointer a link is untouched", async () => {
+    const { page, context } = await open("template-static.html");
+    const m = await measure(page);
+    assert.ok(m.own[0] < 30, `${m.own[0]}px`);
+    await context.close();
+  });
+});
+
+describe("the display size", () => {
+  test(".text-5xl is the text-5xl token: 56/60, -0.035em, semibold; no new token", async () => {
+    const { page, context } = await open("template-static.html");
+    const s = await page.evaluate(() => { document.querySelector("main").insertAdjacentHTML("afterbegin", '<p class="text-5xl" id="d5">Display</p>'); const c = getComputedStyle(document.querySelector("#d5")); return [c.fontSize, c.lineHeight, c.letterSpacing, c.fontWeight]; });
+    assert.deepEqual(s, ["56px", "60px", `-1.96px`, "600"]);
+    assert.doesNotMatch(files["basalt-html.css"].slice(files["basalt-html.css"].indexOf("@layer basalt {")), /--basalt-text-6xl|--bh-5xl/);
+    await context.close();
+  });
+});
+
+describe("the active row in forced colours", () => {
+  test("the row is Highlight, its bar is HighlightText", async () => {
+    const { page, context } = await open("template-interactive.html");
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.keyboard.press("Control+k");
+    await page.locator(".palette input").waitFor();
+    const row = page.locator(".palette [data-active]").first();
+    const s = await row.evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color, getComputedStyle(el, "::before").backgroundColor]);
+    const highlight = await resolveCss(page, "Highlight", "background-color");
+    const text = await resolveCss(page, "HighlightText", "background-color");
+    assert.notEqual(highlight, text);
+    assert.deepEqual(s, [highlight, text, text]);
+    // an inactive row is not Highlight
+    const other = await page.locator(".palette [role=option]:not([data-active])").first().evaluate((el) => getComputedStyle(el).backgroundColor);
+    assert.notEqual(other, highlight);
+    await context.close();
+  });
+});
+
+describe("layout fixes", () => {
+  test(".panel-head wraps at 390 instead of running off the panel", async () => {
+    const { page, context } = await open("template-static.html", { touch: true, width: 390 });
+    const out = await page.evaluate(() => {
+      document.querySelector("main").insertAdjacentHTML("afterbegin", '<div class="panel" id="ph"><div class="panel-head"><span>A deploy history with a long title</span><span class="badge">Production</span><span class="spacer"></span><button class="btn" data-size="sm">Compare</button><button class="btn" data-size="sm">Roll back</button></div></div>');
+      const panel = document.querySelector("#ph"); const head = panel.firstElementChild;
+      return { wrap: getComputedStyle(head).flexWrap, over: head.scrollWidth - head.clientWidth, page: document.documentElement.scrollWidth <= window.innerWidth, tall: head.getBoundingClientRect().height };
+    });
+    assert.equal(out.wrap, "wrap");
+    assert.ok(out.over <= 0, `overflows by ${out.over}px`);
+    assert.ok(out.page, "no sideways scroll");
+    assert.ok(out.tall > 60, "it took a second line");
+    await context.close();
+  });
+
+  test(".stats.small keeps its columns inside a flex row", async () => {
+    const { page, context } = await open("template-interactive.html");
+    const out = await page.evaluate(() => {
+      document.querySelector("main").insertAdjacentHTML("afterbegin", '<div id="fx" style="display:flex;gap:24px;width:900px"><div style="width:200px">Left</div><dl class="stats small num" id="fs" style="--min: 8rem"><div class="stat"><dt class="stat-label">A</dt><dd class="stat-value">1</dd></div><div class="stat"><dt class="stat-label">B</dt><dd class="stat-value">2</dd></div><div class="stat"><dt class="stat-label">C</dt><dd class="stat-value">3</dd></div></dl></div>');
+      const s = document.querySelector("#fs");
+      return { width: s.getBoundingClientRect().width, tracks: getComputedStyle(s).gridTemplateColumns.split(" ").filter((t) => parseFloat(t) > 0).length };
+    });
+    assert.equal(out.tracks, 3, "three columns");
+    assert.ok(out.width >= 3 * 128, `${out.width}px wide`);
+    await context.close();
+  });
+
+  for (const width of [1440, 390]) {
+    test(`.footer works outside .page: no doubled margin, on the page's own column (${width}px)`, async () => {
+      const { page, context } = await open("template-static.html", { width, touch: width === 390 });
+      const out = await page.evaluate(() => {
+        const inside = document.querySelector("main .footer");
+        const page = document.querySelector("main.page");
+        const pr = page.getBoundingClientRect(); const cs = getComputedStyle(page);
+        const column = [pr.left + parseFloat(cs.paddingLeft), pr.right - parseFloat(cs.paddingRight)].map((n) => Math.round(n * 10) / 10);
+        const innerMargin = getComputedStyle(inside).marginTop;
+        const innerBox = [inside.getBoundingClientRect().left, inside.getBoundingClientRect().right].map((n) => Math.round(n * 10) / 10);
+        const outside = document.createElement("footer"); outside.className = "footer"; outside.id = "outside"; outside.textContent = "Outside";
+        page.after(outside);
+        const o = outside.getBoundingClientRect();
+        return { innerMargin, innerBox, column, outsideMargin: getComputedStyle(outside).marginTop, outside: [Math.round(o.left * 10) / 10, Math.round(o.right * 10) / 10], scroll: document.documentElement.scrollWidth <= window.innerWidth };
+      });
+      assert.equal(out.innerMargin, "64px", "inside .page it keeps its space");
+      assert.equal(out.outsideMargin, "0px", "outside .page the page's own bottom padding is the space");
+      assert.deepEqual(out.innerBox, out.column);
+      assert.deepEqual(out.outside, out.column, "the same column as the page's content");
+      assert.ok(out.scroll);
+      await context.close();
+    });
+  }
+});
+
+describe("palette rows say their shortcut in words", () => {
+  test("a row with keys carries aria-describedby beside aria-keyshortcuts, and its name stays the label", async () => {
+    const { page, context } = await open("template-static.html");
+    await page.evaluate(`window.Basalt.init({ palette: { groups: [{ label: "Page", items: [
+      { label: "Save", keys: ["⌘", "S"] }, { label: "Jump", keys: ["⌥", "J"] }, { label: "Open", keys: ["⌃", "⇧", "O"] }, { label: "Plain" }
+    ] }] } });`);
+    await page.keyboard.press("Control+k");
+    await page.locator(".palette input").waitFor();
+    const rows = await page.evaluate(() => [...document.querySelectorAll(".palette [role=option]")].map((row) => {
+      const id = row.getAttribute("aria-describedby");
+      return [row.querySelector(".row-label").textContent, row.getAttribute("aria-keyshortcuts"), id && document.getElementById(id)?.textContent, id && !!row.querySelector(`#${id}`)];
+    }));
+    assert.deepEqual(rows, [["Save", "Meta+S", "Command S", false], ["Jump", "Alt+J", "Option J", false], ["Open", "Control+Shift+O", "Control Shift O", false], ["Plain", null, null, null]]);
+    assert.equal(await page.getByRole("option", { name: "Save", exact: true }).count(), 1, "the name stays Save, not Save Command S");
+    await page.keyboard.type("jump");
+    assert.equal(await page.locator(".palette [role=option]").count(), 1);
+    assert.equal(await page.locator(".palette [role=option]").getAttribute("aria-describedby") !== null, true, "kept after a filter re-renders");
+    assert.deepEqual(await axe(page), []);
+    await context.close();
+  });
+});
+
+describe("the accessibility notes are in the SKILL", () => {
+  test("a spinner beside a word is aria-hidden; a section and its table region don't share a name", () => {
+    assert.match(skill, /A spinner beside a visible word is decoration: put `aria-hidden="true"` on it/);
+    assert.match(skill, /Don't give a section and an inner `\.table-wrap` region the same accessible name \(axe `landmark-unique`\)/);
+  });
+
+  test("the layer is `basalt`, and the SKILL says an unlayered rule wins", () => {
+    assert.match(skill, /`@layer basalt`[^.]*any unlayered rule of yours wins/);
   });
 });
