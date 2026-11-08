@@ -10,7 +10,7 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 ## Use it
 
 1. Copy `template-static.html` (a report or document) or `template-interactive.html` (a tool with inputs, tabs, a command palette) next to your output. They already inline `basalt-html.css` and `basalt-html.js`; to start from scratch, paste the two files into `<style>` and `<script>` yourself.
-2. For any file a person will open, run `node .claude/skills/basalt-html/inline-fonts.mjs <file>` after writing it. Never paste font data. Skip it only for files that tools read. (The templates carry a `<!-- basalt:fonts -->` marker in the head for it to replace; keep the marker in a file you write from scratch.)
+2. For any file a person will open, run `node .agent/skills/basalt-html/inline-fonts.mjs <file>` after writing it. Never paste font data. Skip it only for files that tools read. (The templates carry a `<!-- basalt:fonts -->` marker in the head for it to replace; keep the marker in a file you write from scratch.)
 3. Keep the head snippet (`<script>` before `<style>`: it sets `data-theme` from the saved choice or the system) and the `Basalt.init(...)` call at the end of `<body>`.
 4. Replace the content. Use the classes below. Write your own CSS after the inlined one, using `--basalt-*` tokens only: element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }` (the templates have an empty one for you), so they can never beat a Basalt class; class rules can sit in an unlayered `<style>`. Never restyle a Basalt class from an element rule.
 5. Open it in both themes at 1440 and 390 wide before you hand it over.

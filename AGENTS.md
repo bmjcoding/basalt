@@ -24,6 +24,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   round; otherwise the reviews aren't independent.
   Nothing counts as converged until both reviewers have answered in their own words, and
   the PR quotes each reviewer's final position as written, not merged into a summary.
+- **The council.** When the owner asks for the council, read `.agent/skills/council/SKILL.md`: it names the four members,
+  how a round runs, and how the council settles a split by majority.
 - **The owner's word is in the conversation or on the PR.** A merge of a PR means
   approval to go ahead with what it described, nothing more.
 - **Where the line falls.** A change that alters any rendered pixel is visual, even inside
@@ -126,7 +128,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 ## Generating HTML
 
 Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
-dashboard for this project follows `.claude/skills/basalt-html/SKILL.md`: copy a template, inline
+dashboard for this project first reads `.agent/skills/basalt-html/SKILL.md` and follows it: copy a template, inline
 `basalt-html.css` and `basalt-html.js`, no CDN or framework. Its sources are in `tools/html-skill/`;
 edit those and run `npm run build`, never the files in the skill folder.
 

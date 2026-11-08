@@ -1,6 +1,6 @@
 // Puts Geist and Geist Mono into a finished HTML file, so it looks right on a machine that doesn't have them.
 //
-//   node .claude/skills/basalt-html/inline-fonts.mjs <file.html>
+//   node .agent/skills/basalt-html/inline-fonts.mjs <file.html>
 //
 // Replaces the `<!-- basalt:fonts -->` marker the templates carry with a <style> holding geist.css (the two
 // @font-face rules as data URIs, about 190 KB). Run it on a file a person will open; skip it for files that tools read.

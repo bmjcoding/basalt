@@ -1,4 +1,4 @@
-// Builds the Basalt HTML skill (.claude/skills/basalt-html/) from its sources in tools/html-skill/src/:
+// Builds the Basalt HTML skill (.agent/skills/basalt-html/) from its sources in tools/html-skill/src/:
 //
 //   basalt-html.css       Basalt's generated token CSS (both themes) + the primitives in src/basalt-html.css
 //   basalt-html.js        src/basalt-html.js with the icon data (src/icons.json, read from Phosphor) filled in
@@ -22,7 +22,7 @@ import { iconData } from "./icons.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
 const src = (name) => fs.readFileSync(path.join(here, "src", name), "utf8");
-export const skillDir = path.join(repo, ".claude", "skills", "basalt-html");
+export const skillDir = path.join(repo, ".agent", "skills", "basalt-html");
 const require = createRequire(import.meta.url);
 
 // Every in-flow panel shares one set of level rules. The selector is written once here.
