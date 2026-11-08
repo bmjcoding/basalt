@@ -1,0 +1,39 @@
+/* One bridge hero motion — round 4: on Basalt's motion tokens.
+   Every time reads a --basalt-duration-* token and the curve reads
+   --basalt-ease-out; no time or curve is written raw. The bar seats
+   over duration-slower starting at once; the agent fades over
+   duration-base after a duration-fast delay, so the agent is in
+   before the bar finishes and the whole entrance ends with the bar.
+   Fill is backwards only: the from-frame holds through the delay,
+   and once an animation finishes it releases to the resting styles,
+   whose natural opacity and transform are the to-frames.
+   The animations still exist only under no-preference (the round-3
+   fix for the round-2 specificity loss); the reduce reset stays as
+   a second line of defence for hosts that inline only part of this
+   file. Opus: lift this block into the first screen as-is. */
+.hero-mark path { transform-box: view-box; }
+@keyframes mk-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes mk-bar { from { transform: translateX(-7%) } to { transform: translateX(0) } }
+@media (prefers-reduced-motion: no-preference) {
+  .m-bridge .p-agent {
+    animation-name: mk-fade;
+    animation-duration: var(--basalt-duration-base);
+    animation-timing-function: var(--basalt-ease-out);
+    animation-delay: var(--basalt-duration-fast);
+    animation-iteration-count: 1;
+    animation-fill-mode: backwards;
+  }
+  .m-bridge .p-bar {
+    animation-name: mk-bar;
+    animation-duration: var(--basalt-duration-slower);
+    animation-timing-function: var(--basalt-ease-out);
+    animation-delay: var(--basalt-duration-instant);
+    animation-iteration-count: 1;
+    animation-fill-mode: backwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-mark.m-bridge .p-agent,
+  .hero-mark.m-bridge .p-bar,
+  .hero-mark.m-bridge .p-wall { animation: none; opacity: 1; transform: none; }
+}
