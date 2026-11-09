@@ -1,5 +1,5 @@
-// The panel's rulings (three rounds, then the owner): depth by level, the rim, kbd chips, the active-row
-// bar, the command menu's input row, popup entry, vertical tabs and the press. Driven in Chromium against
+// The panel's rulings (three rounds, then the owner): depth by level, the rim, kbd chips, the command menu's
+// input band, popup entry, vertical tabs and the press. The menus round (plate, lift, forced colours) is in menus.test.mjs. Driven in Chromium against
 // the built package with the real stylesheet, in both themes.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -27,6 +27,14 @@ const resolve = (page, token, property = "backgroundColor") => page.evaluate(([t
   return value;
 }, [token, property]);
 
+/** A CSS colour in any serialisation (rgb, color(srgb ...), oklab ...) as the 8-bit [r, g, b] a canvas paints it. */
+const rgb8 = (page, css) => page.evaluate((css) => {
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.fillStyle = css;
+  ctx.fillRect(0, 0, 1, 1);
+  return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+}, css);
+
 const style = (locator, ...props) => locator.evaluate((el, props) => Object.fromEntries(props.map((p) => [p, getComputedStyle(el)[p]])), props);
 
 for (const theme of ["dark", "light"]) {
@@ -46,15 +54,15 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
-    test("a code block is a well one level deeper in dark, and the same sunken grey in light", async () => {
+    test("a code block is a well one level deeper in dark, and the same sunken grey in light; in a dialog it is level 2", async () => {
       const { page } = await fixturePage(browser, render(`<><B.CodeBlock code="a" className="on-page" /><B.Card><B.CodeBlock code="b" className="in-card" /></B.Card><B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Dialog</B.DialogTitle><B.CodeBlock code="c" className="in-dialog" /></B.DialogContent></B.Dialog></>`), { theme });
       await settle(page);
       const fill = (cls) => style(page.locator(`.${cls}`), "backgroundColor").then((s) => s.backgroundColor);
-      assert.deepEqual(await Promise.all(["on-page", "in-card", "in-dialog"].map((c) => page.locator(`.${c}`).getAttribute("data-level"))), ["1", "2", "3"]);
+      assert.deepEqual(await Promise.all(["on-page", "in-card", "in-dialog"].map((c) => page.locator(`.${c}`).getAttribute("data-level"))), ["1", "2", "2"], "a dialog is level 1, so what it holds starts at 2");
       if (theme === "dark") {
         assert.equal(await fill("on-page"), await resolve(page, "surface-1"));
         assert.equal(await fill("in-card"), await resolve(page, "surface-2"));
-        assert.equal(await fill("in-dialog"), await resolve(page, "surface-3"), "#171717 in a dialog");
+        assert.equal(await fill("in-dialog"), await resolve(page, "surface-2"), "#111111 in a dialog (level 2)");
       } else {
         const sunken = await resolve(page, "surface-sunken");
         for (const c of ["on-page", "in-card", "in-dialog"]) assert.equal(await fill(c), sunken);
@@ -62,7 +70,7 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
-    test("popups are max(2, opener + 1), a modal resets to 2, and the level crosses portals", async () => {
+    test("popups are opener + 1 with a floor of 1 and a cap of 3, a modal resets to 1, and the level crosses portals", async () => {
       const fixture = `<>
         <B.Menu defaultOpen><B.MenuTrigger>Page menu</B.MenuTrigger><B.MenuContent data-name="from-page"><B.MenuItem>One</B.MenuItem></B.MenuContent></B.Menu>
         <B.Card><B.Popover defaultOpen><B.PopoverTrigger>Card popover</B.PopoverTrigger><B.PopoverContent data-name="from-card">In a card</B.PopoverContent></B.Popover></B.Card>
@@ -74,15 +82,15 @@ for (const theme of ["dark", "light"]) {
       const { page } = await fixturePage(browser, render(fixture), { theme });
       await settle(page);
       const level = (name) => page.locator(`[data-name="${name}"]`).getAttribute("data-level");
-      assert.equal(await level("from-page"), "2", "a menu opened from the page");
+      assert.equal(await level("from-page"), "1", "a menu opened from the page takes the floor");
       assert.equal(await level("from-card"), "2", "a popover opened from a level-1 card");
-      assert.equal(await level("dialog"), "2", "a modal sits at 2 above its scrim");
-      assert.equal(await level("card-in-dialog"), "3", "a card in a dialog is a level deeper");
-      assert.equal(await level("from-dialog"), "3", "a popup opened from a dialog, across the portal");
+      assert.equal(await level("dialog"), "1", "a modal resets to 1 above its scrim");
+      assert.equal(await level("card-in-dialog"), "2", "a card in a dialog starts at 2");
+      assert.equal(await level("from-dialog"), "2", "a popup opened from a dialog, across the portal");
       await page.close();
     });
 
-    test("a modal inside a deep panel still resets to 2, and a tooltip and a toast are 3", async () => {
+    test("a modal inside a deep panel still resets to 1, and a tooltip and a toast are 3", async () => {
       const fixture = `function Show(){const t=B.useToast();React.useEffect(()=>{t.show({title:"Saved",timeout:0})},[t]);return null}
         createRoot(document.getElementById("root")).render(<B.ToastProvider><B.TooltipProvider><B.Card><B.Card><B.Card>
           <B.Dialog defaultOpen><B.DialogContent data-name="deep-dialog"><B.DialogTitle>Deep</B.DialogTitle></B.DialogContent></B.Dialog>
@@ -90,7 +98,7 @@ for (const theme of ["dark", "light"]) {
         </B.Card></B.Card></B.Card></B.TooltipProvider></B.ToastProvider>);`;
       const { page } = await fixturePage(browser, fixture, { theme });
       await settle(page);
-      assert.equal(await page.locator("[data-name=deep-dialog]").getAttribute("data-level"), "2");
+      assert.equal(await page.locator("[data-name=deep-dialog]").getAttribute("data-level"), "1");
       assert.equal(await page.locator(".basalt-tooltip").getAttribute("data-level"), "3");
       assert.equal(await page.locator(".basalt-toast").getAttribute("data-level"), "3");
       await page.close();
@@ -223,86 +231,21 @@ describe("kbd chips", () => {
   });
 });
 
-describe("the active row", () => {
-  const rows = `<>
-    <B.Menu defaultOpen><B.MenuTrigger>Menu</B.MenuTrigger><B.MenuContent><B.MenuItem>One</B.MenuItem><B.MenuItem>Two</B.MenuItem></B.MenuContent></B.Menu>
-  </>`;
-
-  for (const theme of ["dark", "light"]) {
-    test(`a highlighted Menu row is the selected wash plus a 2 by 16px primary bar at its start (${theme})`, async () => {
-      const { page } = await fixturePage(browser, render(rows), { theme });
-      await settle(page);
-      await page.keyboard.press("ArrowDown");
-      const row = page.locator(".basalt-menu-item[data-highlighted]");
-      await row.waitFor();
-      const bar = await row.evaluate((el) => {
-        const s = getComputedStyle(el, "::before");
-        const box = el.getBoundingClientRect();
-        return { content: s.content, width: s.width, height: s.height, color: s.backgroundColor, left: s.left, above: parseFloat(s.marginTop), below: parseFloat(s.marginBottom), rowHeight: box.height, radius: s.borderTopLeftRadius, row: getComputedStyle(el).backgroundColor };
-      });
-      assert.equal(bar.content, '""');
-      assert.deepEqual([bar.width, bar.height, bar.left, bar.radius], ["2px", "16px", "0px", "0px"], "2 by 16, at the inline start, with square ends");
-      assert.equal(bar.color, await resolve(page, "text-primary"));
-      assert.equal(bar.row, await resolve(page, "state-selected"));
-      assert.ok(Math.abs(bar.above - (bar.rowHeight - 16) / 2) < 0.5 && Math.abs(bar.above - bar.below) < 0.5, `the bar is centred: ${bar.above} above and ${bar.below} below in a ${bar.rowHeight}px row`);
-      // the one other row has no bar
-      assert.equal(await page.locator(".basalt-menu-item:not([data-highlighted])").evaluate((el) => getComputedStyle(el, "::before").content), "none");
-      await page.close();
-    });
-  }
-
-  test("forced colours: the highlighted row is Highlight and its bar can be seen on it", async () => {
-    const { page } = await fixturePage(browser, render(rows), { theme: "dark" });
-    await page.emulateMedia({ forcedColors: "active" });
-    await settle(page);
-    await page.keyboard.press("ArrowDown");
-    const row = page.locator(".basalt-menu-item[data-highlighted]");
-    await row.waitFor();
-    const colors = await page.evaluate(() => {
-      const probe = document.createElement("div"); document.body.append(probe);
-      const read = (v) => { probe.style.backgroundColor = v; return getComputedStyle(probe).backgroundColor; };
-      const out = { Highlight: read("Highlight"), HighlightText: read("HighlightText") }; probe.remove(); return out;
-    });
-    const s = await row.evaluate((el) => ({ row: getComputedStyle(el).backgroundColor, bar: getComputedStyle(el, "::before").backgroundColor, width: getComputedStyle(el, "::before").width }));
-    assert.equal(s.row, colors.Highlight);
-    assert.equal(s.bar, colors.HighlightText, "a Highlight bar on a Highlight row would not be there");
-    assert.notEqual(s.bar, s.row);
-    assert.equal(s.width, "2px");
-    await page.close();
-  });
-
-  test("Select and Combobox rows have the same wash and bar", async () => {
-    const fixture = `<><B.Select aria-label="Region" defaultOpen options={[{value:"a",label:"Alpha"},{value:"b",label:"Beta"}]} />
-      <B.Combobox aria-label="Zone" defaultOpen options={[{value:"x",label:"X-ray"},{value:"y",label:"Yankee"}]} /></>`;
-    const { page } = await fixturePage(browser, render(fixture), { theme: "dark" });
-    await settle(page);
-    for (const selector of [".basalt-select-popup", ".basalt-combobox-popup"]) {
-      const popup = page.locator(selector);
-      await popup.waitFor();
-      await popup.locator(".basalt-menu-item").first().hover();
-      await page.waitForFunction((s) => document.querySelector(`${s} [data-highlighted]`), selector);
-      const bar = await popup.locator("[data-highlighted]").evaluate((el) => ({ width: getComputedStyle(el, "::before").width, height: getComputedStyle(el, "::before").height, row: getComputedStyle(el).backgroundColor }));
-      assert.deepEqual([bar.width, bar.height], ["2px", "16px"], selector);
-      assert.equal(bar.row, await resolve(page, "state-selected"), selector);
-    }
-    await page.close();
-  });
-});
-
 describe("CommandMenu", () => {
   const fixture = (extra = "") => `function App(){const[o,so]=React.useState(true);return <B.CommandMenu hints open={o} onOpenChange={so} groups={[{label:'Sandbox',commands:[{id:'dup',label:'Duplicate',shortcut:'⌘D',onSelect:()=>{}},{id:'new',label:'New sandbox',onSelect:()=>{}}]}]}/>}
     window.closeIt=()=>{};${extra}
     createRoot(document.getElementById("root")).render(<App/>);`;
 
   for (const theme of ["dark", "light"]) {
-    test(`the input row is a full-bleed band one level up, 48px, with a divider below and no rim of its own (${theme})`, async () => {
+    test(`the input row is a full-bleed level-2 band, 48px, with a divider below and no rim of its own (${theme})`, async () => {
       const { page } = await fixturePage(browser, fixture(), { theme });
       await page.getByRole("combobox").waitFor();
       await settle(page);
-      assert.equal(await page.locator(".basalt-command").getAttribute("data-level"), "2");
+      assert.equal(await page.locator(".basalt-command").getAttribute("data-level"), "1", "the command menu resets to level 1");
+      assert.equal(await page.locator(".basalt-command-search").getAttribute("data-level"), "2", "its band is one level above the panel");
       const band = await style(page.locator(".basalt-command-search"), "height", "backgroundColor", "borderBottomWidth", "borderBottomColor", "borderTopWidth", "borderLeftWidth", "borderTopLeftRadius", "boxShadow");
       assert.equal(band.height, "48px");
-      assert.equal(band.backgroundColor, await resolve(page, "surface-3"), "panel + 1: #171717 in dark, white in light");
+      assert.equal(band.backgroundColor, await resolve(page, "surface-2"), "level 2: #111111 in dark, white in light (no longer the hard-coded surface-3)");
       assert.deepEqual([band.borderBottomWidth, band.borderTopWidth, band.borderLeftWidth, band.borderTopLeftRadius, band.boxShadow], ["1px", "0px", "0px", "0px", "none"]);
       assert.equal(band.borderBottomColor, await resolve(page, "border-divider"));
       const geometry = await page.evaluate(() => {
@@ -317,20 +260,23 @@ describe("CommandMenu", () => {
     });
   }
 
-  test("rows are Menu rows, with a shortcut as chips and the active bar", async () => {
+  test("rows are Menu rows with a 40px plate and a 44px hit area, a shortcut as chips, and no bar", async () => {
     const { page } = await fixturePage(browser, fixture(), { theme: "dark" });
     await page.getByRole("combobox").waitFor();
     await settle(page);
     const m = await page.locator("[cmdk-item]").first().evaluate((row) => {
       const list = row.parentElement.closest(".basalt-command-list").getBoundingClientRect();
       const r = row.getBoundingClientRect();
-      return { box: getComputedStyle(row).boxSizing, left: r.left - list.left, radius: getComputedStyle(row).borderTopLeftRadius, selected: row.getAttribute("data-selected"), bar: getComputedStyle(row, "::before").width + " " + getComputedStyle(row, "::before").height, keys: row.querySelectorAll(".basalt-kbd-key").length, shortcut: row.getAttribute("aria-keyshortcuts"), described: document.getElementById(row.getAttribute("aria-describedby"))?.textContent };
+      const plate = getComputedStyle(row, "::before");
+      return { box: getComputedStyle(row).boxSizing, left: r.left - list.left, height: r.height, plateRadius: plate.borderTopLeftRadius, plateHeight: parseFloat(plate.height), plateWidth: parseFloat(plate.width), rowWidth: r.width, selected: row.getAttribute("data-selected"), keys: row.querySelectorAll(".basalt-kbd-key").length, shortcut: row.getAttribute("aria-keyshortcuts"), described: document.getElementById(row.getAttribute("aria-describedby"))?.textContent };
     });
     assert.equal(m.box, "border-box");
-    assert.ok(Math.abs(m.left - 6) < 1.01, `inset ${m.left}`);
-    assert.equal(m.radius, "6px");
+    assert.ok(Math.abs(m.left - 4) < 1.01, `inset ${m.left}`);
+    assert.equal(m.height, 44, "the hit area");
+    assert.equal(m.plateHeight, 40, "the plate (size-control-xl)");
+    assert.equal(m.plateRadius, "8px");
+    assert.ok(Math.abs(m.plateWidth - m.rowWidth) < 0.5, "the plate spans the row: it is a plate, not a bar");
     assert.equal(m.selected, "true");
-    assert.equal(m.bar, "2px 16px");
     assert.equal(m.keys, 2);
     assert.equal(m.shortcut, "Meta+D");
     assert.equal(m.described, "Command D");
@@ -447,45 +393,52 @@ describe("vertical tabs", () => {
   </B.Tabs>`;
 
   for (const theme of ["dark", "light"]) {
-    test(`it is the horizontal tabs on their side: a column, a divider, the bar on it, the corners away from it (${theme})`, async () => {
+    test(`it is a column of 36px radius-8 pills in a track (padding 4, radius 12), with no divider and no indicator (${theme})`, async () => {
       const { page } = await fixturePage(browser, render(fixture), { theme });
       await settle(page);
       const m = await page.evaluate(() => {
         const list = document.querySelector(".basalt-tabs-list");
         const tabs = [...document.querySelectorAll(".basalt-tab")];
         const panel = document.querySelector(".basalt-tabs-panel:not([hidden])");
-        const bar = document.querySelector(".basalt-tabs-indicator");
         const ls = getComputedStyle(list);
         const l = list.getBoundingClientRect();
-        const b = bar.getBoundingClientRect();
         const t0 = tabs[0].getBoundingClientRect();
         const t1 = tabs[1].getBoundingClientRect();
         const ts = getComputedStyle(tabs[0]);
         return {
-          direction: ls.flexDirection, gap: t1.top - t0.bottom, divider: [ls.borderRightWidth, ls.borderRightColor, ls.borderLeftWidth],
-          panelGap: panel.getBoundingClientRect().left - l.right, barWidth: b.width, barHeight: b.height, tabHeight: t0.height, barTop: b.top - t0.top, barRight: l.right - b.right,
-          radii: [ts.borderTopLeftRadius, ts.borderBottomLeftRadius, ts.borderTopRightRadius, ts.borderBottomRightRadius], barColor: getComputedStyle(bar).backgroundColor,
-          transition: getComputedStyle(bar).transitionProperty + " / " + getComputedStyle(bar).transitionDuration + " / " + getComputedStyle(bar).transitionTimingFunction,
+          direction: ls.flexDirection, gap: t1.top - t0.bottom, track: [ls.paddingTop, ls.paddingLeft, ls.borderTopLeftRadius, ls.backgroundColor, ls.borderRightWidth, ls.borderLeftWidth, ls.boxShadow],
+          panelGap: panel.getBoundingClientRect().left - l.right, tabHeight: t0.height, tabRadius: ts.borderTopLeftRadius, indicators: document.querySelectorAll(".basalt-tabs-indicator").length,
+          insetLeft: t0.left - l.left,
         };
       });
       assert.equal(m.direction, "column");
-      assert.equal(m.gap, 4);
-      assert.equal(m.divider[0], "1px");
-      assert.equal(m.divider[1], await resolve(page, "border-divider"));
-      assert.equal(m.divider[2], "0px");
+      assert.equal(m.gap, 2);
+      assert.deepEqual(m.track.slice(0, 3), ["4px", "4px", "12px"], "track padding 4, radius 12");
+      assert.equal(m.track[3], await resolve(page, "surface-sunken-strong"));
+      assert.deepEqual([m.track[4], m.track[5], m.track[6]], ["0px", "0px", "none"], "no divider on either side");
+      assert.equal(m.insetLeft, 4);
+      assert.equal(m.tabHeight, 36);
+      assert.equal(m.tabRadius, "8px");
+      assert.equal(m.indicators, 0, "no sliding indicator in a vertical list");
       assert.equal(m.panelGap, 16, "the panel sits 16px from the list");
-      assert.equal(m.barWidth, 2);
-      assert.equal(m.barHeight, m.tabHeight, "the bar spans the active tab");
-      assert.ok(Math.abs(m.barTop) < 0.5);
-      assert.ok(m.barRight <= 0.01, `the bar sits on the divider, at the list's inline end (${m.barRight})`);
-      assert.deepEqual(m.radii, ["6px", "6px", "0px", "0px"], "rounded at the start, square at the bar");
-      assert.equal(m.barColor, await resolve(page, "text-primary"));
-      assert.equal(m.transition, "top, height / 0.2s / cubic-bezier(0.16, 1, 0.3, 1)", "top and height, at slow, ease-out");
+      await page.close();
+    });
+
+    test(`the chosen tab is the raised pill, with the selected wash over surface-top in dark (${theme})`, async () => {
+      const { page } = await fixturePage(browser, render(fixture), { theme });
+      await settle(page);
+      const active = await style(page.locator(".basalt-tab[data-active]"), "backgroundColor", "color", "boxShadow");
+      const rest = await style(page.locator(".basalt-tab:not([data-active])").first(), "backgroundColor", "color");
+      assert.equal(rest.backgroundColor, "rgba(0, 0, 0, 0)");
+      assert.equal(rest.color, await resolve(page, "text-secondary", "color"));
+      assert.equal(active.color, await resolve(page, "text-primary", "color"));
+      assert.notEqual(active.boxShadow, "none", "the pill keeps its hairline");
+      assert.deepEqual(await rgb8(page, active.backgroundColor), theme === "dark" ? [44, 44, 44] : await rgb8(page, await resolve(page, "surface-top")), "dark: #2c2c2c (surface-top plus the wash, one solid fill); light: surface-top");
       await page.close();
     });
   }
 
-  test("arrows move focus between tabs, Enter chooses, and the bar follows the chosen tab", async () => {
+  test("arrows move focus between tabs, Enter chooses, and the pill follows the chosen tab", async () => {
     const { page } = await fixturePage(browser, render(fixture), { theme: "dark" });
     await settle(page);
     await page.getByRole("tab", { name: "Account" }).focus();
@@ -495,25 +448,41 @@ describe("vertical tabs", () => {
     assert.equal(await page.getByRole("tab", { name: "Billing" }).getAttribute("aria-selected"), "true");
     await page.getByText("Billing panel").waitFor();
     await settle(page);
-    const aligned = await page.evaluate(() => {
-      const tab = document.querySelector(".basalt-tab[aria-selected=true]").getBoundingClientRect();
-      const bar = document.querySelector(".basalt-tabs-indicator").getBoundingClientRect();
-      return { top: Math.abs(bar.top - tab.top), height: Math.abs(bar.height - tab.height) };
-    });
-    assert.ok(aligned.top < 0.5 && aligned.height < 0.5, JSON.stringify(aligned));
+    assert.equal(await page.locator(".basalt-tab[data-active]").textContent(), "Billing");
     await page.keyboard.press("ArrowUp");
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Account");
     assert.equal(await page.getByRole("tablist").getAttribute("aria-orientation"), "vertical");
     await page.close();
   });
 
-  test("forced colours: the bar is Highlight; reduced motion: it does not move", async () => {
-    const { page } = await fixturePage(browser, render(fixture), { theme: "dark" });
+  test("horizontal tabs keep their underline: it is horizontal, and it slides", async () => {
+    const horizontal = `<B.Tabs defaultValue="a"><B.TabsList aria-label="S"><B.Tab value="a">A</B.Tab><B.Tab value="b">B</B.Tab></B.TabsList><B.TabsPanel value="a">Panel A</B.TabsPanel><B.TabsPanel value="b">Panel B</B.TabsPanel></B.Tabs>`;
+    const { page } = await fixturePage(browser, render(horizontal), { theme: "dark" });
+    await settle(page);
+    const bar = await style(page.locator(".basalt-tabs-indicator"), "height", "backgroundColor", "transitionProperty", "transitionDuration");
+    assert.equal(bar.height, "2px");
+    assert.equal(bar.backgroundColor, await resolve(page, "text-primary"));
+    assert.equal(bar.transitionProperty, "left, width");
+    assert.equal(bar.transitionDuration, "0.2s");
     await page.emulateMedia({ forcedColors: "active" });
     const highlight = await page.evaluate(() => { const p = document.createElement("div"); document.body.append(p); p.style.backgroundColor = "Highlight"; const c = getComputedStyle(p).backgroundColor; p.remove(); return c; });
-    assert.equal((await style(page.locator(".basalt-tabs-indicator"), "backgroundColor")).backgroundColor, highlight);
+    assert.equal((await style(page.locator(".basalt-tabs-indicator"), "backgroundColor")).backgroundColor, highlight, "forced colours: the underline is Highlight");
     await page.emulateMedia({ forcedColors: "none", reducedMotion: "reduce" });
-    assert.equal((await style(page.locator(".basalt-tabs-indicator"), "transitionDuration")).transitionDuration, "0s");
+    assert.equal((await style(page.locator(".basalt-tabs-indicator"), "transitionDuration")).transitionDuration, "0s", "reduced motion: it does not move");
+    await page.close();
+  });
+
+  test("forced colours: the chosen vertical tab is Highlight with HighlightText, opted out of colour adjustment", async () => {
+    const { page } = await fixturePage(browser, render(fixture), { theme: "dark" });
+    await page.emulateMedia({ forcedColors: "active" });
+    await settle(page);
+    const colors = await page.evaluate(() => {
+      const probe = document.createElement("div"); document.body.append(probe);
+      const read = (v) => { probe.style.backgroundColor = v; return getComputedStyle(probe).backgroundColor; };
+      const out = { Highlight: read("Highlight"), HighlightText: read("HighlightText") }; probe.remove(); return out;
+    });
+    const tab = await style(page.locator(".basalt-tab[data-active]"), "backgroundColor", "color", "forcedColorAdjust", "boxShadow");
+    assert.deepEqual(tab, { backgroundColor: colors.Highlight, color: colors.HighlightText, forcedColorAdjust: "none", boxShadow: "none" });
     await page.close();
   });
 
@@ -563,7 +532,7 @@ describe("the package's public surface", () => {
   });
 });
 
-// axe in both themes over the new surfaces: nested panels, rims, kbd chips, the active bar, vertical tabs,
+// axe in both themes over the new surfaces: nested panels, rims, kbd chips, the active plate, vertical tabs,
 // the command menu's input row and a tooltip with a shortcut. Overlays are audited one at a time: two
 // open at once overlap, and axe cannot resolve the colour behind a menu that a dialog's scrim covers.
 const axeViolations = async (page) => {

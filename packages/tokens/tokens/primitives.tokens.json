@@ -546,16 +546,18 @@
     "menu-row": {
       "$type": "dimension",
       "$value": {
-        "value": 32,
+        "value": 36,
         "unit": "px"
-      }
+      },
+      "$description": "The plate of a Menu, Select or Combobox row (the command menu's is size-control-xl, 40). The row is 4px taller: each row carries 2px above and below its plate, so the 4px gap between plates is drawn inside the rows and neighbouring hit areas touch. Compact steps it down to 32."
     },
     "menu-row-touch": {
       "$type": "dimension",
       "$value": {
-        "value": 36,
+        "value": 44,
         "unit": "px"
-      }
+      },
+      "$description": "The least height of a row's hit area on a coarse pointer."
     },
     "tap-min": {
       "$type": "dimension",
@@ -614,7 +616,7 @@
         "value": 2,
         "unit": "px"
       },
-      "$description": "The bar that marks the selected or active item: the active tab, the selected table row."
+      "$description": "The underline of the active tab in a horizontal tab bar. There is no vertical bar anywhere: the active row, a selected table row and vertical tabs take a plate, a wash or a pill instead."
     },
     "track": {
       "$type": "dimension",
@@ -1131,10 +1133,10 @@
       "braille": {
         "$type": "duration",
         "$value": {
-          "value": 530,
+          "value": 800,
           "unit": "ms"
         },
-        "$description": "One full cycle of the braille spinner's ten frames, stepped, not interpolated."
+        "$description": "One full cycle of the braille spinner's ten frames, 80ms a frame, stepped, not interpolated."
       },
       "fade": {
         "$type": "duration",

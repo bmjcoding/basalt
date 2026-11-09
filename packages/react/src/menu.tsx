@@ -62,7 +62,7 @@ export interface MenuContentProps extends PartProps<"div"> {
 /** The floating panel: portalled, positioned against the trigger, and dismissed on Esc or outside click. */
 export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, className, children, ...props }: MenuContentProps) {
   const layer = useFloatingLayer();
-  // One level above whatever opened it, and never below 2; its own submenus go one deeper.
+  // One level above whatever opened it (floor 1, cap 3); its own submenus go one deeper.
   const level = usePopupLevel();
   return (
     <BaseMenu.Portal>

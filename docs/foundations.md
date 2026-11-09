@@ -5,8 +5,8 @@ The decisions under every Basalt component, and why each was made. The values li
 and change the reason here.
 
 Basalt is one system for every SRA Syndicate product: Blacksand, srasyndicate.io,
-baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through
-its own accent, in a few named roles, and nowhere else.
+baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through one
+of Basalt's accent classes, in its named roles, and nowhere else.
 
 ## Principles
 
@@ -41,9 +41,9 @@ levels changed no pixel.
 | Level | Dark | Light | Roles that use it |
 |---|---|---|---|
 | `surface-0` | `#000` | `#fafafa` | `surface-page`: the page, and app sidebars |
-| `surface-1` | `#0a0a0a` | `#fff` | `surface-raised`: a panel on the page (cards, tables, code blocks); inputs and secondary buttons |
-| `surface-2` | `#111111` | `#fff` | `surface-overlay`: a panel in a panel, menus, popovers, selects, dialogs |
-| `surface-3` | `#171717` | `#fff` | `surface-top`: the deepest panel, a popup opened from a dialog, tooltips, toasts, the selected pill in a segmented control |
+| `surface-1` | `#0a0a0a` | `#fff` | `surface-raised`: a panel on the page (cards, tables, code blocks); inputs and secondary buttons; a menu, select or popover opened from the page or a sidebar; and a dialog, sheet or command menu (a modal resets to level 1) |
+| `surface-2` | `#111111` | `#fff` | `surface-overlay`: a panel in a panel, a popup opened from a card or a modal (a menu from a table row, or from a dialog), the command menu's input band, a modal's inner panels |
+| `surface-3` | `#171717` | `#fff` | `surface-top`: the deepest panel, a popup opened from a level-2 panel (the cap), tooltips, toasts; under the selected pill in a segmented control and in vertical tabs (dark adds the selected wash) |
 
 | Role | Dark | Light | Use |
 |---|---|---|---|
@@ -62,16 +62,24 @@ so white cards lift without a shadow.
 
 - an in-flow panel (Card, TableContainer, CodeBlock, Callout, the preview card) is its parent's
   level plus one, with level 3 the cap;
-- a non-modal popup (Menu, Select, Combobox, Popover) is its opener's level plus one, and never
-  below 2;
-- a modal (Dialog, AlertDialog, Sheet, CommandMenu) resets to 2 above its scrim, so what it
-  holds starts again from 3;
-- a Tooltip and a Toast are 3.
+- a non-modal popup (Menu, Select, Combobox, Popover) is its opener's level plus one, with a
+  floor of 1 and a cap of 3. A menu opened from the page or a sidebar is level 1 (`#0a0a0a`, 1.06:1
+  on the page, its rim 1.19:1 on the page); from a card, a table row or a modal, level 2
+  (`#111111`); from a level-2 panel, level 3 (`#171717`). The floor is 1 in both themes: in light,
+  levels 1 to 3 are one white, so it changes no pixel there;
+- a modal (Dialog, AlertDialog, Sheet, CommandMenu) resets to level 1 above its scrim, so what it
+  holds starts at 2: a card, a code block or a menu opened inside a dialog is `#111111`. The modal
+  depth that stacks z-index is a separate context and is unchanged;
+- a Tooltip and a Toast are 3 (this round leaves them as they are).
+
+A grey menu on the black page was the complaint that moved the floor from 2 to 1 (the owner, 9 Nov
+2026, with the council: 4–0 on `#0a0a0a`, 3–1 on opener plus one). The page is `#000` and the rim carries
+the edge, so a level-1 popup is near black without being OLED-smeared.
 
 In light, levels 1 to 3 are one white. Nesting shows by the rim (and a shadow when the panel
 floats), never by a darker fill: a darker panel on a lighter one would read as sunken, the
 opposite of raised. Wells follow the same rule in dark (a code block in a card is level 2,
-`#111111`; in a dialog, level 3, `#171717`) and stay `#f5f5f5` in light. Inputs keep their fill and their 3:1
+`#111111`; in a dialog, which is level 1, a code block is level 2 as well) and stay `#f5f5f5` in light. Inputs keep their fill and their 3:1
 border at every level.
 
 **The nesting guard.** Most grouping is not a panel:
@@ -81,7 +89,7 @@ border at every level.
 3. Go at most one panel deeper inside any in-flow panel (a card holding a preview that holds a
    code block is three rimmed boxes whose fills step about 1.05:1 each: nested boxes).
 4. Level 3 is the cap; beyond it, use a divider.
-5. Bands (the command menu's input row, a table header) are not boxes.
+5. Bands (the command menu's input row, a table header, a settings row) are not boxes.
 6. Floating surfaces are a layer, not nesting: they follow the popup and modal rules above.
 
 ### Text
@@ -120,16 +128,39 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   composites it touches the inset ring is 6.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
-  surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected tab or segment is a raised pill with a hairline, not a wash: a wash
-  alone is about 1.2:1, and a state that only a change of colour shows fails WCAG 1.4.1 (the
-  change of a background inside a component is outside 1.4.11's scope, which is why the
-  cue has to be a shape).
-- **The active row** (the row a keyboard or pointer is on, in Menu, Select, Combobox and
-  CommandMenu) is the selected wash plus a 2px by 16px bar, square ended, in the primary text
-  colour, at the row's inline start and centred on it, 11.95:1 or better on the wash in dark
-  and 13.48:1 in light. In forced colours the row is `Highlight`, with the bar drawn in
-  `HighlightText` so it shows on it. The bar is the cue that does not rest on colour (1.4.1),
-  and it says where focus is (2.4.7).
+  surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected
+  tab or segment is a raised pill with a hairline, not a wash: a wash alone is about 1.2:1, and a state
+  that only a change of colour shows fails WCAG 1.4.1 (the change of a background inside a component is
+  outside 1.4.11's scope, which is why the cue has to be a shape or a step in ink). The pill is
+  `surface-top`; in dark it is `surface-top` plus the selected wash, as one solid fill (`#2c2c2c` on a
+  `#111111` track, 1.35:1), so a 36px pill in a vertical track reads as a pill and not as a wash. In light it
+  is white on the track. A hover wash is a row of a list, not a plate: it runs full bleed and never lifts ink.
+- **The active row** (the row a keyboard or pointer is on, in Menu, Select, Combobox and CommandMenu) is a
+  plate and a lift. The plate is a rounded rectangle (radius 8) in the selected wash, painted as one solid
+  `background-color` per level and never a layered image (forced colours turns an image into a backplate):
+  in dark the next level plus the wash, `#262626` on level 1 (1.31:1 against the panel) and `#2c2c2c` on level 2
+  (1.35:1), and at the cap, which has no next level, the wash alone over `surface-3` (`#2c2c2c`, 1.28:1); in light
+  the 7% wash (`#ededed` on white, 1.17:1). The lift is the ink: a rest row's label and glyph are secondary
+  (7.66:1 on level 1 in dark, 8.45:1 in light) and the active row's go to primary (12.86:1 and 15.33:1 on the
+  plate). A hint (a host, a region, a count) lifts from tertiary to secondary on the plate, because tertiary
+  falls under 4.5:1 there; a shortcut chip lifts to primary. There is no weight change (a heavier label shifts
+  its width), no bar, no inset outline and no ↵ chip: the owner ruled the vertical bar and the outline AI
+  tells (9 Nov 2026), and the plate with the ink step is the cue that does not rest on colour (1.4.1) and says where
+  focus is (2.4.7). A chosen value (a Select option, a checked item) is a check in primary ink at the row's start, in a
+  16px slot every row reserves so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
+  4.80:1 on levels 2 and 3 in dark, 5.43:1 in light. Group labels are tertiary, 12/16, weight 500 (4.86:1 or better).
+  In forced colours the lit row is `Highlight` with `HighlightText` for its label, glyph, hint and chip text and border,
+  `forced-color-adjust: none` on the row (Chromium otherwise paints a Canvas backplate behind forced text and the
+  label renders as a black box), a solid plate, a danger row taking the same pairing, and the panel on `Canvas` with
+  a real `CanvasText` border.
+- **Tabs and segments.** Horizontal tabs keep a 2px underline that slides under the active tab: it is horizontal, not the
+  vertical line the owner ruled out. Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
+  12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider and no
+  sliding indicator. The segmented control keeps its horizontal size (28px segments in a track of padding 2 and radius
+  8) and takes the dark pill fill above.
+- **Settings and list rows** are full-bleed bands, not plates: each row spans the card edge to edge, dividers run edge to
+  edge, and a row you can act on takes the hover wash (the card clips the corners). A choose-one list inside a card uses
+  the menu plate. There is no settings-row component; this is the pattern for an app's own markup.
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
   brightening to pure white or black on hover, and stepping to `action-primary-press` (the
   action colour 85% toward the page: about `#bfbfbf` in dark, `#333333` in light) while pressed.
@@ -141,17 +172,58 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   a destructive action is red text on a red hairline, quieter than the primary action, with
   focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
-- **Selected rows** carry a 2px bar on the leading edge besides the wash.
+- **Selected rows** (a table) are the selected wash as a band, edge to edge, with no bar and no edge mark, in
+  forced colours too. The state is carried by the row's checked box and by a count in words, not by the wash
+  (about 1.2:1): the first column is a checkbox column (a `Checkbox` per row, labelled "Select {name}", and a header
+  box that is mixed while some rows are selected), and the count ("3 of 12 selected") is written in a polite live
+  region by the app. Basalt ships no helper for the column or the count: the column is the app's own markup on
+  `Table`, `TableCell` and `Checkbox`, given a first column `size-control-md` wide, and the row takes `selected`.
+  Do not mark selection with a vertical line.
 - **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
   also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
 - **Toasts** carry a dot only for warning and danger; the title says what happened.
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
   colours its title.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each: the ring turns in 640ms
-  (the default, and the one inside a button), and braille is Basalt's own 2 by 4 dot matrix
-  stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 530ms, for mono and terminal lines. Under reduced
-  motion the ring fades and braille holds its first frame.
+  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
+  is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
+  a spinner stands without a visible word. Braille is for a status: work that runs while a word
+  beside it says so, in a table, a list row, a toast or a log line; never in a button, and never
+  without its word. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
+  whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
+  takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
+  Under reduced motion the ring fades and braille holds its first frame.
+
+### Accent classes
+
+A product adds colour through one of Basalt's accent classes, in its named roles, and nowhere else.
+Basalt ships one class today, **cobalt**: `accent.cobalt` is `oklch(0.72 0.14 264)` in dark and
+`oklch(0.47 0.17 264)` in light, inside sRGB, 8.36:1 and 6.78:1 on the page.
+
+- **A product sets one class, or none.** It writes `data-accent="cobalt"` on its root, or
+  `data-accent="none"` (or nothing). A class is one ink per theme and sets one custom property,
+  `--basalt-accent-ink`, as a `light-dark()` pair, so a theme nested inside an accent root still gets its own value.
+  `none` and any name Basalt doesn't know reset it, and the reader falls back to `--basalt-text-primary`: a typo
+  is monochrome, never another product's colour. The property is unregistered. A browser without `light-dark()`
+  never gets the variable and shows the ink dot. shadcn's `--accent` is unrelated: it stays a neutral hover wash.
+- **A subtree changes the class only** to show another product's own content where no other accent is in view
+  (N1's demo on a monochrome site), or to `none` for shared or exported output. A portal that leaves such a
+  subtree carries the attribute to its destination.
+- **The accent paints only a product's council-approved role** (N1: "needs you"), as a dot or icon beside ink
+  words. The word stays ink. Today `Badge` is the one reader (`status="accent"`): the dot reads
+  `var(--basalt-accent-ink, var(--basalt-text-primary))`, with no accent hairline and no fill, and in forced
+  colours it is `CanvasText`.
+- **It is never** a fill, wash, border, link, focus ring, selection, checked control, the header or a mark, and never
+  code styling, a status or the primary Button. On a chart it is only the one labelled mark that is that role, with a
+  cue that isn't colour.
+- **Every class passes the same tests** (`packages/tokens/test/accents.test.mjs`): 4.5:1 on every surface level and
+  on the hover and selected washes over each, in both themes, on the serialized values; unclamped sRGB; at least as
+  far (ΔEok, on the serialized hex) from every status colour as danger is from warning in that theme, which keeps
+  an accent from reading as a status; and confinement: no read of the variable from chrome, code, focus, selection,
+  links, the primary Button, checked controls or status colours, aliases included. Syntax-keyword blue is at hue 255,
+  nine degrees from cobalt, so the confinement test is what keeps the two apart. A class is added as one token entry
+  plus its tests, after the council approves it and a product's role for it.
+- The council converged on the mechanism (8 Nov 2026) and the owner approved cobalt only for now.
 
 ### Keyboard keys
 
@@ -225,9 +297,9 @@ steps, so they'd render differently on native.
 | `text-xl` | 20 / 28 | −0.015em | Card title |
 | `text-lg` | 18 / 26 | −0.01em | Lead |
 | `text-md` | 16 / 24 | −0.005em | Body in docs and marketing |
-| `text-base` | 14 / 20 | 0 | Body and controls in apps |
-| `text-sm` | 13 / 18 | 0 | Menus, tables, sidebars |
-| `text-xs` | 12 / 16 | 0.01em | Labels, captions |
+| `text-base` | 14 / 20 | 0 | Body and controls in apps; the rows of every popup (13 / 18 in compact) |
+| `text-sm` | 13 / 18 | 0 | Tables, sidebars, and popup rows in compact density |
+| `text-xs` | 12 / 16 | 0.01em | Labels, captions, a field's helper text |
 
 Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
 
@@ -235,15 +307,16 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
 
 - **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px), plus the half
   steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing.
-- **Component sizes are tokens too:** indicator bars (2), tracks (4), dots (6), choice boxes,
+- **Component sizes are tokens too:** the tab underline (2), tracks (4), dots (6), choice boxes,
   the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
   popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
   lengths; Stylelint enforces it, with the screen-reader clip as the one exception.
 - **Controls:** 24, 28, 32, 36 and 40px tall; 32 is the app default, and
   `data-density="compact"` moves controls down one step (24px is the floor) and uses 13px
   control text. Set it on `<html>` so portalled menus inherit it; a nested
-  `data-density="default"` restores regular sizes. Menu rows are 32px by default, 28px in
-  compact mode, and at least 44px on touch. All shared control targets stay at least 44px on
+  `data-density="default"` restores regular sizes. A popup row (Menu, Select, Combobox) is a 36px plate (`size-menu-row`, which is
+  `size-control-lg`) in a 40px hit area, and a command menu row a 40px plate in a 44px hit area; compact steps the plates to 32
+  and 36; on touch a hit area is at least 44px, and a combobox's text entry is 16px. All shared control targets stay at least 44px on
   touch regardless of density. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
@@ -319,15 +392,19 @@ time; layering support is not a reason to stack unrelated tasks.
 **Level is position, not importance.** A surface in the page's flow is its parent plus one, whatever its
 role: a hero, a console or a featured card on the page is level 1, and its input band and the panels
 inside it are level 2. Only a surface that leaves the flow (opened above the page, out of the flow,
-overlapping other content: a menu, popover, dialog, sheet, toast or tooltip) is level 2 or above and
-carries a shadow. Don't use `float` or an explicit level to make an in-flow panel look more important;
+overlapping other content: a menu, popover, dialog, sheet, toast or tooltip) carries a shadow, and its level
+follows the popup and modal rules above: a popup is its opener plus one (a floor of 1), a modal is 1. Don't use `float` or an explicit level to make an in-flow panel look more important;
 use space, type and the content. A static picture of a floating surface in documentation is drawn as
 that surface. `data-level` is written only to re-base a subtree (a page, a portal, a specimen frame),
 never to promote a panel.
 
-The command menu is a modal panel at level 2. Its input row is a full-bleed band one level above
-the panel (level 3, `#171717`, in dark; white in light), 48px, with a divider below and no rim or
-radius of its own. Its rows are Menu rows: 6px in from each side, radius 6. It is summoned from the
+The command menu is a modal panel at level 1 (`#0a0a0a` in dark). Its input row is a full-bleed band one level above
+the panel (level 2, `#111111`, in dark; white in light, set by the band's own `data-level`, not a fixed surface),
+48px, with a divider below and no rim or radius of its own. Its rows are popup rows with a taller plate: 40px (36 when
+compact) in a 44px hit area, radius 8, 4px in from each side of the list, 12px between the glyph and the label; the plate stays
+lit when the pointer leaves a row, as cmdk does everywhere. Menu, Select and Combobox clear it, as Base UI does, but their rows
+touch (the 4px gap between plates is drawn inside the rows, 2px above and below each plate), so a pointer crossing the gap never
+leaves one. A panel's padding is 4px inline and 2px block, so a plate is 4px from the rim on every side. It is summoned from the
 keyboard many times a day, so it neither opens nor closes with motion, its backdrop included.
 
 ## Motion
@@ -341,7 +418,7 @@ keyboard many times a day, so it neither opens nor closes with motion, its backd
 | `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
 
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
-`duration-loop-braille` 530ms and `duration-loop-fade` 1200ms.
+`duration-loop-braille` 800ms and `duration-loop-fade` 1200ms.
 
 | Curve | Value | For |
 |---|---|---|
@@ -356,7 +433,7 @@ on `ease-out` while pressed, and back, on `:active` only, never when disabled or
 else (no row, card, menu item, command row or the parts of a field; there is no `basalt-press` utility). A popup (Menu, Select,
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
-quarters of that on `ease-in`. The tab indicator, and the panel that moves 8px with it, run on
+quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
 `duration-slow` `ease-out`; the panel never remounts. Nothing loops except spinners and the line of a
 loading Sparkline.
 
@@ -370,7 +447,7 @@ colour step and its scale is 1). `duration-base`,
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
 tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; a tab change is
-a 100ms crossfade; the vertical tab bar does not move. Spinners fade or hold still, and a loop is
+a 100ms crossfade; the horizontal tab underline does not move. Spinners fade or hold still, and a loop is
 never cut to 100ms.
 
 The components and what each does are in [Motion and primitives](motion.md).
@@ -420,10 +497,15 @@ and Geist pages; Linear's public site and login screen), not recalled, and used 
 reference: none of their CSS, icons or assets is in this repository.
 
 Motion and primitives (PR #12, #13) were built without the panel and reviewed afterwards; the
-surface rules (levels, the rim, the nesting guard, kbd chips, the active-row bar, the pressed
+surface rules (levels, the rim, the nesting guard, kbd chips, the pressed
 primary colour) and the motion rulings were reviewed by the panel in three rounds. The owner has not
 approved either yet.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their
 implementation has not been reviewed by the panel.
+
+The menus redesign (the depth floor and modal reset, the plate and lift on every popup row, the 36 and 40 rows, the
+bar's removal everywhere, selected table rows, vertical tabs and the segmented pill, the forced-colours fix) was
+decided by the council in four rounds (their votes are in `.review/council/menus-r2/`, the drawing in
+`.review/council/menus-final/`) and approved by the owner on 9 Nov 2026 as drawn, with a menu from a table row at level 2.

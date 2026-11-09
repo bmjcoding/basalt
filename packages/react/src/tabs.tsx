@@ -11,6 +11,8 @@ const TabsMotion = React.createContext<{
   previous: React.MutableRefObject<string | null>;
 } | null>(null);
 
+const TabsOrientation = React.createContext<Orientation | undefined>(undefined);
+
 export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"div", "defaultValue"> {
   /** The selected tab's `value`. `null` selects none. */
   value?: Value | null;
@@ -42,18 +44,20 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
   }, [current]);
   return (
     <TabsMotion.Provider value={motion}>
-      <div className="basalt-tabs-root" data-direction={direction || undefined}>
-        <BaseTabs.Root
-          {...props}
-          value={value}
-          defaultValue={defaultValue}
-          className={withClass("basalt-tabs", className)}
-          onValueChange={(next: Value | null, details: ChangeDetails) => {
-            onValueChange?.(next, details);
-            if (!details.isCanceled) setChosen(next);
-          }}
-        />
-      </div>
+      <TabsOrientation.Provider value={props.orientation}>
+        <div className="basalt-tabs-root" data-direction={direction || undefined}>
+          <BaseTabs.Root
+            {...props}
+            value={value}
+            defaultValue={defaultValue}
+            className={withClass("basalt-tabs", className)}
+            onValueChange={(next: Value | null, details: ChangeDetails) => {
+              onValueChange?.(next, details);
+              if (!details.isCanceled) setChosen(next);
+            }}
+          />
+        </div>
+      </TabsOrientation.Provider>
     </TabsMotion.Provider>
   );
 }
@@ -66,10 +70,12 @@ export interface TabsListProps extends PartProps<"div"> {
 }
 
 export function TabsList({ className, children, ...props }: TabsListProps) {
+  const orientation = React.useContext(TabsOrientation);
   return (
     <BaseTabs.List {...props} className={withClass("basalt-tabs-list", className)}>
       {children}
-      <BaseTabs.Indicator className="basalt-tabs-indicator" />
+      {/* The sliding underline is the horizontal bar's mark. A vertical list is a column of pills in a track, with no indicator. */}
+      {orientation === "vertical" ? null : <BaseTabs.Indicator className="basalt-tabs-indicator" />}
     </BaseTabs.List>
   );
 }

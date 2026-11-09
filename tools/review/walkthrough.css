@@ -15,7 +15,7 @@ a:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-bor
 .wt-rail { position: sticky; top: var(--basalt-space-6); display: flex; flex-direction: column; gap: 2px; }
 .wt-rail-item { display: flex; align-items: center; gap: var(--basalt-space-3); height: var(--basalt-size-control-md); padding: 0 var(--basalt-space-2); border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); text-align: left; cursor: pointer; }
 .wt-rail-item:hover { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
-.wt-rail-item[aria-current] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); box-shadow: inset 2px 0 0 var(--basalt-text-primary); }
+.wt-rail-item[aria-current] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); } /* the plate and the lift, no bar (decision 42) */
 .wt-rail-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 .wt-rail-n { font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-mono); color: var(--basalt-text-secondary); }
 
