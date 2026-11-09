@@ -31,15 +31,15 @@
       },
       "1": {
         "$value": "{color.neutral.100}",
-        "$description": "Level 1: a panel directly on the page. In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher."
+        "$description": "Level 1: a panel directly on the page, a popup opened from the page or a sidebar, and the modals' own surface (dialog, sheet, command menu). In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher."
       },
       "2": {
         "$value": "{color.neutral.100}",
-        "$description": "Level 2: a panel on a level-1 panel, a floating menu or popover, a dialog."
+        "$description": "Level 2: a panel in a panel, a popup opened from a card or a modal, the command menu's input band, a modal's inner panels."
       },
       "3": {
         "$value": "{color.neutral.100}",
-        "$description": "Level 3: the deepest panel, a popup opened from a dialog, a tooltip, a toast. Nothing nests below it."
+        "$description": "Level 3: the deepest panel, a popup opened from a level-2 panel, a tooltip, a toast. Nothing nests below it."
       },
       "page": {
         "$value": "{color.surface.0}",
@@ -51,7 +51,7 @@
       },
       "overlay": {
         "$value": "{color.surface.2}",
-        "$description": "Menus, popovers, selects and dialogs."
+        "$description": "Level 2: a panel in a panel, and a popup opened from a card or a modal. A menu, select or popover opened from the page or a sidebar is level 1 (surface-raised); a dialog, sheet and the command menu reset to level 1 as well."
       },
       "top": {
         "$value": "{color.surface.3}",
@@ -141,11 +141,11 @@
     "state": {
       "hover": {
         "$value": "{color.black.4}",
-        "$description": "Hover wash over any surface; menu highlight."
+        "$description": "Hover wash over any surface."
       },
       "selected": {
         "$value": "{color.black.7}",
-        "$description": "Selected wash, with a second cue (a bar, a pill, a check): a wash alone is about 1.2:1."
+        "$description": "Selected wash: the lit row's plate, the nav pill, a selected table row's band. A wash alone is about 1.2:1, so the state has a second cue: the ink step to primary, a check, a pill or a checked box."
       }
     },
     "action": {

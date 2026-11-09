@@ -6,6 +6,7 @@ import * as React from "react";
 
 import type { CommandGroup } from "./command";
 import { Icon } from "./icon";
+import { BAND_LEVEL } from "./layers";
 import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
@@ -26,7 +27,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, initial
   const chipsShow = useShortcutsVisible();
   return (
     <Command label="Command menu" loop>
-      <div className="basalt-command-search">
+      <div className="basalt-command-search" data-level={BAND_LEVEL}>
         <Icon icon={MagnifyingGlassIcon} size={16} />
         <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
