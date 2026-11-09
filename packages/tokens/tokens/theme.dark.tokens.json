@@ -24,11 +24,10 @@
       }
     },
     "accent": {
-      "n1": {
-        "needs-you": {
-          "$value": { "colorSpace": "oklch", "components": [0.72, 0.14, 264] },
-          "$description": "N1's one accent, cobalt, for the role \"needs you\" only: a dot, icon or text that always sits beside a word (never colour alone). Never in code styling, a status, or decoration; syntax-keyword blue is nine degrees away at hue 255."
-        }
+      "$description": "Accent classes. A product picks one with data-accent on its root, or none. A class is one ink per theme, painted only as a dot or icon beside ink words, for a product's council-approved role. It is not a custom property of its own: the generated rules put both themes in one light-dark() value on --basalt-accent-ink.",
+      "cobalt": {
+        "$value": { "colorSpace": "oklch", "components": [0.72, 0.14, 264] },
+        "$description": "Cobalt, hue 264. The one accent class Basalt ships; N1 uses it for \"needs you\". Never a fill, wash, border, link, focus ring, selection, checked control, status or code colour; syntax-keyword blue is at hue 255."
       }
     },
     "surface": {

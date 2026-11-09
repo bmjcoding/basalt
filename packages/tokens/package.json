@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "exports": {
     "./tokens.css": "./dist/css/tokens.css",
+    "./accents.css": "./dist/css/accents.css",
     "./shadcn.css": "./dist/css/shadcn.css",
     "./tokens.json": "./dist/json/tokens.json",
     ".": {

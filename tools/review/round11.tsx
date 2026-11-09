@@ -1,6 +1,6 @@
-// Round 11: N1's accent, cobalt, tokenised as `accent-n1-needs-you`. The colour and its one role were decided by the
-// council (4–0, 2026-11-08) at the round-2 values; this round only shows the token. The builder proposed the name and the
-// council kept it, 4–0. Nothing here is an option.
+// Round 11: Basalt's accent classes, with one in the catalogue: cobalt. The council converged on the mechanism and the owner
+// approved "cobalt only for now" (DECISIONS.md items 37 and 41). A product sets one class with `data-accent` on its root, or
+// none; the accent is read by one thing, Badge's accent dot. Nothing here is an option.
 //
 // Every ratio printed below is computed here from the generated token values, unrounded, the
 // way the contrast tests compute them (OKLCH to linear sRGB with no clamping, translucent washes composited first).
@@ -8,6 +8,7 @@
 import * as React from "react";
 
 import tokenJson from "../../packages/tokens/dist/json/tokens.json";
+import { Badge } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
 type Theme = "dark" | "light";
@@ -70,12 +71,12 @@ const ratio = (a: RGB, b: RGB) => {
 function accentOn(theme: Theme, surface: string, wash?: string): number {
   const base = srgbOf(theme, surface).c;
   const bg = wash ? over(srgbOf(theme, wash), base) : base;
-  return ratio(srgbOf(theme, "accent-n1-needs-you").c, bg);
+  return ratio(srgbOf(theme, "accent-cobalt").c, bg);
 }
 
 const fmt = (r: number) => `${r.toFixed(2)}:1`;
 
-// ---- The specimen: a word and a dot
+// ---- The specimen: a Badge with the accent dot, and the same Badge with no accent
 
 const LEVELS = [
   { n: 0, name: "Page", role: "surface-0" },
@@ -83,15 +84,6 @@ const LEVELS = [
   { n: 2, name: "Level 2", role: "surface-2" },
   { n: 3, name: "Level 3", role: "surface-3" },
 ];
-
-const dot: React.CSSProperties = {
-  width: "var(--basalt-size-dot)",
-  height: "var(--basalt-size-dot)",
-  borderRadius: "var(--basalt-radius-full)",
-  background: "var(--basalt-accent-n1-needs-you)",
-  flex: "none",
-};
-const word: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: "var(--basalt-space-2)", fontSize: "var(--basalt-text-sm-size)", lineHeight: "var(--basalt-text-sm-line-height)", fontWeight: "var(--basalt-font-weight-medium)" };
 
 /** A ratio, printed for whichever theme is showing. */
 function Both({ dark, light }: { dark: string; light: string }) {
@@ -103,29 +95,43 @@ function Both({ dark, light }: { dark: string; light: string }) {
   );
 }
 
-function Levels() {
+function Levels({ accent }: { accent: "cobalt" | "none" }) {
   return (
-    <div className="wt-levels">
+    <div className="wt-levels" data-accent={accent}>
       {LEVELS.map((level) => (
         <div key={level.n} className="wt-level" style={{ background: `var(--basalt-surface-${level.n})` }}>
           <div className="wt-level-name">{level.name}</div>
           <div className="wt-level-role">{level.role}</div>
-          <div style={{ ...word, color: "var(--basalt-accent-n1-needs-you)", marginTop: "var(--basalt-space-2)" }}>
-            <span style={dot} />
-            Needs you
+          <div style={{ marginTop: "var(--basalt-space-2)" }}>
+            <Badge status="accent" variant="plain">Needs you</Badge>
           </div>
-          <div className="wt-level-hex">
-            text <Both dark={fmt(accentOn("dark", `surface-${level.n}`))} light={fmt(accentOn("light", `surface-${level.n}`))} />, needs 4.5:1
-          </div>
-          <div style={{ ...word, color: "var(--basalt-text-primary)", marginTop: "var(--basalt-space-2)" }}>
-            <span style={dot} />
-            Needs you
-          </div>
-          <div className="wt-level-hex">
-            dot <Both dark={fmt(accentOn("dark", `surface-${level.n}`))} light={fmt(accentOn("light", `surface-${level.n}`))} />, needs 3:1
-          </div>
+          {accent === "cobalt" ? (
+            <div className="wt-level-hex">
+              dot <Both dark={fmt(accentOn("dark", `surface-${level.n}`))} light={fmt(accentOn("light", `surface-${level.n}`))} />, needs 3:1
+            </div>
+          ) : (
+            <div className="wt-level-hex">ink dot, same word</div>
+          )}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** A theme nested inside a cobalt root, and the other way round: each dot takes its own theme's cobalt. */
+function Nested() {
+  const inner = (theme: "dark" | "light") => (
+    <div data-theme={theme} className="wt-level" style={{ background: "var(--basalt-surface-1)", color: "var(--basalt-text-primary)" }}>
+      <div className="wt-level-name">Nested {theme}</div>
+      <div style={{ marginTop: "var(--basalt-space-2)" }}>
+        <Badge status="accent" variant="plain">Needs you</Badge>
+      </div>
+    </div>
+  );
+  return (
+    <div className="wt-levels" data-accent="cobalt" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+      {inner("light")}
+      {inner("dark")}
     </div>
   );
 }
@@ -158,49 +164,54 @@ function RatioTable({ theme }: { theme: Theme }) {
         </tbody>
       </table>
       <p style={{ margin: "var(--basalt-space-2) 0 0", fontSize: "var(--basalt-text-xs-size)", color: "var(--basalt-text-secondary)" }}>
-        Lowest of all 24 pairs: {fmt(min)}. Text needs 4.5:1; a dot or icon needs 3:1.
+        Lowest of all 24 pairs: {fmt(min)}. A dot or icon needs 3:1, and the tests hold cobalt to 4.5:1 so it is also readable as text.
       </p>
     </div>
   );
 }
 
-function NeedsYouDemo() {
+function AccentDemo() {
   return (
     <div style={col}>
-      <Caption>On the page and on levels 1 to 3: the word in cobalt beside its dot, and the dot beside a primary-ink word</Caption>
-      <Levels />
-      <Caption>Every surface the accent can sit on, bare and under a hover or selected wash (the washes are composited over the surface first)</Caption>
+      <Caption>Cobalt: <code>data-accent=&quot;cobalt&quot;</code> on the root. The dot is cobalt, the word stays ink</Caption>
+      <Levels accent="cobalt" />
+      <Caption>No accent: <code>data-accent=&quot;none&quot;</code>, or no attribute, or a name Basalt doesn&apos;t know. The same Badge, with an ink dot</Caption>
+      <Levels accent="none" />
+      <Caption>A light theme inside a dark cobalt root, and a dark theme inside a light one: each dot is its own theme&apos;s cobalt, with nothing restated</Caption>
+      <Nested />
+      <Caption>Every surface cobalt can sit on, bare and under a hover or selected wash (the washes are composited over the surface first)</Caption>
       <RatioTable theme="dark" />
       <RatioTable theme="light" />
     </div>
   );
 }
 
-const dark = srgbOf("dark", "accent-n1-needs-you");
-const light = srgbOf("light", "accent-n1-needs-you");
+const dark = srgbOf("dark", "accent-cobalt");
+const light = srgbOf("light", "accent-cobalt");
 const unclamped = (c: RGB) => c.every((v) => v >= 0 && v <= 1);
-if (!unclamped(dark.c) || !unclamped(light.c)) throw new Error("the N1 accent is outside sRGB");
+if (!unclamped(dark.c) || !unclamped(light.c)) throw new Error("the cobalt accent is outside sRGB");
 
 export const ROUND_11: Round = {
   id: "11",
-  title: "N1's accent: cobalt, for “needs you”",
+  title: "Accent classes: cobalt",
   reviewed: false,
   summary:
-    "One token, accent-n1-needs-you: N1's single accent, in the one role it has. The colour and the role were decided by the council (4–0, 8 Nov 2026) at the round-2 values and are not open. The council kept the builder's name, 4–0, and its corrections to the foundations entry and the confinement test are applied; nobody has re-reviewed those corrections.",
+    "Basalt gets accent classes, with one in the catalogue: cobalt. The council converged on the mechanism and the owner approved cobalt only for now (DECISIONS.md items 37 and 41). A product sets one class with data-accent on its root, or none, and Badge's accent dot is the only thing that reads it. The built result has not been through the panel since it was built.",
   steps: [
     {
-      id: "needs-you",
-      name: "Needs you",
-      intro: "Cobalt appears for one reason only: something needs the person. It always sits beside a word and a dot, so it is never colour alone.",
+      id: "accent-classes",
+      name: "Accent classes",
+      intro: "A product adds colour through one accent class. Cobalt paints one dot beside ink words, for the product's approved role (N1: “needs you”), and nothing else.",
       decisions: [
-        "Decided by the council, 4–0, 2026-11-08 (DECISIONS.md item 21; round 2, Sol item 8): dark oklch(0.72 0.14 264), light oklch(0.47 0.17 264), tokenised now at those exact values.",
-        "The name, proposed by the builder and kept by the council 4–0 on 2026-11-08: foundations had no product-accent structure, so the token is color.accent.n1.needs-you: group accent (a product's colour, which foundations says a product adds through its own accent), the product, then the role. It becomes --basalt-accent-n1-needs-you in CSS, accent-n1-needs-you in the JSON and accentN1NeedsYou in Swift. Another product adds accent.<product>.<role> beside it.",
-        "Both values are inside sRGB (unclamped channels 0 to 1), so every display shows the same colour. On the page it is 8.36:1 in dark and 6.78:1 in light, as the council measured.",
-        `Dark is ${dark.c.map((v) => v.toFixed(3)).join(", ")} and light ${light.c.map((v) => v.toFixed(3)).join(", ")} in sRGB. As text it needs 4.5:1 and as a dot or icon 3:1; both hold with room on every surface and wash, in both themes (the lowest pair is printed under the specimen).`,
-        "It is not code styling. Syntax-keyword blue is at hue 255, nine degrees from cobalt's 264, so a test keeps the accent out of the highlighter's theme and out of every code rule. It is not allowed on the header bar either: only primary and secondary ink sit there.",
+        "Decided by the council (item 37) and approved by the owner as cobalt only for now (item 41): dark oklch(0.72 0.14 264), light oklch(0.47 0.17 264), under the token accent.cobalt.",
+        "One class, set with data-accent on the root, or none. A subtree changes it only to show another product's own content where no other accent is in view, or to none for shared or exported output.",
+        "The mechanism is one light-dark() rule per class, behind @supports, on an unregistered --basalt-accent-ink. none and any name Basalt doesn't know reset it, so the reader falls back to primary ink. Older browsers keep the ink dot.",
+        "Badge gets an accent tone, BadgeStatus “accent”: the dot reads --basalt-accent-ink; the word stays ink, with no accent hairline or fill. In forced colours the dot is CanvasText. No other component reads the variable, and a test follows aliases to keep it so.",
+        "shadcn's --accent is untouched: it stays a neutral hover wash.",
+        `Both values are inside sRGB (unclamped). Dark is ${dark.c.map((v) => v.toFixed(3)).join(", ")} and light ${light.c.map((v) => v.toFixed(3)).join(", ")} in sRGB. Each is held to 4.5:1 on every surface and wash, and at least as far from every status colour as danger is from warning.`,
       ],
-      tryIt: ["Compare the page and levels 1 to 3 in dark and in light.", "Read the ratios under each tile, then the full table.", "Switch the theme and check the word and the dot read without the colour."],
-      demo: () => <NeedsYouDemo />,
+      tryIt: ["Compare the cobalt rows with the no-accent rows in dark and in light.", "Check the nested themes: each dot should look right on its own background.", "Read the ratios under each tile, then the full table."],
+      demo: () => <AccentDemo />,
     },
   ],
 };
