@@ -129,30 +129,26 @@ test("selected closes the opening: the seam's slot is trimmed at rest and whole 
 });
 
 test("the arrow is centred, and the static arrow and MorphIcon's are the same data", async () => {
-  const { glyphData } = await load("glyph-registry.js");
   assert.deepEqual(B.ArrowRightGlyph.glyph.selected, [[6.5, 12, 17.5, 12], [17.5, 12, 11.5, 7], [17.5, 12, 11.5, 17]]);
   for (const name of ["arrow-right", "arrow-down", "arrow-left", "arrow-up"]) {
-    assert.equal(glyphData(name), B[`${camel(name)}Glyph`].glyph, `${name}: MorphIcon reads its drawing from the glyph module`);
     const points = slots(name, false).filter((s) => s[8]).flatMap((s) => [[s[0], s[1]], [s[6], s[7]]]);
     const [xs, ys] = [0, 1].map((k) => points.map((p) => p[k]));
     assert.ok(Math.abs((Math.min(...xs) + Math.max(...xs)) / 2 - 12) < 1e-9 && Math.abs((Math.min(...ys) + Math.max(...ys)) / 2 - 12) < 1e-9, `${name} is centred on the tile`);
     const inside = (html) => html.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(/basalt-glyph-[\w-]+/g, "x");
-    assert.equal(inside(render(B.MorphIcon, { name })), inside(render(B[`${camel(name)}Glyph`], {})), `${name}: MorphIcon and the glyph draw the same paths`);
+    assert.equal(inside(render(B.MorphIcon, { glyph: B[`${camel(name)}Glyph`] })), inside(render(B[`${camel(name)}Glyph`], {})), `${name}: MorphIcon and the glyph draw the same paths`);
   }
   const source = fs.readFileSync(path.join(pkg, "src", "morph-icon.tsx"), "utf8");
   assert.doesNotMatch(source, /\bARROW\b/, "MorphIcon keeps no arrow of its own");
+  assert.doesNotMatch(source, /from "\.\/glyphs\/|glyph-registry|glyph-set/, "MorphIcon imports no glyph: it draws the one it is given, so an app pays for the glyphs it imports");
 });
 
-test("MorphIcon draws every glyph, at rest and selected, as the glyph does: the actions by name, the rest by reference", async () => {
-  const { morphNames } = await load("glyph-names.js");
+test("MorphIcon draws every glyph, at rest and selected, as the glyph does, each passed by reference", async () => {
   const actions = set.filter((name) => !GLYPHS[name].nav);
-  assert.deepEqual([...morphNames()].sort(), [...actions].sort(), "MorphIcon takes the core actions by name");
   assert.equal(actions.length, 21);
   const inside = (html) => html.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(/basalt-glyph-[\w-]+/g, "x");
   for (const name of set) {
     for (const selected of [false, true]) {
-      const props = GLYPHS[name].nav ? { glyph: B[`${camel(name)}Glyph`] } : { name };
-      assert.equal(inside(render(B.MorphIcon, { ...props, selected })), inside(render(B[`${camel(name)}Glyph`], { weight: selected ? "fill" : "bold" })), `${name} ${selected}`);
+      assert.equal(inside(render(B.MorphIcon, { glyph: B[`${camel(name)}Glyph`], selected })), inside(render(B[`${camel(name)}Glyph`], { weight: selected ? "fill" : "bold" })), `${name} ${selected}`);
     }
   }
 });
@@ -204,4 +200,41 @@ test("danger is XCircle: the Callout draws it, and WarningCircle is gone", () =>
 test("a Callout of each status still draws its own icon", () => {
   const html = ["info", "success", "warning", "danger"].map((status) => inner(render(B.Callout, { status, title: status }).match(/<svg[\s\S]*?<\/svg>/)[0]));
   assert.equal(new Set(html).size, 4);
+});
+
+// settle() expands a glyph's stored slots once and keeps them. The expansion is the one #29 shipped (written out here, apart
+// from the code under test), so a point, a line and a cubic come out as the same nine numbers, to the bit.
+test("settle gives every glyph the slots it always had, to the bit, and the same drawing on every call", async () => {
+  const { settle } = await load("glyph.js");
+  const expand = (s) => {
+    const [x0 = 0, y0 = 0] = s;
+    if (s.length === 2) return [x0, y0, x0, y0, x0, y0, x0, y0, 1];
+    if (s.length === 4) {
+      const dx = s[2] - x0, dy = s[3] - y0;
+      return [x0, y0, x0 + dx / 3, y0 + dy / 3, x0 + (2 * dx) / 3, y0 + (2 * dy) / 3, s[2], s[3], 1];
+    }
+    return s.length === 8 ? [...s, 1] : s;
+  };
+  const reference = (data, selected) => {
+    const out = data.selected.map(expand);
+    while (out.length < 8) out.push([12, 12, 12, 12, 12, 12, 12, 12, 0]);
+    if (!selected && data.rest) for (const [index, slot] of Object.entries(data.rest)) out[Number(index)] = expand(slot);
+    return out;
+  };
+  let checked = 0;
+  for (const name of set) {
+    const data = B[`${camel(name)}Glyph`].glyph;
+    for (const selected of [false, true]) {
+      const drawing = settle(data, selected);
+      const want = reference(data, selected);
+      assert.equal(drawing.slots.length, 8, `${name}: eight slots`);
+      drawing.slots.forEach((slot, i) => slot.forEach((v, k) => { assert.ok(Object.is(v, want[i][k]), `${name} ${selected ? "selected" : "at rest"} slot ${i}[${k}]: ${v} against ${want[i][k]}`); checked += 1; }));
+      assert.equal(drawing.angle, data.rotate ?? 0);
+      assert.equal(drawing.f, selected && (data.loops ?? []).length ? 1 : 0);
+      assert.deepEqual(drawing.loops, data.loops ?? []);
+      assert.deepEqual(drawing.knock, data.knock ?? []);
+      assert.equal(settle(data, selected), drawing, `${name}: expanded once, not on every render`);
+    }
+  }
+  assert.equal(checked, 38 * 2 * 8 * 9);
 });

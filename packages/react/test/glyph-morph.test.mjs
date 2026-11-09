@@ -115,12 +115,12 @@ describe("MorphIcon in the page", () => {
     const { page } = await fixturePage(browser, mount, { clock: true });
     await page.emulateMedia({ reducedMotion: "reduce" });
     const read = () => page.locator(".basalt-morph").evaluate((svg) => svg.innerHTML.replace(/basalt-glyph-[\w-]+/g, "x"));
-    await page.evaluate(() => window.show({ name: "menu" }));
+    await page.evaluate(() => window.show({ glyph: B.MenuGlyph }));
     await page.waitForFunction(() => document.querySelector(".basalt-morph")?.hasAttribute("data-reduced"));
-    await page.evaluate(() => window.show({ name: "close" }));
+    await page.evaluate(() => window.show({ glyph: B.CloseGlyph }));
     const closed = await read();
-    await page.evaluate(() => window.show({ name: "menu" }));
-    await page.evaluate(() => window.show({ name: "close" }));
+    await page.evaluate(() => window.show({ glyph: B.MenuGlyph }));
+    await page.evaluate(() => window.show({ glyph: B.CloseGlyph }));
     assert.equal(await read(), closed, "menu to close is the settled close at once");
     // rest to selected too
     await page.evaluate(() => window.show({ glyph: B.HomeGlyph }));

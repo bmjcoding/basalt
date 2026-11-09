@@ -2,7 +2,7 @@ import { PlayIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Button, CodeBlock, LivePreview, MorphIcon, NumberTicker, Segment, SegmentedControl, Skeleton, Slide, Spinner, Sparkline, Stepper, Tab, Tabs, TabsList, TabsPanel, Text, TextMorph, TravelSpinner, useSlideDirection, useToast } from "../../packages/react/src/index";
-import type { MorphName } from "../../packages/react/src/index";
+import { ArrowRightGlyph, CheckGlyph, ChevronRightGlyph, CloseGlyph, MenuGlyph, MinusGlyph, PlusGlyph } from "../../packages/react/src/glyph-set";
 import type { Round } from "./rounds";
 
 const col: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 16, alignItems: "flex-start" };
@@ -139,14 +139,14 @@ export const ROUND_8: Round = {
   ],
 };
 
-const MORPH_CYCLE: MorphName[] = ["menu", "close", "plus", "minus", "check", "arrow-right", "chevron-right"];
+const MORPH_CYCLE = [["menu", MenuGlyph], ["close", CloseGlyph], ["plus", PlusGlyph], ["minus", MinusGlyph], ["check", CheckGlyph], ["arrow-right", ArrowRightGlyph], ["chevron-right", ChevronRightGlyph]] as const;
 
 function MorphDemo() {
   const [index, setIndex] = React.useState(0);
-  const name = MORPH_CYCLE[index]!;
+  const [name, glyph] = MORPH_CYCLE[index]!;
   return (
     <div style={row}>
-      <MorphIcon name={name} size={24} />
+      <MorphIcon glyph={glyph} size={24} />
       <Button onClick={() => setIndex((current) => (current + 1) % MORPH_CYCLE.length)}>Cycle icon</Button>
       <Text size="sm" tone="secondary">{name}</Text>
     </div>

@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { CompletionFixtures } from "../examples/completion";
 
 import * as CoreSet from "../src/glyph-set";
-import type { GlyphIcon, MorphName } from "../src/index";
+import type { GlyphIcon } from "../src/index";
 import {
   Accordion,
   AccordionItem,
@@ -145,7 +145,7 @@ function IconsFixture() {
 
 function BenjiFixture() {
   const toast = useToast();
-  const [icon, setIcon] = React.useState<MorphName>("menu");
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [action, setAction] = React.useState("Continue");
   const [step, setStep] = React.useState("name");
   const [windowRange, setWindowRange] = React.useState("day");
@@ -159,8 +159,8 @@ function BenjiFixture() {
   return (
     <Section title="Benji">
       <div className="row">
-        <Button onClick={() => setIcon((current) => (current === "menu" ? "close" : "menu"))}>
-          <MorphIcon name={icon} />
+        <Button onClick={() => setMenuOpen((current) => !current)}>
+          <MorphIcon glyph={menuOpen ? CoreSet.CloseGlyph : CoreSet.MenuGlyph} />
           Menu icon
         </Button>
         <Button onClick={() => setAction((current) => (current === "Continue" ? "Confirm" : "Continue"))}>

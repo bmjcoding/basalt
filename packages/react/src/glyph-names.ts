@@ -39,37 +39,3 @@ export type GlyphName =
   | "routes"
   | "policy"
   | "records";
-
-/** The core actions, which MorphIcon takes by name. */
-export type MorphName =
-  | "menu"
-  | "plus"
-  | "close"
-  | "minus"
-  | "check"
-  | "more"
-  | "arrow-right"
-  | "arrow-down"
-  | "arrow-left"
-  | "arrow-up"
-  | "chevron-right"
-  | "chevron-down"
-  | "chevron-left"
-  | "chevron-up"
-  | "external"
-  | "play"
-  | "pause"
-  | "download"
-  | "copy"
-  | "edit"
-  | "trash";
-
-/** The glyph names, in the order the set is drawn. Built when called, so importing this module does nothing. */
-export function glyphNames(): readonly GlyphName[] {
-  return ["menu", "plus", "close", "minus", "check", "more", "arrow-right", "arrow-down", "arrow-left", "arrow-up", "chevron-right", "chevron-down", "chevron-left", "chevron-up", "external", "play", "pause", "download", "copy", "edit", "trash", "home", "search", "notifications", "messages", "profile", "settings", "more-nav", "calendar", "trends", "plan", "sources", "history", "runs", "sandboxes", "routes", "policy", "records"];
-}
-
-/** The names MorphIcon takes. */
-export function morphNames(): readonly MorphName[] {
-  return ["menu", "plus", "close", "minus", "check", "more", "arrow-right", "arrow-down", "arrow-left", "arrow-up", "chevron-right", "chevron-down", "chevron-left", "chevron-up", "external", "play", "pause", "download", "copy", "edit", "trash"];
-}

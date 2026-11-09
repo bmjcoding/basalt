@@ -51,14 +51,6 @@ export function drawnPairs(): ReadonlyArray<readonly [string, string]> {
   return Object.keys(pairs()).map((key) => key.split(">") as unknown as [string, string]);
 }
 
-/** Which morph two settled states may run: "same", "group", "pair", or null for a swap at once. */
-export function kindOf(a: Endpoint, b: Endpoint): MorphKind | null {
-  if (a.name === b.name) return "same";
-  if (a.group && a.group === b.group) return "group";
-  const table = pairs();
-  return table[`${a.name}>${b.name}`] || table[`${b.name}>${a.name}`] ? "pair" : null;
-}
-
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerpSlot = (a: GlyphSlot, b: GlyphSlot, t: number) => a.map((v, i) => lerp(v, b[i] as number, t)) as unknown as GlyphSlot;
 const middle = (s: GlyphSlot): GlyphSlot => {
@@ -68,52 +60,41 @@ const middle = (s: GlyphSlot): GlyphSlot => {
 };
 const reversed = (s: GlyphSlot): GlyphSlot => [s[6], s[7], s[4], s[5], s[2], s[3], s[0], s[1], s[8]];
 
-/** Pair the slots of two different drawings: through the pair's map, nearer ends first, arrivals and departures from their middles. */
-function pairUp(from: readonly GlyphSlot[], to: readonly GlyphSlot[], map: readonly number[] | undefined) {
-  const target = map ? map.map((j) => to[j] as GlyphSlot) : to.slice();
-  const a: GlyphSlot[] = [];
-  const b: GlyphSlot[] = [];
-  from.forEach((p0, i) => {
-    let p = p0;
-    let q = target[i] as GlyphSlot;
+/** The slots of two different drawings, paired and eased to `e`: through the pair's map, nearer ends first, arrivals and departures from their middles. */
+function pairUp(from: readonly GlyphSlot[], to: readonly GlyphSlot[], map: readonly number[] | undefined, e: number) {
+  return from.map((p, i) => {
+    let q = (map ? to[map[i] as number] : to[i]) as GlyphSlot;
     if (p[8] > 0 && q[8] > 0) {
       const d1 = Math.hypot(p[0] - q[0], p[1] - q[1]) + Math.hypot(p[6] - q[6], p[7] - q[7]);
       const d2 = Math.hypot(p[0] - q[6], p[1] - q[7]) + Math.hypot(p[6] - q[0], p[7] - q[1]);
       if (d2 < d1 - 1e-6) q = reversed(q);
     } else if (p[8] > 0) q = middle(p);
     else if (q[8] > 0) p = middle(q);
-    a.push(p);
-    b.push(q);
+    return lerpSlot(p, q, e);
   });
-  return { a, b };
 }
 
 /** The drawing between two endpoints at eased progress `e` (0 to 1). */
 export function between(a: Endpoint, b: Endpoint, e: number, pair: Pair | null): Drawing {
-  if (a.name === b.name) {
-    return { slots: a.slots.map((s, i) => lerpSlot(s, b.slots[i] as GlyphSlot, e)), angle: b.angle, f: lerp(a.f, b.f, e), loops: b.loops, knock: b.knock, cut: b.cut, evenodd: b.evenodd };
-  }
-  if (a.group && a.group === b.group) {
-    const d = ((b.angle - a.angle + 540) % 360) - 180; // the shortest way round
-    return { slots: b.slots, angle: a.angle + d * e, f: lerp(a.f, b.f, e), loops: b.loops, knock: b.knock, cut: b.cut };
-  }
-  const from = a.slots.map((s) => turn(s, a.angle));
-  const to = b.slots.map((s) => turn(s, b.angle));
-  const p = pairUp(from, to, pair?.map);
-  return { slots: p.a.map((s, i) => lerpSlot(s, p.b[i] as GlyphSlot, e)), angle: 0, f: lerp(a.f, b.f, e), loops: [], knock: [] };
+  const f = lerp(a.f, b.f, e);
+  if (a.name === b.name) return { ...b, slots: a.slots.map((s, i) => lerpSlot(s, b.slots[i] as GlyphSlot, e)), f };
+  // the shortest way round
+  if (a.group && a.group === b.group) return { ...b, angle: a.angle + (((b.angle - a.angle + 540) % 360) - 180) * e, f };
+  return { slots: pairUp(a.slots.map((s) => turn(s, a.angle)), b.slots.map((s) => turn(s, b.angle)), pair?.map, e), angle: 0, f, loops: [], knock: [] };
 }
 
 /** Set up a morph: how it runs from `from` to `target`. A pair drawn one way runs the other way by permuting the source. */
 export function prepare(from: Endpoint, target: Endpoint): { kind: MorphKind | null; from: Endpoint; pair: Pair | null } {
-  const kind = kindOf(from, target);
-  if (kind !== "pair") return { kind, from, pair: null };
+  if (from.name === target.name) return { kind: "same", from, pair: null };
+  if (from.group && from.group === target.group) return { kind: "group", from, pair: null };
   const table = pairs();
   const forward = table[`${from.name}>${target.name}`];
-  if (forward) return { kind, from, pair: forward };
-  const back = table[`${target.name}>${from.name}`] as Pair;
+  const back = table[`${target.name}>${from.name}`];
+  if (forward) return { kind: "pair", from, pair: forward };
+  if (!back) return { kind: null, from, pair: null };
   const turned = from.slots.map((s) => turn(s, from.angle));
   const permuted = back.map ? back.map.map((j) => turned[j] as GlyphSlot) : turned;
-  return { kind, from: { slots: permuted, angle: 0, f: from.f, loops: [], knock: [], group: null, name: from.name }, pair: null };
+  return { kind: "pair", from: { slots: permuted, angle: 0, f: from.f, loops: [], knock: [], group: null, name: from.name }, pair: null };
 }
 
 export interface MorphClock {
@@ -131,7 +112,6 @@ interface Flight {
   readonly fromKey: string | null;
   readonly toKey: string;
   readonly fromSettled: Endpoint | null;
-  readonly toSettled: Endpoint;
   /** Eased progress, 0 (at `from`) to 1 (at `to`). */
   e: number;
   /** Where it is heading now: 1 for `to`, 0 for `from`. */
@@ -182,7 +162,7 @@ export function createMorph(start: Endpoint, startKey: string, draw: (drawing: D
     const span = Math.abs(end - e0);
     const total = duration * span;
     const began = clock.now();
-    const done = () => (end === 1 ? arrive(f.toSettled, f.toKey) : arrive(f.fromSettled as Endpoint, f.fromKey as string));
+    const done = () => (end === 1 ? arrive(f.to, f.toKey) : arrive(f.fromSettled as Endpoint, f.fromKey as string));
     if (span < 1e-6) return done();
     const step = (now: number) => {
       const t = Math.min(1, (now - began) / total);
@@ -213,14 +193,14 @@ export function createMorph(start: Endpoint, startKey: string, draw: (drawing: D
         if (fl.kind === "group" && target.group && target.group === fl.to.group) {
           const d = between(fl.from, fl.to, fl.e, fl.pair);
           const here: Endpoint = { ...d, slots: fl.to.slots, group: fl.to.group, name: `~${fl.to.name}` };
-          return run({ kind: "group", from: here, to: target, pair: null, fromKey: null, toKey: targetKey, fromSettled: null, toSettled: target, e: 0, heading: 1 }, 1, duration, ease);
+          return run({ kind: "group", from: here, to: target, pair: null, fromKey: null, toKey: targetKey, fromSettled: null, e: 0, heading: 1 }, 1, duration, ease);
         }
         return arrive(target, targetKey);
       }
       if (targetKey === key) return arrive(target, targetKey);
       const prep = prepare(current, target);
       if (!prep.kind) return arrive(target, targetKey);
-      run({ kind: prep.kind, from: prep.from, to: target, pair: prep.pair, fromKey: key, toKey: targetKey, fromSettled: current, toSettled: target, e: 0, heading: 1 }, 1, duration, ease);
+      run({ kind: prep.kind, from: prep.from, to: target, pair: prep.pair, fromKey: key, toKey: targetKey, fromSettled: current, e: 0, heading: 1 }, 1, duration, ease);
     },
     status: () => ({ key, moving: !!flight, kind: flight ? flight.kind : null, e: flight ? flight.e : null }),
     stop,

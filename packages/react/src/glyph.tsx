@@ -54,50 +54,39 @@ export interface Drawing {
   readonly evenodd?: boolean;
 }
 
-export const SLOTS = 8;
+const SLOTS = 8;
 /** The stroke, in units on the 24 grid, at every size: 1.5px at 16, 1.875 at 20, 2.25 at 24. */
-export const STROKE = 2.25;
+const STROKE = 2.25;
 
 const UNUSED: GlyphSlot = [12, 12, 12, 12, 12, 12, 12, 12, 0];
 
-/** A stored slot as nine numbers. A straight line has its controls a third of the way along, as the drawn set has them. */
+/** A stored slot as nine numbers. A point is a line to itself; a straight line has its controls a third of the way along, as the drawn set has them. */
 function expand(s: GlyphSlotData): GlyphSlot {
-  const [x0 = 0, y0 = 0] = s;
-  if (s.length === 2) return [x0, y0, x0, y0, x0, y0, x0, y0, 1];
-  if (s.length === 4) {
-    const dx = (s[2] as number) - x0;
-    const dy = (s[3] as number) - y0;
-    return [x0, y0, x0 + dx / 3, y0 + dy / 3, x0 + (2 * dx) / 3, y0 + (2 * dy) / 3, s[2] as number, s[3] as number, 1];
-  }
-  if (s.length === 8) return [...s, 1] as unknown as GlyphSlot;
-  return s as unknown as GlyphSlot;
+  const [x0 = 0, y0 = 0, x3 = x0, y3 = y0] = s;
+  if (s.length > 4) return (s.length === 8 ? [...s, 1] : s) as unknown as GlyphSlot;
+  const dx = x3 - x0;
+  const dy = y3 - y0;
+  return [x0, y0, x0 + dx / 3, y0 + dy / 3, x0 + (2 * dx) / 3, y0 + (2 * dy) / 3, x3, y3, 1];
 }
 
-function padded(slots: readonly GlyphSlotData[]): GlyphSlot[] {
-  const out = slots.map(expand);
-  while (out.length < SLOTS) out.push(UNUSED);
-  return out;
-}
+let drawn: WeakMap<GlyphData, Drawing[]> | undefined;
 
-/** The eight slots of a glyph at rest or selected. */
-export function slotsOf(data: GlyphData, selected: boolean): GlyphSlot[] {
-  const out = padded(data.selected);
-  if (!selected && data.rest) for (const [index, slot] of Object.entries(data.rest)) out[Number(index)] = expand(slot);
-  return out;
-}
-
-/** The settled drawing of a glyph at rest or selected. A glyph with no loops has no fill, so selected draws it as at rest. */
+/**
+ * The settled drawing of a glyph at rest or selected: its eight slots, expanded from the stored form once, the first time
+ * they are drawn, and kept for as long as the glyph is. A glyph with no loops has no fill, so selected draws it as at rest.
+ */
 export function settle(data: GlyphData, selected: boolean): Drawing {
+  let kept = (drawn ??= new WeakMap()).get(data);
+  if (!kept) drawn.set(data, (kept = []));
+  return (kept[+selected] ??= build(data, selected));
+}
+
+function build(data: GlyphData, selected: boolean): Drawing {
+  const slots = data.selected.map(expand);
+  while (slots.length < SLOTS) slots.push(UNUSED);
+  if (!selected) for (const i in data.rest) slots[i as unknown as number] = expand((data.rest as Record<string, GlyphSlotData>)[i] as GlyphSlotData);
   const loops = data.loops ?? [];
-  return {
-    slots: slotsOf(data, selected),
-    angle: data.rotate ?? 0,
-    f: selected && loops.length ? 1 : 0,
-    loops,
-    knock: data.knock ?? [],
-    cut: data.cut,
-    evenodd: data.evenodd,
-  };
+  return { slots, angle: data.rotate ?? 0, f: selected && loops.length ? 1 : 0, loops, knock: data.knock ?? [], cut: data.cut, evenodd: data.evenodd };
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -119,37 +108,36 @@ export function turn(slot: GlyphSlot, degrees: number): GlyphSlot {
 }
 
 const reach = (s: GlyphSlot) => Math.hypot(s[6] - s[0], s[7] - s[1]) + Math.hypot(s[2] - s[0], s[3] - s[1]) + Math.hypot(s[4] - s[6], s[5] - s[7]);
+const at = (s: GlyphSlot, i: number) => `${r3(s[i]!)} ${r3(s[i + 1]!)}`;
 
-function pathOf(s: GlyphSlot, move = true): string {
-  const m = move ? `M${r3(s[0])} ${r3(s[1])}` : "";
-  if (reach(s) < 1e-3) return `${m}L${r3(s[6])} ${r3(s[7])}`;
-  return `${m}C${r3(s[2])} ${r3(s[3])} ${r3(s[4])} ${r3(s[5])} ${r3(s[6])} ${r3(s[7])}`;
+/** A slot's path, given its `reach`: a cubic, or a line when its controls and ends coincide. */
+function pathOf(s: GlyphSlot, l: number, move = true): string {
+  return `${move ? `M${at(s, 0)}` : ""}${l < 1e-3 ? `L${at(s, 6)}` : `C${at(s, 2)} ${at(s, 4)} ${at(s, 6)}`}`;
 }
 
 /** A point is drawn 1.5 times the stroke, as type draws a period heavier than its stems. */
-function widthOf(s: GlyphSlot): number {
-  const l = reach(s);
-  return l >= STROKE ? STROKE : STROKE * (1 + 0.5 * (1 - l / STROKE));
-}
+const widthOf = (l: number) => (l >= STROKE ? STROKE : STROKE * (1 + 0.5 * (1 - l / STROKE)));
 
-/** The paths of a drawing: the fill with its holes, then the strokes. The caller supplies the `<svg>`. */
-export function DrawingPaths({ drawing }: { drawing: Drawing }) {
-  const id = `basalt-glyph-${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+/** The paths of a drawing: the fill with its holes, then the strokes. `uid` is the tile's React id, which names the mask. */
+function paths(drawing: Drawing, uid: string) {
   const slots = drawing.slots.map((s) => turn(s, drawing.angle));
+  const reaches = slots.map(reach);
   const { knock, loops, f } = drawing;
   const strokes = (
     <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
       {slots.map((s, i) => {
         const opacity = s[8] * (knock.includes(i) ? 1 - f : 1);
         if (opacity < 0.002) return null;
-        const w = widthOf(s);
-        return <path key={i} d={pathOf(s)} strokeWidth={Math.abs(w - STROKE) > 1e-6 ? r3(w) : undefined} strokeOpacity={opacity < 0.999 ? r3(opacity) : undefined} />;
+        const w = widthOf(reaches[i]!);
+        return <path key={i} d={pathOf(s, reaches[i]!)} strokeWidth={Math.abs(w - STROKE) > 1e-6 ? r3(w) : undefined} strokeOpacity={opacity < 0.999 ? r3(opacity) : undefined} />;
       })}
     </g>
   );
   if (f <= 0.001 || !loops.length) return strokes;
   const holes = knock.filter((i) => (slots[i]?.[8] ?? 0) > 0.001);
-  const fill = loops.map((loop) => `${loop.map((i, k) => pathOf(slots[i] as GlyphSlot, k === 0)).join("")}Z`).join("");
+  // the mask is named only when there is one
+  const id = holes.length ? `basalt-glyph-${uid.replace(/[^a-zA-Z0-9_-]/g, "")}` : "";
+  const fill = loops.map((loop) => `${loop.map((i, k) => pathOf(slots[i] as GlyphSlot, reaches[i]!, k === 0)).join("")}Z`).join("");
   return (
     <>
       {holes.length ? (
@@ -158,7 +146,7 @@ export function DrawingPaths({ drawing }: { drawing: Drawing }) {
           <g fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeOpacity={r3(f)}>
             {holes.map((i) => {
               const s = slots[i] as GlyphSlot;
-              return <path key={i} d={pathOf(s)} strokeWidth={r3(widthOf(s))} strokeOpacity={s[8] < 0.999 ? r3(s[8]) : undefined} />;
+              return <path key={i} d={pathOf(s, reaches[i]!)} strokeWidth={r3(widthOf(reaches[i]!))} strokeOpacity={s[8] < 0.999 ? r3(s[8]) : undefined} />;
             })}
           </g>
         </mask>
@@ -174,9 +162,10 @@ export function DrawingPaths({ drawing }: { drawing: Drawing }) {
 
 /** A drawing in its own tile. `size` is in px; the stroke is 2.25 of 24 whatever the size. */
 export function DrawingSvg({ drawing, size = 16, ...rest }: { drawing: Drawing; size?: number | string } & Omit<React.SVGProps<SVGSVGElement>, "ref" | "width" | "height">) {
+  const uid = React.useId();
   return (
     <svg {...rest} width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <DrawingPaths drawing={drawing} />
+      {paths(drawing, uid)}
     </svg>
   );
 }
@@ -186,7 +175,7 @@ export function DrawingSvg({ drawing, size = 16, ...rest }: { drawing: Drawing; 
  * `selected`; any other weight is ignored, since the set has one weight.
  */
 export function glyph(data: GlyphData): GlyphIcon {
-  function Glyph({ size = 16, weight, className, focusable, role, "aria-hidden": ariaHidden, "aria-label": ariaLabel }: IconGlyphProps) {
+  function Glyph({ size, weight, className, focusable, role, "aria-hidden": ariaHidden, "aria-label": ariaLabel }: IconGlyphProps) {
     return (
       <DrawingSvg
         drawing={settle(data, weight === "fill")}
@@ -201,5 +190,6 @@ export function glyph(data: GlyphData): GlyphIcon {
     );
   }
   Glyph.displayName = `Glyph(${data.name})`;
-  return Object.assign(Glyph, { glyph: data });
+  Glyph.glyph = data;
+  return Glyph;
 }

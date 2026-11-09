@@ -79,7 +79,8 @@ describe("MorphIcon", () => {
     const n = el.getAttribute("d").match(/-?\d*\.?\d+/g).map(Number);
     return [n[0], n[1], n[n.length - 2], n[n.length - 1]];
   }));
-  const icon = mountable("", `{ icon: (p) => <B.MorphIcon name={p.name} selected={p.selected} /> }`);
+  // the glyph of a name: "chevron-down" is B.ChevronDownGlyph
+  const icon = mountable(`const glyphOf = (name) => B[name.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join("") + "Glyph"];`, `{ icon: (p) => <B.MorphIcon glyph={glyphOf(p.name)} selected={p.selected} /> }`);
   const distance = (a, b) => Math.max(...a.flat().map((v, i) => Math.abs(v - b.flat()[i])));
   const MENU = [[5, 7, 19, 7], [5, 12, 19, 12], [5, 17, 19, 17]];
 

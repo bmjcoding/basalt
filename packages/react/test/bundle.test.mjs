@@ -78,11 +78,12 @@ test("Menu does not pull in Shiki", async () => {
   assert.ok(!inputs.some((f) => f.includes("shiki")));
 });
 
-// MorphIcon's limit rose from 8,000 to 10,500 with the core set's morph engine (the allow-list and flight identity, ~3.7 KB) and
-// the 21 core actions it takes by name (~2.5 KB); navigation glyphs are passed by reference, so they cost an app only what it imports.
+// MorphIcon is 6,549 bytes: the morph engine (the allow-list and flight identity) and the drawing, and no glyph. It takes every glyph
+// by reference (`glyph={CloseGlyph}`), so an app pays only for the glyphs it imports. When it took the 21 actions by name it carried
+// all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 10_500], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -91,8 +92,9 @@ for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 
 }
 
 // The core glyphs are modules of their own: an app that imports one bundles that glyph and the small drawing code, and
-// no other glyph, no Base UI and no Phosphor.
-for (const [name, limit] of [["HomeGlyph", 4_500], ["SearchGlyph", 4_500], ["CloseGlyph", 3_500]]) {
+// no other glyph, no Base UI and no Phosphor. Measured: Home 2,899, Search 3,135, Close 2,790 (the drawing code is ~2.5 KB of each,
+// the glyph's own numbers 0.1 to 0.6 KB); the limits sit just above.
+for (const [name, limit] of [["HomeGlyph", 3_000], ["SearchGlyph", 3_250], ["CloseGlyph", 2_900]]) {
   test(`${name} alone is small, and bundles no other glyph`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -101,6 +103,19 @@ for (const [name, limit] of [["HomeGlyph", 4_500], ["SearchGlyph", 4_500], ["Clo
     assert.ok(glyphs.length <= 2, `${name} pulls ${glyphs.join(", ")}`);
   });
 }
+
+test("MorphIcon alone carries the engine and no glyph; Stepper carries the three it draws", async () => {
+  // which glyphs' drawings a bundle holds: each glyph module declares `name: "…"` once (a chunk may hold a glyph module, so read the text)
+  const glyphsIn = async (name) => {
+    const out = await esbuild.build({
+      stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
+      bundle: true, minify: false, format: "esm", write: false, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    });
+    return [...out.outputFiles[0].text.matchAll(/^\s+name: "([a-z-]+)",$/gm)].map((m) => m[1]).sort();
+  };
+  assert.deepEqual(await glyphsIn("MorphIcon"), [], "MorphIcon carries a glyph of its own");
+  assert.deepEqual(await glyphsIn("Stepper"), ["check", "chevron-left", "chevron-right"]);
+});
 
 test("an imported glyph that is never used costs nothing", async () => {
   const result = await esbuild.build({

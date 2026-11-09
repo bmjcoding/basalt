@@ -312,14 +312,13 @@ describe("MorphIcon", () => {
   test("the whole core set, with a 2.25 stroke, morphing on slow ease-out", async () => {
     const { GLYPHS, NAMES } = await import("../glyphs/source.mjs");
     const actions = NAMES.filter((name) => !GLYPHS[name].board && !GLYPHS[name].nav);
-    const { page } = await fixturePage(browser, `window.morph = (name) => createRoot(document.getElementById("root")).render(<B.MorphIcon name={name} />);`);
+    const { page } = await fixturePage(browser, `window.morph = (name) => createRoot(document.getElementById("root")).render(<B.MorphIcon glyph={B[name.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join("") + "Glyph"]} />);`);
     for (const name of actions) {
       await page.evaluate((name) => window.morph(name), name);
       await page.locator(`.basalt-morph[data-icon="${name}"]`).waitFor();
     }
     assert.equal(await page.locator(".basalt-morph g[stroke='currentColor']").first().getAttribute("stroke-width"), "2.25");
-    const { morphNames } = await import("../dist/glyph-names.js");
-    assert.deepEqual([...morphNames()].sort(), [...actions].sort(), "MorphIcon takes the core actions by name");
+    assert.equal(actions.length, 21, "MorphIcon draws each of the 21 core actions, passed by reference");
     const timing = await page.evaluate(() => { const s = getComputedStyle(document.documentElement); return [s.getPropertyValue("--basalt-duration-slow").trim(), s.getPropertyValue("--basalt-ease-out").trim()]; });
     assert.deepEqual(timing, ["200ms", "cubic-bezier(0.16, 1, 0.3, 1)"], "the morph reads these tokens (glideTiming)");
     await page.close();

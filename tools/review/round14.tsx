@@ -76,7 +76,7 @@ function Pair({ a, b, label }: { a: ActionName; b: ActionName; label: string }) 
   const [on, setOn] = React.useState(false);
   return (
     <Button onClick={() => setOn((v) => !v)}>
-      <MorphIcon name={on ? b : a} />
+      <MorphIcon glyph={glyphOf(on ? b : a)} />
       {label}
     </Button>
   );
@@ -86,7 +86,7 @@ function Cycle({ names, label }: { names: readonly ActionName[]; label: string }
   const [i, setI] = React.useState(0);
   return (
     <Button onClick={() => setI((v) => (v + 1) % names.length)}>
-      <MorphIcon name={names[i]!} />
+      <MorphIcon glyph={glyphOf(names[i]!)} />
       {label}
     </Button>
   );
@@ -110,7 +110,7 @@ function NotAllowed() {
   const [b, setB] = React.useState(true);
   return (
     <div style={row}>
-      <Button onClick={() => setA((v) => !v)}><MorphIcon name={a ? "minus" : "check"} />Minus, check</Button>
+      <Button onClick={() => setA((v) => !v)}><MorphIcon glyph={a ? CoreSet.MinusGlyph : CoreSet.CheckGlyph} />Minus, check</Button>
       <Button onClick={() => setB((v) => !v)}><MorphIcon glyph={b ? CoreSet.HomeGlyph : CoreSet.SearchGlyph} />Home, search</Button>
     </div>
   );

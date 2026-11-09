@@ -57,7 +57,7 @@ export type { AlertDialogProps, SheetContentProps, SheetSide } from "./overlays"
 export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export { MorphIcon } from "./morph-icon";
-export type { MorphIconProps, MorphName } from "./morph-icon";
+export type { MorphIconProps } from "./morph-icon";
 export { Slide, TravelSpinner, useGlide, useReducedMotion, useSlideDirection } from "./motion";
 export { LivePreview } from "./preview";
 export type { LivePreviewProps } from "./preview";
