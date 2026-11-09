@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
+import { ALLOWED, readers } from "../../tokens/test/accent-readers.mjs";
 import { fixturePage, launch, pkg } from "./support.mjs";
 
 const tokens = JSON.parse(fs.readFileSync(path.join(pkg, "..", "tokens", "dist", "json", "tokens.json"), "utf8"));
@@ -127,6 +128,11 @@ describe("accent classes: no class, none and unknown names are ink", () => {
     assert.equal(dot, ink, "without the class rule the dot is the ink dot");
     assert.equal(await p.evaluate(() => getComputedStyle(document.getElementById("cobalt")).getPropertyValue("--basalt-accent-ink")), "");
     await p.close();
+  });
+
+  test("the built stylesheet: only Badge's accent dot reads the accent, directly or through an alias, and only as its background", () => {
+    const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+    assert.deepEqual(readers(css).map(({ selector, property }) => ({ selector, property })), ALLOWED);
   });
 
   test("the built stylesheet gates every class rule behind @supports and keeps the reset outside it", async () => {

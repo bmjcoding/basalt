@@ -16,6 +16,8 @@ import { test } from "node:test";
 
 import { converter, formatHex, parse, rgb, wcagContrast } from "culori";
 
+import { ACCENT_VAR, ALLOWED, readers, stripComments } from "./accent-readers.mjs";
+
 const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), "utf8");
 const tokens = JSON.parse(read("../dist/json/tokens.json"));
 const THEMES = ["light", "dark"];
@@ -129,7 +131,6 @@ test("the status guard can fail: oklch hue 20 at cobalt's lightness and chroma i
 // ---- The generated outputs agree with the tokens ----
 
 const accentsCss = read("../dist/css/accents.css");
-const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 test("accents.css: one light-dark() rule per class, behind @supports, in @layer basalt; none and unknown names reset", () => {
   const css = stripComments(accentsCss);
@@ -200,34 +201,6 @@ test("the Swift AccentClass has the same cases and the same colours as the token
 // The accent is a dot beside ink words and nothing more. These checks find every declaration that reads the variable, directly or through
 // a custom property that aliases it (and an alias of an alias), and sort what they find by where it is. Only one reader is allowed.
 
-const ACCENT_VAR = "--basalt-accent-ink";
-const ALLOWED = [{ selector: '.basalt-badge[data-status="accent"] .basalt-badge-dot', property: "background" }];
-
-/** Every `selector { property: value }` in `css`, innermost rules only (at-rules are looked through). */
-const declarations = (css) =>
-  [...stripComments(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(([, selector, body]) =>
-    body.split(";").map((d) => d.trim()).filter(Boolean).map((d) => {
-      const at = d.indexOf(":");
-      return { selector: selector.trim().replace(/\s+/g, " "), property: d.slice(0, at).trim(), value: d.slice(at + 1).trim() };
-    }),
-  );
-
-/** The declarations in `sheets` that read the accent variable or an alias of it. */
-function readers(...sheets) {
-  const all = sheets.flatMap(declarations);
-  const carriers = new Set([ACCENT_VAR]);
-  for (let grew = true; grew; ) {
-    grew = false;
-    for (const d of all) {
-      if (d.property.startsWith("--") && !carriers.has(d.property) && [...carriers].some((c) => d.value.includes(`var(${c}`))) {
-        carriers.add(d.property);
-        grew = true;
-      }
-    }
-  }
-  return all.filter((d) => [...carriers].some((c) => d.value.includes(`var(${c}`)));
-}
-
 const CODE = /(^|[^\w])(code|pre)\b|\.tok-|codeblock|shiki|syntax|\[data-language/i;
 const KINDS = {
   chrome: (d) => /basalt-chrome|(^|[^\w-])header\b|banner/i.test(d.selector),
@@ -272,7 +245,6 @@ test("the confinement check can fail: a read in each forbidden place is caught, 
 
 const SHEETS = {
   "components.css": read("../../react/src/styles/components.css"),
-  "styles.css (built)": read("../../react/dist/styles.css"),
   "tokens.css": read("../dist/css/tokens.css"),
   "shadcn.css": read("../dist/css/shadcn.css"),
   "basalt-html.css": read("../../../tools/html-skill/src/basalt-html.css"),
@@ -285,9 +257,8 @@ test("nothing reads the accent from chrome, code, focus, selection, links, the p
 });
 
 test("only Badge's accent dot reads the accent, and only as its background", () => {
-  for (const file of ["components.css", "styles.css (built)"]) {
-    assert.deepEqual(readers(SHEETS[file]).map(({ selector, property }) => ({ selector, property })), ALLOWED, file);
-  }
+  // The built styles.css is checked the same way in packages/react/test/accents.test.mjs, which runs after the React build.
+  assert.deepEqual(readers(SHEETS["components.css"]).map(({ selector, property }) => ({ selector, property })), ALLOWED, "components.css");
   for (const file of ["tokens.css", "shadcn.css"]) assert.deepEqual(readers(SHEETS[file]), [], `${file} reads the accent`);
   // The HTML skill's .status reader is a follow-up; until it lands the skill reads nothing, and its token CSS carries no accent.
   assert.deepEqual(readers(SHEETS["basalt-html.css"]), [], "the HTML skill's source CSS reads the accent");
