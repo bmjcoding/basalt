@@ -36,7 +36,7 @@ try {
   }
   fs.writeFileSync(path.join(consumer, "package-lock.json"), JSON.stringify({ name: manifest.name, version: manifest.version, lockfileVersion: 3, requires: true, packages }));
   run("npm", ["ci", "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], consumer);
-  fs.writeFileSync(path.join(consumer, "index.tsx"), `import { Form, Field, Input, Combobox, Slider, Button, Sheet, Text, type TableDensity } from '@srasyndicate/basalt';
+  fs.writeFileSync(path.join(consumer, "index.tsx"), `import { Form, Field, Input, Combobox, Slider, Button, Sheet, Text, MorphIcon, CloseGlyph, type TableDensity } from '@srasyndicate/basalt';
 import { PlayIcon } from '@phosphor-icons/react';
 import { tokens } from '@srasyndicate/basalt-tokens';
 // An icon is structural: Phosphor's components fit it, and so does any component that draws an SVG.
@@ -47,7 +47,11 @@ const size: string = tokens.primitives['size-control-md'].css;
 // @ts-expect-error semantic token names are checked
 tokens.light['missing-token'];
 const density: TableDensity = 'compact';
-const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase()}><Field label="Name"><Input /></Field><Combobox options={[{value:'one',label:'One'}]} /><Slider label="Range" defaultValue={[10,20]} onValueChange={value => value[0]} /><Button>Deploy</Button><Text>{colour}{size}{density}</Text>{icons}</Form>;
+// A glyph is passed by reference; the by-name prop is gone.
+const morph = <MorphIcon glyph={CloseGlyph} />;
+// @ts-expect-error MorphIcon takes the glyph by reference, not a name
+const byName = <MorphIcon name="close" />;
+const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase()}><Field label="Name"><Input /></Field><Combobox options={[{value:'one',label:'One'}]} /><Slider label="Range" defaultValue={[10,20]} onValueChange={value => value[0]} /><Button>Deploy</Button><Text>{colour}{size}{density}</Text>{icons}{morph}{byName}</Form>;
 `);
   // What the wrappers still accept (finalFocus, actionsRef, null and numeric selections, ...), compiled as an installed
   // package: the same file packages/react/test/types.test.mjs checks against dist.
@@ -66,8 +70,8 @@ const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase(
   const foreign = loaded.filter((file) => /node_modules\/(@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki)\//.test(file));
   assert.deepEqual(foreign, [], `a Button-only consumer compiles ${foreign.length} third-party declaration files`);
   assert.ok(loaded.length < 400, `a Button-only consumer compiles ${loaded.length} files`);
-  fs.writeFileSync(path.join(consumer, "smoke.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs'; import { createElement } from 'react'; import { renderToStaticMarkup } from 'react-dom/server'; import { Button, CodeBlock, Pagination, Avatar, preloadCodeLanguages } from '@srasyndicate/basalt'; import { tokens, accents } from '@srasyndicate/basalt-tokens';
-assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex, '#77a2fc'); assert.equal(accents.cobalt.light.oklch, 'oklch(0.47 0.17 264)'); assert.match(renderToStaticMarkup(createElement(Button, null, 'Deploy')), /Deploy/); assert.doesNotMatch(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); await preloadCodeLanguages(['ts']); assert.match(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); for (const f of fs.readdirSync(new URL('.', import.meta.resolve('@srasyndicate/basalt')))) if (f.endsWith('.js')) assert.doesNotMatch(fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^import[^;]*from\s*"shiki/m, f + ' imports Shiki statically'); const pages = renderToStaticMarkup(createElement(Pagination, {page:500000,pageCount:1000000})); assert.ok(pages.length < 10000); assert.match(renderToStaticMarkup(createElement(Avatar,{name:'Bailey Jones'})), /BJ/); for (const name of ['styles.css','components.css','fonts.css']) assert.ok(fs.statSync(import.meta.resolve('@srasyndicate/basalt/'+name).replace('file://','')).size > 0); assert.match(fs.readFileSync(new URL(import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^"use client"/);
+  fs.writeFileSync(path.join(consumer, "smoke.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs'; import { createElement } from 'react'; import { renderToStaticMarkup } from 'react-dom/server'; import { Button, CodeBlock, Pagination, Avatar, MorphIcon, CloseGlyph, preloadCodeLanguages } from '@srasyndicate/basalt'; import { tokens, accents } from '@srasyndicate/basalt-tokens';
+assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex, '#77a2fc'); assert.equal(accents.cobalt.light.oklch, 'oklch(0.47 0.17 264)'); assert.match(renderToStaticMarkup(createElement(Button, null, 'Deploy')), /Deploy/); assert.doesNotMatch(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); await preloadCodeLanguages(['ts']); assert.match(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); for (const f of fs.readdirSync(new URL('.', import.meta.resolve('@srasyndicate/basalt')))) if (f.endsWith('.js')) assert.doesNotMatch(fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^import[^;]*from\s*"shiki/m, f + ' imports Shiki statically'); const pages = renderToStaticMarkup(createElement(Pagination, {page:500000,pageCount:1000000})); assert.ok(pages.length < 10000); assert.match(renderToStaticMarkup(createElement(Avatar,{name:'Bailey Jones'})), /BJ/); assert.match(renderToStaticMarkup(createElement(MorphIcon,{glyph:CloseGlyph})), /data-icon="close"/); for (const name of ['styles.css','components.css','fonts.css']) assert.ok(fs.statSync(import.meta.resolve('@srasyndicate/basalt/'+name).replace('file://','')).size > 0); assert.match(fs.readFileSync(new URL(import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^"use client"/);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
   console.log(`Installable archives: ${out}`);

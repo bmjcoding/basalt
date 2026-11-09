@@ -77,9 +77,10 @@ function pairUp(from: readonly GlyphSlot[], to: readonly GlyphSlot[], map: reado
 /** The drawing between two endpoints at eased progress `e` (0 to 1). */
 export function between(a: Endpoint, b: Endpoint, e: number, pair: Pair | null): Drawing {
   const f = lerp(a.f, b.f, e);
-  if (a.name === b.name) return { ...b, slots: a.slots.map((s, i) => lerpSlot(s, b.slots[i] as GlyphSlot, e)), f };
+  const { loops, knock, cut, evenodd } = b;
+  if (a.name === b.name) return { slots: a.slots.map((s, i) => lerpSlot(s, b.slots[i] as GlyphSlot, e)), angle: b.angle, f, loops, knock, cut, evenodd };
   // the shortest way round
-  if (a.group && a.group === b.group) return { ...b, angle: a.angle + (((b.angle - a.angle + 540) % 360) - 180) * e, f };
+  if (a.group && a.group === b.group) return { slots: b.slots, angle: a.angle + (((b.angle - a.angle + 540) % 360) - 180) * e, f, loops, knock, cut, evenodd };
   return { slots: pairUp(a.slots.map((s) => turn(s, a.angle)), b.slots.map((s) => turn(s, b.angle)), pair?.map, e), angle: 0, f, loops: [], knock: [] };
 }
 

@@ -78,7 +78,7 @@ test("Menu does not pull in Shiki", async () => {
   assert.ok(!inputs.some((f) => f.includes("shiki")));
 });
 
-// MorphIcon is 6,549 bytes: the morph engine (the allow-list and flight identity) and the drawing, and no glyph. It takes every glyph
+// MorphIcon is 6,713 bytes: the morph engine (the allow-list and flight identity) and the drawing, and no glyph. It takes every glyph
 // by reference (`glyph={CloseGlyph}`), so an app pays only for the glyphs it imports. When it took the 21 actions by name it carried
 // all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
@@ -92,7 +92,7 @@ for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 
 }
 
 // The core glyphs are modules of their own: an app that imports one bundles that glyph and the small drawing code, and
-// no other glyph, no Base UI and no Phosphor. Measured: Home 2,899, Search 3,135, Close 2,790 (the drawing code is ~2.5 KB of each,
+// no other glyph, no Base UI and no Phosphor. Measured: Home 2,947, Search 3,183, Close 2,838 (the drawing code is ~2.5 KB of each,
 // the glyph's own numbers 0.1 to 0.6 KB); the limits sit just above.
 for (const [name, limit] of [["HomeGlyph", 3_000], ["SearchGlyph", 3_250], ["CloseGlyph", 2_900]]) {
   test(`${name} alone is small, and bundles no other glyph`, async () => {

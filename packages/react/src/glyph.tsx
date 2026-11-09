@@ -108,11 +108,11 @@ export function turn(slot: GlyphSlot, degrees: number): GlyphSlot {
 }
 
 const reach = (s: GlyphSlot) => Math.hypot(s[6] - s[0], s[7] - s[1]) + Math.hypot(s[2] - s[0], s[3] - s[1]) + Math.hypot(s[4] - s[6], s[5] - s[7]);
-const at = (s: GlyphSlot, i: number) => `${r3(s[i]!)} ${r3(s[i + 1]!)}`;
 
-/** A slot's path, given its `reach`: a cubic, or a line when its controls and ends coincide. */
+/** A slot's path, given its `reach`: a cubic, or a line when its controls and ends coincide. One flat template, since joined pieces make the engine flatten a string of ropes. */
 function pathOf(s: GlyphSlot, l: number, move = true): string {
-  return `${move ? `M${at(s, 0)}` : ""}${l < 1e-3 ? `L${at(s, 6)}` : `C${at(s, 2)} ${at(s, 4)} ${at(s, 6)}`}`;
+  const m = move ? `M${r3(s[0])} ${r3(s[1])}` : "";
+  return l < 1e-3 ? `${m}L${r3(s[6])} ${r3(s[7])}` : `${m}C${r3(s[2])} ${r3(s[3])} ${r3(s[4])} ${r3(s[5])} ${r3(s[6])} ${r3(s[7])}`;
 }
 
 /** A point is drawn 1.5 times the stroke, as type draws a period heavier than its stems. */
@@ -121,15 +121,18 @@ const widthOf = (l: number) => (l >= STROKE ? STROKE : STROKE * (1 + 0.5 * (1 - 
 /** The paths of a drawing: the fill with its holes, then the strokes. `uid` is the tile's React id, which names the mask. */
 function paths(drawing: Drawing, uid: string) {
   const slots = drawing.slots.map((s) => turn(s, drawing.angle));
-  const reaches = slots.map(reach);
+  // a slot's reach is worked out only where a stroke, fill or mask needs it, so slots that are not drawn cost nothing
+  const reaches: number[] = [];
+  const lengthOf = (i: number) => (reaches[i] ??= reach(slots[i] as GlyphSlot));
   const { knock, loops, f } = drawing;
   const strokes = (
     <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
       {slots.map((s, i) => {
         const opacity = s[8] * (knock.includes(i) ? 1 - f : 1);
         if (opacity < 0.002) return null;
-        const w = widthOf(reaches[i]!);
-        return <path key={i} d={pathOf(s, reaches[i]!)} strokeWidth={Math.abs(w - STROKE) > 1e-6 ? r3(w) : undefined} strokeOpacity={opacity < 0.999 ? r3(opacity) : undefined} />;
+        const l = lengthOf(i);
+        const w = widthOf(l);
+        return <path key={i} d={pathOf(s, l)} strokeWidth={Math.abs(w - STROKE) > 1e-6 ? r3(w) : undefined} strokeOpacity={opacity < 0.999 ? r3(opacity) : undefined} />;
       })}
     </g>
   );
@@ -137,7 +140,7 @@ function paths(drawing: Drawing, uid: string) {
   const holes = knock.filter((i) => (slots[i]?.[8] ?? 0) > 0.001);
   // the mask is named only when there is one
   const id = holes.length ? `basalt-glyph-${uid.replace(/[^a-zA-Z0-9_-]/g, "")}` : "";
-  const fill = loops.map((loop) => `${loop.map((i, k) => pathOf(slots[i] as GlyphSlot, reaches[i]!, k === 0)).join("")}Z`).join("");
+  const fill = loops.map((loop) => `${loop.map((i, k) => pathOf(slots[i] as GlyphSlot, lengthOf(i), k === 0)).join("")}Z`).join("");
   return (
     <>
       {holes.length ? (
@@ -146,7 +149,7 @@ function paths(drawing: Drawing, uid: string) {
           <g fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeOpacity={r3(f)}>
             {holes.map((i) => {
               const s = slots[i] as GlyphSlot;
-              return <path key={i} d={pathOf(s, reaches[i]!)} strokeWidth={r3(widthOf(reaches[i]!))} strokeOpacity={s[8] < 0.999 ? r3(s[8]) : undefined} />;
+              return <path key={i} d={pathOf(s, lengthOf(i))} strokeWidth={r3(widthOf(lengthOf(i)))} strokeOpacity={s[8] < 0.999 ? r3(s[8]) : undefined} />;
             })}
           </g>
         </mask>
