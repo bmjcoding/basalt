@@ -70,16 +70,20 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   level 2 or above and carries a shadow. Never promote a panel with `float` or an explicit
   level; use space, type and content.
 - **Depth is four levels, and the level is not a prop.** A panel is one level above what
-  it sits in (3 is the cap), a popup is its opener plus one (never below 2), a modal resets
-  to 2, a tooltip and a toast are 3. In light, levels 1 to 3 are one white: nesting shows by
+  it sits in (3 is the cap), a popup is its opener plus one (a floor of 1, a cap of 3), a
+  modal (dialog, alert dialog, sheet, command menu) resets to 1 and what it holds starts at 2,
+  a tooltip and a toast are 3. In light, levels 1 to 3 are one white: nesting shows by
   the rim, never by a darker fill. Group with space or a divider first; a panel is for a
   distinct object, at most one deeper inside any panel; bands (the command menu's input row,
   a table header) are not boxes.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
-- **Selected is shown by shape, not a wash alone:** the raised pill with a hairline, or
-  the 2px indicator bar. One state, one look, across components (tabs, segments,
-  pagination, table rows). The active row in a menu, select, combobox or command menu is
-  the selected wash plus a 2px by 16px bar (WCAG 1.4.1, not 1.4.11).
+- **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
+  hairline, a check, or a checked box. One state, one look, across components (tabs,
+  segments, pagination, table rows). **There is no vertical bar and no inset outline
+  anywhere.** The active row in a menu, select, combobox or command menu is a rounded plate
+  (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
+  weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
+  carries the state. Horizontal tabs keep their underline: it is horizontal.
 - **Keyboard keys are chips:** a fill with no border, one per key, 2px apart; ⌘ ⌥ ⌃ are
   Phosphor icons. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends

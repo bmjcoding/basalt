@@ -77,19 +77,19 @@ extension Basalt {
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
     )
 
-    /// Level 1: a panel directly on the page. In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher.
+    /// Level 1: a panel directly on the page, a popup opened from the page or a sidebar, and the modals' own surface (dialog, sheet, command menu). In light, levels 1 to 3 are all white: nesting shows by the rim (and a shadow when floating), never darker-is-higher.
     public static let surface1 = ThemedColor(
       light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
       dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
     )
 
-    /// Level 2: a panel on a level-1 panel, a floating menu or popover, a dialog.
+    /// Level 2: a panel in a panel, a popup opened from a card or a modal, the command menu's input band, a modal's inner panels.
     public static let surface2 = ThemedColor(
       light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
       dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
     )
 
-    /// Level 3: the deepest panel, a popup opened from a dialog, a tooltip, a toast. Nothing nests below it.
+    /// Level 3: the deepest panel, a popup opened from a level-2 panel, a tooltip, a toast. Nothing nests below it.
     public static let surface3 = ThemedColor(
       light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
       dark: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1)
@@ -107,7 +107,7 @@ extension Basalt {
       dark: RGBA(red: 0.039225, green: 0.039225, blue: 0.039225, alpha: 1)
     )
 
-    /// Menus, popovers, selects and dialogs.
+    /// Level 2: a panel in a panel, and a popup opened from a card or a modal. A menu, select or popover opened from the page or a sidebar is level 1 (surface-raised); a dialog, sheet and the command menu reset to level 1 as well.
     public static let surfaceOverlay = ThemedColor(
       light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
       dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
@@ -233,13 +233,13 @@ extension Basalt {
       dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
     )
 
-    /// Hover wash over any surface; menu highlight.
+    /// Hover wash over any surface.
     public static let stateHover = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.04),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06)
     )
 
-    /// Selected wash, with a second cue (a bar, a pill, a check): a wash alone is about 1.2:1.
+    /// Selected wash: the lit row's plate, the nav pill, a selected table row's band. A wash alone is about 1.2:1, so the state has a second cue: the ink step to primary, a check, a pill or a checked box.
     public static let stateSelected = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.07),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.09)
@@ -335,8 +335,10 @@ extension Basalt {
     public static let controlMd: Double = 32
     public static let controlLg: Double = 36
     public static let controlXl: Double = 40
-    public static let menuRow: Double = 32
-    public static let menuRowTouch: Double = 36
+    /// The plate of a Menu, Select or Combobox row (the command menu's is size-control-xl, 40). The row is 4px taller: each row carries 2px above and below its plate, so the 4px gap between plates is drawn inside the rows and neighbouring hit areas touch. Compact steps it down to 32.
+    public static let menuRow: Double = 36
+    /// The least height of a row's hit area on a coarse pointer.
+    public static let menuRowTouch: Double = 44
     public static let tapMin: Double = 44
     public static let iconSm: Double = 16
     public static let iconMd: Double = 20
@@ -344,7 +346,7 @@ extension Basalt {
     public static let focusWidth: Double = 2
     public static let focusOffset: Double = 2
     public static let hairline: Double = 1
-    /// The bar that marks the selected or active item: the active tab, the selected table row.
+    /// The underline of the active tab in a horizontal tab bar. There is no vertical bar anywhere: the active row, a selected table row and vertical tabs take a plate, a wash or a pill instead.
     public static let indicator: Double = 2
     /// The track of Progress and Slider.
     public static let track: Double = 4

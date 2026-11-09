@@ -32,7 +32,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Light: \`basalt-surface-page\` sits just below white, so white cards lift without a shadow; sunken areas (\`basalt-surface-sunken\`, \`basalt-surface-sunken-strong\`) step darker.
 - Text comes in three levels: \`basalt-text-primary\`, \`basalt-text-secondary\`, \`basalt-text-tertiary\`. All three meet 4.5:1 on every surface in both themes. On a hover or selected wash, tertiary text becomes secondary.
 - Lines: a panel's edge is its rim (\`basalt-border-rim\`, a real 1px border, lit 2 points more on top in dark); \`shadow-hairline\` frames controls; \`basalt-border-divider\` separates rows and groups; \`basalt-border-input\` bounds inputs at 3:1 or better.
-- Hover is a wash (\`basalt-state-hover\`) or one step brighter on a hairline (\`basalt-border-hover\`). Selected is a wash **plus** a second cue: a pill, a bar, a check.
+- Hover is a wash (\`basalt-state-hover\`) or one step brighter on a hairline (\`basalt-border-hover\`). Selected is a wash **plus** a second cue: a pill, a check, a checked box, or a step in ink. There is no vertical bar anywhere.
 - The primary action (\`basalt-action-primary\`) is the inverse of the page: one per view.
 - Status colour is a dot beside a word, never a coloured fill. \`basalt-status-danger\` is also the text of destructive actions, on a red hairline. There is no filled red button.
 - Every colour sits inside sRGB, so every display shows the same colour.
@@ -118,7 +118,7 @@ A menu of actions on a trigger, opened by click or keyboard and dismissed by Esc
 
 Use MenuCheckboxItem for independent settings, MenuRadioGroup/MenuRadioItem for one choice, and MenuSubmenu/MenuSubmenuTrigger with a nested MenuContent for secondary actions. State marks accompany the wash. Choice changes keep the menu open by default; ArrowRight opens a submenu and Escape returns to its parent.
 
-Rows are 32px (\`basalt-size-menu-row\`) in \`small\` text; the popup is \`basalt-surface-overlay\` with \`shadow-overlay\`, radius \`basalt-radius-lg\`, items \`basalt-radius-sm\`.
+A row is a 36px plate (\`basalt-size-menu-row\`) in a 40px hit area, in 14/20 text (13 when compact): the 4px gap between plates is drawn inside the rows. The popup takes its opener's level plus one, with a floor of 1 (\`#0a0a0a\` from the page in dark), \`shadow-overlay\`, radius \`basalt-radius-lg\`; rows have radius \`basalt-radius-md\`. The active row is a plate in the selected wash plus a lift from secondary ink to primary: no bar, no weight change.
 
 - Do put destructive items last, after a separator.
 - Don't hide the only way to do something in a menu.
@@ -138,7 +138,7 @@ Tabs switch between panels of one view.
 
 **You provide** \`Tabs\` with a \`defaultValue\` or \`value\`, a \`TabsList\` (give it an \`aria-label\`) of \`Tab\`s, and one \`TabsPanel\` per tab with the same \`value\`.
 
-The active tab is marked by a 2px bar in \`basalt-text-primary\` that slides between tabs, not by colour alone. Arrow keys move between tabs.
+In a horizontal bar the active tab is marked by a 2px underline in \`basalt-text-primary\` that slides between tabs, not by colour alone. Vertical tabs are a column of 36px pills in a track, with no divider and no indicator. Arrow keys move between tabs.
 
 - Use \`SegmentedControl\` instead when the options filter one view rather than switch panels.
 `),
@@ -169,7 +169,7 @@ A data table in a rounded, bordered frame that scrolls sideways when it must.
 
 **You provide** \`TableContainer\` (set \`density\`: \`compact\` 32px rows for logs, \`default\` 40px, \`comfortable\` 44px), \`Table\` with a \`<caption>\`, \`TableHeader\` and \`TableBody\` of \`TableRow\`s, \`TableHead\`s and \`TableCell\`s. Cells take \`numeric\` (right-aligned, tabular figures) and \`mono\` (identifiers and hashes). Rows take \`selected\`.
 
-A selected row is a wash plus a 2px bar on its leading edge. Headers are \`small\`-weight labels on \`basalt-surface-sunken-strong\`.
+A selected row is the selected wash as a band, with no bar: its checked box (a checkbox column, labelled with \`aria-label\`, and a mixed header box) carries the state, and the app says the count in words in a polite live region. Headers are \`small\`-weight labels on \`basalt-surface-sunken-strong\`.
 
 - Do show statuses as \`<Badge variant="plain">\`.
 - Don't put the same icon on every row.

@@ -125,6 +125,7 @@ describe("CommandMenu when its chunk fails", () => {
       // the real input is there at once: same placeholder, focused, described as loading, and the dialog is not aria-busy
       const early = dialog.getByRole("textbox", { name: "Search commands" });
       await early.waitFor();
+      assert.equal(await dialog.locator(".basalt-command-search").getAttribute("data-level"), "2", "the loading band is level 2 too, so the fill does not change when the panel arrives");
       assert.equal(await early.getAttribute("placeholder"), "Search commands");
       assert.equal(await page.evaluate(() => document.activeElement?.matches(".basalt-command-input")), true, "focus is in the input while it loads");
       assert.equal(await early.evaluate((el) => document.getElementById(el.getAttribute("aria-describedby")).textContent), "Loading commands");

@@ -1,11 +1,11 @@
 /* Basalt HTML primitives: the compact layer on top of the generated --basalt-* tokens above.
    Colours and lengths come from the tokens; the few raw lengths (breakpoints, chevron strokes) carry a reasoned lint
    disable, and tools/html-skill/src/*.css is in the lint glob. Two layers, in this order: `reset` holds the element
-   defaults (a, button, table, h1), `basalt-html` holds every class. Put your own element rules in
+   defaults (a, button, table, h1), `basalt` holds every class (the layer React's CSS uses, so an app's own unlayered CSS always wins). Put your own element rules in
    `@layer reset { }` so they never beat a Basalt class; your own class rules can sit unlayered, and win.
    Source: tools/html-skill/src/basalt-html.css (do not edit the copy in the skill folder). */
 
-@layer reset, basalt-html;
+@layer reset, basalt;
 
 /* ---- Element defaults ---- */
 
@@ -73,7 +73,7 @@
   pre, code, kbd, samp { font-family: var(--basalt-font-family-mono); }
 }
 
-@layer basalt-html {
+@layer basalt {
 
   /* ---- Base ---- */
 
@@ -99,6 +99,8 @@
   /* ---- Type and rhythm ---- */
 
   .display { font-weight: var(--basalt-font-weight-semibold); }
+  /* The Display step of the type scale (56/60), for a page's one headline. Not responsive: a long word needs room at 390. */
+  .text-5xl { font-size: var(--basalt-text-5xl-size); line-height: var(--basalt-text-5xl-line-height); letter-spacing: var(--basalt-text-5xl-tracking); font-weight: var(--basalt-font-weight-semibold); }
   .lead { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); color: var(--basalt-text-secondary); max-width: 60ch; text-wrap: pretty; }
   .eyebrow { font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); }
   .muted { color: var(--basalt-text-secondary); }
@@ -135,19 +137,38 @@
   .section { margin-top: var(--basalt-space-12); }
   .section > .section-head { margin-bottom: var(--basalt-space-4); }
 
-  /* A top bar: a divider under it, never a shadow. */
+  /* The top bar is Basalt's chrome (foundations, "Chrome: the smoked header"; the .basalt-chrome class in @basalt/react): the one
+     smoked surface. surface-chrome over a 12px blur (no saturate), a hairline below, primary ink. Use it once per viewport. */
   .topbar {
     position: sticky;
     top: 0;
     z-index: var(--basalt-layer-sticky);
-    background: var(--basalt-surface-0);
-    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    background: var(--basalt-surface-chrome);
+    -webkit-backdrop-filter: blur(var(--basalt-blur-chrome));
+    backdrop-filter: blur(var(--basalt-blur-chrome));
+    /* The hairline, not the divider: the bar sits on level 0 and has no rim, so it is the exception to a divider never being brighter than the rim. */
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
+    color: var(--basalt-text-primary);
+  }
+  /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
+  .topbar .faint { color: var(--basalt-text-secondary); }
+  .topbar .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  /* No backdrop-filter, or the reader asks for less transparency: the page colour, opaque, with no filter. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .topbar { background: var(--basalt-surface-page); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
   .topbar-inner { display: flex; align-items: center; gap: var(--basalt-space-3); max-width: 72rem; margin-inline: auto; padding: var(--basalt-space-2) var(--basalt-space-6); min-height: var(--basalt-size-table-row); }
   /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
   @media (max-width: 719px) { .topbar-inner { padding-inline: var(--basalt-space-4); } }
   .brand { font-weight: var(--basalt-font-weight-semibold); text-decoration: none; letter-spacing: -0.01em; }
   .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
+  /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
+  .footer:not(.page .footer) { width: calc(min(100%, 72rem) - 2 * var(--basalt-space-6)); margin-top: 0; margin-inline: auto; padding-bottom: var(--basalt-space-8); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .footer:not(.page .footer) { width: calc(100% - 2 * var(--basalt-space-4)); } }
   .skip-link { position: absolute; inset-inline-start: var(--basalt-space-2); top: var(--basalt-space-2); transform: translateY(-200%); padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-3); color: var(--basalt-text-primary); z-index: var(--basalt-layer-toast); }
   .skip-link:focus { transform: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
@@ -179,7 +200,7 @@
   .panel-pad, .card { padding: var(--basalt-space-4); }
   /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
   @media (min-width: 720px) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
-  .panel-head { display: flex; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
 
   /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (level 2 or above, with a shadow).
      A static picture of one in a document is drawn as that surface. */
@@ -216,7 +237,7 @@
   }
   .kbd-group { display: inline-flex; align-items: center; gap: var(--basalt-space-0-5); flex: none; }
   .kbd svg { width: var(--basalt-text-xs-size); height: var(--basalt-text-xs-size); }
-  .row:hover .kbd, .row[data-active] .kbd, .row[aria-selected="true"] .kbd { color: var(--basalt-text-primary); }
+  .row:hover .kbd, .row:is([data-active], [aria-selected="true"]) .kbd { color: var(--basalt-text-primary); }
   /* On touch with no keyboard a shortcut chip, and any words that only make sense beside one ([data-kbd-hint]),
      are not rendered. They return once a hardware key is pressed (the JS sets html[data-keyboard="hardware"]).
      Keys documented in running text opt out with data-doc. Never un-hide with revert-layer. */
@@ -247,7 +268,9 @@
     background: var(--basalt-surface-1);
     color: var(--basalt-text-primary);
     box-shadow: var(--basalt-shadow-hairline);
-    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
+    transition-property: background-color, color, box-shadow, transform;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
   }
   .btn[data-size="sm"] { --_h: var(--basalt-size-control-sm); --_px: var(--basalt-space-2-5); font-size: var(--basalt-text-sm-size); }
   .btn[data-size="lg"] { --_h: var(--basalt-size-control-lg); --_px: var(--basalt-space-3-5); border-radius: var(--basalt-radius-md); }
@@ -262,9 +285,15 @@
     .btn[data-variant="ghost"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); box-shadow: none; }
     .btn[data-variant="danger"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
   }
-  /* A press is a colour step, never a scale: primary steps to action-primary-press, the rest to the selected wash. */
+  /* A press is a colour step (primary steps to action-primary-press, the rest to the selected wash), and the button also scales
+     to .98 over duration-fast on ease-out while pressed, as Button and IconButton do. Never on a disabled or busy button, and
+     on nothing else: no row, tab, card or disclosure. */
   .btn:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-selected); }
   .btn[data-variant="primary"]:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-action-primary-press); }
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: scale(0.98); }
+  /* The scale shrinks the hit box under a held pointer, so a press at a wide button's edge would lose its click and a 44px touch
+     target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed target at its rest size. */
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"])::after { content: ""; position: absolute; inset: -1.03%; }
   .btn[disabled], .btn[aria-disabled="true"] { cursor: not-allowed; color: var(--basalt-text-disabled); box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
   .btn[data-variant="primary"][disabled], .btn[data-variant="primary"][aria-disabled="true"] { background: var(--basalt-state-selected); box-shadow: none; }
   .btn[data-variant="ghost"][disabled] { box-shadow: none; }
@@ -276,8 +305,23 @@
   .btn svg { flex: none; }
   .btn .kbd { margin-inline-start: var(--basalt-space-1); }
   @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
-  /* A link on its own (the brand, a footer link, the skip link) is a touch target; a link inside running text is not. */
-  @media (pointer: coarse) { .brand, .footer a, .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); } }
+  /* A link on its own is a touch target (44px); a link inside running text is not, so a paragraph, list item, quote, caption,
+     hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
+     `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits
+     exactly like an unlinked one: only the hit box grows (1lh is the link's own line height). A control that sizes itself
+     (.btn, .row, .tab, .disclosure) is left alone. */
+  @media (pointer: coarse) {
+    a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, :is(p, li, .prose, .small, .hint, .error, .callout-body) a),
+    nav a:not(.btn),
+    .footer a,
+    .tap {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--basalt-size-tap-min);
+      margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2));
+    }
+    .brand, .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
+  }
 
   /* ---- Segmented control: a role="group" of button[aria-pressed]; the pressed one is a raised pill with a hairline ---- */
 
@@ -361,10 +405,10 @@
   .row-hint { color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); }
   .row[data-danger], .row[data-danger] svg { color: var(--basalt-status-danger); }
   @media (hover: hover) { .row:hover { background: var(--basalt-state-hover); transition-duration: 0ms; } .row:hover svg { color: var(--basalt-text-primary); } }
-  .row[data-active], .row[aria-selected="true"] { background: var(--basalt-state-selected); transition-duration: 0ms; }
-  .row[data-active] svg, .row[aria-selected="true"] svg { color: var(--basalt-text-primary); }
-  .row[data-active]::before, .row[aria-selected="true"]::before { content: ""; position: absolute; inset-inline-start: 0; top: 50%; width: var(--basalt-size-indicator); height: var(--basalt-size-icon-sm); transform: translateY(-50%); background: var(--basalt-text-primary); }
-  .row[data-danger][data-active], .row[data-danger][aria-selected="true"] { color: var(--basalt-status-danger); }
+  .row:is([data-active], [aria-selected="true"]) { background: var(--basalt-state-selected); transition-duration: 0ms; }
+  .row:is([data-active], [aria-selected="true"]) svg { color: var(--basalt-text-primary); }
+  .row:is([data-active], [aria-selected="true"])::before { content: ""; position: absolute; inset-inline-start: 0; top: 50%; width: var(--basalt-size-indicator); height: var(--basalt-size-icon-sm); transform: translateY(-50%); background: var(--basalt-text-primary); }
+  .row[data-danger]:is([data-active], [aria-selected="true"]) { color: var(--basalt-status-danger); }
   @media (pointer: coarse) { .row { height: var(--basalt-size-tap-min); } }
 
   /* ---- Tabs: a divider with a 2px bar under the selected tab ---- */
@@ -419,18 +463,16 @@
 
   .status { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .status::before { content: ""; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-text-tertiary); flex: none; }
-  .status[data-status="success"]::before { background: var(--basalt-status-success); }
-  .status[data-status="warning"]::before { background: var(--basalt-status-warning); }
-  .status[data-status="danger"]::before { background: var(--basalt-status-danger); }
   .status[data-status="danger"] { color: var(--basalt-status-danger); }
   /* Figures sit on the page, never in a panel and never boxed: up to three that matter, or one headline. */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 10rem), 100%), 1fr)); gap: var(--basalt-space-6); }
+  /* width: 100% and a floor of one column keep a row of figures from collapsing to its content when it sits in a flex row. */
+  .stats { width: 100%; min-width: min(var(--min, 10rem), 100%); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 10rem), 100%), 1fr)); gap: var(--basalt-space-6); }
   /* A badge labels one object's status or count, always with a word; never decoration. A status badge draws its dot. */
   .badge { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); height: var(--basalt-size-badge); padding: 0 var(--basalt-space-2); border-radius: var(--basalt-radius-xs); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans); color: var(--basalt-text-secondary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); white-space: nowrap; vertical-align: middle; }
   .badge[data-status]::before { content: ""; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; flex: none; }
-  .badge[data-status="success"]::before { background: var(--basalt-status-success); }
-  .badge[data-status="warning"]::before { background: var(--basalt-status-warning); }
-  .badge[data-status="danger"]::before { background: var(--basalt-status-danger); }
+  :is(.status, .badge)[data-status="success"]::before { background: var(--basalt-status-success); }
+  :is(.status, .badge)[data-status="warning"]::before { background: var(--basalt-status-warning); }
+  :is(.status, .badge)[data-status="danger"]::before { background: var(--basalt-status-danger); }
   .stat { display: flex; flex-direction: column; gap: var(--basalt-space-1); padding: 0; }
   .stat-label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-secondary); }
   .stat-value { font: var(--basalt-font-weight-semibold) var(--bh-2xl); letter-spacing: var(--basalt-text-2xl-tracking); font-variant-numeric: tabular-nums; }
@@ -482,12 +524,21 @@
     .spinner, .btn[aria-busy="true"]::after { animation: bh-fade var(--basalt-duration-loop-fade) ease-in-out infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
     .braille-dot[data-dot] { animation: none; }
     .disclosure::after, .progress > span { transition: none; }
+    /* A press keeps its colour step and its scale is 1. Same specificity as the press rule, and later; transform leaves the
+       transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
+    .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
+    .btn { transition-property: background-color, color, box-shadow; }
   }
 
   @media (forced-colors: active) {
-    .row[data-active]::before, .row[aria-selected="true"]::before, .tab[aria-selected="true"]::after { background: Highlight; forced-color-adjust: none; }
-    .row[data-active], .row[aria-selected="true"] { outline: var(--basalt-size-hairline) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-hairline)); }
+    .tab[aria-selected="true"]::after { background: Highlight; forced-color-adjust: none; }
+    /* The active row is Highlight, with its bar drawn in HighlightText: a Highlight bar on a Highlight row would not be there at all. */
+    .row:is([data-active], [aria-selected="true"]) { background: Highlight; color: HighlightText; }
+    .row:is([data-active], [aria-selected="true"]) :is(svg, .row-hint) { color: HighlightText; }
+    .row:is([data-active], [aria-selected="true"])::before { background: HighlightText; forced-color-adjust: none; }
     .kbd { border: var(--basalt-size-hairline) solid GrayText; }
+    /* The header is Canvas with a real border and no filter or alpha fill. */
+    .topbar { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
     %panel% { border-color: CanvasText; }
     .progress > span { background: Highlight; forced-color-adjust: none; }
     .btn { border: var(--basalt-size-hairline) solid ButtonText; }
@@ -497,7 +548,10 @@
   /* ---- Print: light (the script switches the theme for the print and back), no chrome, panels whole, code wrapped ---- */
 
   @media print {
-    .topbar, .skip-link, [data-theme-toggle], [data-copy], [data-copy-text] { display: none; }
+    /* The bar's own fallback is the opaque page colour with no filter, but the skill's pages don't print it: !important so a page's own display rule can't bring it back. */
+    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .topbar { display: none !important; }
+    .skip-link, [data-theme-toggle], [data-copy], [data-copy-text] { display: none; }
     .status::before, .progress, .progress > span { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     %panel% { break-inside: avoid; }
     pre.code, .code-body { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }

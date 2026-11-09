@@ -115,8 +115,8 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
             <BaseCombobox.List>
               {(value: string) => (
                 <BaseCombobox.Item key={value} value={value} disabled={byValue.get(value)?.disabled} className="basalt-menu-item">
+                  <span className="basalt-menu-check"><BaseCombobox.ItemIndicator className="basalt-select-check"><Icon icon={CheckIcon} size={16} /></BaseCombobox.ItemIndicator></span>
                   <span className="basalt-menu-item-label">{byValue.get(value)?.label ?? value}</span>
-                  <BaseCombobox.ItemIndicator><Icon icon={CheckIcon} size={16} /></BaseCombobox.ItemIndicator>
                 </BaseCombobox.Item>
               )}
             </BaseCombobox.List>

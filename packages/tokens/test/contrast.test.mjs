@@ -107,7 +107,7 @@ test("the page is the darkest layer in both themes (no flashbang)", () => {
   }
 });
 
-// ---- Surface levels, the rim, kbd chips, the active-row bar (the panel's rulings) ----
+// ---- Surface levels, the rim, kbd chips (the panel's rulings) ----
 
 /** The surfaces a row or chip can sit on, and the washes that can be under it. */
 const rowSurfaces = (theme) => [...LEVELS, "surface-sunken", "surface-sunken-strong"].map((n) => [n, color(theme, n)]);
@@ -131,16 +131,6 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`${theme}: the active-row bar is at least 3:1 against the wash it sits on, over every level`, () => {
-    for (const [name, surface] of rowSurfaces(theme)) {
-      for (const w of washes) {
-        const row = over(color(theme, w), surface);
-        const r = ratio(color(theme, "text-primary"), row);
-        assert.ok(r >= 3, `${theme}: the bar on ${w} over ${name} is ${fmt(r)}:1`);
-      }
-    }
-  });
-
   test(`${theme}: tertiary text is promoted to secondary on a wash, and secondary holds 4.5:1 there at every level`, () => {
     const onWashes = [...rowSurfaces(theme), ...["surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)])].flatMap(([n, s]) => washes.map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
     atLeast(theme, "text-secondary", 4.5, onWashes);
@@ -159,6 +149,85 @@ for (const theme of THEMES) {
     for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(mixed[channel] - press[channel]) < 0.002, `${theme}: action-primary-press ${channel} is ${press[channel]}, the mix is ${mixed[channel]}`);
   });
 }
+
+// ---- The menus round (council item 48, owner item 49): the plate, the lift, the depth floor ----
+//
+// A popup row's lit state is a plate and an ink step, not a bar. The plate is the selected wash, painted as one solid fill per
+// level: in dark the next level plus the wash (surface-2 under level 1, surface-3 under levels 2 and 3, where the cap has no next
+// level), in light the wash over the panel (levels 1 to 3 are one white). Rest rows are secondary ink and the lit row primary.
+// These are the pairs a reader sees; the CSS recipe is checked against them in the browser (menus.test.mjs).
+
+const PLATE_BASE = { 1: "surface-2", 2: "surface-3", 3: "surface-3" };
+const plateOf = (theme, level) => over(color(theme, "state-selected"), color(theme, theme === "dark" ? PLATE_BASE[level] : `surface-${level}`));
+const near = (actual, expected, tolerance, what) => assert.ok(Math.abs(actual - expected) <= tolerance, `${what}: ${fmt(actual)}, the council drew ${expected}`);
+
+for (const theme of THEMES) {
+  for (const level of [1, 2, 3]) {
+    const panel = color(theme, `surface-${level}`);
+
+    test(`${theme}, level ${level}: the plate is a step from its panel, ink holds 4.5:1 on panel and plate, and danger holds on both`, () => {
+      const plate = plateOf(theme, level);
+      // The plate is quiet by design (the lift carries the row), so pin its step to what the council drew.
+      const step = ratio(plate, panel);
+      const drawn = theme === "dark" ? { 1: 1.31, 2: 1.35, 3: 1.28 }[level] : 1.17;
+      near(step, drawn, 0.01, `the plate against its panel`);
+      for (const [name, bg] of [["the panel", panel], ["the plate", plate]]) {
+        for (const text of ["text-primary", "text-secondary"]) {
+          const r = ratio(over(color(theme, text), bg), bg);
+          assert.ok(r >= 4.5, `${theme}: ${text} on ${name} at level ${level} is ${fmt(r)}:1`);
+        }
+        const danger = ratio(over(color(theme, "status-danger"), bg), bg);
+        assert.ok(danger >= 4.5, `${theme}: danger on ${name} at level ${level} is ${fmt(danger)}:1`);
+      }
+      // the lift is a real step: rest rows are secondary on the panel, lit rows primary on the plate
+      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(color(theme, "text-secondary"), panel) >= 1.5, `${theme}: the lift is under 1.5x at level ${level}`);
+    });
+
+    test(`${theme}, level ${level}: a group label is tertiary on the panel, and a hint lifts to secondary on the plate`, () => {
+      const plate = plateOf(theme, level);
+      const group = ratio(over(color(theme, "text-tertiary"), panel), panel);
+      assert.ok(group >= 4.5, `${theme}: tertiary on level ${level} is ${fmt(group)}:1`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: a hint (secondary) on the plate at level ${level}`);
+      // why the lift exists: in dark tertiary falls under 4.5:1 on the plate at levels 1 and 2 (the council measured 4.08 and 3.79)
+      if (theme === "dark" && level < 3) assert.ok(ratio(over(color(theme, "text-tertiary"), plate), plate) < 4.5, `tertiary holds on the plate at level ${level}, so the hint lift is no longer needed`);
+    });
+
+    test(`${theme}, level ${level}: a kbd chip on the plate holds 4.5:1 for its primary text, and on the panel for its secondary text`, () => {
+      const plate = plateOf(theme, level);
+      const onPlate = over(color(theme, "surface-kbd"), plate);
+      const onPanel = over(color(theme, "surface-kbd"), panel);
+      assert.ok(ratio(color(theme, "text-primary"), onPlate) >= 4.5, `${theme}: the chip text on the plate at level ${level}`);
+      assert.ok(ratio(color(theme, "text-secondary"), onPanel) >= 4.5, `${theme}: the chip text at rest at level ${level}`);
+    });
+  }
+
+  test(`${theme}: danger on the plate is pinned to what the council drew (4.80:1 on levels 2 and 3 in dark, 5.16 on level 1, 5.43 in light)`, () => {
+    const drawn = theme === "dark" ? { 1: 5.16, 2: 4.8, 3: 4.8 } : { 1: 5.43, 2: 5.43, 3: 5.43 };
+    for (const level of [1, 2, 3]) {
+      const plate = plateOf(theme, level);
+      near(ratio(over(color(theme, "status-danger"), plate), plate), drawn[level], 0.01, `${theme}: danger on the plate at level ${level}`);
+    }
+  });
+
+  test(`${theme}: the rim holds against the page at the level-1 floor, and a level-1 popup keeps its edge`, () => {
+    const page = color(theme, "surface-page");
+    const panel = color(theme, "surface-1");
+    const rim = ratio(over(color(theme, "border-rim"), panel), page);
+    const rimTop = ratio(over(color(theme, "border-rim-top"), panel), page);
+    near(rim, theme === "dark" ? 1.19 : 1.15, 0.01, `${theme}: the rim over level 1 against the page`);
+    near(rimTop, theme === "dark" ? 1.25 : 1.15, 0.01, `${theme}: the lit top over level 1 against the page`);
+    near(ratio(panel, page), theme === "dark" ? 1.06 : 1.05, 0.02, `${theme}: a level-1 panel against the page`);
+    // the floor is only safe because the rim outranks the fill step: a level-1 popup has no fill contrast to speak of
+    assert.ok(rim > ratio(panel, page), `${theme}: the rim is no stronger than the fill step, so the edge would be lost at level 1`);
+  });
+}
+
+test("the dark plate is the next level plus state-selected, and it is lighter than the next level at every level", () => {
+  const lum = (c) => wcagContrast(c, { mode: "rgb", r: 0, g: 0, b: 0 });
+  for (const level of [1, 2, 3]) assert.ok(lum(plateOf("dark", level)) > lum(color("dark", PLATE_BASE[level])), `the wash does not lift the plate at level ${level}`);
+  assert.equal(alphaOf("dark", "state-selected"), 0.09, "the CSS recipe mixes white at 9%: change both together");
+  assert.equal(alphaOf("light", "state-selected"), 0.07);
+});
 
 // An inset focus ring on a command-menu-style input band (docs/foundations.md, Focus): the 2px outline
 // sits inside the band, so its neighbours are the band's own fill within, and the panel's rim at the edge.
