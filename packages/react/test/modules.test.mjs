@@ -85,3 +85,19 @@ test("reading the walkthrough: the motion round does not claim to be reviewed", 
   const round = fs.readFileSync(path.join(dist, "..", "..", "..", "tools", "review", "round8.tsx"), "utf8");
   assert.match(round, /^\s+reviewed: false,$/m, "round 8 skipped design review and must say so");
 });
+
+test("loading the core set builds nothing: a glyph module is one annotated call, and the shared modules hold no registry", () => {
+  const src = path.join(dist, "..", "src");
+  const glyphs = fs.readdirSync(path.join(src, "glyphs"));
+  assert.equal(glyphs.length, 38);
+  for (const file of glyphs) {
+    const text = fs.readFileSync(path.join(src, "glyphs", file), "utf8");
+    const statements = text.replace(/\/\/.*\n|\/\*\*[\s\S]*?\*\//g, "").trim();
+    assert.match(statements, /^import \{ glyph \} from "\.\.\/glyph";\s*export const \w+Glyph = \/\* @__PURE__ \*\/ glyph\(\{[\s\S]*\}\);$/, `${file} does more than declare its glyph`);
+  }
+  for (const file of ["glyph.tsx", "glyph-motion.ts", "glyph-registry.ts", "glyph-names.ts", "icon.tsx", "morph-icon.tsx"]) {
+    const text = fs.readFileSync(path.join(src, file), "utf8");
+    // a top-level `new`, or a top-level const built by calling something (constants of literals and arrow functions are fine)
+    assert.doesNotMatch(text, /^(?:const|let) \w+(?:: [^=]+)? = (?:new |[A-Za-z_.]+\()/m, `${file} builds something at module scope`);
+  }
+});

@@ -228,8 +228,11 @@ for (const id of rounds) {
     for (const state of ["default", ...step.states]) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = state !== "default" && state !== "film" && state !== "ghost"; // the filmstrip and the ghost press are pages, not open overlays
+          const overlay = !["default", "film", "ghost", "forced", "reduced"].includes(state); // the filmstrip, the ghost press and the media emulations are pages, not open overlays
           const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2 });
+          // "forced" and "reduced" are the page under forced colours and under reduced motion
+          if (state === "forced") await page.emulateMedia({ forcedColors: "active" });
+          if (state === "reduced") await page.emulateMedia({ reducedMotion: "reduce" });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.

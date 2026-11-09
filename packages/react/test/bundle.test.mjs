@@ -78,15 +78,47 @@ test("Menu does not pull in Shiki", async () => {
   assert.ok(!inputs.some((f) => f.includes("shiki")));
 });
 
+// MorphIcon's limit rose from 8,000 to 10,500 with the core set's morph engine (the allow-list and flight identity, ~3.7 KB) and
+// the 21 core actions it takes by name (~2.5 KB); navigation glyphs are passed by reference, so they cost an app only what it imports.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 10_500], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
   });
 }
+
+// The core glyphs are modules of their own: an app that imports one bundles that glyph and the small drawing code, and
+// no other glyph, no Base UI and no Phosphor.
+for (const [name, limit] of [["HomeGlyph", 4_500], ["SearchGlyph", 4_500], ["CloseGlyph", 3_500]]) {
+  test(`${name} alone is small, and bundles no other glyph`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
+    const glyphs = inputs.filter((f) => /\/glyphs\/[^/]+\.js$|chunk-/.test(f) && !/glyph\.js$/.test(f));
+    assert.ok(glyphs.length <= 2, `${name} pulls ${glyphs.join(", ")}`);
+  });
+}
+
+test("an imported glyph that is never used costs nothing", async () => {
+  const result = await esbuild.build({
+    stdin: { contents: `import { HomeGlyph, SearchGlyph } from "./dist/index.js"; console.log(1);`, resolveDir: pkg, loader: "js" },
+    bundle: true, minify: true, format: "esm", write: false, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+  });
+  assert.ok(result.outputFiles[0].contents.length < 100, `${result.outputFiles[0].contents.length} bytes for glyphs nobody draws`);
+});
+
+test("one glyph's bundle holds that glyph's drawing and not another's", async () => {
+  const out = await esbuild.build({
+    stdin: { contents: `import { HomeGlyph } from "./dist/index.js"; console.log(HomeGlyph);`, resolveDir: pkg, loader: "js" },
+    bundle: true, minify: false, format: "esm", write: false, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+  });
+  const text = out.outputFiles[0].text;
+  assert.match(text, /name: "home"/);
+  for (const other of ["search", "notifications", "calendar", "sandboxes"]) assert.ok(!text.includes(`name: "${other}"`), `${other} is in a Home-only bundle`);
+});
 
 // Kbd draws ⌘ ⌥ ⌃ as Phosphor's Command, Option and Control, so those three icons come with it. Nothing else:
 // not the rest of Phosphor, and no Base UI.

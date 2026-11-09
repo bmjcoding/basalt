@@ -100,9 +100,14 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Don't copy another system's values.** Vercel, Linear, GitHub Primer and the rest
   can be measured for reference and cited in the panel's reasoning. Their colours,
   sizes, CSS, icons and assets never land here as-is.
-- **Icons:** Phosphor on the web (Bold at 16, Regular at 20 and up, Fill when selected).
-  On Apple platforms, SF Symbols for system concepts (info, warning, error, success),
-  Phosphor for product concepts. Status icons pair with words.
+- **Icons:** the core set on the web (`@srasyndicate/basalt`, one module per glyph: 2.25 units
+  on 24 at every size, an opening at rest that selected closes and fills, morphs only between rest
+  and selected, within a rotation group, and the four drawn pairs), and Phosphor Bold at 16, 20
+  and 24 for the long tail; Fill only on a selected glyph marked `fillSafe`. Danger is XCircle.
+  Navigation glyphs in a sidebar or rail are primary at rest; every other icon is secondary at
+  rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
+  `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts
+  (info, warning, error, success). Status icons pair with words.
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only.
 
 ## Engineering rules
