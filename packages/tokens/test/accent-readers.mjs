@@ -6,6 +6,8 @@ export const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 export const ACCENT_VAR = "--basalt-accent-ink";
 export const ALLOWED = [{ selector: '.basalt-badge[data-status="accent"] .basalt-badge-dot', property: "background" }];
+// The HTML skill's one reader: the dot of an accent status or badge (tools/html-skill/src/modules/status.css), with the ink fallback.
+export const ALLOWED_SKILL = [{ selector: ':is(.status, .badge)[data-status="accent"]::before', property: "background" }];
 
 /** Every `selector { property: value }` in `css`, innermost rules only (at-rules are looked through). */
 export const declarations = (css) =>

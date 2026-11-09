@@ -3,14 +3,16 @@
   /* ---- Tabs: a divider with a 2px bar under the selected tab ---- */
 
   .tabs { display: flex; gap: var(--basalt-space-1); overflow-x: auto; box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider); }
-  .tab { position: relative; flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .tab { position: relative; flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .tab[aria-selected="true"] { color: var(--basalt-text-primary); }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); }
   @media (hover: hover) { .tab:hover { color: var(--basalt-text-primary); } }
   @media (pointer: coarse) { .tab { height: var(--basalt-size-tap-min); } }
-  /* A ring that sits inside a scrolling parent is drawn inset, so all four sides show. */
+  /* A ring that sits inside a scrolling parent is drawn inset, so all four sides show. React's tab ring is +2 outside; the council split 2-2
+     on this (DECISIONS 69) and kept both, because the skill's tab row scrolls and an outside ring would be clipped on three sides. */
   .tab:focus-visible, .code-body:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
-  .tabpanel { padding-top: var(--basalt-space-4); }
+  /* The panel adds no space above its content, as React's TabsPanel (the page sets the space). */
+  .tabpanel { padding-top: 0; }
 
   @media (forced-colors: active) {
     .tab[aria-selected="true"]::after { background: Highlight; forced-color-adjust: none; }

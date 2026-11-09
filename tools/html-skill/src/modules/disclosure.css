@@ -1,15 +1,18 @@
 @layer basalt {
 
-  /* ---- Disclosure ---- */
+  /* ---- Disclosure: a button[data-disclosure] with the element it controls, or a native <details><summary> drawn the same ---- */
 
-  .disclosure { display: flex; align-items: center; gap: var(--basalt-space-2); width: 100%; min-height: var(--basalt-size-control-lg); padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--bh-base); text-align: start; cursor: pointer; }
+  .disclosure, details > summary { display: flex; align-items: center; gap: var(--basalt-space-2); width: 100%; min-height: var(--basalt-size-control-lg); padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--bh-base); text-align: start; cursor: pointer; }
+  /* The browser's own marker (a triangle) gives way to the chevron. */
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- the chevron is drawn with two borders; its size, stroke and nudge have no token */
-  .disclosure::after { content: ""; margin-inline-start: auto; width: 7px; height: 7px; border-inline-end: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  .disclosure::after, details > summary::after { content: ""; margin-inline-start: auto; width: 7px; height: 7px; border-inline-end: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
   /* stylelint-disable-next-line unit-disallowed-list -- the open chevron's nudge; no token */
-  .disclosure[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
-  @media (pointer: coarse) { .disclosure { min-height: var(--basalt-size-tap-min); } }
+  .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+  @media (pointer: coarse) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
   @media (prefers-reduced-motion: reduce) {
-    .disclosure::after { transition: none; }
+    .disclosure::after, details > summary::after { transition: none; }
   }
 }

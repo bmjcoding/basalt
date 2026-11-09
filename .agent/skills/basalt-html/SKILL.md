@@ -15,20 +15,20 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 
 `examples/static.body.html` (a report) and `examples/interactive.body.html` (inputs, tabs, a palette) are bodies to copy from. Never open or paste `parts/`: it is minified output.
 
-Modules: topbar, kbd, segment, forms, rows, tabs, disclosure, table, code, callout, status, stats, progress, palette, spinner, braille, copy, theme. Markup built only at run time (a `.row` your script writes) won't be seen: add `<!-- basalt:use rows -->` to the body.
+Modules: topbar, kbd, segment, forms, number, range, rows, tabs, disclosure, table, code, callout, status, accent, stats, progress, palette, spinner, braille, copy, theme. Markup built only at run time (a `.row` your script writes) won't be seen: add `<!-- basalt:use rows -->` to the body.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt` (the layer `@basalt/react` uses), so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
 
 ## Rules
 
-- **Monochrome.** Colour only in named roles: status (a dot or icon beside its word), syntax inside code. Never decorative, never the only carrier of meaning.
+- **Monochrome.** Colour only in named roles: status (a dot or icon beside its word), a product's accent (below), syntax inside code. Never decorative, never the only carrier of meaning.
 - **Type:** Geist and Geist Mono, weights 400, 500 and 600 only. Mono for identifiers, code, numbers in logs.
 - **Levels, rim, nesting.** A panel (`.panel`, `.card`, `.callout`, `.code`, `.table-wrap`) is one level above what holds it, capped at 3, with a 1px rim and no shadow. Level is position, not importance: a hero or a featured card on the page is still level 1. Group with space and dividers first; a panel is for a distinct object (code, table, preview, callout); go at most one panel deep inside a panel. Only things that leave the flow (menu, popover, dialog, palette) take `.float` and a shadow.
 - **Kbd** only for a real shortcut the page binds, one per row, and never on the primary fill. In running text about keys, use `data-doc` so it stays on touch. A palette item's `keys` is a real binding: ⌘, ⌃ or ⌥ plus one key (⌘ answers to Meta or Ctrl); anything else warns and draws no chip. No single-character shortcuts on the page (WCAG 2.1.4).
 - **Selected** is the 2px bar or the raised pill, and the 2px bar is only for selection. Tabs don't slide their indicator in static files.
 - **No row of stat tiles.** `.stats` > `.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number (put it before the form it answers).
 - **A badge** labels one object's status or count, always with a word; never decoration.
-- **Busy** is `aria-busy="true"` on the button (label in a `<span>`): the label hides and a ring sits over it, so the width holds. Braille only while work runs on a mono or terminal line, never in a button.
+- **Busy** is `aria-busy="true"` on the button (label in a `<span>`): the label hides and a ring sits over it, so the width holds. **Braille** is for a status: beside a word that names running work (`<span class="status"><braille-spinner></braille-spinner>Running</span>`), never in a button and never without its word. The ring is for a wait.
 - **Print:** the script prints in the light theme and goes back after; the top bar, skip link, theme toggle and copy buttons are not printed.
 - **The top bar is Basalt's one smoked surface** (foundations, "Chrome: the smoked header"): `.topbar` is `surface-chrome` over a 12px blur with a hairline below, opaque `surface-page` without `backdrop-filter`, under reduced transparency, and in forced colours (`Canvas`). Once per page. Only primary and secondary text goes on it (`.faint` becomes secondary there), a pressed ghost `.btn` takes primary ink, no danger button. Don't restyle it, and don't put a second blurred layer on the page.
 - **Accessibility details.** A spinner beside a visible word is decoration: put `aria-hidden="true"` on it; keep `role="status"` and `aria-label` for one that stands alone. Don't give a section and an inner `.table-wrap` region the same accessible name (axe `landmark-unique`): name the region for what it is ("Services table"), the section for the topic.
@@ -44,12 +44,12 @@ Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's)
 **Type:** `h1`–`h4`, `.display`, `.text-5xl` (56/60; give it room at 390), `.lead`, `.eyebrow`, `.muted`, `.faint`, `.small`, `.mono`, `.num`, `.prose`, inline `code`.
 **Panels:** `.panel`, `.card`, `.panel-pad`, `.panel-head`, `.callout[data-status=info|success|warning|danger]` (icon, then `.callout-title` and `.callout-body`), `.float` (+ `.modal`).
 **Figures:** `.stats` (`--min` sets the column width) > `.stat` (`.stat-label`, `.stat-value`, `.stat-note`), no panel, no border. A small `dl` of figures goes in `.stats.small.num`.
-**Controls:** `.btn[data-variant=primary|ghost|danger]` (default secondary), `data-size=sm|lg`, `data-icon-only`, `aria-busy`; `.segment` (`role="group"`) of `button[aria-pressed]`, one pressed (the page sets it); `.badge` (`data-status=success|warning|danger` draws a dot); `.field` (label, `.input`, `.hint`, `.error`), `.input` on `input`, `textarea`, `select` (wrap a select in `.select`), `aria-invalid="true"`.
+**Controls:** `.btn[data-variant=primary|ghost|danger]` (default secondary), `data-size=sm|lg`, `data-icon-only`, `aria-busy`; `.segment` (`role="group"`) of `button[aria-pressed]`, one pressed (the page sets it); `.badge` (`data-status=success|warning|danger|accent` draws a dot); `.field` (label, `.input`, `.hint`, `.error`), `.input` on `input`, `textarea`, `select` (wrap a select in `.select`), `aria-invalid="true"`; a number with steppers is `<span class="number-field"><input class="input num" type="number"></span>`; `input[type=range]`, `type=file`, `type=search` and `<details><summary>` are styled bare (date and time pickers stay native: Basalt has no design for them).
 **Lists and tables:** `.rows` > `.row` (`data-active`, `data-danger`, `.row-label`, `.row-hint`), `.row-group`, `.input-row` (search band, first child of a panel); `.table-wrap` (`role=region`, `aria-label`, `tabindex=0`) > `table`, `th[data-numeric]`, `td[data-numeric]`, `td[data-mono]`, `tr[aria-selected=true]`.
 **Code:** `.code` > `.code-head` + `pre.code-body > code` (`tabindex=0`), tokens `.tok-k .tok-s .tok-n .tok-f .tok-c`.
-**Status:** `.status[data-status=success|warning|danger]` (a dot, then the word), `.badge`, `.progress` (`style="--value: 61%"`, `role=progressbar` and a label).
+**Status:** `.status[data-status=success|warning|danger|accent]` (a dot, then the word; `accent` takes `data-accent="cobalt"` set on `<html>` or a section, else ink), `.badge`, `.progress` (`style="--value: 61%"`, `role=progressbar` and a label).
 **Kbd:** `<span data-kbd="⌘ K"></span>` (one chip per key), `.kbd`, `.kbd-group`, `[data-kbd-hint]` for words that only make sense with chips.
-**Spinners:** `<span class="spinner" role="status" aria-label="Loading"></span>` (ring, the default), `<braille-spinner label="Loading"></braille-spinner>` (mono and terminal lines).
+**Spinners:** `<span class="spinner" role="status" aria-label="Loading"></span>` (ring: a wait, the default), `<braille-spinner>` in a `.status` (a status beside its word).
 
 **Behaviour (opt in by attribute):**
 - `[data-theme-toggle]` on `<button class="btn" data-variant="ghost" data-icon-only>`.

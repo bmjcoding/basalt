@@ -7,7 +7,7 @@
      its own; the panel clips it. Flush with a clipping edge, it takes the focus outline inset. */
 
   .input-row { display: flex; align-items: center; gap: var(--basalt-space-3); height: var(--basalt-size-command-input); padding: 0 var(--basalt-space-4); background: var(--panel-next); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); flex: none; }
-  .input-row > input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--bh-md); letter-spacing: var(--basalt-text-md-tracking); outline: none; }
+  .input-row > input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / 1 var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); outline: none; }
   .input-row > input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   %panel% > .input-row:first-child { border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
   .input-row:has(input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
@@ -33,7 +33,7 @@
     border-radius: var(--basalt-radius-sm);
     background: transparent;
     color: var(--basalt-text-primary);
-    font: var(--basalt-font-weight-regular) var(--bh-sm);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
     text-align: start;
     text-decoration: none;
     cursor: pointer;

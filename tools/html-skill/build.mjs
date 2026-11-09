@@ -5,6 +5,8 @@
 //   parts/core.css            the generated Basalt tokens (both themes) + src/core.css, minified
 //   parts/core.js             src/core.js, minified
 //   parts/<module>.css|js     src/modules/<module>.css|js, minified; compose.mjs adds the ones a page uses
+//   parts/accent.css          the accent module: packages/tokens/dist/css/accents.css (the generated accent classes), minified; a page gets
+//                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold and Regular paths) and Phosphor's MIT notice
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
 //   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
@@ -34,16 +36,17 @@ const require = createRequire(import.meta.url);
 // Every in-flow panel shares one set of level rules. The selector is written once here.
 const PANEL = ":is(.panel, .card, .callout, .code, .table-wrap)";
 
-function tokensCss() {
+function tokensFile(name) {
   let file;
   try {
-    file = require.resolve("@srasyndicate/basalt-tokens/tokens.css");
+    file = require.resolve(`@srasyndicate/basalt-tokens/${name}`);
   } catch {
-    throw new Error("html-skill: can't find the tokens CSS; run `npm run build` first");
+    throw new Error(`html-skill: can't find the tokens ${name}; run \`npm run build\` first`);
   }
   if (!fs.existsSync(file)) throw new Error("html-skill: packages/tokens/dist is missing; run `npm run build` first");
   return fs.readFileSync(file, "utf8").trim();
 }
+const tokensCss = () => tokensFile("tokens.css");
 
 /**
  * The generated tokens declare every alias again in the dark `prefers-color-scheme` block, because a nested
@@ -84,7 +87,13 @@ function geistFonts() {
 
 /** esbuild's minifier: whitespace, comments and redundant syntax go; a /*! comment stays. The sources keep their comments. */
 const minify = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: "inline", charset: "utf8", logLevel: "silent" }).code;
-const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL), "css");
+/** `%icon:Name%` in a source stylesheet is a data URI of that Phosphor Bold glyph (for a mask), so a glyph is never copied into the CSS by hand. */
+const iconUri = (name) => {
+  const [bold] = iconData([name])[name];
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>${bold.map((d) => `<path d='${d}'/>`).join("")}</svg>`;
+  return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
+};
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)), "css");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
@@ -100,6 +109,8 @@ export function build() {
   files["parts/core.css"] = minifyCss(`${dedupeSystemDark(tokensCss())}\n${src("core.css")}`);
   files["parts/core.js"] = minify(src("core.js"), "js");
   for (const name of Object.keys(manifest.modules)) {
+    // The accent module has no source file of its own: it is the tokens package's generated accents.css.
+    if (name === "accent") files["parts/accent.css"] = minifyCss(tokensFile("accents.css"));
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minify(fs.readFileSync(file, "utf8"), "js");

@@ -1,9 +1,10 @@
-// The two example pages, composed from their short bodies, render pixel for pixel as the two templates did when the skill
-// shipped them whole (PR #26): the baseline pages in fixtures/ are those templates, byte for byte. Both themes, 1440 and 390
-// wide, at rest and with the palette open. The rebuild changed how a page is assembled, not how it looks.
+// The two example pages, and a page with every component, composed from their bodies, render pixel for pixel as the pages recorded in
+// fixtures/baseline-*.html did. Both themes, 1440 and 390 wide, at rest and with the palette open (and, on the every-component page, with a
+// focus ring on a tab, a row, an input and a button).
 //
-// This pins the pages to #26. The first PR that changes a pixel on purpose (the audit's S1 to S9) re-records the baseline
-// from the new pages in the same commit, so the diff shows what moved; it does not weaken this test.
+// The baseline began as PR #26's two templates, byte for byte. A PR that changes a pixel on purpose re-records the fixtures from the new
+// pages in the same commit (node tools/html-skill/test/record-baseline.mjs), so the diff shows what moved; it does not weaken this test.
+// Re-recorded so far: the first parity PR (the number field, the textarea's height, native chrome, braille, the ring, code radius).
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
@@ -14,13 +15,15 @@ let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
-// What a person gets from the old flow: the template with inline-fonts.mjs run on it.
+// The recorded page with Geist put back where the fixture has its placeholder.
 const fonts = read(skillDir, "parts", "geist.css").trim();
 const baseline = (name) => read(here, "fixtures", `baseline-${name}.html`).replace("<!-- basalt:fonts -->", () => `<style data-basalt-fonts>\n${fonts}\n</style>`);
 
 /** The page as a PNG, the viewport sized to the document (a full-page capture on a phone context drops its touch media features). */
 async function shot(page, width) {
   await page.setViewportSize({ width, height: await page.evaluate(() => document.documentElement.scrollHeight) });
+  // A focus or hover step is a short transition: let each one finish, so two renders of the same page can't be caught at different moments.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {}))));
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   return page.screenshot();
 }
@@ -39,7 +42,7 @@ async function differing(page, a, b) {
   }, [a.toString("base64"), b.toString("base64")]);
 }
 
-describe("composed pages match the #26 templates, pixel for pixel", () => {
+describe("composed pages match their recorded baselines, pixel for pixel", () => {
   let scratch;
   before(async () => { scratch = await browser.newPage(); });
   after(async () => { await scratch?.close(); });
@@ -72,16 +75,10 @@ describe("composed pages match the #26 templates, pixel for pixel", () => {
   }
 });
 
-// Every component on one page, built twice: with the #26 stylesheet and script (taken from the baseline template, whole) and with
-// compose.mjs from the same body. The two example pages above don't use every part; this one does.
-describe("a page with every component matches the #26 stylesheet, pixel for pixel", () => {
+// Every component on one page, built with compose.mjs from the body and compared with the page recorded from it. The two example pages
+// above don't use every part; this one does.
+describe("a page with every component matches its recorded baseline, pixel for pixel", () => {
   const sink = read(here, "fixtures", "kitchen-sink.body.html");
-  const oldPage = () => {
-    const old = baseline("interactive");
-    const head = old.slice(0, old.indexOf("</head>")).replace(/<title>[^<]*<\/title>/, "<title>Basalt kitchen sink</title>");
-    const library = old.match(/<script>\n\/\* Basalt HTML script[\s\S]*?<\/script>/)[0];
-    return `${head}</head>\n<body>\n${sink.replace(/<title>[^<]*<\/title>\s*/, "")}\n${library}\n<script>Basalt.init();</script>\n</body>\n</html>\n`;
-  };
   let scratch;
   before(async () => { scratch = await browser.newPage(); });
   after(async () => { await scratch?.close(); });
@@ -96,7 +93,7 @@ describe("a page with every component matches the #26 stylesheet, pixel for pixe
     for (const width of [1440, 390]) {
       test(`${scheme}, ${width}px: at rest, with a focus ring on a tab, a row, an input and a button, and with the palette open`, async () => {
         const pictures = {};
-        for (const [which, html] of Object.entries({ composed: compose(sink).html, baseline: oldPage() })) {
+        for (const [which, html] of Object.entries({ composed: compose(sink).html, baseline: baseline("kitchen-sink") })) {
           const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
           assert.deepEqual(errors, [], `${which} logged errors`);
           // Animations hold their first frame, so two renders of a spinner can be compared.

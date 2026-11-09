@@ -1,9 +1,9 @@
 {
-  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page) and everything (a page with every module and every icon, no fonts, no body). icons: Phosphor names the module's script draws itself.",
+  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page) and everything (a page with every module and every icon, no fonts, no body). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules, so everything went from 76000 to 81850: the old 80 KiB ceiling (81920, tested separately) still holds, with about 70 bytes to spare. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent).",
   "budgets": {
-    "skillMd": 10555,
+    "skillMd": 10900,
     "core": 30720,
-    "everything": 76000
+    "everything": 81850
   },
   "core": {
     "classes": [
@@ -97,7 +97,29 @@
         "select",
         "textarea"
       ],
-      "budget": 1800
+      "budget": 3650
+    },
+    "number": {
+      "classes": [
+        "number-field"
+      ],
+      "requires": [
+        "forms"
+      ],
+      "icons": [
+        "Minus",
+        "Plus"
+      ],
+      "budget": 2900
+    },
+    "range": {
+      "text": [
+        "\\btype\\s*=\\s*[\"']?range\\b"
+      ],
+      "requires": [
+        "forms"
+      ],
+      "budget": 1750
     },
     "rows": {
       "classes": [
@@ -131,7 +153,10 @@
       "attrs": [
         "data-disclosure"
       ],
-      "budget": 1400
+      "tags": [
+        "details"
+      ],
+      "budget": 1550
     },
     "table": {
       "classes": [
@@ -168,7 +193,13 @@
         "status",
         "badge"
       ],
-      "budget": 1400
+      "budget": 1650
+    },
+    "accent": {
+      "attrs": [
+        "data-accent"
+      ],
+      "budget": 300
     },
     "stats": {
       "classes": [
@@ -216,7 +247,7 @@
       "classes": [
         "spinner"
       ],
-      "budget": 600
+      "budget": 650
     },
     "braille": {
       "classes": [

@@ -8,7 +8,8 @@ agent.
 ```
 src/
   core.css, core.js        what every page gets (tokens come before core.css, from packages/tokens)
-  modules/<name>.css|js    what a page gets only when its markup uses it
+  modules/<name>.css|js    what a page gets only when its markup uses it (the accent module has no file here: build.mjs makes it from
+                           packages/tokens/dist/css/accents.css, and a page gets it only when its markup sets data-accent)
   modules.json             the manifest: each module's classes, attributes, tags, text patterns, requirements, icons and byte budget
   icons.json               the Phosphor names a page can draw (Bold and Regular paths are read from @phosphor-icons/react)
   compose.mjs              the tool an agent runs; copied into the skill folder as it is
@@ -34,6 +35,7 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
    script draws), and `budget` (bytes of minified CSS plus script).
 4. Say it in `SKILL.md` (the cheat sheet and the module list there), keeping `SKILL.md` within its byte budget. The test checks that
    every class in the cheat sheet belongs to the core or to one module, and that using it brings the module.
+   A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI.
 5. `npm run build`, then `npm run test:html-skill`. Rendered output must match React: add the component to `test/parity.test.mjs`.
 
 ## Parity with React
@@ -41,13 +43,17 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
 `test/parity.test.mjs` renders each component in Chromium next to its React counterpart in both themes and compares computed styles
 (height, padding, radius; font size, weight, line height; text, fill and border colours; the focus outline). Every difference that
 exists today is in `test/parity-differences.mjs` with its reason and source. The list only shrinks: a new difference fails the test,
-and so does an entry that no longer differs. `PARITY_REPORT=1 npm run test:html-skill` prints what the run found.
+and so does an entry that no longer differs. `PARITY_REPORT=1 npm run test:html-skill` prints what the run found. Loops (the spinners) are read at their first frame. A native `input[type=range]`
+can't be read this way (Chromium doesn't resolve its `::-webkit-` parts in computed style), so `parity-1.test.mjs` measures the range's track,
+thumb and fill by pixel instead, and pins the rest of the first parity PR's behaviour (number field, braille, ring, accent reader, forced colours).
 
 ## The pixel baseline
 
-`test/pixel.test.mjs` pins the pages to PR #26: `test/fixtures/baseline-*.html` are #26's two templates, whole, and
-`kitchen-sink.body.html` is one of every component. The first PR that changes a pixel on purpose re-records the baseline from the new
-pages in the same commit, so its diff shows what moved. It does not delete or loosen the test.
+`test/pixel.test.mjs` compares the pages compose.mjs builds with the pages recorded in `test/fixtures/baseline-*.html` (the two examples
+and `kitchen-sink.body.html`, one of every component), pixel for pixel, in both themes at 1440 and 390 wide. The fixtures began as PR #26's
+two templates, byte for byte. A PR that changes a pixel on purpose re-records them in the same commit: `npm run build`, then
+`node tools/html-skill/test/record-baseline.mjs`. The diff of the fixtures then shows what moved, and the PR shows a before and after of every
+region that differs. It does not delete or loosen the test. (Fonts stay out of the fixtures: each has a `<!-- basalt:fonts -->` placeholder.)
 
 ## Budgets
 

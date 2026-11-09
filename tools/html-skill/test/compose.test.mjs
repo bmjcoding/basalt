@@ -34,6 +34,13 @@ describe("what a body gets", () => {
     assert.deepEqual(used('<span class="x"><braille-spinner></braille-spinner></span>'), ["braille"]);
     assert.deepEqual(used('<div role="tablist"></div>'), ["tabs"]);
     assert.deepEqual(used("<input>"), ["forms"]);
+    assert.deepEqual(used('<span class="number-field"><input class="input" type="number"></span>'), ["forms", "number"], "the number field brings the forms it sits on");
+    assert.deepEqual(used('<input type="range">'), ["forms", "range"]);
+    assert.deepEqual(used("<input type='range'>"), ["forms", "range"]);
+    assert.deepEqual(used('<input type="text">'), ["forms"], "a text input has no range");
+    assert.deepEqual(used("<details><summary>x</summary></details>"), ["disclosure"], "a native details is drawn as the disclosure");
+    assert.deepEqual(used('<section data-accent="cobalt"><span class="status" data-status="accent">x</span>'), ["status", "accent"], "the accent classes come only with data-accent");
+    assert.deepEqual(used('<span class="status" data-status="accent">x</span>'), ["status"], "the accent reader is in status; the accent sheet is not");
     assert.deepEqual(used('<button class="btn" data-copy-text="x">Copy</button>'), ["copy"], "a button is core");
     assert.deepEqual(used('<script>Basalt.copyText("x"); Basalt.init();</script>'), ["copy"]);
   });
@@ -72,7 +79,7 @@ describe("what a body gets", () => {
 
   test("the example bodies get the modules their markup needs", () => {
     assert.deepEqual(used(EXAMPLES.static), ["topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
-    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "rows", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "rows", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
   });
 });
 
