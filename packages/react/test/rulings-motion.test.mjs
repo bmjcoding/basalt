@@ -9,6 +9,7 @@ let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
+const litDotsIn = (root) => [...root.querySelectorAll(".basalt-spinner-dot")].filter((c) => getComputedStyle(c).opacity === "1").map((c) => Number(c.dataset.dot)).sort();
 const render = (jsx) => `createRoot(document.getElementById("root")).render(${jsx});`;
 const token = (page, name) => page.evaluate((name) => getComputedStyle(document.documentElement).getPropertyValue(`--basalt-${name}`).trim(), name);
 
@@ -21,7 +22,7 @@ describe("the motion tokens", () => {
       assert.equal(await token(page, gone), "", `--basalt-${gone} is back`);
     }
     // loops are grouped apart from the scale
-    assert.deepEqual(await Promise.all(["ring", "braille", "fade"].map((n) => token(page, `duration-loop-${n}`))), ["640ms", "530ms", "1200ms"]);
+    assert.deepEqual(await Promise.all(["ring", "braille", "fade"].map((n) => token(page, `duration-loop-${n}`))), ["640ms", "800ms", "1200ms"]);
     await page.close();
   });
 
@@ -29,7 +30,7 @@ describe("the motion tokens", () => {
     const { page } = await fixturePage(browser, render(`<B.Button>Go</B.Button>`));
     await page.emulateMedia({ reducedMotion: "reduce" });
     assert.deepEqual(await Promise.all(["fast", "base", "slow", "slower"].map((n) => token(page, `duration-${n}`))), ["100ms", "100ms", "100ms", "100ms"]);
-    assert.deepEqual(await Promise.all(["ring", "braille", "fade"].map((n) => token(page, `duration-loop-${n}`))), ["640ms", "530ms", "1200ms"]);
+    assert.deepEqual(await Promise.all(["ring", "braille", "fade"].map((n) => token(page, `duration-loop-${n}`))), ["640ms", "800ms", "1200ms"]);
     await page.close();
   });
 
@@ -57,33 +58,156 @@ describe("the spinners", () => {
     await page.close();
   });
 
-  test("braille is Basalt's own 2 by 4 dot matrix, and steps through the ten frames in 530ms", async () => {
-    const { page } = await fixturePage(browser, render(`<B.Spinner variant="braille" label="Loading" size={24} />`));
+  // The ten frames ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ as the dots each one lights.
+  const FRAMES = [[1, 2, 4], [1, 4, 5], [1, 4, 5, 6], [4, 5, 6], [3, 4, 5, 6], [3, 5, 6], [2, 3, 6], [1, 2, 3, 6], [1, 2, 3], [1, 2, 3, 4]];
+
+  test("braille is Basalt's own six-dot cell: six circles in a 6 by 10 box, no dots 7 or 8", async () => {
+    const { page } = await fixturePage(browser, render(`<B.Spinner variant="braille" label="Loading" />`));
+    const shape = await page.getByRole("status", { name: "Loading" }).locator("svg").evaluate((svg) => ({
+      viewBox: svg.getAttribute("viewBox"),
+      text: svg.textContent,
+      dots: [...svg.querySelectorAll("circle")].map((c) => ({ dot: Number(c.dataset.dot), cx: Number(c.getAttribute("cx")), cy: Number(c.getAttribute("cy")), r: Number(c.getAttribute("r")) })),
+    }));
+    assert.equal(shape.viewBox, "0 0 6 10");
+    assert.equal(shape.text, "", "an SVG of dots, not a text glyph");
+    assert.deepEqual(shape.dots, [
+      { dot: 1, cx: 1, cy: 1, r: 1 }, { dot: 2, cx: 1, cy: 5, r: 1 }, { dot: 3, cx: 1, cy: 9, r: 1 },
+      { dot: 4, cx: 5, cy: 1, r: 1 }, { dot: 5, cx: 5, cy: 5, r: 1 }, { dot: 6, cx: 5, cy: 9, r: 1 },
+    ]);
+    await page.close();
+  });
+
+  test("braille steps through the ten frames on duration-loop-braille, hard step-end, and an unlit dot is not drawn", async () => {
+    const { page } = await fixturePage(browser, render(`<B.Spinner variant="braille" label="Loading" />`));
     const spinner = page.getByRole("status", { name: "Loading" });
-    const shape = await spinner.locator("svg").evaluate((svg) => ({ dots: svg.querySelectorAll("circle").length, columns: new Set([...svg.querySelectorAll("circle")].map((c) => c.getAttribute("cx"))).size, rows: new Set([...svg.querySelectorAll("circle")].map((c) => c.getAttribute("cy"))).size, text: svg.textContent }));
-    assert.deepEqual(shape, { dots: 8, columns: 2, rows: 4, text: "" }, "an SVG of dots, not a text glyph");
+    assert.equal(await token(page, "duration-loop-braille"), "800ms");
     const timing = await spinner.locator("[data-dot='1']").evaluate((el) => ({ duration: getComputedStyle(el).animationDuration, ease: getComputedStyle(el).animationTimingFunction, count: getComputedStyle(el).animationIterationCount }));
-    assert.deepEqual(timing, { duration: "0.53s", ease: "steps(1)", count: "infinite" }, "step-end, which Chromium writes as steps(1)");
-    // frame by frame: ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏
-    const FRAMES = [[1, 2, 4], [1, 4, 5], [1, 4, 5, 6], [4, 5, 6], [3, 4, 5, 6], [3, 5, 6], [2, 3, 6], [1, 2, 3, 6], [1, 2, 3], [1, 2, 3, 4]];
+    assert.deepEqual(timing, { duration: "0.8s", ease: "steps(1)", count: "infinite" }, "800ms on the token, step-end, which Chromium writes as steps(1)");
     const seen = [];
     for (let frame = 0; frame < 10; frame++) {
-      seen.push(await page.evaluate((frame) => {
-        for (const a of document.getAnimations()) { a.pause(); a.currentTime = frame * 53 + 26; }
-        return [...document.querySelectorAll(".basalt-spinner-dot")].filter((c) => getComputedStyle(c).opacity === "1").map((c) => Number(c.dataset.dot)).sort();
-      }, frame));
+      seen.push(await page.evaluate(([frame, fn]) => {
+        for (const a of document.getAnimations()) { a.pause(); a.currentTime = frame * 80 + 40; }
+        const dots = [...document.querySelectorAll(".basalt-spinner-dot")];
+        if (!dots.every((c) => ["0", "1"].includes(getComputedStyle(c).opacity))) throw new Error("a dot is neither drawn (1) nor not drawn (0)");
+        return new Function("root", `return (${fn})(root)`)(document);
+      }, [frame, litDotsIn.toString()]));
     }
     assert.deepEqual(seen, FRAMES);
     await page.close();
   });
 
-  test("reduced motion: the ring fades instead of turning, and braille holds its first frame", async () => {
+  test("braille sizes are whole pixels: 16 is 6 by 10, 20 is 9 by 15, 24 is 12 by 20", async () => {
+    const { page } = await fixturePage(browser, render(`<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 24 }}>{[16, 20, 24].map((s) => <B.Spinner key={s} variant="braille" size={s} label={"Size " + s} />)}</div>`));
+    const sizes = {};
+    for (const size of [16, 20, 24]) {
+      sizes[size] = await page.getByRole("status", { name: `Size ${size}` }).evaluate((root) => {
+        const svg = root.querySelector("svg").getBoundingClientRect();
+        const edges = [...root.querySelectorAll("circle")].flatMap((c) => { const r = c.getBoundingClientRect(); return [r.left - svg.left, r.right - svg.left, r.top - svg.top, r.bottom - svg.top]; });
+        const dot = root.querySelector("circle").getBoundingClientRect();
+        return { w: svg.width, h: svg.height, rootW: root.getBoundingClientRect().width, rootH: root.getBoundingClientRect().height, whole: edges.every((e) => Math.abs(e - Math.round(e)) < 0.01), dot: dot.width };
+      });
+    }
+    assert.deepEqual(sizes, {
+      16: { w: 6, h: 10, rootW: 6, rootH: 10, whole: true, dot: 2 },
+      20: { w: 9, h: 15, rootW: 9, rootH: 15, whole: true, dot: 3 },
+      24: { w: 12, h: 20, rootW: 12, rootH: 20, whole: true, dot: 4 },
+    }, "the square size box no longer applies to braille");
+    await page.close();
+  });
+
+  test("braille takes its word's colour; the ring keeps text-secondary", async () => {
+    const { page } = await fixturePage(browser, render(`<div style={{ color: "rgb(12, 34, 56)" }}><B.Spinner variant="braille" label="Braille" /> Running <B.Spinner label="Ring" /><i id="probe" style={{ color: "var(--basalt-text-secondary)" }} /></div>`));
+    const color = (name) => page.getByRole("status", { name }).evaluate((el) => getComputedStyle(el).color);
+    assert.equal(await color("Braille"), "rgb(12, 34, 56)");
+    assert.equal(await page.getByRole("status", { name: "Braille" }).locator("circle").first().evaluate((el) => getComputedStyle(el).fill), "rgb(12, 34, 56)");
+    const secondary = await page.locator("#probe").evaluate((el) => getComputedStyle(el).color);
+    assert.notEqual(secondary, "rgb(12, 34, 56)");
+    assert.equal(await color("Ring"), secondary);
+    await page.close();
+  });
+
+  test("beside a word, braille takes the status dot's seat and gap, so the words start at one x and the centres match", async () => {
+    // The finished statuses are the plain Badge: its 6px dot, its gap, the word. Running reuses that Badge's layout with braille in the dot's seat.
+    const dotRow = `<div data-row style={{ height: 20, fontSize: 14, lineHeight: "20px" }}><B.Badge variant="plain" status="success">Passed</B.Badge></div>`;
+    const runRow = `<div data-row style={{ height: 20, fontSize: 14, lineHeight: "20px" }}><span className="basalt-badge" data-variant="plain" data-status="neutral"><B.Spinner variant="braille" />Running</span></div>`;
+    for (const theme of ["light", "dark"]) {
+      const { page } = await fixturePage(browser, render(`<div style={{ width: 240 }}>${dotRow}${runRow}</div>`), { theme });
+      const [dot, braille] = await page.evaluate(() => [...document.querySelectorAll("[data-row]")].map((row) => {
+        const text = [...row.querySelector(".basalt-badge").childNodes].find((n) => n.nodeType === 3);
+        const range = document.createRange();
+        range.selectNodeContents(text);
+        const mark = (row.querySelector(".basalt-badge-dot") ?? row.querySelector("svg")).getBoundingClientRect();
+        return { wordX: range.getBoundingClientRect().left, centre: mark.top + mark.height / 2 - row.getBoundingClientRect().top, width: mark.width };
+      }));
+      assert.equal(braille.width, dot.width, `${theme}: the mark is as wide as the 6px dot`);
+      assert.ok(Math.abs(braille.wordX - dot.wordX) < 0.01, `${theme}: words start at ${dot.wordX} and ${braille.wordX}`);
+      assert.ok(Math.abs(braille.centre - dot.centre) <= 0.5, `${theme}: centres ${dot.centre} and ${braille.centre}`);
+      await page.close();
+    }
+  });
+
+  for (const scheme of ["dark", "light"]) {
+    test(`forced colours (${scheme} palette): the dots are the system ink of their surface, even under the other authored theme`, async () => {
+      for (const theme of ["light", "dark"]) {
+        const { page } = await fixturePage(browser, render(`<div id="surface" style={{ background: "var(--basalt-surface-page)", color: "var(--basalt-text-primary)" }}><B.Spinner variant="braille" label="Running" /> Running</div>`), { theme, forcedColors: "active", colorScheme: scheme });
+        const read = await page.evaluate(() => {
+          const surface = document.getElementById("surface");
+          const dot = surface.querySelector(".basalt-spinner-dot[data-lit]");
+          return { fill: getComputedStyle(dot).fill, word: getComputedStyle(surface).color, canvas: getComputedStyle(surface).backgroundColor, adjust: getComputedStyle(dot).forcedColorAdjust };
+        });
+        const ink = scheme === "dark" ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)";
+        const canvas = scheme === "dark" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)";
+        assert.equal(read.fill, ink, `${scheme} palette, authored ${theme}: the dots are ${read.fill}, not system ink`);
+        assert.equal(read.fill, read.word, "the dots match their word");
+        assert.equal(read.canvas, canvas);
+        assert.notEqual(read.adjust, "none", "the browser's own forced-colours fix is not switched off");
+        await page.close();
+      }
+    });
+  }
+
+  test("reduced motion: the ring fades instead of turning, and braille holds ⠋ with no running animation", async () => {
     const { page } = await fixturePage(browser, render(`<><B.Spinner label="Ring" /><B.Spinner variant="braille" label="Braille" /></>`));
     await page.emulateMedia({ reducedMotion: "reduce" });
-    assert.equal(await page.getByRole("status", { name: "Ring" }).locator("svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
-    const lit = await page.getByRole("status", { name: "Braille" }).evaluate((el) => [...el.querySelectorAll(".basalt-spinner-dot")].filter((c) => getComputedStyle(c).opacity === "1").map((c) => Number(c.dataset.dot)).sort());
-    assert.deepEqual(lit, [1, 2, 4]);
-    assert.equal(await page.getByRole("status", { name: "Braille" }).locator("[data-dot='1']").evaluate((el) => getComputedStyle(el).animationName), "none");
+    const ring = page.getByRole("status", { name: "Ring" });
+    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).animationDuration), "1.2s", "the ring keeps its fade on duration-loop-fade");
+    assert.equal(await ring.evaluate((el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === "running").length), 1);
+    const braille = page.getByRole("status", { name: "Braille" });
+    assert.deepEqual(await braille.evaluate(litDotsIn), [1, 2, 4]);
+    assert.equal(await braille.locator("[data-dot='1']").evaluate((el) => getComputedStyle(el).animationName), "none");
+    assert.equal(await braille.evaluate((el) => el.getAnimations({ subtree: true }).length), 0, "nothing runs");
+    assert.deepEqual(await braille.locator(".basalt-spinner-dot").evaluateAll((dots) => dots.map((c) => getComputedStyle(c).opacity)), ["1", "1", "0", "1", "0", "0"], "unlit dots are not drawn");
+    await page.close();
+  });
+
+  test("spinners share one clock: two mounted 300ms apart are in phase, each variant on its own period", async () => {
+    const { page } = await fixturePage(browser, render(`(() => {
+      function App() {
+        const [more, setMore] = React.useState(false);
+        window.addMore = () => flushSync(() => setMore(true));
+        return <><B.Spinner variant="braille" label="B1" /><B.Spinner label="R1" />{more ? <><B.Spinner variant="braille" label="B2" /><B.Spinner label="R2" /></> : null}</>;
+      }
+      return <App />;
+    })()`));
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.addMore());
+    const read = await page.evaluate(() => {
+      const phase = (name) => {
+        const root = document.querySelector(`[aria-label="${name}"]`);
+        return root.getAnimations({ subtree: true }).map((a) => ({ period: a.effect.getComputedTiming().duration, at: Number(a.currentTime) % a.effect.getComputedTiming().duration }));
+      };
+      return { b1: phase("B1"), b2: phase("B2"), r1: phase("R1"), r2: phase("R2") };
+    });
+    const apart = (a, b) => { const d = Math.abs(a.at - b.at); return Math.min(d, a.period - d); };
+    assert.equal(read.b1.length, 6);
+    assert.equal(read.r1.length, 1);
+    assert.deepEqual([read.b1[0].period, read.r1[0].period], [800, 640], "each variant keeps its own period");
+    read.b1.forEach((a, i) => assert.ok(apart(a, read.b2[i]) < 1, `braille dot ${i + 1} is ${apart(a, read.b2[i])}ms out of phase`));
+    assert.ok(apart(read.r1[0], read.r2[0]) < 1, `the ring is ${apart(read.r1[0], read.r2[0])}ms out of phase`);
+    // and what is on screen is the same frame
+    const lit = await page.evaluate((fn) => { for (const a of document.getAnimations()) a.pause(); return ["B1", "B2"].map((n) => new Function("root", `return (${fn})(root)`)(document.querySelector(`[aria-label="${n}"]`))); }, litDotsIn.toString());
+    assert.deepEqual(lit[0], lit[1]);
     await page.close();
   });
 });

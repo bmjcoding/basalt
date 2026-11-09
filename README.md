@@ -1,7 +1,7 @@
 # Basalt
 
 The SRA Syndicate design system: one monochrome foundation for Blacksand, srasyndicate.io,
-baileymjones.com, N1 and what comes next. Each product adds colour through its own accent.
+baileymjones.com, N1 and what comes next. Each product adds colour through one of Basalt's accent classes.
 
 **Status:** Foundations, React components and a core SwiftUI component layer are built and
 reviewed; no release has been published. See [what is complete and what remains](docs/status.md).

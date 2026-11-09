@@ -56,6 +56,14 @@ final class TokensTests: XCTestCase {
     check(Basalt.Colors.syntaxComment, atLeast: 4.5, "syntax-comment")
   }
 
+  /// Every accent class is readable (4.5:1) on every surface in both themes, as the web tokens are.
+  func testAccentClassesMeetAA() {
+    XCTAssertEqual(Basalt.AccentClass.allCases.map(\.rawValue), ["cobalt"])
+    for accent in Basalt.AccentClass.allCases {
+      check(accent.color, atLeast: 4.5, "accent-\(accent.rawValue)")
+    }
+  }
+
   func testThePageIsTheDarkestLayer() {
     for theme in [\Basalt.ThemedColor.light, \Basalt.ThemedColor.dark] {
       let page = luminance(Basalt.Colors.surfacePage[keyPath: theme])

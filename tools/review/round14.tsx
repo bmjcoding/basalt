@@ -227,7 +227,7 @@ export const ROUND_14: Round = {
         "Open for the owner: nothing visual was left open. Close is still small and the bell's opening faint at 16 (the council noted both, not blocking).",
       ],
       tryIt: ["Compare each glyph at 16 against 24.", "Look at the selected column: openings are closed, loops filled, details cut out.", "States: forced colours and reduced motion are shot as well."],
-      states: ["forced", "reduced"],
+      states: ["forced-colours", "reduced-motion"],
       demo: () => <SetDemo />,
     },
     {
@@ -240,7 +240,7 @@ export const ROUND_14: Round = {
         "The council's 11 checks, and Opus's extra sequences, run in the test suite against this MorphIcon.",
       ],
       tryIt: ["Click the arrows quickly: they turn on, or back, from where they are.", "Click Menu, close twice quickly.", "Select the navigation glyphs; then try Minus, check, which swaps at once."],
-      states: ["reduced", "forced"],
+      states: ["reduced-motion", "forced-colours"],
       demo: () => <MorphDemo />,
     },
     {
@@ -253,7 +253,7 @@ export const ROUND_14: Round = {
         "Phosphor Fill only on a selected glyph marked fillSafe; the core glyphs have their own selected drawing.",
       ],
       tryIt: ["Compare the weight of the Phosphor glyphs with the core ones in each toolbar.", "Click through the navigation rows."],
-      states: ["forced"],
+      states: ["forced-colours"],
       demo: () => <ToolbarDemo />,
     },
     {
@@ -262,7 +262,7 @@ export const ROUND_14: Round = {
       intro: "Danger is the XCircle everywhere, in text and a circle with a cross, never colour alone.",
       decisions: ["Callout's danger icon is now XCircle where it was WarningCircle (decision 38, 3 to 0)."],
       tryIt: ["Compare the four Callouts: each status has its own shape."],
-      states: ["forced"],
+      states: ["forced-colours"],
       demo: () => <DangerDemo />,
     },
   ],

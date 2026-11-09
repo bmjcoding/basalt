@@ -67,6 +67,8 @@ const css = [
   // shipped"), scoped to a wrapper that says so.
   "@layer review, basalt, review-options;",
   fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
+  // The accent classes are generated with the tokens; Badge's accent tone reads them.
+  fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
   `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,
 ].join("\n");
 
@@ -228,11 +230,10 @@ for (const id of rounds) {
     for (const state of ["default", ...step.states]) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !["default", "film", "ghost", "forced", "reduced"].includes(state); // the filmstrip, the ghost press and the media emulations are pages, not open overlays
-          const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2 });
-          // "forced" and "reduced" are the page under forced colours and under reduced motion
-          if (state === "forced") await page.emulateMedia({ forcedColors: "active" });
-          if (state === "reduced") await page.emulateMedia({ reducedMotion: "reduce" });
+          const overlay = !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed"].includes(state); // these are pages, not open overlays
+          // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme.
+          const media = state === "forced-colours" ? { forcedColors: "active", colorScheme: theme } : state === "forced-mixed" ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : state === "reduced-motion" ? { reducedMotion: "reduce" } : {};
+          const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2, ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
@@ -241,6 +242,13 @@ for (const id of rounds) {
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
+          // "forced" is Windows forced-colours mode; a state ending in "-lit" (or "forced") hovers the second row of the first
+          // popup, because the plate and the lift are what a pointer holds and a screenshot cannot.
+          if (state === "forced") await page.emulateMedia({ forcedColors: "active" });
+          if (state.endsWith("-lit") || state === "forced") {
+            await page.locator(".basalt-menu-item, [cmdk-item]").nth(1).hover();
+            await page.waitForTimeout(250);
+          }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);
           const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}${tag}-${theme}.png`;

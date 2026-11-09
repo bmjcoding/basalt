@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { Icon } from "./icon";
-import { inLevel, ModalDepth, useModalLayer } from "./layers";
+import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 
@@ -122,9 +122,9 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
       <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
-          <BaseDialog.Popup ref={popup} className="basalt-dialog basalt-command" data-level={2} style={{ zIndex: layer.popup }} aria-label="Command menu">
+          <BaseDialog.Popup ref={popup} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label="Command menu">
             {inLevel(
-              2,
+              MODAL_LEVEL,
               Panel ? (
                 <Panel groups={groups} placeholder={placeholder} hints={hints} onOpenChange={onOpenChange} initialSearch={early} />
               ) : state.status === "error" ? (
@@ -146,7 +146,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                 // autoFocus: that would run before the dialog notes what to return focus to. The dialog focuses it.
                 // The ring is for a wait that runs long: it sits in a slot at the row's end that the ready row also keeps
                 // (empty), so the input is the same width before and after and nothing moves when loading ends.
-                <div className="basalt-command-search">
+                <div className="basalt-command-search" data-level={BAND_LEVEL}>
                   <Icon icon={MagnifyingGlassIcon} size={16} />
                   <input
                     className="basalt-command-input"

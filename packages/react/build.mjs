@@ -1,7 +1,7 @@
 // Builds @srasyndicate/basalt:
 //   dist/*.js           the components, one ES module per source file (React, Base UI, Phosphor and Shiki stay external)
 //   dist/*.d.ts         type declarations
-//   dist/components.css the component styles alone, in @layer basalt
+//   dist/components.css the component styles, with the tokens package's accent classes, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
 //   dist/fonts.css      Geist Sans and Mono @font-face rules, with the variable font files
 //   .demo/              a page with every component in both themes, for the browser tests
@@ -78,7 +78,9 @@ await esbuild.build({
 
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });
 
-const components = fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8");
+// The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
+const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");
+const components = `${fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8")}\n${accents}`;
 
 // Geist Sans and Mono, variable (SIL OFL 1.1, licence shipped beside the files).
 const geist = path.join(packageDir("geist"), "dist", "fonts");

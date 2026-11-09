@@ -167,12 +167,16 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
-    test("a selected table row has a cue besides colour (WCAG 1.4.11)", async () => {
+    test("a selected table row is the selected wash as a band, with no bar", async () => {
+      // The state is carried by a checked box and a count in words (docs/foundations.md, Selected rows), not by a mark on the row.
       const { page } = await open(theme);
       const row = page.locator('tr[aria-selected="true"]');
       assert.equal(await row.count(), 1);
-      const shadow = await row.locator("td").first().evaluate((td) => getComputedStyle(td).boxShadow);
-      assert.match(shadow, /\b2px 0px 0px 0px inset/, `selected row's leading bar is missing (${shadow})`);
+      const probe = await page.evaluate(() => { const el = document.createElement("div"); el.style.background = "var(--basalt-state-selected)"; document.body.append(el); const c = getComputedStyle(el).backgroundColor; el.remove(); return c; });
+      assert.equal(await row.evaluate((tr) => getComputedStyle(tr).backgroundColor), probe, "the row is the selected wash");
+      const cell = row.locator("td").first();
+      assert.doesNotMatch(await cell.evaluate((td) => getComputedStyle(td).boxShadow), /\b2px 0px 0px 0px inset/, "a leading bar came back");
+      assert.equal(await cell.evaluate((td) => getComputedStyle(td).borderInlineStartWidth), "0px");
       await page.close();
     });
 
@@ -619,7 +623,8 @@ for (const theme of ["light", "dark"]) {
       const menu = page.getByRole("menu");
       await menu.waitFor();
       await settle(page);
-      assert.equal(await menu.getByRole("menuitem").first().evaluate((el) => el.getBoundingClientRect().height), 28);
+      // the plate is 32 in compact and the row carries 2px above and below it
+      assert.equal(await menu.getByRole("menuitem").first().evaluate((el) => el.getBoundingClientRect().height), 36);
       await page.keyboard.press("Escape");
       await page.getByRole("region", { name: "Density fixtures" }).evaluate((el) => el.dataset.density = "default");
       assert.deepEqual(await heights(), normal, "nested default scope did not restore the scale");

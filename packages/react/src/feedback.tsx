@@ -84,7 +84,7 @@ export interface PopoverContentProps extends PartProps<"div"> {
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
-  // One level above its opener, and never below 2.
+  // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
     <BasePopover.Portal>

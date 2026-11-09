@@ -1,7 +1,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
-import { inLevel, ModalDepth, useModalLayer } from "./layers";
+import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
 import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { withClass, withStyle } from "./utils";
 
@@ -55,7 +55,7 @@ export function DialogContent({ className, style, children, ...props }: DialogCo
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} data-level={2} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(2, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

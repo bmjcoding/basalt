@@ -23,7 +23,7 @@ The panel's rulings on all of this, and the options it left to the owner, are re
 
 Under `prefers-reduced-motion`, `duration-base`, `duration-slow` and `duration-slower` are 100ms and nothing moves, grows or travels: state changes become short fades.
 
-Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 530ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
+Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
 
 | Curve | Value | Use |
 |---|---|---|
@@ -44,8 +44,10 @@ The code-block copy control swaps its Phosphor Copy icon for Check, instantly. T
 
 | Variant | Use it |
 |---|---|
-| `ring` | The default arc, including inside a loading button. One turn in 640ms. |
-| `braille` | Mono and CLI lines. Basalt's own 2 by 4 dot matrix drawn in SVG, ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 530ms cycle, hard `step-end`. It holds its first frame under reduced motion. |
+| `ring` | A wait: the default arc, in a loading button, the command menu's loading slot, and wherever a spinner stands without a visible word. One turn in 640ms. Under reduced motion it fades on `duration-loop-fade`. |
+| `braille` | A status: work that runs beside a word that says so, in a table, a list row, a toast or a log line. Never in a button, never without its word. Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on whole pixels (9 by 15 at size 20, 12 by 20 at 24), ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 800ms cycle (80ms a frame), hard `step-end`; unlit dots are not drawn. It takes the status dot's place and gap, in its word's colour. It holds its first frame under reduced motion. |
+
+Spinners on a page share one clock: each animation starts at the document timeline's origin, so spinners mounted at different moments tick in phase, each variant on its own period.
 
 Pass `label` when the spinner is the status (`role="status"`). Omit it when a word beside it already says so. There is no blinking caret: an input keeps the native caret, which follows the system's blink rate and its setting to stop blinking.
 
@@ -55,7 +57,7 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 |---|---|---|
 | `MorphIcon` | A core glyph (`glyph={CloseGlyph}`, any glyph by reference, so an app bundles only the ones it imports) that morphs at `slow` on `ease-out`, and only where the council allowed: rest and selected, a rotation group (four arrows, four chevrons, plus and close), and the drawn pairs menu/close, play/pause, copy/check and chevron-down/download, both ways. Every other change swaps at once. A morph in flight keeps its identity: asking for its target does nothing, asking for where it came from runs it back, asking for another member of its group turns on. The stroke is 2.25 on the 24 grid. | Instant swap |
 | `TextMorph` | For short action labels only ("Save" to "Saved"). Shared letters stay on their measured positions; leaving letters fade; the width eases. One polite live region reads the whole string. | The letters change, with no motion |
-| Tabs and `Slide` | The indicator moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are the same tabs on their side. | A 100ms crossfade; the bar does not move |
+| Tabs and `Slide` | The underline of a horizontal tab bar moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are a column of pills in a track and have no indicator to move; their panel still moves 8px down or up. | A 100ms crossfade; the underline does not move |
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
 | `Sparkline` | A monochrome line and its latest value: not a charting component. A flat line breathes while loading (the one loop here), then eases into the samples. When the range changes the line, the scale and the labels move together over `slow` on `ease-out`; a new peak widens the scale at once. An empty list is a quiet sentence. | Everything snaps |
 | `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |
