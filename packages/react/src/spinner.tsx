@@ -1,41 +1,69 @@
+import * as React from "react";
+
 import { join } from "./utils";
 
 export type SpinnerVariant = "ring" | "braille";
 
 export interface SpinnerProps {
+  /** The ring is a square of this many pixels. Braille is a 6 by 10 cell at 16, 9 by 15 at 20 and 12 by 20 at 24, always on whole pixels. */
   size?: 16 | 20 | 24;
   /** What is loading, announced to screen readers. Omit when a visible label beside it already says so. */
   label?: string;
   className?: string;
-  /** `ring` (the default, also inside buttons) is the arc. `braille` is a 2 by 4 dot matrix stepping through ten frames, for mono and terminal lines. */
+  /**
+   * `ring` (the default) is for a wait: in a button, in the command menu's loading slot, or anywhere a spinner stands without a visible word.
+   * `braille` is for a status: work that runs while a word beside it says so, in a table, a list row, a toast or a log line. Never in a button,
+   * never without its word. It is Basalt's own six-dot cell stepping through ten frames in 800ms, in its word's colour, and it takes the
+   * status dot's place and gap. Under reduced motion the ring fades and braille holds its first frame.
+   */
   variant?: SpinnerVariant;
 }
 
-// The dots of a braille cell, numbered as Unicode numbers them: 1 to 3 down the left column, 4 to 6 down
-// the right, 7 and 8 the bottom row. The ten frames ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ never light 7 or 8. The stylesheet steps each
-// dot's opacity through the frames; the first frame (⠋, dots 1, 2 and 4) is how a held spinner looks.
+// The dots of a braille cell, numbered as Unicode numbers them: 1 to 3 down the left column, 4 to 6 down the
+// right. Basalt draws the six the frames use; dots 7 and 8 (the bottom row) are never lit, so they are not drawn.
+// The ten frames ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ are in the stylesheet, each dot stepping between drawn (1) and not drawn (0). The first
+// frame (⠋, dots 1, 2 and 4) is the base look, and how a held spinner appears.
 const DOTS = [
-  { dot: 1, x: 5, y: 2 }, { dot: 2, x: 5, y: 6 }, { dot: 3, x: 5, y: 10 }, { dot: 7, x: 5, y: 14 },
-  { dot: 4, x: 11, y: 2 }, { dot: 5, x: 11, y: 6 }, { dot: 6, x: 11, y: 10 }, { dot: 8, x: 11, y: 14 },
+  { dot: 1, x: 1, y: 1 }, { dot: 2, x: 1, y: 5 }, { dot: 3, x: 1, y: 9 },
+  { dot: 4, x: 5, y: 1 }, { dot: 5, x: 5, y: 5 }, { dot: 6, x: 5, y: 9 },
 ] as const;
 const FIRST_FRAME = [1, 2, 4];
+// The cell scales on whole pixels: 6 by 10 with 2px dots, 9 by 15 with 3px dots, 12 by 20 with 4px dots.
+const BRAILLE_SCALE = { 16: 1, 20: 1.5, 24: 2 } as const;
 
-/** Work in progress with no measurable end, for short waits. Prefer `Progress` when you know how far along it is. */
+/**
+ * Spinners on a page share one clock: every animation starts at the document timeline's origin, so two spinners
+ * mounted at different moments tick in phase, each variant on its own period. It is set once at mount, inside the
+ * component (no module-scope state, no ticker, no re-render). A server-rendered first paint shows frame 0 and
+ * corrects once, here, after hydration. Under reduced motion braille runs no animation, so there is nothing to sync.
+ */
+function useSharedClock(ref: React.RefObject<HTMLElement | null>) {
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.getAnimations !== "function") return;
+    for (const animation of el.getAnimations({ subtree: true })) animation.startTime = 0;
+  }, [ref]);
+}
+
+/** Work in progress with no measurable end. Prefer `Progress` when you know how far along it is. */
 export function Spinner({ size = 16, label, className, variant = "ring" }: SpinnerProps) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  useSharedClock(ref);
   const status = label ? ({ role: "status" as const, "aria-label": label }) : ({ "aria-hidden": true as const });
   if (variant === "braille") {
+    const scale = BRAILLE_SCALE[size];
     return (
-      <span {...status} data-variant="braille" className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
-        <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+      <span ref={ref} {...status} data-variant="braille" data-size={size} className={join("basalt-spinner", className)}>
+        <svg viewBox="0 0 6 10" width={6 * scale} height={10 * scale} aria-hidden="true">
           {DOTS.map(({ dot, x, y }) => (
-            <circle key={dot} className="basalt-spinner-dot" data-dot={dot <= 6 ? dot : undefined} data-lit={FIRST_FRAME.includes(dot) ? "" : undefined} cx={x} cy={y} r={1.25} />
+            <circle key={dot} className="basalt-spinner-dot" data-dot={dot} data-lit={FIRST_FRAME.includes(dot) ? "" : undefined} cx={x} cy={y} r={1} />
           ))}
         </svg>
       </span>
     );
   }
   return (
-    <span {...status} data-variant="ring" className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
+    <span ref={ref} {...status} data-variant="ring" className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
       <svg viewBox="0 0 16 16" width={size} height={size} fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" />
         <path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

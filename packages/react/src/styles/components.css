@@ -1089,16 +1089,21 @@
 
   /* ---- Spinner ---- */
 
-  /* Two spinners, one job each: the ring (the default, also in buttons) and braille, Basalt's own 2 by 4
-     dot matrix for mono and terminal lines. Both are loops, so they sit outside the entry scale. */
+  /* Two spinners, one job each: the ring (the default, also in buttons) is for a wait, and braille is for a
+     status beside a word. Braille is Basalt's own six-dot cell, 6 by 10 with 2px dots on whole pixels. Both
+     are loops, so they sit outside the entry scale. */
   .basalt-spinner { display: inline-flex; flex: none; align-items: center; color: var(--basalt-text-secondary); }
   .basalt-button .basalt-spinner { color: inherit; }
   .basalt-command-slot .basalt-spinner { color: inherit; }
   .basalt-spinner[data-variant="ring"] svg { animation: basalt-spin var(--basalt-duration-loop-ring) var(--basalt-ease-linear) infinite; }
 
-  /* Ten frames, 530ms, stepped. A dot is lit (full) or unlit (faint); the first frame is the base look, so a
-     spinner that holds still (reduced motion) shows ⠋. Dots 7 and 8, the bottom row, are never lit. */
-  .basalt-spinner-dot { fill: currentColor; opacity: 0.2; }
+  /* Braille takes its word's colour, and the seat of the 6px status dot (the same width), so the words start at
+     one x. It has no square box: the svg is 6 by 10, 9 by 15 or 12 by 20 CSS pixels. */
+  .basalt-spinner[data-variant="braille"] { color: inherit; }
+
+  /* Ten frames, one cycle on duration-loop-braille (80ms a frame), stepped. A dot is drawn (1) or not (0); the
+     first frame is the base look, so a spinner that holds still (reduced motion) shows ⠋. */
+  .basalt-spinner-dot { fill: currentColor; opacity: 0; }
   .basalt-spinner-dot[data-lit] { opacity: 1; }
   .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot] { animation: var(--basalt-duration-loop-braille) step-end infinite; }
   .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot="1"] { animation-name: basalt-braille-1; }
@@ -1113,12 +1118,12 @@
   }
 
   /* Frames ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ are 0 to 9; each dot lists where it turns on or off. */
-  @keyframes basalt-braille-1 { 0% { opacity: 1; } 30% { opacity: 0.2; } 70% { opacity: 1; } }
-  @keyframes basalt-braille-2 { 0% { opacity: 1; } 10% { opacity: 0.2; } 60% { opacity: 1; } }
-  @keyframes basalt-braille-3 { 0% { opacity: 0.2; } 40% { opacity: 1; } }
-  @keyframes basalt-braille-4 { 0% { opacity: 1; } 50% { opacity: 0.2; } 90% { opacity: 1; } }
-  @keyframes basalt-braille-5 { 0% { opacity: 0.2; } 10% { opacity: 1; } 60% { opacity: 0.2; } }
-  @keyframes basalt-braille-6 { 0% { opacity: 0.2; } 20% { opacity: 1; } 80% { opacity: 0.2; } }
+  @keyframes basalt-braille-1 { 0% { opacity: 1; } 30% { opacity: 0; } 70% { opacity: 1; } }
+  @keyframes basalt-braille-2 { 0% { opacity: 1; } 10% { opacity: 0; } 60% { opacity: 1; } }
+  @keyframes basalt-braille-3 { 0% { opacity: 0; } 40% { opacity: 1; } }
+  @keyframes basalt-braille-4 { 0% { opacity: 1; } 50% { opacity: 0; } 90% { opacity: 1; } }
+  @keyframes basalt-braille-5 { 0% { opacity: 0; } 10% { opacity: 1; } 60% { opacity: 0; } }
+  @keyframes basalt-braille-6 { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 0; } }
 
   @keyframes basalt-drain {
     from { transform: scaleX(1); }
@@ -1587,7 +1592,8 @@
     /* The header is Canvas with a real border and no filter or alpha fill. */
     .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .basalt-toast-drain { forced-color-adjust: none; background: CanvasText; }
-    .basalt-spinner-dot { forced-color-adjust: none; fill: CanvasText; }
+    /* Braille's dots are currentColor and are left to the browser: it forces the word's colour to the system foreground of its surface (Canvas
+       text, HighlightText on Highlight), and the dots follow. forced-color-adjust: none here would keep an authored colour that can vanish. */
   }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */

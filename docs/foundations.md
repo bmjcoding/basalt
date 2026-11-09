@@ -148,10 +148,14 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
   colours its title.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each: the ring turns in 640ms
-  (the default, and the one inside a button), and braille is Basalt's own 2 by 4 dot matrix
-  stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 530ms, for mono and terminal lines. Under reduced
-  motion the ring fades and braille holds its first frame.
+  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
+  is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
+  a spinner stands without a visible word. Braille is for a status: work that runs while a word
+  beside it says so, in a table, a list row, a toast or a log line; never in a button, and never
+  without its word. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
+  whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
+  takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
+  Under reduced motion the ring fades and braille holds its first frame.
 
 ### Keyboard keys
 
@@ -341,7 +345,7 @@ keyboard many times a day, so it neither opens nor closes with motion, its backd
 | `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
 
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
-`duration-loop-braille` 530ms and `duration-loop-fade` 1200ms.
+`duration-loop-braille` 800ms and `duration-loop-fade` 1200ms.
 
 | Curve | Value | For |
 |---|---|---|
