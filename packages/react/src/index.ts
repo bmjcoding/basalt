@@ -2,6 +2,10 @@ export { Button, IconButton } from "./button";
 export type { ButtonProps, ButtonVariant, ControlSize, IconButtonProps } from "./button";
 export { Icon } from "./icon";
 export type { IconProps, IconSize } from "./icon";
+// The core set: one module per glyph, so an app bundles the ones it imports.
+export * from "./glyph-set";
+export type { GlyphData, GlyphIcon, GlyphSlot } from "./glyph";
+export type { GlyphName } from "./glyph-names";
 export { Field, Input } from "./field";
 export type { FieldProps, InputProps } from "./field";
 export { Menu, MenuCheckboxItem, MenuContent, MenuGroup, MenuGroupLabel, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuSubmenuTrigger, MenuTrigger } from "./menu";
@@ -53,7 +57,7 @@ export type { AlertDialogProps, SheetContentProps, SheetSide } from "./overlays"
 export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export { MorphIcon } from "./morph-icon";
-export type { MorphIconProps, MorphName } from "./morph-icon";
+export type { MorphIconProps } from "./morph-icon";
 export { Slide, TravelSpinner, useGlide, useReducedMotion, useSlideDirection } from "./motion";
 export { LivePreview } from "./preview";
 export type { LivePreviewProps } from "./preview";

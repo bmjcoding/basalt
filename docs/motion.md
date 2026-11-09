@@ -55,7 +55,7 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 
 | Piece | What it does | Reduced motion |
 |---|---|---|
-| `MorphIcon` | Three strokes (2.25 on the 24 grid) that morph at `slow` on `ease-out`. Only shapes Phosphor also draws: menu, close, plus, minus, check, four chevrons, four arrows, so one concept never has two drawings in a UI. Arrows, chevrons and plus/close rotate as a group. | Instant swap |
+| `MorphIcon` | A core glyph (`glyph={CloseGlyph}`, any glyph by reference, so an app bundles only the ones it imports) that morphs at `slow` on `ease-out`, and only where the council allowed: rest and selected, a rotation group (four arrows, four chevrons, plus and close), and the drawn pairs menu/close, play/pause, copy/check and chevron-down/download, both ways. Every other change swaps at once. A morph in flight keeps its identity: asking for its target does nothing, asking for where it came from runs it back, asking for another member of its group turns on. The stroke is 2.25 on the 24 grid. | Instant swap |
 | `TextMorph` | For short action labels only ("Save" to "Saved"). Shared letters stay on their measured positions; leaving letters fade; the width eases. One polite live region reads the whole string. | The letters change, with no motion |
 | Tabs and `Slide` | The underline of a horizontal tab bar moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are a column of pills in a track and have no indicator to move; their panel still moves 8px down or up. | A 100ms crossfade; the underline does not move |
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |

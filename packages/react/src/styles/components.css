@@ -1200,7 +1200,6 @@
   }
 
   .basalt-morph { display: block; flex: none; overflow: visible; transform-origin: center; }
-  .basalt-morph[data-spin] { transition: transform var(--basalt-duration-slow) var(--basalt-ease-out); }
   .basalt-text-morph {
     position: relative;
     display: inline-block;
@@ -1688,7 +1687,6 @@
     /* Digits are plain tabular text: the same width and baseline as the strip they replace. */
     .basalt-ticker-visual { display: none; }
     .basalt-ticker-text { position: static; display: inline-block; width: auto; height: 1em; margin: 0; overflow: hidden; clip: auto; line-height: 1; white-space: pre; }
-    .basalt-morph[data-spin],
     .basalt-text-morph,
     .basalt-text-morph-glyph { transition: none; }
     /* Changing a panel is a 100ms crossfade, with no travel. */

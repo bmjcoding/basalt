@@ -2,7 +2,7 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Field as BaseField } from "@base-ui/react/field";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { IconButton } from "./button";
@@ -115,7 +115,7 @@ export function PopoverClose(props: PopoverCloseProps) {
 
 export type CalloutStatus = "info" | "success" | "warning" | "danger";
 
-const CALLOUT_ICON = { info: InfoIcon, success: CheckCircleIcon, warning: WarningIcon, danger: WarningCircleIcon } as const;
+const CALLOUT_ICON = { info: InfoIcon, success: CheckCircleIcon, warning: WarningIcon, danger: XCircleIcon } as const;
 
 export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title"> {
   status?: CalloutStatus;
