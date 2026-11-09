@@ -50,8 +50,11 @@ describe("CommandMenu when its chunk fails", () => {
           return void setTimeout(() => response.writeHead(200, { "content-type": "text/javascript" }).end(body), 100);
         }
         if (state.mode === "slow") {
+          // Held until the test calls state.release(), so the panel stays loading for exactly as long as the test needs, on any
+          // runner. A fixed delay raced the test's own round trips: a slow runner could see the ring, or even the panel, early.
           const body = fs.readFileSync(path.join(dir, file));
-          return void setTimeout(() => response.writeHead(200, { "content-type": "text/javascript" }).end(body), 700);
+          state.release = () => { state.release = null; response.writeHead(200, { "content-type": "text/javascript" }).end(body); };
+          return;
         }
       }
       if (file === "") return void response.writeHead(200, { "content-type": "text/html" }).end(`<!doctype html><html lang="en" data-theme="light"><head><title>Chunk fixture</title><link rel="stylesheet" href="/styles.css"></head><body><main><div id="root"></div></main><script type="module" src="/app.js"></script></body></html>`);
@@ -63,7 +66,7 @@ describe("CommandMenu when its chunk fails", () => {
     return {
       state,
       url: `http://127.0.0.1:${server.address().port}/`,
-      close: async () => { await new Promise((resolve) => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); },
+      close: async () => { state.release?.(); await new Promise((resolve) => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); },
     };
   }
 
@@ -106,6 +109,16 @@ describe("CommandMenu when its chunk fails", () => {
     page.setDefaultTimeout(5000);
     try {
       await page.goto(site.url);
+      // The ring may only appear once the wait has run past 300ms. Time that in the page, from when the loading input mounts to
+      // when the ring does, so the check doesn't depend on how long this test's own round trips take.
+      await page.evaluate(() => {
+        window.__loading = {};
+        new MutationObserver(() => {
+          const now = performance.now();
+          if (!window.__loading.input && document.querySelector(".basalt-command-input")) window.__loading.input = now;
+          if (!window.__loading.ring && document.querySelector(".basalt-command-search .basalt-spinner")) window.__loading.ring = now;
+        }).observe(document.body, { subtree: true, childList: true });
+      });
       await page.locator("#trigger").click();
       const dialog = page.getByRole("dialog", { name: "Command menu" });
       await dialog.waitFor();
@@ -117,7 +130,6 @@ describe("CommandMenu when its chunk fails", () => {
       assert.equal(await early.evaluate((el) => document.getElementById(el.getAttribute("aria-describedby")).textContent), "Loading commands");
       assert.equal(await dialog.getAttribute("aria-busy"), null);
       assert.equal(await dialog.getByRole("status").count(), 0);
-      assert.equal(await page.locator(".basalt-command-search .basalt-spinner").count(), 0, "no spinner yet: the panel is deciding");
       // after 300ms of waiting the ring appears, in the slot at the band's end; the input does not move when it does
       const band = () => page.evaluate(() => {
         const row = document.querySelector(".basalt-command-search").getBoundingClientRect();
@@ -126,6 +138,8 @@ describe("CommandMenu when its chunk fails", () => {
       });
       const waiting = await band();
       await page.waitForSelector(".basalt-command-search .basalt-spinner", { timeout: 2000 });
+      const { input, ring: ringAt } = await page.evaluate(() => window.__loading);
+      assert.ok(ringAt - input >= 295, `no ring before 300ms of waiting: it appeared ${Math.round(ringAt - input)}ms after the loading input`);
       const ring = await page.evaluate(() => {
         const el = document.querySelector(".basalt-command-search .basalt-spinner");
         const box = el.getBoundingClientRect();
@@ -143,6 +157,8 @@ describe("CommandMenu when its chunk fails", () => {
       // what is typed is kept, and is the panel's first search
       await page.keyboard.type("zz");
       assert.equal(await early.inputValue(), "zz");
+      assert.equal(await page.locator(".basalt-command-input").evaluate((el) => !!el.closest("[cmdk-root]")), false, "still loading: the chunk is held");
+      site.state.release();
       await page.waitForFunction(() => document.querySelector(".basalt-command-input")?.closest("[cmdk-root]"), null, { timeout: 4000 });
       assert.equal(await page.locator(".basalt-command-input").inputValue(), "zz", "the typed text survives the panel arriving");
       const ready = await band();
