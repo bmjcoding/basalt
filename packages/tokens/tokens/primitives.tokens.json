@@ -1133,10 +1133,10 @@
       "braille": {
         "$type": "duration",
         "$value": {
-          "value": 530,
+          "value": 800,
           "unit": "ms"
         },
-        "$description": "One full cycle of the braille spinner's ten frames, stepped, not interpolated."
+        "$description": "One full cycle of the braille spinner's ten frames, 80ms a frame, stepped, not interpolated."
       },
       "fade": {
         "$type": "duration",

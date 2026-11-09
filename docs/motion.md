@@ -23,7 +23,7 @@ The panel's rulings on all of this, and the options it left to the owner, are re
 
 Under `prefers-reduced-motion`, `duration-base`, `duration-slow` and `duration-slower` are 100ms and nothing moves, grows or travels: state changes become short fades.
 
-Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 530ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
+Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
 
 | Curve | Value | Use |
 |---|---|---|
@@ -44,8 +44,10 @@ The code-block copy control swaps its Phosphor Copy icon for Check, instantly. T
 
 | Variant | Use it |
 |---|---|
-| `ring` | The default arc, including inside a loading button. One turn in 640ms. |
-| `braille` | Mono and CLI lines. Basalt's own 2 by 4 dot matrix drawn in SVG, ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 530ms cycle, hard `step-end`. It holds its first frame under reduced motion. |
+| `ring` | A wait: the default arc, in a loading button, the command menu's loading slot, and wherever a spinner stands without a visible word. One turn in 640ms. Under reduced motion it fades on `duration-loop-fade`. |
+| `braille` | A status: work that runs beside a word that says so, in a table, a list row, a toast or a log line. Never in a button, never without its word. Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on whole pixels (9 by 15 at size 20, 12 by 20 at 24), ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 800ms cycle (80ms a frame), hard `step-end`; unlit dots are not drawn. It takes the status dot's place and gap, in its word's colour. It holds its first frame under reduced motion. |
+
+Spinners on a page share one clock: each animation starts at the document timeline's origin, so spinners mounted at different moments tick in phase, each variant on its own period.
 
 Pass `label` when the spinner is the status (`role="status"`). Omit it when a word beside it already says so. There is no blinking caret: an input keeps the native caret, which follows the system's blink rate and its setting to stop blinking.
 
