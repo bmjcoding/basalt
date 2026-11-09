@@ -9,6 +9,7 @@ import * as React from "react";
 import { IconButton, type ControlSize } from "./button";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
+import { GlidePlate } from "./plate";
 import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails, PartProps, PopupActions, SubmitDetails, ValidateActions } from "./types";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
@@ -111,6 +112,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
       <BaseCombobox.Portal>
         <BaseCombobox.Positioner sideOffset={6} style={layer} className="basalt-positioner">
           <BaseCombobox.Popup data-level={level} className="basalt-menu basalt-combobox-popup">
+            <GlidePlate />
             <BaseCombobox.Empty className="basalt-combobox-empty">{emptyMessage}</BaseCombobox.Empty>
             <BaseCombobox.List>
               {(value: string) => (
