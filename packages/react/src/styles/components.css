@@ -420,8 +420,13 @@
     box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
   }
 
+  /* An icon in a tab sits on the label's centre line, 6px before it, as it does in a button. */
   .basalt-tab {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-1-5);
     height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     padding: 0 var(--basalt-space-2);
     margin: 0;
@@ -485,6 +490,7 @@
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     padding: 0 var(--basalt-space-3);
     text-align: start;

@@ -546,3 +546,25 @@ describe("forced colours: the lit row is Highlight with HighlightText, never a b
     await page.close();
   });
 });
+
+describe("a tab with an icon", () => {
+  for (const orientation of ["horizontal", "vertical"]) {
+    test(`${orientation}: the icon is centred on the label's line, 6px before it, the way a button sets it`, async () => {
+      const jsx = `<B.Tabs orientation="${orientation}" defaultValue="a"><B.TabsList aria-label="S"><B.Tab value="a">Overview</B.Tab><B.Tab value="b"><PlusIcon size={16} aria-hidden id="tab-icon" /> Settings</B.Tab></B.TabsList><B.TabsPanel value="a">A</B.TabsPanel></B.Tabs>`;
+      const { page } = await fixturePage(browser, render(jsx), { theme: "dark" });
+      const out = await page.evaluate(() => {
+        const icon = document.getElementById("tab-icon");
+        const tab = icon.closest(".basalt-tab");
+        const range = document.createRange();
+        const text = [...tab.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+        range.selectNodeContents(text);
+        const t = [...range.getClientRects()].find((r) => r.width > 0);
+        const i = icon.getBoundingClientRect();
+        return { iconMid: i.top + i.height / 2, textMid: t.top + t.height / 2, gap: t.left - i.right };
+      });
+      assert.ok(Math.abs(out.iconMid - out.textMid) <= 0.5, `the icon's centre is ${(out.iconMid - out.textMid).toFixed(2)}px off the label's`);
+      assert.ok(Math.abs(out.gap - 6) <= 0.5, `the gap between icon and label is ${out.gap.toFixed(2)}px`);
+      await page.close();
+    });
+  }
+});
