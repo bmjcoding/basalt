@@ -83,18 +83,27 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   anywhere.** The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
-  carries the state. Horizontal tabs keep their underline: it is horizontal.
+  carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
+  control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
+  under reduced motion and in forced colours each item paints its own.
+- **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
+  at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
+  full-bleed band holding its own control focuses that control; a band that is itself the link
+  or button takes the flush-field −2 inset.
 - **Keyboard keys are chips:** a fill with no border, one per key, 2px apart; ⌘ ⌥ ⌃ are
   Phosphor icons. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
-- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up),
-  12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
+- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
+  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
   (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,
-  the parts of a field or a disabled or loading button). Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
+  the parts of a field or a disabled or loading button). In popup rows (Menu, Select, Combobox,
+  command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
+  on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
+  reduced motion and in forced colours. Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density. Text entry is 16px on touch.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and

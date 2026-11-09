@@ -8,6 +8,7 @@ import type { CommandGroup } from "./command";
 import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
 import { Kbd } from "./kbd";
+import { GlidePlate } from "./plate";
 import { useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 
@@ -33,6 +34,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, initial
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
       <Command.List className="basalt-command-list" label="Commands">
+        <GlidePlate />
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
         {groups.map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">

@@ -17,8 +17,8 @@ The panel's rulings on all of this, and the options it left to the owner, are re
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
-| `duration-base` | 150ms | Tooltips, menus, popovers, text morph |
-| `duration-slow` | 200ms | Dialogs, accordions, the tab indicator and panel, a digit roll, the glide, a morph |
+| `duration-base` | 150ms | Tooltips, menus, popovers, text morph, the hover glide |
+| `duration-slow` | 200ms | Dialogs, accordions, the tab indicator and panel, the segmented and vertical-tab pill, a digit roll, a value glide (`useGlide`), a morph |
 | `duration-slower` | 300ms | Sheets, a travelling spinner |
 
 Under `prefers-reduced-motion`, `duration-base`, `duration-slow` and `duration-slower` are 100ms and nothing moves, grows or travels: state changes become short fades.
@@ -27,7 +27,7 @@ Loops are grouped apart, because they are not entries: `duration-loop-ring` 640m
 
 | Curve | Value | Use |
 |---|---|---|
-| `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and moves that answer input: popups, the tab indicator and panel, a morph, the glide |
+| `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and moves that answer input: popups, the tab indicator and panel, the sliding pill, the hover glide, a morph, a value glide |
 | `ease-in` | `cubic-bezier(.4, 0, 1, 1)` | Exits, at 0.75 of the entry |
 | `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows (TravelSpinner only), and loop pulses |
 | `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinner turns |
@@ -39,6 +39,30 @@ A popup (Menu, Select, Combobox, Popover, Tooltip) enters from opacity 0 and sca
 A press is a colour step: the primary fill goes to `action-primary-press`; the other variants go to the selected wash. Button and IconButton (both are `.basalt-button`) also scale to .98 on `:active` over `duration-fast` on `ease-out`, and back when released. Under `prefers-reduced-motion` the scale is 1 and the colour step stays. It never applies to a disabled or loading button, a menu item, a row, a card, a command row or the parts of a field (the NumberField steppers and the Combobox trigger keep the colour step and never scale; the council decided this 4-0), and there is no `basalt-press` utility. A Button that opens a Menu doesn't press: Base UI opens the menu on pointer-down, the trigger loses `:active`, and the menu opening is the response.
 
 The code-block copy control swaps its Phosphor Copy icon for Check, instantly. The name changes from "Copy code" to "Copied".
+
+## The sliding pill
+
+`SegmentedControl` and a vertical `TabsList` each hold one pill element. When a segment or tab becomes chosen, the pill travels to it by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`, whatever the distance. The move is a CSS transition, not a keyframe animation: a second change 60ms in turns the pill from where it has reached, without a queue or a snap back. The chosen label's ink changes at the press, over `duration-fast`, and does not wait for the pill.
+
+The component measures the chosen item into four CSS variables on the control, and nothing else: no animation frame is ever in React state. It re-measures when the control or the item resizes, when fonts finish loading, and when the screen turns; those re-placements are not moves. Its observers are removed with the control.
+
+The pill is an enhancement over each item painting its own pill, which is how the control looks with no script. The shared pill is drawn only once JS has measured the chosen item, and never under reduced motion or in forced colours. Under reduced motion each item paints its own pill and fades it over 100ms. In forced colours the chosen item is `Highlight` with `HighlightText` and no backplate box. Touch targets stay at least 44px, and a tap slides the pill too. A control where several items can be on has no single pill to move, and does not slide.
+
+## The hover glide
+
+Menu, Select, Combobox and CommandMenu draw one plate per popup, which follows the pointer between rows on `duration-base` and `ease-out`, whatever the distance. Each row's own plate is the fallback and stays correct with no script. Base UI's `data-highlighted` (and cmdk's `data-selected`) stays the authority for which row is active; the glide only paints it, and an input-modality check decides whether the plate travels (pointer) or snaps (keyboard).
+
+| Moment | What the plate does |
+|---|---|
+| The pointer enters a row from outside | Appears in that row, in place, at once |
+| The pointer moves to another row | Travels on `duration-base`, `ease-out`, constant |
+| The pointer leaves while a move is in progress | Freezes where it is, then fades in place over `duration-fast` on `ease-in` |
+| The pointer reaches a row during that fade (the grace) | Travels from where it is and returns to full opacity |
+| The pointer reaches a row after the fade | Appears in place |
+| An arrow key, Home or End | Moves at once, with no travel: in a popup the plate is the keyboard position |
+| The pointer leaves the command menu | Nothing: cmdk keeps its selected row, so the plate stays |
+
+The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointerType`), where the row under the finger shows its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with no travel; and in forced colours, where each row is `Highlight` with `HighlightText`. It is pointer-inert and hidden from assistive technology. As with the pill, the plate position is CSS variables written from the DOM and the browser eases them, so there is no render per frame. In navigation, which comes with the navigation component, the first key will hide the glide and show the focus ring instead.
 
 ## Spinners
 
@@ -57,7 +81,8 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 |---|---|---|
 | `MorphIcon` | Three strokes (2.25 on the 24 grid) that morph at `slow` on `ease-out`. Only shapes Phosphor also draws: menu, close, plus, minus, check, four chevrons, four arrows, so one concept never has two drawings in a UI. Arrows, chevrons and plus/close rotate as a group. | Instant swap |
 | `TextMorph` | For short action labels only ("Save" to "Saved"). Shared letters stay on their measured positions; leaving letters fade; the width eases. One polite live region reads the whole string. | The letters change, with no motion |
-| Tabs and `Slide` | The underline of a horizontal tab bar moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are a column of pills in a track and have no indicator to move; their panel still moves 8px down or up. | A 100ms crossfade; the underline does not move |
+| Tabs and `Slide` | The underline of a horizontal tab bar moves at `slow` on `ease-out`; the panel moves 8px and fades in at the same timing, without remounting. Vertical tabs are a column of pills in a track: the chosen tab's pill slides as the segmented control's does (see below), and their panel moves 8px down or up. | A 100ms crossfade; the underline does not move; each tab shows its own pill |
+| `SegmentedControl` | One pill per control slides to the chosen segment at `slow` on `ease-out`. | Each segment shows its own pill, fading over 100ms |
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
 | `Sparkline` | A monochrome line and its latest value: not a charting component. A flat line breathes while loading (the one loop here), then eases into the samples. When the range changes the line, the scale and the labels move together over `slow` on `ease-out`; a new peak widens the scale at once. An empty list is a quiet sentence. | Everything snaps |
 | `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |

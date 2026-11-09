@@ -127,6 +127,13 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   band. A modal palette whose input is its only focus stop shows none. Against the fills and rim
   composites it touches the inset ring is 6.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't.
+  A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
+  row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
+  full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
+  flush-field −2 inset above. Basalt ships no such row today: the rows of Menu, Select, Combobox and CommandMenu are
+  options and show the plate, breadcrumbs and pagination are inline, and a settings or list row is the app's own
+  markup. The accordion trigger is the one full-width band that is itself a button; it keeps the ring it was built with
+  and is open for the panel.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
   surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected
   tab or segment is a raised pill with a hairline, not a wash: a wash alone is about 1.2:1, and a state
@@ -152,12 +159,13 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   In forced colours the lit row is `Highlight` with `HighlightText` for its label, glyph, hint and chip text and border,
   `forced-color-adjust: none` on the row (Chromium otherwise paints a Canvas backplate behind forced text and the
   label renders as a black box), a solid plate, a danger row taking the same pairing, and the panel on `Canvas` with
-  a real `CanvasText` border.
+  a real `CanvasText` border. With a fine pointer the plate is one shared element that glides between rows (see
+  [Motion](#motion)); each row's own plate is the fallback.
 - **Tabs and segments.** Horizontal tabs keep a 2px underline that slides under the active tab: it is horizontal, not the
   vertical line the owner ruled out. Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
-  12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider and no
-  sliding indicator. The segmented control keeps its horizontal size (28px segments in a track of padding 2 and radius
-  8) and takes the dark pill fill above.
+  12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider. The
+  chosen tab's pill slides as the segmented control's does (see [Motion](#motion)). The segmented control keeps its
+  horizontal size (28px segments in a track of padding 2 and radius 8) and takes the dark pill fill above.
 - **Settings and list rows** are full-bleed bands, not plates: each row spans the card edge to edge, dividers run edge to
   edge, and a row you can act on takes the hover wash (the card clips the corners). A choose-one list inside a card uses
   the menu plate. There is no settings-row component; this is the pattern for an app's own markup.
@@ -183,7 +191,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
 - **Toasts** carry a dot only for warning and danger; the title says what happened.
 - **Callouts** keep a neutral surface; status is the icon and the words, and danger also
-  colours its title.
+  colours its title. In forced colours the icon takes the system foreground (`CanvasText`), because an SVG would
+  otherwise keep its authored green, amber or red: the status is its shape and the words.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
   `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
   is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
@@ -321,7 +330,7 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8
-  (controls 36px and up), 12 (cards, menus, dialogs), 16 (bottom sheets; full-height side sheets are square), full (avatars and dots only). A
+  (controls 36px and up, code blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets; full-height side sheets are square), full (avatars and dots only). A
   nested radius is the outer radius minus the padding.
 
 ## Elevation
@@ -413,8 +422,8 @@ keyboard many times a day, so it neither opens nor closes with motion, its backd
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
-| `duration-base` | 150ms | Tooltips, menus, popovers |
-| `duration-slow` | 200ms | Dialogs, accordions, tab indicator and panel, glide |
+| `duration-base` | 150ms | Tooltips, menus, popovers, the hover glide |
+| `duration-slow` | 200ms | Dialogs, accordions, tab indicator and panel, the segmented and vertical-tab pill, a value glide (`useGlide`) |
 | `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
 
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
@@ -437,6 +446,35 @@ quarters of that on `ease-in`. The horizontal tab underline, and the panel that 
 `duration-slow` `ease-out`; the panel never remounts. Nothing loops except spinners and the line of a
 loading Sparkline.
 
+**The sliding pill.** A one-of-many control, the segmented control and vertical tabs, holds one pill, and it slides to
+the chosen item by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`,
+constant whatever the distance. It is a transition, so a second change turns it from wherever it has reached. The
+chosen label's ink changes at the press, over `duration-fast`; it does not wait for the pill. The shared pill is an
+enhancement over each item painting its own pill: it is drawn only once the chosen item has been measured, and never
+under reduced motion or in forced colours. Under reduced motion each item paints its own pill and fades it over 100ms;
+in forced colours the chosen item is `Highlight` with `HighlightText`, with no backplate box. A tap on touch is a
+choice, so it slides there too, and a target stays at least 44px. The horizontal underline already slides and is
+unchanged. A control where several items can be on has no single pill to move, and does not slide.
+
+**The hover glide.** In the popup rows of Menu, Select, Combobox and CommandMenu, one plate per popup follows the
+pointer between rows on `duration-base` and `ease-out`, constant whatever the distance; each row's own plate is the
+fallback underneath. The primitive stays the authority on which row is active (Base UI's highlight, cmdk's selection);
+the glide only paints it.
+
+- **Entering from outside**, the plate appears on that row in place, at once, with no flight from a stale row.
+- **Leaving**, a move in progress freezes where it is, and the plate fades in place over `duration-fast` on `ease-in`.
+  This is the grace: if the pointer reaches a row while the fade runs, the plate travels from where it is and returns to
+  full opacity. Once the fade is done, it appears in place again.
+- **The keyboard** moves the highlight at once, with no travel, because in a popup the plate is the keyboard position:
+  arrows, Home and End snap it. The last input decides: a pointer glides, a key snaps. In navigation, for the navigation
+  component, the first key hides the glide and the focus ring shows instead.
+- **The command menu** keeps its plate when the pointer leaves, as it always has: it is the selected row, so it never
+  fades, and the pointer moves it from that row to the next.
+- **Off** on touch (`(hover: none)`, a coarse pointer or a touch `pointerType`), where the row under the finger shows
+  its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with
+  no travel; and in forced colours, where each row is `Highlight` with `HighlightText`.
+- The shared plate is pointer-inert and hidden from assistive technology, and the page is correct without script.
+
 **What persists, stays.** A control or word that is in both states does not remount. Only the
 part that changed moves: shared letters stay put, and a change to a panel moves the panel, not the
 page.
@@ -447,7 +485,8 @@ colour step and its scale is 1). `duration-base`,
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
 tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; a tab change is
-a 100ms crossfade; the horizontal tab underline does not move. Spinners fade or hold still, and a loop is
+a 100ms crossfade; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
+not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
 never cut to 100ms.
 
 The components and what each does are in [Motion and primitives](motion.md).
@@ -500,6 +539,9 @@ Motion and primitives (PR #12, #13) were built without the panel and reviewed af
 surface rules (levels, the rim, the nesting guard, kbd chips, the pressed
 primary colour) and the motion rulings were reviewed by the panel in three rounds. The owner has not
 approved either yet.
+
+The sliding pill, the hover glide in popups and the focus rule for a focusable row were decided by the council in a
+four-member vote and approved by the owner on 9 Nov 2026. Their implementation has not been reviewed by the panel.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

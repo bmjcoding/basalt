@@ -255,6 +255,7 @@
   /* ---- Menu ---- */
 
   .basalt-menu {
+    position: relative;
     box-sizing: border-box;
     min-width: var(--basalt-size-menu-min);
     max-height: var(--available-height);
@@ -312,6 +313,44 @@
     border-radius: var(--basalt-radius-md);
     background-color: transparent;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+
+  /* The hover glide. A popup draws one shared plate that follows the active row, on top of each row's own plate (the
+     fallback above). It travels by transform and size on duration-base with ease-out, whatever the distance. It
+     appears in place when the pointer comes from outside, and on a key it moves at once (JS writes the position with
+     data-snap). When the highlight clears it stops where it is and fades in place over duration-fast on ease-in; a
+     return during that fade travels from there (the state goes back to on, whose transitions include the move), and
+     after it the plate appears in place. It is decoration: pointer-inert, aria-hidden, and drawn only where hover is
+     real: not on touch, not under reduced motion, not in forced colours, where each row lights on its own. The rows'
+     own plates are hidden only while the shared one is live (data-glide on the host). */
+  .basalt-plate {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: var(--_plate-w);
+    height: var(--_plate-h);
+    transform: translate(var(--_plate-x), var(--_plate-y));
+    border-radius: var(--basalt-radius-md);
+    background-color: var(--_plate);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--basalt-duration-fast) var(--basalt-ease-in);
+  }
+  .basalt-plate[data-state="on"] {
+    opacity: 1;
+    transition-property: transform, width, height;
+    transition-duration: var(--basalt-duration-base);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-plate[data-snap],
+  .basalt-plate[data-state][data-snap] { transition-property: none; }
+
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    [data-glide] .basalt-plate { display: block; }
+    :is(.basalt-menu, .basalt-command-list)[data-glide] .basalt-menu-item[data-highlighted]::before,
+    :is(.basalt-menu, .basalt-command-list)[data-glide] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
   }
 
   .basalt-menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
@@ -471,9 +510,10 @@
   .basalt-tabs-panel:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   /* Vertical tabs are a column of pills in a track, not the horizontal bar turned on its side: no divider and no
-     sliding indicator (a vertical line is the tell the owner ruled out). The track is padding 4 and radius 12;
-     each tab is 36px with radius 8 (12 minus 4), and the chosen one is the raised pill the segmented control uses.
-     Horizontal tabs keep their underline: that one is horizontal. */
+     sliding line (a vertical line is the tell the owner ruled out). The track is padding 4 and radius 12;
+     each tab is 36px with radius 8 (12 minus 4), and the chosen one is the raised pill the segmented control uses,
+     which slides to the chosen tab as that one does (see .basalt-pill). Horizontal tabs keep their underline:
+     that one is horizontal. */
   .basalt-tabs[data-orientation="vertical"] { display: flex; align-items: flex-start; gap: var(--basalt-space-4); }
   .basalt-tabs[data-orientation="vertical"] > .basalt-tabs-panel { flex: 1; min-width: 0; }
   .basalt-tabs-list[data-orientation="vertical"] {
@@ -512,6 +552,7 @@
   .basalt-tabs-list { --_pill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); }
 
   .basalt-segmented {
+    position: relative;
     display: inline-flex;
     gap: var(--basalt-space-0-5);
     padding: var(--basalt-space-0-5);
@@ -520,6 +561,7 @@
   }
 
   .basalt-segment {
+    position: relative;
     height: var(--_basalt-control-sm, var(--basalt-size-control-sm));
     padding: 0 var(--basalt-space-2-5);
     margin: 0;
@@ -544,6 +586,45 @@
     background: var(--_pill);
     color: var(--basalt-text-primary);
     box-shadow: var(--basalt-shadow-pill);
+  }
+
+  /* The sliding pill. SegmentedControl and a vertical TabsList hold one shared pill, which travels to the chosen
+     item by transform and width (and height) on duration-slow with ease-out, whatever the distance. JS measures the
+     chosen item into --_pill-x, --_pill-y, --_pill-w and --_pill-h and marks the control data-slide; a new choice
+     changes those, and the browser retargets the transition from wherever the pill has reached. data-snap places
+     it without a move (the first measurement, a resize, a font arriving).
+
+     The shared pill is an enhancement over each item painting its own pill (the rules above, and the vertical tab's
+     [data-active]). It is drawn only once JS has measured, and never under reduced motion or in forced colours: there
+     each item paints its own pill, fading over 100ms under reduced motion and Highlight / HighlightText in forced
+     colours. The chosen label's ink changes at the press, over duration-fast, whichever pill is drawn. */
+  .basalt-pill {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: var(--_pill-w);
+    height: var(--_pill-h);
+    transform: translate(var(--_pill-x), var(--_pill-y));
+    border-radius: var(--basalt-radius-sm);
+    background: var(--_pill);
+    box-shadow: var(--basalt-shadow-pill);
+    pointer-events: none;
+    transition-property: transform, width, height;
+    transition-duration: var(--basalt-duration-slow);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-tabs-list[data-orientation="vertical"] > .basalt-pill { border-radius: var(--basalt-radius-md); }
+  [data-snap] > .basalt-pill { transition-property: none; }
+
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    [data-slide] > .basalt-pill { display: block; }
+    /* The pill is the shared one: the chosen item paints no pill of its own, and only its ink changes. */
+    .basalt-segmented[data-slide] .basalt-segment,
+    .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab { transition-property: color; }
+    .basalt-segmented[data-slide] .basalt-segment[data-pressed],
+    .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
   }
 
   /* ---- Tooltip ---- */
@@ -984,7 +1065,7 @@
      empty), so the input is the same width in both and nothing moves when loading ends. */
   .basalt-command-slot { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .basalt-command-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
-  .basalt-command-list { max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
+  .basalt-command-list { position: relative; max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .basalt-command-list:empty { display: none; }
   .basalt-command-empty { padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font-size: var(--basalt-text-sm-size); color: var(--basalt-text-secondary); }
   .basalt-command-empty:empty { display: none; }
@@ -1648,6 +1729,9 @@
     .basalt-segment[data-pressed], .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
     .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast { border-color: CanvasText; }
+    /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
+       green, amber or red would survive: the icon takes the system foreground like the text beside it. */
+    .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
     /* The header is Canvas with a real border and no filter or alpha fill. */
     .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
