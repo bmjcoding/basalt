@@ -1,6 +1,9 @@
 import * as React from "react";
 
 import { Button } from "./button";
+import { CheckGlyph } from "./glyphs/check";
+import { ChevronLeftGlyph } from "./glyphs/chevron-left";
+import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { MorphIcon } from "./morph-icon";
 import { TextMorph } from "./text-morph";
 
@@ -25,13 +28,13 @@ export function Stepper({ steps, value, onValueChange }: StepperProps) {
   return (
     <div className="basalt-stepper">
       <Button disabled={index === 0} onClick={() => onValueChange(steps[index - 1]!.id)}>
-        <MorphIcon name="chevron-left" />
+        <MorphIcon glyph={ChevronLeftGlyph} />
         Back
       </Button>
       <TextMorph text={steps[index]?.label ?? ""} />
       <Button variant="primary" onClick={() => { if (!last) onValueChange(steps[index + 1]!.id); }}>
         <TextMorph text={last ? "Done" : "Next"} />
-        <MorphIcon name={last ? "check" : "chevron-right"} />
+        <MorphIcon glyph={last ? CheckGlyph : ChevronRightGlyph} />
       </Button>
     </div>
   );

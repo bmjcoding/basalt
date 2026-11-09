@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
-    "lint": "stylelint \"packages/react/src/styles/**/*.css\" \"tools/html-skill/src/*.css\" && node scripts/check-deps.mjs",
+    "lint": "stylelint \"packages/react/src/styles/**/*.css\" \"tools/html-skill/src/**/*.css\" && node scripts/check-deps.mjs",
     "build": "npm run build -w packages/tokens && npm run build -w packages/react && node tools/html-skill/build.mjs",
     "test": "npm test -w packages/tokens && npm test -w packages/react && npm run test:html-skill && npm run test:brand",
     "artifact": "node tools/artifact/build.mjs && node tools/artifact/check.mjs",
@@ -24,6 +24,7 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "stylelint": "17.16.0"
   }
 }

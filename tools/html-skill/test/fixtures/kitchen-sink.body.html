@@ -1,0 +1,136 @@
+<title>Basalt kitchen sink</title>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top">Kitchen sink</a>
+    <span class="spacer"></span>
+    <button class="btn" data-open-palette><i data-icon="MagnifyingGlass"></i><span>Commands</span><span data-kbd="⌘ K"></span></button>
+    <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+  </div>
+</header>
+<main id="main" class="page">
+  <div class="stack" id="top">
+    <p class="eyebrow">Every component</p>
+    <h1>Kitchen sink</h1>
+    <p class="lead">One of each part, so a change to any rule shows up in a pixel comparison. <a href="#main">A link</a>, <code>inline code</code>, <strong>bold</strong>, <kbd class="kbd" data-doc>Esc</kbd>.</p>
+    <h2>Heading two</h2><h3>Heading three</h3><h4>Heading four</h4>
+    <p class="display">Display</p><p class="text-5xl">Display five</p>
+    <p class="muted small">Muted small</p><p class="faint small">Faint small</p><p class="mono">Mono text 0123</p><p class="num">0123456789</p>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><h2>Buttons</h2></div>
+    <div class="cluster">
+      <button class="btn">Secondary</button>
+      <button class="btn" data-variant="primary">Primary</button>
+      <button class="btn" data-variant="ghost">Ghost</button>
+      <button class="btn" data-variant="danger">Danger</button>
+      <button class="btn" data-size="sm">Small</button>
+      <button class="btn" data-size="lg">Large</button>
+      <button class="btn" data-icon-only aria-label="Add"><i data-icon="Plus"></i></button>
+      <button class="btn" disabled>Disabled</button>
+      <button class="btn" data-variant="primary" disabled>Disabled</button>
+      <button class="btn" aria-busy="true"><span>Busy</span></button>
+      <button class="btn"><i data-icon="Download"></i><span>Download</span><span data-kbd="⌘ D"></span></button>
+    </div>
+    <div class="cluster" style="margin-top: var(--basalt-space-3)">
+      <div class="segment" role="group" aria-label="Range"><button aria-pressed="true">Day</button><button aria-pressed="false">Week</button><button aria-pressed="false">Month</button></div>
+      <span class="badge">Plain</span>
+      <span class="badge" data-status="success">Healthy</span>
+      <span class="badge" data-status="warning">Watching</span>
+      <span class="badge" data-status="danger">Failing</span>
+      <span class="status">Idle</span>
+      <span class="status" data-status="success">Done</span>
+      <span class="status" data-status="warning">Slow</span>
+      <span class="status" data-status="danger">Down</span>
+      <span class="spinner" role="status" aria-label="Loading"></span>
+      <span class="mono"><braille-spinner aria-hidden="true"></braille-spinner> Running</span>
+      <span data-kbd="⌘ ⇧ P"></span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Panels and callouts</h2></div>
+    <div class="grid" style="--min: 18rem">
+      <div class="panel panel-pad"><div class="panel-head">Panel head</div><p>Level one.</p>
+        <div class="card" style="margin-top: var(--basalt-space-3)">Card inside a panel.<div class="card" style="margin-top: var(--basalt-space-3)">A third level.</div></div>
+      </div>
+      <div class="stack">
+        <div class="callout" role="note"><i data-icon="Info"></i><div><div class="callout-title">Note</div><div class="callout-body">A neutral callout.</div></div></div>
+        <div class="callout" data-status="success" role="note"><i data-icon="CheckCircle"></i><div><div class="callout-title">Success</div><div class="callout-body">It worked.</div></div></div>
+        <div class="callout" data-status="warning" role="note"><i data-icon="Warning"></i><div><div class="callout-title">Warning</div><div class="callout-body">Be careful.</div></div></div>
+        <div class="callout" data-status="danger" role="alert"><i data-icon="XCircle"></i><div><div class="callout-title">Danger</div><div class="callout-body">It failed.</div></div></div>
+      </div>
+    </div>
+    <div class="float" style="margin-top: var(--basalt-space-4); max-width: 22rem; padding: var(--basalt-space-4)">A floating surface at level two.</div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Fields</h2></div>
+    <form class="grid" style="--min: 16rem" onsubmit="return false">
+      <div class="field"><label for="f1">Text</label><input class="input" id="f1" value="Value"><span class="hint">A hint.</span></div>
+      <div class="field"><label for="f2">Invalid</label><input class="input" id="f2" aria-invalid="true" aria-describedby="f2e" value="Bad"><span class="error" id="f2e">An error.</span></div>
+      <div class="field"><label for="f3">Disabled</label><input class="input" id="f3" disabled value="Off"></div>
+      <div class="field"><label for="f4">Placeholder</label><input class="input" id="f4" placeholder="Type here"></div>
+      <div class="field"><label for="f5">Select</label><span class="select"><select class="input" id="f5"><option>One</option><option>Two</option></select></span></div>
+      <div class="field"><label for="f6">Number</label><input class="input num" id="f6" type="number" value="3"></div>
+      <div class="field"><label for="f7">Notes</label><textarea class="input" id="f7">Some text</textarea></div>
+    </form>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Lists, rows and tabs</h2></div>
+    <div class="split">
+      <div class="panel">
+        <div class="input-row"><i data-icon="MagnifyingGlass"></i><input aria-label="Search" placeholder="Search"></div>
+        <div class="rows">
+          <div class="row-group">Group</div>
+          <a class="row" href="#main"><i data-icon="ArrowRight"></i><span class="row-label">A row</span><span class="row-hint">hint</span></a>
+          <a class="row" href="#main" data-active><i data-icon="Copy"></i><span class="row-label">The active row</span><span data-kbd="⌘ C"></span></a>
+          <a class="row" href="#main" data-danger><i data-icon="Trash"></i><span class="row-label">A danger row</span></a>
+        </div>
+      </div>
+      <div data-tabs>
+        <div class="tabs" role="tablist" aria-label="Views">
+          <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true">One</button>
+          <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false">Two</button>
+        </div>
+        <div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1">First panel.</div>
+        <div class="tabpanel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>Second panel.</div>
+      </div>
+    </div>
+    <div style="margin-top: var(--basalt-space-4)">
+      <button class="disclosure" data-disclosure aria-expanded="true" aria-controls="d1">Open disclosure</button>
+      <div id="d1" class="prose small muted"><p>Disclosure body.</p></div>
+      <button class="disclosure" data-disclosure aria-expanded="false" aria-controls="d2">Closed disclosure</button>
+      <div id="d2" hidden>Hidden.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Table, code, figures</h2></div>
+    <div class="panel table-wrap" role="region" aria-label="Sample table" tabindex="0">
+      <table>
+        <thead><tr><th scope="col">Name</th><th scope="col">Id</th><th scope="col" data-numeric>Count</th></tr></thead>
+        <tbody>
+          <tr><td>First</td><td data-mono>a1</td><td data-numeric>12</td></tr>
+          <tr aria-selected="true"><td>Selected</td><td data-mono>b2</td><td data-numeric>345</td></tr>
+          <tr><td>Third</td><td data-mono>c3</td><td data-numeric>6</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="code" style="margin-top: var(--basalt-space-4)">
+      <div class="code-head"><span>sample.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#code1"><i data-icon="Copy"></i><span>Copy</span></button></div>
+<pre class="code-body" tabindex="0"><code id="code1">{ <span class="tok-k">"key"</span>: <span class="tok-s">"value"</span>, <span class="tok-n">1</span>, <span class="tok-f">f</span>() <span class="tok-c">// note</span> }</code></pre>
+    </div>
+    <div class="stats" style="margin-top: var(--basalt-space-4)">
+      <div class="stat"><span class="stat-label">One</span><span class="stat-value">12</span><span class="stat-note">Note</span></div>
+      <div class="stat"><span class="stat-label">Two</span><span class="stat-value">61%</span><div class="progress" role="progressbar" aria-label="Two" aria-valuemin="0" aria-valuemax="100" aria-valuenow="61" style="--value: 61%"><span></span></div></div>
+    </div>
+    <ul class="divide-y" style="list-style: none; margin: var(--basalt-space-4) 0 0; padding: 0"><li class="cluster" style="padding-block: var(--basalt-space-2)">One<span class="spacer"></span><hr class="divider" style="width: 2rem"></li><li style="padding-block: var(--basalt-space-2)">Two</li></ul>
+    <div class="prose" style="margin-top: var(--basalt-space-4)"><h3>Prose</h3><p>Paragraph with a <a href="#main">link</a>.</p><ul><li>A</li><li>B</li></ul><blockquote>Quote</blockquote></div>
+  </section>
+
+  <footer class="footer">Footer · <a href="#top">Top</a></footer>
+</main>
+<script type="application/json" data-palette>{ "groups": [{ "label": "Go", "items": [{ "label": "Home", "icon": "ArrowRight", "keys": ["⌥", "H"], "href": "#top" }, { "label": "Delete", "icon": "Trash", "danger": true }] }] }</script>

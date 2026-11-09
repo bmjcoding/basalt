@@ -6,12 +6,14 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { CompletionFixtures } from "../examples/completion";
 
-import type { MorphName } from "../src/index";
+import * as CoreSet from "../src/glyph-set";
+import type { GlyphIcon } from "../src/index";
 import {
   Accordion,
   AccordionItem,
   Callout,
   CodeBlock,
+  Icon,
   Popover,
   PopoverContent,
   PopoverDescription,
@@ -111,9 +113,39 @@ function MotionFixture() {
   );
 }
 
+/** The core set at 16, 20 and 24, at rest and selected, and a toolbar that mixes core and long-tail icons. */
+function IconsFixture() {
+  const glyphs = Object.entries(CoreSet) as Array<[string, GlyphIcon]>;
+  const [selected, setSelected] = React.useState(false);
+  return (
+    <Section title="Icons">
+      {([16, 20, 24] as const).map((size) => (
+        <div className="row" key={size} data-icons-size={size}>
+          {glyphs.map(([name, Glyph]) => <Icon key={name} icon={Glyph} size={size} />)}
+        </div>
+      ))}
+      <div className="row" data-icons-selected="">
+        {glyphs.map(([name, Glyph]) => <Icon key={name} icon={Glyph} size={24} selected />)}
+      </div>
+      <div className="row" data-icons-toolbar="">
+        <IconButton icon={CoreSet.CopyGlyph} label="Copy link" variant="secondary" />
+        <IconButton icon={CoreSet.EditGlyph} label="Rename" variant="secondary" />
+        <IconButton icon={CopyIcon} label="Duplicate" variant="secondary" />
+        <IconButton icon={GearIcon} label="Settings" variant="secondary" />
+        <Icon icon={CoreSet.HomeGlyph} size={20} label="Home" selected={selected} />
+        <Icon icon={PlayIcon} size={20} label="Run" selected={selected} fillSafe />
+        <Button onClick={() => setSelected((value) => !value)}>
+          <MorphIcon glyph={CoreSet.HomeGlyph} selected={selected} />
+          Select home
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
 function BenjiFixture() {
   const toast = useToast();
-  const [icon, setIcon] = React.useState<MorphName>("menu");
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [action, setAction] = React.useState("Continue");
   const [step, setStep] = React.useState("name");
   const [windowRange, setWindowRange] = React.useState("day");
@@ -127,8 +159,8 @@ function BenjiFixture() {
   return (
     <Section title="Benji">
       <div className="row">
-        <Button onClick={() => setIcon((current) => (current === "menu" ? "close" : "menu"))}>
-          <MorphIcon name={icon} />
+        <Button onClick={() => setMenuOpen((current) => !current)}>
+          <MorphIcon glyph={menuOpen ? CoreSet.CloseGlyph : CoreSet.MenuGlyph} />
           Menu icon
         </Button>
         <Button onClick={() => setAction((current) => (current === "Continue" ? "Confirm" : "Continue"))}>
@@ -545,6 +577,7 @@ function App() {
           </div>
         </Section>
         <MotionFixture />
+        <IconsFixture />
         <BenjiFixture />
       </main>
      </ToastProvider>

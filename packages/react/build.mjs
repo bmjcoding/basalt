@@ -55,7 +55,11 @@ await esbuild.build({
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
-  entryPoints: fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx").map((f) => path.join(here, "src", f)),
+  // The core glyphs are modules of their own (src/glyphs), so an app that imports HomeGlyph bundles only HomeGlyph.
+  entryPoints: [
+    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx").map((f) => path.join(here, "src", f)),
+    ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
+  ],
   plugins: [{ name: "lazy-panel", setup(build) { build.onResolve({ filter: /^\.\/command-panel$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./command-panel.js", external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,

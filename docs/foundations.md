@@ -493,11 +493,33 @@ The components and what each does are in [Motion and primitives](motion.md).
 
 ## Icons
 
-Phosphor (MIT): Bold at 16px, so its line weight matches Vercel's and Linear's 16px icons;
-Regular at 20px and up; Fill for selected states. Icons take `currentColor`, default to the
-secondary text colour, and turn primary when active. On iOS, system concepts (back, share,
-settings) use SF Symbols. Icons for Blacksand's own concepts (sandboxes, substrates,
-routes) will be drawn on a 16px grid, as Vercel and Linear draw theirs.
+Basalt has a core set of its own, drawn by the design council (decisions 38 to 40, 54 and 55): the
+core actions, navigation and Blacksand's product nouns. Each glyph is a module of
+`@srasyndicate/basalt` (`HomeGlyph`), and the long tail is Phosphor (MIT), Bold at 16, 20 and 24.
+Brand marks are each brand's own.
+
+- **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
+  agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
+  unused slot is an invisible point. The stroke is a constant 2.25 units on 24 (1.5px at 16,
+  1.875 at 20, 2.25 at 24), with round caps and joins, and a point is drawn 1.5 times the stroke.
+  Colour is `currentColor`.
+- **Rest and selected come from one drawing.** Most navigation and product glyphs have one
+  intentional opening at the object's own joint, 2 units of air between the caps. Selected closes
+  it, fills every closed loop and turns the strokes inside a loop into holes. Actions keep their
+  drawing.
+- **Morphs.** Only rest and selected, a rotation group (the four arrows, the four chevrons, plus
+  and close), and the drawn pairs menu and close, play and pause, copy and check, chevron-down and
+  download, both ways. Every other change swaps at once. A morph in flight keeps its identity: a
+  request for where it is going does nothing, a request for where it came from runs it back, and a
+  request for another member of its group turns on; anything else swaps at once. They run at
+  `slow` on `ease-out`, and reduced motion swaps at once.
+- **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
+  for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
+  Danger is the XCircle, everywhere.
+
+Icons take `currentColor`, default to the secondary text colour, and turn primary when active.
+Navigation glyphs in a sidebar or rail are primary at rest, like their labels. On iOS, system
+concepts (back, share, settings) use SF Symbols.
 
 ## Primitives
 

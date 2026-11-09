@@ -433,18 +433,18 @@ describe("TravelSpinner", () => {
 });
 
 describe("MorphIcon", () => {
-  test("only shapes Phosphor also draws, with a 2.25 stroke, morphing on slow ease-out", async () => {
-    const names = ["menu", "close", "plus", "minus", "check", "chevron-up", "chevron-down", "chevron-left", "chevron-right", "arrow-up", "arrow-down", "arrow-left", "arrow-right"];
-    const { page } = await fixturePage(browser, `window.morph = (name) => createRoot(document.getElementById("root")).render(<B.MorphIcon name={name} />);`);
-    for (const name of names) {
+  test("the whole core set, with a 2.25 stroke, morphing on slow ease-out", async () => {
+    const { GLYPHS, NAMES } = await import("../glyphs/source.mjs");
+    const actions = NAMES.filter((name) => !GLYPHS[name].board && !GLYPHS[name].nav);
+    const { page } = await fixturePage(browser, `window.morph = (name) => createRoot(document.getElementById("root")).render(<B.MorphIcon glyph={B[name.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join("") + "Glyph"]} />);`);
+    for (const name of actions) {
       await page.evaluate((name) => window.morph(name), name);
       await page.locator(`.basalt-morph[data-icon="${name}"]`).waitFor();
     }
-    assert.equal(await page.locator(".basalt-morph line").first().getAttribute("stroke-width"), "2.25");
-    const source = await import("node:fs").then((fs) => fs.readFileSync(new URL("../src/morph-icon.tsx", import.meta.url), "utf8"));
-    const block = source.slice(source.indexOf("const ICONS = {"), source.indexOf("} as const satisfies"));
-    const declared = [...block.matchAll(/^  "?([a-z-]+)"?: \{/gm)].map((m) => m[1]).sort();
-    assert.deepEqual(declared, [...names].sort(), "the set is exactly menu, close, plus, minus, check, four chevrons, four arrows");
+    assert.equal(await page.locator(".basalt-morph g[stroke='currentColor']").first().getAttribute("stroke-width"), "2.25");
+    assert.equal(actions.length, 21, "MorphIcon draws each of the 21 core actions, passed by reference");
+    const timing = await page.evaluate(() => { const s = getComputedStyle(document.documentElement); return [s.getPropertyValue("--basalt-duration-slow").trim(), s.getPropertyValue("--basalt-ease-out").trim()]; });
+    assert.deepEqual(timing, ["200ms", "cubic-bezier(0.16, 1, 0.3, 1)"], "the morph reads these tokens (glideTiming)");
     await page.close();
   });
 });
