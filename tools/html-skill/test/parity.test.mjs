@@ -109,7 +109,10 @@ const CASES = [
     skill: `<div class="segment" role="group" aria-label="Range"><button type="button" aria-pressed="true">Day</button><button type="button" aria-pressed="false">Week</button></div>`,
     pairs: [
       ["track", ".basalt-segmented", ".segment", ["boxHeight", "paddingTop", "paddingLeft", "borderTopLeftRadius", "backgroundColor", "gap", "display"]],
-      ["pressed", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", BOX],
+      // The pressed segment's own box, type and ink. Its fill is compared on its own below, because React paints it with the
+      // shared sliding pill (.basalt-pill) wherever the pill is drawn, and the skill paints it on the button.
+      ["pressed", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", [...GEOMETRY, ...TYPE, "color", "borderTopColor", "borderTopWidth"]],
+      ["pressed fill", ".basalt-segmented[data-slide] > .basalt-pill", ".segment button[aria-pressed=true]", ["backgroundColor", "boxShadow", "borderTopLeftRadius"]],
       ["rest", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", BOX],
       ["focus ring", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", OUTLINE, { focus: true }],
     ],

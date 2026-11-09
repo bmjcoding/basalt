@@ -10,6 +10,7 @@ import type { ControlSize } from "./button";
 import type { ChangeDetails, ChoiceValue, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
+import { GlidePlate } from "./plate";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 
@@ -203,6 +204,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
       <BaseSelect.Portal>
         <BaseSelect.Positioner className="basalt-positioner" style={layer} sideOffset={6} alignItemWithTrigger={false}>
           <BaseSelect.Popup data-level={level} className="basalt-menu basalt-select-popup">
+            <GlidePlate />
             <BaseSelect.List>
               {options.map((o) => (
                 <BaseSelect.Item key={o.value} value={o.value} disabled={o.disabled} className="basalt-menu-item basalt-select-item">

@@ -49,6 +49,17 @@ const combobox = `<B.Combobox aria-label="Zone" defaultOpen options={[{value:"x"
 const commands = `function App(){const[o,so]=React.useState(true);return <B.CommandMenu hints open={o} onOpenChange={so} groups={[{label:'Sandbox',commands:[{id:'dup',label:'Duplicate',shortcut:'⌘D',onSelect:()=>{}},{id:'new',label:'New sandbox',onSelect:()=>{}},{id:'del',label:'Delete',danger:true,onSelect:()=>{}}]}]}/>}
   createRoot(document.getElementById("root")).render(<App/>);`;
 
+/**
+ * The plate that lights a row, as the browser paints it: the popup's shared plate while the hover glide is live (data-glide on
+ * its host), otherwise the row's own ::before. Same fill, radius and image either way: that is the point of the fallback.
+ */
+const litPlate = (row, ...props) => row.evaluate((row, props) => {
+  const shared = row.closest("[data-glide]")?.querySelector(".basalt-plate");
+  const own = shared && getComputedStyle(shared).display !== "none" ? shared : null;
+  const painted = own ? getComputedStyle(own) : getComputedStyle(row, "::before");
+  return Object.fromEntries(props.map((p) => [p, painted[p]]));
+}, props);
+
 /** Highlight the nth row of a popup with the pointer, and wait for it. */
 async function light(page, popup, n = 0) {
   await popup.locator(".basalt-menu-item, [cmdk-item]").nth(n).hover();
@@ -134,7 +145,7 @@ describe("the plate: one solid fill per level, never a layered image", () => {
         const popup = page.locator(".basalt-menu");
         assert.equal(await popup.getAttribute("data-level"), String(level));
         await light(page, popup);
-        const plate = await pseudo(popup.locator("[data-highlighted]"), "::before", "backgroundColor", "backgroundImage");
+        const plate = await litPlate(popup.locator("[data-highlighted]"), "backgroundColor", "backgroundImage");
         assert.equal(plate.backgroundImage, "none", "the plate is never a layered image (forced colours would turn it into a backplate)");
         const wash = await token(page, "state-selected");
         if (theme === "dark") {
@@ -157,7 +168,7 @@ describe("the plate: one solid fill per level, never a layered image", () => {
     const alpha = (await token(page, "state-selected"))[3] / 255;
     const next = await token(page, "surface-3");
     const expected = next.slice(0, 3).map((c) => Math.round(255 * alpha + c * (1 - alpha)));
-    const plate = hex(await rgba(page, (await pseudo(page.locator("[data-highlighted]"), "::before", "backgroundColor")).backgroundColor));
+    const plate = hex(await rgba(page, (await litPlate(page.locator("[data-highlighted]"), "backgroundColor")).backgroundColor));
     assert.equal(plate, hex(expected));
     await page.close();
   });
@@ -167,7 +178,7 @@ describe("the plate: one solid fill per level, never a layered image", () => {
       const { page } = await fixturePage(browser, render(fixture), { theme: "dark" });
       await settle(page);
       await light(page, page.locator(popup));
-      const plate = await pseudo(page.locator(`${popup} [data-highlighted]`), "::before", "backgroundColor", "borderTopLeftRadius", "backgroundImage");
+      const plate = await litPlate(page.locator(`${popup} [data-highlighted]`), "backgroundColor", "borderTopLeftRadius", "backgroundImage");
       assert.equal(hex(await rgba(page, plate.backgroundColor)), "#262626", name);
       assert.equal(plate.borderTopLeftRadius, "8px", name);
       assert.equal(plate.backgroundImage, "none", name);
@@ -176,7 +187,7 @@ describe("the plate: one solid fill per level, never a layered image", () => {
     const { page } = await fixturePage(browser, commands, { theme: "dark" });
     await page.getByRole("combobox").waitFor();
     await settle(page);
-    const plate = await pseudo(page.locator("[cmdk-item][data-selected='true']"), "::before", "backgroundColor", "borderTopLeftRadius", "backgroundImage");
+    const plate = await litPlate(page.locator("[cmdk-item][data-selected='true']"), "backgroundColor", "borderTopLeftRadius", "backgroundImage");
     assert.equal(hex(await rgba(page, plate.backgroundColor)), "#262626", "CommandMenu is level 1");
     assert.equal(plate.borderTopLeftRadius, "8px");
     assert.equal(plate.backgroundImage, "none");

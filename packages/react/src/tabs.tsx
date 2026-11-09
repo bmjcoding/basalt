@@ -3,6 +3,7 @@ import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
+import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { withClass } from "./utils";
 
@@ -73,8 +74,10 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
   const orientation = React.useContext(TabsOrientation);
   return (
     <BaseTabs.List {...props} className={withClass("basalt-tabs-list", className)}>
+      {/* A vertical list is a column of pills in a track: one pill slides to the chosen tab, as the segmented control's does.
+          The horizontal bar's mark is the underline, which slides on its own. */}
+      {orientation === "vertical" ? <Pill /> : null}
       {children}
-      {/* The sliding underline is the horizontal bar's mark. A vertical list is a column of pills in a track, with no indicator. */}
       {orientation === "vertical" ? null : <BaseTabs.Indicator className="basalt-tabs-indicator" />}
     </BaseTabs.List>
   );
@@ -149,6 +152,7 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
       }}
       className={withClass("basalt-segmented", className)}
     >
+      <Pill />
       {children}
     </ToggleGroup>
   );

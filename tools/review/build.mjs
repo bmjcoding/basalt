@@ -231,8 +231,10 @@ for (const id of rounds) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
           const overlay = !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed"].includes(state); // these are pages, not open overlays
-          // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme.
-          const media = state === "forced-colours" ? { forcedColors: "active", colorScheme: theme } : state === "forced-mixed" ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : state === "reduced-motion" ? { reducedMotion: "reduce" } : {};
+          // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
+          // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
+          const mode = state.replace(/-lit$/, "");
+          const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
           const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2, ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
@@ -248,6 +250,25 @@ for (const id of rounds) {
           if (state.endsWith("-lit") || state === "forced") {
             await page.locator(".basalt-menu-item, [cmdk-item]").nth(1).hover();
             await page.waitForTimeout(250);
+          }
+          // "-glide": the pointer rests on the first row, then moves to the fourth; the plate's move is held 60ms into its 150ms.
+          // "-fade": the pointer rests on the third row and leaves the popup; the fade is held 40ms into its 100ms. These are the
+          // real transitions, paused, not drawings.
+          if (state.endsWith("-glide") || state.endsWith("-fade")) {
+            const rows = page.locator(".basalt-menu-item, [cmdk-item]");
+            await rows.nth(state.endsWith("-glide") ? 0 : 2).hover();
+            await page.waitForTimeout(300);
+            if (state.endsWith("-glide")) await rows.nth(3).hover();
+            else await page.mouse.move(2, 2);
+            await page.waitForTimeout(state.endsWith("-glide") ? 20 : 15);
+            const held = await page.evaluate((kind) => {
+              const plate = document.querySelector(".basalt-plate");
+              const property = kind === "glide" ? "transform" : "opacity";
+              const running = plate.getAnimations().filter((a) => a.transitionProperty === property);
+              for (const a of running) { a.pause(); a.currentTime = kind === "glide" ? 60 : 40; }
+              return running.length;
+            }, state.endsWith("-glide") ? "glide" : "fade");
+            if (!held) throw new Error(`${step.id}/${state}: the plate has no ${state.endsWith("-glide") ? "move" : "fade"} to hold`);
           }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);

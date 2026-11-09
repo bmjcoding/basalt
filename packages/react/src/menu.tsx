@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
+import { GlidePlate } from "./plate";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
@@ -67,7 +68,7 @@ export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, 
   return (
     <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} style={layer} className="basalt-positioner">
-        <BaseMenu.Popup {...props} data-level={level} className={withClass("basalt-menu", className)}>{inLevel(level, children)}</BaseMenu.Popup>
+        <BaseMenu.Popup {...props} data-level={level} className={withClass("basalt-menu", className)}><GlidePlate />{inLevel(level, children)}</BaseMenu.Popup>
       </BaseMenu.Positioner>
     </BaseMenu.Portal>
   );

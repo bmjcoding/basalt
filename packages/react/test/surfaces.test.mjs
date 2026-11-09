@@ -427,7 +427,12 @@ describe("vertical tabs", () => {
     test(`the chosen tab is the raised pill, with the selected wash over surface-top in dark (${theme})`, async () => {
       const { page } = await fixturePage(browser, render(fixture), { theme });
       await settle(page);
-      const active = await style(page.locator(".basalt-tab[data-active]"), "backgroundColor", "color", "boxShadow");
+      // The pill is the shared one while it is live (the control is data-slide); otherwise the chosen tab paints its own.
+      const active = await page.locator(".basalt-tab[data-active]").evaluate((tab) => {
+        const shared = tab.closest("[data-slide]")?.querySelector(":scope > .basalt-pill");
+        const pill = shared && getComputedStyle(shared).display !== "none" ? getComputedStyle(shared) : getComputedStyle(tab);
+        return { backgroundColor: pill.backgroundColor, boxShadow: pill.boxShadow, color: getComputedStyle(tab).color };
+      });
       const rest = await style(page.locator(".basalt-tab:not([data-active])").first(), "backgroundColor", "color");
       assert.equal(rest.backgroundColor, "rgba(0, 0, 0, 0)");
       assert.equal(rest.color, await resolve(page, "text-secondary", "color"));
