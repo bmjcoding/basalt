@@ -112,6 +112,11 @@
     return keys.map(function (k) { return KEY_NAME[k] || (k.length === 1 ? k.toUpperCase() : k); }).join('+');
   }
 
+  /** ['⌘', 'K'] gives "Command K": the shortcut in words, for the aria-describedby that goes with aria-keyshortcuts (the name stays "Copy", not "Copy C"). */
+  function keywords(keys) {
+    return keys.map(function (k) { return MOD_ICON[k] || KEY_NAME[k] || k.toUpperCase(); }).join(' ');
+  }
+
   function hydrateKbd() {
     document.querySelectorAll('[data-kbd]').forEach(function (el) {
       el.outerHTML = kbdGroup(el.dataset.kbd.trim().split(/\s+/)).replace('class="kbd-group"', 'class="kbd-group"' + (el.hasAttribute('data-doc') ? ' data-doc' : ''));
@@ -395,6 +400,7 @@
         '<div class="rows palette-list" id="' + id + '-list" role="listbox" aria-label="Results"></div>' +
         '<div class="palette-empty" hidden>No commands match.</div>' +
         '<div class="visually-hidden" role="status"></div>' +
+        '<div hidden id="' + id + '-keys"></div>' +
         '<div class="divider" data-kbd-hint></div>' +
         '<div class="palette-footer" id="' + id + '-hints" data-kbd-hint>' +
           '<span>' + kbdGroup(['↑', '↓']) + 'Navigate</span><span>' + kbdGroup(['↵']) + 'Run</span><span>' + kbdGroup(['Esc']) + 'Close</span>' +
@@ -406,6 +412,7 @@
     var list = dialog.querySelector('[role="listbox"]');
     var empty = dialog.querySelector('.palette-empty');
     var status = dialog.querySelector('[role="status"]');
+    var words = dialog.querySelector('#' + id + '-keys');
     var flat = [];
     var index = 0;
     var spoken = '';
@@ -428,6 +435,7 @@
       var q = input.value.trim();
       flat = [];
       var html = '';
+      var described = '';
       groups.forEach(function (g, gi) {
         var items = (g.items || []).filter(function (it) { return matches(it, q); });
         if (!items.length) return;
@@ -438,14 +446,17 @@
           var n = flat.length;
           flat.push(it);
           var keys = binding(it) ? it.keys : null;
+          // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
+          if (keys) described += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
           html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') +
-            (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '"' : '') + '>' +
+            (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
             (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
             (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + '</div>';
         });
         html += '</div>';
       });
       list.innerHTML = html;
+      words.innerHTML = described;
       list.hidden = flat.length === 0;
       empty.hidden = flat.length !== 0;
       index = Math.min(index, Math.max(flat.length - 1, 0));
