@@ -592,6 +592,9 @@
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
   .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
   .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
+  /* The one place --basalt-accent-ink is read. The accent classes (accents.css) define it only where light-dark() works, and not
+     for none or an unknown class, so everywhere else this is the ink dot. The word keeps its own colour. */
+  .basalt-badge[data-status="accent"] .basalt-badge-dot { background: var(--basalt-accent-ink, var(--basalt-text-primary)); }
 
   /* ---- Card ---- */
 
@@ -1594,6 +1597,8 @@
     .basalt-toast-drain { forced-color-adjust: none; background: CanvasText; }
     /* Braille's dots are currentColor and are left to the browser: it forces the word's colour to the system foreground of its surface (Canvas
        text, HighlightText on Highlight), and the dots follow. forced-color-adjust: none here would keep an authored colour that can vanish. */
+    /* The accent dot is a fill, which forced colours would drop: it keeps a real fill, the system text colour, on this dot only. */
+    .basalt-badge[data-status="accent"] .basalt-badge-dot { forced-color-adjust: none; background: CanvasText; }
   }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */

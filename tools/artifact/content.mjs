@@ -2,7 +2,7 @@
 // the tokens at build time. Keep this in step with docs/foundations.md.
 import { COMPLETION_DOCS, COMPLETION_PREVIEWS } from "./completion-content.mjs";
 
-export const README = `Basalt is the design system for every SRA Syndicate product: Blacksand, srasyndicate.io, baileymjones.com, N1 and what comes next. It is monochrome. A product adds colour through its own accent, in a few named roles, and nowhere else.
+export const README = `Basalt is the design system for every SRA Syndicate product: Blacksand, srasyndicate.io, baileymjones.com, N1 and what comes next. It is monochrome. A product adds colour through one of Basalt's accent classes, in its named roles, and nowhere else.
 
 Build with the React package and its one stylesheet:
 
@@ -36,7 +36,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - The primary action (\`basalt-action-primary\`) is the inverse of the page: one per view.
 - Status colour is a dot beside a word, never a coloured fill. \`basalt-status-danger\` is also the text of destructive actions, on a red hairline. There is no filled red button.
 - Every colour sits inside sRGB, so every display shows the same colour.
-- Syntax colours stay inside code: blue keywords, green strings, amber constants, purple functions, teal types and neutral comments. Every \`basalt-syntax-*\` text colour meets 4.5:1; these are separate from status and product accents.
+- Syntax colours stay inside code: blue keywords, green strings, amber constants, purple functions, teal types and neutral comments. Every \`basalt-syntax-*\` text colour meets 4.5:1; these are separate from status and accent classes.
 
 ## Type
 
