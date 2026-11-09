@@ -1,0 +1,255 @@
+{
+  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page) and everything (a page with every module and every icon, no fonts, no body). icons: Phosphor names the module's script draws itself.",
+  "budgets": {
+    "skillMd": 10555,
+    "core": 30720,
+    "everything": 76000
+  },
+  "core": {
+    "classes": [
+      "display",
+      "text-5xl",
+      "lead",
+      "eyebrow",
+      "muted",
+      "faint",
+      "small",
+      "mono",
+      "num",
+      "prose",
+      "page",
+      "narrow",
+      "stack",
+      "cluster",
+      "grid",
+      "split",
+      "aside",
+      "spacer",
+      "hide-narrow",
+      "section",
+      "section-head",
+      "footer",
+      "skip-link",
+      "visually-hidden",
+      "tap",
+      "divider",
+      "divide-y",
+      "panel",
+      "panel-pad",
+      "card",
+      "lg",
+      "panel-head",
+      "float",
+      "modal",
+      "btn",
+      "icon"
+    ]
+  },
+  "modules": {
+    "topbar": {
+      "classes": [
+        "topbar",
+        "topbar-inner",
+        "brand"
+      ],
+      "budget": 1600
+    },
+    "kbd": {
+      "classes": [
+        "kbd",
+        "kbd-group"
+      ],
+      "attrs": [
+        "data-kbd",
+        "data-kbd-hint",
+        "data-doc"
+      ],
+      "tags": [
+        "kbd"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*(?:kbdGroup|hardwareKeyboard)"
+      ],
+      "icons": [
+        "Command",
+        "Option",
+        "Control"
+      ],
+      "budget": 2900
+    },
+    "segment": {
+      "classes": [
+        "segment"
+      ],
+      "budget": 1400
+    },
+    "forms": {
+      "classes": [
+        "field",
+        "label",
+        "input",
+        "hint",
+        "error",
+        "select"
+      ],
+      "tags": [
+        "input",
+        "select",
+        "textarea"
+      ],
+      "budget": 1800
+    },
+    "rows": {
+      "classes": [
+        "rows",
+        "row",
+        "row-group",
+        "row-label",
+        "row-hint",
+        "input-row"
+      ],
+      "budget": 3600
+    },
+    "tabs": {
+      "classes": [
+        "tabs",
+        "tab",
+        "tabpanel"
+      ],
+      "attrs": [
+        "data-tabs"
+      ],
+      "text": [
+        "role\\s*=\\s*[\"']?tab(?:list|panel)?\\b"
+      ],
+      "budget": 2300
+    },
+    "disclosure": {
+      "classes": [
+        "disclosure"
+      ],
+      "attrs": [
+        "data-disclosure"
+      ],
+      "budget": 1400
+    },
+    "table": {
+      "classes": [
+        "table-wrap"
+      ],
+      "tags": [
+        "table"
+      ],
+      "budget": 1400
+    },
+    "code": {
+      "classes": [
+        "code",
+        "code-head",
+        "code-body",
+        "tok-k",
+        "tok-s",
+        "tok-n",
+        "tok-f",
+        "tok-c"
+      ],
+      "budget": 1000
+    },
+    "callout": {
+      "classes": [
+        "callout",
+        "callout-title",
+        "callout-body"
+      ],
+      "budget": 900
+    },
+    "status": {
+      "classes": [
+        "status",
+        "badge"
+      ],
+      "budget": 1400
+    },
+    "stats": {
+      "classes": [
+        "stats",
+        "stat",
+        "stat-label",
+        "stat-value",
+        "stat-note"
+      ],
+      "budget": 700
+    },
+    "progress": {
+      "classes": [
+        "progress"
+      ],
+      "budget": 700
+    },
+    "palette": {
+      "classes": [
+        "scrim",
+        "palette-scrim",
+        "palette",
+        "palette-list",
+        "palette-empty",
+        "palette-footer"
+      ],
+      "attrs": [
+        "data-open-palette",
+        "data-palette"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*(?:openPalette|closePalette)",
+        "\\bpalette\\s*:"
+      ],
+      "requires": [
+        "rows",
+        "kbd"
+      ],
+      "icons": [
+        "MagnifyingGlass"
+      ],
+      "budget": 9400
+    },
+    "spinner": {
+      "classes": [
+        "spinner"
+      ],
+      "budget": 600
+    },
+    "braille": {
+      "classes": [
+        "braille-dot"
+      ],
+      "tags": [
+        "braille-spinner"
+      ],
+      "budget": 2000
+    },
+    "copy": {
+      "attrs": [
+        "data-copy",
+        "data-copy-text"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*copyText"
+      ],
+      "icons": [
+        "Check",
+        "X"
+      ],
+      "budget": 1900
+    },
+    "theme": {
+      "attrs": [
+        "data-theme-toggle"
+      ],
+      "icons": [
+        "Sun",
+        "Moon"
+      ],
+      "budget": 650
+    }
+  }
+}

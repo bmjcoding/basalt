@@ -1,0 +1,31 @@
+@layer basalt {
+
+  /* ---- Fields and inputs ---- */
+
+  .field { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; }
+  .field > label, .label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-primary); }
+  .hint, .error { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
+  .error { color: var(--basalt-status-danger); }
+  .input {
+    width: 100%;
+    height: var(--basalt-size-control-md);
+    margin: 0;
+    padding: 0 var(--basalt-space-2-5);
+    border: 0;
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-1);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--bh-base);
+    transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  textarea.input { height: auto; min-height: calc(var(--basalt-size-control-md) * 3); padding-block: var(--basalt-space-2); resize: vertical; }
+  .select { position: relative; display: block; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the chevron is drawn with two borders; its size and stroke have no token */
+  .select::after { content: ""; position: absolute; inset-inline-end: var(--basalt-space-3); top: 50%; width: 7px; height: 7px; border-inline-end: 1.5px solid var(--basalt-text-secondary); border-bottom: 1.5px solid var(--basalt-text-secondary); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+  select.input { padding-inline-end: var(--basalt-space-8); appearance: none; }
+  .input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  .input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
+  .input:disabled { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
+  @media (pointer: coarse) { .input { height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); } }
+}

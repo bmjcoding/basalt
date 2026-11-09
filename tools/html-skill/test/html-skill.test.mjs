@@ -11,21 +11,18 @@ import { after, before, describe, test } from "node:test";
 
 import { chromium } from "playwright";
 
-import { build, skillDir } from "../build.mjs";
+import { build, moduleNames, skillDir } from "../build.mjs";
 import { iconData } from "../icons.mjs";
+import { EXAMPLES, examplePage } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const files = build();
-// The inline budget: the built size of the skill with its 24 icons in Bold and Regular (81,606 bytes, which includes Phosphor's
-// 1,071-byte MIT notice: the licence requires it with the icon paths) under the cap. The notices did not need a larger cap.
-// History: 60 KiB, then 64 KiB for the review fixes; 78 KiB for the surfaces-and-fixes round (13 panel-agreed items, and
-// Regular icons: 72.7 KB with 12 icons, 77.3 KB with 24; even fully minified the 12-icon build is 63.1 KB); 80 KiB for bringing
-// the skill in line with approved Basalt (the smoked header and its fallbacks, the .98 press, 44px standalone links, the
-// forced-colours active row). The owner approved each raise, the last on 2026-11-08. A new name in icons.json or a new
-// primitive has to fit in what is left, or say why it should not.
-const BUDGET = 80 * 1024;
 const repoRoot = path.join(skillDir, "..", "..", "..");
 const TEMPLATES = ["template-static.html", "template-interactive.html"];
+// The two example bodies, composed the way an agent does it. `all` adds every module, for a test that needs a part the example doesn't use.
+const exampleName = (file) => file.replace(/^template-|\.html$/g, "");
+const composed = (file, options = {}) => examplePage(exampleName(file), options).html;
+const pages = Object.fromEntries(TEMPLATES.map((name) => [name, composed(name)]));
 
 let browser;
 before(async () => { browser = await chromium.launch(); });
@@ -40,17 +37,28 @@ describe("the skill files", () => {
     });
   }
 
-  test("the CSS and JS stay small enough to paste inline (under 78 KiB together, unminified)", () => {
-    const bytes = Buffer.byteLength(files["basalt-html.css"]) + Buffer.byteLength(files["basalt-html.js"]);
-    assert.ok(bytes < BUDGET, `css + js is ${bytes} bytes of ${BUDGET}`);
+  test("the skill folder holds exactly SKILL.md, compose.mjs, parts/ and examples/ (nothing stale)", () => {
+    const listed = (dir) => fs.readdirSync(path.join(skillDir, dir), { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => path.relative(skillDir, path.join(e.parentPath, e.name))).sort();
+    const expected = ["SKILL.md", ...Object.keys(files)].sort();
+    assert.deepEqual([...fs.readdirSync(skillDir).filter((f) => fs.statSync(path.join(skillDir, f)).isFile()), ...listed("parts"), ...listed("examples")].sort(), expected);
   });
 
-  test("the script carries Phosphor's whole MIT notice as a legal comment, and the templates that inline it do too", () => {
-    const mit = fs.readFileSync(path.join(repoRoot, "node_modules", "@phosphor-icons", "react", "LICENSE"), "utf8").trim();
-    for (const name of ["basalt-html.js", ...TEMPLATES]) {
-      assert.ok(files[name].includes(mit), `${name} carries the licence text`);
-      assert.match(files[name], /\/\*! [^\n]*Phosphor/, `${name}: a /*! comment, which minifiers keep`);
+  test("every part is the minified source: no comment but a legal one, and the module list is complete", () => {
+    assert.deepEqual(moduleNames().sort(), Object.keys(JSON.parse(files["parts/manifest.json"]).modules).sort());
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.(css|js)$/.test(f) && !f.endsWith("geist.css"))) {
+      const stripped = files[name].replace(/\/\*![\s\S]*?\*\//g, "");
+      assert.doesNotMatch(stripped, /\/\*|^\s*\/\//m, `${name} carries a comment`);
+      assert.ok(!/\n\s/.test(files[name].replace(/\/\*![\s\S]*?\*\//g, "")), `${name} is not minified`);
     }
+  });
+
+  test("a page carries Phosphor's whole MIT notice as a legal comment whenever it draws an icon", () => {
+    const mit = fs.readFileSync(path.join(repoRoot, "node_modules", "@phosphor-icons", "react", "LICENSE"), "utf8").trim();
+    for (const name of TEMPLATES) {
+      assert.ok(pages[name].includes(mit), `${name} carries the licence text`);
+      assert.match(pages[name], /\/\*! [^\n]*Phosphor/, `${name}: a /*! comment, which minifiers keep`);
+    }
+    assert.ok(JSON.parse(files["parts/icons.json"]).notice.includes(mit));
   });
 
   test("SKILL.md names the skill, and AGENTS.md points every agent at it", () => {
@@ -61,25 +69,28 @@ describe("the skill files", () => {
   });
 
   test("the CSS uses tokens and the two themes: data-theme and prefers-color-scheme", () => {
-    const css = files["basalt-html.css"];
-    assert.match(css, /\[data-theme="dark"\]/);
-    assert.match(css, /prefers-color-scheme: dark/);
-    const primitives = css.slice(css.indexOf("@layer basalt {"));
-    assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, "no raw colour or gradient in the primitives");
+    const css = files["parts/core.css"];
+    assert.match(css, /\[data-theme="?dark"?\]/);
+    assert.match(css, /prefers-color-scheme:\s*dark/);
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
+      const primitives = name === "parts/core.css" ? css.slice(css.indexOf("@layer basalt{")) : files[name];
+      assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
+    }
   });
 
-  test("the JS has no import-time work beyond defining window.Basalt", () => {
+  test("the JS has no import-time work beyond defining window.Basalt (the core and every module)", () => {
     const calls = [];
     const events = [];
     const document = { addEventListener: (type) => events.push(type), querySelectorAll: () => { calls.push("query"); return []; }, documentElement: {} };
     const window = {};
-    new Function("window", "document", "matchMedia", "localStorage", "sessionStorage", "navigator", files["basalt-html.js"])(window, document, () => ({ matches: false }), {}, {}, {});
+    const all = ["core", ...moduleNames()].map((n) => files[`parts/${n}.js`]).filter(Boolean).join("\n");
+    new Function("window", "document", "matchMedia", "localStorage", "sessionStorage", "navigator", "customElements", all)(window, document, () => ({ matches: false }), {}, {}, {}, undefined);
     assert.ok(window.Basalt && typeof window.Basalt.init === "function");
     assert.deepEqual([calls, events], [[], []]);
   });
 });
 
-async function open(file, { scheme = "light", width = 1440, touch = false, reducedMotion = "no-preference", permissions, transform = (html) => html } = {}) {
+async function open(file, { scheme = "light", width = 1440, touch = false, reducedMotion = "no-preference", permissions, transform = (html) => html, all = false } = {}) {
   const context = await browser.newContext({
     viewport: { width, height: width === 390 ? 844 : 900 }, colorScheme: scheme, reducedMotion, isMobile: touch, hasTouch: touch, permissions,
   });
@@ -88,7 +99,7 @@ async function open(file, { scheme = "light", width = 1440, touch = false, reduc
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => ["error", "warning"].includes(m.type()) && errors.push(m.text()));
   // a real (fake-host) origin, so storage and the clipboard work, as they do from a hosted file
-  await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: transform(files[file]) }));
+  await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: transform(all ? composed(file, { all: true }) : pages[file]) }));
   await page.goto("https://basalt.test/");
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   return { page, context, errors };
@@ -272,7 +283,7 @@ describe("reduced motion", () => {
   const spinners = '<span class="spinner" id="ring"></span><braille-spinner></braille-spinner>';
 
   test("holds still: braille is a held frame, the ring and the busy button only fade, nothing moves", async () => {
-    const { page, context } = await open("template-interactive.html", { reducedMotion: "reduce" });
+    const { page, context } = await open("template-interactive.html", { reducedMotion: "reduce", all: true });
     await page.locator("#recalc").click();
     await page.evaluate((html) => { document.querySelector("#status").insertAdjacentHTML("afterend", html); }, spinners);
     await page.waitForSelector("braille-spinner .braille-dot");
@@ -290,7 +301,7 @@ describe("reduced motion", () => {
   });
 
   test("with motion allowed the braille spinner steps and the ring and the busy button turn", async () => {
-    const { page, context } = await open("template-interactive.html");
+    const { page, context } = await open("template-interactive.html", { all: true });
     await page.locator("#recalc").click();
     await page.evaluate((html) => { document.querySelector("#status").insertAdjacentHTML("afterend", html); }, spinners);
     const names = await page.evaluate(() => document.getAnimations().map((a) => a.animationName));
@@ -305,7 +316,7 @@ describe("reduced motion", () => {
 
 describe("the icon helper", () => {
   test("a size can never close the attribute: it is coerced to a finite positive number", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     const out = await page.evaluate(() => {
       const evil = '16"></svg><img src=/missing onerror="window.__injected=1"><svg a="';
       const sizes = [evil, 0, -4, NaN, Infinity, null, undefined, "24", 20].map((size) => window.Basalt.icon("Info", { size }).match(/ width="([^"]*)"/)[1]);
@@ -331,7 +342,7 @@ describe("the icon helper", () => {
   });
 
   test("a wiring step that throws is isolated: the others still run", async () => {
-    const { page, context, errors } = await open("template-static.html", { transform: (html) => html.replace("</main>", '<script type="application/json" data-palette>{ not json</script></main>') });
+    const { page, context, errors } = await open("template-static.html", { all: true, transform: (html) => html.replace("</main>", '<script type="application/json" data-palette>{ not json</script></main>') });
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /Basalt: .* failed/);
     await page.locator("[data-disclosure]").click();
@@ -342,7 +353,7 @@ describe("the icon helper", () => {
 
 describe("the palette", () => {
   test("a link may be relative, http, https or mailto; javascript:, data: and obfuscated schemes are refused, and the palette still closes", async () => {
-    const { page, context, errors } = await open("template-static.html");
+    const { page, context, errors } = await open("template-static.html", { all: true });
     const hrefs = ["javascript:window.__executed=1;void 0", "  JavaScript:window.__executed=1", "java\tscript:window.__executed=1", "data:text/html,<script>parent.__executed=1</script>", "vbscript:x", "file:///etc/hosts"];
     for (const href of hrefs) {
       await page.evaluate((h) => window.Basalt.openPalette({ groups: [{ items: [{ label: "Untrusted", href: h }] }] }), href);
@@ -359,7 +370,7 @@ describe("the palette", () => {
     // back with goto while a relative link's navigation could still be in flight, which a slow runner turned into an
     // interrupted goto (the old wait, waitForURL(() => true), matched the current URL and returned at once).
     for (const href of ["#changes", "?page=2", "/other", "https://basalt.test/abs", "http://basalt.test/plain", "mailto:hello@example.com"]) {
-      const { page, context, errors } = await open("template-static.html");
+      const { page, context, errors } = await open("template-static.html", { all: true });
       const target = href.startsWith("mailto:") ? null : new URL(href, "https://basalt.test/").href;
       // A hash link stays in the document, so it changes the URL without a request; mailto leaves the page alone.
       const navigated = target === null ? null : href.startsWith("#") ? page.waitForURL(target) : page.waitForRequest(target);
@@ -406,7 +417,7 @@ describe("the palette", () => {
   });
 
   test("an IME composition never activates, moves or closes anything", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     await page.evaluate(() => window.Basalt.openPalette({ groups: [{ items: [{ label: "Alpha", onSelect: () => { window.__ran = "alpha"; } }, { label: "Beta", onSelect: () => { window.__ran = "beta"; } }] }] }));
     const press = (init) => page.evaluate((i) => { document.querySelector(".palette input").dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...i })); }, init);
     const active = () => page.locator(".palette input").getAttribute("aria-activedescendant");
@@ -525,11 +536,14 @@ describe("the copy button", () => {
 });
 
 describe("the layers", () => {
-  test("the CSS declares reset before basalt (the layer @basalt/react uses), and both templates ship an empty reset block to write into", () => {
-    assert.match(files["basalt-html.css"], /^@layer reset, basalt;/m);
-    assert.ok(files["basalt-html.css"].indexOf("@layer reset, basalt;") < files["basalt-html.css"].indexOf("@layer basalt {"));
-    assert.doesNotMatch(files["basalt-html.css"], /@layer basalt-html/, "no second layer name");
-    for (const name of TEMPLATES) assert.ok(files[name].includes("<style>@layer reset { }</style>"), name);
+  test("the CSS declares reset before basalt (the layer @basalt/react uses), once, in the core, and no module re-declares the order", () => {
+    const css = files["parts/core.css"];
+    assert.match(css, /@layer reset,\s*basalt;/);
+    assert.ok(css.indexOf("@layer reset,basalt;") < css.indexOf("@layer basalt{"));
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
+      assert.doesNotMatch(files[name], /@layer basalt-html/, "no second layer name");
+      if (name !== "parts/core.css") assert.doesNotMatch(files[name], /@layer [\w-]+,/, `${name} leaves the layer order to the core`);
+    }
   });
 
   test("element rules written into @layer reset never change a Basalt class", async () => {
@@ -622,31 +636,29 @@ describe("tables at 390", () => {
 });
 
 describe("fonts", () => {
-  test("geist.css is the two @font-face rules as data URIs with the licence, and inline-fonts.mjs puts it in a copy of a template", async () => {
-    const geist = fs.readFileSync(path.join(skillDir, "geist.css"), "utf8");
+  test("geist.css is the two @font-face rules as data URIs with the licence; compose.mjs inlines it by default and --no-fonts leaves it out", async () => {
+    const geist = files["parts/geist.css"];
     assert.match(geist, /SIL Open Font License/);
     const ofl = fs.readFileSync(path.join(repoRoot, "node_modules", "geist", "LICENSE.txt"), "utf8").trim();
     assert.ok(geist.includes(ofl), "the whole OFL 1.1 text, with its permission and conditions, is in geist.css");
     assert.match(geist, /PERMISSION AND CONDITIONS/);
     assert.equal((geist.match(/@font-face/g) ?? []).length, 2);
     assert.doesNotMatch(geist, /url\((?!"data:font\/woff2;base64,)/, "no font is fetched");
-    for (const name of TEMPLATES) assert.equal(files[name].split("<!-- basalt:fonts -->").length, 2, `${name} carries the marker once`);
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-fonts-"));
     try {
-      for (const name of TEMPLATES) {
-        const copy = path.join(dir, name);
-        fs.copyFileSync(path.join(skillDir, name), copy);
-        execFileSync(process.execPath, [path.join(skillDir, "inline-fonts.mjs"), copy]);
-        const inlined = fs.readFileSync(copy, "utf8");
-        assert.ok(!inlined.includes("<!-- basalt:fonts -->") && inlined.includes('font-family: "Geist Mono"'));
-        assert.ok(inlined.includes(ofl), "a finished file carries the whole OFL text beside the fonts");
-        execFileSync(process.execPath, [path.join(skillDir, "inline-fonts.mjs"), copy]);
-        assert.equal(fs.readFileSync(copy, "utf8"), inlined, "a second run changes nothing");
+      for (const name of ["static", "interactive"]) {
+        const body = path.join(dir, `${name}.body.html`);
+        fs.writeFileSync(body, EXAMPLES[name]);
+        const out = path.join(dir, `${name}.html`);
+        execFileSync(process.execPath, [path.join(skillDir, "compose.mjs"), body, "--out", out]);
+        const html = fs.readFileSync(out, "utf8");
+        assert.ok(html.includes('<style data-basalt-fonts>') && html.includes(ofl), "a page carries the whole OFL text beside the fonts");
+        assert.equal(html.split("<style data-basalt-fonts>").length, 2, "the fonts are inlined once");
         const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
         const page = await context.newPage();
-        await page.goto(`file://${copy}`);
+        await page.goto(`file://${out}`);
         await page.evaluate(() => document.fonts.ready);
-        const out = await page.evaluate(async () => {
+        const result = await page.evaluate(async () => {
           await Promise.all([document.fonts.load('600 32px "Geist"'), document.fonts.load('400 13px "Geist Mono"')]);
           return {
             loaded: [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replaceAll('"', "")).sort(),
@@ -654,33 +666,22 @@ describe("fonts", () => {
             code: getComputedStyle(document.querySelector("pre code, .code code") ?? document.querySelector("code")).fontFamily,
           };
         });
-        assert.deepEqual(out.loaded, ["Geist", "Geist Mono"]);
-        assert.match(out.h1, /^"?Geist"?/);
-        assert.match(out.code, /^"?Geist Mono"?/);
+        assert.deepEqual(result.loaded, ["Geist", "Geist Mono"]);
+        assert.match(result.h1, /^"?Geist"?/);
+        assert.match(result.code, /^"?Geist Mono"?/);
         await context.close();
+        const lean = fs.readFileSync(execFileSync(process.execPath, [path.join(skillDir, "compose.mjs"), body, "--out", path.join(dir, "lean.html"), "--no-fonts"]) && path.join(dir, "lean.html"), "utf8");
+        assert.ok(!lean.includes("@font-face") && lean.length < html.length - 150_000, "--no-fonts leaves the fonts out");
       }
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  test("a file with no marker is refused with a message, and no fonts variants are committed", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-fonts-"));
-    try {
-      // text that only names Geist is not a finished file: it is refused, and left as it was
-      const named = path.join(dir, "named.html");
-      const body = '<!doctype html><head><style>body { font-family: "Geist" }</style></head>';
-      fs.writeFileSync(named, body);
-      assert.throws(() => execFileSync(process.execPath, [path.join(skillDir, "inline-fonts.mjs"), named], { stdio: "pipe" }), /Command failed/);
-      assert.equal(fs.readFileSync(named, "utf8"), body);
-      const bare = path.join(dir, "bare.html");
-      fs.writeFileSync(bare, "<!doctype html><title>x</title>");
-      assert.throws(() => execFileSync(process.execPath, [path.join(skillDir, "inline-fonts.mjs"), bare], { stdio: "pipe" }), /Command failed/);
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+  test("no fonts variants are committed, and SKILL.md says compose.mjs inlines Geist", () => {
     assert.deepEqual(fs.readdirSync(skillDir).filter((f) => f.includes(".fonts.")), []);
-    assert.match(skill, /inline-fonts\.mjs <file>/);
+    assert.match(skill, /Geist/);
+    assert.match(skill, /--no-fonts/);
   });
 });
 
@@ -764,7 +765,7 @@ describe("primitives", () => {
 
   for (const scheme of ["dark", "light"]) {
     test(`.segment and .badge look as React's do (${scheme})`, async () => {
-      const { page, context } = await open("template-static.html", { scheme });
+      const { page, context } = await open("template-static.html", { scheme, all: true });
       await page.evaluate(() => document.querySelector("#top").insertAdjacentHTML("afterend", '<div id="probe"><div class="segment" role="group" aria-label="Range"><button type="button" aria-pressed="true">Day</button><button type="button" aria-pressed="false">Week</button></div> <span class="badge" data-status="success">Healthy</span> <span class="badge">3 open</span></div>'));
       const out = await page.evaluate(() => {
         const cs = (el, pseudo) => getComputedStyle(el, pseudo);
@@ -852,7 +853,7 @@ describe("palette keys", () => {
   const ran = (page) => page.evaluate(() => window.__ran.splice(0));
 
   test("an item's keys run it from anywhere; a key with no ⌘, ⌃ or ⌥ warns once and gets no chip and no binding", async () => {
-    const { page, context, errors } = await open("template-static.html");
+    const { page, context, errors } = await open("template-static.html", { all: true });
     await page.evaluate(palette);
     await page.keyboard.press("Control+s");
     await page.keyboard.press("Meta+s");
@@ -874,7 +875,7 @@ describe("palette keys", () => {
   });
 
   test("a bound item runs with the palette open and closes it; ⌥ alone does not fire while typing in a field", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     await page.evaluate(palette);
     await page.keyboard.press("Control+k");
     await page.locator(".palette input").waitFor();
@@ -890,7 +891,7 @@ describe("palette keys", () => {
   });
 
   test("one keypress runs one command: a modified Enter is the page's shortcut, not the highlighted row, and a handled key is not handled twice", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     await page.evaluate(() => {
       window.__ran = [];
       // a listener ahead of Basalt's, which handles Control+J itself
@@ -920,7 +921,7 @@ describe("palette keys", () => {
   });
 
   test("⌥ alone does not fire from a field inside a shadow root, an input or contenteditable", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     await page.evaluate(() => {
       window.__ran = [];
       window.Basalt.init({ palette: { groups: [{ items: [{ label: "Jump", keys: ["⌥", "J"], onSelect: () => __ran.push("jump") }] }] } });
@@ -941,7 +942,7 @@ describe("palette keys", () => {
   });
 
   test("⌘K and ⌃K belong to the palette: an item with those keys warns, gets no chip and no binding", async () => {
-    const { page, context, errors } = await open("template-static.html");
+    const { page, context, errors } = await open("template-static.html", { all: true });
     await page.evaluate(() => {
       window.__ran = [];
       window.Basalt.init({ palette: { groups: [{ items: [
@@ -995,8 +996,8 @@ describe("the busy button", () => {
   });
 
   test("the page claims no fetch it doesn't make", () => {
-    assert.doesNotMatch(files["template-interactive.html"], /Refresh prices|Prices as of today|refreshed just now/i);
-    assert.match(files["template-interactive.html"], /Recalculate/);
+    assert.doesNotMatch(pages["template-interactive.html"], /Refresh prices|Prices as of today|refreshed just now/i);
+    assert.match(pages["template-interactive.html"], /Recalculate/);
   });
 });
 
@@ -1005,7 +1006,7 @@ describe("icons", () => {
 
   test("Bold under 20px, Regular from 20px, generated from Phosphor; every listed name is in the SKILL", async () => {
     const data = iconData(names);
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     for (const name of names) {
       const drawn = await page.evaluate((n) => [16, 19.9, 20, 24].map((size) => [...new DOMParser().parseFromString(window.Basalt.icon(n, { size }), "image/svg+xml").querySelectorAll("path")].map((p) => p.getAttribute("d"))), name);
       assert.deepEqual(drawn, [data[name][0], data[name][0], data[name][1], data[name][1]], name);
@@ -1046,7 +1047,8 @@ describe("touch and anchors", () => {
 describe("the SKILL's rules", () => {
   test("the new rules are written down", () => {
     for (const rule of [
-      /For any file a person will open, run `node \.agent\/skills\/basalt-html\/inline-fonts\.mjs <file>` after writing it\. Never paste font data\. Skip it only for files that tools read\./,
+      /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
+      /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
       /At 390 a table's name column and any status column come first and fit on screen; only numbers may scroll\. Don't hide a column to make it fit\./,
       /No row of stat tiles\.\*\* `\.stats` > `\.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number/,
       /A badge\*\* labels one object's status or count, always with a word; never decoration\./,
@@ -1090,7 +1092,7 @@ describe("the smoked header (.topbar)", () => {
       if (scheme === "dark") assert.notEqual(s.borderBottomColor, await token(page, "border-divider", "border-bottom-color"), "in dark the hairline is brighter than a divider");
       assert.equal(s.color, await token(page, "text-primary"));
       assert.deepEqual([s.position, s.top], ["sticky", "0px"]);
-      assert.ok(files["basalt-html.css"].includes("-webkit-backdrop-filter: blur(var(--basalt-blur-chrome))"), "the -webkit- prefix is written");
+      assert.ok(files["parts/topbar.css"].includes("-webkit-backdrop-filter:blur(var(--basalt-blur-chrome))"), "the -webkit- prefix is written");
       await context.close();
     });
 
@@ -1141,7 +1143,7 @@ describe("the smoked header (.topbar)", () => {
   test("without backdrop-filter (@supports not): opaque surface-page", async () => {
     // Make the @supports test fail the way it does in a browser without the property, by renaming the property it probes.
     const probe = /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\)/;
-    assert.ok(probe.test(files["basalt-html.css"]), "the fallback is in the stylesheet");
+    assert.ok(probe.test(files["parts/topbar.css"]), "the fallback is in the stylesheet");
     const { page, context } = await open("template-static.html", { scheme: "dark", transform: (html) => html.replace(probe, "@supports not ((x-backdrop-filter: blur(1px)) or (-webkit-x-backdrop-filter: blur(1px)))") });
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".topbar")).backgroundColor), await token(page, "surface-page", "background-color"));
     await context.close();
@@ -1270,7 +1272,7 @@ describe("the display size", () => {
     const { page, context } = await open("template-static.html");
     const s = await page.evaluate(() => { document.querySelector("main").insertAdjacentHTML("afterbegin", '<p class="text-5xl" id="d5">Display</p>'); const c = getComputedStyle(document.querySelector("#d5")); return [c.fontSize, c.lineHeight, c.letterSpacing, c.fontWeight]; });
     assert.deepEqual(s, ["56px", "60px", `-1.96px`, "600"]);
-    assert.doesNotMatch(files["basalt-html.css"].slice(files["basalt-html.css"].indexOf("@layer basalt {")), /--basalt-text-6xl|--bh-5xl/);
+    assert.doesNotMatch(files["parts/core.css"].slice(files["parts/core.css"].indexOf("@layer basalt{")), /--basalt-text-6xl|--bh-5xl/);
     await context.close();
   });
 });
@@ -1348,7 +1350,7 @@ describe("layout fixes", () => {
 
 describe("palette rows say their shortcut in words", () => {
   test("a row with keys carries aria-describedby beside aria-keyshortcuts, and its name stays the label", async () => {
-    const { page, context } = await open("template-static.html");
+    const { page, context } = await open("template-static.html", { all: true });
     await page.evaluate(`window.Basalt.init({ palette: { groups: [{ label: "Page", items: [
       { label: "Save", keys: ["⌘", "S"] }, { label: "Jump", keys: ["⌥", "J"] }, { label: "Open", keys: ["⌃", "⇧", "O"] }, { label: "Plain" }
     ] }] } });`);

@@ -1,13 +1,13 @@
-// Renders both templates of the Basalt HTML skill to .review/html-skill/: 1440 and 390 wide, dark and light, at 2x.
-// The pages are copies of the committed templates with inline-fonts.mjs run on them, as a person's file would be, so the
-// screenshots show Geist. Run: node tools/html-skill/shoot.mjs
-import { execFileSync } from "node:child_process";
+// Renders the two example pages of the Basalt HTML skill to .review/html-skill/: 1440 and 390 wide, dark and light, at 2x.
+// The pages are the example bodies run through compose.mjs, as a person's file would be (Geist inlined), so the screenshots show Geist.
+// Run: node tools/html-skill/shoot.mjs
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { compose } from "../../.agent/skills/basalt-html/compose.mjs";
 import { skillDir } from "./build.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -15,9 +15,8 @@ const out = path.join(repo, ".review", "html-skill");
 fs.mkdirSync(out, { recursive: true });
 
 const pages = { static: "template-static.html", interactive: "template-interactive.html" };
-for (const file of Object.values(pages)) {
-  fs.copyFileSync(path.join(skillDir, file), path.join(out, file));
-  execFileSync(process.execPath, [path.join(skillDir, "inline-fonts.mjs"), path.join(out, file)], { stdio: "inherit" });
+for (const [name, file] of Object.entries(pages)) {
+  fs.writeFileSync(path.join(out, file), compose(fs.readFileSync(path.join(skillDir, "examples", `${name}.body.html`), "utf8")).html);
 }
 
 const browser = await chromium.launch();
