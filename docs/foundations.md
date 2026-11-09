@@ -263,8 +263,8 @@ steps, so they'd render differently on native.
 | `text-lg` | 18 / 26 | −0.01em | Lead |
 | `text-md` | 16 / 24 | −0.005em | Body in docs and marketing |
 | `text-base` | 14 / 20 | 0 | Body and controls in apps; the rows of every popup (13 / 18 in compact) |
-| `text-sm` | 13 / 18 | 0 | Tables, sidebars, helper text, and popup rows in compact density |
-| `text-xs` | 12 / 16 | 0.01em | Labels, captions |
+| `text-sm` | 13 / 18 | 0 | Tables, sidebars, and popup rows in compact density |
+| `text-xs` | 12 / 16 | 0.01em | Labels, captions, a field's helper text |
 
 Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
 
