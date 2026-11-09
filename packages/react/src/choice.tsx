@@ -206,10 +206,13 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
             <BaseSelect.List>
               {options.map((o) => (
                 <BaseSelect.Item key={o.value} value={o.value} disabled={o.disabled} className="basalt-menu-item basalt-select-item">
+                  {/* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */}
+                  <span className="basalt-menu-check">
+                    <BaseSelect.ItemIndicator className="basalt-select-check">
+                      <Icon icon={CheckIcon} size={16} />
+                    </BaseSelect.ItemIndicator>
+                  </span>
                   <BaseSelect.ItemText className="basalt-menu-item-label">{o.label}</BaseSelect.ItemText>
-                  <BaseSelect.ItemIndicator className="basalt-select-check">
-                    <Icon icon={CheckIcon} size={16} />
-                  </BaseSelect.ItemIndicator>
                 </BaseSelect.Item>
               ))}
             </BaseSelect.List>

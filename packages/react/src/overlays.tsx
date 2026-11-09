@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./dialog";
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
-import { inLevel, ModalDepth, useModalLayer } from "./layers";
+import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
 import type { PartProps } from "./types";
 import { withClass, withStyle } from "./utils";
 
@@ -41,7 +41,7 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
     <ModalDepth.Provider value={layer.depth}>
     <BaseAlertDialog.Portal>
       <BaseAlertDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseAlertDialog.Popup {...props} data-level={2} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}>{inLevel(2, children)}</BaseAlertDialog.Popup>
+      <BaseAlertDialog.Popup {...props} data-level={MODAL_LEVEL} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseAlertDialog.Popup>
     </BaseAlertDialog.Portal>
     </ModalDepth.Provider>
   );
@@ -61,7 +61,7 @@ export function SheetContent({ side = "right", className, style, children, ...pr
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} data-side={side} data-level={2} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(2, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

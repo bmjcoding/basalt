@@ -240,6 +240,13 @@ for (const id of rounds) {
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
+          // "forced" is Windows forced-colours mode; a state ending in "-lit" (or "forced") hovers the second row of the first
+          // popup, because the plate and the lift are what a pointer holds and a screenshot cannot.
+          if (state === "forced") await page.emulateMedia({ forcedColors: "active" });
+          if (state.endsWith("-lit") || state === "forced") {
+            await page.locator(".basalt-menu-item, [cmdk-item]").nth(1).hover();
+            await page.waitForTimeout(250);
+          }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);
           const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}${tag}-${theme}.png`;

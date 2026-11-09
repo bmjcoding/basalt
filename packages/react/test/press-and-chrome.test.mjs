@@ -482,8 +482,9 @@ for (const theme of ["dark", "light"]) {
       const found = [...new Set(await page.evaluate(tertiaryInk))].sort();
       // Promoted by the bar: it has no fill of its own.
       const promoted = [".basalt-preview-kicker", ".basalt-sparkline-axis", '.basalt-text[data-tone="tertiary"]'];
-      // Draws tertiary ink only on a fill of its own (an input, a select trigger, the command menu's panel).
-      const ownFill = [".basalt-command-input::placeholder", ".basalt-command-slot", ".basalt-input::placeholder", ".basalt-select-value[data-placeholder]"];
+      // Draws tertiary ink only on a fill of its own (an input, a select trigger, the command menu's panel and its level-2
+      // input band, and the group labels of a popup, which sit on the popup's own level fill).
+      const ownFill = [".basalt-command [cmdk-group-heading]", ".basalt-command-input::placeholder", ".basalt-command-search", ".basalt-command-slot", ".basalt-input::placeholder", ".basalt-menu-group-label", ".basalt-select-value[data-placeholder]"];
       assert.deepEqual(found, [...promoted, ...ownFill].sort(), "a part draws tertiary ink that is neither promoted in the bar nor on a fill of its own: promote it in .basalt-chrome or list it here with the reason");
       const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
       const list = css.match(/(?:\.basalt-chrome [^{;]*,\s*)+\.basalt-chrome [^{;]*\{\s*color: var\(--basalt-text-secondary\);/)?.[0] ?? "";

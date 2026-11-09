@@ -24,7 +24,7 @@ const systemColors = (page) => page.evaluate(() => {
 });
 
 describe("forced colours", () => {
-  test("choice marks and the selected row keep their structure in system colours", async () => {
+  test("choice marks keep their structure in system colours, and a selected row has no bar", async () => {
     const { page } = await fixturePage(browser, render(`<>
       <B.Checkbox defaultChecked>On</B.Checkbox><B.Checkbox indeterminate>Mixed</B.Checkbox><B.Checkbox>Off</B.Checkbox>
       <B.RadioGroup aria-label="Radios" defaultValue="a"><B.Radio value="a">Selected</B.Radio><B.Radio value="b">Other</B.Radio></B.RadioGroup>
@@ -61,8 +61,8 @@ describe("forced colours", () => {
     assert.deepEqual(offTrack, { backgroundColor: c.Canvas, borderTopColor: c.ButtonText });
     assert.equal((await style(sw("Switch off").locator(".basalt-switch-thumb"), "backgroundColor")).backgroundColor, c.ButtonText, "an off thumb is visible on its track");
 
-    const bar = await style(page.locator("tr[data-selected] td"), "borderInlineStartWidth", "borderInlineStartColor", "borderInlineStartStyle");
-    assert.deepEqual(bar, { borderInlineStartWidth: "2px", borderInlineStartColor: c.Highlight, borderInlineStartStyle: "solid" });
+    // A selected row has no bar and no edge in forced colours either: the checked box (Highlight, above) is the state.
+    assert.equal((await style(page.locator("tr[data-selected] td"), "borderInlineStartWidth")).borderInlineStartWidth, "0px", "a selected row grew an edge");
     assert.equal((await style(page.locator("tr:not([data-selected]) td"), "borderInlineStartWidth")).borderInlineStartWidth, "0px");
     await page.close();
   });
@@ -308,14 +308,13 @@ describe("CommandMenu", () => {
       const box = list.getBoundingClientRect();
       const row = list.querySelector("[cmdk-item]");
       const r = row.getBoundingClientRect();
-      const styles = getComputedStyle(row);
-      return { scroll: list.scrollWidth - list.clientWidth, left: r.x - box.x, right: box.right - r.right, radius: styles.borderTopLeftRadius, padding: getComputedStyle(list).paddingLeft };
+            return { scroll: list.scrollWidth - list.clientWidth, left: r.x - box.x, right: box.right - r.right, radius: getComputedStyle(row, "::before").borderTopLeftRadius, padding: getComputedStyle(list).paddingLeft };
     });
     assert.equal(m.scroll, 0, "the list scrolls sideways");
-    assert.ok(Math.abs(m.left - 6) < 0.5, `left inset ${m.left}`);
+    assert.ok(Math.abs(m.left - 4) < 0.5, `left inset ${m.left}`);
     assert.ok(Math.abs(m.left - parseFloat(m.padding)) < 0.5, `left inset ${m.left} against padding ${m.padding}`);
     assert.ok(Math.abs(m.right - parseFloat(m.padding)) < 0.5, `right inset ${m.right} against padding ${m.padding}`);
-    assert.equal(m.radius, "6px");
+    assert.equal(m.radius, "8px", "the plate's radius: the panel's 12 minus its 4");
     await page.close();
   });
 });

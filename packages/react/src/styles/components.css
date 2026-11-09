@@ -11,8 +11,9 @@
     --_basalt-control-lg: var(--basalt-size-control-md);
     --_basalt-control-xl: var(--basalt-size-control-lg);
     --_basalt-control-font: var(--basalt-text-sm-size);
+    --_basalt-control-line: var(--basalt-text-sm-line-height);
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
-    --_basalt-menu-row: var(--basalt-size-control-sm);
+    --_basalt-menu-row: var(--basalt-size-control-md);
   }
 
   :where([data-density="default"]) {
@@ -22,6 +23,7 @@
     --_basalt-control-lg: initial;
     --_basalt-control-xl: initial;
     --_basalt-control-font: initial;
+    --_basalt-control-line: initial;
     --_basalt-control-lg-radius: initial;
     --_basalt-menu-row: initial;
   }
@@ -30,10 +32,17 @@
 
   /* A panel's data-level (0 page, 1 to 3 panels; level 3 is the cap) picks its fill. In dark each level
      is a step lighter; in light levels 1 to 3 are one white and nesting shows by the rim alone. A well
-     (a code block) follows the same rule in dark and stays surface-sunken in light. */
-  [data-level="1"] { --_surface: var(--basalt-surface-1); --_well: var(--basalt-surface-sunken); }
-  [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); }
-  [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); }
+     (a code block) follows the same rule in dark and stays surface-sunken in light.
+
+     --_plate is the fill of a lit row (the "plate") on that level, as ONE solid background-color: never a
+     layered image, which forced colours would turn into a backplate. In dark it is the next level plus the
+     selected wash (white at 9%, state-selected's own alpha, mixed in sRGB as a browser composites it), so the
+     plate reads about 1.3:1 against the panel on every level; at the cap, which has no next level, it is the
+     wash alone over surface-3. In light it is the 7% selected wash, because levels 1 to 3 are one white.
+     light-dark() picks by the element's colour-scheme, which the token themes set. */
+  [data-level="1"] { --_surface: var(--basalt-surface-1); --_well: var(--basalt-surface-sunken); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2))); }
+  [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+  [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
      control, chip or badge. A border (not a shadow) so forced colours keep it. */
@@ -250,7 +259,9 @@
     min-width: var(--basalt-size-menu-min);
     max-height: var(--available-height);
     overflow-y: auto;
-    padding: var(--basalt-space-1-5);
+    /* 4 inline and 2 block. Each row carries 2px above and below its plate, so a plate sits 4px from the rim
+       on every side and 4px from the next plate, and the corners stay concentric (12 minus 4 is 8). */
+    padding: var(--basalt-space-0-5) var(--basalt-space-1);
     border-radius: var(--basalt-radius-lg);
     background: var(--_surface, var(--basalt-surface-overlay));
     box-shadow: var(--basalt-shadow-overlay);
@@ -267,61 +278,76 @@
   .basalt-menu[data-ending-style] { opacity: 0; transform: scale(0.98); }
   .basalt-menu[data-ending-style] { transition-duration: calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
 
+  /* A row (Menu, Select, Combobox, and the CommandMenu's rows) is a hit area with a plate inside it. The plate is
+     36px (40 in the command menu; 32 and 36 when compact) and is inset 2px above and below, so the row is 4px
+     taller than its plate and neighbouring rows touch: the 4px gap between plates is drawn inside the rows, and
+     a pointer crossing it never leaves one (Base UI clears the highlight when the pointer leaves a row). */
   .basalt-menu-item {
+    --_plate-height: var(--_basalt-menu-row, var(--basalt-size-menu-row));
+    --_plate-inset: var(--basalt-space-0-5);
     box-sizing: border-box;
     position: relative;
+    isolation: isolate;
     display: flex;
     align-items: center;
-    gap: var(--basalt-space-2);
-    height: var(--_basalt-menu-row, var(--basalt-size-menu-row));
-    padding: 0 var(--basalt-space-2);
-    /* nested radius: the popup's 12px minus its 6px padding */
-    border-radius: var(--basalt-radius-sm);
-    font-size: var(--basalt-text-sm-size);
-    color: var(--basalt-text-primary);
+    gap: var(--basalt-space-2-5);
+    height: calc(var(--_plate-height) + 2 * var(--_plate-inset));
+    /* 12 here and 4 in the panel: the glyph and the text start 16px from the rim */
+    padding: 0 var(--basalt-space-3);
+    font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / var(--_basalt-control-line, var(--basalt-text-base-line-height)) var(--basalt-font-family-sans);
+    /* Rest rows are secondary; the lit row lifts its label and glyph to primary. */
+    color: var(--basalt-text-secondary);
     cursor: default;
     user-select: none;
     outline: none;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
 
-  .basalt-menu-item .basalt-icon { color: var(--basalt-text-secondary); }
-  .basalt-menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; }
-  .basalt-menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }
-  .basalt-menu-submenu-trigger:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
-  .basalt-menu-item-label { flex: 1; }
-  .basalt-menu-item-shortcut { margin-inline-start: var(--basalt-space-4); }
-  /* The active row is the selected wash plus a 2px by 16px bar at its inline start: the wash alone is about
-     1.2:1, so the bar is the cue that does not rest on colour (WCAG 1.4.1, and 2.4.7 for where focus is). It
-     is square ended, like every other 2px bar here. Menu, Select, Combobox and CommandMenu share it. */
-  .basalt-menu-item[data-highlighted],
-  .basalt-command .basalt-menu-item[data-selected="true"] { background: var(--basalt-state-selected); }
-  .basalt-menu-item[data-highlighted]::before,
-  .basalt-command .basalt-menu-item[data-selected="true"]::before {
+  /* The plate: the lit row's fill, behind the text, with the nested radius (the panel's 12 minus its 4). */
+  .basalt-menu-item::before {
     content: "";
     position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: var(--basalt-size-indicator);
-    height: var(--basalt-size-icon-sm);
-    margin-block: auto;
-    background: var(--basalt-text-primary);
+    inset: var(--_plate-inset) 0;
+    z-index: -1;
+    border-radius: var(--basalt-radius-md);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  .basalt-menu-item[data-highlighted] .basalt-icon,
-  .basalt-command .basalt-menu-item[data-selected="true"] .basalt-icon { color: var(--basalt-text-primary); }
-  .basalt-menu-item[data-danger],
-  .basalt-menu-item[data-danger] .basalt-icon { color: var(--basalt-status-danger); }
-  .basalt-menu-item[data-disabled] { color: var(--basalt-text-disabled); }
 
+  .basalt-menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
+  .basalt-menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-menu-submenu-trigger:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
+  .basalt-menu-item-label { flex: 1; min-width: 0; }
+  .basalt-menu-item-shortcut { margin-inline-start: var(--basalt-space-4); }
+
+  /* The active row (the one a keyboard or pointer is on, in Menu, Select, Combobox and CommandMenu) is the plate
+     plus the lift: its label and glyph go from secondary to primary. No weight change, no bar, no outline: the
+     plate is the shape, and the ink step is the cue that does not rest on colour alone (WCAG 1.4.1). Entering is
+     instant; leaving fades over duration-fast. */
+  .basalt-menu-item[data-highlighted],
+  .basalt-command .basalt-menu-item[data-selected="true"] { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-menu-item[data-highlighted]::before,
+  .basalt-command .basalt-menu-item[data-selected="true"]::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  /* Danger keeps its colour, on the plate too (4.80:1 or better in dark, 5.43:1 in light). */
+  .basalt-menu-item[data-danger],
+  .basalt-menu-item[data-danger][data-highlighted],
+  .basalt-command .basalt-menu-item[data-danger][data-selected="true"] { color: var(--basalt-status-danger); }
+  /* cmdk writes data-disabled="false" on a live row, so a bare [data-disabled] would grey every command. */
+  .basalt-menu-item[data-disabled]:not([data-disabled="false"]),
+  .basalt-menu-item[aria-disabled="true"] { color: var(--basalt-text-disabled); }
+
+  /* A separator runs rim to rim and sits 2px from the rows, so it is 4px from a plate. */
   .basalt-menu-separator {
     height: var(--basalt-size-hairline);
-    margin: var(--basalt-space-1-5) calc(-1 * var(--basalt-space-1-5));
+    margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1));
     background: var(--basalt-border-divider);
   }
 
+  /* A group label is tertiary 12/16 at 500, aligned with the rows' text, and 4px above its first plate (2 here, 2 of the row's inset). */
   .basalt-menu-group-label {
-    padding: var(--basalt-space-1-5) var(--basalt-space-2) var(--basalt-space-1);
+    padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
-    color: var(--basalt-text-secondary);
+    color: var(--basalt-text-tertiary);
   }
 
   .basalt-menu-trigger { cursor: pointer; }
@@ -394,8 +420,13 @@
     box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
   }
 
+  /* An icon in a tab sits on the label's centre line, 6px before it, as it does in a button. */
   .basalt-tab {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-1-5);
     height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     padding: 0 var(--basalt-space-2);
     margin: 0;
@@ -416,7 +447,7 @@
   .basalt-tab[data-active] { color: var(--basalt-text-primary); }
   .basalt-tab[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
 
-  /* The active tab is marked by a 2px bar (shape, not only colour) that slides between tabs. */
+  /* The active tab in a horizontal bar is marked by a 2px underline (shape, not only colour) that slides between tabs. */
   .basalt-tabs-indicator {
     position: absolute;
     bottom: 0;
@@ -439,35 +470,46 @@
   .basalt-tabs-panel { outline: none; }
   .basalt-tabs-panel:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
-  /* Vertical tabs are the horizontal tabs turned on their side: a column with 4px gaps, the panel 16px away,
-     a divider on the side that faces the panel, the 2px bar on that divider spanning the active tab, and
-     the tab corners rounded on the side away from the bar. */
+  /* Vertical tabs are a column of pills in a track, not the horizontal bar turned on its side: no divider and no
+     sliding indicator (a vertical line is the tell the owner ruled out). The track is padding 4 and radius 12;
+     each tab is 36px with radius 8 (12 minus 4), and the chosen one is the raised pill the segmented control uses.
+     Horizontal tabs keep their underline: that one is horizontal. */
   .basalt-tabs[data-orientation="vertical"] { display: flex; align-items: flex-start; gap: var(--basalt-space-4); }
   .basalt-tabs[data-orientation="vertical"] > .basalt-tabs-panel { flex: 1; min-width: 0; }
   .basalt-tabs-list[data-orientation="vertical"] {
     flex: none;
     flex-direction: column;
-    align-self: stretch;
+    gap: var(--basalt-space-0-5);
+    box-sizing: border-box;
+    min-width: var(--basalt-size-slider-length);
+    padding: var(--basalt-space-1);
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-sunken-strong);
     box-shadow: none;
-    border-inline-end: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
+    padding: 0 var(--basalt-space-3);
     text-align: start;
-    border-radius: 0;
-    border-start-start-radius: var(--basalt-radius-sm);
-    border-end-start-radius: var(--basalt-radius-sm);
+    border-radius: var(--basalt-radius-md);
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
   }
-  .basalt-tabs-list[data-orientation="vertical"] .basalt-tabs-indicator {
-    inset-inline: auto calc(-1 * var(--basalt-size-hairline));
-    inset-block: auto;
-    top: var(--active-tab-top);
-    height: var(--active-tab-height);
-    width: var(--basalt-size-indicator);
-    transition-property: top, height;
+  .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] {
+    background: var(--_pill);
+    box-shadow: var(--basalt-shadow-pill);
   }
 
   /* ---- Segmented control ---- */
+
+  /* The raised pill: surface-top, and in dark the selected wash over it as one solid fill (a 36px pill in a
+     track against a 1.35:1 step reads as a pill, not a wash). Light keeps surface-top, white on the track. */
+  .basalt-segmented,
+  .basalt-tabs-list { --_pill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); }
 
   .basalt-segmented {
     display: inline-flex;
@@ -499,7 +541,7 @@
 
   /* Selected is a raised pill with a hairline, visible without colour (WCAG 1.4.11). */
   .basalt-segment[data-pressed] {
-    background: var(--basalt-surface-top);
+    background: var(--_pill);
     color: var(--basalt-text-primary);
     box-shadow: var(--basalt-shadow-pill);
   }
@@ -676,10 +718,10 @@
     .basalt-table tbody tr:hover { background: var(--basalt-state-hover); }
   }
 
-  /* Selected is a 2px bar on the row's leading edge as well as the wash: the wash alone is about
-     1.2:1, too faint to be the only cue (WCAG 1.4.11). */
+  /* A selected row is the selected wash as a band, edge to edge. The wash alone is about 1.2:1, so the state is
+     carried by the row's checked box (a checkbox column) and by a count in words, not by a mark on the row. There
+     is no bar here: see "Selected rows" in docs/foundations.md. */
   .basalt-table tr[data-selected] { background: var(--basalt-state-selected); }
-  .basalt-table tr[data-selected] td:first-child { box-shadow: inset var(--basalt-size-indicator) 0 0 var(--basalt-text-primary), inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
 
   /* ---- Checkbox, Switch, Radio ---- */
 
@@ -819,7 +861,7 @@
   .basalt-select-trigger[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
 
   .basalt-select-popup { min-width: var(--anchor-width); }
-  .basalt-select-check { display: flex; margin-left: var(--basalt-space-4); color: var(--basalt-text-primary); }
+  .basalt-select-check { display: flex; }
 
   /* ---- Toast ---- */
 
@@ -911,18 +953,19 @@
   .basalt-dialog.basalt-command,
   .basalt-command-backdrop { transition: none; }
 
-  /* The input row is a full-bleed band one level above the panel (level 3 in the level-2 panel; white in
-     light), 48px, with a divider below. It is a band, not a box: no rim and no radius of its own. */
+  /* The input row is a full-bleed band one level above the panel (the panel is level 1, so the band is level 2:
+     `#111111` in dark, white in light), 48px, with a divider below. It is a band, not a box: no rim and no
+     radius of its own. Its fill is the level it carries as data-level. */
   .basalt-command-search {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: var(--basalt-space-2);
+    gap: var(--basalt-space-3);
     height: var(--basalt-size-command-input);
     padding: 0 var(--basalt-space-4);
-    background: var(--basalt-surface-3);
+    background: var(--_surface, var(--basalt-surface-2));
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
-    color: var(--basalt-text-secondary);
+    color: var(--basalt-text-tertiary);
   }
 
   .basalt-command-input {
@@ -941,13 +984,13 @@
      empty), so the input is the same width in both and nothing moves when loading ends. */
   .basalt-command-slot { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .basalt-command-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
-  .basalt-command-list { max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-1-5); }
+  .basalt-command-list { max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .basalt-command-list:empty { display: none; }
   .basalt-command-empty { padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font-size: var(--basalt-text-sm-size); color: var(--basalt-text-secondary); }
   .basalt-command-empty:empty { display: none; }
   .basalt-command-error-actions { display: flex; justify-content: center; gap: var(--basalt-space-2); padding-bottom: var(--basalt-space-4); }
   .basalt-command-error .basalt-command-empty { padding-bottom: var(--basalt-space-3); color: var(--basalt-text-primary); }
-  .basalt-command-group + .basalt-command-group { margin-top: var(--basalt-space-1-5); }
+  .basalt-command-group + .basalt-command-group { margin-top: var(--basalt-space-1); }
 
   .basalt-command-footer {
     display: flex;
@@ -960,16 +1003,14 @@
 
   .basalt-command-footer span { display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
   .basalt-command [cmdk-group-heading] {
-    padding: var(--basalt-space-1-5) var(--basalt-space-2) var(--basalt-space-1);
+    padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
-    color: var(--basalt-text-secondary);
+    color: var(--basalt-text-tertiary);
   }
-  /* Rows are Menu rows: border-box, 6px in from each side of the list, a 6px radius, no sideways scroll.
-     Their active look (the wash and the bar) is shared with Menu, above. */
-  .basalt-command .basalt-menu-item { cursor: pointer; color: var(--basalt-text-primary); }
-  .basalt-command .basalt-menu-item-label { color: var(--basalt-text-primary); }
-  .basalt-command .basalt-menu-item[data-danger],
-  .basalt-command .basalt-menu-item[data-danger] .basalt-menu-item-label { color: var(--basalt-status-danger); }
+  /* Rows are Menu rows with a taller plate: 40 (36 when compact), a 44px hit area, and 12px between the glyph and
+     the label. Rest ink, the plate and the lift are shared with Menu, above. cmdk keeps the plate when the pointer
+     leaves a row, as it does everywhere. */
+  .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); gap: var(--basalt-space-3); cursor: pointer; }
 
   /* The drain is drawn on top of the bottom rim's straight part: it starts where the corner curve ends. The
      toast itself is never clipped (its ::after bridges the gap to the toast behind it). */
@@ -1396,7 +1437,7 @@
       min-height: var(--basalt-size-tap-min);
       min-width: var(--basalt-size-tap-min);
     }
-    .basalt-menu-item { height: max(var(--basalt-size-menu-row-touch), var(--basalt-size-tap-min)); }
+    .basalt-menu-item { height: max(calc(var(--_plate-height) + 2 * var(--_plate-inset)), var(--basalt-size-menu-row-touch)); }
     .basalt-input[data-size],
     .basalt-input.basalt-textarea,
     .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
@@ -1565,25 +1606,41 @@
     /* Choices: off is a ButtonText border on Canvas; on (or mixed) is a Highlight fill with the mark in
        HighlightText. The mark elements opt out of colour adjustment so exactly these colours apply. */
     .basalt-checkbox, .basalt-radio, .basalt-switch { background: Canvas; color: ButtonText; }
-    .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked], .basalt-segment[data-pressed], .basalt-menu-item[data-highlighted],
-    .basalt-command .basalt-menu-item[data-selected="true"] { background: Highlight; color: HighlightText; }
+    .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked] { background: Highlight; color: HighlightText; }
+    .basalt-segment[data-pressed] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+    .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     .basalt-checkbox-indicator, .basalt-radio-indicator, .basalt-switch-thumb { forced-color-adjust: none; }
-    .basalt-checkbox-indicator, .basalt-menu-item[data-highlighted] .basalt-icon, .basalt-command .basalt-menu-item[data-selected="true"] .basalt-icon { color: HighlightText; }
+    .basalt-checkbox-indicator { color: HighlightText; }
+    /* The lit row. Chromium paints a Canvas backplate behind text it forces, so on a Highlight fill the label renders
+       as a black box. The row opts out and names a system colour for every part instead: the plate is a solid
+       Highlight, the label, glyph, hint and kbd chip text are HighlightText, the chip keeps a HighlightText border,
+       and danger (a row that says so in words as well as colour) keeps its own pairing. */
+    .basalt-menu-item[aria-disabled="true"], .basalt-menu-item[data-disabled]:not([data-disabled="false"]) { color: GrayText; }
+    .basalt-menu-item[data-highlighted],
+    .basalt-command .basalt-menu-item[data-selected="true"] { forced-color-adjust: none; color: HighlightText; }
+    .basalt-menu-item[data-highlighted]::before,
+    .basalt-command .basalt-menu-item[data-selected="true"]::before { background-color: Highlight; }
+    .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text),
+    .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text) { color: HighlightText; }
+    .basalt-menu-item[data-highlighted] .basalt-kbd-key,
+    .basalt-command .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Highlight; border-color: HighlightText; color: HighlightText; }
+    .basalt-menu-item[data-highlighted] .basalt-kbd,
+    .basalt-command .basalt-menu-item[data-selected="true"] .basalt-kbd { color: HighlightText; }
+    /* Danger overrides: the danger colour is an author colour, and on a Highlight plate it has no guaranteed
+       contrast, so a lit danger row takes the same pairing as any other. Its words still say what it does. */
+    .basalt-menu-item[data-danger][data-highlighted],
+    .basalt-command .basalt-menu-item[data-danger][data-selected="true"] { color: HighlightText; }
     .basalt-radio-indicator[data-checked] { background: HighlightText; }
     .basalt-switch-thumb { background: ButtonText; }
     .basalt-switch-thumb[data-checked] { background: HighlightText; }
-    /* The active-row bar is a pseudo-element, so it keeps a real fill. The row itself is Highlight here, so
-       the bar is HighlightText: a Highlight bar on a Highlight row would not be there at all. */
-    .basalt-menu-item[data-highlighted]::before, .basalt-command .basalt-menu-item[data-selected="true"]::before { forced-color-adjust: none; background: HighlightText; }
     /* The kbd chip is a fill, which forced colours drop, so it takes a hairline of its own. */
     .basalt-kbd-key { border: var(--basalt-size-hairline) solid GrayText; }
-    /* A real border, not a box-shadow (shadows are dropped here): the selected row keeps its bar. */
-    .basalt-table tr[data-selected] td:first-child { border-inline-start: var(--basalt-size-indicator) solid Highlight; }
+    /* A selected table row has no fill and no edge here: its checked box is the state, and that is Highlight above. */
     .basalt-slider-track, .basalt-progress-track { background: Canvas; border: var(--basalt-size-hairline) solid CanvasText; }
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
     /* The tab bar is a fill on a Canvas list: Highlight. */
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
-    .basalt-segment[data-pressed], .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
+    .basalt-segment[data-pressed], .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
     .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast { border-color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
