@@ -16,7 +16,7 @@ import { test } from "node:test";
 
 import { converter, formatHex, parse, rgb, wcagContrast } from "culori";
 
-import { ACCENT_VAR, ALLOWED, readers, stripComments } from "./accent-readers.mjs";
+import { ACCENT_VAR, ALLOWED, ALLOWED_SKILL, readers, stripComments } from "./accent-readers.mjs";
 
 const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), "utf8");
 const tokens = JSON.parse(read("../dist/json/tokens.json"));
@@ -261,11 +261,20 @@ test("only Badge's accent dot reads the accent, and only as its background", () 
   // The built styles.css is checked the same way in packages/react/test/accents.test.mjs, which runs after the React build.
   assert.deepEqual(readers(SHEETS["components.css"]).map(({ selector, property }) => ({ selector, property })), ALLOWED, "components.css");
   for (const file of ["tokens.css", "shadcn.css"]) assert.deepEqual(readers(SHEETS[file]), [], `${file} reads the accent`);
-  // The HTML skill's .status reader is a follow-up; until it lands the skill reads nothing, and its token CSS carries no accent.
-  assert.deepEqual(readers(SHEETS["the HTML skill's source CSS"]), [], "the HTML skill's source CSS reads the accent");
-  const built = fs.readdirSync(new URL("../../../.agent/skills/basalt-html/parts/", import.meta.url)).filter((f) => /\.(css|js)$/.test(f) && f !== "geist.css");
+  // The HTML skill reads it in one place too: the dot of an accent .status or .badge, as a background, with the ink fallback.
+  assert.deepEqual(readers(SHEETS["the HTML skill's source CSS"]).map(({ selector, property }) => ({ selector, property })), ALLOWED_SKILL, "the HTML skill's source CSS");
+  assert.match(SHEETS["the HTML skill's source CSS"], /\[data-status="accent"\]::before \{ background: var\(--basalt-accent-ink, var\(--basalt-text-primary\)\); \}/, "the skill's reader falls back to the ink");
+  // The built skill: the variable is read in status.css alone, and defined in accent.css alone (the accent module, only for a page that sets data-accent).
+  const parts = "../../../.agent/skills/basalt-html/parts/";
+  const built = fs.readdirSync(new URL(parts, import.meta.url)).filter((f) => /\.(css|js)$/.test(f) && f !== "geist.css");
   assert.ok(built.length > 0, "the built HTML skill has no parts to check");
-  for (const f of built) assert.ok(!/--basalt-accent|data-accent/.test(read(`../../../.agent/skills/basalt-html/parts/${f}`)), `the built HTML skill carries an accent in ${f}`);
+  const mentions = built.filter((f) => /--basalt-accent|data-accent/.test(read(parts + f)));
+  assert.deepEqual(mentions, ["accent.css", "status.css"], "the built HTML skill mentions the accent outside the reader and the accent sheet");
+  const reads = readers(read(parts + "status.css"));
+  assert.equal(reads.length, 1, "the built status.css has one reader");
+  assert.equal(reads[0].property, "background");
+  assert.match(reads[0].selector, /^:is\(\.status, ?\.badge\)\[data-status="?accent"?\]:{1,2}before$/);
+  assert.doesNotMatch(read(parts + "accent.css"), /var\(--basalt-accent/, "the accent sheet defines the variable and reads nothing");
 });
 
 test("no script or highlighter names the accent: the Shiki theme and every component source stay clear of it", () => {

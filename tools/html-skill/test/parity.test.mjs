@@ -20,7 +20,8 @@ const BOX = [...GEOMETRY, ...TYPE, ...COLOUR];
 const OUTLINE = ["outlineStyle", "outlineWidth", "outlineColor", "outlineOffset"];
 
 /**
- * The components. `react` is JSX and `skill` the matching markup, each in its own section; a pair names an element in each, by a selector
+ * The components. (React's Textarea draws four rows unless told otherwise; a bare <textarea> is two, so the React one is given rows={2} and
+ * the two compare like for like: both are two lines plus 16px, 56px.) `react` is JSX and `skill` the matching markup, each in its own section; a pair names an element in each, by a selector
  * inside the section, and the properties to compare. `focus` focuses the element first (the focus ring). `pseudo` reads ::before and the like.
  */
 const CASES = [
@@ -42,7 +43,7 @@ const CASES = [
   },
   {
     id: "input",
-    react: `<><Input aria-label="Name" defaultValue="Value" /><Input aria-label="Placeholder" placeholder="Type here" /><Field label="Invalid" invalid error="An error"><Input defaultValue="Bad" /></Field><Input aria-label="Disabled" disabled defaultValue="Off" /><Textarea aria-label="Notes" defaultValue="Some text" /></>`,
+    react: `<><Input aria-label="Name" defaultValue="Value" /><Input aria-label="Placeholder" placeholder="Type here" /><Field label="Invalid" invalid error="An error"><Input defaultValue="Bad" /></Field><Input aria-label="Disabled" disabled defaultValue="Off" /><Textarea aria-label="Notes" defaultValue="Some text" rows={2} /></>`,
     skill: `<input class="input" aria-label="Name" value="Value"><input class="input" aria-label="Placeholder" placeholder="Type here"><input class="input" aria-label="Invalid" aria-invalid="true" value="Bad"><input class="input" aria-label="Disabled" disabled value="Off"><textarea class="input" aria-label="Notes">Some text</textarea>`,
     pairs: [
       ["text", "input[aria-label=Name]", "input[aria-label=Name]", [...BOX, "outlineStyle"]],
@@ -145,6 +146,48 @@ const CASES = [
     pairs: [["ring", ".basalt-spinner", ".spinner", ["width", "height", "color"]]],
   },
   {
+    // The number field: React's one bordered group, [-] value [+]. The skill's script adds the two steppers.
+    id: "number",
+    react: `<NumberField aria-label="Count" defaultValue={3} />`,
+    skill: `<div><span class="number-field"><input class="input num" aria-label="Count" type="number" value="3"></span></div>`,
+    pairs: [
+      ["group", ".basalt-number-group", ".number-field", ["boxHeight", "boxWidth", "borderTopLeftRadius", "backgroundColor", "boxShadow", "display"]],
+      ["value", ".basalt-number-input", ".number-field > .input", [...GEOMETRY, "boxWidth", ...TYPE, "color", "backgroundColor", "boxShadow", "textAlign", "fontVariantNumeric"]],
+      ["decrease", ".basalt-number-group .basalt-button:first-child", ".number-field > .btn:first-child", [...GEOMETRY, "boxWidth", "color", "backgroundColor", "boxShadow", "borderTopLeftRadius"]],
+      ["increase", ".basalt-number-group .basalt-button:last-child", ".number-field > .btn:last-child", ["boxWidth", "boxHeight", "color", "backgroundColor"]],
+    ],
+  },
+  {
+    // The accent dot, and the ink dot where no class is set; the word stays ink.
+    id: "accent",
+    react: `<div data-accent="cobalt"><Badge status="accent">Needs you</Badge></div><Badge status="accent">Needs you</Badge>`,
+    skill: `<div data-accent="cobalt"><span class="status" data-status="accent">Needs you</span></div><span class="status" data-status="accent">Needs you</span>`,
+    pairs: [
+      ["cobalt dot", "[data-accent] .basalt-badge-dot", "[data-accent] .status", ["backgroundColor"], { skillPseudo: "::before" }],
+      ["ink dot", "> .basalt-badge .basalt-badge-dot", "> .status", ["backgroundColor"], { skillPseudo: "::before" }],
+    ],
+  },
+  {
+    // Braille: React's six-dot cell, 6 by 10, 2px dots, 800ms stepped.
+    id: "braille",
+    react: `<Spinner variant="braille" />`,
+    skill: `<braille-spinner></braille-spinner>`,
+    pairs: [
+      ["cell", ".basalt-spinner svg", "braille-spinner > svg", ["boxWidth", "boxHeight"]],
+      ["dot", "circle[data-dot='1']", "circle[data-dot='1']", ["boxWidth", "boxHeight", "color", "animationDuration", "animationTimingFunction", "animationIterationCount"]],
+      ["unlit dot", "circle[data-dot='3']", "circle[data-dot='3']", ["opacity"]],
+      ["lit dot", "circle[data-dot='2']", "circle[data-dot='2']", ["opacity"]],
+    ],
+  },
+  {
+    id: "code",
+    react: `<CodeBlock code="{}" title="a.json" />`,
+    skill: `<div class="code"><div class="code-head"><span>a.json</span></div><pre class="code-body" tabindex="0"><code>{}</code></pre></div>`,
+    pairs: [
+      ["block", ".basalt-code", ".code", ["borderTopLeftRadius", "backgroundColor", "borderTopColor", "borderTopWidth"]],
+    ],
+  },
+  {
     id: "progress",
     react: `<Progress value={61} label="Budget" />`,
     skill: `<div class="progress" role="progressbar" aria-label="Budget" aria-valuemin="0" aria-valuemax="100" aria-valuenow="61" style="--value: 61%"><span></span></div>`,
@@ -229,12 +272,14 @@ describe("each skill component renders as its React counterpart does, but for th
     test(`the components (${theme})`, async () => {
       const reactJsx = CASES.map((c) => `<section id="r-${c.id}" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", margin: 16 }}>${c.react}</section>`).join("");
       const { page: reactPage, errors } = await fixturePage(reactBrowser, `
-        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress } = B;
+        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock } = B;
         flushSync(() => createRoot(document.getElementById("root")).render(<>${reactJsx}</>));`, { theme });
       await reactPage.addStyleTag({ content: APP_BODY });
       await settle(reactPage);
       const body = CASES.map((c) => `<section id="s-${c.id}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin: 16px">${c.skill}</section>`).join("\n");
       const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>\n${body}`, { fonts: false }).html, { scheme: theme });
+      // Loops are read at their first frame (a spinner's opacity at an arbitrary moment is not a difference), the same on both pages.
+      for (const p of [reactPage, skillPage]) await p.evaluate(() => document.getAnimations().forEach((animation) => { animation.pause(); animation.currentTime = 0; }));
       for (const c of CASES) await compare(theme, c.id, reactPage, skillPage, c.pairs, { react: `#r-${c.id}`, skill: `#s-${c.id}` });
       assert.deepEqual([errors, skillErrors], [[], []]);
       await reactPage.close();

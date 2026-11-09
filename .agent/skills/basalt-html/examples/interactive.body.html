@@ -40,18 +40,18 @@
       </div>
       <div class="field">
         <label for="rps">Requests per second</label>
-        <input class="input num" id="rps" name="rps" type="number" inputmode="numeric" min="0" step="1" value="400" aria-describedby="rps-hint rps-error">
+        <span class="number-field"><input class="input num" id="rps" name="rps" type="number" inputmode="numeric" min="0" step="1" value="400" aria-describedby="rps-hint rps-error"></span>
         <span class="hint" id="rps-hint">Average over the month.</span>
         <span class="error" id="rps-error" hidden>Enter a number of zero or more.</span>
       </div>
       <div class="field">
         <label for="payload">Payload size (KB)</label>
-        <input class="input num" id="payload" name="payload" type="number" inputmode="decimal" min="0" step="0.1" value="48" aria-describedby="payload-error">
+        <span class="number-field"><input class="input num" id="payload" name="payload" type="number" inputmode="decimal" min="0" step="0.1" value="48" aria-describedby="payload-error"></span>
         <span class="error" id="payload-error" hidden>Enter a size of zero or more.</span>
       </div>
       <div class="field">
         <label for="cache">Cache hit rate (%)</label>
-        <input class="input num" id="cache" name="cache" type="number" inputmode="numeric" min="0" max="100" step="1" value="70" aria-describedby="cache-error">
+        <span class="number-field"><input class="input num" id="cache" name="cache" type="number" inputmode="numeric" min="0" max="100" step="1" value="70" aria-describedby="cache-error"></span>
         <span class="error" id="cache-error" hidden>Enter a rate from 0 to 100.</span>
       </div>
       <div class="cluster">
@@ -69,7 +69,7 @@
           <button class="tab" role="tab" id="tab-json" aria-controls="view-json" aria-selected="false">JSON</button>
         </div>
 
-        <div class="tabpanel" id="view-summary" role="tabpanel" aria-labelledby="tab-summary">
+        <div class="tabpanel" style="padding-top: var(--basalt-space-4)" id="view-summary" role="tabpanel" aria-labelledby="tab-summary">
           <dl class="stats small num" style="--min: 8rem">
             <div><dt class="muted">Egress</dt><dd id="out-gb">0 GB</dd></div>
             <div><dt class="muted">Origin requests</dt><dd id="out-origin">0</dd></div>
@@ -77,7 +77,7 @@
           <p class="muted small" id="advice" style="margin-top: var(--basalt-space-4)"><strong>Tip.</strong> <span id="advice-text"></span></p>
         </div>
 
-        <div class="tabpanel" id="view-breakdown" role="tabpanel" aria-labelledby="tab-breakdown" hidden>
+        <div class="tabpanel" style="padding-top: var(--basalt-space-4)" id="view-breakdown" role="tabpanel" aria-labelledby="tab-breakdown" hidden>
           <div class="panel table-wrap" role="region" aria-label="Cost breakdown" tabindex="0">
             <table>
               <thead><tr><th scope="col">Line</th><th scope="col" data-numeric>Amount</th></tr></thead>
@@ -86,7 +86,7 @@
           </div>
         </div>
 
-        <div class="tabpanel" id="view-json" role="tabpanel" aria-labelledby="tab-json" hidden>
+        <div class="tabpanel" style="padding-top: var(--basalt-space-4)" id="view-json" role="tabpanel" aria-labelledby="tab-json" hidden>
           <div class="code">
             <div class="code-head"><span>estimate.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#json"><i data-icon="Copy"></i><span>Copy</span></button></div>
             <pre class="code-body" tabindex="0"><code id="json"></code></pre>

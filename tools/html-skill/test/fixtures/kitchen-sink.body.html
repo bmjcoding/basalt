@@ -45,6 +45,8 @@
       <span class="status" data-status="danger">Down</span>
       <span class="spinner" role="status" aria-label="Loading"></span>
       <span class="mono"><braille-spinner aria-hidden="true"></braille-spinner> Running</span>
+      <span class="status"><braille-spinner></braille-spinner>Running</span>
+      <span data-accent="cobalt" class="cluster"><span class="status" data-status="accent">Needs you</span><span class="badge" data-status="accent">Needs you</span></span>
       <span data-kbd="⌘ ⇧ P"></span>
     </div>
   </section>
@@ -75,6 +77,10 @@
       <div class="field"><label for="f5">Select</label><span class="select"><select class="input" id="f5"><option>One</option><option>Two</option></select></span></div>
       <div class="field"><label for="f6">Number</label><input class="input num" id="f6" type="number" value="3"></div>
       <div class="field"><label for="f7">Notes</label><textarea class="input" id="f7">Some text</textarea></div>
+      <div class="field"><label for="f8">Stepper</label><span class="number-field"><input class="input num" id="f8" type="number" value="3" min="0" max="10"></span></div>
+      <div class="field"><label for="f9">Range</label><input id="f9" type="range" value="40"></div>
+      <div class="field"><label for="f10">File</label><input id="f10" type="file"></div>
+      <div class="field"><label for="f11">Search</label><input class="input" id="f11" type="search" value="query"></div>
     </form>
   </section>
 
@@ -104,6 +110,7 @@
       <div id="d1" class="prose small muted"><p>Disclosure body.</p></div>
       <button class="disclosure" data-disclosure aria-expanded="false" aria-controls="d2">Closed disclosure</button>
       <div id="d2" hidden>Hidden.</div>
+      <details><summary>Native details</summary><p>Details body.</p></details>
     </div>
   </section>
 

@@ -11,6 +11,15 @@
   :is(.status, .badge)[data-status="success"]::before { background: var(--basalt-status-success); }
   :is(.status, .badge)[data-status="warning"]::before { background: var(--basalt-status-warning); }
   :is(.status, .badge)[data-status="danger"]::before { background: var(--basalt-status-danger); }
+  /* The one place --basalt-accent-ink is read in the skill (accent.css defines it, and only where a page sets data-accent): the dot of an
+     accent status, with the ink dot as the fallback for no accent, none, an unknown name and a browser without light-dark(). The word stays ink. */
+  :is(.status, .badge)[data-status="accent"]::before { background: var(--basalt-accent-ink, var(--basalt-text-primary)); }
+
+  /* Forced colours drop box-shadow, so a badge's edge becomes a real border; the accent dot is a fill, so it keeps one, in the system text colour. */
+  @media (forced-colors: active) {
+    .badge { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; }
+    :is(.status, .badge)[data-status="accent"]::before { forced-color-adjust: none; background: CanvasText; }
+  }
 
   @media print {
     .status::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }

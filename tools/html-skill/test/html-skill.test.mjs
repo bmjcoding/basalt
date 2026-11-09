@@ -295,7 +295,7 @@ describe("reduced motion", () => {
     });
     assert.equal(report.animationName, "none", "braille does not step");
     assert.equal(report.busyRing, "bh-fade", "the busy ring fades instead of turning");
-    assert.deepEqual(report.held, ["1", "1", "0", "1", "0", "0", "0", "0"], "braille holds its first frame");
+    assert.deepEqual(report.held, ["1", "1", "0", "1", "0", "0"], "braille holds its first frame (⠋: dots 1, 2 and 4 of the six)");
     for (const k of report.kinds) assert.ok(k.properties.every((p) => ["opacity", "backgroundColor", "color", "boxShadow"].includes(p)), `${k.name} animates ${k.properties.join(", ")}: only opacity and colour steps may run`);
     await context.close();
   });
@@ -1056,7 +1056,8 @@ describe("the SKILL's rules", () => {
       /the 2px bar is only for selection/i,
       /No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
       /standalone links too/,
-      /Braille only while work runs on a mono or terminal line, never in a button/,
+      /\*\*Braille\*\* is for a status: beside a word that names running work \(`<span class="status"><braille-spinner><\/braille-spinner>Running<\/span>`\), never in a button and never without its word\. The ring is for a wait\./,
+      /date and time pickers stay native: Basalt has no design for them/,
       /never on the primary fill/,
       /Tabs don't slide their indicator in static files/,
     ]) assert.match(skill, rule);
