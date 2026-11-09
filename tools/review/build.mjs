@@ -67,6 +67,8 @@ const css = [
   // shipped"), scoped to a wrapper that says so.
   "@layer review, basalt, review-options;",
   fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
+  // The accent classes are generated with the tokens; Badge's accent tone reads them.
+  fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
   `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,
 ].join("\n");
 
