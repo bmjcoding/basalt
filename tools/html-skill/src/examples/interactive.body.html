@@ -1,0 +1,196 @@
+<title>Egress cost planner</title>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top">Egress planner</a>
+    <span class="spacer"></span>
+    <button class="btn" data-open-palette>
+      <i data-icon="MagnifyingGlass"></i>
+      <span>Commands</span>
+      <span data-kbd="⌘ K"></span>
+    </button>
+    <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+  </div>
+</header>
+
+<main id="main" class="page">
+  <div class="stack" style="--gap: var(--basalt-space-2)" id="top">
+    <h1>Egress cost planner</h1>
+    <p class="lead">Estimate what a month of traffic costs to serve. Change a value and the figures update.</p>
+  </div>
+
+  <div class="stat" style="margin-top: var(--basalt-space-6)">
+    <span class="stat-label" id="cost-label">Monthly cost</span>
+    <output class="stat-value" id="out-cost" for="region rps payload cache" aria-labelledby="cost-label" aria-live="off">$0</output>
+    <span class="stat-note" id="out-region">US East</span>
+  </div>
+
+  <div class="split aside" style="margin-top: var(--basalt-space-8)">
+
+    <form class="panel card stack" id="inputs" autocomplete="off" novalidate style="--gap: var(--basalt-space-4)">
+      <div class="field">
+        <label for="region">Region</label>
+        <span class="select"><select class="input" id="region" name="region">
+          <option value="us-east">US East</option>
+          <option value="eu-west">EU West</option>
+          <option value="ap-south">Asia Pacific South</option>
+        </select></span>
+      </div>
+      <div class="field">
+        <label for="rps">Requests per second</label>
+        <input class="input num" id="rps" name="rps" type="number" inputmode="numeric" min="0" step="1" value="400" aria-describedby="rps-hint rps-error">
+        <span class="hint" id="rps-hint">Average over the month.</span>
+        <span class="error" id="rps-error" hidden>Enter a number of zero or more.</span>
+      </div>
+      <div class="field">
+        <label for="payload">Payload size (KB)</label>
+        <input class="input num" id="payload" name="payload" type="number" inputmode="decimal" min="0" step="0.1" value="48" aria-describedby="payload-error">
+        <span class="error" id="payload-error" hidden>Enter a size of zero or more.</span>
+      </div>
+      <div class="field">
+        <label for="cache">Cache hit rate (%)</label>
+        <input class="input num" id="cache" name="cache" type="number" inputmode="numeric" min="0" max="100" step="1" value="70" aria-describedby="cache-error">
+        <span class="error" id="cache-error" hidden>Enter a rate from 0 to 100.</span>
+      </div>
+      <div class="cluster">
+        <button class="btn" type="button" data-variant="primary" id="recalc"><span>Recalculate</span></button>
+        <button class="btn" type="button" data-variant="ghost" id="reset">Reset</button>
+      </div>
+      <p class="hint" id="status" role="status"></p>
+    </form>
+
+    <section class="stack" aria-label="Estimate" style="--gap: var(--basalt-space-4)">
+      <div data-tabs>
+        <div class="tabs" role="tablist" aria-label="Views">
+          <button class="tab" role="tab" id="tab-summary" aria-controls="view-summary" aria-selected="true">Summary</button>
+          <button class="tab" role="tab" id="tab-breakdown" aria-controls="view-breakdown" aria-selected="false">Breakdown</button>
+          <button class="tab" role="tab" id="tab-json" aria-controls="view-json" aria-selected="false">JSON</button>
+        </div>
+
+        <div class="tabpanel" id="view-summary" role="tabpanel" aria-labelledby="tab-summary">
+          <dl class="stats small num" style="--min: 8rem">
+            <div><dt class="muted">Egress</dt><dd id="out-gb">0 GB</dd></div>
+            <div><dt class="muted">Origin requests</dt><dd id="out-origin">0</dd></div>
+          </dl>
+          <p class="muted small" id="advice" style="margin-top: var(--basalt-space-4)"><strong>Tip.</strong> <span id="advice-text"></span></p>
+        </div>
+
+        <div class="tabpanel" id="view-breakdown" role="tabpanel" aria-labelledby="tab-breakdown" hidden>
+          <div class="panel table-wrap" role="region" aria-label="Cost breakdown" tabindex="0">
+            <table>
+              <thead><tr><th scope="col">Line</th><th scope="col" data-numeric>Amount</th></tr></thead>
+              <tbody id="breakdown"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpanel" id="view-json" role="tabpanel" aria-labelledby="tab-json" hidden>
+          <div class="code">
+            <div class="code-head"><span>estimate.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#json"><i data-icon="Copy"></i><span>Copy</span></button></div>
+            <pre class="code-body" tabindex="0"><code id="json"></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button class="disclosure" data-disclosure aria-expanded="false" aria-controls="assumptions">Assumptions</button>
+        <div id="assumptions" class="prose small muted" hidden>
+          <p>A month is 30 days. Cache hits are served without origin egress. Prices are per GB of egress and are illustrative, not a quote; this page fetches nothing.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  var PRICE = { 'us-east': 0.05, 'eu-west': 0.06, 'ap-south': 0.09 };
+  var NAME = { 'us-east': 'US East', 'eu-west': 'EU West', 'ap-south': 'Asia Pacific South' };
+  var DEFAULTS = { region: 'us-east', rps: '400', payload: '48', cache: '70' };
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) { return '$' + n.toLocaleString('en-US', { maximumFractionDigits: n < 100 ? 2 : 0 }); };
+  var count = function (n) { return Math.round(n).toLocaleString('en-US'); };
+  var result = null;
+
+  function read(id, max) {
+    var el = $(id), v = el.value === '' ? NaN : Number(el.value);
+    var bad = !(v >= 0) || (max != null && v > max);
+    el.setAttribute('aria-invalid', String(bad));
+    $(id + '-error').hidden = !bad;
+    return bad ? null : v;
+  }
+
+  function render() {
+    var rps = read('rps'), kb = read('payload'), cache = read('cache', 100);
+    if (rps == null || kb == null || cache == null) return;
+    var region = $('region').value;
+    var requests = rps * 60 * 60 * 24 * 30;
+    var origin = requests * (1 - cache / 100);
+    var gb = origin * kb / 1e6;
+    var cost = gb * PRICE[region];
+    result = { region: region, requestsPerMonth: Math.round(requests), originRequests: Math.round(origin), egressGb: Math.round(gb * 10) / 10, pricePerGb: PRICE[region], monthlyCost: Math.round(cost * 100) / 100 };
+    $('out-cost').textContent = money(cost);
+    $('out-region').textContent = NAME[region];
+    $('out-gb').textContent = count(gb) + ' GB';
+    $('out-origin').textContent = count(origin);
+    $('advice-text').textContent = cache < 90 ? 'Raising the cache hit rate to 90% would cut egress by ' + Math.round((1 - (100 - 90) / Math.max(100 - cache, 1)) * 100) + '%.' : 'Your cache hit rate is already high; payload size is the next lever.';
+    $('breakdown').innerHTML = [
+      ['Requests per month', count(requests)], ['Cache hits', count(requests - origin)], ['Origin requests', count(origin)],
+      ['Egress', count(gb) + ' GB'], ['Price per GB', '$' + PRICE[region].toFixed(2)], ['Monthly cost', money(cost)]
+    ].map(function (r) { return '<tr><td>' + r[0] + '</td><td data-numeric>' + r[1] + '</td></tr>'; }).join('');
+    $('json').textContent = JSON.stringify(result, null, 2);
+  }
+
+  function reset() {
+    Object.keys(DEFAULTS).forEach(function (k) { $(k).value = DEFAULTS[k]; });
+    render();
+  }
+
+  // Work with a wait shows the button busy: the label hides and a ring sits over it, so the button keeps its width.
+  var busy = false;
+  function recalculate() {
+    if (busy) return;
+    busy = true;
+    var button = $('recalc');
+    button.setAttribute('aria-busy', 'true');
+    $('status').textContent = 'Recalculating';
+    setTimeout(function () {
+      busy = false;
+      render();
+      button.removeAttribute('aria-busy');
+      $('status').textContent = 'Recalculated.';
+    }, 800);
+  }
+
+  function showTab(id) { var tab = $(id); tab.click(); tab.focus(); }
+
+  $('inputs').addEventListener('input', render);
+  $('inputs').addEventListener('submit', function (e) { e.preventDefault(); });
+  $('reset').addEventListener('click', reset);
+  $('recalc').addEventListener('click', recalculate);
+  render();
+
+  Basalt.init({
+    palette: function () {
+      return {
+        placeholder: 'Type a command',
+        groups: [
+          { label: 'View', items: [
+            { label: 'Show summary', icon: 'ArrowRight', onSelect: function () { showTab('tab-summary'); } },
+            { label: 'Show breakdown', icon: 'ArrowRight', onSelect: function () { showTab('tab-breakdown'); } },
+            { label: 'Show JSON', icon: 'ArrowRight', onSelect: function () { showTab('tab-json'); } }
+          ] },
+          { label: 'Actions', items: [
+            { label: 'Copy JSON', icon: 'Copy', keywords: ['clipboard'], onSelect: function () { Basalt.copyText($('json').textContent).then(function () { Basalt.announce('Copied to clipboard'); }); } },
+            { label: 'Recalculate', icon: 'ArrowRight', onSelect: recalculate },
+            { label: 'Reset inputs', icon: 'X', danger: true, onSelect: reset },
+            { label: 'Switch theme', icon: 'Sun', keywords: ['dark', 'light'], onSelect: function () { Basalt.toggleTheme(); } }
+          ] }
+        ]
+      };
+    }
+  });
+})();
+</script>

@@ -1,0 +1,11 @@
+/* The ring spinner: the default wait. A module; the keyframes (bh-spin, bh-fade) live in core, where the busy button uses them. */
+
+@layer basalt {
+
+  /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
+  .spinner { display: inline-block; flex: none; width: 1em; height: 1em; border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; vertical-align: -0.125em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: bh-fade var(--basalt-duration-loop-fade) ease-in-out infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+  }
+}

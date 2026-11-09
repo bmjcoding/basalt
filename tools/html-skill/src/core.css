@@ -1,0 +1,279 @@
+/* Basalt HTML core: the part of the stylesheet every page gets. The generated --basalt-* tokens come before it (build.mjs),
+   then this file: the element defaults, type, layout, panels and levels, and buttons. Everything a page uses only sometimes
+   is a module in modules/ (compose.mjs adds the ones a page's markup needs; modules.json says which).
+   Colours and lengths come from the tokens; the few raw lengths (breakpoints, chevron strokes) carry a reasoned lint
+   disable, and the stylesheets under tools/html-skill/src are in the lint glob. Two layers, in this order: `reset` holds the element
+   defaults (a, button, table, h1), `basalt` holds every class (the layer React's CSS uses, so an app's own unlayered CSS always wins).
+   Put your own element rules in `@layer reset { }` so they never beat a Basalt class; your own class rules can sit unlayered, and win.
+   Source: tools/html-skill/src/ (do not edit the files in the skill folder). */
+
+@layer reset, basalt;
+
+/* ---- Element defaults ---- */
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: var(--basalt-surface-0); -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--basalt-surface-0);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--bh-base);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Geist ships 400, 500 and 600: the UA's bold (700) is normalised to semibold. */
+  b, strong, th { font-weight: var(--basalt-font-weight-semibold); }
+
+  img, svg, video { max-width: 100%; }
+
+  button, input, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; margin: 0; }
+  a { color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); }
+  a:hover { text-decoration-color: currentColor; }
+
+  h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote { margin: 0; }
+  h1, h2, h3, h4 { font-weight: var(--basalt-font-weight-semibold); color: var(--basalt-text-primary); text-wrap: balance; }
+  h5, h6 { font-weight: var(--basalt-font-weight-semibold); }
+  h1, .display { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
+  h2 { font-size: var(--basalt-text-xl-size); line-height: var(--basalt-text-xl-line-height); letter-spacing: var(--basalt-text-xl-tracking); }
+  h3 { font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); letter-spacing: var(--basalt-text-lg-tracking); }
+  h4 { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
+
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (min-width: 720px) {
+    h1, .display { font-size: var(--basalt-text-4xl-size); line-height: var(--basalt-text-4xl-line-height); letter-spacing: var(--basalt-text-4xl-tracking); }
+  }
+
+  p, li { text-wrap: pretty; }
+
+  code:not(.code code) {
+    padding: var(--basalt-size-hairline) var(--basalt-space-1);
+    border-radius: var(--basalt-radius-xs);
+    background: var(--basalt-surface-kbd);
+    font: var(--basalt-font-weight-regular) 0.92em / 1 var(--basalt-font-family-mono);
+  }
+
+  /* Code is Geist Mono wherever it sits; the UA would give a <pre> its own monospace. */
+  pre, code, kbd, samp { font-family: var(--basalt-font-family-mono); }
+}
+
+@layer basalt {
+  /* ---- Base ---- */
+
+  /* Type roles: size, line height and family in one value, so a `font` shorthand stays short. */
+  :root {
+    --bh-xs: var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    --bh-sm: var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    --bh-base: var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    --bh-md: var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    --bh-2xl: var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans);
+    --bh-xs-mono: var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono);
+    --bh-sm-mono: var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono);
+  }
+
+  :root { accent-color: var(--basalt-action-primary); }
+  html:has(.topbar) { scroll-padding-top: calc(var(--basalt-size-tap-min) + var(--basalt-space-6)); }
+  a, button, summary, [role="tab"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  ::selection { background: var(--basalt-state-selected); }
+  svg.icon { flex: none; }
+
+  /* ---- Type and rhythm ---- */
+
+  .display { font-weight: var(--basalt-font-weight-semibold); }
+  /* The Display step of the type scale (56/60), for a page's one headline. Not responsive: a long word needs room at 390. */
+  .text-5xl { font-size: var(--basalt-text-5xl-size); line-height: var(--basalt-text-5xl-line-height); letter-spacing: var(--basalt-text-5xl-tracking); font-weight: var(--basalt-font-weight-semibold); }
+  .lead { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); color: var(--basalt-text-secondary); max-width: 60ch; text-wrap: pretty; }
+  .eyebrow { font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); }
+  .muted { color: var(--basalt-text-secondary); }
+  .faint { color: var(--basalt-text-tertiary); }
+  .small { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .mono { font-family: var(--basalt-font-family-mono); }
+  .num { font-variant-numeric: tabular-nums; }
+  .prose { max-width: 68ch; }
+  .prose > * + * { margin-top: var(--basalt-space-4); }
+  .prose > :is(h2, h3) { margin-top: var(--basalt-space-8); }
+  .prose > :is(h2, h3) + * { margin-top: var(--basalt-space-2); }
+  .prose :is(ul, ol) { padding-inline-start: var(--basalt-space-5); }
+  .prose li + li { margin-top: var(--basalt-space-1); }
+  .prose blockquote { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); }
+
+  /* ---- Layout ---- */
+
+  .page { width: 100%; max-width: 72rem; margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-space-6) var(--basalt-space-16); }
+  .page.narrow { max-width: 46rem; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .page { padding: var(--basalt-space-6) var(--basalt-space-4) var(--basalt-space-12); } }
+  .stack { display: flex; flex-direction: column; gap: var(--gap, var(--basalt-space-4)); min-width: 0; }
+  .cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap, var(--basalt-space-2)); min-width: 0; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the fallback column width when a page sets no --min; no token is a column width */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 220px), 100%), 1fr)); gap: var(--gap, var(--basalt-space-4)); }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap, var(--basalt-space-6)); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (min-width: 720px) { .split.aside { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; } }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .split { grid-template-columns: minmax(0, 1fr); } }
+  .spacer { flex: 1; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .hide-narrow { display: none !important; } }
+  .section { margin-top: var(--basalt-space-12); }
+  .section > .section-head { margin-bottom: var(--basalt-space-4); }
+
+  .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
+  /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
+  .footer:not(.page .footer) { width: calc(min(100%, 72rem) - 2 * var(--basalt-space-6)); margin-top: 0; margin-inline: auto; padding-bottom: var(--basalt-space-8); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .footer:not(.page .footer) { width: calc(100% - 2 * var(--basalt-space-4)); } }
+  .skip-link { position: absolute; inset-inline-start: var(--basalt-space-2); top: var(--basalt-space-2); transform: translateY(-200%); padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-3); color: var(--basalt-text-primary); z-index: var(--basalt-layer-toast); }
+  .skip-link:focus { transform: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+  /* ---- Panels: levels and the rim ----
+     A panel is one level above what it sits in, capped at 3. Level is position, not importance: a hero,
+     a console or a featured card on the page is level 1 whatever it says. In dark each level is a step
+     lighter (#0a0a0a, #111111, #171717); in light levels 1 to 3 are one white, so nesting shows by the rim.
+     The rim is a real 1px border: 8% white on top and 6% on the other sides in dark, 8% black in light.
+     Guard: a panel is for a distinct object (code, table, preview, callout). Group the rest with space and
+     dividers, and go at most one panel deep inside a panel. Panels in the flow carry no shadow. */
+
+  %panel% {
+    --panel-bg: var(--basalt-surface-1);
+    --panel-next: var(--basalt-surface-2);
+    --panel-well: var(--basalt-surface-sunken);
+    position: relative;
+    min-width: 0;
+    background-color: var(--panel-bg);
+    color: var(--basalt-text-primary);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-lg);
+  }
+  %panel% %panel% { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); }
+  %panel% %panel% %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
+  .panel-pad, .card { padding: var(--basalt-space-4); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (min-width: 720px) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
+
+  /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (level 2 or above, with a shadow).
+     A static picture of one in a document is drawn as that surface. */
+  .float { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); box-shadow: var(--basalt-shadow-overlay); }
+  .float.modal { box-shadow: var(--basalt-shadow-modal); }
+  .float %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
+
+  /* [data-level] only re-bases a subtree (a page, a portal, a specimen frame). It never promotes a panel. */
+  [data-level="0"] { --panel-next: var(--basalt-surface-1); }
+  [data-level="1"] %panel% { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); }
+  [data-level="2"] %panel%, [data-level="3"] %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
+
+  .divider { display: block; height: var(--basalt-size-hairline); margin: 0; border: 0; background: var(--basalt-border-divider); flex: none; }
+  .divide-y > * + * { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+
+
+  /* ---- Buttons ---- */
+
+  .btn {
+    position: relative;
+    --_h: var(--basalt-size-control-md);
+    --_px: var(--basalt-space-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-1-5);
+    height: var(--_h);
+    padding: 0 var(--_px);
+    margin: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-sm);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / 1 var(--basalt-font-family-sans);
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    background: var(--basalt-surface-1);
+    color: var(--basalt-text-primary);
+    box-shadow: var(--basalt-shadow-hairline);
+    transition-property: background-color, color, box-shadow, transform;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .btn[data-size="sm"] { --_h: var(--basalt-size-control-sm); --_px: var(--basalt-space-2-5); font-size: var(--basalt-text-sm-size); }
+  .btn[data-size="lg"] { --_h: var(--basalt-size-control-lg); --_px: var(--basalt-space-3-5); border-radius: var(--basalt-radius-md); }
+  .btn[data-icon-only] { width: var(--_h); padding: 0; }
+  .btn[data-variant="primary"] { background: var(--basalt-action-primary); color: var(--basalt-action-primary-text); box-shadow: none; }
+  .btn[data-variant="ghost"] { background: transparent; color: var(--basalt-text-secondary); box-shadow: none; }
+  /* Danger is red text on a red hairline. No red fill: the destructive control stays quieter than the primary. */
+  .btn[data-variant="danger"] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
+  @media (hover: hover) {
+    .btn:hover:not([disabled], [aria-disabled="true"]) { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-0); }
+    .btn[data-variant="primary"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-action-primary-hover); box-shadow: none; }
+    .btn[data-variant="ghost"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); box-shadow: none; }
+    .btn[data-variant="danger"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
+  }
+  /* A press is a colour step (primary steps to action-primary-press, the rest to the selected wash), and the button also scales
+     to .98 over duration-fast on ease-out while pressed, as Button and IconButton do. Never on a disabled or busy button, and
+     on nothing else: no row, tab, card or disclosure. */
+  .btn:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-selected); }
+  .btn[data-variant="primary"]:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-action-primary-press); }
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: scale(0.98); }
+  /* The scale shrinks the hit box under a held pointer, so a press at a wide button's edge would lose its click and a 44px touch
+     target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed target at its rest size. */
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"])::after { content: ""; position: absolute; inset: -1.03%; }
+  .btn[disabled], .btn[aria-disabled="true"] { cursor: not-allowed; color: var(--basalt-text-disabled); box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
+  .btn[data-variant="primary"][disabled], .btn[data-variant="primary"][aria-disabled="true"] { background: var(--basalt-state-selected); box-shadow: none; }
+  .btn[data-variant="ghost"][disabled] { box-shadow: none; }
+  /* Busy keeps the width: the label (and any icon) is invisible and a ring is laid over the middle, as the React Button does. Keep a label in a <span>. */
+  .btn[aria-busy="true"] { cursor: progress; }
+  .btn[aria-busy="true"] > * { opacity: 0; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
+  .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
+  .btn svg { flex: none; }
+  @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
+  /* A link on its own is a touch target (44px); a link inside running text is not, so a paragraph, list item, quote, caption,
+     hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
+     `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits
+     exactly like an unlinked one: only the hit box grows (1lh is the link's own line height). A control that sizes itself
+     (.btn, .row, .tab, .disclosure) is left alone. */
+  @media (pointer: coarse) {
+    a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, :is(p, li, .prose, .small, .hint, .error, .callout-body) a),
+    nav a:not(.btn),
+    .footer a,
+    .tap {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--basalt-size-tap-min);
+      margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2));
+    }
+    .brand, .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
+  }
+
+  @keyframes bh-spin { to { transform: rotate(360deg); } }
+  @keyframes bh-fade { 50% { opacity: 0.4; } }
+
+  /* ---- Motion: durations come from the tokens (0, 100, 150, 200, 300ms). Reduced motion: opacity only. ---- */
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .btn[aria-busy="true"]::after { animation: bh-fade var(--basalt-duration-loop-fade) ease-in-out infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+    /* A press keeps its colour step and its scale is 1. Same specificity as the press rule, and later; transform leaves the
+       transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
+    .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
+    .btn { transition-property: background-color, color, box-shadow; }
+  }
+
+  @media (forced-colors: active) {
+    %panel% { border-color: CanvasText; }
+    .btn { border: var(--basalt-size-hairline) solid ButtonText; }
+  }
+
+  /* ---- Print: light (the script switches the theme for the print and back), no chrome, panels whole ---- */
+
+  @media print {
+    .skip-link { display: none; }
+    %panel% { break-inside: avoid; }
+  }
+}

@@ -247,7 +247,8 @@ const SHEETS = {
   "components.css": read("../../react/src/styles/components.css"),
   "tokens.css": read("../dist/css/tokens.css"),
   "shadcn.css": read("../dist/css/shadcn.css"),
-  "basalt-html.css": read("../../../tools/html-skill/src/basalt-html.css"),
+  // The HTML skill is a core sheet plus one sheet per module; the confinement covers every one of them.
+  "the HTML skill's source CSS": [ "../../../tools/html-skill/src/core.css", ...fs.readdirSync(new URL("../../../tools/html-skill/src/modules/", import.meta.url)).filter((f) => f.endsWith(".css")).map((f) => `../../../tools/html-skill/src/modules/${f}`) ].map(read).join("\n"),
 };
 
 test("nothing reads the accent from chrome, code, focus, selection, links, the primary button, a checked control or a status", () => {
@@ -261,8 +262,10 @@ test("only Badge's accent dot reads the accent, and only as its background", () 
   assert.deepEqual(readers(SHEETS["components.css"]).map(({ selector, property }) => ({ selector, property })), ALLOWED, "components.css");
   for (const file of ["tokens.css", "shadcn.css"]) assert.deepEqual(readers(SHEETS[file]), [], `${file} reads the accent`);
   // The HTML skill's .status reader is a follow-up; until it lands the skill reads nothing, and its token CSS carries no accent.
-  assert.deepEqual(readers(SHEETS["basalt-html.css"]), [], "the HTML skill's source CSS reads the accent");
-  assert.ok(!/--basalt-accent|data-accent/.test(read("../../../.agent/skills/basalt-html/basalt-html.css")), "the built HTML skill carries an accent");
+  assert.deepEqual(readers(SHEETS["the HTML skill's source CSS"]), [], "the HTML skill's source CSS reads the accent");
+  const built = fs.readdirSync(new URL("../../../.agent/skills/basalt-html/parts/", import.meta.url)).filter((f) => /\.(css|js)$/.test(f) && f !== "geist.css");
+  assert.ok(built.length > 0, "the built HTML skill has no parts to check");
+  for (const f of built) assert.ok(!/--basalt-accent|data-accent/.test(read(`../../../.agent/skills/basalt-html/parts/${f}`)), `the built HTML skill carries an accent in ${f}`);
 });
 
 test("no script or highlighter names the accent: the Shiki theme and every component source stay clear of it", () => {

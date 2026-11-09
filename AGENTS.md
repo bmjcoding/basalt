@@ -137,9 +137,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 ## Generating HTML
 
 Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
-dashboard for this project first reads `.agent/skills/basalt-html/SKILL.md` and follows it: copy a template, inline
-`basalt-html.css` and `basalt-html.js`, no CDN or framework. Its sources are in `tools/html-skill/`;
-edit those and run `npm run build`, never the files in the skill folder.
+dashboard for this project first reads `.agent/skills/basalt-html/SKILL.md`, and only that: write the page's body
+(the HTML inside `<body>`) to a file, then run `node .agent/skills/basalt-html/compose.mjs <body.html>`. The script
+builds the page: it adds the core CSS and script and only the modules the body uses, Geist inlined, no CDN or
+framework. Don't open or paste `parts/`; it is minified output and costs context for nothing. The sources are in
+`tools/html-skill/` (its README says how to add a module); edit those and run `npm run build`, never the files in the
+skill folder.
 
 ## Checks
 

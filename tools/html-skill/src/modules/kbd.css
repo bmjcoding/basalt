@@ -1,0 +1,36 @@
+@layer basalt {
+
+  /* ---- Keyboard keys ----
+     A chip is a fill with no border, one per key, 2px apart. Real shortcuts only, one per row, never on the
+     primary fill. Command, Option and Control are Phosphor icons (Geist has no glyph for them). */
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--basalt-size-kbd);
+    height: var(--basalt-size-kbd);
+    padding: 0 var(--basalt-space-1);
+    border: 0;
+    border-radius: var(--basalt-radius-xs);
+    background: var(--basalt-surface-kbd);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--bh-xs-mono);
+    white-space: nowrap;
+    flex: none;
+  }
+  .kbd-group { display: inline-flex; align-items: center; gap: var(--basalt-space-0-5); flex: none; }
+  .kbd svg { width: var(--basalt-text-xs-size); height: var(--basalt-text-xs-size); }
+  .row:hover .kbd, .row:is([data-active], [aria-selected="true"]) .kbd { color: var(--basalt-text-primary); }
+  /* On touch with no keyboard a shortcut chip, and any words that only make sense beside one ([data-kbd-hint]),
+     are not rendered. They return once a hardware key is pressed (the JS sets html[data-keyboard="hardware"]).
+     Keys documented in running text opt out with data-doc. Never un-hide with revert-layer. */
+  @media (hover: none) and (pointer: coarse) {
+    :root:not([data-keyboard="hardware"]) :is(.kbd, .kbd-group, [data-kbd-hint]):not([data-doc], [data-doc] *) { display: none !important; }
+  }
+  .btn .kbd { margin-inline-start: var(--basalt-space-1); }
+
+  @media (forced-colors: active) {
+    .kbd { border: var(--basalt-size-hairline) solid GrayText; }
+  }
+}

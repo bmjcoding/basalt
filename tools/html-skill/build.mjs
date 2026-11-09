@@ -1,35 +1,38 @@
 // Builds the Basalt HTML skill (.agent/skills/basalt-html/) from its sources in tools/html-skill/src/:
 //
-//   basalt-html.css       Basalt's generated token CSS (both themes) + the primitives in src/basalt-html.css
-//   basalt-html.js        src/basalt-html.js with the icon data (src/icons.json, read from Phosphor) filled in
-//   template-static.html  a report or document, the CSS and JS inlined
-//   template-interactive.html  a small tool, the CSS and JS inlined
-//   geist.css             Geist and Geist Mono as data URIs; inline-fonts.mjs (copied from src/) puts it into a finished file
+//   compose.mjs               src/compose.mjs, copied: the tool an agent runs to make a page from a body fragment
+//   parts/manifest.json       src/modules.json: which module a page gets for which class, attribute or tag
+//   parts/core.css            the generated Basalt tokens (both themes) + src/core.css, minified
+//   parts/core.js             src/core.js, minified
+//   parts/<module>.css|js     src/modules/<module>.css|js, minified; compose.mjs adds the ones a page uses
+//   parts/icons.json          the Phosphor icons in src/icons.json (Bold and Regular paths) and Phosphor's MIT notice
+//   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
+//   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
 //
 //   node tools/html-skill/build.mjs                  write the files (committed; a test fails if they drift)
 //   node tools/html-skill/build.mjs --out <dir>      write somewhere else
 //
-// Run `npm run build` first: the tokens CSS comes from packages/tokens/dist.
+// Run `npm run build` first: the tokens CSS comes from packages/tokens/dist. SKILL.md is written by hand.
+// Minified with esbuild (a dev dependency, in the root package.json); legal comments (/*!) are kept.
 
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { inlineScript } from "../inline-script.mjs";
+import * as esbuild from "esbuild";
+
 import { iconData } from "./icons.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
-const src = (name) => fs.readFileSync(path.join(here, "src", name), "utf8");
+const srcDir = path.join(here, "src");
+const src = (name) => fs.readFileSync(path.join(srcDir, name), "utf8");
 export const skillDir = path.join(repo, ".agent", "skills", "basalt-html");
 const require = createRequire(import.meta.url);
 
 // Every in-flow panel shares one set of level rules. The selector is written once here.
 const PANEL = ":is(.panel, .card, .callout, .code, .table-wrap)";
-
-// Sets the theme before first paint: the stored choice, else the system's; and a hardware key already seen this session.
-const THEME_INIT = `(function(){var t;try{t=localStorage.getItem("basalt-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
 
 function tokensCss() {
   let file;
@@ -79,32 +82,34 @@ function geistFonts() {
   ].join("\n");
 }
 
-// The built files are pasted into pages, so they carry no comments; the sources keep theirs.
-const stripCss = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]+/gm, "").replace(/\n{2,}/g, "\n");
-const stripJs = (code) => code.replace(/\/\*[\s\S]*?\*\//g, (m) => (m.startsWith("/*{{") ? m : "")).replace(/^[ \t]*\/\/.*\n/gm, "").replace(/^[ \t]+/gm, "").replace(/\n{2,}/g, "\n");
+/** esbuild's minifier: whitespace, comments and redundant syntax go; a /*! comment stays. The sources keep their comments. */
+const minify = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: "inline", charset: "utf8", logLevel: "silent" }).code;
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL), "css");
 
-function page(template, { css, js }) {
-  return template
-    .replace("<!--{{css}}-->", () => css)
-    .replace("<!--{{theme-init}}-->", () => THEME_INIT)
-    .replace("<!--{{js}}-->", () => inlineScript(js));
+/** The module names in src/modules.json, in the order they are added to a page. */
+export function moduleNames() {
+  return Object.keys(JSON.parse(src("modules.json")).modules);
 }
 
-/** The skill's files as { name: contents }. */
+/** The skill's files as { relative path: contents }. SKILL.md is not among them (it is written by hand). */
 export function build() {
-  const primitives = stripCss(src("basalt-html.css").replaceAll("%panel%", PANEL)).trim();
-  const css = [
-    "/* Basalt HTML: the generated Basalt tokens (both themes), then the primitives. Built by tools/html-skill/build.mjs; do not edit. */",
-    stripCss(dedupeSystemDark(tokensCss())).trim(),
-    primitives,
-    "",
-  ].join("\n");
-  // The icon paths are Phosphor's (MIT), so the script carries Phosphor's whole notice, as a legal comment a minifier keeps.
-  const phosphor = licenceComment(path.join(findPackage("@phosphor-icons/react"), "LICENSE"), "The icon paths below are from Phosphor Icons (@phosphor-icons/react):");
-  const js = `/* Basalt HTML script (window.Basalt). Built by tools/html-skill/build.mjs; do not edit. */\n${phosphor}\n${stripJs(src("basalt-html.js").replace("/*{{icons}}*/{}", () => JSON.stringify(iconData(JSON.parse(src("icons.json"))))))}`;
-  const templates = { "template-static.html": src("template-static.html"), "template-interactive.html": src("template-interactive.html") };
-  const files = { "basalt-html.css": css, "basalt-html.js": js, "geist.css": `${geistFonts()}\n`, "inline-fonts.mjs": src("inline-fonts.mjs") };
-  for (const [name, template] of Object.entries(templates)) files[name] = page(template, { css, js });
+  const manifest = JSON.parse(src("modules.json"));
+  const files = {};
+  files["compose.mjs"] = src("compose.mjs");
+  files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
+  files["parts/core.css"] = minifyCss(`${dedupeSystemDark(tokensCss())}\n${src("core.css")}`);
+  files["parts/core.js"] = minify(src("core.js"), "js");
+  for (const name of Object.keys(manifest.modules)) {
+    for (const ext of ["css", "js"]) {
+      const file = path.join(srcDir, "modules", `${name}.${ext}`);
+      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minify(fs.readFileSync(file, "utf8"), "js");
+    }
+  }
+  // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.
+  const notice = licenceComment(path.join(findPackage("@phosphor-icons/react"), "LICENSE"), "The icon paths below are from Phosphor Icons (@phosphor-icons/react):");
+  files["parts/icons.json"] = `${JSON.stringify({ notice, icons: iconData(JSON.parse(src("icons.json"))) })}\n`;
+  files["parts/geist.css"] = `${geistFonts()}\n`;
+  for (const name of fs.readdirSync(path.join(srcDir, "examples")).sort()) files[`examples/${name}`] = src(`examples/${name}`);
   return files;
 }
 
@@ -112,9 +117,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const args = process.argv.slice(2);
   const outIndex = args.indexOf("--out");
   const out = outIndex === -1 ? skillDir : path.resolve(args[outIndex + 1]);
-  fs.mkdirSync(out, { recursive: true });
   const files = build();
-  for (const [name, contents] of Object.entries(files)) fs.writeFileSync(path.join(out, name), contents);
-  const size = (name) => `${(Buffer.byteLength(files[name]) / 1024).toFixed(1)} KB`;
-  console.log(`basalt-html: css ${size("basalt-html.css")}, js ${size("basalt-html.js")} -> ${path.relative(repo, out) || "."}`);
+  // The folders are rebuilt whole, so a part that was renamed or dropped does not linger.
+  for (const dir of ["parts", "examples"]) fs.rmSync(path.join(out, dir), { recursive: true, force: true });
+  for (const [name, contents] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(out, name)), { recursive: true });
+    fs.writeFileSync(path.join(out, name), contents);
+  }
+  const bytes = (name) => Buffer.byteLength(files[name] ?? "");
+  const core = bytes("parts/core.css") + bytes("parts/core.js");
+  console.log(`basalt-html: core ${(core / 1024).toFixed(1)} KB (${bytes("parts/core.css")} css + ${bytes("parts/core.js")} js), ${moduleNames().length} modules -> ${path.relative(repo, out) || "."}`);
 }

@@ -1,0 +1,42 @@
+/* The top bar: Basalt's one smoked surface. A module: compose.mjs adds it when the markup has a .topbar. */
+
+@layer basalt {
+
+  /* The top bar is Basalt's chrome (foundations, "Chrome: the smoked header"; the .basalt-chrome class in @basalt/react): the one
+     smoked surface. surface-chrome over a 12px blur (no saturate), a hairline below, primary ink. Use it once per viewport. */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: var(--basalt-layer-sticky);
+    background: var(--basalt-surface-chrome);
+    -webkit-backdrop-filter: blur(var(--basalt-blur-chrome));
+    backdrop-filter: blur(var(--basalt-blur-chrome));
+    /* The hairline, not the divider: the bar sits on level 0 and has no rim, so it is the exception to a divider never being brighter than the rim. */
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
+    color: var(--basalt-text-primary);
+  }
+  /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
+  .topbar .faint { color: var(--basalt-text-secondary); }
+  .topbar .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  /* No backdrop-filter, or the reader asks for less transparency: the page colour, opaque, with no filter. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .topbar { background: var(--basalt-surface-page); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  .topbar-inner { display: flex; align-items: center; gap: var(--basalt-space-3); max-width: 72rem; margin-inline: auto; padding: var(--basalt-space-2) var(--basalt-space-6); min-height: var(--basalt-size-table-row); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .topbar-inner { padding-inline: var(--basalt-space-4); } }
+  .brand { font-weight: var(--basalt-font-weight-semibold); text-decoration: none; letter-spacing: -0.01em; }
+
+  @media (forced-colors: active) {
+    /* The header is Canvas with a real border and no filter or alpha fill. */
+    .topbar { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  @media print {
+    /* The bar's own fallback is the opaque page colour with no filter, but the skill's pages don't print it: !important so a page's own display rule can't bring it back. */
+    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .topbar { display: none !important; }
+  }
+}

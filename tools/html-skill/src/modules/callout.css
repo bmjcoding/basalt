@@ -1,0 +1,13 @@
+@layer basalt {
+
+  /* ---- Callout: a neutral panel; status is the icon and the words ---- */
+
+  .callout { display: flex; gap: var(--basalt-space-3); padding: var(--basalt-space-3) var(--basalt-space-4); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .callout > svg { flex: none; margin-top: var(--basalt-size-hairline); color: var(--basalt-text-secondary); }
+  .callout[data-status="success"] > svg { color: var(--basalt-status-success); }
+  .callout[data-status="warning"] > svg { color: var(--basalt-status-warning); }
+  .callout[data-status="danger"] > svg, .callout[data-status="danger"] .callout-title { color: var(--basalt-status-danger); }
+  .callout-title { font-weight: var(--basalt-font-weight-medium); }
+  .callout-body { flex: 1; min-width: 0; color: var(--basalt-text-secondary); }
+  .callout-title + .callout-body, .callout-title + p { margin-top: var(--basalt-space-0-5); }
+}

@@ -1,0 +1,5 @@
+@layer basalt {
+  @media print {
+    [data-theme-toggle] { display: none; }
+  }
+}
