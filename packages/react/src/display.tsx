@@ -11,7 +11,11 @@ export { Kbd } from "./kbd";
 
 // ---- Badge ----
 
-export type BadgeStatus = "neutral" | "success" | "warning" | "danger";
+/**
+ * `accent` paints the dot in the product's accent class (`data-accent` on its root; see foundations), and nothing else: the word stays ink.
+ * With no class, or none, it is an ink dot. Use it only for the product's council-approved accent role.
+ */
+export type BadgeStatus = "neutral" | "success" | "warning" | "danger" | "accent";
 
 export interface BadgeProps extends React.ComponentProps<"span"> {
   /** A status dot before the label. The label always says the status in words; the dot never carries it alone. */

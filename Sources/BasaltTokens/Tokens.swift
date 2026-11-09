@@ -276,6 +276,24 @@ extension Basalt {
     )
   }
 
+  /// An accent class: the one colour a product adds, for its council-approved role (N1: "needs you"), painted as a dot or icon
+  /// beside ink words. Never a fill, wash, border, link, focus ring, selection, checked control or status.
+  public enum AccentClass: String, Sendable, CaseIterable {
+    /// Cobalt, hue 264. The one accent class Basalt ships; N1 uses it for "needs you". Never a fill, wash, border, link, focus ring, selection, checked control, status or code colour; syntax-keyword blue is at hue 255.
+    case cobalt
+
+    /// The class's colour in each theme.
+    public var color: ThemedColor {
+      switch self {
+      case .cobalt:
+        return ThemedColor(
+          light: RGBA(red: 0.152232, green: 0.318959, blue: 0.722968, alpha: 1),
+          dark: RGBA(red: 0.4678, green: 0.635138, blue: 0.988509, alpha: 1)
+        )
+      }
+    }
+  }
+
   /// Spacing on a 4pt base: `s4` is 16.
   public enum Space {
     public static let s0: Double = 0

@@ -634,6 +634,9 @@
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
   .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
   .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
+  /* The one place --basalt-accent-ink is read. The accent classes (accents.css) define it only where light-dark() works, and not
+     for none or an unknown class, so everywhere else this is the ink dot. The word keeps its own colour. */
+  .basalt-badge[data-status="accent"] .basalt-badge-dot { background: var(--basalt-accent-ink, var(--basalt-text-primary)); }
 
   /* ---- Card ---- */
 
@@ -1645,6 +1648,8 @@
     .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .basalt-toast-drain { forced-color-adjust: none; background: CanvasText; }
     .basalt-spinner-dot { forced-color-adjust: none; fill: CanvasText; }
+    /* The accent dot is a fill, which forced colours would drop: it keeps a real fill, the system text colour, on this dot only. */
+    .basalt-badge[data-status="accent"] .basalt-badge-dot { forced-color-adjust: none; background: CanvasText; }
   }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */

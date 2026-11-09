@@ -86,6 +86,8 @@ for (const [p, tok] of walk(primSrc)) {
   });
 }
 for (const [p, tok] of walk(themeSrc.dark)) {
+  // An accent class is not a custom property: accents.css carries it, in one light-dark() value (see bundle.css below).
+  if (p[0] === "color" && p[1] === "accent") continue;
   const name = pub(p);
   const key = name.slice(7);
   const value = Object.fromEntries(THEMES.map((t) => {
@@ -273,7 +275,11 @@ for (const c of [...COMPONENTS, ...ICONS]) if (!new RegExp(`\\b${c}\\b`).test(bu
 write("components/bundle.js", bundleJs);
 write("components/api.json", JSON.stringify({ exports: COMPONENTS, families: FAMILIES }, null, 2));
 
-const componentsCss = fs.readFileSync(path.join(react, "src/styles/components.css"), "utf8");
+const componentsCss = [
+  fs.readFileSync(path.join(react, "src/styles/components.css"), "utf8"),
+  // The accent classes are generated with the tokens and read by Badge's accent tone.
+  fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
+].join("\n");
 write(
   "components/bundle.css",
   [
