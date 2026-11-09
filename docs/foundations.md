@@ -5,8 +5,8 @@ The decisions under every Basalt component, and why each was made. The values li
 and change the reason here.
 
 Basalt is one system for every SRA Syndicate product: Blacksand, srasyndicate.io,
-baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through
-its own accent, in a few named roles, and nowhere else.
+baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through one
+of Basalt's accent classes, in its named roles, and nowhere else.
 
 ## Principles
 
@@ -152,6 +152,37 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   (the default, and the one inside a button), and braille is Basalt's own 2 by 4 dot matrix
   stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 530ms, for mono and terminal lines. Under reduced
   motion the ring fades and braille holds its first frame.
+
+### Accent classes
+
+A product adds colour through one of Basalt's accent classes, in its named roles, and nowhere else.
+Basalt ships one class today, **cobalt**: `accent.cobalt` is `oklch(0.72 0.14 264)` in dark and
+`oklch(0.47 0.17 264)` in light, inside sRGB, 8.36:1 and 6.78:1 on the page.
+
+- **A product sets one class, or none.** It writes `data-accent="cobalt"` on its root, or
+  `data-accent="none"` (or nothing). A class is one ink per theme and sets one custom property,
+  `--basalt-accent-ink`, as a `light-dark()` pair, so a theme nested inside an accent root still gets its own value.
+  `none` and any name Basalt doesn't know reset it, and the reader falls back to `--basalt-text-primary`: a typo
+  is monochrome, never another product's colour. The property is unregistered. A browser without `light-dark()`
+  never gets the variable and shows the ink dot. shadcn's `--accent` is unrelated: it stays a neutral hover wash.
+- **A subtree changes the class only** to show another product's own content where no other accent is in view
+  (N1's demo on a monochrome site), or to `none` for shared or exported output. A portal that leaves such a
+  subtree carries the attribute to its destination.
+- **The accent paints only a product's council-approved role** (N1: "needs you"), as a dot or icon beside ink
+  words. The word stays ink. Today `Badge` is the one reader (`status="accent"`): the dot reads
+  `var(--basalt-accent-ink, var(--basalt-text-primary))`, with no accent hairline and no fill, and in forced
+  colours it is `CanvasText`.
+- **It is never** a fill, wash, border, link, focus ring, selection, checked control, the header or a mark, and never
+  code styling, a status or the primary Button. On a chart it is only the one labelled mark that is that role, with a
+  cue that isn't colour.
+- **Every class passes the same tests** (`packages/tokens/test/accents.test.mjs`): 4.5:1 on every surface level and
+  on the hover and selected washes over each, in both themes, on the serialized values; unclamped sRGB; at least as
+  far (ΔEok, on the serialized hex) from every status colour as danger is from warning in that theme, which keeps
+  an accent from reading as a status; and confinement: no read of the variable from chrome, code, focus, selection,
+  links, the primary Button, checked controls or status colours, aliases included. Syntax-keyword blue is at hue 255,
+  nine degrees from cobalt, so the confinement test is what keeps the two apart. A class is added as one token entry
+  plus its tests, after the council approves it and a product's role for it.
+- The council converged on the mechanism (8 Nov 2026) and the owner approved cobalt only for now.
 
 ### Keyboard keys
 
