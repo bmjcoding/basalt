@@ -18,7 +18,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   undecided proposal.
 - **The panel is two separate reviewer sessions.** The agent doing the work convenes them
   on the owner's behalf, but never plays either reviewer and never substitutes its own
-  judgment, even when the owner has handed a decision to "the panel" or "the council".
+  judgment, even when the owner has handed a decision to "the panel".
   Handing a decision to the panel means asking the panel, not deciding.
   Each reviewer gets the brief alone, never the other's answer, until the convergence
   round; otherwise the reviews aren't independent.

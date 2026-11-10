@@ -4,8 +4,8 @@
 
 All four members vote: Opus, Muse, Sol and Grok.
 - **A decision** is 3 of 4 for one option.
-- **No majority** (2–2, 2–1–1 or anything else) keeps what ships today, or what was already decided. If neither exists, the item goes
-  to the owner.
+- **No majority** (2–2, 2–1–1 or anything else) keeps what was already decided or, failing that, what ships today. If neither exists,
+  the item goes to the owner.
 - **You may write in an option of your own:** describe it exactly, and it's counted on its own.
 
 Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.review/council/`.
@@ -15,7 +15,8 @@ Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.revi
 
 ## Look at everything first
 - **The three prototypes:** open them live in a browser, at `</absolute/path/to/MAIN>/.review/council/<topic>/{muse,opus,grok}/`, and
-  read each one's note. The side-by-side crops are in `<topic>/compare/`. Reading the prototypes is the point of this vote; reading
+  read each one's note. The side-by-side crops are in
+  `</absolute/path/to/MAIN>/.review/council/<topic>/compare/`. Reading the prototypes is the point of this vote; reading
   another member's vote isn't allowed.
 - **The contract:** `</absolute/path/to/MAIN>/docs/foundations.md`, `docs/motion.md`, and the components in `packages/react/src/`.
 - **How to check:** both themes, at 1440 and at 390, at 1x and 2x, in forced colours and under reduced motion. Playwright is in
@@ -23,7 +24,8 @@ Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.revi
 
 ## Vote
 For every item:
-- give one option (or "abstain"), with one or two sentences of evidence;
+- give one option (or "abstain"), with one or two sentences of evidence. A conditional vote ("yes, if…") doesn't count: choose an
+  option, or write in the one you mean;
 - say where you've changed your own earlier position.
 
 ### A. <part>

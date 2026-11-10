@@ -16,7 +16,7 @@ Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.revi
 
 ## Where to look
 - X (x.com and the X developer console, which is open in the shared browser): read styles and hover only. Never click, post or follow.
-- <other products, by name>
+- <other products by name: any that INDEX.md has measured for a neighbouring pattern, or "X only">
 - What's already measured: `</absolute/path/to/MAIN>/.review/council/references/INDEX.md`.
 
 ## Write

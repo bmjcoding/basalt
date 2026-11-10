@@ -1,6 +1,8 @@
 # Build: <topic>
 
-<!-- Replace every <…>. The builder reads only this file and what it points to, so say everything it needs. -->
+<!-- Replace every <…>. The builder reads only this file and what it points to, so say everything it needs.
+     For an engineering item in a stream (no vote), replace "The record" with the documented behaviour it must restore or keep, and
+     delete "Prototype defects not to copy". -->
 
 You are the builder. You write the code for a design the council has decided. Build exactly that. Where something is unclear, stop and
 say so in your report; don't decide a visual question yourself.
@@ -9,8 +11,8 @@ Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.revi
 that path.
 
 ## Start here
-1. In your worktree, run `git fetch origin && git switch -c claude/<topic> <base>`, where `<base>` is `origin/main` <or the branch this
-   depends on: `origin/claude/<other topic>`>.
+<!-- <base> is origin/main, or origin/claude/<other topic> when this builds on an unmerged PR (references/stream.md). -->
+1. In your worktree, run `git fetch origin && git switch -c claude/<topic> <base>`.
 2. Read `AGENTS.md`, `docs/foundations.md` and `docs/motion.md`.
 
 ## The record
@@ -38,9 +40,9 @@ that path.
 - Never skip, weaken or delete a test.
 
 ## Review round
-Use round **<number>**, in `tools/review/round<number>.tsx`, registered in `rounds.tsx`. Show <the states>, in both themes, at 1440 and
-390, at 2x, in forced colours and under reduced motion. Run `npm run check` until it passes, then `npm run review -- <number>`, and look
-at your own screenshots.
+Use round **<number>**, in `tools/review/round<number>.tsx`, registered in `rounds.tsx`. Show <the states>, each in both themes, at 1440
+and at 390, at 1x and 2x, in forced colours and under reduced motion. Run `npm run check` until it passes, then
+`npm run review -- <number>`, and look at your own screenshots.
 
 ## Rules
 - Don't commit, push or open a PR. Leave the work uncommitted on your branch.

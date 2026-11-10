@@ -1,6 +1,6 @@
 # The owner's review page
 
-Read this when built work is ready for the owner: at the end of a stream, after a one-question handoff is built, or when he asks to
+Paths here are relative to the skill's folder unless they start with `MAIN/`. Read this when built work is ready for the owner: at the end of a stream, after a one-question handoff is built, or when he asks to
 review. He judges everything on one page, and he wants to use the components, not look at pictures of them.
 
 ## Build it
@@ -8,9 +8,10 @@ review. He judges everything on one page, and he wants to use the components, no
    Name the page `MAIN/.review/approvals/<nn>-review-<mmmdd>.html`, where `<nn>` is the next number in that folder and `<mmmdd>` is
    the date, like `nov10`.
 2. **At the top:**
-   - a table of the PRs: what each one is, his part (review or merge), and its CI result;
+   - a table of the PRs: what each one is, his part, and its CI result. His part is "try it" for a design PR, and "approve the merge"
+     for any other;
    - the merge order (`references/merge.md`);
-   - one line on how to answer: "Reply with the IDs you want changed, or approve."
+   - one line on how to answer: "Reply thumbs up, thumbs down, or the IDs you want changed. For a deadlock, reply with its letter."
 3. **Deadlocks** come first, above the PRs: one section each, written with `assets/deadlock.md`.
 4. **A design PR gets its live walkthrough.** Copy `<PR worktree>/.review/basalt-round-<n>-walkthrough.html` to
    `MAIN/.review/approvals/live/round-<n>.html`. If its sample data changed after the round was built, run `npm run review -- <n>` in
