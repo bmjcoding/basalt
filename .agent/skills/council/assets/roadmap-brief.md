@@ -54,9 +54,8 @@ How complete is Basalt today against what its products need, out of 10?
 - **Its tier:** P1 if 3 of 4 mark it P1; otherwise P2.
 - **Batches** keep their proposed membership unless 3 of 4 name the same move.
 - **Order:** dependencies come before priority. A split group's surviving batches keep their proposed order, each on the previous
-  surviving batch's branch, and two batches
-  that share a file (after moves) run one after the other. Among batches whose prerequisites are done, those holding a P1 item start
-  first, in the proposed order.
+  surviving batch's branch. Two batches that share a file (after moves) run one after the other. Among batches whose prerequisites are
+  done, those holding a P1 item start first, in the proposed order.
 
 ## Rules
 - Write only `<topic>-roadmap-vote/<your slug>.md`, in your own worktree, and return its full text.
