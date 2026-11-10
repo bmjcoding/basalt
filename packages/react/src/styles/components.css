@@ -928,6 +928,197 @@
      is no bar here: see "Selected rows" in docs/foundations.md. */
   .basalt-table tr[data-selected] { background: var(--basalt-state-selected); }
 
+  /* ---- The still table ----
+     Decision 71: header positions, column widths and alignment never move, through sort, filter, paging or loading.
+     `Table columns` makes the layout fixed, from a colgroup: every column has a width except one, which takes the rest,
+     and the table has a minimum width below which its container scrolls. Widths are never read from content, so a
+     filter that removes the long rows, or the sorted column's indicator arriving, moves nothing. A cell truncates with an
+     ellipsis, never a hard clip. */
+  .basalt-table[data-fixed] { table-layout: fixed; width: 100%; --_head-h: var(--basalt-size-control-md); }
+  .basalt-table[data-fixed] :is(th, td) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
+  .basalt-table[data-fixed] :is(th, td):has(> :is(.basalt-button, .basalt-checkbox, .basalt-choice, .basalt-menu-trigger, [role="checkbox"])) { overflow: visible; }
+  .basalt-table[data-fixed] th { height: var(--_head-h); }
+  /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
+  .basalt-table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (pointer: coarse) {
+    .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
+  }
+
+  /* The sort control: the whole header cell is the button (decision 84). The button fills the cell, so the label sits
+     exactly where a plain header's label does (the cell's 16px padding is the button's), and a press anywhere sorts.
+     Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label,
+     and on a numeric (end-aligned) column before it, so the label's edge stays on the numbers' edge. There is no weight
+     change and no wash on the cell. Hover and focus lift the label from secondary to primary ink and show a tertiary
+     up-down caret in the seat; on touch the caret is always there. Sorted, the direction arrow replaces it, in primary. */
+  .basalt-table th[data-sortable] { padding: 0; }
+  .basalt-sort {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-1);
+    width: 100%;
+    height: var(--_head-h, var(--basalt-size-control-md));
+    margin: 0;
+    padding: 0 var(--basalt-space-4);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  /* In the seat's mirror the main axis runs from the end, so the label stays on the end edge and the seat is before it. */
+  .basalt-table th[data-numeric] .basalt-sort { flex-direction: row-reverse; }
+  .basalt-sort-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-sort-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
+  .basalt-sort-seat > .basalt-icon { position: absolute; inset: 0; opacity: 0; }
+  /* A band that is itself the button takes the flush-field focus ring, inset by 2px (so a pinned column cannot cover it). */
+  .basalt-sort:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); color: var(--basalt-text-primary); }
+  .basalt-sort:active { color: var(--basalt-text-primary); }
+  .basalt-table th:not([aria-sort]) .basalt-sort:focus-visible .basalt-sort-caret { opacity: 1; }
+  @media (hover: hover) {
+    .basalt-sort:hover { color: var(--basalt-text-primary); }
+    .basalt-table th:not([aria-sort]) .basalt-sort:hover .basalt-sort-caret { opacity: 1; }
+  }
+  @media (hover: none), (pointer: coarse) {
+    .basalt-table th:not([aria-sort]) .basalt-sort-caret { opacity: 1; }
+  }
+  .basalt-table th[aria-sort] .basalt-sort { color: var(--basalt-text-primary); }
+  .basalt-table th[aria-sort] .basalt-sort-seat { color: var(--basalt-text-primary); }
+  .basalt-table th[aria-sort="ascending"] .basalt-sort-up,
+  .basalt-table th[aria-sort="descending"] .basalt-sort-down { opacity: 1; }
+
+  /* The empty row: one cell across every column, under the unchanged header. It is not a pinned or hoverable row; its
+     sentence sticks to the container's start edge so a scrolled table does not carry it out of view. */
+  .basalt-table tbody tr[data-empty]:hover { background: transparent; }
+  .basalt-table tr[data-empty] > td { height: auto; padding: var(--basalt-space-6) var(--basalt-space-4); white-space: normal; overflow: visible; color: var(--basalt-text-secondary); }
+  .basalt-table-empty {
+    position: sticky;
+    inset-inline-start: var(--basalt-space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--basalt-space-2);
+    max-width: var(--basalt-size-popover-max);
+  }
+
+  /* Pinned columns (narrow screens): the leading 1 to 3 columns stick to the container's start edge while it scrolls.
+     A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours): the row's wash is laid
+     over the panel's own fill as one cell background, so nothing scrolls through it. The empty row is outside this. */
+  .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1),
+  .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(-n + 2),
+  .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(-n + 3) {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+  }
+  .basalt-table[data-pinned] tr:not([data-empty]) > td { background-color: var(--_surface, var(--basalt-surface-raised)); }
+  .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
+  .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
+  .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
+  @media (hover: hover) {
+    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > td { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+  }
+  .basalt-table[data-pinned] tbody tr[data-selected] > td { background-image: linear-gradient(var(--basalt-state-selected), var(--basalt-state-selected)); }
+  /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is
+     actually scrolled, and never a selection, sort or status mark. */
+  .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+  .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+  .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: var(--basalt-size-hairline);
+    background: var(--basalt-border-divider);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .basalt-table-container[data-scrolled] .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+  .basalt-table-container[data-scrolled] .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+  .basalt-table-container[data-scrolled] .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { opacity: 1; }
+
+  /* ---- MultiSelect: a filter that takes any number of its values ----
+     One rule picks the form: a pill in a track for one of many (SegmentedControl), a check without a track for any of
+     many. Up to six values are independent chips; seven or more, or a toolbar, are a trigger and a checklist. */
+  .basalt-filter { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-filter-head { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-sm); }
+  .basalt-filter-label { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  .basalt-filter-count { font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; }
+  /* Clear is always mounted and always at the same place, with the same label: at zero it is only dimmed. */
+  .basalt-filter-clear { margin-inline-start: auto; }
+  .basalt-filter-chips { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
+
+  /* The chip: 32px (36 on touch, inside a 44px target), radius 6 (8 at 36), 13/18 at 500. Off is a hairline and a tertiary
+     plus; on is the selected wash, primary ink and a check in the same 16px seat, so turning one on moves nothing and is
+     never colour alone: the glyph changes shape. Hover brightens the text and the line; a press is a colour step, no scale. */
+  .basalt-chip {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-1-5);
+    height: var(--basalt-size-control-md);
+    margin: 0;
+    padding: 0 calc(var(--basalt-space-3) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline));
+    border: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
+    border-radius: var(--basalt-radius-sm);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, color, border-color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-chip-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-chip-seat > .basalt-icon { position: absolute; inset: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-chip-check, .basalt-chip[data-checked] .basalt-chip-plus { opacity: 0; }
+  .basalt-chip[data-checked] .basalt-chip-check { opacity: 1; }
+  .basalt-chip[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-chip[data-checked] .basalt-chip-seat { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-chip:hover:not([data-disabled]) { color: var(--basalt-text-primary); border-color: var(--basalt-border-hover); transition-duration: var(--basalt-duration-instant); }
+    .basalt-chip:hover:not([data-disabled]):not([data-checked]) .basalt-chip-seat { color: var(--basalt-text-secondary); }
+  }
+  .basalt-chip:active:not([data-disabled]) { background: var(--basalt-state-hover); }
+  .basalt-chip[data-checked]:active:not([data-disabled]) { background: var(--basalt-state-selected); }
+  .basalt-chip:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-chip[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .basalt-chip[data-disabled] .basalt-chip-seat { color: var(--basalt-text-disabled); }
+  .basalt-chip[data-disabled][data-checked] { background: transparent; }
+  @media (pointer: coarse) {
+    .basalt-chip { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-base-size); }
+    /* The target is 44px; rows sit 8px apart, so targets meet and never overlap. */
+    .basalt-chip::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-lg) - var(--basalt-size-tap-min)) / 2) 0; }
+  }
+
+  /* The trigger and the checklist. The trigger is a secondary Button: it reads the label, then its value, then a caret, and
+     takes the selected wash while it filters. The popup is a menu's popup: popup rows, a 36px plate in a 40px row. */
+  .basalt-filter[data-popup] { flex-direction: row; align-items: center; }
+  .basalt-filter-trigger-value { color: var(--basalt-text-secondary); }
+  .basalt-filter-trigger[data-active] .basalt-filter-trigger-value { color: var(--basalt-text-primary); }
+  .basalt-filter-trigger[data-active]:not(:active) { background: var(--basalt-state-selected); }
+  .basalt-filter-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-filter-popup { min-width: var(--basalt-size-select-min); }
+  .basalt-filter-row .basalt-menu-check { color: inherit; }
+  .basalt-filter-row[data-highlighted] { color: var(--basalt-text-primary); }
+  .basalt-filter-row[data-highlighted]::before { background-color: var(--_plate); }
+  .basalt-filter-row[data-disabled] { color: var(--basalt-text-disabled); }
+  .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
+  .basalt-filter-foot .basalt-filter-clear { margin-inline-start: 0; }
+
+  /* The result line: shown at once, spoken once (the live copy is visually hidden). */
+  .basalt-filter-result { margin: 0; font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
+
   /* ---- Checkbox, Switch, Radio ---- */
 
   .basalt-choice {
@@ -1611,6 +1802,8 @@
   .basalt-chrome .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-loading]) { color: var(--basalt-text-primary); }
   .basalt-chrome .basalt-text[data-tone="tertiary"],
   .basalt-chrome .basalt-sparkline-axis,
+  .basalt-chrome .basalt-chip-seat,
+  .basalt-chrome .basalt-filter-count,
   .basalt-chrome .basalt-preview-kicker { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
@@ -1855,6 +2048,19 @@
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
+    /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
+       glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
+    .basalt-chip { color: ButtonText; }
+    .basalt-chip[data-checked], .basalt-chip[data-checked]:hover, .basalt-chip[data-checked]:active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .basalt-chip[data-checked] :is(.basalt-chip-label, .basalt-chip-seat, .basalt-icon) { color: HighlightText; }
+    .basalt-chip[data-disabled], .basalt-chip[data-disabled] .basalt-chip-seat { color: GrayText; border-color: GrayText; }
+    /* A pinned column's divider, and the sort seat: system colours, drawn only while scrolled. */
+    .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+    .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+    .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { forced-color-adjust: none; background: CanvasText; }
+    .basalt-table[data-pinned] tr:not([data-empty]) > td { background-color: Canvas; background-image: none; }
+    .basalt-sort-seat { color: ButtonText; }
+    .basalt-filter-count, .basalt-filter-result { color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
     /* The header is Canvas with a real border and no filter or alpha fill. */
     .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -1908,6 +2114,8 @@
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
+    /* The chip's glyph swap has no crossfade: the plus and the check change at once. */
+    .basalt-chip-seat > .basalt-icon { transition: none; }
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
     .basalt-travel { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); transform: translate(var(--_to-x), var(--_to-y)) translate(-50%, -50%); }
   }

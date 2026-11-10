@@ -230,7 +230,7 @@ for (const id of rounds) {
     for (const state of ["default", ...step.states]) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
@@ -269,6 +269,11 @@ for (const id of rounds) {
               return running.length;
             }, state.endsWith("-glide") ? "glide" : "fade");
             if (!held) throw new Error(`${step.id}/${state}: the plate has no ${state.endsWith("-glide") ? "move" : "fade"} to hold`);
+          }
+          // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
+          if (state === "hover") {
+            await page.locator("[data-wt-hover]").first().hover();
+            await page.waitForTimeout(250);
           }
           // Navigation: "nav-hover" hovers the sidebar's second item, "nav-rail-hover" the rail's second (and its tooltip opens),
           // "nav-current-hover" the current one; "nav-focus" tabs to the first item (the glide hides, the ring shows);
