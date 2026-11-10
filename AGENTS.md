@@ -18,14 +18,18 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   undecided proposal.
 - **The panel is two separate reviewer sessions.** The agent doing the work convenes them
   on the owner's behalf, but never plays either reviewer and never substitutes its own
-  judgment, even when the owner has handed a decision to "the panel" or "the council".
+  judgment, even when the owner has handed a decision to "the panel".
   Handing a decision to the panel means asking the panel, not deciding.
   Each reviewer gets the brief alone, never the other's answer, until the convergence
   round; otherwise the reviews aren't independent.
   Nothing counts as converged until both reviewers have answered in their own words, and
   the PR quotes each reviewer's final position as written, not merged into a summary.
 - **The council.** When the owner asks for the council, read `.agent/skills/council/SKILL.md`: it names the four members,
-  how a round runs, and how the council settles a split by majority.
+  how a round runs, and how the council settles a split by majority. On a council round the four members replace the
+  two-reviewer panel above. When the owner hands a question or a stream of work to the council, its majority stands in for
+  his approval before building; he sees only deadlocks and failures, and gives each built PR a thumbs up or down before it
+  merges. When he
+  only asks what the council thinks, its result is a proposal he approves before anything is built.
 - **The owner's word is in the conversation or on the PR.** A merge of a PR means
   approval to go ahead with what it described, nothing more.
 - **Where the line falls.** A change that alters any rendered pixel is visual, even inside
@@ -202,4 +206,5 @@ Never skip, weaken or delete a test to get green. Fix the cause.
    your own screenshots first, at 2x in both themes and at 390px wide. Make sure the review
    page's own CSS can't override `@layer basalt`: a stray unlayered rule there once made
    correct breadcrumbs look broken.
-4. After merge: republish the hosted reference (`tools/artifact/README.md`).
+4. After merge: republish the hosted reference (`tools/artifact/README.md`), unless the owner has paused it. He paused it on
+   9 Nov 2026 ("dont need the hosted reference I don't think").

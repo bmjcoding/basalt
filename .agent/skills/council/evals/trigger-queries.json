@@ -1,0 +1,74 @@
+[
+ {
+  "query": "send this to the council",
+  "should_trigger": true
+ },
+ {
+  "query": "what does the council think about the new empty state? I'm torn between the illustration and plain text",
+  "should_trigger": true
+ },
+ {
+  "query": "let the council decide how the date picker should look, I'm not a designer",
+  "should_trigger": true
+ },
+ {
+  "query": "keep working with the council to finish everything missing in basalt, only come back with what they can't settle",
+  "should_trigger": true
+ },
+ {
+  "query": "get opus, muse, sol and grok to vote on the toast surface colour",
+  "should_trigger": true
+ },
+ {
+  "query": "can the council review PR 52 and give it scores",
+  "should_trigger": true
+ },
+ {
+  "query": "I approve all of them, get them merged (they were council decisions)",
+  "should_trigger": true
+ },
+ {
+  "query": "have the designers each mock up a sidebar for N1 and then vote on it",
+  "should_trigger": true
+ },
+ {
+  "query": "refactor plate.tsx so the glide code isn't duplicated, no visual change",
+  "should_trigger": false
+ },
+ {
+  "query": "fix the failing nav test on CI, it's a font width thing",
+  "should_trigger": false
+ },
+ {
+  "query": "write me an html report of this week's bundle sizes",
+  "should_trigger": false
+ },
+ {
+  "query": "what's the contrast ratio of text-secondary on surface-top in dark?",
+  "should_trigger": false
+ },
+ {
+  "query": "run npm run ci:local on the feedback branch",
+  "should_trigger": false
+ },
+ {
+  "query": "bump base-ui to the latest patch version and run the tests",
+  "should_trigger": false
+ },
+ {
+  "query": "rename SegmentedControl's prop from size to density, same pixels",
+  "should_trigger": false
+ },
+ {
+  "query": "review this PR for bugs before I merge it, quick pass is fine",
+  "should_trigger": false
+ },
+ {
+  "query": "what did the council decide about the toast surface?",
+  "should_trigger": true
+ },
+ {
+  "query": "double-check the contrast tests still pass after the token bump",
+  "should_trigger": false
+ }
+]
