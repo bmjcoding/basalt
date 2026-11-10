@@ -90,7 +90,7 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
-    test("a modal inside a deep panel still resets to 1, and a tooltip and a toast are 3", async () => {
+    test("a modal inside a deep panel still resets to 1, a tooltip is 3, and a toast is 1 wherever it is shown from (owner, decision 83)", async () => {
       const fixture = `function Show(){const t=B.useToast();React.useEffect(()=>{t.show({title:"Saved",timeout:0})},[t]);return null}
         createRoot(document.getElementById("root")).render(<B.ToastProvider><B.TooltipProvider><B.Card><B.Card><B.Card>
           <B.Dialog defaultOpen><B.DialogContent data-name="deep-dialog"><B.DialogTitle>Deep</B.DialogTitle></B.DialogContent></B.Dialog>
@@ -100,7 +100,7 @@ for (const theme of ["dark", "light"]) {
       await settle(page);
       assert.equal(await page.locator("[data-name=deep-dialog]").getAttribute("data-level"), "1");
       assert.equal(await page.locator(".basalt-tooltip").getAttribute("data-level"), "3");
-      assert.equal(await page.locator(".basalt-toast").getAttribute("data-level"), "3");
+      assert.equal(await page.locator(".basalt-toast").getAttribute("data-level"), "1", "a toast is portalled and fixed at level 1: it does not take its level from what it was shown inside");
       await page.close();
     });
 

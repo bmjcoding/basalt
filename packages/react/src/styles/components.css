@@ -1261,12 +1261,15 @@
 
   /* ---- Toast ---- */
 
+  /* Bottom right, inset space-4 (more where a notch or the home indicator needs it). At phone widths the width cap
+     is the screen less both insets, so the stack is the bottom edge, full width, above the safe area. */
   .basalt-toast-viewport {
+    --_inset: max(var(--basalt-space-4), env(safe-area-inset-left), env(safe-area-inset-right));
     position: fixed;
-    right: var(--basalt-space-4);
-    bottom: var(--basalt-space-4);
+    right: max(var(--basalt-space-4), env(safe-area-inset-right));
+    bottom: max(var(--basalt-space-4), env(safe-area-inset-bottom));
     z-index: var(--basalt-layer-toast);
-    width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--basalt-space-4)));
+    width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
   }
 
   .basalt-toast {
@@ -1284,8 +1287,9 @@
     width: 100%;
     height: var(--_height);
     border-radius: var(--basalt-radius-lg);
-    /* level 3, so a toast separates from an open menu or command menu beneath it */
-    background: var(--_surface, var(--basalt-surface-top));
+    /* Level 1 (#0a0a0a in dark), fixed: a toast is portalled and does not sense what is under it. Its rim and
+       shadow-overlay separate it from a menu or dialog of the same level. Never tinted, never a status rim. */
+    background: var(--_surface, var(--basalt-surface-raised));
     box-shadow: var(--basalt-shadow-overlay);
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
@@ -1325,14 +1329,158 @@
 
   .basalt-toast-content[data-behind] { opacity: 0; }
   .basalt-toast-content[data-expanded] { opacity: 1; }
-  .basalt-toast-dot { flex: none; margin-top: calc((var(--basalt-text-base-line-height) - var(--basalt-size-dot)) / 2); } /* centred on the first line */
-  .basalt-toast[data-status="warning"] .basalt-toast-dot { background: var(--basalt-status-warning); }
-  .basalt-toast[data-status="danger"] .basalt-toast-dot { background: var(--basalt-status-danger); }
+  /* The mark seat: 16px, centred on the title's first line. It is there for a marked toast and for one that ran (so
+     the result does not move the title), and absent from an ordinary neutral toast (no empty seat). The mark is an
+     icon, so its shape survives forced colours; braille takes the seat while work runs, in the title's ink. */
+  .basalt-toast-seat {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: var(--basalt-size-icon-sm);
+    height: var(--basalt-size-icon-sm);
+    margin-top: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2 + var(--basalt-space-0-5) / 2);
+    color: var(--basalt-text-primary);
+  }
+  .basalt-toast[data-status="success"] .basalt-toast-seat { color: var(--basalt-status-success); }
+  .basalt-toast[data-status="warning"] .basalt-toast-seat { color: var(--basalt-status-warning); }
+  .basalt-toast[data-status="danger"] .basalt-toast-seat { color: var(--basalt-status-danger); }
+  .basalt-toast[data-running] .basalt-toast-seat { color: var(--basalt-text-primary); }
+  .basalt-toast-seat .basalt-spinner { color: inherit; }
   .basalt-toast-text { flex: 1; min-width: 0; padding-top: calc(var(--basalt-space-0-5) / 2); /* optical alignment */ }
   .basalt-toast-title { margin: 0; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-toast-description { margin: var(--basalt-space-0-5) 0 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
   .basalt-toast-description:empty { display: none; }
+  /* Danger's title takes its colour (4.77:1 or better on every surface); the mark and the words carry the rest. */
+  .basalt-toast[data-status="danger"] .basalt-toast-title { color: var(--basalt-status-danger); }
+  /* A group's count: "×3", beside the title, quieter than it. */
+  .basalt-toast-count { margin-inline-start: var(--basalt-space-1-5); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
   .basalt-toast-close { color: var(--basalt-text-secondary); }
+
+  /* ---- Notification centre ---- */
+
+  /* A bell IconButton, with a 6px ink dot when anything is unread. The dot is a pseudo-element out of flow, so the button
+     is 32px wide with it, without it and at any count (the count is in the accessible name). It is a fill, which forced
+     colours drop, so it keeps a real one there. */
+  .basalt-notifications-trigger { position: relative; }
+  .basalt-notifications-trigger[data-unread]::after {
+    content: "";
+    position: absolute;
+    top: var(--basalt-space-1-5);
+    right: var(--basalt-space-1-5);
+    width: var(--basalt-size-dot);
+    height: var(--basalt-size-dot);
+    border-radius: var(--basalt-radius-full);
+    background: var(--basalt-text-primary);
+    pointer-events: none;
+  }
+
+  /* A popover at its opener's level plus one, without the card padding: a header band, the list, a footer band. */
+  .basalt-popover.basalt-notifications {
+    display: flex;
+    flex-direction: column;
+    width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--basalt-space-4)));
+    max-width: none;
+    max-height: var(--available-height);
+    padding: 0;
+    overflow: hidden;
+  }
+  .basalt-notifications-head {
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    padding: var(--basalt-space-2-5) var(--basalt-space-2-5) var(--basalt-space-2-5) var(--basalt-space-4);
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-notifications-title { margin: 0; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); font-weight: var(--basalt-font-weight-semibold); }
+  .basalt-notifications-count { flex: 1; min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
+  .basalt-notifications-mark { flex: none; }
+  .basalt-notifications-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--basalt-space-2-5);
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
+  /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
+  .basalt-notifications-list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: var(--basalt-space-1-5);
+    list-style: none;
+    overflow-y: auto;
+  }
+
+  /* An entry is a link or a button, not an option. It has popup-row geometry: a plate inset 2px above and below, radius 8,
+     12px from the rim to the content. Each row paints its own plate on hover (the glide is not decided for this list).
+     Four seats in a row: the unread dot (6px), the status mark (16px), the words, and the time. The first two are always
+     there, so reading a row, "Mark all as read" or a status changing moves nothing. Unread is the dot and primary ink, with
+     no weight change; read leaves the dot's seat empty and the title in secondary ink. */
+  .basalt-notification {
+    --_plate-inset: var(--basalt-space-0-5);
+    box-sizing: border-box;
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: var(--basalt-size-dot) var(--basalt-size-icon-sm) minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: var(--basalt-space-2-5);
+    width: 100%;
+    margin: 0;
+    padding: calc(var(--basalt-space-2) + var(--_plate-inset)) var(--basalt-space-3);
+    border: 0;
+    border-radius: calc(var(--basalt-radius-md) + var(--_plate-inset));
+    background: none;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-notification::before {
+    content: "";
+    position: absolute;
+    inset: var(--_plate-inset) 0;
+    z-index: -1;
+    border-radius: var(--basalt-radius-md);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-notification:hover::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  /* A focusable row takes the control ring at +2, measured from the plate: the row's own box already holds the plate's 2px inset. */
+  .basalt-notification:focus-visible {
+    outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
+    outline-offset: calc(var(--basalt-size-focus-offset) - var(--_plate-inset));
+  }
+  .basalt-notification-dot {
+    width: var(--basalt-size-dot);
+    height: var(--basalt-size-dot);
+    margin-top: calc((var(--basalt-text-base-line-height) - var(--basalt-size-dot)) / 2);
+    border-radius: var(--basalt-radius-full);
+  }
+  .basalt-notification[data-unread] .basalt-notification-dot { background: var(--basalt-text-primary); }
+  .basalt-notification-mark {
+    display: grid;
+    place-items: center;
+    width: var(--basalt-size-icon-sm);
+    height: var(--basalt-size-icon-sm);
+    margin-top: calc((var(--basalt-text-base-line-height) - var(--basalt-size-icon-sm)) / 2);
+  }
+  .basalt-notification[data-status="success"] .basalt-notification-mark { color: var(--basalt-status-success); }
+  .basalt-notification[data-status="warning"] .basalt-notification-mark { color: var(--basalt-status-warning); }
+  .basalt-notification[data-status="danger"] .basalt-notification-mark { color: var(--basalt-status-danger); }
+  .basalt-notification-text { display: flex; flex-direction: column; min-width: 0; }
+  .basalt-notification-title,
+  .basalt-notification-line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-notification[data-unread] .basalt-notification-title,
+  .basalt-notification:hover .basalt-notification-title { color: var(--basalt-text-primary); }
+  /* A hint (the line and the time) is tertiary at rest and lifts to secondary on the plate, which tertiary would fail. */
+  .basalt-notification-line { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
+  .basalt-notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
+  .basalt-notification:hover .basalt-notification-line,
+  .basalt-notification:hover .basalt-notification-time { color: var(--basalt-text-secondary); }
 
   /* ---- Command menu ---- */
 
@@ -1421,10 +1569,10 @@
     pointer-events: none;
     animation: basalt-drain linear forwards;
   }
-  /* The line pauses exactly when Base UI pauses every toast's timer: the stack hovered or focused
-     (it is then expanded), or the window out of focus. One toast's hover pauses them all. */
+  /* The line pauses exactly when every toast's own clock does: the stack hovered or focused (it is then expanded), the
+     window out of focus, or the tab hidden (data-away). One toast's hover pauses them all. */
   .basalt-toast[data-expanded] .basalt-toast-drain,
-  .basalt-toast-viewport[data-window-blurred] .basalt-toast-drain { animation-play-state: paused; }
+  .basalt-toast-viewport[data-away] .basalt-toast-drain { animation-play-state: paused; }
   
   /* ---- Textarea ---- */
 
@@ -1466,7 +1614,11 @@
 
   /* ---- Callout ---- */
 
-  /* Neutral surface; status is the icon (shape and colour) and the words. No coloured edge. */
+  /* A neutral surface at the callout's own level, with no tint. Status is the icon (shape and colour) and the words;
+     success, warning and danger also draw the rim in their status colour, mixed in sRGB at 45% over the callout's own
+     level (the danger Button's hairline recipe, but one solid colour, so every side is the same). The rim is decorative
+     (about 1.7 to 2.8:1): the icon (3:1) and the words (4.5:1) carry the status. Info and a plain note keep the neutral
+     rim and a secondary icon. A toast takes neither the tint nor this rim. */
   .basalt-callout {
     box-sizing: border-box;
     display: flex;
@@ -1477,6 +1629,12 @@
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
   }
+  .basalt-callout[data-status="success"] { --_rim-status: var(--basalt-status-success); }
+  .basalt-callout[data-status="warning"] { --_rim-status: var(--basalt-status-warning); }
+  .basalt-callout[data-status="danger"] { --_rim-status: var(--basalt-status-danger); }
+  .basalt-callout[data-status="success"],
+  .basalt-callout[data-status="warning"],
+  .basalt-callout[data-status="danger"] { border-color: color-mix(in srgb, var(--_rim-status) 45%, var(--_surface, var(--basalt-surface-raised))); }
 
   .basalt-callout-icon { margin-top: calc(var(--basalt-space-0-5) / 2); /* optical alignment */ color: var(--basalt-text-secondary); }
   .basalt-callout[data-status="success"] .basalt-callout-icon { color: var(--basalt-status-success); }
@@ -1484,7 +1642,7 @@
   .basalt-callout[data-status="danger"] .basalt-callout-icon { color: var(--basalt-status-danger); }
   .basalt-callout-body { flex: 1; min-width: 0; }
   .basalt-callout-title { font-weight: var(--basalt-font-weight-medium); }
-  /* danger also colours its title, so it reads at a glance; still no fill or edge */
+  /* danger also colours its title, so it reads at a glance; success and warning titles stay primary */
   .basalt-callout[data-status="danger"] .basalt-callout-title { color: var(--basalt-status-danger); }
   .basalt-callout-text { margin-top: var(--basalt-space-0-5); color: var(--basalt-text-secondary); }
   .basalt-callout-actions { display: flex; gap: var(--basalt-space-2); margin-top: var(--basalt-space-3); }
@@ -2048,6 +2206,23 @@
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
+    /* ...and so does its rim: the status colours are author colours, and the rim goes back to a real CanvasText border. */
+    .basalt-callout[data-status] { border-color: CanvasText; }
+    /* A toast's mark keeps its shape here (the dots it replaced vanished): an icon is paths, and takes the system foreground. */
+    .basalt-toast[data-status] .basalt-toast-seat,
+    .basalt-toast[data-status] .basalt-toast-title { color: CanvasText; }
+    /* The unread dots are fills, which forced colours drop: they keep a real one. A hovered entry is Highlight with
+       HighlightText, as a lit row is, and its marks and dot follow. */
+    .basalt-notifications-trigger[data-unread]::after,
+    .basalt-notification[data-unread] .basalt-notification-dot { forced-color-adjust: none; background: CanvasText; }
+    .basalt-notification[data-status] .basalt-notification-mark { color: CanvasText; }
+    .basalt-notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .basalt-notification:hover::before { background-color: transparent; }
+    .basalt-notification:hover .basalt-notification-title,
+    .basalt-notification:hover .basalt-notification-line,
+    .basalt-notification:hover .basalt-notification-time,
+    .basalt-notification:hover .basalt-notification-mark { color: HighlightText; }
+    .basalt-notification[data-unread]:hover .basalt-notification-dot { background: HighlightText; }
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
        glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .basalt-chip { color: ButtonText; }

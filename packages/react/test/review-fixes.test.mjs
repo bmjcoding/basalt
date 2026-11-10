@@ -451,23 +451,25 @@ describe("Toast drain and timer", () => {
     await page.evaluate(() => window.show("toast"));
     // While no toast is on screen Base UI is not listening, so this blur never reaches a timer.
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
-    await page.evaluate(() => window.toast({ title: "First", timeout: 700 }));
-    await page.getByText("First").waitFor();
+    await page.evaluate(() => window.toast({ title: "First", home: "page", timeout: 700 }));
+    const first = page.locator(".basalt-toast-title", { hasText: "First" });
+    await first.waitFor();
     assert.deepEqual(await read(page), [{ title: "First", state: "running" }]);
-    await page.getByText("First").waitFor({ state: "detached", timeout: 3000 });
+    await first.waitFor({ state: "detached", timeout: 3000 });
     await page.close();
   });
 
   test("a toast already on screen when the window blurs pauses its drain with its timer, and resumes with it", async () => {
     const { page } = await fixturePage(browser, toasts);
     await page.evaluate(() => window.show("toast"));
-    await page.evaluate(() => window.toast({ title: "Existing", timeout: 800 }));
-    await page.getByText("Existing").waitFor();
+    await page.evaluate(() => window.toast({ title: "Existing", home: "page", timeout: 800 }));
+    const existing = page.locator(".basalt-toast-title", { hasText: "Existing" });
+    await existing.waitFor();
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
     await page.waitForTimeout(1100);
     assert.deepEqual(await read(page), [{ title: "Existing", state: "paused" }], "still on screen, line held");
     await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
-    await page.getByText("Existing").waitFor({ state: "detached", timeout: 3000 });
+    await existing.waitFor({ state: "detached", timeout: 3000 });
     await page.close();
   });
 });

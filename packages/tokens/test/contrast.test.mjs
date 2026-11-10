@@ -355,3 +355,79 @@ test("the header's worst cases are the ones the panel measured: secondary is abo
   assert.ok(Math.abs(ratio(over(color("dark", "text-secondary"), dark), dark) - 5.86) <= 0.03, "dark secondary over white");
   assert.ok(Math.abs(ratio(over(color("light", "text-secondary"), light), light) - 6.77) <= 0.03, "light secondary over black");
 });
+
+// ---- Callouts, toasts and the notification centre (council item 82, owner item 83) ----
+//
+// A callout keeps a neutral fill at its own level and draws success, warning and danger as a rim: the status colour at 45% over
+// that level, one solid colour on every side. The rim is decorative (it is never the only cue, and no pair here asks it to reach
+// 3:1): the icon (3:1) and the words (4.5:1) carry the status, so those are the pairs proved, on every level a callout can sit on.
+// A toast is level 1 and fixed, and carries the same icons and the danger title on that fill. The centre's entries sit on a
+// popover (levels 1 to 3), at rest and on the hover plate.
+
+const STATUS_NAMES = ["status-success", "status-warning", "status-danger"];
+
+for (const theme of THEMES) {
+  for (const level of [1, 2, 3]) {
+    const panel = color(theme, `surface-${level}`);
+
+    test(`${theme}, level ${level}: a callout's icon holds 3:1, danger's title 4.5:1, the body and the other titles 4.5:1, with no tint under them`, () => {
+      for (const name of STATUS_NAMES) {
+        const icon = ratio(over(color(theme, name), panel), panel);
+        assert.ok(icon >= 3, `${theme}: the ${name} icon on a level-${level} callout is ${fmt(icon)}:1`);
+      }
+      const title = ratio(over(color(theme, "status-danger"), panel), panel);
+      assert.ok(title >= 4.5, `${theme}: danger's title on level ${level} is ${fmt(title)}:1`);
+      for (const text of ["text-primary", "text-secondary"]) {
+        const r = ratio(over(color(theme, text), panel), panel);
+        assert.ok(r >= 4.5, `${theme}: ${text} on a level-${level} callout is ${fmt(r)}:1`);
+      }
+      // info and a plain note: a secondary icon, 3:1 or better
+      assert.ok(ratio(over(color(theme, "text-secondary"), panel), panel) >= 3, `${theme}: the info icon on level ${level}`);
+    });
+
+    test(`${theme}, level ${level}: the 45% status rim is pinned to what the council measured, and is decorative: under 3:1 on its own fill`, () => {
+      const drawn = {
+        dark: { 1: [2.563, 2.758, 2.171], 2: [2.584, 2.786, 2.189], 3: [2.572, 2.777, 2.18] },
+        light: { 1: [1.891, 1.744, 2.27], 2: [1.891, 1.744, 2.27], 3: [1.891, 1.744, 2.27] },
+      }[theme][level];
+      STATUS_NAMES.forEach((name, i) => {
+        const rim = over({ ...color(theme, name), alpha: 0.45 }, panel);
+        const r = ratio(rim, panel);
+        near(r, drawn[i], 0.02, `${theme}: the ${name} rim on level ${level}`);
+        assert.ok(r < 3, `${theme}: the ${name} rim reaches 3:1 on level ${level}, so it is no longer only decoration: the words and icon may be relaxed, which the council did not decide`);
+      });
+    });
+
+    test(`${theme}, level ${level}: the notification centre's entries hold their pairs at rest and on the hover plate`, () => {
+      const plate = plateOf(theme, level);
+      for (const [where, bg] of [["panel", panel], ["plate", plate]]) {
+        // the unread dot is a 6px ink mark: a non-text mark, 3:1
+        assert.ok(ratio(over(color(theme, "text-primary"), bg), bg) >= 3, `${theme}: the unread dot on the ${where} at level ${level}`);
+        // the status marks, 3:1
+        for (const name of STATUS_NAMES) assert.ok(ratio(over(color(theme, name), bg), bg) >= 3, `${theme}: the ${name} mark on the ${where} at level ${level}`);
+        // the title: primary when unread, secondary when read, and on the plate the title is primary
+        for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(over(color(theme, text), bg), bg) >= 4.5, `${theme}: ${text} on the ${where} at level ${level}`);
+      }
+      // the line and the time: tertiary at rest, lifted to secondary on the plate, which tertiary would fail in dark
+      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: the line and the time at rest on level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: the line and the time on the plate at level ${level}`);
+      // unread is not weight, so the step between unread and read titles must be a real one in ink
+      assert.ok(ratio(color(theme, "text-primary"), panel) / ratio(over(color(theme, "text-secondary"), panel), panel) >= 1.5, `${theme}: unread and read titles differ by under 1.5x at level ${level}`);
+    });
+  }
+
+  test(`${theme}: a toast is level 1: the marks hold 3:1, danger's title 4.5:1, and the description, count and close icon hold on it`, () => {
+    const toast = color(theme, "surface-1");
+    for (const name of STATUS_NAMES) assert.ok(ratio(over(color(theme, name), toast), toast) >= 3, `${theme}: the ${name} mark on a toast`);
+    assert.ok(ratio(over(color(theme, "status-danger"), toast), toast) >= 4.5, `${theme}: danger's title on a toast`);
+    for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(over(color(theme, text), toast), toast) >= 4.5, `${theme}: ${text} on a toast`);
+    // the drain line is 1px of tertiary on the rim: a non-text mark
+    assert.ok(ratio(over(color(theme, "text-tertiary"), toast), toast) >= 3, `${theme}: the drain line`);
+  });
+}
+
+test("a toast at level 1 is the same near-black as a level-1 menu, and the same white in light: the rim and the shadow separate them", () => {
+  assert.deepEqual(color("dark", "surface-1"), color("dark", "surface-raised"));
+  assert.ok(Math.abs(color("dark", "surface-1").r - 10 / 255) < 0.002, "#0a0a0a");
+  assert.deepEqual(color("light", "surface-1"), color("light", "surface-3"), "levels 1 to 3 are one white in light, so the owner's level 1 changes no pixel there");
+});

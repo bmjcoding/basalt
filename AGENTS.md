@@ -57,7 +57,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Panels have one rim:** a 1px edge in two solid colours, at most 8% white on top and 6%
   on the other sides in dark, uniform in light. No gradient along or across an edge, no
   inner glow or sheen, no blur, no animation, no outer frame, no light falloff on the page.
-  Never on controls or chips.
+  Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
+  at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
+  toast included, keeps the neutral rim.
 - **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`,
   `blur-chrome`, 12px, no saturate) is the only translucent, blurred surface. Dialogs, sheets,
   menus, popovers, toasts and the command menu stay solid. Use the class once per viewport;
@@ -72,7 +74,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Depth is four levels, and the level is not a prop.** A panel is one level above what
   it sits in (3 is the cap), a popup is its opener plus one (a floor of 1, a cap of 3), a
   modal (dialog, alert dialog, sheet, command menu) resets to 1 and what it holds starts at 2,
-  a tooltip and a toast are 3. In light, levels 1 to 3 are one white: nesting shows by
+  a tooltip is 3 and a toast is 1 (fixed). In light, levels 1 to 3 are one white: nesting shows by
   the rim, never by a darker fill. Group with space or a divider first; a panel is for a
   distinct object, at most one deeper inside any panel; bands (the command menu's input row,
   a table header) are not boxes.

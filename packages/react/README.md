@@ -60,11 +60,12 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
 | `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. |
-| `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, timeout? })`. |
+| `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, home?, group?, running? })`, then `update(id, patch)`, `close(id)` or `promise(work, { running, success, error })`. A toast stays until dismissed unless it names a `home` for what it says (`"centre"`, `"row"`, `"key"` or `"page"`; an action needs one that is not the page), and then it closes after 5s. Level 1, three deep, danger announced assertively. |
+| `NotificationCentre` | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, status?, unread?, href? }`), "Mark all as read" and "View all". Presentational: you own the entries, their read state and the page. |
 | `CommandMenu` | ⌘K: `groups` of `{ id, label, icon?, shortcut?, keywords?, onSelect }`; you bind the shortcut. |
 | `Textarea` | Multi-line Field control; controlled or uncontrolled, with the field's label, validation and disabled state. |
 | `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverTitle`, `PopoverDescription`, `PopoverClose` | Anchored details or a short form; Esc returns focus. |
-| `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Set `live` only when it appears in response to something. |
+| `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Success, warning and danger draw a 45% status rim over a neutral fill. Set `live` only when it appears in response to something. |
 | `Progress` | Required `label`; `value={null}` for an indeterminate task. |
 | `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default) and `braille`. `glide` eases a ticker toward its value over `slow`. Honour reduced motion. |
 | `MorphIcon`, `TextMorph`, `Sparkline`, `Stepper`, `LivePreview`, `TravelSpinner` | Motion primitives. `Sparkline` is a line and its latest value, not a charting component. See [docs/motion.md](../../docs/motion.md). |

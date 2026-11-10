@@ -585,14 +585,14 @@ function ToastDemo({ state }: { state: string }) {
   React.useEffect(() => {
     if (state !== "shown") return;
     // long enough that the line is still nearly full when the screenshot is taken
-    toast.show({ title: "Sandbox deleted", description: "blacksand-api and its routes were removed.", action: { label: "Undo", onClick: () => {} }, timeout: 60000 });
-    toast.show({ title: "Route refused", description: "api.example.com isn't allowed for this run.", status: "warning", timeout: 60000 });
+    toast.show({ title: "Sandbox deleted", description: "blacksand-api and its routes were removed.", action: { label: "Undo", onClick: () => {} }, home: "centre", timeout: 60000 });
+    toast.show({ title: "Route refused", description: "api.example.com isn't allowed for this run.", status: "warning", home: "page", timeout: 60000 });
   }, [state, toast]);
   return (
     <div style={col}>
       <div style={row}>
-        <Button onClick={() => toast.show({ title: "Route saved", description: "The 1px line on the rim shrinks for the timeout.", timeout: 8000 })}>Show a toast</Button>
-        <Button onClick={() => toast.show({ title: "Run failed", description: "run-0143 exited with code 1.", status: "danger", timeout: 8000 })}>Show an error</Button>
+        <Button onClick={() => toast.show({ title: "Route saved", description: "The 1px line on the rim shrinks for the timeout.", home: "page", timeout: 8000 })}>Show a toast</Button>
+        <Button onClick={() => toast.show({ title: "Run failed", description: "run-0143 exited with code 1.", status: "danger", home: "centre", timeout: 8000 })}>Show an error</Button>
       </div>
       <Text size="sm" tone="secondary">The line is drawn on the straight part of the bottom rim, starting where the corner ends. Hover or focus pauses it. Under reduced motion it is not drawn.</Text>
     </div>

@@ -28,7 +28,8 @@ export function useFloatingLayer() {
 //   an in-flow panel (Card, TableContainer, CodeBlock, Callout, the preview card)   parent + 1
 //   a non-modal popup (Menu, Select, Combobox, Popover)                             max(1, opener + 1), capped at 3
 //   a modal (Dialog, AlertDialog, Sheet, CommandMenu)                               1, above its scrim; what it holds starts at 2
-//   a Tooltip or a Toast                                                            3
+//   a Tooltip                                                                       3
+//   a Toast (portalled; its rim and shadow part it from what it covers)             1
 //
 // The floor is 1 in both themes: in light, levels 1 to 3 are one white, so it changes no pixel there. A popup
 // from the page or a sidebar is level 1 (`#0a0a0a` in dark); from a card or a modal it is 2. A modal's own
