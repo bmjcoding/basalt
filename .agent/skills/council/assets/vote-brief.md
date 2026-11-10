@@ -2,7 +2,9 @@
 
 <!-- Replace every <…> except <your slug>. Name every option with its designer, so members vote on the record, not on memory.
      For a vote-only round (SKILL.md step 8), replace "The three prototypes" with the builder's branch, its review round's screenshots,
-     and what ships today; the options are the builder's, plus what ships, and members may write in. -->
+     and what ships today; the options are the builder's, plus what ships, and members may write in.
+     In a three-member round the owner ordered, name the three members, write 2 of 3 for 3 of 4, and list only the prototypes that
+     exist. -->
 
 All four members vote: Opus, Muse, Sol and Grok.
 - **A decision** is 3 of 4 for one option.

@@ -1,7 +1,8 @@
 # Council vote: what <scope> still needs, and in what order
 
 <!-- The roadmap round for an open-ended handoff (references/stream.md). Replace every <…>. The candidate table and the proposed
-     batches are yours: batches are scheduling, grouped by the files each candidate would touch, not design. -->
+     batches are yours: batches are scheduling, grouped by the files each candidate would touch, not design. In a three-member round
+     the owner ordered, name the three members and write 2 of 3 for 3 of 4. -->
 
 All four members vote: Opus, Muse, Sol and Grok. This round sets the stream's scope and order. Later rounds design each batch.
 
@@ -30,8 +31,8 @@ later batch runs after the earlier one, on its branch.
 ## Vote
 ### Part 1. Each candidate
 For every ID, mark one of:
-- **P1:** in this stream, early;
-- **P2:** in this stream, after P1;
+- **P1:** in this stream, early (within the dependency order);
+- **P2:** in this stream, after P1 where dependencies allow;
 - **Product:** it belongs in a product, not in Basalt;
 - **Out:** not needed.
 
@@ -52,7 +53,9 @@ How complete is Basalt today against what its products need, out of 10?
 - **In scope:** 3 of 4 mark a candidate P1 or P2. Anything else stays out. That isn't a deadlock, and nothing is built for it.
 - **Its tier:** P1 if 3 of 4 mark it P1; otherwise P2.
 - **Batches** keep their proposed membership unless 3 of 4 name the same move.
-- **Order:** batches holding a P1 item run first, in the proposed order; then the rest, in the proposed order.
+- **Order:** dependencies come before priority. A later batch of a split group never starts before the earlier one, and two batches
+  that share a file (after moves) run one after the other. Among batches whose prerequisites are done, those holding a P1 item start
+  first, in the proposed order.
 
 ## Rules
 - Write only `<topic>-roadmap-vote/<your slug>.md`, in your own worktree, and return its full text.

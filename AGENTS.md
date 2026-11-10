@@ -27,7 +27,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **The council.** When the owner asks for the council, read `.agent/skills/council/SKILL.md`: it names the four members,
   how a round runs, and how the council settles a split by majority. On a council round the four members replace the
   two-reviewer panel above. When the owner hands a question or a stream of work to the council, its majority stands in for
-  his approval before building; he sees only deadlocks, and gives each built PR a thumbs up or down before it merges. When he
+  his approval before building; he sees only deadlocks and failures, and gives each built PR a thumbs up or down before it
+  merges. When he
   only asks what the council thinks, its result is a proposal he approves before anything is built.
 - **The owner's word is in the conversation or on the PR.** A merge of a PR means
   approval to go ahead with what it described, nothing more.

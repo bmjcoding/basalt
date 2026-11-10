@@ -5,7 +5,8 @@
 - <part>: <what a user sees and does>.
 
 ## What was decided, and by whom
-DECISIONS <n> was voted by all four members, with 3 of 4 deciding. <The owner settled <m>.> Each member's final position, in their own
+DECISIONS <n> was voted by <all four members, with 3 of 4 deciding | three members, by the owner's order (DECISIONS <n>), with 2 of 3
+deciding>. <The owner settled <m>.> Each member's final position, in their own
 words:
 - **Opus:** "<quote>" <(in the minority on <item>, if so)>
 - **Muse:** "<quote>" <(in the minority on <item>, if so)>

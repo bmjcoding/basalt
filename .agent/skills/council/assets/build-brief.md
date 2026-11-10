@@ -56,4 +56,5 @@ and at 390, at 1x and 2x, in forced colours and under reduced motion. Run `npm r
 - Test counts and the check result.
 - The walkthrough and zip paths.
 - Anything you couldn't do as written.
-- Anything visual you left open.
+- Anything visual you left open: what it is, and two or three options you could build, each described exactly. Don't build any of
+  them.

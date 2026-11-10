@@ -1,6 +1,6 @@
 # The owner's review page
 
-Paths here are relative to the skill's folder unless they start with `MAIN/`. Read this when built work is ready for the owner: at the end of a stream, after a one-question handoff is built, or when he asks to
+Paths follow SKILL.md's Names and paths. Read this when built work is ready for the owner: at the end of a stream, after a one-question handoff is built, or when he asks to
 review. He judges everything on one page, and he wants to use the components, not look at pictures of them.
 
 ## Build it

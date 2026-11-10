@@ -29,23 +29,26 @@ make no design decision yourself. You never vote, and you never write a member's
 
 ## Names and paths
 
-How paths are written:
-- **This skill's own files** (`assets/`, `references/`, `scripts/`) are relative to its folder, `MAIN/.agent/skills/council/`.
-- **Other plain paths** (`docs/foundations.md`, `tools/review/rounds.tsx`) start at the root of the checkout you're working in.
-- **`MAIN/`** marks the main checkout.
-- **`DECISIONS.md` and `BACKLOG.md`** always mean the ones in `MAIN/.review/council/`, and **`INDEX.md`** the one in
-  `MAIN/.review/council/references/`.
-
 - **`MAIN`** is the main checkout. Find it from any worktree with
   `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`.
+- **Paths:**
+  - this skill's own files (`assets/`, `references/`, `scripts/`) are relative to its folder, `MAIN/.agent/skills/council/`;
+  - other plain paths (`docs/foundations.md`, `tools/review/rounds.tsx`) start at the root of the checkout you're working in;
+  - `MAIN/` marks the main checkout.
 - **Council files** live in `MAIN/.review/council/`. It's git-ignored, so a delegate's worktree doesn't have it: always write the
-  absolute path.
-- **`<topic>`** is a lowercase hyphenated slug (`date-picker`). A later round on the same topic adds `-r2`, `-r3`.
-- **Member slugs** are `opus`, `muse`, `sol` and `grok`. Answer files use them.
+  absolute path. `DECISIONS.md` and `BACKLOG.md` always mean the ones there, and `INDEX.md` the one in `MAIN/.review/council/references/`.
 - **`DECISIONS.md`** is one numbered sequence. The owner's words, each tally, each approval and each merge take the next number.
   `BACKLOG.md` lists open work, each item with who found it and its decision number.
-- **The ledger:** `MAIN/.review/council/<topic>-ledger.md` (one per stream, or one per round outside a stream) holds, for every round in progress, its step, its delegates'
-  task ids and worktree paths, its PR, and any held deadlocks. Update it at every step: a long stream outlives your context.
+- **`<topic>`** is a lowercase hyphenated slug (`date-picker`). A later round on the same topic adds `-r2`, `-r3`.
+- **Member slugs** are `opus`, `muse`, `sol` and `grok`. Answer files use them.
+- **The ledger:** `MAIN/.review/council/<topic>-ledger.md`, one per stream, or one per round outside a stream. For every round in
+  progress it holds:
+  - its step;
+  - its delegates' task ids and worktree paths;
+  - its PR;
+  - any held deadlocks.
+
+  Update it at every step: a long stream outlives your context.
 - **The preview standard:** wherever a brief asks for previews or screenshots, that means both themes, at 1440 and at 390, at 1x and
   2x, in forced colours and under reduced motion.
 
@@ -64,8 +67,10 @@ How paths are written:
 - **A family is gone:** that member is missing. Stop and tell the owner. Never substitute another provider: the council's value is
   four independent judgments.
 - **Fewer members:** run with three only if the owner orders it.
-  - 2 of 3 decides everywhere a step says 3 of 4: a design vote, the roadmap's scope, tier and moves, and a preference in code review.
-  - Votes plus abstentions make 3, and prototypes come from the designers who remain.
+  - 2 of 3 decides wherever this skill or a template says 3 of 4 or 3 votes: a design vote, the roadmap's scope, tier and moves, and a
+    preference in code review.
+  - Votes plus abstentions make 3, and prototypes come from the designers who remain. The vote and roadmap briefs' header comments say
+    how to adapt them.
   - Record the exception, with its reason, in `DECISIONS.md` and in the PR.
 
 ## Who decides
@@ -136,11 +141,11 @@ runs this round once per batch. Copy the checklist and tick it off; each step ne
 2. **Prototype brief.** Copy [assets/prototype-brief.md](assets/prototype-brief.md) to `MAIN/.review/council/<topic>-brief.md`, fill
    it, then check it (see Checking a brief).
 3. **Prototypes.** Start `muse`, `opus` and `grok` together, with `role: "design"`. When all three are back:
-   - **Collect:** copy each one's folder to `MAIN/.review/council/<topic>/<slug>/`.
-   - **Check:** open each page with Playwright (`MAIN/node_modules/playwright`), each time in a new context, with
+   - **Check each page in its designer's worktree first,** so nothing reaches `MAIN` before all three pass. Open it with Playwright (`MAIN/node_modules/playwright`), each time in a new context, with
      `colorScheme: "dark"` and then `"light"`, at 1440 and 390. A basalt-html page takes the system theme when nothing is stored.
    - **Send it back** to its designer (Delegating, failures) before anyone votes if it errors, doesn't load, or its `data-theme` on
      `<html>` doesn't match the context's colour scheme.
+   - **Collect** only when all three pass: copy each one's folder to `MAIN/.review/council/<topic>/<slug>/`.
    - **Crops:** for each brief question and each theme, screenshot the same state of the three at 1440 and 2x (same contexts), and join them in one row
      on a small HTML page that you screenshot. Save the result in `MAIN/.review/council/<topic>/compare/`. Members check the rest of
      the preview standard live.
@@ -174,9 +179,17 @@ runs this round once per batch. Copy the checklist and tick it off; each step ne
    - **Fix it yourself** only if it's a non-visual defect: a failed edit, a test, lint, sample data, a fact in the docs.
    - **A rendered pixel that's wrong inside the decided design** goes back to the builder, by `t3_thread_send` on its thread, with
      what to fix. Then review again. After three returns, start a fresh builder on the same branch, with the brief and the list of
-     faults. If its work still has a fault after three returns, stop the round and tell the owner, as a failure.
-   - **A pixel the council never decided** goes to a vote-only round, `<topic>-r2`. Its options are the ones the builder named, plus
-     what ships today, if anything does. Members may write in.
+     faults. Before you start it:
+     - commit the work so far on `claude/<topic>` in the old worktree;
+     - detach that worktree (`git switch --detach`);
+     - change the brief's Start here to `git fetch origin && git switch claude/<topic>`.
+
+     If its work still has a fault after three returns, stop the round and tell the owner, as a failure.
+   - **A pixel the council never decided** goes to a vote-only round, `<topic>-r2`.
+     - **Its options** are the ones the builder named, plus what ships today, if anything does. Members may write in.
+     - **If no options were named** (a gap you found, or one the builder reported without options), resume the builder and ask for
+       them before the vote.
+     - **The result** goes back to the same builder as an amended brief on the same branch; then review again.
    - **The builder's open points:** visual questions go to that vote-only round. Engineering facts go in the PR's "Not reviewed" list.
 9. **PR.**
    - In the builder's worktree, commit on `claude/<topic>`, push, and open a draft PR against `main` with
@@ -219,7 +232,9 @@ It lets through only:
   code block (`<select>`);
 - HTML comments (`<!-- … -->`): the templates' notes to you, not text a delegate fills in.
 
-So put any HTML you mention in backticks, and write generics and URLs without angle brackets. The checker also warns about a council path that doesn't exist: that's fine for a file a
+So put any HTML you mention in backticks, and write generics and URLs without angle brackets. A bare `<option>` or `<base>` always
+fails, because the templates use them as placeholders: write a real one with an attribute (`<option value="a">`) or in words. An
+HTML comment left unclosed fails too, since it would hide the rest of the brief. The checker also warns about a council path that doesn't exist: that's fine for a file a
 delegate will create, and a typo otherwise. Fix what it reports, then run it again until it passes.
 
 ## Gotchas

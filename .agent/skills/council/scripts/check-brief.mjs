@@ -19,7 +19,8 @@ Let through:
   - <your slug>, which each member fills in itself
   - real HTML: a tag with attributes (<input type="date">), a closing tag (</main>), or a bare HTML element
     inside backticks or a code block (\`<select>\`). Put any HTML you mention in backticks.
-  - HTML comments (<!-- … -->), which are the templates' own notes
+  - HTML comments (<!-- … -->), which are the templates' own notes. An unclosed comment is an error: it would hide the rest.
+  A bare <option> or <base> always fails (the templates use them as placeholders): give a real one an attribute.
 Warnings (exit 0):
   - an absolute path under .review/council/ that doesn't exist, where no folder on its way exists either (a typo, or a file a
     delegate will create)
@@ -93,6 +94,7 @@ export function check(text) {
       if (dir.endsWith("/.review/council") || !dir.includes("/.review/council")) warnings.push(`line ${n}: ${p} doesn't exist (fine if a delegate will create it; otherwise a typo)`);
     }
   });
+  if (inComment) errors.push("an HTML comment (<!--) never closes: everything after it went unchecked");
   return { errors, warnings };
 }
 
@@ -123,6 +125,8 @@ function selfTest() {
     ["a bare element in a fence", "```html\n<main>\n</main>\n```", true],
     ["a comment", "<!-- replace every <…> -->", true],
     ["MAIN left in", "Read MAIN/docs/foundations.md.", false],
+    ["an unclosed comment", "<!-- a note\nThe questions: <question>.", false],
+    ["a real option element", "a native `<option value=\"a\">`", true],
   ];
   for (const [name, text, shouldPass] of cases) {
     const passed = check(text).errors.length === 0;

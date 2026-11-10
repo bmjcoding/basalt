@@ -22,15 +22,22 @@ stream's ledger (`MAIN/.review/council/<topic>-ledger.md`) up to date at every s
     - **Size:** aim for three to six per batch. A shorter work list can make a smaller batch.
     - **A group larger than six** splits into consecutive batches that run one after another. Brief each later one to branch from the
       previous batch's branch.
-    - **Order:** batches that share no file outside the shared list can run in parallel. Write the plan into the brief.
-  - **Before it goes out:** check the brief, then start all four members. Each writes `<topic>-roadmap-vote/<your slug>.md`. When all
+    - **Write the plan into the brief:** the batches, which ones depend on which, and the files each touches.
+  - **Before it goes out:** check the brief, then start all four members with `role: "design"`. Each writes `<topic>-roadmap-vote/<your slug>.md`. When all
     four are back, save them to `MAIN/.review/council/<topic>-roadmap-vote/<slug>.md`, and count from the files.
   - **The count** (it's in the brief):
     - in scope at 3 of 4 for P1 or P2;
     - P1 at 3 of 4 for P1, otherwise P2;
     - a batch keeps its members unless 3 of 4 name the same move ("candidate A3 joins batch Forms");
     - a candidate the tally left out is dropped from its batch, and an empty batch is skipped;
-    - batches holding a P1 item run first, in the proposed order.
+    - **dependencies come before priority:**
+      - a later batch of a split group never starts before the earlier one; if the earlier one ended up empty, the later one branches
+        from `origin/main`;
+      - two batches that now share a file outside the shared list (after moves) run one after the other, the later on the earlier's
+        branch;
+    - **then priority:** among batches whose prerequisites are done, start those holding a P1 item first, in the proposed order. Any
+      that share no file outside the shared list may run at the same time.
+    - **Record it:** the resulting schedule goes in the roadmap tally.
   - **Recording it:** record the scope, tiers, batches and order as one entry in `DECISIONS.md`.
 - **Engineering items** (a bug that restores documented behaviour, a refactor, a performance change with no pixel change) are in
   scope only if the roadmap or the owner's list put them there. They skip only the design round.

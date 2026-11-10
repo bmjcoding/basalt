@@ -61,8 +61,9 @@ How to resolve them:
 - **When two decided designs contradict,** don't choose. Stop, and take it to a council round.
 
 ## After the last merge
-1. Pull `main`, and run `npm run ci:local` on it (without Swift, `npm run ci:local -- --web-only`, and the merge entry says the Swift
-   package went unchecked).
+1. Check main in a worktree of its own: `git fetch origin && git worktree add --detach <path> origin/main`, then
+   `npm ci && npm run build && npm run ci:local` there. Without Swift, `npm run ci:local -- --web-only`, and the merge entry says the
+   Swift package went unchecked.
 2. Log the merges, with their commits, in `DECISIONS.md`.
 3. Skip republishing the hosted reference. `AGENTS.md` asks for it after a merge, but the owner paused it ("dont need the hosted
    reference I don't think", DECISIONS 81), so skip it until he says otherwise.
