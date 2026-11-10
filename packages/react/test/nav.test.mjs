@@ -22,7 +22,9 @@ const near = (actual, expected, message, tolerance = 0.6) => assert.ok(Math.abs(
 
 const ITEMS = [["home", "Home", "HomeGlyph"], ["runs", "Runs", "RunsGlyph"], ["sandboxes", "Sandboxes", "SandboxesGlyph"], ["routes", "Routes", "RoutesGlyph"], ["settings", "Settings", "SettingsGlyph"]];
 const items = (current = "home") => ITEMS.map(([id, label, glyph]) => `<B.NavItem href="#${id}" icon={B.${glyph}}${current === id ? " current" : ""}>${label}</B.NavItem>`).join("");
-const nav = ({ current = "home", collapsed = false, width = 240, extra = "", inner = items(current) } = {}) => `<div style={{ width: ${width} }}><B.Nav aria-label="Primary"${collapsed ? " collapsed" : ""}${extra}>${inner}</B.Nav></div>`;
+// 300 is a real sidebar width (X's is about 275). The fixtures load no web font, so labels are drawn in each platform's fallback, which on
+// Linux runs about a quarter wider than on macOS; the column has to leave the hugging pill clear room on both.
+const nav = ({ current = "home", collapsed = false, width = 300, extra = "", inner = items(current) } = {}) => `<div style={{ width: ${width} }}><B.Nav aria-label="Primary"${collapsed ? " collapsed" : ""}${extra}>${inner}</B.Nav></div>`;
 const side = render(`<B.TooltipProvider>${nav()}</B.TooltipProvider>`);
 const rail = render(`<B.TooltipProvider>${nav({ collapsed: true, width: 72 })}</B.TooltipProvider>`);
 const open = async (fixture, options = {}) => {
@@ -100,11 +102,12 @@ describe("navigation: the item", () => {
 
   test("the row is the whole column, the pill hugs: at rest it paints nothing and is far narrower than the column", async () => {
     const page = await open(side);
-    const { row, pill, bg } = await page.locator(ITEM).nth(2).evaluate((link) => {
+    const { row, pill, label, bg } = await page.locator(ITEM).nth(2).evaluate((link) => {
       const p = link.querySelector(".basalt-nav-pill");
-      return { row: link.getBoundingClientRect().width, pill: p.getBoundingClientRect().width, bg: getComputedStyle(p).backgroundColor };
+      return { row: link.getBoundingClientRect().width, pill: p.getBoundingClientRect().width, label: p.querySelector(".basalt-nav-label").getBoundingClientRect().width, bg: getComputedStyle(p).backgroundColor };
     });
     assert.ok(row > 200, `the link spans the column (${row})`);
+    near(pill, 12 + 24 + 16 + label + 20, "the pill is its content: 12 + 24 + 16 + label + 20");
     assert.ok(pill < row - 40, `the pill hugs (${pill} of ${row})`);
     assert.equal(bg, "rgba(0, 0, 0, 0)");
     await page.close();
