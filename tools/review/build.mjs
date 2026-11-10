@@ -230,7 +230,7 @@ for (const id of rounds) {
     for (const state of ["default", ...step.states]) {
       for (const [width, tag] of [[960, ""], [390, "-390"]]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
@@ -274,6 +274,36 @@ for (const id of rounds) {
           if (state === "hover") {
             await page.locator("[data-wt-hover]").first().hover();
             await page.waitForTimeout(250);
+          }
+          // Navigation: "nav-hover" hovers the sidebar's second item, "nav-rail-hover" the rail's second (and its tooltip opens),
+          // "nav-current-hover" the current one; "nav-focus" tabs to the first item (the glide hides, the ring shows);
+          // "nav-moving" and "nav-fading" hold the pill's move and its fade, the real transitions, paused.
+          if (state.startsWith("nav-")) {
+            const items = page.locator(".basalt-nav-item");
+            const count = await items.count();
+            const side = count / 2;
+            const kind = state.replace(/^nav-/, "").replace(/-(reduced-motion|forced-colours)$/, "");
+            if (kind === "hover") { await items.nth(1).hover(); await page.waitForTimeout(250); }
+            if (kind === "current-hover") { await items.nth(0).hover(); await page.waitForTimeout(250); }
+            if (kind === "rail-hover") { await items.nth(side + 1).hover(); await page.waitForTimeout(900); }
+            if (kind === "focus") {
+              for (let i = 0; i < 12 && !(await page.evaluate(() => document.activeElement?.classList.contains("basalt-nav-item"))); i++) await page.keyboard.press("Tab");
+              await page.waitForTimeout(250);
+            }
+            if (kind === "moving" || kind === "fading") {
+              await items.nth(kind === "moving" ? 0 : 2).hover();
+              await page.waitForTimeout(300);
+              if (kind === "moving") await items.nth(3).hover(); else await page.mouse.move(2, 2);
+              await page.waitForTimeout(kind === "moving" ? 20 : 15);
+              const held = await page.evaluate((what) => {
+                const glide = document.querySelector(".basalt-nav > .basalt-plate");
+                const property = what === "moving" ? "transform" : "opacity";
+                const running = glide.getAnimations().filter((a) => a.transitionProperty === property);
+                for (const a of running) { a.pause(); a.currentTime = what === "moving" ? 60 : 40; }
+                return running.length;
+              }, kind);
+              if (!held) throw new Error(`${step.id}/${state}: the pill has no ${kind === "moving" ? "move" : "fade"} to hold`);
+            }
           }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);

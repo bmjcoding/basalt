@@ -106,7 +106,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
-  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
+  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars, dots and the navigation hover pill). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
@@ -151,8 +151,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Tokens are generated.** Edit `packages/tokens/tokens/*.tokens.json`, then
   `npm run build`. Commit the regenerated `Sources/BasaltTokens/Tokens.swift`; CI fails
   if it drifts.
-- **Swift can't be compiled here.** The macOS CI job is the only check: push and read
-  it before you call Swift work done.
+- **Swift builds on a Mac.** Where Swift is installed (Xcode or the Swift toolchain),
+  `swift build` and `swift test` are the macOS CI job, and `npm run ci:local` runs them.
+  Elsewhere the macOS CI job is the only check: push and read it before you call Swift work
+  done.
 
 ## Generating HTML
 
@@ -171,6 +173,12 @@ skill folder.
 | `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
 | `npm test` | Token contrast, component behaviour, accessibility (axe) in both themes, bundle size | Before every push |
 | `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+| `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
+
+`ci:local` refuses to run when `ci.yml` has a step it doesn't, so the two stay in step. Without
+Swift, `npm run ci:local -- --web-only` checks the web job alone; say on the PR that the Swift
+package went unchecked. It runs on macOS, not CI's Ubuntu runner, so text measured in a
+behaviour test uses different fallback fonts: keep a test's margins clear of a font's width.
 
 `npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
 every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, change it in
