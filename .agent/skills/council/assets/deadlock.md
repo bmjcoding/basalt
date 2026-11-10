@@ -1,4 +1,5 @@
-<!-- One section per deadlock: on the review page (above the PRs), or in a message when nothing else is ready. Replace every <…>.
+<!-- One section per deadlock: on the review page (above the PRs), or in a message (at once for one question; in a stream, when
+     deadlocks block every remaining batch). Replace every <…>.
      Write one option block for every option that got at least one vote, write-ins included, most votes first. A 2–1–1 has three
      blocks, and none is dropped. Repeat the quote line once for each member who chose that option. -->
 ### <item> (DECISIONS <n>)
@@ -17,4 +18,5 @@
 
 **See them:** <the live prototype page or crop for each option, by path. Where an option has no prototype, say so.>
 
-**Your answer:** reply with an option's letter, or describe another choice. Your answer becomes a decision and is built.
+**Your answer:** reply "<item>: <letter>" (for example "date picker trigger: B"), or describe another choice. Your answer becomes a
+decision and is built.

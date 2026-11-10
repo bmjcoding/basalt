@@ -12,7 +12,8 @@ Checks a filled-in council brief (research, prototype, vote, roadmap, build or r
 
 Errors (exit 1):
   - any <…> left in the brief: in prose, in \`inline code\` or in a fenced code block
-  - a <… that opens and doesn't close on the same line (a placeholder split across lines)
+  - a <… that opens and doesn't close on the same line (a placeholder split across lines), in prose or code
+  There's no length limit. Keep an HTML tag on one line, and write generics and URLs without angle brackets.
   - "MAIN/" or "/absolute/path" left unreplaced, anywhere
 Let through:
   - <your slug>, which each member fills in itself
@@ -77,13 +78,12 @@ export function check(text) {
     // split the line into code and prose, so a bare element counts as HTML only inside code
     const pieces = inFence ? [{ text: line, code: true }] : line.split(/(`[^`]*`)/).map((p) => ({ text: p.replace(/^`|`$/g, ""), code: p.startsWith("`") }));
     for (const piece of pieces) {
-      for (const m of piece.text.matchAll(/<[^<>\n]{1,200}>/g)) {
+      for (const m of piece.text.matchAll(/<[^<>\n]+>/g)) {
         if (!isAllowed(m[0], piece.code)) errors.push(`line ${n}: placeholder ${m[0]} not filled in`);
       }
-      if (!piece.code) {
-        const open = piece.text.replace(/<[^<>\n]{1,200}>/g, "").match(/<[a-zA-Z][^>]*$/);
-        if (open) errors.push(`line ${n}: "${open[0].slice(0, 40)}…" opens a <…> that doesn't close on this line (a placeholder split across lines?)`);
-      }
+      // in prose, code and fences alike: a < that opens a word and never closes on this line
+      const open = piece.text.replace(/<[^<>\n]+>/g, "").match(/<[a-zA-Z][^>]*$/);
+      if (open) errors.push(`line ${n}: "${open[0].slice(0, 40)}…" opens a <…> that doesn't close on this line (a placeholder split across lines?)`);
     }
     for (const m of line.matchAll(/\/[^\s`'"()<>]*\/\.review\/council\/[^\s`'"()<>,;]*/g)) {
       const p = m[0].replace(/[.:]$/, "");
@@ -111,7 +111,9 @@ function selfTest() {
     ["a placeholder in a fenced block", "```\nnpm run review -- <number>\n```", false],
     ["a placeholder in prose", "The questions: <question>.", false],
     ["a placeholder split across lines", "where `<base>` is origin/main <or the branch this\ndepends on>.", false],
-    ["a long placeholder", `Edit <${"x".repeat(150)}>.`, false],
+    ["a placeholder split in a fence", "```sh\ngit switch -c claude/date-picker <base\n>\n```", false],
+    ["a placeholder split in inline code", "Run `npm run review -- <the round` `number>`.", false],
+    ["a long placeholder", `Edit <${"x ".repeat(200)}>.`, false],
     ["<option> in prose", "- (a) <option> (<designer>);", false],
     ["the member's own slug", "Write `<topic-x>-vote/<your slug>.md`.".replace("<topic-x>", "date-picker"), true],
     ["HTML with attributes in prose", "the native <input type=\"date\"> field", true],

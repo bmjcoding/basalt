@@ -11,7 +11,8 @@ review. He judges everything on one page, and he wants to use the components, no
    - a table of the PRs: what each one is, his part, and its CI result. His part is "try it" for a design PR, and "approve the merge"
      for any other;
    - the merge order (`references/merge.md`);
-   - one line on how to answer: "Reply thumbs up, thumbs down, or the IDs you want changed. For a deadlock, reply with its letter."
+   - one line on how to answer: "Reply thumbs up or thumbs down for each PR, or the T-numbers you want changed. For a deadlock, reply
+     with its item and letter ('date picker trigger: B')."
 3. **Deadlocks** come first, above the PRs: one section each, written with `assets/deadlock.md`.
 4. **A design PR gets its live walkthrough.** Copy `<PR worktree>/.review/basalt-round-<n>-walkthrough.html` to
    `MAIN/.review/approvals/live/round-<n>.html`. If its sample data changed after the round was built, run `npm run review -- <n>` in
@@ -41,7 +42,7 @@ review. He judges everything on one page, and he wants to use the components, no
      })();
    </script>
    ```
-7. **Notes under each PR.** Only FYI items: engineering facts and the choices the council made that he may want to know about. Open
+7. **Notes under each PR,** numbered across the page T1, T2 and so on. Only FYI items: engineering facts and the choices the council made that he may want to know about. Open
    visual questions don't belong here: a council round settles them first, and the ones it can't settle are deadlocks.
 
 ## Check it before showing it

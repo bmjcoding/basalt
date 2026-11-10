@@ -26,7 +26,7 @@ Root: `</absolute/path/to/MAIN>`. Council files: `</absolute/path/to/MAIN>/.revi
 - **A page and a note,** in your own worktree, under `<topic>/<your slug>/`:
   - `index.html`, one self-contained page, built with the basalt-html skill
     (`</absolute/path/to/MAIN>/.agent/skills/basalt-html/SKILL.md`). The new component's own CSS goes in the page body, from tokens
-    only. The page reads `?theme=dark` or `?theme=light` from its address and sets `data-theme` on `<html lang="en">` to match;
+    only. Keep the skill's theme handling: with nothing stored, the page follows the system theme, and the lead checks both that way;
   - `<your slug>.md`, your answer to each question, with your reasons.
 - **Use Basalt's tokens and components:** read `</absolute/path/to/MAIN>/docs/foundations.md` first. Tokens are in
   `</absolute/path/to/MAIN>/packages/tokens/`.

@@ -12,7 +12,7 @@ Read this when the owner answers a review page (a thumbs up, a thumbs down, or n
 - **A thumbs down** on a PR leaves it open as a draft.
   - If his reason is itself a decision, run a new round on it.
   - A thumbs down doesn't block the other PRs, unless they depend on that one.
-- **His letter on a deadlock** is a decision. Build it, then put it on the next review page.
+- **His answer on a deadlock** ("date picker trigger: B") is a decision. Build it, then put it on the next review page.
 
 ## Merge order
 1. PRs that touch no shared file: tooling, process, or the HTML skill alone.
@@ -33,16 +33,17 @@ cd <path> && npm ci
 
 ```bash
 git fetch origin
-git merge origin/main            # resolve any conflicts (below), then commit the merge
-npm run build && npm run ci:local   # without Swift: npm run ci:local -- --web-only
+git merge origin/main                 # resolve any conflicts (below), then commit the merge
+npm run build && npm run ci:local     # without Swift: npm run ci:local -- --web-only
 git push
-git rev-parse HEAD               # the tested SHA
+git rev-parse HEAD                    # the tested SHA
+gh pr comment <n> --body "ci:local on <tested SHA>: <result>"
+gh pr ready <n>
 gh pr merge <n> --merge --match-head-commit <tested SHA>
 ```
 
-- **Before the merge,** post the tested SHA and the result on the PR, and mark it ready with `gh pr ready <n>`.
 - **`--match-head-commit`** makes GitHub refuse to merge any head but the one you tested. If it refuses, run the steps again.
-- **Without Swift,** say on the PR that the Swift package went unchecked.
+- **Without Swift,** the comment says the Swift package went unchecked.
 
 ## Conflicts
 Parallel PRs conflict in these files:
@@ -60,7 +61,8 @@ How to resolve them:
 - **When two decided designs contradict,** don't choose. Stop, and take it to a council round.
 
 ## After the last merge
-1. Pull `main`, and run `npm run ci:local` on it.
+1. Pull `main`, and run `npm run ci:local` on it (without Swift, `npm run ci:local -- --web-only`, and the merge entry says the Swift
+   package went unchecked).
 2. Log the merges, with their commits, in `DECISIONS.md`.
 3. Skip republishing the hosted reference. `AGENTS.md` asks for it after a merge, but the owner paused it ("dont need the hosted
    reference I don't think", DECISIONS 81), so skip it until he says otherwise.

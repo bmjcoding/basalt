@@ -1,6 +1,8 @@
 # Council vote: <topic>
 
-<!-- Replace every <…> except <your slug>. Name every option with its designer, so members vote on the record, not on memory. -->
+<!-- Replace every <…> except <your slug>. Name every option with its designer, so members vote on the record, not on memory.
+     For a vote-only round (SKILL.md step 8), replace "The three prototypes" with the builder's branch, its review round's screenshots,
+     and what ships today; the options are the builder's, plus what ships, and members may write in. -->
 
 All four members vote: Opus, Muse, Sol and Grok.
 - **A decision** is 3 of 4 for one option.

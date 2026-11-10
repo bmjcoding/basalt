@@ -29,8 +29,12 @@ make no design decision yourself. You never vote, and you never write a member's
 
 ## Names and paths
 
-All paths in this skill and its files are relative to the skill's folder, `MAIN/.agent/skills/council/`, unless they start with
-`MAIN/`.
+How paths are written:
+- **This skill's own files** (`assets/`, `references/`, `scripts/`) are relative to its folder, `MAIN/.agent/skills/council/`.
+- **Other plain paths** (`docs/foundations.md`, `tools/review/rounds.tsx`) start at the root of the checkout you're working in.
+- **`MAIN/`** marks the main checkout.
+- **`DECISIONS.md` and `BACKLOG.md`** always mean the ones in `MAIN/.review/council/`, and **`INDEX.md`** the one in
+  `MAIN/.review/council/references/`.
 
 - **`MAIN`** is the main checkout. Find it from any worktree with
   `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`.
@@ -40,7 +44,7 @@ All paths in this skill and its files are relative to the skill's folder, `MAIN/
 - **Member slugs** are `opus`, `muse`, `sol` and `grok`. Answer files use them.
 - **`DECISIONS.md`** is one numbered sequence. The owner's words, each tally, each approval and each merge take the next number.
   `BACKLOG.md` lists open work, each item with who found it and its decision number.
-- **The ledger:** `MAIN/.review/council/<topic>-ledger.md` (one per stream) holds, for every round in progress, its step, its delegates'
+- **The ledger:** `MAIN/.review/council/<topic>-ledger.md` (one per stream, or one per round outside a stream) holds, for every round in progress, its step, its delegates'
   task ids and worktree paths, its PR, and any held deadlocks. Update it at every step: a long stream outlives your context.
 - **The preview standard:** wherever a brief asks for previews or screenshots, that means both themes, at 1440 and at 390, at 1x and
   2x, in forced colours and under reduced motion.
@@ -60,14 +64,14 @@ All paths in this skill and its files are relative to the skill's folder, `MAIN/
 - **A family is gone:** that member is missing. Stop and tell the owner. Never substitute another provider: the council's value is
   four independent judgments.
 - **Fewer members:** run with three only if the owner orders it.
-  - 2 of 3 decides.
-  - Every "4" in the steps and templates reads as 3, and prototypes come from the designers who remain.
+  - 2 of 3 decides everywhere a step says 3 of 4: a design vote, the roadmap's scope, tier and moves, and a preference in code review.
+  - Votes plus abstentions make 3, and prototypes come from the designers who remain.
   - Record the exception, with its reason, in `DECISIONS.md` and in the PR.
 
 ## Who decides
 
-- **A decision** is 3 votes of 4 for one option.
-- **No majority:** any other count (2–2, 2–1–1, 1–1–1–1, or a count with abstentions) keeps what was already decided or, failing
+- **A decision** is 3 or more votes for one option. An abstention isn't a vote, so 3 votes and 1 abstention is a decision.
+- **No majority** is every other count (2–2, 2–1–1, 2–1 with one abstention, 1–1–1–1). It keeps what was already decided or, failing
   that, what ships today.
   - If neither exists, it's a **deadlock**.
   - If what it would keep is something the owner has objected to on record, that's a deadlock too.
@@ -76,7 +80,8 @@ All paths in this skill and its files are relative to the skill's folder, `MAIN/
   - An abstention never counts toward 3.
   - A member that doesn't answer at all is a failed delegate, not an abstention (see Delegating).
   - A member may write in an option of its own; it's counted separately.
-  - A conditional vote ("yes, if…") doesn't conform: resume that member once and ask for one option or an abstention.
+  - A conditional vote ("yes, if…") doesn't conform: resume that member once and ask for one option or an abstention. If it's still
+    conditional, count it as an abstention, and say so in the tally.
 - **Deadlocks** go to the owner on [assets/deadlock.md](assets/deadlock.md), one block per option that got a vote. Nothing deadlocked
   is built, and nor is anything that depends on it.
 - **A handoff:** the owner hands the building over ("send it to the council", "let the council decide", "keep working with the
@@ -132,9 +137,11 @@ runs this round once per batch. Copy the checklist and tick it off; each step ne
    it, then check it (see Checking a brief).
 3. **Prototypes.** Start `muse`, `opus` and `grok` together, with `role: "design"`. When all three are back:
    - **Collect:** copy each one's folder to `MAIN/.review/council/<topic>/<slug>/`.
-   - **Check:** open each page with Playwright (`MAIN/node_modules/playwright`, at `?theme=dark` and `?theme=light`) at 1440 and 390.
-     A page that errors or doesn't load goes back to its designer (Delegating, failures) before anyone votes.
-   - **Crops:** for each brief question and each theme, screenshot the same state of the three at 1440 and 2x, and join them in one row
+   - **Check:** open each page with Playwright (`MAIN/node_modules/playwright`), each time in a new context, with
+     `colorScheme: "dark"` and then `"light"`, at 1440 and 390. A basalt-html page takes the system theme when nothing is stored.
+   - **Send it back** to its designer (Delegating, failures) before anyone votes if it errors, doesn't load, or its `data-theme` on
+     `<html>` doesn't match the context's colour scheme.
+   - **Crops:** for each brief question and each theme, screenshot the same state of the three at 1440 and 2x (same contexts), and join them in one row
      on a small HTML page that you screenshot. Save the result in `MAIN/.review/council/<topic>/compare/`. Members check the rest of
      the preview standard live.
 4. **The owner's look.** Only for his own visual idea: a proposed look, treatment or value. A request to build something isn't one.
@@ -167,7 +174,7 @@ runs this round once per batch. Copy the checklist and tick it off; each step ne
    - **Fix it yourself** only if it's a non-visual defect: a failed edit, a test, lint, sample data, a fact in the docs.
    - **A rendered pixel that's wrong inside the decided design** goes back to the builder, by `t3_thread_send` on its thread, with
      what to fix. Then review again. After three returns, start a fresh builder on the same branch, with the brief and the list of
-     faults.
+     faults. If its work still has a fault after three returns, stop the round and tell the owner, as a failure.
    - **A pixel the council never decided** goes to a vote-only round, `<topic>-r2`. Its options are the ones the builder named, plus
      what ships today, if anything does. Members may write in.
    - **The builder's open points:** visual questions go to that vote-only round. Engineering facts go in the PR's "Not reviewed" list.
@@ -175,8 +182,8 @@ runs this round once per batch. Copy the checklist and tick it off; each step ne
    - In the builder's worktree, commit on `claude/<topic>`, push, and open a draft PR against `main` with
      [assets/pr-body.md](assets/pr-body.md). Each member's final position is quoted there, word for word.
    - **CI:** run `npm run build && npm run ci:local` on the pushed head, and post the SHA and result on the PR.
-   - **Without Swift,** run `npm run ci:local -- --web-only`, and say on the PR that the Swift package went unchecked; the PR is still
-     ready.
+   - **Without Swift,** run `npm run ci:local -- --web-only`, and say on the PR that the Swift package went unchecked; that still
+     counts as passing. The PR stays a draft until the merge.
 10. **The owner's review page.** Read [references/owner-review.md](references/owner-review.md); it sends you to the basalt-html skill to
     build the page. One question gets a page of its own; a stream gets one page at its end.
 11. **Merge.** Read [references/merge.md](references/merge.md). It also covers a thumbs down, and changes he asks for.
@@ -209,9 +216,10 @@ code or in a code block) and on any `MAIN/` left unreplaced.
 It lets through only:
 - `<your slug>`, which each member fills in itself;
 - real HTML: a tag with attributes (`<input type="date">`), a closing tag (`</main>`), or a bare HTML element inside backticks or a
-  code block (`<select>`).
+  code block (`<select>`);
+- HTML comments (`<!-- … -->`): the templates' notes to you, not text a delegate fills in.
 
-So put any HTML you mention in backticks. The checker also warns about a council path that doesn't exist: that's fine for a file a
+So put any HTML you mention in backticks, and write generics and URLs without angle brackets. The checker also warns about a council path that doesn't exist: that's fine for a file a
 delegate will create, and a typo otherwise. Fix what it reports, then run it again until it passes.
 
 ## Gotchas
