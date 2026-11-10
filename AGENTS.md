@@ -76,11 +76,22 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the rim, never by a darker fill. Group with space or a divider first; a panel is for a
   distinct object, at most one deeper inside any panel; bands (the command menu's input row,
   a table header) are not boxes.
+- **The still table:** header positions, column widths and alignment never move (the owner's rule). Fixed layout from a
+  `colgroup`, one remainder column, a minimum width; every sortable header reserves the indicator's 16px seat (on the start
+  side of a numeric column); the whole header cell is the sort button (−2 inset focus, hover lifts the label and shows the
+  caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
+  `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
+  is never covered. Pages set `scrollbar-gutter: stable`.
+- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade), checkboxes
+  in a labelled group; seven or more values, or a toolbar, are a trigger and a checklist, by count and never viewport.
+  Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
   hairline, a check, or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows). **There is no vertical bar and no inset outline
-  anywhere.** The active row in a menu, select, combobox or command menu is a rounded plate
+  anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
+  flush-field −2 inset, and the 1px divider at a pinned table column's edge while the table is scrolled (structure, never a
+  mark). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented

@@ -26,13 +26,16 @@ export {
   TableBody,
   TableCell,
   TableContainer,
+  TableEmpty,
   TableHead,
   TableHeader,
   TableRow,
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgeProps, BadgeStatus, TableDensity, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgeProps, BadgeStatus, SortDirection, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TooltipProps, TooltipProviderProps } from "./display";
+export { FilterResult, MultiSelect } from "./filter";
+export type { FilterResultProps, MultiSelectOption, MultiSelectProps } from "./filter";
 export { Kbd } from "./kbd";
 export type { KbdProps } from "./kbd";
 export { Checkbox, Radio, RadioGroup, Select, Switch } from "./choice";

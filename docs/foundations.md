@@ -130,7 +130,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
-  flush-field −2 inset above. Basalt ships no such row today: the rows of Menu, Select, Combobox and CommandMenu are
+  flush-field −2 inset above. A sortable table header is exactly that band (see the still table below). Basalt ships no
+  other such row: the rows of Menu, Select, Combobox and CommandMenu are
   options and show the plate, breadcrumbs and pagination are inline, and a settings or list row is the app's own
   markup. The accordion trigger is the one full-width band that is itself a button; it keeps the ring it was built with
   and is open for the panel.
@@ -187,6 +188,46 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   region by the app. Basalt ships no helper for the column or the count: the column is the app's own markup on
   `Table`, `TableCell` and `Checkbox`, given a first column `size-control-md` wide, and the row takes `selected`.
   Do not mark selection with a vertical line.
+- **The still table** (the owner's rule, decision 71: header positions, column widths and alignment never move, through
+  sort, filter, paging or loading). `Table` takes `columns` and is then `table-layout: fixed` from a `colgroup`: every
+  column has a width except one, which takes the rest, and `minWidth` is where the container scrolls sideways instead of
+  squeezing the columns. Widths are never measured from content. A cell truncates with an ellipsis, never a hard clip (a
+  link in a cell is a block that carries its own). **The sort control is the whole header cell** (decision 84): a
+  press anywhere in it sorts, and the cell is the button, so it takes the flush-field −2 inset focus ring and has no wash.
+  Every sortable header reserves a 16px seat for the indicator, after the label and, on a numeric (end-aligned) column,
+  before it, so the label's edge stays on the numbers' edge and the indicator arriving moves nothing. Hover and focus lift
+  the label from secondary to primary and show a tertiary up-down caret in the seat (always, on touch); sorted, the
+  direction arrow takes the seat in primary and the label stays primary. There is no weight change. `aria-sort` is on
+  the `th`, only on the sorted column. A press cycles ascending then descending; a numeric column, or one with
+  `firstSort="descending"` (a time), starts descending; there is no third, cleared state, and the table's default order
+  is a sort on a named column. The header band is 32px, and 44 on touch. When no row matches, one row spans every
+  column under the unchanged header with a sentence and a Clear action (`TableEmpty`); it is outside the sticky rules.
+  **At 390** the table scrolls and `pinned` leaves the name sticking, and the select column and the name when there is
+  one. A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours: the row's wash is laid
+  over the panel's fill as one cell background), and a focused header or action scrolls clear of the pinned columns
+  (the container's `scroll-padding-inline-start`, finished on focus for a cell that is only half covered). **The
+  scrolled-edge divider** is the one vertical line Basalt allows: a 1px `border-divider` at the pinned edge, drawn only
+  while the table is actually scrolled, structure and never a selection, sort or status mark; the owner's ruling against
+  the vertical bar is about marks, and this is not one. **App guidance:** set `scrollbar-gutter: stable` on the page's
+  scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
+  column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
+  scrollbar never shows the problem, which is why a test on a Mac cannot either).
+- **The multi-select filter** (`MultiSelect`; decisions 82 and 83). One rule picks the control: one of many is a pill in a
+  track (`SegmentedControl`), any of many is a check with no track. Up to six values are independent chips: 32px, or 36
+  inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
+  tertiary plus in the chip's 16px seat; on is the selected wash, primary ink and the check in the same seat, so turning
+  one on moves nothing, and it is never colour alone: the glyph changes shape. The swap is a 100ms crossfade
+  (`duration-fast`), not a morph, and none under reduced motion. Hover brightens the label and the line a step; a press is
+  a colour step and never a scale (only Button and IconButton scale). The semantics are checkboxes in a labelled group:
+  Tab reaches each chip and Space toggles it, and the visible "2 of 4" (or "Any") is the group's description, not live.
+  **Seven or more values, or any use in a toolbar, are a trigger and a checklist**: a non-modal popup of popup rows, with
+  the same checkbox group, a count and Clear in its footer. The switch depends on the count and the `toolbar` prop, never
+  the viewport. **Clear** is always mounted, in place, with the same label; at zero it is `aria-disabled`, not `disabled`
+  (activation is suppressed and keyboard focus stays on it), and it never hides and never moves focus. What is spoken
+  is one polite, atomic result line outside the filter (`FilterResult`: "Showing 3 of 24 runs"), updated after the text
+  has held still for 400ms, so three toggles are one announcement. In forced colours every part of a chip uses a system
+  pair: off is `ButtonText` on a real border; on is `Highlight` with `HighlightText` for the label and the check, and it
+  stays that way on hover.
 - **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
   also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
 - **Toasts** carry a dot only for warning and danger; the title says what happened.
@@ -564,6 +605,11 @@ approved either yet.
 
 The sliding pill, the hover glide in popups and the focus rule for a focusable row were decided by the council in a
 four-member vote and approved by the owner on 9 Nov 2026. Their implementation has not been reviewed by the panel.
+
+The still table and the multi-select filter were decided by the council in a four-member vote and settled by the owner on
+9 Nov 2026 (decisions 71 and 82 to 84): the fixed layout and reserved seat, the whole header cell as the sort control, the
+chips and their switch to a checklist at seven values, Clear held in place, and the divider at a scrolled pinned edge.
+Their implementation has not been reviewed by the panel.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

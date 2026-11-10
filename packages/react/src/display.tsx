@@ -1,6 +1,10 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
+import { CaretUpDownIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { ArrowDownGlyph } from "./glyphs/arrow-down";
+import { ArrowUpGlyph } from "./glyphs/arrow-up";
+import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { inLevel, usePanelLevel } from "./layers";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
@@ -69,18 +73,131 @@ export function CardFooter({ className, ...props }: React.ComponentProps<"div">)
 
 export type TableDensity = "compact" | "default" | "comfortable";
 
+/** The direction a sorted column runs. A column is either sorted one way or the other, or it is not the sorted one. */
+export type SortDirection = "ascending" | "descending";
+
 /**
  * A data table's frame: rounded, bordered, scrolling sideways when it must. `density` sets
- * the row height: 32px for logs, 40px by default, 44px for touch.
+ * the row height: 32px for logs, 40px by default, 44px for touch. While the table is scrolled sideways it marks itself
+ * (`data-scrolled`), which is what shows the divider beside a pinned column.
  */
-export function TableContainer({ density = "default", className, children, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
+export function TableContainer({ density = "default", className, children, ref, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
   // Its own attribute: `data-density` would also reset the size of every control in the table.
   const level = usePanelLevel();
-  return <div {...props} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
+  const node = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const frame = node.current;
+    if (!frame) return undefined;
+    // Set from the DOM, not React state: a scroll must not re-render the table.
+    const mark = () => frame.toggleAttribute("data-scrolled", Math.abs(frame.scrollLeft) > 0);
+    mark();
+    frame.addEventListener("scroll", mark, { passive: true });
+    return () => frame.removeEventListener("scroll", mark);
+  }, []);
+  const setRef = React.useCallback(
+    (element: HTMLDivElement | null) => {
+      node.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+    },
+    [ref],
+  );
+  return <div {...props} ref={setRef} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
 }
 
-export function Table({ className, ...props }: React.ComponentProps<"table">) {
-  return <table {...props} className={join("basalt-table", className)} />;
+/** One column of a still table. A width is a number of pixels or a CSS length; the one column without a width takes the rest. */
+export interface TableColumn {
+  width?: number | string;
+}
+
+export interface TableProps extends React.ComponentProps<"table"> {
+  /**
+   * Makes the table still: `table-layout: fixed`, with a `colgroup` written from these columns. Every column has a width
+   * except one, which takes the rest, so no sort, filter, page or load can move a column. Without it the table lays out
+   * from its content, as before.
+   */
+  columns?: TableColumn[];
+  /** The width below which the container scrolls sideways instead of squeezing the columns. Larger than the columns' widths together. */
+  minWidth?: number | string;
+  /**
+   * How many leading columns stay put while the table scrolls sideways: 1 to 3. Needs `columns`, and those columns need
+   * widths in pixels or a length `calc()` can add. The name column; the select column and the name when there is one.
+   */
+  pinned?: 1 | 2 | 3;
+}
+
+const length = (value: number | string) => (typeof value === "number" ? `${value}px` : value);
+
+export function Table({ columns, minWidth, pinned, className, style, children, ref, ...props }: TableProps) {
+  const fixed = columns !== undefined;
+  const vars: Record<string, string> = {};
+  if (fixed && pinned) {
+    // Where each pinned column sticks, and how far the pinned columns reach: a focused cell scrolls clear of them. The
+    // column without a width takes the rest, and a pinned table is only ever scrolled at its minimum width, so its width
+    // there is the minimum less the others'.
+    const others = columns.flatMap((column) => (column.width === undefined ? [] : [length(column.width)]));
+    const rest = minWidth === undefined ? "0px" : `calc(${length(minWidth)} - (${others.join(" + ") || "0px"}))`;
+    const widths = columns.slice(0, pinned).map((column) => (column.width === undefined ? rest : length(column.width)));
+    for (let i = 1; i <= pinned; i += 1) {
+      const reach = widths.slice(0, i).join(" + ");
+      vars[i === pinned ? "--_pin-end" : `--_pin-${i}`] = `calc(${reach})`;
+    }
+  }
+  const reach = vars["--_pin-end"];
+  const node = React.useRef<HTMLTableElement | null>(null);
+  React.useLayoutEffect(() => {
+    // A focused header or action scrolls clear of the pinned columns, not under them. The scroll container's scroll-padding
+    // does it for a cell that is out of view (the table cannot reach its ancestor from CSS, so it is written there). A
+    // cell that is only half under the pinned columns counts as in view to the browser, so the focus handler finishes the
+    // job: it measures the real edge of the last pinned cell and scrolls the container by what is covered.
+    const table = node.current;
+    const frame = table?.closest<HTMLElement>(".basalt-table-container");
+    if (!table || !frame || !pinned) return undefined;
+    if (reach) frame.style.scrollPaddingInlineStart = reach;
+    const reveal = (event: FocusEvent) => {
+      const cell = (event.target as Element | null)?.closest("td, th");
+      const row = cell?.parentElement;
+      if (!cell || !row || row.hasAttribute("data-empty") || [...row.children].indexOf(cell) < pinned) return;
+      const edge = row.children[pinned - 1]?.getBoundingClientRect();
+      const box = cell.getBoundingClientRect();
+      if (!edge) return;
+      // In the container's inline direction: what the pinned columns cover at the start, and what hangs past the end. The
+      // browser leaves a cell alone while any of it is in view, so both are finished here; the start wins when the cell is
+      // wider than what is left.
+      const dir = getComputedStyle(frame).direction === "rtl" ? -1 : 1;
+      const port = frame.getBoundingClientRect();
+      const covered = dir === 1 ? edge.right - box.left : box.right - edge.left;
+      const past = dir === 1 ? box.right - (port.left + frame.clientLeft + frame.clientWidth) : port.left + frame.clientLeft - box.left;
+      if (covered > 0) frame.scrollLeft -= dir * covered;
+      else if (past > 0) frame.scrollLeft += dir * Math.min(past, -covered);
+    };
+    frame.addEventListener("focusin", reveal);
+    return () => {
+      frame.removeEventListener("focusin", reveal);
+      frame.style.removeProperty("scroll-padding-inline-start");
+    };
+  }, [reach, pinned]);
+  const setRef = React.useCallback(
+    (element: HTMLTableElement | null) => {
+      node.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLTableElement | null>).current = element;
+    },
+    [ref],
+  );
+  const merged = { ...(minWidth === undefined ? null : { minWidth: length(minWidth) }), ...vars, ...style } as React.CSSProperties;
+  return (
+    <table {...props} ref={setRef} data-fixed={fixed ? "" : undefined} data-pinned={fixed ? pinned : undefined} style={merged} className={join("basalt-table", className)}>
+      {fixed ? (
+        <colgroup>
+          {columns.map((column, i) => (
+            <col key={i} style={column.width === undefined ? undefined : { width: length(column.width) }} />
+          ))}
+        </colgroup>
+      ) : null}
+      {children}
+    </table>
+  );
 }
 
 export function TableHeader(props: React.ComponentProps<"thead">) {
@@ -95,12 +212,62 @@ export function TableRow({ selected, ...props }: React.ComponentProps<"tr"> & { 
   return <tr {...props} aria-selected={selected} data-selected={selected ? "" : undefined} />;
 }
 
-export function TableHead({ numeric, className, ...props }: React.ComponentProps<"th"> & { numeric?: boolean }) {
-  return <th scope="col" {...props} data-numeric={numeric ? "" : undefined} className={className} />;
+export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClick"> {
+  numeric?: boolean;
+  /** Which way this column is sorted, when it is the sorted one. Leave it unset on every other column. */
+  sort?: SortDirection;
+  /**
+   * Makes the header sortable: the whole cell is the button. Called with the direction a press asks for: ascending then
+   * descending, a numeric column or a `firstSort="descending"` column descending first. There is no cleared state.
+   */
+  onSortChange?: (next: SortDirection) => void;
+  /** The direction a first press asks for. Text starts ascending, a `numeric` column descending; set it to descending for a time. */
+  firstSort?: SortDirection;
+}
+
+/** The header of one column. Sortable when `onSortChange` is set; it then reserves the indicator's seat, so a sort moves nothing. */
+export function TableHead({ numeric, sort, onSortChange, firstSort, className, children, ...props }: TableHeadProps) {
+  if (!onSortChange) return <th scope="col" {...props} aria-sort={sort} data-numeric={numeric ? "" : undefined} className={className}>{children}</th>;
+  const first: SortDirection = firstSort ?? (numeric ? "descending" : "ascending");
+  const next: SortDirection = sort === undefined ? first : sort === "ascending" ? "descending" : "ascending";
+  return (
+    <th scope="col" {...props} aria-sort={sort} data-sortable="" data-numeric={numeric ? "" : undefined} className={className}>
+      <button type="button" className="basalt-sort" onClick={() => onSortChange(next)}>
+        <span className="basalt-sort-label">{children}</span>
+        {/* The seat is 16px on every sortable header, whatever it shows, so the indicator arriving moves nothing. */}
+        <span className="basalt-sort-seat" aria-hidden="true">
+          <Icon icon={CaretUpDownIcon} className="basalt-sort-caret" />
+          <Icon icon={ArrowUpGlyph} className="basalt-sort-up" />
+          <Icon icon={ArrowDownGlyph} className="basalt-sort-down" />
+        </span>
+      </button>
+    </th>
+  );
 }
 
 export function TableCell({ numeric, mono, className, ...props }: React.ComponentProps<"td"> & { numeric?: boolean; mono?: boolean }) {
   return <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} className={className} />;
+}
+
+export interface TableEmptyProps extends Omit<React.ComponentProps<"td">, "colSpan"> {
+  /** The number of columns, so the row spans them all and moves nothing. */
+  colSpan: number;
+  /** The way out, e.g. a "Clear filters" button. */
+  action?: React.ReactNode;
+}
+
+/** The row a table shows when no row matches: one cell across every column, under the unchanged header, with a sentence and an action. */
+export function TableEmpty({ colSpan, action, className, children, ...props }: TableEmptyProps) {
+  return (
+    <tr data-empty="">
+      <td {...props} colSpan={colSpan} className={className}>
+        <div className="basalt-table-empty">
+          <span>{children}</span>
+          {action}
+        </div>
+      </td>
+    </tr>
+  );
 }
 
 // ---- Tooltip ----
