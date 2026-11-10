@@ -49,7 +49,7 @@ Every value below is a token. Use the token, never its value: \`var(--basalt-sur
 - Space on a 4px base: \`basalt-space-4\` is 16px. Cards and table cells pad \`basalt-space-4\`; dialogs \`basalt-space-6\`.
 - Controls are 24, 28, 32, 36 or 40px tall; 32 (\`basalt-size-control-md\`) is the app default. Touch targets are at least 44px (\`basalt-size-tap-min\`).
 - Set \`data-density="compact"\` on \`html\` for controls one step smaller, with 24px as the floor; a nested \`data-density="default"\` restores regular sizes. Portalled menus inherit the app density. Touch retains 44px targets and 16px text entry regardless of density. A standalone choice needs its consumer to provide the labelled touch target.
-- Radius by role: \`basalt-radius-xs\` for badges and checkboxes, \`basalt-radius-sm\` for controls up to 32px, \`basalt-radius-md\` from 36px, \`basalt-radius-lg\` for cards, menus and dialogs, \`basalt-radius-full\` for avatars and dots only. A nested radius is the outer radius minus the padding.
+- Radius by role: \`basalt-radius-xs\` for badges and checkboxes, \`basalt-radius-sm\` for controls up to 32px, \`basalt-radius-md\` from 36px, \`basalt-radius-lg\` for cards, menus and dialogs, \`basalt-radius-full\` for avatars, dots and the navigation hover pill. A nested radius is the outer radius minus the padding.
 
 ## Elevation and motion
 

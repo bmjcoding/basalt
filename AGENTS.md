@@ -95,7 +95,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
-  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
+  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars, dots and the navigation hover pill). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98

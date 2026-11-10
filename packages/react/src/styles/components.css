@@ -14,6 +14,7 @@
     --_basalt-control-line: var(--basalt-text-sm-line-height);
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
     --_basalt-menu-row: var(--basalt-size-control-md);
+    --_basalt-nav-row: var(--basalt-size-control-xl);
   }
 
   :where([data-density="default"]) {
@@ -26,6 +27,7 @@
     --_basalt-control-line: initial;
     --_basalt-control-lg-radius: initial;
     --_basalt-menu-row: initial;
+    --_basalt-nav-row: initial;
   }
 
   /* ---- depth: surface levels and the rim ---- */
@@ -625,6 +627,128 @@
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab { transition-property: color; }
     .basalt-segmented[data-slide] .basalt-segment[data-pressed],
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
+  }
+
+  /* ---- Navigation: a sidebar and its collapsed rail ---- */
+
+  /* X's way (decisions 42 and 45). The link is the whole row, so the target is the column; the pill inside it is
+     what hovers, and it hugs the glyph and the label: 48 tall and fully round, 12 before the glyph and 20 after the
+     label, never the column's width. Glyph and label are both primary at rest. The current page is its selected glyph
+     and a 600 label, with no background and no bar; it reserves the 600 width so nothing shifts. Each row carries
+     2px above and below its pill, so neighbouring rows touch and a pointer crossing from one to the next never
+     leaves them. The column keeps space-1-5 of inline padding so the focus ring (+2, around the pill) never clips.
+     Compact steps the pill down to 40; on touch it stays at least 44 whatever the density, so a row is at least 48. */
+  .basalt-nav {
+    --_nav-height: var(--_basalt-nav-row, var(--basalt-space-12));
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    min-width: 0;
+    padding-inline: var(--basalt-space-1-5);
+    color: var(--basalt-text-primary);
+  }
+  .basalt-nav-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+  .basalt-nav-entry { display: flex; flex-direction: column; margin: 0; padding: 0; }
+  .basalt-nav-group { margin: 0; padding: 0; }
+  .basalt-nav-group-label {
+    display: block;
+    padding: var(--basalt-space-4) var(--basalt-space-3) var(--basalt-space-1);
+    color: var(--basalt-text-tertiary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+  }
+  .basalt-nav-list > .basalt-nav-group:first-child > .basalt-nav-group-label { padding-top: 0; }
+
+  .basalt-nav-item {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    min-height: calc(var(--_nav-height) + 2 * var(--basalt-space-0-5));
+    padding-block: var(--basalt-space-0-5);
+    color: var(--basalt-text-primary);
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-nav-pill {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-4);
+    height: var(--_nav-height);
+    padding-inline: var(--basalt-space-3) var(--basalt-space-5);
+    border-radius: var(--basalt-radius-full);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-nav-pill > .basalt-icon { flex: none; }
+  .basalt-nav-label {
+    display: inline-flex;
+    flex-direction: column;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-xl-tracking);
+    white-space: nowrap;
+  }
+  /* The label reserves its 600 width, so becoming current never moves the pill's far edge. */
+  .basalt-nav-label[data-label]::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .basalt-nav-item[aria-current="page"] .basalt-nav-label { font-weight: var(--basalt-font-weight-semibold); }
+  /* A count is a number, never a disc; a dot is a small shape in the label's ink, and its words are spoken. */
+  .basalt-nav-count {
+    margin-inline-start: calc(-1 * var(--basalt-space-1));
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .basalt-nav-dot { flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); margin-inline-start: calc(-1 * var(--basalt-space-1)); border-radius: var(--basalt-radius-full); background-color: currentColor; }
+
+  /* The rail: a circle around the glyph. The label is the item's name, kept for assistive technology, and a tooltip. */
+  .basalt-nav[data-collapsed] .basalt-nav-entry { align-items: center; }
+  .basalt-nav[data-collapsed] .basalt-nav-pill { width: var(--_nav-height); padding-inline: 0; justify-content: center; }
+  .basalt-nav[data-collapsed] .basalt-nav-item { justify-content: center; }
+
+  /* Hover, and pressed, are the hugging pill at the selected wash (9% white, 7% black): hover already sits at the wash,
+     so a press has no further step, and on touch, where nothing hovers, the pill is the press. In at once, out over
+     duration-fast. */
+  @media (hover: hover) {
+    .basalt-nav-item:hover .basalt-nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  }
+  .basalt-nav-item:active .basalt-nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  .basalt-nav-item:focus-visible .basalt-nav-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The first key hides the hover, shared pill and fallback alike: focus is the cue, until the pointer moves again. */
+  .basalt-nav[data-keys] .basalt-nav-item:hover .basalt-nav-pill,
+  .basalt-nav[data-keys] .basalt-nav-item:active .basalt-nav-pill { background-color: transparent; }
+
+  /* The glide: one shared pill per list, the plate's rules with the hugging pill's shape. The items' own pills step
+     aside only while it is live (data-glide on the list), so no script, touch, reduced motion and forced colours all
+     keep the fallback above. */
+  .basalt-nav > .basalt-plate { --_plate: var(--basalt-state-selected); border-radius: var(--basalt-radius-full); }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    .basalt-nav[data-glide] .basalt-nav-item .basalt-nav-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
+  }
+
+  @media (pointer: coarse) {
+    .basalt-nav { --_nav-height: max(var(--_basalt-nav-row, var(--basalt-space-12)), var(--basalt-size-tap-min)); }
+  }
+
+  /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current
+     page keeps its selected glyph and its 600 label. The shared pill is not drawn. */
+  @media (forced-colors: active) {
+    .basalt-nav-item:hover .basalt-nav-pill,
+    .basalt-nav-item:active .basalt-nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    .basalt-nav-item:hover .basalt-nav-count,
+    .basalt-nav-item:active .basalt-nav-count { color: HighlightText; }
+    .basalt-nav[data-keys] .basalt-nav-item:hover .basalt-nav-pill,
+    .basalt-nav[data-keys] .basalt-nav-item:active .basalt-nav-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
   }
 
   /* ---- Tooltip ---- */
