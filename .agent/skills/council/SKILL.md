@@ -69,8 +69,9 @@ make no design decision yourself. You never vote, and you never write a member's
 - **Fewer members:** run with three only if the owner orders it.
   - 2 of 3 decides wherever this skill or a template says 3 of 4 or 3 votes: a design vote, the roadmap's scope, tier and moves, and a
     preference in code review.
-  - Votes plus abstentions make 3, and prototypes come from the designers who remain. The vote and roadmap briefs' header comments say
-    how to adapt them.
+  - Votes plus abstentions make 3, and prototypes come from the designers who remain.
+  - In every brief and template you copy for that round, rewrite the four-member lines: name the three members, write "2 of 3" for
+    "3 of 4", and quote three final positions in the PR. The vote and roadmap briefs' header comments say the same.
   - Record the exception, with its reason, in `DECISIONS.md` and in the PR.
 
 ## Who decides

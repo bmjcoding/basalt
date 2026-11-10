@@ -71,6 +71,6 @@ Hold deadlocks; don't send them one at a time.
 - **His answer is a decision:** log it, then build it.
 
 ## 4. The end
-The stream is finished when every in-scope item is a done PR, a recorded deadlock, or a round stopped by a failed delegate that you've
-reported to the owner. Then build the review page
+The stream is finished when every in-scope item is a done PR, a recorded deadlock, or a round stopped and reported to the owner as a
+failure (a failed delegate, or the build loop in SKILL.md step 8). Then build the review page
 (`references/owner-review.md`). It holds the deadlocks, every PR, and the gaps found outside scope.
