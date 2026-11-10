@@ -96,8 +96,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   hairline, a check, or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows). **There is no vertical bar and no inset outline
   anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
-  flush-field −2 inset, and the 1px divider at a pinned table column's edge while the table is scrolled (structure, never a
-  mark). The active row in a menu, select, combobox or command menu is a rounded plate
+  flush-field −2 inset, and these structural vertical lines, each named and never a selection, sort, active or status mark:
+  the 1px divider at a pinned table column's edge while the table is scrolled, and a meter's labelled target tick. The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
