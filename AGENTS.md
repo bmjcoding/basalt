@@ -25,7 +25,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Nothing counts as converged until both reviewers have answered in their own words, and
   the PR quotes each reviewer's final position as written, not merged into a summary.
 - **The council.** When the owner asks for the council, read `.agent/skills/council/SKILL.md`: it names the four members,
-  how a round runs, and how the council settles a split by majority.
+  how a round runs, and how the council settles a split by majority. When the owner hands a stream of work to the council,
+  the council's majority stands in for his approval before building; he sees only deadlocks along the way, and gives each
+  built PR a thumbs up or down before it merges.
 - **The owner's word is in the conversation or on the PR.** A merge of a PR means
   approval to go ahead with what it described, nothing more.
 - **Where the line falls.** A change that alters any rendered pixel is visual, even inside
