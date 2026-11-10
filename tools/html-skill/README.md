@@ -45,7 +45,7 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
 exists today is in `test/parity-differences.mjs` with its reason and source. The list only shrinks: a new difference fails the test,
 and so does an entry that no longer differs. `PARITY_REPORT=1 npm run test:html-skill` prints what the run found. Loops (the spinners) are read at their first frame. A native `input[type=range]`
 can't be read this way (Chromium doesn't resolve its `::-webkit-` parts in computed style), so `parity-1.test.mjs` measures the range's track,
-thumb and fill by pixel instead, and pins the rest of the first parity PR's behaviour (number field, braille, ring, accent reader, forced colours).
+thumb and fill by pixel instead, and pins the rest of the first parity PR's behaviour (number field, braille, ring, accent reader, forced colours). `parity-2.test.mjs` pins the second's (the palette's levels and rows, the glide, a focusable row's ring, the bar's removal, the selected table row, the segment's sliding pill and its fallbacks, a tab's icon).
 
 ## The pixel baseline
 

@@ -144,6 +144,7 @@
     --panel-bg: var(--basalt-surface-1);
     --panel-next: var(--basalt-surface-2);
     --panel-well: var(--basalt-surface-sunken);
+    --panel-plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--panel-next)));
     position: relative;
     min-width: 0;
     background-color: var(--panel-bg);
@@ -159,11 +160,13 @@
   @media (min-width: 720px) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
   .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
 
-  /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (level 2 or above, with a shadow).
-     A static picture of one in a document is drawn as that surface. */
-  .float { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); box-shadow: var(--basalt-shadow-overlay); }
-  .float.modal { box-shadow: var(--basalt-shadow-modal); }
-  .float %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
+  /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (with a shadow). A popup is its opener plus one with a
+     floor of 1: from the page it is level 1, and inside a panel the nesting rules above make it the next level. A modal (dialog, palette)
+     resets to level 1 and what it holds starts at 2. --panel-plate is the fill of a lit row on the panel's level: the next level plus the
+     selected wash as one solid colour in dark, the wash alone in light (levels 1 to 3 are one white there). */
+  .float { --panel-bg: var(--basalt-surface-1); --panel-next: var(--basalt-surface-2); --panel-well: var(--basalt-surface-sunken); box-shadow: var(--basalt-shadow-overlay); }
+  .float.modal { box-shadow: var(--basalt-shadow-modal); --panel-bg: var(--basalt-surface-1); --panel-next: var(--basalt-surface-2); --panel-well: var(--basalt-surface-sunken); }
+  .float.modal %panel% { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); }
 
   /* [data-level] only re-bases a subtree (a page, a portal, a specimen frame). It never promotes a panel. */
   [data-level="0"] { --panel-next: var(--basalt-surface-1); }

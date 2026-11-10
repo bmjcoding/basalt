@@ -782,7 +782,7 @@ describe("primitives", () => {
       });
       const px = (v) => resolve(page, "width", v);
       assert.deepEqual(out.group, [await resolve(page, "backgroundColor", "var(--basalt-surface-sunken-strong)"), await px("var(--basalt-radius-md)"), await px("var(--basalt-space-0-5)")]);
-      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "var(--basalt-shadow-pill)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
+      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "var(--basalt-shadow-pill)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
       assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "500"]);
       assert.deepEqual(out.off, ["rgba(0, 0, 0, 0)", "none", await resolve(page, "color", "var(--basalt-text-secondary)")]);
       assert.deepEqual(out.badge, [await px("var(--basalt-text-xs-size)"), "500", await resolve(page, "color", "var(--basalt-text-secondary)"), await px("var(--basalt-radius-xs)"), await px("var(--basalt-size-badge)"), await resolve(page, "boxShadow", "inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline)")]);
@@ -1053,7 +1053,7 @@ describe("the SKILL's rules", () => {
       /No row of stat tiles\.\*\* `\.stats` > `\.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number/,
       /A badge\*\* labels one object's status or count, always with a word; never decoration\./,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
-      /the 2px bar is only for selection/i,
+      /\*\*Selected\*\* is a shape or a step in ink, never a wash alone: the raised pill, a row's plate, a checked box, a tab's underline\. No vertical bar, no inset outline\./,
       /No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
       /standalone links too/,
       /\*\*Braille\*\* is for a status: beside a word that names running work \(`<span class="status"><braille-spinner><\/braille-spinner>Running<\/span>`\), never in a button and never without its word\. The ring is for a wait\./,
@@ -1279,20 +1279,37 @@ describe("the display size", () => {
 });
 
 describe("the active row in forced colours", () => {
-  test("the row is Highlight, its bar is HighlightText", async () => {
+  test("the lit row's plate is Highlight and every part is HighlightText, with no backplate and no bar; a lit danger row takes the same pairing", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.emulateMedia({ forcedColors: "active" });
-    await page.keyboard.press("Control+k");
+    await page.evaluate(() => window.Basalt.openPalette({ groups: [{ label: "G", items: [
+      { label: "Copy", icon: "Copy", hint: "a hint", keys: ["⌘", "C"] }, { label: "Danger", icon: "Copy", danger: true, hint: "bad" }, { label: "Plain" }] }] }));
     await page.locator(".palette input").waitFor();
-    const row = page.locator(".palette [data-active]").first();
-    const s = await row.evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color, getComputedStyle(el, "::before").backgroundColor]);
     const highlight = await resolveCss(page, "Highlight", "background-color");
-    const text = await resolveCss(page, "HighlightText", "background-color");
+    const text = await resolveCss(page, "HighlightText", "color");
     assert.notEqual(highlight, text);
-    assert.deepEqual(s, [highlight, text, text]);
-    // an inactive row is not Highlight
-    const other = await page.locator(".palette [role=option]:not([data-active])").first().evaluate((el) => getComputedStyle(el).backgroundColor);
-    assert.notEqual(other, highlight);
+    const read = (selector) => page.locator(selector).first().evaluate((row) => {
+      const c = (el, pseudo) => getComputedStyle(el, pseudo);
+      return {
+        row: [c(row).backgroundColor, c(row).color, c(row).forcedColorAdjust], plate: [c(row, "::before").backgroundColor, c(row, "::before").content, c(row, "::before").width],
+        parts: ["svg", ".row-label", ".row-hint", ".kbd"].map((q) => (row.querySelector(q) ? c(row.querySelector(q)).color : null)),
+        chip: row.querySelector(".kbd") ? [c(row.querySelector(".kbd")).backgroundColor, c(row.querySelector(".kbd")).borderTopColor] : null,
+      };
+    });
+    const lit = await read(".palette [data-active]");
+    assert.deepEqual(lit.row, ["rgba(0, 0, 0, 0)", text, "none"], "the row paints no backplate of its own: the plate is its ::before");
+    assert.deepEqual(lit.plate[0], highlight);
+    assert.deepEqual(lit.parts, [text, text, text, text]);
+    assert.deepEqual(lit.chip, [highlight, text]);
+    assert.equal(await page.locator(".palette .plate").evaluate((el) => getComputedStyle(el).display), "none", "no shared plate in forced colours: each row lights on its own");
+    // the danger row, lit
+    await page.keyboard.press("ArrowDown");
+    const danger = await read(".palette [data-active]");
+    assert.deepEqual([danger.row[1], danger.plate[0], danger.parts.slice(0, 3)], [text, highlight, [text, text, text]]);
+    // an unlit row is not Highlight, and its plate is not drawn
+    const other = await read(".palette [role=option]:not([data-active])");
+    assert.notEqual(other.plate[0], highlight);
+    assert.notEqual(other.row[1], text);
     await context.close();
   });
 });

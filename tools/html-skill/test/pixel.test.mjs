@@ -5,6 +5,8 @@
 // The baseline began as PR #26's two templates, byte for byte. A PR that changes a pixel on purpose re-records the fixtures from the new
 // pages in the same commit (node tools/html-skill/test/record-baseline.mjs), so the diff shows what moved; it does not weaken this test.
 // Re-recorded so far: the first parity PR (the number field, the textarea's height, native chrome, braille, the ring, code radius).
+// The second parity PR (popup rows and levels, the glide, the bar's removal, the segment's pill): the palette (open), the kitchen sink's rows,
+// segment and selected table row; the two example pages at rest did not move.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 

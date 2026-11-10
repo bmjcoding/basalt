@@ -316,7 +316,9 @@ describe("the accent reader", () => {
 
   test("without data-accent the page carries no accent sheet, and with it the sheet is only the classes", () => {
     const without = compose(ACCENT.replace(/data-accent="[a-z]+"/g, ""), { fonts: false }).html;
-    assert.ok(!without.includes("light-dark("), "no accent sheet");
+    // The accent sheet is the one that declares [data-accent=cobalt]. (It used to be told apart by light-dark(), which the lit-row plate and the
+    // segment's pill now use too, so the test looks for the sheet's own selector, which is what "no accent sheet" means.)
+    assert.ok(!without.includes("[data-accent=cobalt]"), "no accent sheet");
     assert.ok(without.includes("--basalt-accent-ink,"), "the reader (with its ink fallback) is in the status module");
     assert.ok(compose(ACCENT, { fonts: false }).html.includes('[data-accent=cobalt]'));
   });

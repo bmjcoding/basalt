@@ -5,8 +5,9 @@
   th[data-numeric], td[data-numeric] { text-align: end; font-variant-numeric: tabular-nums; }
   td[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
   @media (hover: hover) { tbody tr:hover { background: var(--basalt-state-hover); } }
+  /* A selected row is the wash as a band, edge to edge: no bar and no edge mark, in forced colours too (the wash drops there). The state is carried
+     by the row's checked box and a count in words, which the page writes (the wash is about 1.2:1 and says nothing alone). */
   tr[aria-selected="true"] { background: var(--basalt-state-selected); }
-  tr[aria-selected="true"] td:first-child { box-shadow: inset var(--basalt-size-indicator) 0 0 var(--basalt-text-primary), inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
   @media (pointer: coarse) { td { height: var(--basalt-size-tap-min); } }
   /* At 390 a table's name column and any status column come first and fit; only the numbers scroll. Tighter cells, never a hidden column. */
   /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
