@@ -56,6 +56,8 @@ export { AlertDialog, AlertDialogAction, AlertDialogActions, AlertDialogCancel, 
 export type { AlertDialogProps, SheetContentProps, SheetSide } from "./overlays";
 export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
+export { Nav, NavGroup, NavItem } from "./nav";
+export type { NavGroupProps, NavItemProps, NavProps } from "./nav";
 export { MorphIcon } from "./morph-icon";
 export type { MorphIconProps } from "./morph-icon";
 export { Slide, TravelSpinner, useGlide, useReducedMotion, useSlideDirection } from "./motion";

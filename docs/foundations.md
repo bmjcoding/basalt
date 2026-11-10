@@ -130,7 +130,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
-  flush-field −2 inset above. Basalt ships no such row today: the rows of Menu, Select, Combobox and CommandMenu are
+  flush-field −2 inset above. Navigation items are such rows: their ring goes around the hugging pill (see
+  [Navigation](#navigation)). Otherwise Basalt ships none: the rows of Menu, Select, Combobox and CommandMenu are
   options and show the plate, breadcrumbs and pagination are inline, and a settings or list row is the app's own
   markup. The accordion trigger is the one full-width band that is itself a button; it keeps the ring it was built with
   and is open for the panel.
@@ -330,7 +331,7 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8
-  (controls 36px and up, code blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets; full-height side sheets are square), full (avatars and dots only). A
+  (controls 36px and up, code blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets; full-height side sheets are square), full (avatars, dots and the navigation hover pill). A
   nested radius is the outer radius minus the padding.
 
 ## Elevation
@@ -416,13 +417,46 @@ touch (the 4px gap between plates is drawn inside the rows, 2px above and below 
 leaves one. A panel's padding is 4px inline and 2px block, so a plate is 4px from the rim on every side. It is summoned from the
 keyboard many times a day, so it neither opens nor closes with motion, its backdrop included.
 
+## Navigation
+
+`Nav`, `NavGroup` and `NavItem` are an app's sidebar and its collapsed rail, drawn X's way (decisions 42, 45, 48 and 49, the
+glyph ink in 55 and the glide in 69 and 70). Their markup is a `nav` landmark with a name, lists of links, optional group
+labels, and `aria-current="page"` on the current link.
+
+- **The item** is a link whose row is the column, so the target is the whole row, and a pill inside it that hugs its
+  content. The pill is 48 tall and fully round, 12 before the glyph and 20 after the label, with the glyph at 24 and the
+  label at 20/28 (`text-xl`), 16 between them. Glyph and label are both primary ink at rest. Each row carries 2px above and
+  below its pill, so neighbouring rows touch and a pointer crossing between them never leaves a row. The column keeps at
+  least `space-1-5` of inline padding so the focus ring never clips.
+- **Hover** is the hugging pill at the selected wash (9% white, 7% black; `#171717` over the dark page and `#e8e8e8` over the
+  light one, about 1.17:1), never the column's width. The label stays primary on it (15.3:1 in dark, 14.6:1 in light). **Pressed**
+  is the same pill: hover already sits at the wash, so there is no further step, and on touch the pill is the press. Nothing
+  scales.
+- **Current page** is the glyph's selected form and the label at 600, with no background, no bar and no outline. The label
+  reserves its 600 width, so becoming current moves nothing. A current item that is hovered has both.
+- **The rail** is a 48px circle around the glyph. The label is the item's accessible name, and a tooltip shows it on hover
+  and on focus. Group labels stay as the group's accessible name. Counts and dots are spoken with the name and are not drawn
+  in the rail.
+- **Count and dot.** A count is a number in secondary ink after the label, and a dot is a 6px dot in the label's own ink;
+  its words ("New activity") are spoken with the name. Never a coloured disc.
+- **The glide** is the hover glide above, in navigation. One shared pill per list travels between items on `duration-base`
+  and `ease-out`, constant, and changes its width to hug each item. Entering from outside it appears in place at once.
+  Leaving, a move in progress freezes and the pill fades in place over `duration-fast` on `ease-in`; a return during that
+  fade (the grace) travels from there. **The first key hides it at once** and the focus ring shows: the control ring at +2
+  around the hugging pill, and a hover resting under the pointer is hidden too, so only the ring shows; the next pointer move
+  brings the glide back in place. It is off on touch, under reduced motion and in forced colours. Each item paints its own
+  pill otherwise, which is also how it looks with no script: in at once, out over `duration-fast`. In forced colours the
+  hovered item is `Highlight` with `HighlightText` and no backplate.
+- **Touch and density.** A row is at least 48 tall on touch. Compact steps the pill down to 40 (a 40px rail circle), with a
+  floor of 44 on touch, so a row is still 48.
+
 ## Motion
 
 | Token | Value | Use |
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
-| `duration-base` | 150ms | Tooltips, menus, popovers, the hover glide |
+| `duration-base` | 150ms | Tooltips, menus, popovers, the hover glide in popup rows and in navigation |
 | `duration-slow` | 200ms | Dialogs, accordions, tab indicator and panel, the segmented and vertical-tab pill, a value glide (`useGlide`) |
 | `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
 
@@ -456,7 +490,7 @@ in forced colours the chosen item is `Highlight` with `HighlightText`, with no b
 choice, so it slides there too, and a target stays at least 44px. The horizontal underline already slides and is
 unchanged. A control where several items can be on has no single pill to move, and does not slide.
 
-**The hover glide.** In the popup rows of Menu, Select, Combobox and CommandMenu, one plate per popup follows the
+**The hover glide.** In the popup rows of Menu, Select, Combobox and CommandMenu, and in navigation, one plate per popup or list follows the
 pointer between rows on `duration-base` and `ease-out`, constant whatever the distance; each row's own plate is the
 fallback underneath. The primitive stays the authority on which row is active (Base UI's highlight, cmdk's selection);
 the glide only paints it.
@@ -466,8 +500,8 @@ the glide only paints it.
   This is the grace: if the pointer reaches a row while the fade runs, the plate travels from where it is and returns to
   full opacity. Once the fade is done, it appears in place again.
 - **The keyboard** moves the highlight at once, with no travel, because in a popup the plate is the keyboard position:
-  arrows, Home and End snap it. The last input decides: a pointer glides, a key snaps. In navigation, for the navigation
-  component, the first key hides the glide and the focus ring shows instead.
+  arrows, Home and End snap it. The last input decides: a pointer glides, a key snaps. In navigation the first key hides the
+  glide and the focus ring shows instead (see [Navigation](#navigation)).
 - **The command menu** keeps its plate when the pointer leaves, as it always has: it is the selected row, so it never
   fades, and the pointer moves it from that row to the next.
 - **Off** on touch (`(hover: none)`, a coarse pointer or a touch `pointerType`), where the row under the finger shows
@@ -564,6 +598,10 @@ approved either yet.
 
 The sliding pill, the hover glide in popups and the focus rule for a focusable row were decided by the council in a
 four-member vote and approved by the owner on 9 Nov 2026. Their implementation has not been reviewed by the panel.
+
+Navigation (the sidebar and the rail, with their glide) was decided by the council and the owner in decisions 42, 45, 48,
+49, 55, 69 and 70 (the drawing is `.review/council/menus-final/`, section 1). Its implementation has not been reviewed by the
+panel.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

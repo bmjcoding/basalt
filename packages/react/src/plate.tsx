@@ -12,30 +12,73 @@ import * as React from "react";
 //                                     a return during the fade travels from there, after it the plate appears in place
 //
 // The geometry is four CSS variables on the plate, written from the DOM. No React state, no animation frames.
+//
+// Navigation is the second place the glide lives. A navigation list has no highlight of its own, so the glide marks the
+// item under the pointer `data-hovered` (an attribute, not state) and follows that; it hugs the item's pill, not its
+// row; and the first key hides it instead of moving it (the focus ring shows), until the next pointer move.
 
-/** Rows the plate follows, and the host that scrolls them. */
-const ACTIVE = ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']";
-const HOST = ".basalt-menu, .basalt-command-list";
+/** What a glide follows: the host that holds the rows, which row is lit, and the shape to hug. */
+interface Kind {
+  host: string;
+  active: string;
+  attributes: string[];
+  /** The row the pointer is on, for a host with no highlight of its own. */
+  item?: string;
+  /** The first key hides the glide (navigation) instead of moving it (a popup). */
+  hideOnKey?: boolean;
+  /** The box to hug, if not the row's own plate (its ::before). */
+  shape?: string;
+}
+
+const POPUP: Kind = {
+  host: ".basalt-menu, .basalt-command-list",
+  active: ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']",
+  attributes: ["data-highlighted", "data-selected"],
+};
+const NAVIGATION: Kind = {
+  host: ".basalt-nav",
+  active: ".basalt-nav-item[data-hovered]",
+  attributes: ["data-hovered"],
+  item: ".basalt-nav-item",
+  hideOnKey: true,
+  shape: ".basalt-nav-pill",
+};
 /** No shared plate: the hand can't hover (touch), or motion or colour is the user's. The stylesheet repeats this. */
 const OFF = "(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)";
 
 type Modality = "pointer" | "keyboard" | "touch";
 
-function attachPlate(plate: HTMLElement): (() => void) | undefined {
-  const host = plate.closest<HTMLElement>(HOST);
+function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
+  const host = plate.closest<HTMLElement>(kind.host);
   if (!host) return undefined;
+  const ACTIVE = kind.active;
   const off = window.matchMedia(OFF);
-  let modality: Modality = "keyboard";
+  // A popup opens on a key as often as not, and starts on the keyboard's side. Navigation is lit only by a pointer, and
+  // hidden by the first key, so it starts on the pointer's.
+  let modality: Modality = kind.hideOnKey ? "pointer" : "keyboard";
   let last: HTMLElement | null = null;
   let target = "";
   let snapNext = false;
   let leaving: number | undefined;
 
-  const on = () => !off.matches && modality !== "touch";
+  const on = () => !off.matches && (kind.hideOnKey ? modality === "pointer" : modality !== "touch");
   const lit = () => plate.dataset.state === "on";
-  // The row's own plate (its ::before) is the shape to follow, so the shared one matches the fallback to the pixel.
+  // The row's own plate (its ::before), or the item's pill, is the shape to follow, so the shared one matches the
+  // fallback to the pixel.
   const geometry = (row: HTMLElement) => {
     const box = host.getBoundingClientRect();
+    const shape = kind.shape ? row.querySelector<HTMLElement>(kind.shape) : null;
+    if (shape) {
+      const ratio = host.offsetWidth > 0 ? box.width / host.offsetWidth : 1;
+      const scale = Math.abs(ratio - 1) < 0.01 ? 1 : ratio;
+      const hug = shape.getBoundingClientRect();
+      return {
+        x: (hug.left - box.left) / scale - host.clientLeft + host.scrollLeft,
+        y: (hug.top - box.top) / scale - host.clientTop + host.scrollTop,
+        w: hug.width / scale,
+        h: hug.height / scale,
+      };
+    }
     const at = row.getBoundingClientRect();
     const own = getComputedStyle(row, "::before");
     const ratio = host.offsetWidth > 0 ? box.width / host.offsetWidth : 1;
@@ -66,7 +109,11 @@ function attachPlate(plate: HTMLElement): (() => void) | undefined {
     leaving = undefined;
     host.toggleAttribute("data-glide", on());
     if (!on()) {
-      plate.dataset.state = "off";
+      // Hidden at once, not faded: a key, touch or a media query took the glide away, and a pointer that comes back
+      // must not fly from where it was.
+      if (plate.dataset.state !== "off" || last) inPlace(() => { plate.dataset.state = "off"; });
+      last = null;
+      target = "";
       return;
     }
     const row = host.querySelector<HTMLElement>(ACTIVE);
@@ -123,13 +170,29 @@ function attachPlate(plate: HTMLElement): (() => void) | undefined {
     if (next === modality) return;
     const wasOn = on();
     modality = next;
+    if (kind.hideOnKey) host.toggleAttribute("data-keys", modality === "keyboard");
     if (on() !== wasOn) settle();
   };
+
+  // A host with no highlight of its own: the item under a mouse or pen is the lit one. Touch never lights it.
+  const hover = (event: PointerEvent) => {
+    if (event.pointerType === "touch") return;
+    const item = (event.target as Element).closest<HTMLElement>(kind.item!);
+    const now = host.querySelector<HTMLElement>(ACTIVE);
+    if (item === now) return;
+    now?.removeAttribute("data-hovered");
+    item?.setAttribute("data-hovered", "");
+  };
+  const leaveHost = () => host.querySelector(ACTIVE)?.removeAttribute("data-hovered");
+  if (kind.item) {
+    host.addEventListener("pointerover", hover);
+    host.addEventListener("pointerleave", leaveHost);
+  }
 
   plate.dataset.state = "off";
   settle();
   const changes = new MutationObserver(settle);
-  changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-highlighted", "data-selected"] });
+  changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: kind.attributes });
   const resizes = new ResizeObserver(() => {
     // A row that moved under a still highlight (a filter, a font, a resize) is re-placed in place.
     snapNext = true;
@@ -146,17 +209,23 @@ function attachPlate(plate: HTMLElement): (() => void) | undefined {
     resizes.disconnect();
     off.removeEventListener("change", settle);
     for (const type of ["pointermove", "pointerdown", "keydown"]) doc.removeEventListener(type, input, { capture: true });
+    if (kind.item) {
+      host.removeEventListener("pointerover", hover);
+      host.removeEventListener("pointerleave", leaveHost);
+      leaveHost();
+    }
     host.removeAttribute("data-glide");
+    host.removeAttribute("data-keys");
   };
 }
 
 /**
  * The shared plate of a popup's rows. Render it inside the popup (Menu, Select, Combobox) or the command list, before
- * the rows. It is decoration: hidden from assistive technology, never hit by the pointer, and drawn only when the
- * stylesheet and the input allow it.
+ * the rows; with `navigation`, render it as the first child of a navigation list. It is decoration: hidden from
+ * assistive technology, never hit by the pointer, and drawn only when the stylesheet and the input allow it.
  */
-export function GlidePlate() {
+export function GlidePlate({ navigation = false }: { navigation?: boolean }) {
   const plate = React.useRef<HTMLSpanElement>(null);
-  React.useLayoutEffect(() => (plate.current ? attachPlate(plate.current) : undefined), []);
+  React.useLayoutEffect(() => (plate.current ? attachPlate(plate.current, navigation ? NAVIGATION : POPUP) : undefined), [navigation]);
   return <span ref={plate} aria-hidden="true" className="basalt-plate" data-state="off" />;
 }

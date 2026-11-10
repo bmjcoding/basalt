@@ -17,7 +17,7 @@ The panel's rulings on all of this, and the options it left to the owner, are re
 |---|---|---|
 | `duration-instant` | 0 | Hover-in colour, selection |
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
-| `duration-base` | 150ms | Tooltips, menus, popovers, text morph, the hover glide |
+| `duration-base` | 150ms | Tooltips, menus, popovers, text morph, the hover glide (popup rows and navigation) |
 | `duration-slow` | 200ms | Dialogs, accordions, the tab indicator and panel, the segmented and vertical-tab pill, a digit roll, a value glide (`useGlide`), a morph |
 | `duration-slower` | 300ms | Sheets, a travelling spinner |
 
@@ -50,7 +50,7 @@ The pill is an enhancement over each item painting its own pill, which is how th
 
 ## The hover glide
 
-Menu, Select, Combobox and CommandMenu draw one plate per popup, which follows the pointer between rows on `duration-base` and `ease-out`, whatever the distance. Each row's own plate is the fallback and stays correct with no script. Base UI's `data-highlighted` (and cmdk's `data-selected`) stays the authority for which row is active; the glide only paints it, and an input-modality check decides whether the plate travels (pointer) or snaps (keyboard).
+Menu, Select, Combobox and CommandMenu draw one plate per popup, and navigation draws one pill per list, which follows the pointer between rows on `duration-base` and `ease-out`, whatever the distance. Each row's own plate is the fallback and stays correct with no script. Base UI's `data-highlighted` (and cmdk's `data-selected`) stays the authority for which row is active; the glide only paints it, and an input-modality check decides whether the plate travels (pointer) or snaps (keyboard).
 
 | Moment | What the plate does |
 |---|---|
@@ -62,7 +62,9 @@ Menu, Select, Combobox and CommandMenu draw one plate per popup, which follows t
 | An arrow key, Home or End | Moves at once, with no travel: in a popup the plate is the keyboard position |
 | The pointer leaves the command menu | Nothing: cmdk keeps its selected row, so the plate stays |
 
-The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointerType`), where the row under the finger shows its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with no travel; and in forced colours, where each row is `Highlight` with `HighlightText`. It is pointer-inert and hidden from assistive technology. As with the pill, the plate position is CSS variables written from the DOM and the browser eases them, so there is no render per frame. In navigation, which comes with the navigation component, the first key will hide the glide and show the focus ring instead.
+The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointerType`), where the row under the finger shows its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with no travel; and in forced colours, where each row is `Highlight` with `HighlightText`. It is pointer-inert and hidden from assistive technology. As with the pill, the plate position is CSS variables written from the DOM and the browser eases them, so there is no render per frame.
+
+**In navigation** (`Nav`) the same plumbing (`plate.tsx`) marks the item under the pointer `data-hovered` (an attribute, not state) and the pill hugs that item's own pill, not its row, changing width as it goes: a 48px round pill at the selected wash, or the 48px circle in the rail. The rows are the same table with two differences. The first key hides the glide at once (not faded) and the focus ring shows, the control ring at +2 around the hugging pill; the pointer resting on an item hides its hover too while the keyboard is in use, and the next pointer move brings the glide back in place. The pill never touches the column's width. Off on touch, under reduced motion and in forced colours, where the hovered item is `Highlight` with `HighlightText` with no backplate; each item paints its own pill, in at once and out over `duration-fast`, and with no script that is the whole story.
 
 ## Spinners
 
