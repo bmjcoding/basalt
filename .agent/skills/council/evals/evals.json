@@ -1,0 +1,45 @@
+{
+  "skill_name": "council",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "the date picker needs a design. send it to the council and have them figure it out, I don't have an opinion",
+      "expected_output": "A prototype brief from the template, three designers prototyping in parallel worktrees, then a vote brief to all four members, and a numbered tally in DECISIONS.md. The owner isn't asked to choose between options unless a tie leaves nothing shipping.",
+      "files": [],
+      "assertions": [
+        "A prototype brief exists in .review/council/ with the template's sections filled (owner's words, decided record, numbered questions, build, rules)",
+        "Exactly three prototype delegates (Muse, Opus, Grok) were started in parallel, each with isolation: worktree",
+        "The vote brief names every option with who proposed it",
+        "Four vote delegates (Opus, Muse, Sol, Grok) were started in parallel, none given another member's answer",
+        "DECISIONS.md gains one numbered entry with a count for each item and the dissent named on each split",
+        "The owner was asked nothing unless the tally records a deadlock"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "keep working with the council to finish what's missing in the design system. don't come to me until you have options they can't decide on, I'll thumbs up or down at the end",
+      "expected_output": "Rounds run without asking the owner. Built work ends as draft PRs with each member's quoted position and both CI jobs passing. One review page with live walkthroughs and open points is presented at the end, and nothing merges before his thumbs up.",
+      "files": [],
+      "assertions": [
+        "No question was put to the owner between rounds except a recorded deadlock",
+        "Each PR body quotes each member's final position, attributed by name",
+        "Each PR records a passing run of both CI jobs on its head (GitHub or npm run ci:local)",
+        "The review page in .review/approvals/ embeds each design PR's walkthrough in an iframe from live/",
+        "Each open point on the page is marked Your call or FYI and has a recommendation",
+        "No PR was merged before the owner's thumbs up"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "have the council review PR #52 and score it",
+      "expected_output": "A code review round: known fixes made first, four read-only reviewers in parallel, each giving a score out of 10, and the score table edited into the PR description, not posted as a comment.",
+      "files": [],
+      "assertions": [
+        "Known issues and outstanding PR comments were addressed before the reviewers started",
+        "Four reviewers were started in parallel, read-only",
+        "Each reviewer's score is recorded, or 'no score' where none was given",
+        "The 'Council review' table is in the PR description, and no PR comment was posted for it"
+      ]
+    }
+  ]
+}
