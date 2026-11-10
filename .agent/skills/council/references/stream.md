@@ -31,8 +31,8 @@ stream's ledger (`MAIN/.review/council/<topic>-ledger.md`) up to date at every s
     - a batch keeps its members unless 3 of 4 name the same move ("candidate A3 joins batch Forms");
     - a candidate the tally left out is dropped from its batch, and an empty batch is skipped;
     - **dependencies come before priority:**
-      - a later batch of a split group never starts before the earlier one; if the earlier one ended up empty, the later one branches
-        from `origin/main`;
+      - after dropping empty batches, a split group's surviving batches keep their proposed order. Each later one branches from the
+        previous surviving batch, and from `origin/main` only when no surviving batch comes before it;
       - two batches that now share a file outside the shared list (after moves) run one after the other, the later on the earlier's
         branch;
     - **then priority:** among batches whose prerequisites are done, start those holding a P1 item first, in the proposed order. Any

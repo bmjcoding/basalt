@@ -53,7 +53,8 @@ How complete is Basalt today against what its products need, out of 10?
 - **In scope:** 3 of 4 mark a candidate P1 or P2. Anything else stays out. That isn't a deadlock, and nothing is built for it.
 - **Its tier:** P1 if 3 of 4 mark it P1; otherwise P2.
 - **Batches** keep their proposed membership unless 3 of 4 name the same move.
-- **Order:** dependencies come before priority. A later batch of a split group never starts before the earlier one, and two batches
+- **Order:** dependencies come before priority. A split group's surviving batches keep their proposed order, each on the previous
+  surviving batch's branch, and two batches
   that share a file (after moves) run one after the other. Among batches whose prerequisites are done, those holding a P1 item start
   first, in the proposed order.
 
