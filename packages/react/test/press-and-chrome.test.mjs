@@ -481,10 +481,12 @@ for (const theme of ["dark", "light"]) {
       const { page } = await fixturePage(browser, headerPage(), { theme });
       const found = [...new Set(await page.evaluate(tertiaryInk))].sort();
       // Promoted by the bar: it has no fill of its own.
-      const promoted = [".basalt-preview-kicker", ".basalt-sparkline-axis", '.basalt-text[data-tone="tertiary"]'];
+      const promoted = [".basalt-chip-seat", ".basalt-filter-count", ".basalt-preview-kicker", ".basalt-sparkline-axis", '.basalt-text[data-tone="tertiary"]'];
       // Draws tertiary ink only on a fill of its own (an input, a select trigger, the command menu's panel and its level-2
-      // input band, the group labels of a popup, and the notification centre's secondary lines and times, which all sit on the popup's own level fill).
-      const ownFill = [".basalt-command [cmdk-group-heading]", ".basalt-command-input::placeholder", ".basalt-command-search", ".basalt-command-slot", ".basalt-input::placeholder", ".basalt-menu-group-label", ".basalt-notification-line", ".basalt-notification-time", ".basalt-select-value[data-placeholder]"];
+      // input band, the group labels of a popup, and the notification centre's secondary lines and times, which all sit on the popup's
+      // own level fill; the sort seat of a table header, which sits on the header band's own fill; and the group labels of a navigation,
+      // a sidebar that sits on the page and never inside the bar).
+      const ownFill = [".basalt-sort-seat", ".basalt-command [cmdk-group-heading]", ".basalt-command-input::placeholder", ".basalt-command-search", ".basalt-command-slot", ".basalt-input::placeholder", ".basalt-menu-group-label", ".basalt-nav-group-label", ".basalt-notification-line", ".basalt-notification-time", ".basalt-select-value[data-placeholder]"];
       assert.deepEqual(found, [...promoted, ...ownFill].sort(), "a part draws tertiary ink that is neither promoted in the bar nor on a fill of its own: promote it in .basalt-chrome or list it here with the reason");
       const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
       const list = css.match(/(?:\.basalt-chrome [^{;]*,\s*)+\.basalt-chrome [^{;]*\{\s*color: var\(--basalt-text-secondary\);/)?.[0] ?? "";

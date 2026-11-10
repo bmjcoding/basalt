@@ -1,0 +1,90 @@
+import * as React from "react";
+
+import { Tooltip } from "./display";
+import { Icon } from "./icon";
+import { GlidePlate } from "./plate";
+import type { IconComponent } from "./types";
+import { join } from "./utils";
+
+// Navigation: a sidebar and its collapsed rail. The item is a 48px pill that hugs its glyph and label; hover is that pill
+// at the selected wash; the current page is the selected glyph and a 600 label with no background. One shared pill glides
+// between hovered items (plate.tsx), over each item painting its own pill, which is the whole story with no script.
+
+/** Whether the list is the collapsed rail. Set by `Nav`, read by its items. */
+const NavContext = React.createContext(false);
+
+export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label" | "aria-labelledby"> {
+  /** The landmark's name, e.g. "Primary" or the product's. Required: an app may have several navigations. */
+  "aria-label": string;
+  /** The rail: a 48px circle around each glyph, with the label as the item's name and in a tooltip. */
+  collapsed?: boolean;
+}
+
+/**
+ * The navigation of an app: a column of `NavItem`s, optionally in `NavGroup`s. Hover is a fully round pill at the
+ * selected wash that hugs the glyph and the label, never the column's width, and one shared pill glides between items
+ * (150ms, ease-out); the first key hides it and the focus ring shows. The current page is its selected glyph and a 600
+ * label, with no background and no bar. The column keeps `space-1-5` of inline padding so the focus ring never clips.
+ */
+export function Nav({ collapsed = false, className, children, ...props }: NavProps) {
+  return (
+    <nav {...props} data-collapsed={collapsed ? "" : undefined} className={join("basalt-nav", className)}>
+      <GlidePlate navigation />
+      <NavContext.Provider value={collapsed}>
+        <ul className="basalt-nav-list">{children}</ul>
+      </NavContext.Provider>
+    </nav>
+  );
+}
+
+export interface NavGroupProps extends Omit<React.ComponentProps<"li">, "children"> {
+  /** The group's name. Drawn above its items in the sidebar; in the rail it stays the group's accessible name. */
+  label: string;
+  children?: React.ReactNode;
+}
+
+/** A labelled group of items inside `Nav`. */
+export function NavGroup({ label, className, children, ...props }: NavGroupProps) {
+  const collapsed = React.useContext(NavContext);
+  const id = React.useId();
+  return (
+    <li {...props} className={join("basalt-nav-group", className)}>
+      <span id={id} className={collapsed ? "basalt-visually-hidden" : "basalt-nav-group-label"}>{label}</span>
+      <ul aria-labelledby={id} className="basalt-nav-list">{children}</ul>
+    </li>
+  );
+}
+
+export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"> {
+  /** The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 and in its selected form when the item is current. */
+  icon: IconComponent;
+  /** The label. In the rail it is the item's name and its tooltip. */
+  children: string;
+  /** This item is the current page: `aria-current="page"`, the selected glyph and a 600 label. */
+  current?: boolean;
+  /** A count, drawn after the label as a number. In the rail it is spoken with the name and not drawn. */
+  count?: number | string;
+  /** Something new here, drawn as a small dot in the label's ink. The words are spoken with the name, e.g. "New activity". */
+  dot?: string;
+}
+
+/** One link in `Nav`. */
+export function NavItem({ icon, children, current = false, count, dot, className, ...props }: NavItemProps) {
+  const collapsed = React.useContext(NavContext);
+  const link = (
+    <a {...props} aria-current={current ? "page" : props["aria-current"]} className={join("basalt-nav-item", className)}>
+      <span className="basalt-nav-pill">
+        <Icon icon={icon} size={24} selected={current} />
+        <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-label"} data-label={collapsed ? undefined : children}>{children}</span>
+        {count !== undefined ? <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-count"}><span className="basalt-visually-hidden">, </span>{count}</span> : null}
+        {dot ? (
+          <>
+            {collapsed ? null : <span className="basalt-nav-dot" aria-hidden="true" />}
+            <span className="basalt-visually-hidden">, {dot}</span>
+          </>
+        ) : null}
+      </span>
+    </a>
+  );
+  return <li className="basalt-nav-entry">{collapsed ? <Tooltip content={children} side="right">{link}</Tooltip> : link}</li>;
+}

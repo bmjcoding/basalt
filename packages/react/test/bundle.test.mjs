@@ -13,7 +13,7 @@ const pkg = path.join(here, "..");
 
 async function bundle(name) {
   const result = await esbuild.build({
-    stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
+    stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name.split(", ").join(", ")});`, resolveDir: pkg, loader: "js" },
     bundle: true, minify: true, format: "esm", write: false, metafile: true,
     external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
   });
@@ -71,6 +71,24 @@ test("Button alone stays small and pulls in neither Shiki nor other Base UI part
   assert.ok(bytes < 30_000, `Button bundle is ${bytes} bytes`);
   assert.ok(!inputs.some((f) => f.includes("shiki")), "Shiki is in a Button-only bundle");
   assert.ok(!inputs.some((f) => /@base-ui\/react\/esm\/(menu|dialog|select)\//.test(f)), "unrelated Base UI parts are in a Button-only bundle");
+});
+
+// Navigation is a module of its own so that Link, Breadcrumbs and Pagination never pay for its tooltip. Nav draws the rail's
+// tooltip and so carries Base UI's Tooltip (a Tooltip alone is 108 KB, the three parts together 114 KB), and nothing else of
+// Base UI, no cmdk or Shiki.
+test("Nav, NavGroup and NavItem carry the shared pill and the rail's tooltip, and no popup they do not draw", async () => {
+  const { bytes, inputs } = await bundle("Nav, NavGroup, NavItem");
+  assert.ok(inputs.some((f) => /@base-ui\/react\/tooltip\//.test(f)), "the rail's tooltip is in");
+  assert.ok(bytes < 125_000, `Nav bundle is ${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
+  assert.ok(!inputs.some((f) => /@base-ui\/react\/(menu|dialog|select|popover|combobox)\//.test(f)), "an unrelated Base UI part is in a Nav-only bundle");
+});
+
+test("Breadcrumbs, Link and Pagination do not pull in the navigation, its pill or the tooltip", async () => {
+  for (const name of ["Breadcrumbs", "Link", "Pagination"]) {
+    const { inputs } = await bundle(name);
+    assert.deepEqual(inputs.filter((f) => /\/dist\/(nav|plate|display)\.js$|@base-ui\/react\/tooltip\//.test(f)), [], `${name} loads the navigation`);
+  }
 });
 
 test("Menu does not pull in Shiki", async () => {

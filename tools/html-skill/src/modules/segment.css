@@ -1,14 +1,30 @@
 @layer basalt {
 
-  /* ---- Segmented control: a role="group" of button[aria-pressed]; the pressed one is a raised pill with a hairline ---- */
+  /* ---- Segmented control: a role="group" of button[aria-pressed]; the pressed one is a raised pill with a hairline ----
+     The pill is surface-top, and in dark the selected wash over it as one solid fill (a 28px pill in a track against a 1.35:1 step reads as a
+     pill, not a wash). Light keeps surface-top, white on the track. */
 
-  .segment { display: inline-flex; gap: var(--basalt-space-0-5); padding: var(--basalt-space-0-5); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-sunken-strong); }
-  .segment button { height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .segment { --pill-fill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); position: relative; display: inline-flex; gap: var(--basalt-space-0-5); padding: var(--basalt-space-0-5); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-sunken-strong); }
+  .segment button { position: relative; height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], :disabled) { color: var(--basalt-text-primary); } }
-  .segment button[aria-pressed="true"] { background: var(--basalt-surface-top); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-pill); }
+  .segment button[aria-pressed="true"] { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-pill); }
   @media (pointer: coarse) { .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
 
+  /* The sliding pill: segment.js adds one shared pill as the first child and measures the pressed button into --pill-x, --pill-y, --pill-w and
+     --pill-h (data-slide marks the group once it has; data-snap places it without a move: the first measurement, a resize, a font arriving).
+     A new choice changes them, and the pill travels by transform and width on duration-slow, ease-out, whatever the distance. It is an
+     enhancement over each button painting its own pill (above): drawn only once measured, and never under reduced motion or in forced colours,
+     where each button paints its own (a short fade under reduced motion, Highlight and HighlightText in forced colours). */
+  .segment > .pill { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--pill-w); height: var(--pill-h); transform: translate(var(--pill-x), var(--pill-y)); border-radius: var(--basalt-radius-sm); background: var(--pill-fill); box-shadow: var(--basalt-shadow-pill); pointer-events: none; transition-property: transform, width, height; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
+  .segment[data-snap] > .pill { transition: none; }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .segment[data-slide] > .pill { display: block; }
+    /* The pill is the shared one: the pressed button paints none of its own, and only its ink changes. */
+    .segment[data-slide] button { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .segment[data-slide] button[aria-pressed="true"] { background: transparent; box-shadow: none; }
+  }
+
   @media (forced-colors: active) {
-    .segment button[aria-pressed="true"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+    .segment button[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
   }
 }

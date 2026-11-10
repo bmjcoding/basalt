@@ -3,8 +3,8 @@
 // (test/types.test.mjs). Each `@ts-expect-error` is something that must stay refused.
 import * as React from "react";
 import {
-  Accordion, AlertDialog, Checkbox, Combobox, Dialog, DialogContent, Field, Form, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
-  MenuSeparator, MenuSubmenu, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
+  Accordion, AlertDialog, Checkbox, Combobox, Dialog, DialogContent, Field, Form, HomeGlyph, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
+  MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
   TabsList, TabsPanel,
 } from "@srasyndicate/basalt";
 
@@ -99,5 +99,18 @@ export const bubbling = (
   <>
     <Accordion onChange={(event) => event.type} />
     <SegmentedControl aria-label="View" onChange={(event) => event.type}><Segment value="a">A</Segment></SegmentedControl>
+  </>
+);
+
+// Navigation: a named landmark, groups, and links that keep an anchor's own props. A nav without a name stays refused.
+export const navigation = (
+  <>
+    <Nav aria-label="Primary" collapsed={false} onPointerEnter={(event) => event.type}>
+      <NavGroup label="Workspace">
+        <NavItem href="/" icon={HomeGlyph} current count={3} dot="New activity" target="_self" onClick={(event) => event.preventDefault()}>Home</NavItem>
+      </NavGroup>
+    </Nav>
+    {/* @ts-expect-error a navigation landmark needs a name */}
+    <Nav />
   </>
 );

@@ -78,11 +78,22 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the rim, never by a darker fill. Group with space or a divider first; a panel is for a
   distinct object, at most one deeper inside any panel; bands (the command menu's input row,
   a table header) are not boxes.
+- **The still table:** header positions, column widths and alignment never move (the owner's rule). Fixed layout from a
+  `colgroup`, one remainder column, a minimum width; every sortable header reserves the indicator's 16px seat (on the start
+  side of a numeric column); the whole header cell is the sort button (−2 inset focus, hover lifts the label and shows the
+  caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
+  `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
+  is never covered. Pages set `scrollbar-gutter: stable`.
+- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade), checkboxes
+  in a labelled group; seven or more values, or a toolbar, are a trigger and a checklist, by count and never viewport.
+  Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
   hairline, a check, or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows). **There is no vertical bar and no inset outline
-  anywhere.** The active row in a menu, select, combobox or command menu is a rounded plate
+  anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
+  flush-field −2 inset, and the 1px divider at a pinned table column's edge while the table is scrolled (structure, never a
+  mark). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
@@ -97,7 +108,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
-  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars and dots only). A nested
+  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars, dots and the navigation hover pill). A nested
   radius is the outer radius minus the padding.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
@@ -142,8 +153,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Tokens are generated.** Edit `packages/tokens/tokens/*.tokens.json`, then
   `npm run build`. Commit the regenerated `Sources/BasaltTokens/Tokens.swift`; CI fails
   if it drifts.
-- **Swift can't be compiled here.** The macOS CI job is the only check: push and read
-  it before you call Swift work done.
+- **Swift builds on a Mac.** Where Swift is installed (Xcode or the Swift toolchain),
+  `swift build` and `swift test` are the macOS CI job, and `npm run ci:local` runs them.
+  Elsewhere the macOS CI job is the only check: push and read it before you call Swift work
+  done.
 
 ## Generating HTML
 
@@ -162,6 +175,12 @@ skill folder.
 | `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
 | `npm test` | Token contrast, component behaviour, accessibility (axe) in both themes, bundle size | Before every push |
 | `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+| `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
+
+`ci:local` refuses to run when `ci.yml` has a step it doesn't, so the two stay in step. Without
+Swift, `npm run ci:local -- --web-only` checks the web job alone; say on the PR that the Swift
+package went unchecked. It runs on macOS, not CI's Ubuntu runner, so text measured in a
+behaviour test uses different fallback fonts: keep a test's margins clear of a font's width.
 
 `npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
 every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, change it in
