@@ -202,7 +202,7 @@ function BenjiFixture() {
         <span ref={toRef}>Runs nav</span>
         <TravelSpinner active={travel} fromRef={fromRef} toRef={toRef} label="Run pending" />
       </div>
-      <Button onClick={() => toast.show({ title: "Route saved", timeout: 8000 })}>Show timed toast</Button>
+      <Button onClick={() => toast.show({ title: "Route saved", home: "page", timeout: 8000 })}>Show timed toast</Button>
       <LivePreview label="Display name" saved={saved} onSave={setSaved} />
       <output aria-label="Saved name">{saved}</output>
     </Section>

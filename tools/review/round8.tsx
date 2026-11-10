@@ -209,7 +209,7 @@ function ChartDemo() {
         <span ref={fromRef}><Button onClick={() => setTravel(true)}>Send run</Button></span>
         <span ref={toRef}><Text size="sm">Runs</Text></span>
         <TravelSpinner active={travel} fromRef={fromRef} toRef={toRef} label="Run pending" />
-        <Button onClick={() => toast.show({ title: "Route saved", timeout: 8000 })}>Show toast</Button>
+        <Button onClick={() => toast.show({ title: "Route saved", home: "page", timeout: 8000 })}>Show toast</Button>
       </div>
     </div>
   );

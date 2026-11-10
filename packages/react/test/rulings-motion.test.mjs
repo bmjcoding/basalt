@@ -357,7 +357,7 @@ describe("the sparkline headline has one clock", () => {
 });
 
 describe("the toast drain", () => {
-  const toasts = `function Show(){const t=B.useToast();React.useEffect(()=>{t.show({title:"Saved",timeout:5000})},[t]);return null}
+  const toasts = `function Show(){const t=B.useToast();React.useEffect(()=>{t.show({title:"Saved",home:"page",timeout:5000})},[t]);return null}
     createRoot(document.getElementById("root")).render(<B.ToastProvider><Show/></B.ToastProvider>);`;
 
   test("it is 1px, on the bottom rim's straight part, and the toast is not clipped", async () => {

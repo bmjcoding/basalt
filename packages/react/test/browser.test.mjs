@@ -215,7 +215,7 @@ for (const theme of ["light", "dark"]) {
     test("toast: announced, dismissable, and accessible", async () => {
       const { page } = await open(theme);
       await page.getByRole("button", { name: "Show toast" }).click();
-      const title = page.getByText("Sandbox deleted");
+      const title = page.locator(".basalt-toast-title", { hasText: "Sandbox deleted" });
       await title.waitFor();
       assert.ok(await page.locator('[aria-live]').count() > 0, "no live region for toasts");
       assert.deepEqual(await axe(page), [], "violations with a toast shown");
@@ -229,9 +229,10 @@ for (const theme of ["light", "dark"]) {
 
     test("useToast is stable: a toast shown from an effect shows once", async () => {
       const { page, errors } = await open(theme, "&open=toast");
-      await page.getByText("Shown on load").waitFor();
+      const shown = page.locator(".basalt-toast-title", { hasText: "Shown on load" });
+      await shown.waitFor();
       await page.waitForTimeout(300);
-      assert.equal(await page.getByText("Shown on load").count(), 1);
+      assert.equal(await shown.count(), 1);
       assert.deepEqual(errors, []);
       await page.close();
     });

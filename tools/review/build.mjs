@@ -248,7 +248,7 @@ for (const id of rounds) {
           // popup, because the plate and the lift are what a pointer holds and a screenshot cannot.
           if (state === "forced") await page.emulateMedia({ forcedColors: "active" });
           if (state.endsWith("-lit") || state === "forced") {
-            await page.locator(".basalt-menu-item, [cmdk-item]").nth(1).hover();
+            await page.locator(".basalt-menu-item, [cmdk-item], .basalt-notification").nth(1).hover();
             await page.waitForTimeout(250);
           }
           // "-glide": the pointer rests on the first row, then moves to the fourth; the plate's move is held 60ms into its 150ms.

@@ -215,11 +215,11 @@ One choice from a list too long for radios. The list opens below the trigger, li
 The trigger looks like an \`Input\`; the list is a menu, with a check on the selected option.
 `),
   Toast: doc("Toast", `
-A short message about something that just happened, bottom-right, announced to screen readers.
+A short message about something that just happened, bottom-right, announced to screen readers: danger assertively, the rest politely, once.
 
-**You provide** \`ToastProvider\` once near the app's root, then \`useToast().show({ title, description?, status?, action?, timeout? })\`. \`status: "warning" | "danger"\` adds a dot (never for success: the title says it); \`action\` adds one button, such as Undo.
+**You provide** \`ToastProvider\` once near the app's root, then \`useToast().show({ title, description?, status?, action?, home?, group?, running? })\`. \`status: "success" | "warning" | "danger"\` draws a check circle, a warning triangle or an X circle in a 16px seat (a neutral toast has none); \`action\` adds one button, such as Undo. For work that is running, \`show({ running: true })\` then \`update(id, { title, status })\`, or \`promise()\`: braille runs in the seat and the title never moves.
 
-Toasts sit on \`basalt-surface-top\`, stack, expand on hover or focus, and pause while hovered. Dismiss appears when the stack is expanded.
+A toast stays until it is dismissed unless it is not the only copy of what it says: pass \`home\` (\`"centre"\`, \`"row"\`, \`"key"\` or \`"page"\`) and it closes after 5 seconds. An action needs a home that is not the page, so Undo has the notification centre, the row, or the app's key. Toasts are level 1, stack three deep with the ones behind peeking, expand on hover or focus, and pause (with the drain line) while hovered, focused, blurred or in a hidden tab. Dismiss appears when the stack is expanded.
 
 - Do say what happened in the title: "Sandbox deleted".
 - Don't use a toast for errors that need a decision; use a \`Dialog\` or an inline message.
@@ -246,7 +246,7 @@ An inline message that stays until the situation changes: a warning or error tha
 
 **You provide** \`title\` (what's wrong), \`children\` (what to do), optional \`actions\`, and \`status\`: \`info\`, \`success\`, \`warning\` or \`danger\`. Set \`live\` only when it appears in response to something: \`"polite"\`, or \`"assertive"\` for an error that blocks the task.
 
-The surface stays neutral; status is the icon's shape and colour, and the words. No coloured fill, no coloured edge.
+The fill stays neutral at the callout's own level. Status is the icon's shape and colour and the words, and success, warning and danger also draw the rim in their status colour at 45%: a hairline, never a tint.
 `),
   Progress: doc("Progress", `
 Progress of a task with a known end, such as a build. Pass \`value={null}\` while the end isn't known yet.

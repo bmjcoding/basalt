@@ -145,12 +145,12 @@ describe("Toast", () => {
   test("every drain line pauses and resumes with the stack, as the timers do", async () => {
     const { page } = await fixturePage(browser, toasts);
     await page.evaluate(() => window.show("toast"));
-    await page.evaluate(() => window.show_({ title: "Toast A", timeout: 4000 }));
+    await page.evaluate(() => window.show_({ title: "Toast A", home: "page", timeout: 4000 }));
     await page.waitForTimeout(200);
-    await page.evaluate(() => window.show_({ title: "Toast B", timeout: 4000 }));
+    await page.evaluate(() => window.show_({ title: "Toast B", home: "page", timeout: 4000 }));
     await page.waitForTimeout(200);
     assert.deepEqual((await drains(page)).map((d) => d.state), ["running", "running"]);
-    await page.getByText("Toast B", { exact: true }).hover();
+    await page.locator(".basalt-toast-title", { hasText: "Toast B" }).hover();
     await page.waitForTimeout(150);
     assert.deepEqual((await drains(page)).map((d) => d.state), ["paused", "paused"], "hovering one toast holds them all");
     await page.mouse.move(0, 0);
@@ -169,11 +169,11 @@ describe("Toast", () => {
   test("a toast the pointer left behind still has time on its line while another is hovered", async () => {
     const { page } = await fixturePage(browser, toasts);
     await page.evaluate(() => window.show("toast"));
-    await page.evaluate(() => window.show_({ title: "Toast A", timeout: 1500 }));
+    await page.evaluate(() => window.show_({ title: "Toast A", home: "page", timeout: 1500 }));
     await page.waitForTimeout(200);
-    await page.evaluate(() => window.show_({ title: "Toast B", timeout: 1500 }));
+    await page.evaluate(() => window.show_({ title: "Toast B", home: "page", timeout: 1500 }));
     await page.waitForTimeout(200);
-    await page.getByText("Toast B", { exact: true }).hover();
+    await page.locator(".basalt-toast-title", { hasText: "Toast B" }).hover();
     await page.waitForTimeout(2000); // longer than either timeout, but the timers are held
     const held = await drains(page);
     assert.equal(held.length, 2, "both toasts are still shown");
@@ -184,7 +184,7 @@ describe("Toast", () => {
   test("a toast's timeout lives on the toast: its line lasts that long, and 0 has no line", async () => {
     const { page } = await fixturePage(browser, toasts);
     await page.evaluate(() => window.show("toast"));
-    await page.evaluate(() => { window.show_({ title: "Default" }); window.show_({ title: "Custom", timeout: 2500 }); window.show_({ title: "Sticky", timeout: 0 }); });
+    await page.evaluate(() => { window.show_({ title: "Default", home: "page" }); window.show_({ title: "Custom", home: "page", timeout: 2500 }); window.show_({ title: "Sticky", home: "page", timeout: 0 }); });
     await page.waitForTimeout(100);
     const byTitle = Object.fromEntries((await drains(page)).map((d) => [d.title, d.duration]));
     assert.deepEqual(byTitle, { Default: "5s", Custom: "2.5s", Sticky: null });

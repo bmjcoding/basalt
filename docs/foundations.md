@@ -19,7 +19,9 @@ of Basalt's accent classes, in its named roles, and nowhere else.
 - **Panels have one rim:** a 1px edge in two solid colours, at most 8% white on top and 6%
   on the other sides in dark, uniform in light. No gradient along or across an edge, no inner
   glow or sheen, no blur, no animation, no outer frame, no light falloff on the page. Never
-  on controls or chips. See [Elevation](#elevation).
+  on controls or chips. One panel draws its rim in a colour: a status callout, in its status colour at 45%, still one
+  solid colour on every side (see [Callouts](#lines-states-and-actions)); every other panel, a toast included, keeps the
+  neutral rim. See [Elevation](#elevation).
 - **No ornament that signals "generated":** no gradient borders, no glow, no bounce, and no
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
@@ -41,9 +43,9 @@ levels changed no pixel.
 | Level | Dark | Light | Roles that use it |
 |---|---|---|---|
 | `surface-0` | `#000` | `#fafafa` | `surface-page`: the page, and app sidebars |
-| `surface-1` | `#0a0a0a` | `#fff` | `surface-raised`: a panel on the page (cards, tables, code blocks); inputs and secondary buttons; a menu, select or popover opened from the page or a sidebar; and a dialog, sheet or command menu (a modal resets to level 1) |
+| `surface-1` | `#0a0a0a` | `#fff` | `surface-raised`: a panel on the page (cards, tables, code blocks); inputs and secondary buttons; a menu, select or popover opened from the page or a sidebar; a dialog, sheet or command menu (a modal resets to level 1); and a toast (always level 1) |
 | `surface-2` | `#111111` | `#fff` | `surface-overlay`: a panel in a panel, a popup opened from a card or a modal (a menu from a table row, or from a dialog), the command menu's input band, a modal's inner panels |
-| `surface-3` | `#171717` | `#fff` | `surface-top`: the deepest panel, a popup opened from a level-2 panel (the cap), tooltips, toasts; under the selected pill in a segmented control and in vertical tabs (dark adds the selected wash) |
+| `surface-3` | `#171717` | `#fff` | `surface-top`: the deepest panel, a popup opened from a level-2 panel (the cap), tooltips; under the selected pill in a segmented control and in vertical tabs (dark adds the selected wash) |
 
 | Role | Dark | Light | Use |
 |---|---|---|---|
@@ -70,7 +72,11 @@ so white cards lift without a shadow.
 - a modal (Dialog, AlertDialog, Sheet, CommandMenu) resets to level 1 above its scrim, so what it
   holds starts at 2: a card, a code block or a menu opened inside a dialog is `#111111`. The modal
   depth that stacks z-index is a separate context and is unchanged;
-- a Tooltip and a Toast are 3 (this round leaves them as they are).
+- a Tooltip is 3. A Toast is 1, whatever it was shown from: it is portalled and does not sense what is under it, and
+  its rim and `shadow-overlay` separate it from a menu or a dialog of the same level. Over a level-2 menu it is a step
+  darker than what it covers, which is rare and which the rim answers. In light nothing changes, because levels 1 to 3
+  are one white (the owner, 9 Nov 2026: "Near-black, like menus", overruling the council's no-majority default of level 3,
+  which was the grey he had objected to before).
 
 A grey menu on the black page was the complaint that moved the floor from 2 to 1 (the owner, 9 Nov
 2026, with the council: 4–0 on `#0a0a0a`, 3–1 on opener plus one). The page is `#000` and the rim carries
@@ -130,9 +136,9 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
-  flush-field −2 inset above. Basalt ships no such row today: the rows of Menu, Select, Combobox and CommandMenu are
-  options and show the plate, breadcrumbs and pagination are inline, and a settings or list row is the app's own
-  markup. The accordion trigger is the one full-width band that is itself a button; it keeps the ring it was built with
+  flush-field −2 inset above. The notification centre's entries are the one such row Basalt ships: links or buttons, each
+  painting its own plate on hover. The rows of Menu, Select, Combobox and CommandMenu are options and show the plate,
+  breadcrumbs and pagination are inline, and a settings or list row is the app's own markup. The accordion trigger is the one full-width band that is itself a button; it keeps the ring it was built with
   and is open for the panel.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
   surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected
@@ -189,10 +195,42 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   Do not mark selection with a vertical line.
 - **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
   also moves its thumb. Off is quiet: a tertiary thumb on an input-bordered track.
-- **Toasts** carry a dot only for warning and danger; the title says what happened.
-- **Callouts** keep a neutral surface; status is the icon and the words, and danger also
-  colours its title. In forced colours the icon takes the system foreground (`CanvasText`), because an SVG would
-  otherwise keep its authored green, amber or red: the status is its shape and the words.
+- **Toasts** are level 1, fixed, never tinted and never given a status rim. Status is a mark in a 16px seat, and the
+  title says it in words: success is CheckCircle, warning is Warning and danger is XCircle (the same icons as a
+  callout), and danger's title is in the danger ink. A neutral toast has no mark and no empty seat. Work that is running
+  puts braille in that seat and updates the same toast in place to its result, so the title never moves; the seat is
+  kept for the result, even an unmarked one, and the clock starts at the result. In forced colours the marks keep their
+  shapes (an icon, not a fill) in the system foreground.
+  - **How long it lives.** A toast times out (5000ms, with the line) only when it is not the only copy of its information
+    or action. It names where the rest lives (`home`: the notification centre, the row in place, the app's own key, or
+    "the page" when it only echoes a change the page already shows), and an action needs a home that is not the page.
+    With no home it stays until it is dismissed, and the type does not let a `timeout` be set on it. The centre is the
+    durable copy that lets a toast go. There is no ⌘Z chip on a toast's button: the app's key goes in
+    `aria-keyshortcuts`.
+  - **What a screen reader hears.** Only the result, once, from two live regions that hold only text and exist before the
+    first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
+    named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
+  - **The stack.** Three at most, bottom right at `space-4` from the edges, and the bottom edge, full width and above the
+    safe area at phone widths. Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
+    even behind a taller toast. It expands on hover and focus. A toast that is the only copy, and a focused one, is never
+    removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
+    oldest first. Repeats group ("×3", on a `group` key) and errors never do. A drag of more than 40px dismisses it, by
+    distance alone. The line and the clock pause together on hover, on focus, in a blurred window and in a hidden tab.
+- **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
+  anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
+  a popover at its opener's level plus one, with a header band (title, count, "Mark all as read") and a footer ("View
+  all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
+  line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
+  the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The app owns the entries,
+  their read state, persistence and the "View all" page; the component is presentational.
+- **Callouts** keep a neutral fill at their own level, with no tint. Status is the icon and the words, and success,
+  warning and danger also draw the rim in their status colour, mixed in sRGB at 45% over the callout's own level (the
+  danger Button's hairline recipe, but one solid colour on every side, in both themes). The icon takes the status
+  colour and only danger's title does; the body stays secondary. Info and a plain note keep the neutral rim and a
+  secondary icon. The rim is decorative (about 1.7 to 2.8:1): the icon (3:1) and the words (4.5:1) carry the status, so
+  those are the pairs the tests prove on every level. In forced colours the rim and the icon are `CanvasText`: the
+  status is the icon's shape and the words. "Danger is text plus a hairline in the danger colour, never a red fill"
+  stands, and the danger callout is an instance of it: a hairline on a panel.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
   `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
   is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
@@ -347,7 +385,9 @@ top is lit by 2 points in dark (8% against 6% white), capped at 8% so it reads a
 not as a highlight. In light every side is the same. Blur belongs only to the header chrome material
 (below), never to a panel or its rim.
 
-The Toast's drain line is drawn on the straight part of its bottom rim, 1px, in `text-tertiary`.
+The Toast's drain line is drawn on the straight part of its bottom rim, 1px, in `text-tertiary`. A status callout's rim is
+the one coloured rim: the status colour at 45% over the callout's own level, one solid colour on every side, so it is
+never the sole cue and no gradient or glow comes with it.
 
 ### Chrome: the smoked header
 
@@ -402,7 +442,7 @@ time; layering support is not a reason to stack unrelated tasks.
 role: a hero, a console or a featured card on the page is level 1, and its input band and the panels
 inside it are level 2. Only a surface that leaves the flow (opened above the page, out of the flow,
 overlapping other content: a menu, popover, dialog, sheet, toast or tooltip) carries a shadow, and its level
-follows the popup and modal rules above: a popup is its opener plus one (a floor of 1), a modal is 1. Don't use `float` or an explicit level to make an in-flow panel look more important;
+follows the popup and modal rules above: a popup is its opener plus one (a floor of 1), a modal is 1, a toast is 1. Don't use `float` or an explicit level to make an in-flow panel look more important;
 use space, type and the content. A static picture of a floating surface in documentation is drawn as
 that surface. `data-level` is written only to re-base a subtree (a page, a portal, a specimen frame),
 never to promote a panel.
@@ -567,6 +607,11 @@ four-member vote and approved by the owner on 9 Nov 2026. Their implementation h
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their
+implementation has not been reviewed by the panel.
+
+Callouts, toasts and the notification centre were decided by the council in a four-member vote (items 82 and 83: a 45%
+status rim and no tint, 4 to 0; the marks, running in place, the timeout rule, assertive danger, the stack, the 40px swipe
+and the centre) and by the owner, who set the toast's surface at level 1 and asked for the centre as a component. Their
 implementation has not been reviewed by the panel.
 
 The menus redesign (the depth floor and modal reset, the plate and lift on every popup row, the 36 and 40 rows, the

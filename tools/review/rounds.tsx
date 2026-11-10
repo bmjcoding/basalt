@@ -81,6 +81,7 @@ import { ROUND_12 } from "./round12";
 import { ROUND_13 } from "./round13";
 import { ROUND_14 } from "./round14";
 import { ROUND_15 } from "./round15";
+import { ROUND_18 } from "./round18";
 
 export interface Step {
   id: string;
@@ -569,7 +570,7 @@ const ROUND_2: Round = {
       name: "Toast",
       intro: "A short message about something that just happened, bottom-right, announced to screen readers.",
       decisions: [
-        "Toasts sit on the top surface, so they separate from an open menu beneath them.",
+        "Toasts sat on the top surface in this round, so they separated from an open menu beneath them. They are level 1 now (round 18).",
         "A dot only for warnings and errors: a green dot on \"Sandbox deleted\" signalled the wrong thing.",
         "One action at most, such as Undo. Dismiss appears when the stack expands on hover or focus.",
       ],
@@ -594,4 +595,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9, ROUND_10, ROUND_11, ROUND_12, ROUND_13, ROUND_14, ROUND_15];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9, ROUND_10, ROUND_11, ROUND_12, ROUND_13, ROUND_14, ROUND_15, ROUND_18];
