@@ -47,7 +47,12 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
   );
 }
 
-export type SheetSide = "left" | "right" | "bottom";
+/**
+ * Where a sheet comes from. `top` is the site header's narrow menu: it covers the bar, which it redraws in its first row, and
+ * the list unrolls beneath it from the bar's edge (a clip, not a slide), with the scrim, level 1, `shadow-modal` and bottom
+ * corners of 16. It is as tall as its content and scrolls inside at the viewport's height.
+ */
+export type SheetSide = "left" | "right" | "bottom" | "top";
 export interface SheetContentProps extends DialogContentProps {
   side?: SheetSide;
 }
@@ -60,7 +65,7 @@ export function SheetContent({ side = "right", className, style, children, ...pr
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
-      <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
+      <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseDialog.Popup {...props} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>

@@ -72,6 +72,27 @@ The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointe
 
 **In navigation** (`Nav`) the same plumbing (`plate.tsx`) marks the item under the pointer `data-hovered` (an attribute, not state) and the pill hugs that item's own pill, not its row, changing width as it goes: a 48px round pill at the selected wash, or the 48px circle in the rail. The rows are the same table with two differences. The first key hides the glide at once (not faded) and the focus ring shows, the control ring at +2 around the hugging pill; the pointer resting on an item hides its hover too while the keyboard is in use, and the next pointer move brings the glide back in place. The pill never touches the column's width. Off on touch, under reduced motion and in forced colours, where the hovered item is `Highlight` with `HighlightText` with no backplate; each item paints its own pill, in at once and out over `duration-fast`, and with no script that is the whole story.
 
+## The narrow menu
+
+The site header's menu under 720 is `Sheet side="top"` (decision 96). It does not slide: the bar's own band, redrawn in the sheet's first
+row, is there at once, and the list unrolls beneath it from the band's edge. The unroll is a `clip-path` transition, not a transform, so
+nothing moves that was already on screen (the brand, the toggle and Close stay where the bar had them).
+
+| Moment | What moves |
+|---|---|
+| Open | The sheet's clip opens from the band's bottom edge to the sheet's full height over `duration-slower` on `ease-out`, while the scrim fades in. |
+| The Menu button | The glyph morphs to Close over `duration-slow` (the drawn pair, `MorphIcon`); it morphs back as the menu leaves. |
+| Close (Escape, the scrim, Close, a link) | The clip closes back to the band at 0.75 of the entry on `ease-in`, the scrim fading with it; focus goes back to Menu. |
+| Reduced motion | Opacity only, over 100ms: no clip, no morph (the glyph swaps at once). |
+
+The scrim is unblurred and the sheet is solid: the bar under it stays the one filtered surface, and nothing translucent stacks on it.
+
+## The phone tab bar
+
+A press or hover is a colour step on a 32px circle behind the glyph (`duration-fast`, in at once); the first key hides it. Nothing in the
+tab bar moves, resizes or glides, and no cell scales. The bar has no shared pill, because it exists only under 720, where the glide is
+off on touch anyway.
+
 ## Spinners
 
 | Variant | Use it |
@@ -95,6 +116,7 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 | `Sparkline` | A monochrome line and its latest value: not a charting component. A flat line breathes while loading (the one loop here), then eases into the samples. When the range changes the line, the scale and the labels move together over `slow` on `ease-out`; a new peak widens the scale at once. An empty list is a quiet sentence. | Everything snaps |
 | `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |
 | `TravelSpinner` | Opt in. After you accept work, the spinner moves to where that work now lives, by transform on `slower` and `ease-in-out`: the one move between two resting places that the eye has to follow. | It appears at the destination with a 100ms fade |
+| Narrow menu (`SiteHeader`) | `Sheet side="top"`: the band is there at once and the list unrolls beneath it as a clip over `slower` on `ease-out`; leaves at 0.75 on `ease-in`; Menu morphs to Close over `slow`. | Opacity only, 100ms |
 | Toast | Enters on `duration-slow` and `ease-out`, leaves at 0.75 on `ease-in`. Running work shows braille in the mark seat and updates the same toast in place to its result: the title never moves, because the seat is kept. Swipe is Base UI's 40px, by distance alone, with no spring. | Opacity only, at the resting offsets |
 | Toast drain | A 1px line, drawn on the straight part of the bottom rim, shrinks for the timeout (only a toast that is not the only copy of what it says has one). Hover, focus, a blurred window and a hidden tab pause it and the toast's own clock together. No glow. | The line is not drawn |
 | `CommandMenu` | cmdk filters and selects. It loads the first time the menu opens, so an app that never opens one does not download it. No open or close animation. | No extra motion |

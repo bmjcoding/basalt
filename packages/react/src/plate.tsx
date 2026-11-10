@@ -35,13 +35,14 @@ const POPUP: Kind = {
   active: ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']",
   attributes: ["data-highlighted", "data-selected"],
 };
+// The site header's row of links is the same glide laid on its side: its own host, links and pills, the same rules.
 const NAVIGATION: Kind = {
-  host: ".basalt-nav",
-  active: ".basalt-nav-item[data-hovered]",
+  host: ".basalt-nav, .basalt-site-links",
+  active: ".basalt-nav-item[data-hovered], .basalt-site-link[data-hovered]",
   attributes: ["data-hovered"],
-  item: ".basalt-nav-item",
+  item: ".basalt-nav-item, .basalt-site-link",
   hideOnKey: true,
-  shape: ".basalt-nav-pill",
+  shape: ".basalt-nav-pill, .basalt-site-pill",
 };
 /** No shared plate: the hand can't hover (touch), or motion or colour is the user's. The stylesheet repeats this. */
 const OFF = "(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)";

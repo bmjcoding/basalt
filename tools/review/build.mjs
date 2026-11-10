@@ -227,15 +227,20 @@ for (const id of rounds) {
   // Every step and state at the desktop width and at a phone's 390px, in both themes.
   let n = 1;
   for (const step of meta) {
-    for (const state of ["default", ...step.states]) {
-      for (const [width, tag] of [[960, ""], [390, "-390"]]) {
+    for (const stateFull of ["default", ...step.states]) {
+      // "name@1024" is a state shot at that one width. A step may also set `widths`, `scales` (1 for 1x, 2 for 2x) and `height`.
+      const state = stateFull.split("@")[0];
+      const at = stateFull.split("@")[1];
+      const widths = at ? [[Number(at), `-${at}`]] : (step.widths ?? [960, 390]).map((w) => [w, w === 960 ? "" : `-${w}`]);
+      for (const [width, tag] of widths) {
+       for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
           const overlay = !state.startsWith("nav-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
-          const page = await browser.newPage({ viewport: { width, height: overlay ? 640 : 400 }, deviceScaleFactor: 2, ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
@@ -270,8 +275,17 @@ for (const id of rounds) {
             }, state.endsWith("-glide") ? "glide" : "fade");
             if (!held) throw new Error(`${step.id}/${state}: the plate has no ${state.endsWith("-glide") ? "move" : "fade"} to hold`);
           }
+          // "press-menu" opens the site header's narrow menu and "press-more" the tab bar's More, by a real click;
+          // "press-menu-opening" holds the sheet 50ms into its unroll, the real transitions, paused.
+          if (state.startsWith("press-")) {
+            await page.locator(state.startsWith("press-more") ? ".basalt-tabbar-more" : ".basalt-site-menu-trigger").click();
+            if (state.includes("-opening")) {
+              await page.waitForTimeout(25);
+              await page.evaluate(() => { for (const a of document.getAnimations()) { if (a.effect?.getComputedTiming().iterations === Infinity) continue; a.pause(); a.currentTime = 50; } });
+            } else await page.waitForTimeout(700);
+          }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
-          if (state === "hover") {
+          if (/^(tab-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
             await page.locator("[data-wt-hover]").first().hover();
             await page.waitForTimeout(250);
           }
@@ -307,10 +321,11 @@ for (const id of rounds) {
           }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);
-          const name = `${String(n).padStart(2, "0")}-${step.id}${state === "default" ? "" : `-${state}`}${tag}-${theme}.png`;
+          const name = `${String(n).padStart(2, "0")}-${step.id}${stateFull === "default" ? "" : `-${state}`}${tag}${scale === 1 ? "-1x" : ""}-${theme}.png`;
           await page.screenshot({ path: path.join(dir, name), fullPage: !overlay });
           await page.close();
         }
+       }
       }
     }
     n++;
