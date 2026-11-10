@@ -431,3 +431,37 @@ test("a toast at level 1 is the same near-black as a level-1 menu, and the same 
   assert.ok(Math.abs(color("dark", "surface-1").r - 10 / 255) < 0.002, "#0a0a0a");
   assert.deepEqual(color("light", "surface-1"), color("light", "surface-3"), "levels 1 to 3 are one white in light, so the owner's level 1 changes no pixel there");
 });
+
+// ---- figures and transcripts (decision 94): the meter, the stat's source line and the terminal ----
+
+for (const theme of THEMES) {
+  test(`${theme}: the meter's slot edge and fill, and its tick against the cut, hold on every level and well`, () => {
+    for (const [name, bg] of surfaces(theme)) {
+      // the slot is transparent inside, so its 1px edge is read against the surface: 3:1 (1.4.11)
+      assert.ok(ratio(over(color(theme, "border-input"), bg), bg) >= 3, `${theme}: the slot's edge on ${name}`);
+      // the fill is primary ink inside the slot, and the tick secondary ink: non-text marks against the surface, 3:1
+      for (const ink of ["text-primary", "text-secondary"]) assert.ok(ratio(over(color(theme, ink), bg), bg) >= 3, `${theme}: ${ink} on ${name}`);
+      // the reading's "of cap unit", the foot and the target's words are secondary text: 4.5:1
+      assert.ok(ratio(over(color(theme, "text-secondary"), bg), bg) >= 4.5, `${theme}: secondary words on ${name}`);
+    }
+    // the tick is cut from the fill by 2px of the surface: it must read against the fill too, so the cut is the surface it sits on
+    for (const level of LEVELS) {
+      const cut = color(theme, level);
+      assert.ok(ratio(color(theme, "text-secondary"), cut) >= 3, `${theme}: the tick against its cut at ${level}`);
+    }
+  });
+
+  test(`${theme}: the stat's source line (tertiary) and a terminal's prompt hold 4.5:1 on the page, on every level and on every well`, () => {
+    atLeast(theme, "text-tertiary", 4.5);
+  });
+
+  test(`${theme}: a transcript's marks hold 3:1 and an error's text 4.5:1 on every well`, () => {
+    const wells = ["surface-sunken", "surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)]);
+    atLeast(theme, "status-success", 3, wells);
+    atLeast(theme, "status-warning", 3, wells);
+    atLeast(theme, "status-danger", 4.5, wells);
+    // commands are primary, output secondary: both text
+    atLeast(theme, "text-primary", 4.5, wells);
+    atLeast(theme, "text-secondary", 4.5, wells);
+  });
+}

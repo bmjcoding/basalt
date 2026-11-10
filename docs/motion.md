@@ -93,6 +93,12 @@ A press or hover is a colour step on a 32px circle behind the glyph (`duration-f
 tab bar moves, resizes or glides, and no cell scales. The bar has no shared pill, because it exists only under 720, where the glide is
 off on touch anyway.
 
+## The meter's glide and the live transcript
+
+The `Meter`'s fill glides over `duration-slow` on `ease-out` when its value changes (a CSS transition on the fill's width, so a second change turns from where it has reached). Under reduced motion it jumps. The slot, the target tick and every word hold still: the fill is the only thing a new value moves, and over the cap it stops at the slot's end. A stat's source line, a description list and the stat's figures have no motion.
+
+A live `Terminal` (decision 94) is `role="log"` only while lines arrive, never while idle, paused or finished. A line appears when it arrives: it has no entry animation, so reduced motion changes nothing. The log has a fixed height that scrolls inside, so arriving lines never move the page, and it follows the end only while the reader is at it; scrolling up stops it, and scrolling back to the end resumes it. Pressing Play or Replay makes the region a `log` first and shows the first line one frame later (so a screen reader hears it), so a replay's box is never blank for an interval. A replay has a pause control (WCAG 2.2.2), and every word that changes in place in the head ("Not started", "Running", "Paused", "Done", "Failed, exit 1"; "Play", "Pause", "Resume", "Replay"; "Copy commands", "Copied") stands in one cell with the others hidden, so the head never moves. Braille beside "Running" holds its first frame under reduced motion.
+
 ## Spinners
 
 | Variant | Use it |

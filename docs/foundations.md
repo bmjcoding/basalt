@@ -214,9 +214,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   one. A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours: the row's wash is laid
   over the panel's fill as one cell background), and a focused header or action scrolls clear of the pinned columns
   (the container's `scroll-padding-inline-start`, finished on focus for a cell that is only half covered). **The
-  scrolled-edge divider** is a 1px `border-divider` at the pinned edge, drawn only while the table is actually scrolled. It
-  is one of the vertical lines Basalt allows (see [Vertical lines](#vertical-lines)): structure, never a selection, sort or
-  status mark. **App guidance:** set `scrollbar-gutter: stable` on the page's
+  scrolled-edge divider** is one of the few vertical lines Basalt allows, and a **meter's target tick** is another (see
+  [Vertical lines](#vertical-lines)): each is structure (a 1px `border-divider` at the pinned edge, drawn only while the
+  table is actually scrolled; a labelled scale tick on a meter's slot) and never a selection, sort, active or status
+  mark. The owner's ruling against the vertical bar is about marks, and these are not marks. Another structural edge is
+  added to this list by name, with its reason, never by a general exception. **App guidance:** set `scrollbar-gutter: stable` on the page's
   scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
   column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
   scrollbar never shows the problem, which is why a test on a Mac cannot either).
@@ -274,6 +276,66 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   those are the pairs the tests prove on every level. In forced colours the rim and the icon are `CanvasText`: the
   status is the icon's shape and the words. "Danger is text plus a hairline in the danger colour, never a red fill"
   stands, and the danger callout is an instance of it: a hairline on a panel.
+- **Figures and transcripts** (decision 94; the council voted, the implementation has not been reviewed by the panel).
+  - **Description list** (`DescriptionList`, `DescriptionItem`). Facts about one thing: a `dl` of `div` rows, each one `dt`
+    and one or more `dd`, on the page with no rim and no level of its own; inside a card only when the card is the object
+    (its dividers then stay inside the card's padding). The label column is a fixed 160px (`size-description-label`), never
+    sized to its longest label, so every list on a page shares one value edge; a long label wraps inside it. The list is
+    its own container and stacks, label over value `space-0-5` apart, when its own width is under 480px (30rem), whatever
+    the viewport. The label is 13/18 at 400 in secondary ink on the value's baseline; the value is 14/20 at 400 in primary
+    ink with tabular numerals, start-aligned. Mono is for identifiers only (a `mono` option), at 13px on the 20px line.
+    Rows take `space-2-5` above and below, so a one-line row is 40px, with a `border-divider` between rows (drawn inside
+    the row, as the table's is), never above the first or below the last; the first and last rows lose their outer
+    padding. Several values in one row stack `space-1` apart. A missing value says "Not observed" in tertiary ink, with no
+    mark, as a table cell does (decision 95). The gap between the label column and the value is `space-4`.
+  - **Meter** (`Meter`, on Base UI's Meter): how much of a cap is used, and not `Progress` (a task finishing). The head has
+    the label at the start (13/18 at 500, primary) and the reading at the end: the value in primary at 500 with tabular
+    numerals, then "of" with the cap and its unit in secondary ("1,240 of 2,000 min"), reserving the width of the cap
+    written as the value, so a new value never moves the label. The track is an outlined slot, `space-2` (8px) tall,
+    `radius-full`, a 1px `border-input` edge, transparent inside; the fill is `text-primary` from the start edge, inside
+    the border, and stops at the slot's end over the cap. The slot is the cap and never rescales. No red fill, no hatch,
+    no zones, no indeterminate state. The foot is always there (12/16, secondary, tabular numerals), so a change of state
+    never adds a line: at the start what is left ("760 min left") or, over the cap, the overage in words ("24,000 over")
+    in primary ink with no status colour and no dot; at the end the target's words with a 2px legend line drawn like the
+    tick. The target tick is 2px (`size-indicator`) in secondary ink, reaching 4px past the slot on each side (16px on the
+    8px slot), with a 2px cut on each side in the colour of the level it sits on, drawn as a border and not a shadow, so
+    forced colours keep it. It is `aria-hidden`; its words are in the foot and in `aria-valuetext`. The fill glides over
+    `duration-slow` on `ease-out` when the value changes, and jumps under reduced motion. `role="meter"` named by its
+    label; `aria-valuenow` is clamped to the cap, and the true value, the overage and the target are in `aria-valuetext`
+    ("124,000 of 100,000 requests, 24,000 requests over the cap"). Not focusable, not live. In forced colours the slot is
+    `Canvas` with a `CanvasText` edge, the fill `CanvasText`, and the tick `CanvasText` with its cut in `Canvas`.
+  - **Stat with provenance** (`Stats`, `Stat`). The skill's `.stat` look is unchanged (label 13/18 at 500 secondary, figure
+    24/30 at 600 with tabular numerals, note 12/16 secondary, `space-1` between, on the page and never boxed), with one
+    more slot after the note: the source line, sans 12/16 at 400 in tertiary ink with tabular numerals, the time, a middle
+    dot (`aria-hidden`, with a visually hidden comma) and the source ("04:41 · Scale"). It is pinned to the foot of the
+    stat's grid cell, so sources line up across a row even when one stat has no note. The time is always absolute, in a
+    `time` element with a `datetime`, never "2 min ago": the clock alone for today, the date added for another day ("Nov
+    7, 08:02"), the year only when it differs. With no source the slot is left out. A row of stats is one `dl`; each stat
+    is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
+  - **Terminal transcript** (`Terminal`, and `CodeBlock`'s `prompt`). A sibling of `CodeBlock` on the same frame (well,
+    level, radius 8, title row, copy button). Lines are Geist Mono 13/20. A command is primary with its prompt in the
+    gutter in tertiary; output is secondary with an empty gutter; a result line carries the callout's mark in the gutter
+    (CheckCircle in the success colour, Warning in the warning colour, XCircle in the danger colour, each `role="img"` and
+    named "Done", "Warning" or "Error"), and only an error's text takes danger ink. No syntax colour. The gutter is shared
+    with `CodeBlock`: 16px plus `space-2` at the start of every line; the prompt is a real span, `aria-hidden` and
+    `user-select: none`, so a selection and a screen reader take neither it nor a mark (generated content is read aloud as
+    "$" in Chromium). `CodeBlock`'s optional `prompt` puts every line in the gutter, and a line after a trailing `\` gets an
+    empty one; copy still takes `code` exactly as given. The terminal's copy button says "Copy commands" and copies the
+    commands only, one per line. Static by default: a `figure` with a named `pre` (`tabindex="0"`) and no live region. A
+    live transcript is `role="log"` only while lines arrive, never idle, paused or finished; it has a fixed height of nine
+    lines that scrolls inside, so arriving lines never move the page, and follows new lines only while the reader is at
+    the end. A replay has a pause control, and every word that changes in place in the head reserves its widest form.
+    Long lines scroll sideways, as `CodeBlock`'s do. (Decision 98.) The gutter is one column for the whole block, `CodeBlock`'s
+    too: the prompt's width plus 1ch, at least 24px, measured by the browser and never counted in characters, so `$` is exactly
+    24px and a longer prompt ("PS>") or a wide glyph widens the column for every line and the text of every line starts on one
+    edge. The terminal is the container for its own head: under 30rem of its own width (not the viewport's) the copy button is
+    the icon alone (Copy, swapping to Check, announcing "Copied") and keeps its name "Copy commands", so a live head is two rows
+    at 390. A finished run's head keeps the callout's marks in the 16px seat (CheckCircle in the success colour; XCircle with
+    "Failed, exit 1" in danger ink) and "Done" in the head's secondary ink. A replay that hasn't started shows one sentence in the
+    log's box, "Press Play to start", in tertiary ink, which leaves when the first line arrives; Play and Replay make the region a
+    `log` first and show the first line one frame later, so a screen reader hears it and the box is never blank for an interval. A replay copies every command whatever the playhead, and a stream the app drives
+    copies what has arrived; with nothing to copy the button is off and never says "Copied". The title row's hairline, in a
+    terminal and a `CodeBlock`, is a real `CanvasText` border in forced colours.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
   `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
   is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
@@ -626,8 +688,8 @@ is in).
 ### Vertical lines
 
 Basalt allows a short list of vertical lines. Each is structure, and none is a selection, sort, active or status mark (the owner's
-ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled, and
-the app sidebar's 1px edge.
+ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
+the app sidebar's 1px edge, and a meter's labelled target tick.
 
 ## Motion
 
@@ -793,6 +855,10 @@ Their implementation has not been reviewed by the panel.
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their
 implementation has not been reviewed by the panel.
+
+The description list, the meter, the stat's source line, the terminal transcript and CodeBlock's prompt were decided by the
+council in a three-member vote the owner ordered (decisions 93 and 94: opus, sol and grok, 2 of 3 deciding) and handed over
+for building. Their implementation has not been reviewed by the panel.
 
 Callouts, toasts and the notification centre were decided by the council in a four-member vote (items 82 and 83: a 45%
 status rim and no tint, 4 to 0; the marks, running in place, the timeout rule, assertive danger, the stack, the 40px swipe
