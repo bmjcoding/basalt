@@ -2,28 +2,33 @@
 
 Read this when the owner asks the council to review or score code, not to decide a design.
 
-1. **Before the review:** answer outstanding PR comments, fix the issues you already know about, and run the checks. Give the council the
-   updated implementation, so it doesn't spend a round on known faults. If the owner wants to discard the implementation and explore
-   new ideas, skip fixes to code being replaced.
-2. **Start all four members in parallel,** read-only, each in its own worktree. Give each the request, the PR or diff, and the context
-   it needs. Ask each for a score out of 10.
-3. **Rounds:** one full review pass by all four is one round. A fresh review after fixes is a new round.
-4. **Collect the findings:** what's useful, where members disagree, and what to do next.
-   - Make the changes you agree with, then ask for a fresh round.
-   - Continue until every member is satisfied.
-   - Hold the scope: repeated reviews tend to grow it, and limiting that is your job.
-5. **Record the scores** in the PR description, before the model and harness line. Edit the description; don't post a comment. If there's
-   no PR, put the table in your final reply. If a member gives no score, write `no score`; never invent one.
+1. **Before you start:**
+   - answer outstanding PR comments;
+   - fix the issues you already know about;
+   - run the checks.
+
+   The council then reviews the current code, not old faults. If the owner wants to throw the code away and explore new ideas, skip
+   fixes to code being replaced.
+2. **Brief all four.**
+   - Copy `assets/review-brief.md` to `MAIN/.review/council/<topic>-review-brief.md` and check it.
+   - Start all four with `role: "review"`, read-only.
+   - Each returns `<topic>-review/<slug>.md`: findings marked **blocking** or **polish**, the words "no blocking findings" when there
+     are none, and a score out of 10.
+3. **Sort each finding:**
+   - **A defect you can verify** (a failing case, a measured regression, a security or correctness fault): fix it, whoever raised it.
+   - **A preference that isn't a defect:** apply it only if 3 of 4 raise it.
+   - **Anything that changes a rendered pixel the council hasn't decided:** not a fix. Send it to a design round.
+4. **Rounds:** one review pass by all four is one round, and a review after fixes is a new round. Stop when a round leaves no blocking
+   finding you accept, or after three rounds. List anything still open in the PR description.
+5. **Record the scores** in the PR description, before the harness's attribution line. Edit the description; don't post a comment. If
+   there's no PR, put the table in your final reply. A member that gives no score gets `no score`; never invent one.
 
 ```markdown
 ## Council review
 
-Rounds: 2
+Rounds: <n>
 
-| Delegate | Round 1 | Round 2 |
+| Member | Round 1 | <one column per round> |
 | --- | --- | --- |
-| Opus 5.5 | 7/10 | 9/10 |
-| 6.1 Sol | 8/10 | 10/10 |
-| Muse Wonder Full | 7/10 | 9.5/10 |
-| Grok 4.7 | 7.5/10 | 9/10 |
+| <slug> (<model as run>) | <score>/10 | … |
 ```

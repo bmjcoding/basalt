@@ -1,25 +1,26 @@
-<!-- Replace every <…>. Quote members exactly; never merge their positions into a summary. -->
-<One or two sentences: what this adds, and the decision numbers.>
+<!-- Replace every <…>. Quote members word for word; never merge their positions into a summary. -->
+<One or two sentences: what this adds, and its decision numbers.>
 
 ## What it does
 - <part>: <what a user sees and does>.
 
 ## What was decided, and by whom
-<n> was voted by all four members; 3 of 4 decides. <The owner settled <m>.> Each member's final position, as written:
-- **Opus:** "<quote>"
-- **Muse:** "<quote>"
-- **Sol:** "<quote>" <(lost 3–1, if so)>
-- **Grok:** "<quote>"
-- **The owner:** "<quote>" <(only if he decided something)>
+DECISIONS <n> was voted by all four members, with 3 of 4 deciding. <The owner settled <m>.> Each member's final position, in their own
+words:
+- **Opus:** "<quote>" <(in the minority on <item>, if so)>
+- **Muse:** "<quote>" <(in the minority on <item>, if so)>
+- **Sol:** "<quote>" <(in the minority on <item>, if so)>
+- **Grok:** "<quote>" <(in the minority on <item>, if so)>
+- **The owner:** "<quote>" <(only where he decided something)>
 
 ## Not reviewed
-The implementation hasn't been reviewed by the council. It builds the decided design, and nothing was decided by the builder or the
-lead. Left open while building:
-1. **<point>:** <what was built, and why it's open>.
+The implementation hasn't been reviewed by the council. It builds the decided design, and nothing in it was decided by the builder or
+the lead.
+- <engineering facts the owner may want to know, or "none">
 
 ## Checks
-- <`npm run check`, or `npm run ci:local`> on <sha>: <counts>, plus the macOS job.
-- Edits to existing tests: <each, and why it isn't a weakening>.
-- Review round <n>: <screenshot count>, both themes, 2x, 390, forced colours, reduced motion.
+- `npm run ci:local` on <pushed SHA>: <counts>, and the macOS job <passed | not run: no Swift>.
+- Edits to existing tests: <each, and why it isn't a weakening, or "none">.
+- Review round <n>: <screenshot count>, to the preview standard.
 
 <the attribution line your harness asks for, if any>

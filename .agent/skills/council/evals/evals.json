@@ -4,41 +4,70 @@
     {
       "id": 1,
       "prompt": "the date picker needs a design. send it to the council and have them figure it out, I don't have an opinion",
-      "expected_output": "A prototype brief from the template, three designers prototyping in parallel worktrees, then a vote brief to all four members, and a numbered tally in DECISIONS.md. The owner isn't asked to choose between options unless a tie leaves nothing shipping.",
+      "expected_output": "A handoff of one question. The owner's words are logged, Grok researches (a date picker is new to Basalt), three designers prototype, four members vote, and the tally is recorded. With a majority the builder builds, a draft PR opens with both CI jobs passing, and the owner gets a review page. Nothing merges before his thumbs up.",
       "files": [],
       "assertions": [
-        "A prototype brief exists in .review/council/ with the template's sections filled (owner's words, decided record, numbered questions, build, rules)",
-        "Exactly three prototype delegates (Muse, Opus, Grok) were started in parallel, each with isolation: worktree",
-        "The vote brief names every option with who proposed it",
-        "Four vote delegates (Opus, Muse, Sol, Grok) were started in parallel, none given another member's answer",
-        "DECISIONS.md gains one numbered entry with a count for each item and the dissent named on each split",
-        "The owner was asked nothing unless the tally records a deadlock"
+        "DECISIONS.md gains an entry quoting the owner's request before any brief is written",
+        "A research brief is written and grok is started with role research before the prototypes",
+        "Every brief passed scripts/check-brief.mjs before its delegates started",
+        "Exactly three prototype delegates (muse, opus, grok) started together, each told its slug and given an absolute brief path",
+        "No vote file was copied into MAIN/.review/council/ until all four had returned",
+        "The tally entry counts every item and names the dissent on every split",
+        "The builder started only after a tally with a majority, and no question was put to the owner unless the tally recorded a deadlock",
+        "The PR quotes each member by name, and records npm run ci:local on its pushed SHA",
+        "No PR was merged"
       ]
     },
     {
       "id": 2,
-      "prompt": "keep working with the council to finish what's missing in the design system. don't come to me until you have options they can't decide on, I'll thumbs up or down at the end",
-      "expected_output": "Rounds run without asking the owner. Built work ends as draft PRs with each member's quoted position and both CI jobs passing. One review page with live walkthroughs and open points is presented at the end, and nothing merges before his thumbs up.",
+      "prompt": "keep working with the council to finish what's missing in the design system. don't come to me until you have options for me to review for certain things the council can't decide on, I'll thumbs up or down at the end",
+      "expected_output": "An open-ended stream. A roadmap round sets scope and batches first. Batches run as rounds without asking the owner. Deadlocks are held. The stream ends on one review page with the deadlocks first and each PR's live walkthrough.",
       "files": [],
       "assertions": [
-        "No question was put to the owner between rounds except a recorded deadlock",
-        "Each PR body quotes each member's final position, attributed by name",
-        "Each PR records a passing run of both CI jobs on its head (GitHub or npm run ci:local)",
-        "The review page in .review/approvals/ embeds each design PR's walkthrough in an iframe from live/",
-        "Each open point on the page is marked Your call or FYI and has a recommendation",
-        "No PR was merged before the owner's thumbs up"
+        "A roadmap vote brief lists candidates from BACKLOG.md and the GAPS.md files, and its tally sets scope by 3 of 4",
+        "No question reached the owner before the review page, unless deadlocks blocked every remaining batch",
+        "Brand marks and logos are not in scope",
+        "The review page lists deadlocks above the PRs, using the deadlock template",
+        "Each design PR on the page embeds its walkthrough from live/ in an iframe that follows the page's theme",
+        "No PR was merged before the owner's answer"
       ]
     },
     {
       "id": 3,
-      "prompt": "have the council review PR #52 and score it",
-      "expected_output": "A code review round: known fixes made first, four read-only reviewers in parallel, each giving a score out of 10, and the score table edited into the PR description, not posted as a comment.",
+      "prompt": "council's done voting on the empty state: opus and muse picked the illustration, sol picked plain text, grok picked a hybrid. nothing ships for empty states yet. what next?",
+      "expected_output": "A 2-1-1 split with nothing shipping is a deadlock. Nothing is built, and the deadlock goes to the owner with the deadlock template.",
       "files": [],
       "assertions": [
-        "Known issues and outstanding PR comments were addressed before the reviewers started",
-        "Four reviewers were started in parallel, read-only",
-        "Each reviewer's score is recorded, or 'no score' where none was given",
-        "The 'Council review' table is in the PR description, and no PR comment was posted for it"
+        "The tally records the item as no majority, naming who chose each option",
+        "It is recorded as a deadlock, not as a win for the option with two votes",
+        "No build brief is written for the empty state",
+        "The owner gets the deadlock in the deadlock template's form: options with who chose each, their quoted reasons, and previews"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "approved, merge them. #41 first since the table PR builds on it",
+      "expected_output": "Merges in order, each PR brought up to date from a fresh fetch, tested with ci:local, pushed, and checked against GitHub's head before merging.",
+      "files": [],
+      "assertions": [
+        "git fetch origin ran before each merge of origin/main",
+        "npm run ci:local ran on each PR's merged head, and the result and SHA were posted on the PR",
+        "Each PR's GitHub head SHA matched the tested SHA before gh pr merge",
+        "#41 merged before the PR built on it",
+        "DECISIONS.md records the merges, and the hosted reference wasn't republished (the owner paused it)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "have the council review PR #52 and score it",
+      "expected_output": "A code review: known fixes first, a review brief, four read-only reviewers, findings sorted (verified defects fixed, preferences only at 3 of 4, visual changes sent to a design round), at most three rounds, and the score table in the PR description.",
+      "files": [],
+      "assertions": [
+        "Known issues were fixed before the reviewers started",
+        "A review brief from the template passed check-brief.mjs, and four reviewers started with role review",
+        "No change that alters a rendered pixel was made from a review finding without a design round",
+        "There were no more than three rounds",
+        "The Council review table is in the PR description, with no score invented"
       ]
     }
   ]
