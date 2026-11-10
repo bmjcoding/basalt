@@ -16,6 +16,7 @@
     "test:packages": "node scripts/verify-packages.mjs",
     "typecheck:review": "tsc -p tools/review/tsconfig.json",
     "check": "npm run lint && npm test && npm run artifact && npm run typecheck:review && npm run test:packages",
+    "ci:local": "node scripts/ci-local.mjs",
     "test:brand": "npm run build -w packages/tokens && node --test brand/test/*.test.mjs",
     "test:html-skill": "node --test tools/html-skill/test/*.test.mjs",
     "html-skill:shots": "node tools/html-skill/shoot.mjs"
