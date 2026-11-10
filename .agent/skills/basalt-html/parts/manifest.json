@@ -1,5 +1,5 @@
 {
-  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses.",
+  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). Raised in the second parity PR (popup rows, levels and the segment's pill): segment 1400 to 3700 (the shared sliding pill: its script, 1.5 KB, and its CSS with the pill's two fallbacks), rows 3600 to 4300 (#27's plate-in-a-row geometry, the plate per level, the glide's shared plate and the forced-colours lit row, net of the removed bar), palette 9400 to 11300 (the glide's script, 2.4 KB: it follows the lit row, travels on a pointer, snaps on a key, and fades in place on leaving). The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses.",
   "budgets": {
     "skillMd": 10900,
     "core": 30720
@@ -80,7 +80,7 @@
       "classes": [
         "segment"
       ],
-      "budget": 1400
+      "budget": 3700
     },
     "forms": {
       "classes": [
@@ -129,7 +129,7 @@
         "row-hint",
         "input-row"
       ],
-      "budget": 3600
+      "budget": 4300
     },
     "tabs": {
       "classes": [
@@ -240,7 +240,7 @@
       "icons": [
         "MagnifyingGlass"
       ],
-      "budget": 9400
+      "budget": 11300
     },
     "spinner": {
       "classes": [
