@@ -9,6 +9,8 @@ import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { inLevel, usePanelLevel } from "./layers";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
+import { StatusSizeContext } from "./status-size";
+import type { StatusSize } from "./status-size";
 import type { Side } from "./types";
 import { join } from "./utils";
 
@@ -24,24 +26,40 @@ export { Kbd } from "./kbd";
  */
 export type BadgeStatus = "neutral" | "success" | "warning" | "danger" | "accent" | "pending";
 
-export interface BadgeProps extends React.ComponentProps<"span"> {
+export type BadgeProps = React.ComponentProps<"span"> & {
   /** A status dot before the label. The label always says the status in words; the dot never carries it alone. */
   status?: BadgeStatus;
-  /**
-   * `outline` (default): a small hairline label. `plain`: dot and text only, for places a
-   * status repeats down a column, such as table cells, where a pill on every row is noise.
-   */
-  variant?: "outline" | "plain";
-}
+} & (
+    | {
+        /**
+         * `outline` (default): a small hairline label. `plain`: dot and text only, for places a
+         * status repeats down a column, such as table cells, where a pill on every row is noise.
+         */
+        variant?: "outline";
+        size?: never;
+      }
+    | {
+        variant: "plain";
+        /**
+         * The size of the mark's seat, which follows its word's cap height: 16 beside text of 12 to 16px (the default, and what
+         * shipped), 20 beside 18 to 24px, 24 beside 30px and up. The seat is the braille cell's width (6, 9 or 12) and the gap
+         * after it is as wide, so words start at 12, 18 and 24 whichever mark is in the seat. The 6px dot centres in the seat on
+         * whole pixels. A running status is a plain badge whose first child is a braille `Spinner`, which takes this size.
+         */
+        size?: StatusSize;
+      }
+  );
 
 /** A small label, e.g. a deployment state. Neutral; colour only in the dot. */
-export function Badge({ status = "neutral", variant = "outline", className, children, ...props }: BadgeProps) {
-  return (
-    <span {...props} data-status={status} data-variant={variant} className={join("basalt-badge", className)}>
+export function Badge({ status = "neutral", variant = "outline", size, className, children, ...props }: BadgeProps) {
+  const plain = variant === "plain";
+  const badge = (
+    <span {...props} data-status={status} data-variant={variant} data-size={plain ? size ?? 16 : undefined} className={join("basalt-badge", className)}>
       {status === "neutral" ? null : <span className="basalt-badge-dot" aria-hidden="true" />}
       {children}
     </span>
   );
+  return plain ? <StatusSizeContext.Provider value={size ?? 16}>{badge}</StatusSizeContext.Provider> : badge;
 }
 
 export interface BadgePairProps extends Omit<React.ComponentProps<"div">, "children"> {

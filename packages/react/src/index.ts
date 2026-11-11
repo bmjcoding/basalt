@@ -56,6 +56,8 @@ export type { SparklineProps } from "./sparkline";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Textarea } from "./feedback";
 export { NumberTicker } from "./number-ticker";
 export { Spinner } from "./spinner";
+export { loopsBootstrap, useLoops } from "./loops";
+export type { LoopsState } from "./loops";
 export { preloadCodeLanguages } from "./syntax";
 export type { AccordionItemProps, AccordionProps, CalloutProps, CalloutStatus, CodeBlockProps, PopoverCloseProps, PopoverContentProps, PopoverProps, PopoverTriggerProps, ProgressProps, SkeletonProps, TextareaProps } from "./feedback";
 export type { NumberTickerProps } from "./number-ticker";

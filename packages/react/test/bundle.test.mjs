@@ -66,6 +66,17 @@ test("Spinner and Sparkline, with splitting, pull neither the keyboard machinery
   }
 });
 
+// The hold's state is opt-in: an app that never imports useLoops loads none of it, whatever else it imports.
+test("the hold's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
+  for (const name of ["Spinner", "Badge", "Button", "Skeleton", "Progress", "Sparkline", "CommandMenu", "ToastProvider"]) {
+    const { inputs } = await graph(name);
+    assert.deepEqual(inputs.filter((f) => /\/dist\/loops\.js$/.test(f)), [], `${name} loads the hold's state`);
+  }
+  const { bytes, inputs } = await graph("useLoops");
+  assert.ok(bytes < 2_500, `useLoops alone: ${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), []);
+});
+
 test("Button alone stays small and pulls in neither Shiki nor other Base UI parts", async () => {
   const { bytes, inputs } = await bundle("Button");
   assert.ok(bytes < 30_000, `Button bundle is ${bytes} bytes`);
@@ -224,7 +235,7 @@ test("importing the keyboard, motion, sparkline and ticker modules allocates no 
     for (const key of ["Set", "Map", "WeakMap", "WeakSet"]) globalThis[key] = count(key, globalThis[key]);
     for (const key of ["NumberFormat", "DateTimeFormat"]) Intl[key] = count("Intl." + key, Intl[key]);
     const dist = process.argv[1];
-    const modules = ["keyboard", "shortcut", "motion", "number-ticker", "sparkline", "spinner", "utils"];
+    const modules = ["keyboard", "shortcut", "motion", "number-ticker", "sparkline", "spinner", "loops", "status-size", "utils"];
     for (const name of modules) await import(pathToFileURL(dist + "/" + name + ".js"));
     console.log(JSON.stringify(counts));
   `;
