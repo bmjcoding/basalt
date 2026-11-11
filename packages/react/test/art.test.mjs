@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { chromium } from "playwright";
 
-import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
+import { bundleFixture, fixturePage, freezeAnimations, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const { checkHeadroom, measureHeadroom } = await import(pathToFileURL(path.join(pkg, "dist", "testing", "headroom.js")).href);
@@ -47,6 +47,22 @@ const open = async (body, { width = 1440, height = 800, theme = "dark", ...optio
 /** Two animation frames: an IntersectionObserver callback and the state it sets have both landed. */
 const frames = (p, n = 3) => p.evaluate(async (count) => { for (let i = 0; i < count; i++) await new Promise((resolve) => requestAnimationFrame(resolve)); }, n);
 const scrollTo = async (p, y) => { await p.evaluate((top) => window.scrollTo(0, top), y); await frames(p); };
+/**
+ * Waits, in real time from the test, until `check` is true on the page. For a test on the frozen clock (freezeAnimations): there the page's
+ * requestAnimationFrame is the test's, so `frames` and `waitForFunction` would wait on a clock that only the test moves. The observer, React
+ * and the browser's scroll run in real time, so the state lands by itself; the animation it starts stays at its first instant until the test
+ * advances it.
+ */
+const until = async (p, check, argument) => {
+  for (const deadline = Date.now() + 10_000; Date.now() < deadline; await new Promise((resolve) => setTimeout(resolve, 10))) if (await p.evaluate(check, argument)) return;
+  throw new Error(`the page never reached ${check}`);
+};
+/** A scroll on the frozen clock: the page scrolls, and the bar's state follows before the call returns, with no animation aged. */
+const frozenScroll = async (p, y) => {
+  const want = y < 1;
+  await p.evaluate((top) => window.scrollTo(0, top), y);
+  await until(p, (expected) => document.querySelector("header.basalt-site-header").hasAttribute("data-top") === expected, want);
+};
 
 /** The header's state: what the browser computed, and the two marks the component writes. */
 const bar = (p) => p.locator("header.basalt-site-header").evaluate((el) => {
@@ -253,7 +269,8 @@ for (const theme of ["dark", "light"]) {
 describe("the change to smoked", () => {
   test("the fill and the line fade in over duration-base on ease-out, and the blur switches at once; the ink has no transition", async () => {
     const p = await open(page(), { theme: "dark" });
-    await scrollTo(p, 1);
+    await freezeAnimations(p);
+    await frozenScroll(p, 1);
     const entering = await running(p);
     assert.deepEqual(entering.map((t) => t.property).sort(), ["background-color", "border-bottom-color"], "the fill and the line, and nothing else");
     for (const t of entering) { near(t.duration, 150, `${t.property} runs over duration-base`); assert.equal(t.easing, EASE_OUT, `${t.property} eases out`); }
@@ -269,9 +286,10 @@ describe("the change to smoked", () => {
 
   test("back to clear the fill and the line fade out over 0.75 of duration-base on ease-in, and the blur goes at once", async () => {
     const p = await open(page(), { theme: "dark" });
-    await scrollTo(p, 1);
+    await freezeAnimations(p);
+    await frozenScroll(p, 1);
     await settle(p);
-    await scrollTo(p, 0);
+    await frozenScroll(p, 0);
     const leaving = await running(p);
     assert.deepEqual(leaving.map((t) => t.property).sort(), ["background-color", "border-bottom-color"]);
     for (const t of leaving) { near(t.duration, 112.5, `${t.property} runs over 0.75 of duration-base`); assert.equal(t.easing, EASE_IN, `${t.property} eases in`); }
@@ -281,12 +299,13 @@ describe("the change to smoked", () => {
 
   test("under reduced motion it is the duration tokens' 100ms fade", async () => {
     const p = await open(page(), { theme: "dark", reducedMotion: "reduce" });
-    await scrollTo(p, 1);
+    await freezeAnimations(p);
+    await frozenScroll(p, 1);
     const entering = await running(p);
     assert.ok(entering.length > 0);
     for (const t of entering) assert.equal(t.duration, 100, `${t.property}`);
     await settle(p);
-    await scrollTo(p, 0);
+    await frozenScroll(p, 0);
     for (const t of await running(p)) near(t.duration, 75, `${t.property} leaves at 0.75 of 100`);
     await p.close();
   });
@@ -295,22 +314,24 @@ describe("the change to smoked", () => {
   // (a first pixel, or a scroll the browser animates) gets the decided fade. Each case runs with smooth scrolling off and on, and is read frame by
   // frame from the moment it starts, not only at the end.
   const SLACK = 24;
-  /** Starts a recorder, runs `trigger`, and returns the frames (scroll, the top mark, the fill's alpha, whether a fade runs) until the scroll rests. */
-  const record = async (p, trigger) => {
+  /**
+   * Runs `trigger` on the frozen clock and returns the frames the bar showed after the observer's report: the scroll, the top mark, the
+   * fill's alpha and whether a fade runs. The scroll and the observer are real; the page's frames are the test's, 16ms each, so the first
+   * frame is the first after the report whatever the machine's load, and a 150ms fade cannot finish before it is read.
+   */
+  const record = async (p, { prepare, run }) => {
+    if (prepare) await prepare(p);
+    const clock = await freezeAnimations(p);
     await p.evaluate(() => {
       const header = document.querySelector("header.basalt-site-header");
       const alpha = (css) => { if (css === "rgba(0, 0, 0, 0)" || css === "transparent") return 0; const m = /\/\s*([\d.]+)\s*\)/.exec(css); return m ? Number(m[1]) : 1; };
-      window.__frames = []; window.__recording = true;
-      const tick = () => {
-        window.__frames.push({ y: window.scrollY, top: header.hasAttribute("data-top"), jump: header.hasAttribute("data-jump"), alpha: alpha(getComputedStyle(header).backgroundColor), fading: header.getAnimations().some((a) => a.transitionProperty === "background-color" && a.effect.getTiming().duration > 0) });
-        if (window.__recording) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
+      window.__frames = [];
+      window.__sample = () => window.__frames.push({ y: window.scrollY, top: header.hasAttribute("data-top"), jump: header.hasAttribute("data-jump"), alpha: alpha(getComputedStyle(header).backgroundColor), fading: header.getAnimations().some((a) => a.transitionProperty === "background-color" && a.effect.getTiming().duration > 0) });
     });
-    await trigger(p);
-    await p.waitForFunction(() => scrollY > 0 || !document.querySelector("header.basalt-site-header").hasAttribute("data-top"));
-    await settle(p); await frames(p, 30);
-    return p.evaluate(() => { window.__recording = false; return window.__frames; });
+    await run(p);
+    await until(p, () => !document.querySelector("header.basalt-site-header").hasAttribute("data-top"));
+    for (let frame = 0; frame < 30; frame += 1) { await clock.advance(16); await p.evaluate(() => window.__sample()); }
+    return p.evaluate(() => window.__frames);
   };
   const verdict = (recorded) => {
     const first = recorded.findIndex((f) => !f.top);
@@ -334,7 +355,7 @@ describe("the change to smoked", () => {
         try {
           const { page: p } = await fixturePage(own, page(), { theme: "dark", viewport: { width: 1440, height: 800 } });
           await settle(p); await frames(p);
-          const { first, after, full } = verdict(await record(p, run));
+          const { first, after, full } = verdict(await record(p, { run }));
           if (jump) {
             assert.ok(first.y > SLACK, `first reported at ${first.y}px, past the slack`);
             assert.ok(first.jump && !first.fading, "no fade runs");
@@ -350,13 +371,14 @@ describe("the change to smoked", () => {
         } finally { await own.close(); }
       });
     }
-    for (const [name, press] of [["a wheel burst", async (p) => { await p.mouse.move(700, 400); for (let i = 0; i < 6; i++) await p.mouse.wheel(0, 200); }], ["Page Down", async (p) => { await p.locator("body").click({ position: { x: 700, y: 600 } }); await p.keyboard.press("PageDown"); }]]) {
+    // The pointer and the click are Playwright's own (they wait on real frames), so they come before the clock stops; the wheel and the key are input.
+    for (const [name, steps] of [["a wheel burst", { prepare: (p) => p.mouse.move(700, 400), run: async (p) => { for (let i = 0; i < 6; i++) await p.mouse.wheel(0, 200); } }], ["Page Down", { prepare: (p) => p.locator("body").click({ position: { x: 700, y: 600 } }), run: (p) => p.keyboard.press("PageDown") }]]) {
       test(`${mode}: ${name} follows the same rule frame by frame: the first report decides, and it ends smoked`, async () => {
         const own = await chromium.launch({ args });
         try {
           const { page: p } = await fixturePage(own, page(), { theme: "dark", viewport: { width: 1440, height: 800 } });
           await settle(p); await frames(p);
-          const { first, full } = verdict(await record(p, press));
+          const { first, full } = verdict(await record(p, steps));
           // Whatever the scroll did, the frame is one or the other: at once (full, nothing fading) or the decided fade (on its way, fading). The
           // observer reports after the frame that crossed, so under load an animated scroll can be further along than where it was reported: the
           // position at the first frame is not asserted, only that the two never mix.
@@ -401,7 +423,8 @@ describe("the change to smoked", () => {
 
   test("a slow first pixel is not a jump: it fades", async () => {
     const p = await open(page(), { theme: "dark" });
-    await scrollTo(p, 5);
+    await freezeAnimations(p);
+    await frozenScroll(p, 5);
     const s = await bar(p);
     assert.equal(s.jump, false);
     assert.ok((await running(p)).length > 0, "within the headroom's slack the fade runs");
@@ -703,8 +726,10 @@ describe("framed art", () => {
       const s = await p.evaluate(() => { const f = document.querySelector(".basalt-framed-frame"); const img = f.querySelector("img"); const c = getComputedStyle(f); return { bg: c.backgroundColor, image: c.backgroundImage, animation: c.animationName, filter: c.filter, imgOpacity: getComputedStyle(img).opacity, children: [...f.children].map((x) => x.tagName), shimmer: document.getAnimations().length }; });
       assert.equal(s.bg, await token(p, "surface-placeholder"));
       assert.deepEqual({ image: s.image, animation: s.animation, filter: s.filter, imgOpacity: s.imgOpacity, children: s.children, shimmer: s.shimmer }, { image: "none", animation: "none", filter: "none", imgOpacity: "0", children: ["IMG"], shimmer: 0 }, "no shimmer, spinner or blurred preview; the art is not painted yet");
+      // The clock is stopped while the art is held, so the fade is read at its first instant however long the machine takes to answer.
+      await freezeAnimations(p);
       p.release();
-      await p.waitForFunction(() => document.querySelector(".basalt-framed-frame")?.getAttribute("data-phase") === "loaded");
+      await until(p, () => document.querySelector(".basalt-framed-frame")?.getAttribute("data-phase") === "loaded");
       const fade = await p.locator(".basalt-framed-img").evaluate((el) => el.getAnimations().filter((a) => a.transitionProperty).map((a) => ({ property: a.transitionProperty, duration: a.effect.getTiming().duration, easing: a.effect.getTiming().easing })));
       assert.deepEqual(fade, [{ property: "opacity", duration: 150, easing: EASE_OUT }]);
       await settle(p);
@@ -715,8 +740,9 @@ describe("framed art", () => {
 
   test("under reduced motion it is a 100ms fade, opacity only", async () => {
     const p = await framedPage(art(), { gate: "hold", extra: { reducedMotion: "reduce" } });
+    await freezeAnimations(p);
     p.release();
-    await p.waitForFunction(() => document.querySelector(".basalt-framed-frame")?.getAttribute("data-phase") === "loaded");
+    await until(p, () => document.querySelector(".basalt-framed-frame")?.getAttribute("data-phase") === "loaded");
     const fade = await p.locator(".basalt-framed-img").evaluate((el) => el.getAnimations().filter((a) => a.transitionProperty).map((a) => [a.transitionProperty, a.effect.getTiming().duration]));
     assert.deepEqual(fade, [["opacity", 100]]);
     await p.close();
