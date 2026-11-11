@@ -166,10 +166,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 ## Generating HTML
 
 Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
-dashboard for this project first reads `.agent/skills/basalt-html/SKILL.md`, and only that: write the page's body
-(the HTML inside `<body>`) to a file, then run `node .agent/skills/basalt-html/compose.mjs <body.html>`. The script
-builds the page: it adds the core CSS and script and only the modules the body uses, Geist inlined, no CDN or
-framework. Don't open or paste `parts/`; it is minified output and costs context for nothing. The sources are in
+dashboard for this project reads `.agent/skills/basalt-html/SKILL.md` first, then loads each module it uses with
+`node .agent/skills/basalt-html/compose.mjs --usage core NAME` (`--usage` alone prints the index). It never reads `parts/`:
+it is minified output and costs context for nothing. Write the page's body (the HTML inside `<body>`) to a file, then run
+`node .agent/skills/basalt-html/compose.mjs <body.html>`. The script builds the page: it adds the core CSS and script and
+only the modules the body uses, Geist inlined, no CDN or framework. `SKILL.md` holds the rules every page needs and one
+line per module, so an agent pays for the modules its page uses and no more. The sources are in
 `tools/html-skill/` (its README says how to add a module); edit those and run `npm run build`, never the files in the
 skill folder.
 
