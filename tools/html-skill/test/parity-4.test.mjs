@@ -759,7 +759,9 @@ describe("scroll lock and toasts over a modal", () => {
   test("a modal pads the root's inline end by the measured scrollbar so nothing shifts on a classic scrollbar, and gives it back on close", async () => {
     const classic = await chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"] });
     try {
-      const tall = compose(`<title>t</title>${BODY}<div style="height: 3000px"></div>`, { fonts: false }).html;
+      // A styled scrollbar is a classic one in Chromium whatever the system's setting (a Mac shows overlay scrollbars without a mouse),
+      // so the page has a real scrollbar to measure on every machine and on CI.
+      const tall = compose(`<title>t</title><style>html::-webkit-scrollbar { width: 15px; } html::-webkit-scrollbar-thumb { background: gray; }</style>${BODY}<div style="height: 3000px"></div>`, { fonts: false }).html;
       const { page, context } = await openHtml(classic, tall, { scheme: "dark" });
       const bar = await page.evaluate(() => innerWidth - document.documentElement.clientWidth);
       assert.ok(bar > 0, `this browser draws a classic scrollbar (${bar}px)`);
