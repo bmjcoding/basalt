@@ -8,6 +8,6 @@
 - **Busy** is `aria-busy="true"` on the button (label in a `<span>`): the label hides and a ring sits over it, so the width holds.
 - **Press:** a press is a colour step, and `.btn` also scales to .98 (100ms, ease-out) while pressed, never when disabled or busy and never under reduced motion; nothing else scales on press.
 - **Links on touch:** a standalone link (a nav link, a footer link, a link on its own line) gets a 44px hit box on touch with no change to layout; a link inside running text (`p`, `li`, `.prose`, `.small`, `.hint`) stays inline. Add `.tap` to a link the CSS can't tell is standalone.
-- **Print:** the script prints in the light theme and goes back after; the top bar, skip link, theme toggle and copy buttons are not printed.
+- **Print:** the script prints in the light theme and goes back after; the skip link, theme toggle and copy buttons are not printed (the top bar is: static and opaque).
 - **Script:** `Basalt.announce(text)` speaks to screen readers.
 - **Icons:** `svg.icon` is what the script makes of an `<i data-icon>`; never write it yourself.

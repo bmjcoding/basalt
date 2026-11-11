@@ -1329,23 +1329,26 @@
   /* ---- Badge ---- */
 
   .basalt-badge {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     gap: var(--basalt-space-1-5);
     height: var(--basalt-size-badge);
-    padding: 0 var(--basalt-space-2);
+    /* The edge is a real 1px border, so forced colours keep it (an inset shadow is dropped there). It sits where the shadow did, and the
+       padding is reduced by the hairline, so the box and the word's place are the pixels they were. */
+    padding: 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline));
+    border: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
     border-radius: var(--basalt-radius-xs);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans);
     color: var(--basalt-text-secondary);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline);
     white-space: nowrap;
     /* an inline-flex box takes its baseline from its first child, the empty dot; centre it instead */
     vertical-align: middle;
   }
 
-  .basalt-badge[data-variant="plain"] { height: auto; padding: 0; box-shadow: none; font-weight: var(--basalt-font-weight-regular); font-size: inherit; line-height: inherit; }
+  .basalt-badge[data-variant="plain"] { height: auto; padding: 0; border: 0; font-weight: var(--basalt-font-weight-regular); font-size: inherit; line-height: inherit; }
 
-  .basalt-badge-dot { flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-badge-dot { flex: none; box-sizing: border-box; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
 
   /* A plain badge's size is its mark's seat: the braille cell's width at that size (6, 9 or 12, which is size-dot times 1, 1.5
      or 2) with a gap as wide, so the word starts at 12, 18 or 24 whichever mark sits in the seat. Size 16 is the 6 and 6 that
@@ -1358,6 +1361,10 @@
     margin-inline-start: round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline));
     margin-inline-end: calc(var(--_seat) - var(--basalt-size-dot) - round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline)));
   }
+  /* Neutral asked for by name (Idle, Draft) draws the tertiary dot. No status draws no dot, and a running badge (braille first) draws none,
+     because the braille cell takes the dot's seat. */
+  .basalt-badge[data-status="neutral"] .basalt-badge-dot { background: var(--basalt-text-tertiary); }
+  .basalt-badge:has(> .basalt-spinner[data-variant="braille"]) > .basalt-badge-dot { display: none; }
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
   .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
   .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
@@ -3049,6 +3056,7 @@
   .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-table-hint,
   .basalt-chrome .basalt-preview-kicker,
+  .basalt-chrome .basalt-profile-handle,
   .basalt-chrome .basalt-framed-credit { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
@@ -3226,6 +3234,70 @@
   .basalt-breadcrumbs [aria-current="page"] { color: var(--basalt-text-primary); }
   .basalt-breadcrumbs:dir(rtl) .basalt-icon { transform: rotate(180deg); }
 
+  /* ---- Social links and the profile list (decisions 106, 107) ----
+     A social link is a glyph and the service's name. The name is underlined in the input-boundary colour (3:1), brightening to the
+     text on hover; the glyph is never underlined. Both are secondary at rest and primary on hover and focus, with the control ring: no
+     wash, no weight change, no press scale. It takes its container's text size. The core arrow comes after the name for a new tab. */
+  .basalt-social-links { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-4); row-gap: var(--basalt-space-1); margin: 0; padding: 0; list-style: none; }
+  .basalt-social-links[data-icon-only] { column-gap: var(--basalt-space-1); }
+  /* The item is a flex box, not a line box: an inline-flex link in a line box takes its baseline from its glyph, which sat a word without a glyph 2px lower. */
+  .basalt-social-item { display: flex; }
+  .basalt-social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-sm);
+    color: var(--basalt-text-secondary);
+    font: inherit;
+    text-decoration: none;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-social-link > .basalt-icon { flex: none; }
+  .basalt-social-name {
+    text-decoration: underline;
+    text-decoration-color: var(--basalt-border-input);
+    text-underline-offset: var(--basalt-size-underline-offset);
+    text-decoration-thickness: var(--basalt-size-hairline);
+    transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-social-link:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+  .basalt-social-link:hover > .basalt-social-name { text-decoration-color: currentColor; }
+  .basalt-social-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-social-link .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
+  .basalt-social-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
+  /* On touch each link is at least 44 by 44 as real layout, and the 16px gap between links becomes 8px of hit area on either side, so a
+     wrapped line touches the next and never overlaps it. The row's negative margin keeps the first glyph on the content edge. */
+  @media (pointer: coarse) {
+    .basalt-social-links:not([data-icon-only]) { gap: 0; margin-inline: calc(-1 * var(--basalt-space-2)); }
+    .basalt-social-links:not([data-icon-only]) .basalt-social-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); justify-content: center; padding-inline: var(--basalt-space-2); }
+  }
+
+  /* The long form: rows in the list's rhythm (a 44px hit area with a 40px row inside, 12px padding and gap, 14/20 secondary ink, the
+     hint in tertiary), the glyph in the row's seat and the handle as the hint. Hover lifts the ink only; a focusable row takes the control
+     ring at +2 outside it, so the list keeps space-1-5 from a clipping edge. A row without a mark keeps an empty seat (16px and the
+     gap, on the start side) only when another row has a glyph, so every name starts at one x. */
+  .basalt-profile-links { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
+  .basalt-profile-link {
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-3);
+    box-sizing: border-box;
+    min-height: calc(var(--basalt-size-control-xl) + 2 * var(--basalt-space-0-5));
+    padding: 0 var(--basalt-space-3);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    text-decoration: none;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-profile-link > .basalt-icon { flex: none; }
+  .basalt-profile-links:has(> li > .basalt-profile-link > .basalt-icon) .basalt-profile-link:not(:has(> .basalt-icon)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--basalt-space-3)); }
+  .basalt-profile-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-profile-handle { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); }
+  .basalt-profile-link:hover { color: var(--basalt-text-primary); }
+  .basalt-profile-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-profile-link .basalt-external > .basalt-icon { width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
+  .basalt-profile-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
+
   .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; }
   .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
   .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
@@ -3287,8 +3359,8 @@
     .basalt-command .basalt-menu-item[data-selected="true"] { forced-color-adjust: none; color: HighlightText; }
     .basalt-menu-item[data-highlighted]::before,
     .basalt-command .basalt-menu-item[data-selected="true"]::before { background-color: Highlight; }
-    .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text),
-    .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text) { color: HighlightText; }
+    .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text, .basalt-badge),
+    .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text, .basalt-badge) { color: HighlightText; }
     /* The command list in the page, not in use, has no lit row: it is rest ink on Canvas, as every other row. */
     .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { forced-color-adjust: auto; color: CanvasText; }
     .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
@@ -3324,10 +3396,13 @@
     /* A toast's mark keeps its shape here (the dots it replaced vanished): an icon is paths, and takes the system foreground. */
     .basalt-toast[data-status] .basalt-toast-seat,
     .basalt-toast[data-status] .basalt-toast-title { color: CanvasText; }
-    /* The unread dots are fills, which forced colours drop: they keep a real one. A hovered entry is Highlight with
-       HighlightText, as a lit row is, and its marks and dot follow. */
+    /* The unread dots, the nav dot and the checked radio's dot are fills, which forced colours drop: each is drawn as its own border, as a
+       status dot is (see the badge), so it takes the system colour of where it sits and needs no override on a lit row. A hovered entry
+       is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */
     .basalt-notifications-trigger[data-unread]::after,
-    .basalt-notification[data-unread] .basalt-notification-dot { forced-color-adjust: none; background: CanvasText; }
+    .basalt-notification[data-unread] .basalt-notification-dot,
+    .basalt-nav-dot,
+    .basalt-menu-radio-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
     .basalt-notification[data-status] .basalt-notification-mark { color: CanvasText; }
     .basalt-notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
     .basalt-notification:hover::before { background-color: transparent; }
@@ -3335,7 +3410,6 @@
     .basalt-notification:hover .basalt-notification-line,
     .basalt-notification:hover .basalt-notification-time,
     .basalt-notification:hover .basalt-notification-mark { color: HighlightText; }
-    .basalt-notification[data-unread]:hover .basalt-notification-dot { background: HighlightText; }
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
        glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .basalt-chip { color: ButtonText; }
@@ -3355,10 +3429,13 @@
     .basalt-toast-drain { forced-color-adjust: none; background: CanvasText; }
     /* Braille's dots are currentColor and are left to the browser: it forces the word's colour to the system foreground of its surface (Canvas
        text, HighlightText on Highlight), and the dots follow. forced-color-adjust: none here would keep an authored colour that can vanish. */
-    /* The accent dot is a fill, which forced colours would drop: it keeps a real fill, the system text colour, on this dot only. */
-    .basalt-badge[data-status="accent"] .basalt-badge-dot { forced-color-adjust: none; background: CanvasText; }
-    /* The pending ring is a real border, so it survives; it takes the system text colour. */
-    .basalt-badge[data-status="pending"] .basalt-badge-dot { border-color: CanvasText; }
+    /* A dot is a fill, which forced colours drop, so it is drawn as its own border (a border of half its size, no background) with forced
+       colours left on: the browser paints it in the system colour of where it sits (CanvasText on Canvas, HighlightText on a lit row,
+       LinkText in a link). No dot, ring or edge names a system colour, because a named one fails on a lit row. Every settled status
+       is the same disc; the word says which. The pending ring is already a 1px border in currentColor, so it needs nothing here, and
+       braille is currentColor and is left to the browser. The outline badge's edge is a real border in the word's own ink. */
+    .basalt-badge:not([data-variant="plain"]) { border-color: currentColor; }
+    .basalt-badge:not([data-status="pending"]) > .basalt-badge-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
     /* A pressed toggle is Highlight with HighlightText for the fill, the label and the check, at rest, hovered, pressed and focused. */
     .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
     .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] { forced-color-adjust: none; background: Highlight; border-color: Highlight; box-shadow: none; color: HighlightText; }
@@ -3373,6 +3450,8 @@
     .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-dot { forced-color-adjust: none; background: HighlightText; }
     .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: GrayText; }
     .basalt-table-hint { color: CanvasText; }
+    /* A social link is LinkText, glyph and arrow included: they inherit the link's forced colour instead of their own secondary. */
+    .basalt-social-link :is(.basalt-icon, .basalt-external), .basalt-profile-link :is(.basalt-icon, .basalt-external) { color: inherit; }
   }
 
   /* ---- Art: the clear bar, the stage, paired art and framed art (decision 104) ----

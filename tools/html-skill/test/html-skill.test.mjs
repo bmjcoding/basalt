@@ -777,7 +777,7 @@ describe("primitives", () => {
           group: [cs(group).backgroundColor, cs(group).borderRadius, cs(group).paddingTop],
           on: [cs(on).backgroundColor, cs(on).boxShadow, cs(on).color, cs(on).height, cs(on).borderRadius, cs(on).fontWeight],
           off: [cs(off).backgroundColor, cs(off).boxShadow, cs(off).color],
-          badge: [cs(plain).fontSize, cs(plain).fontWeight, cs(plain).color, cs(plain).borderRadius, cs(plain).height, cs(plain).boxShadow],
+          badge: [cs(plain).fontSize, cs(plain).fontWeight, cs(plain).color, cs(plain).borderRadius, cs(plain).height, cs(plain).boxShadow, cs(plain).borderTopWidth, cs(plain).borderTopColor, cs(plain).boxSizing],
           dot: [cs(status, "::before").width, cs(status, "::before").content, cs(plain, "::before").content],
           dotColor: cs(status, "::before").backgroundColor,
         };
@@ -787,7 +787,7 @@ describe("primitives", () => {
       assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "var(--basalt-shadow-pill)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
       assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "500"]);
       assert.deepEqual(out.off, ["rgba(0, 0, 0, 0)", "none", await resolve(page, "color", "var(--basalt-text-secondary)")]);
-      assert.deepEqual(out.badge, [await px("var(--basalt-text-xs-size)"), "500", await resolve(page, "color", "var(--basalt-text-secondary)"), await px("var(--basalt-radius-xs)"), await px("var(--basalt-size-badge)"), await resolve(page, "boxShadow", "inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline)")]);
+      assert.deepEqual(out.badge, [await px("var(--basalt-text-xs-size)"), "500", await resolve(page, "color", "var(--basalt-text-secondary)"), await px("var(--basalt-radius-xs)"), await px("var(--basalt-size-badge)"), "none", await px("var(--basalt-size-hairline)"), await resolve(page, "color", "var(--basalt-border-hairline)"), "border-box"], "the edge is a real 1px border, not an inset shadow");
       assert.deepEqual([out.dot[0], out.dot[1] !== "none", out.dot[2]], [await px("var(--basalt-size-dot)"), true, "none"], "a status badge draws its dot, a count does not");
       assert.equal(out.dotColor, await resolve(page, "backgroundColor", "var(--basalt-status-success)"));
       assert.deepEqual(await axe(page), []);
@@ -821,7 +821,7 @@ describe("print", () => {
   });
 
   for (const file of TEMPLATES) {
-    test(`${file}: no top bar, skip link, theme toggle or copy buttons in print; colour held on dots and progress; panels whole; code wraps`, async () => {
+    test(`${file}: the bar prints (static, no filter), but no skip link, theme toggle or copy buttons; colour held on dots and progress; panels whole; code wraps`, async () => {
       const { page, context } = await open(file);
       await page.emulateMedia({ media: "print" });
       const out = await page.evaluate(() => {
@@ -829,13 +829,15 @@ describe("print", () => {
         const adjust = (c) => c.getPropertyValue("print-color-adjust") || c.getPropertyValue("-webkit-print-color-adjust");
         const panel = document.querySelector(".panel, .code, .table-wrap");
         return {
-          hidden: [".topbar", ".skip-link", "[data-theme-toggle]"].concat(document.querySelector("[data-copy]") ? ["[data-copy]"] : []).map((sel) => cs(sel).display),
+          bar: [cs(".topbar").display, cs(".topbar").position, cs(".topbar").backdropFilter],
+          hidden: [".skip-link", "[data-theme-toggle]"].concat(document.querySelector("[data-copy]") ? ["[data-copy]"] : []).map((sel) => cs(sel).display),
           adjust: [document.querySelector(".status") ? adjust(cs(".status", "::before")) : "exact", document.querySelector(".progress") ? adjust(cs(".progress > span")) : "exact"],
           inside: getComputedStyle(panel).breakInside,
           wrap: getComputedStyle(document.querySelector(".code-body")).whiteSpace,
         };
       });
       assert.ok(out.hidden.every((d) => d === "none"), out.hidden.join());
+      assert.deepEqual([out.bar[0] !== "none", out.bar[1], out.bar[2]], [true, "static", "none"], "the site bar prints, static and opaque (DECISIONS 104)");
       assert.deepEqual(out.adjust, ["exact", "exact"]);
       assert.equal(out.inside, "avoid");
       assert.equal(out.wrap, "pre-wrap");
@@ -1030,16 +1032,24 @@ describe("the busy button", () => {
 describe("icons", () => {
   const names = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "src", "icons.json"), "utf8"));
 
-  test("Bold under 20px, Regular from 20px, generated from Phosphor; every listed name is in the SKILL", async () => {
+  test("Bold at every size, generated from Phosphor, with no Regular weight in the build; every listed name is in the SKILL", async () => {
     const data = iconData(names);
     const { page, context } = await open("template-static.html", { all: true });
     for (const name of names) {
-      const drawn = await page.evaluate((n) => [16, 19.9, 20, 24].map((size) => [...new DOMParser().parseFromString(window.Basalt.icon(n, { size }), "image/svg+xml").querySelectorAll("path")].map((p) => p.getAttribute("d"))), name);
-      assert.deepEqual(drawn, [data[name][0], data[name][0], data[name][1], data[name][1]], name);
-      assert.notDeepEqual(data[name][0], data[name][1], `${name} has two different weights`);
+      assert.ok(data[name].every((d) => typeof d === "string"), `${name}: one weight, a list of paths`);
+      const drawn = await page.evaluate((n) => [16, 19.9, 20, 24, 32].map((size) => [...new DOMParser().parseFromString(window.Basalt.icon(n, { size }), "image/svg+xml").querySelectorAll("path")].map((p) => p.getAttribute("d"))), name);
+      assert.deepEqual(drawn, Array(5).fill(data[name]), `${name} is the same Bold drawing at every size`);
       assert.ok(skill.includes(name), `${name} is listed in SKILL.md`);
     }
     await context.close();
+    const built = JSON.parse(fs.readFileSync(path.join(skillDir, "parts", "icons.json"), "utf8")).icons;
+    assert.deepEqual(Object.keys(built), names);
+    assert.deepEqual(built, data, "the built file is the Bold paths and nothing else");
+  });
+
+  test("the set has the social marks, the envelope and the terminal, and no ArrowUpRight (the new-tab arrow is the core glyph)", () => {
+    for (const name of ["GithubLogo", "XLogo", "LinkedinLogo", "InstagramLogo", "YoutubeLogo", "EnvelopeSimple", "TerminalWindow"]) assert.ok(names.includes(name), name);
+    for (const name of ["ArrowUpRight", "Newspaper", "ChatCircle", "Envelope", "ThreadsLogo", "TiktokLogo", "MediumLogo", "RssSimple"]) assert.ok(!names.includes(name), `${name} stays out`);
   });
 
   test("the build fails for a name Phosphor does not have", () => {
@@ -1090,7 +1100,7 @@ describe("the SKILL's rules", () => {
       ["kbd", /never on the primary fill/],
       ["tabs", /Tabs don't slide their indicator in static files/],
       ["core", /\*\*Busy\*\* is `aria-busy="true"` on the button \(label in a `<span>`\): the label hides and a ring sits over it, so the width holds\./],
-      ["core", /the script prints in the light theme and goes back after; the top bar, skip link, theme toggle and copy buttons are not printed/],
+      ["core", /the script prints in the light theme and goes back after; the skip link, theme toggle and copy buttons are not printed \(the top bar is: static and opaque\)/],
       ["topbar", /The page's one blurred \(smoked\) surface; it falls back to opaque on its own\./],
       ["topbar", /- Once per page\./],
       ["topbar", /Don't restyle it, and don't put a second blurred layer on the page\./],
@@ -1195,14 +1205,14 @@ describe("the smoked header (.topbar)", () => {
     await context.close();
   });
 
-  test("print: the bar is not printed, whatever the page says about its display, and its own fallback is opaque with no filter", async () => {
+  test("print: the bar prints, as React's does (DECISIONS 104): static, opaque, with no filter", async () => {
     const { page, context } = await open("template-static.html", { scheme: "dark" });
-    await page.addStyleTag({ content: ".topbar { display: flex }" });
     await page.emulateMedia({ media: "print" });
-    const s = await page.evaluate(() => { const c = getComputedStyle(document.querySelector(".topbar")); return [c.display, c.backgroundColor, c.backdropFilter]; });
-    assert.equal(s[0], "none");
-    assert.equal(s[1], await token(page, "surface-page", "background-color"));
-    assert.equal(s[2], "none");
+    const s = await page.evaluate(() => { const c = getComputedStyle(document.querySelector(".topbar")); return [c.display, c.position, c.backgroundColor, c.backdropFilter]; });
+    assert.notEqual(s[0], "none", "the bar is drawn in print");
+    assert.equal(s[1], "static");
+    assert.equal(s[2], await token(page, "surface-page", "background-color"));
+    assert.equal(s[3], "none");
     await context.close();
   });
 });

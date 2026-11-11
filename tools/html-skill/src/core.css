@@ -273,7 +273,7 @@
     .btn { border: var(--basalt-size-hairline) solid ButtonText; }
   }
 
-  /* ---- Print: light (the script switches the theme for the print and back), no chrome, panels whole ---- */
+  /* ---- Print: light (the script switches the theme for the print and back), no skip link, panels whole ---- */
 
   @media print {
     .skip-link { display: none; }

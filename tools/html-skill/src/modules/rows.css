@@ -53,6 +53,10 @@
   .row:is([data-active], [aria-selected="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .row:is([data-active], [aria-selected="true"]) .row-hint { color: var(--basalt-text-secondary); }
   .row[data-danger] { color: var(--basalt-status-danger); }
+  /* The long form of a profile (decisions 106 and 107): a .rows list of links, the glyph in the row's seat, the handle as the hint. A row for a
+     service without a mark keeps an empty seat (the glyph's 16px and the row's gap, on the start side), only when another row in this list
+     has a glyph, so every name starts at one x. Scoped to .profile-links: a blanket rule would re-indent every menu and palette row that has no icon. */
+  .profile-links:has(> .row > svg) > .row:not(:has(> svg)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--basalt-space-3)); }
 
   /* The glide: one shared plate follows the lit row on duration-base (palette.js places it). It appears in place, a key moves it at once,
      and on leaving it freezes and fades in place. Drawn only where hover is real: not on touch, not under reduced motion, not in forced
@@ -67,10 +71,10 @@
 
   @media (forced-colors: active) {
     /* The lit row opts out of colour adjustment (Chromium paints a Canvas backplate behind forced text, which turns the label into a black
-       box) and names a system colour for every part: a solid Highlight plate, HighlightText for the label, glyph, hint and chip. A lit danger row too. */
+       box) and names a system colour for every part: a solid Highlight plate, HighlightText for the label, glyph, hint, status word and badge (so its dot, ring and edge follow, drawn as borders in currentColor) and chip. A lit danger row too. */
     .row:is([data-active], [aria-selected="true"]) { forced-color-adjust: none; color: HighlightText; }
     .row:is([data-active], [aria-selected="true"])::before { background-color: Highlight; }
-    .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint) { color: HighlightText; }
+    .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint, .status, .badge) { color: HighlightText; }
     .row:is([data-active], [aria-selected="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
   }
 }

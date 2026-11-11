@@ -8,7 +8,7 @@
 //   parts/accent.css          the accent module: packages/tokens/dist/css/accents.css (the generated accent classes), minified; a page gets
 //                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
 //   parts/art.css             the chart, art, aspect and stage-headroom tokens, taken out of core.css; a page gets it only when its body names one of them
-//   parts/icons.json          the Phosphor icons in src/icons.json (Bold and Regular paths) and Phosphor's MIT notice
+//   parts/icons.json          the Phosphor icons in src/icons.json (Bold paths: the skill draws Bold at every size) and Phosphor's MIT notice
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
@@ -28,6 +28,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as esbuild from "esbuild";
 
+import { GLYPHS } from "../../packages/react/glyphs/source.mjs";
 import { iconData } from "./icons.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -112,11 +113,26 @@ function geistFonts() {
 const minify = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: "inline", charset: "utf8", logLevel: "silent" }).code;
 /** `%icon:Name%` in a source stylesheet is a data URI of that Phosphor Bold glyph (for a mask), so a glyph is never copied into the CSS by hand. */
 const iconUri = (name) => {
-  const [bold] = iconData([name])[name];
+  const bold = iconData([name])[name];
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>${bold.map((d) => `<path d='${d}'/>`).join("")}</svg>`;
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
 const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)), "css");
+
+/**
+ * `%glyph:name%` in a module's source is the path of a core glyph (packages/react/glyphs/source.mjs, the drawn set), read from the set and never copied
+ * by hand: the lines of a line glyph as one path on the 24 grid, drawn with a 2.25 round stroke. The core `external` glyph is the new-tab arrow.
+ */
+const glyphPath = (name) => {
+  const glyph = GLYPHS[name];
+  if (!glyph?.s) throw new Error(`html-skill: "${name}" is not a core glyph with a drawing of its own`);
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  return glyph.s.filter((slot) => slot[8]).map(([x0, y0, x1, y1, x2, y2, x3, y3]) => {
+    const straight = near(x1, x0 + (x3 - x0) / 3) && near(y1, y0 + (y3 - y0) / 3) && near(x2, x0 + (2 * (x3 - x0)) / 3) && near(y2, y0 + (2 * (y3 - y0)) / 3);
+    return straight ? `M${x0} ${y0}L${x3} ${y3}` : `M${x0} ${y0}C${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`;
+  }).join("");
+};
+const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)), "js");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
@@ -130,7 +146,7 @@ export function build() {
   files["compose.mjs"] = src("compose.mjs");
   files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
   files["parts/core.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inCore))}\n${src("core.css")}`);
-  files["parts/core.js"] = minify(src("core.js"), "js");
+  files["parts/core.js"] = minifyJs(src("core.js"));
   for (const name of Object.keys(manifest.modules)) {
     // The accent module has no source file of its own: it is the tokens package's generated accents.css.
     if (name === "accent") files["parts/accent.css"] = minifyCss(tokensFile("accents.css"));
@@ -138,7 +154,7 @@ export function build() {
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
-      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minify(fs.readFileSync(file, "utf8"), "js");
+      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
   // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.
