@@ -1733,8 +1733,9 @@
   .basalt-chip[data-disabled][data-checked] { background: transparent; }
   @media (pointer: coarse) {
     .basalt-chip { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-base-size); }
-    /* The target is 44px; rows sit 8px apart, so targets meet and never overlap. */
-    .basalt-chip::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-lg) - var(--basalt-size-tap-min)) / 2) 0; }
+    /* The target is 44px; rows sit 8px apart, so targets meet and never overlap. The box is placed against the chip's padding box, which is the hairline inside the
+       border on every side, so the inset takes the hairline back: 36 less 2, plus 5 above and 5 below, is 44. */
+    .basalt-chip::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-lg) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)) 0; }
   }
 
   /* The trigger and the checklist. The trigger is a secondary Button: it reads the label, then its value, then a caret, and

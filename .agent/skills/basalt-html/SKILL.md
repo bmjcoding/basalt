@@ -39,6 +39,8 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
+- **still-table** `data-fixed`, `data-sortable`: a `<col>` for each column, one with no width; never size a column from content.
+- **filter** `.filter`: write only labelled checkboxes, the script builds the control; one `.filter-result` for each list.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
@@ -81,4 +83,4 @@ Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's)
 - **Motion** from the tokens only; entries ease out, nothing bounces or overshoots; under reduced motion, opacity only. A press is a colour step; only `.btn` scales (`--usage core`).
 - **390px wide** must work: no sideways scroll, touch targets at least 44px (standalone links too: `--usage core`), inputs 16px (the CSS does this on coarse pointers). Don't hide a column to make a table fit.
 - **No** CDN, framework, web font request, glow, gradient, dot grid, outer frame around the page, bounce, press scale beyond `.btn`'s .98, red fill, or decorative colour. Danger is red text with a red hairline.
-- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, MagnifyingGlass, Copy, Check, Sun, Moon, Info, Warning, X, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretDown, CaretRight, Plus, Minus, Trash, Download, ArrowClockwise, CheckCircle, XCircle, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.
+- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, MagnifyingGlass, Copy, Check, Sun, Moon, Info, Warning, X, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretDown, CaretUpDown, CaretRight, Plus, Minus, Trash, Download, ArrowClockwise, CheckCircle, XCircle, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.

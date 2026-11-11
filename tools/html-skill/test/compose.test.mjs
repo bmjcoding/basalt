@@ -83,6 +83,24 @@ describe("what a body gets", () => {
     assert.deepEqual(used("<p>A checkbox, a switch, a select, a toggle and a loop are words here.</p>"), []);
   });
 
+  test("tables and filters come in as modules, each by its own markup: a plain table brings the table alone, and prose that merely names one gets none", () => {
+    assert.deepEqual(used("<table><tr><td>x</td></tr></table>"), ["table"], "a plain table is the table module only");
+    assert.deepEqual(used('<p class="table-hint" hidden></p>'), ["table"], "the scroll hint is the table module's");
+    assert.deepEqual(used("<table data-fixed><tr><td>x</td></tr></table>"), ["glyph", "table", "still-table"], "a fixed table brings the still table, with the glyphs its sort seat draws");
+    assert.deepEqual(used("<table><thead><tr><th data-sortable>x</th></tr></thead></table>"), ["glyph", "table", "still-table"], "a sortable header does too");
+    assert.deepEqual(used('<table data-pinned="1"><tr><td>x</td></tr></table>'), ["glyph", "table", "still-table"]);
+    assert.deepEqual(used('<div class="table-empty">x</div>'), ["glyph", "table", "still-table"], "the empty row's block names the still table");
+    assert.deepEqual(used('<div class="filter" data-label="Status"><label><input type="checkbox" value="a"> A</label></div>'), ["glyph", "forms", "choice", "glide", "filter", "popover"], "a filter brings the checklist's popup, its plate, the glyphs and the boxes, whichever form the count picks");
+    assert.deepEqual(used('<p class="filter-result">Showing 3 of 24 runs</p>'), ["glyph", "choice", "glide", "filter", "popover"], "so does the result line, which the filter writes");
+    assert.deepEqual(used("<p>A sortable table, a still table, a filter, a chip and a result line are words here.</p>"), []);
+    const filter = compose('<div class="filter" data-label="Status"></div>', { fonts: false });
+    for (const name of ["plus", "check"]) assert.ok(filter.glyphs.includes(name), `a filter draws the ${name} glyph, so the page carries it`);
+    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(filter.icons.includes(name), `and the ${name} icon`);
+    const still = compose("<table data-fixed><tr><td>x</td></tr></table>", { fonts: false });
+    for (const name of ["arrow-up", "arrow-down"]) assert.ok(still.glyphs.includes(name), `a still table draws the ${name} glyph`);
+    assert.ok(still.icons.includes("CaretUpDown"));
+  });
+
   test("a page with the loops module sets a stored hold before first paint, in the head beside the theme's line, and no other page does", () => {
     const withLoops = compose('<button class="btn" data-loops-toggle aria-pressed="false">x</button>', { fonts: false }).html;
     assert.match(withLoops.split("</head>")[0], /<script>\(function\(\)\{try\{if\(localStorage\.getItem\("basalt-loops"\)==="held"\)document\.documentElement\.setAttribute\("data-loops","held"\)/);
