@@ -1,0 +1,97 @@
+<!-- [confirm] The copy on this page is a draft from the content brief; the owner approves every word before it goes live.
+     Each of these is a draft, and where each link points:
+     - [confirm] The heading: "Bailey M. Jones" (the page's h1 and its title). The header's brand is "Bailey Jones" as plain text:
+       a stand-in for a mark the owner has not directed. No mark, tile, monogram or favicon anywhere on the page.
+     - [confirm] The role line: "Software engineer leading applied AI and site reliability at a top US bank." (no employer is named).
+     - [confirm] The thesis: "Applied AI in regulated industries: agents that are safe to run where mistakes are expensive."
+     - [confirm] The record's label: "Now".
+     - [confirm] Building: "Blacksand, the secure ground your AI agents run on. Open source, MIT, in alpha." Blacksand links to
+       https://github.com/bmjcoding/blacksand
+     - [confirm] Consulting: "SRA Syndicate. Client work: Castle Nutrition's website, sign-in and store tools, launching December 1, 2026."
+       SRA Syndicate links to https://srasyndicate.io
+     - [confirm] Writing: "Stoic Technologist, on Substack: AI-era leadership, influence vs. titles, agency in big organisations."
+       Stoic Technologist links to https://stoictechnologist.substack.com
+     - [confirm] Based: "Dallas–Fort Worth, Texas" then the local time (America/Chicago), or "Central time" without script and in print.
+     - [confirm] The profile links and where they point: "Email" (mailto:contact@baileymjones.com), "GitHub"
+       (https://github.com/bmjcoding), "LinkedIn" (https://www.linkedin.com/in/baileymjones-com/), "X" (https://x.com/bmjcoding).
+     - [confirm] The header's links: Work (#work, this page's next section), Writing, About and Contact (all "#": the pages do not exist yet).
+     - [confirm] The Work line: "Blacksand, Castle Nutrition, N1 and Basalt."
+     - [confirm] The brand's link home is "#": the page itself, until the site has other pages. -->
+<title>Bailey M. Jones</title>
+<!-- @include shared/site-header.css -->
+<!-- @include index.css -->
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="basalt-chrome basalt-site-header">
+  <div class="basalt-site-bar">
+    <a class="basalt-site-brand" href="#" aria-label="Bailey Jones, home"><span class="basalt-site-brand-mark">Bailey Jones</span></a>
+    <nav class="basalt-site-links" aria-label="Primary">
+      <!-- The two classes the stand-in's script would add after the first paint are written here, so the links never change colour on
+           load (a transition) and nothing about the list changes when the script runs. The script adds them again as a no-op. -->
+      <ul class="basalt-site-links-list">
+        <li><a class="basalt-site-link" href="#work">Work</a></li>
+        <li><a class="basalt-site-link" href="#">Writing</a></li>
+        <li><a class="basalt-site-link" href="#">About</a></li>
+        <li><a class="basalt-site-link" href="#">Contact</a></li>
+      </ul>
+    </nav>
+    <span class="basalt-bar-spacer"></span>
+    <div class="basalt-bar-actions">
+      <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="bmj-row">
+      <div class="hero-statement">
+        <h1 class="hero-name">Bailey M. Jones</h1>
+        <div class="hero-lead">
+          <p class="hero-role">Software engineer leading applied AI and site reliability at a top US bank.</p>
+          <p class="hero-thesis">Applied AI in regulated industries: agents that are safe to run where mistakes are expensive.</p>
+        </div>
+        <ul class="links hero-profiles" aria-label="Email and profiles">
+          <li><a href="mailto:contact@baileymjones.com"><i data-icon="EnvelopeSimple"></i>Email</a></li>
+          <li><a href="https://github.com/bmjcoding"><i data-icon="GithubLogo"></i>GitHub</a></li>
+          <li><a href="https://www.linkedin.com/in/baileymjones-com/"><i data-icon="LinkedinLogo"></i>LinkedIn</a></li>
+          <li><a href="https://x.com/bmjcoding"><i data-icon="XLogo"></i>X</a></li>
+        </ul>
+      </div>
+
+      <section class="hero-now" aria-labelledby="now-title">
+        <h2 class="now-title" id="now-title">Now</h2>
+        <dl class="dl">
+          <div class="dl-item">
+            <dt class="dl-term">Building</dt>
+            <dd class="dl-details"><p class="dl-value"><a class="dl-link" href="https://github.com/bmjcoding/blacksand">Blacksand</a><span class="dl-rest">, the secure ground your AI agents run on. Open source, MIT, in alpha.</span></p></dd>
+          </div>
+          <div class="dl-item">
+            <dt class="dl-term">Consulting</dt>
+            <dd class="dl-details"><p class="dl-value"><a class="dl-link" href="https://srasyndicate.io">SRA Syndicate</a><span class="dl-rest">. Client work: Castle Nutrition’s website, sign-in and store tools, launching December 1, 2026.</span></p></dd>
+          </div>
+          <div class="dl-item">
+            <dt class="dl-term">Writing</dt>
+            <dd class="dl-details"><p class="dl-value"><a class="dl-link" href="https://stoictechnologist.substack.com">Stoic Technologist</a><span class="dl-rest">, on Substack: AI-era leadership, influence vs. titles, agency in big organisations.</span></p></dd>
+          </div>
+          <div class="dl-item">
+            <dt class="dl-term">Based</dt>
+            <dd class="dl-details"><p class="dl-value">Dallas–Fort Worth, Texas<span class="dl-rest" data-clock-row> · <span class="clock-zone">Central time</span><time class="clock" data-clock></time></span></p></dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  </div>
+  <!-- @include index.js -->
+
+  <section class="next" id="work" aria-labelledby="work-title">
+    <div class="bmj-row">
+      <div class="next-head">
+        <h2 class="next-title" id="work-title">Work</h2>
+        <p class="next-lead">Blacksand, Castle Nutrition, N1 and Basalt.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<!-- @include shared/site-header.js -->
