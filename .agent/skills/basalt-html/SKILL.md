@@ -40,6 +40,10 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **art** `var(--basalt-art-tone-2)`: tokens only (art tones, chart roles, aspects); greys only, never an accent.
 - **stats** `.stats`: never a row of boxed tiles; up to 3 figures.
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
+- **meter** `.meter`: not `.progress`; `--value` and `--target` are percentages; write `aria-valuetext`.
+- **dlist** `.dlist`: a `dl` of `div` rows, never in a panel; no value writes `Not observed`.
+- **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
+- **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.

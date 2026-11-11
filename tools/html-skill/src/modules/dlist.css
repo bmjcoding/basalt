@@ -1,0 +1,28 @@
+@layer basalt {
+
+  /* ---- Description list: React's DescriptionList. Facts about one thing, a label then its value, row after row; on the page, no rim, no level ----
+     A dl of div rows. The label column is a fixed width (size-description-label), never sized to the longest label, so every list on a page shares one
+     value edge. The list is the container: it stacks (label over value) when its own width, not the viewport's, is under 480px. */
+
+  .dlist { container-type: inline-size; margin: 0; padding: 0; font-family: var(--basalt-font-family-sans); }
+  .dlist > div { display: grid; grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr); column-gap: var(--basalt-space-4); align-items: baseline; padding-block: var(--basalt-space-2-5); }
+  /* The divider is inside the row, so a one-line row is 40px (10 + 20 + 10). None above the first row or below the last. */
+  .dlist > div + div { box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
+  .dlist > div:first-child { padding-top: 0; }
+  .dlist > div:last-child { padding-bottom: 0; }
+  .dlist dt { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); overflow-wrap: anywhere; }
+  .dlist dd { min-width: 0; margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--bh-base); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .dlist dd + dd { grid-column: 2; margin-top: var(--basalt-space-1); }
+  /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
+  .dlist dd[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
+  .dlist dd[data-missing] { color: var(--basalt-text-tertiary); }
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  @container (width < 480px) {
+    .dlist > div { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
+    .dlist dd + dd { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
+  }
+  /* On touch a link in a value is a 44 by 44 box (the core already gives it 44 tall, with no change to the row). */
+  @media (pointer: coarse) {
+    .dlist dd a { min-width: var(--basalt-size-tap-min); }
+  }
+}
