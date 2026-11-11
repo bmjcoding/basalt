@@ -123,3 +123,29 @@ describe("a page with every component matches its recorded baseline, pixel for p
     }
   }
 });
+
+// The sixth parity PR (forms and selection): a page of the select, the checkbox, radio and switch, the choice card, the pressed toggle, a table's checkbox column
+// (header box mixed, one row selected) and the loops hold's controls, at rest. (The kitchen sink names these modules with a basalt:use comment instead of drawing them:
+// its focus steps read the page again and again, and the new marks' edges made some of those reads differ by a few pixels from one load to the next.)
+describe("the forms and selection page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "forms.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("forms") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});

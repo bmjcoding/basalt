@@ -64,6 +64,31 @@ describe("what a body gets", () => {
     assert.deepEqual(used("<p>A popover, a menu, a dialog and a toast are words here.</p>"), []);
   });
 
+  test("forms and selection come in as modules, each by its own markup, and prose that merely names one gets none", () => {
+    assert.deepEqual(used('<select class="input"><option>x</option></select>'), ["forms", "select"], "a select is its own module, with the form rules it needs");
+    assert.deepEqual(used('<input type="checkbox" aria-label="x">'), ["forms", "choice"]);
+    assert.deepEqual(used("<input type='radio' name='a'>"), ["forms", "choice"]);
+    assert.deepEqual(used('<input type="checkbox" role="switch" aria-label="x">'), ["forms", "choice"]);
+    assert.deepEqual(used('<label class="choice">x</label>'), ["choice"]);
+    assert.deepEqual(used('<label class="panel choice-card"><input class="choice-card-input" type="radio" name="a"></label>'), ["forms", "choice-card"], "a choice card's own input does not bring the bare choice rules");
+    assert.deepEqual(used('<input type="text" class="input">'), ["forms"]);
+    assert.deepEqual(used('<button class="btn" aria-pressed="false">x</button>'), ["toggle"]);
+    assert.deepEqual(used('<button aria-pressed="true" class="btn" data-variant="ghost">x</button>'), ["toggle"], "the attribute may come first");
+    assert.deepEqual(used('<div class="segment"><button aria-pressed="true">x</button></div>'), ["segment"], "a segment's buttons are not toggles");
+    assert.deepEqual(used('<span class="btn-check"></span>'), ["toggle"]);
+    assert.deepEqual(used('<th class="select-col">x</th>'), ["choice", "table", "selection"], "a checkbox column brings the table and the boxes");
+    assert.deepEqual(used('<input type="checkbox" data-select-all aria-label="x"><table></table>'), ["forms", "choice", "table", "selection"]);
+    assert.deepEqual(used('<button class="btn" data-loops-toggle aria-pressed="false">x</button>'), ["toggle", "loops"]);
+    assert.deepEqual(used("<script>Basalt.loops.set(true); Basalt.init();</script>"), ["loops"]);
+    assert.deepEqual(used("<p>A checkbox, a switch, a select, a toggle and a loop are words here.</p>"), []);
+  });
+
+  test("a page with the loops module sets a stored hold before first paint, in the head beside the theme's line, and no other page does", () => {
+    const withLoops = compose('<button class="btn" data-loops-toggle aria-pressed="false">x</button>', { fonts: false }).html;
+    assert.match(withLoops.split("</head>")[0], /<script>\(function\(\)\{try\{if\(localStorage\.getItem\("basalt-loops"\)==="held"\)document\.documentElement\.setAttribute\("data-loops","held"\)/);
+    assert.ok(!compose("<h1>x</h1>", { fonts: false }).html.includes("basalt-loops"));
+  });
+
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
     for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
       assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);
@@ -114,7 +139,7 @@ describe("what a body gets", () => {
 
   test("the example bodies get the modules their markup needs", () => {
     assert.deepEqual(used(EXAMPLES.static), ["topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
-    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "select", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
   });
 });
 
@@ -360,7 +385,7 @@ describe("modules map to the index and the usage texts", () => {
 
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
     // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
-    const mentions = { core: ["hint"], braille: ["status"] };
+    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }

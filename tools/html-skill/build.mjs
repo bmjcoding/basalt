@@ -117,7 +117,7 @@ const iconUri = (name) => {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>${bold.map((d) => `<path d='${d}'/>`).join("")}</svg>`;
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
-const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)), "css");
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
 
 /**
  * `%glyph:name%` in a module's source is the path of a core glyph (packages/react/glyphs/source.mjs, the drawn set), read from the set and never copied
@@ -133,6 +133,11 @@ const glyphPath = (name) => {
     const straight = near(x1, x0 + (x3 - x0) / 3) && near(y1, y0 + (y3 - y0) / 3) && near(x2, x0 + (2 * (x3 - x0)) / 3) && near(y2, y0 + (2 * (y3 - y0)) / 3);
     return straight ? `M${x0} ${y0}L${x3} ${y3}` : `M${x0} ${y0}C${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`;
   }).join("");
+};
+/** `%glyph-mask:name%` in a source stylesheet is a data URI of that core glyph, drawn with the set's 2.25 round stroke on the 24 grid, for a mask (a pressed toggle's check). */
+const glyphMaskUri = (name) => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='${glyphPath(name)}' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+  return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
 const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)), "js");
 

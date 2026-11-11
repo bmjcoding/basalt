@@ -1,0 +1,140 @@
+@layer basalt {
+
+  /* ---- Select: a native <select class="input"> drawn as React's Select ----
+     The closed trigger is the input's box with the value and a secondary CaretUpDown at the end, in every browser. Where the browser
+     has `appearance: base-select` (Chromium) the open list is styled too: a popup at its opener's level plus one (a floor of 1) with the
+     rim, the overlay shadow and the menu's 12 radius, 4 inline and 2 block of padding, rows with a 36px plate in a 40px hit area (44 on
+     touch), secondary ink lifting to primary on the lit row, a 16px check seat at the row's start on every row, and a second line (13/18,
+     tertiary) for an option that has a .option-description. It grows from .98 over duration-base on ease-out and leaves at 0.75 on
+     ease-in; under reduced motion it only fades. Elsewhere the browser's own list opens (its trigger still matches). The native select keeps
+     its own keyboard, typeahead, form value and touch behaviour. Not carried from React: the shared plate that glides between rows (each
+     row lights on its own, the menu's fallback), and the density steps (the skill has none). One row is lit at a time, by whichever of the pointer and the keys moved last (select.js). */
+
+  .select, select.input { --_caret: url("%icon:CaretUpDown%"); }
+  .select { position: relative; display: block; }
+  select.input {
+    --_pop-bg: var(--basalt-surface-1);
+    --_pop-next: var(--basalt-surface-2);
+    --_pop-plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_pop-next)));
+    min-width: var(--basalt-size-select-min);
+    padding-inline: var(--basalt-space-2-5) var(--basalt-space-8);
+    font-size: var(--_font, var(--basalt-text-base-size));
+    line-height: 1;
+    text-align: start;
+    cursor: pointer;
+  }
+  :is(%panel%, .float) select.input { --_pop-bg: var(--panel-next); --_pop-next: var(--basalt-surface-3); }
+  select.input[data-size="xs"] { height: var(--basalt-size-control-xs); --_font: var(--basalt-text-sm-size); }
+  select.input[data-size="sm"] { height: var(--basalt-size-control-sm); --_font: var(--basalt-text-sm-size); }
+  select.input[data-size="lg"] { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
+  select.input[data-size="xl"] { height: var(--basalt-size-control-xl); border-radius: var(--basalt-radius-md); --_font: var(--basalt-text-md-size); }
+  select.input:disabled { cursor: not-allowed; }
+  select.input option { color: var(--basalt-text-primary); }
+  .option-description { display: none; }
+
+  /* The caret: CaretUpDown, secondary. In a browser with no base-select it is the wrapper's, because a select has no pseudo-element there. */
+  .select::after { content: ""; position: absolute; inset-inline-end: var(--basalt-space-2); top: 50%; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); margin-top: calc(var(--basalt-size-icon-sm) / -2); background: var(--basalt-text-secondary); mask: var(--_caret) center / contain no-repeat; pointer-events: none; }
+  select.input { appearance: none; }
+  select.input:has(> option:checked[value=""]) { color: var(--basalt-text-tertiary); }
+
+  @supports (appearance: base-select) {
+    .select:has(> select.input)::after { display: none; }
+    select.input, select.input::picker(select) { appearance: base-select; }
+    select.input { display: inline-flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); padding-inline-end: var(--basalt-space-2); }
+    select.input::picker-icon { content: ""; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-secondary); mask: var(--_caret) center / contain no-repeat; transition: none; }
+    select.input selectedcontent { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    select.input selectedcontent .option-description { display: none; }
+    select.input::picker(select) {
+      box-sizing: border-box;
+      min-width: anchor-size(width);
+      max-height: min(var(--basalt-size-popup-max-height), 50vh);
+      margin-block: var(--basalt-space-1-5);
+      padding: var(--basalt-space-0-5) var(--basalt-space-1);
+      border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+      border-top-color: var(--basalt-border-rim-top);
+      border-radius: var(--basalt-radius-lg);
+      background: var(--_pop-bg);
+      color: var(--basalt-text-primary);
+      box-shadow: var(--basalt-shadow-overlay);
+      opacity: 1;
+      transform: none;
+      transition-property: opacity, transform, overlay, display;
+      transition-behavior: allow-discrete;
+      transition-duration: var(--basalt-duration-base);
+      transition-timing-function: var(--basalt-ease-out);
+    }
+    select.input::picker(select):not(:popover-open) { opacity: 0; transform: scale(0.98); transition-duration: calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+    @starting-style { select.input::picker(select):popover-open { opacity: 0; transform: scale(0.98); } }
+
+    /* A row: a 40px hit area with a 36px plate inside it, secondary ink; the lit row takes the plate and lifts to primary. */
+    select.input option {
+      --_h: var(--basalt-size-menu-row);
+      --_inset: var(--basalt-space-0-5);
+      position: relative;
+      isolation: isolate;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0 var(--basalt-space-2-5);
+      box-sizing: border-box;
+      min-height: calc(var(--_h) + 2 * var(--_inset));
+      padding: 0 var(--basalt-space-3);
+      background: transparent;
+      color: var(--basalt-text-secondary);
+      font: var(--basalt-font-weight-regular) var(--bh-base);
+      cursor: default;
+      outline: none;
+      transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+    }
+    select.input option::before { content: ""; position: absolute; inset: var(--_inset) 0; z-index: -1; border-radius: var(--basalt-radius-md); background-color: transparent; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    select.input option:is(:hover, :focus-visible) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+    select.input option:is(:hover, :focus-visible)::before { background-color: var(--_pop-plate); transition-duration: var(--basalt-duration-instant); }
+    select.input option:disabled { color: var(--basalt-text-disabled); }
+    /* The lit row is the one under the pointer or the one the keys are on (not the chosen row's plain focus), and one row at a time: whichever input came
+       last wins, as React's Select does. select.js writes data-input="key" or "pointer" on the select; before any input the pointer wins. */
+    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover),
+    select.input[data-input="key"] option:hover:not(:focus-visible) { color: var(--basalt-text-secondary); }
+    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover)::before,
+    select.input[data-input="key"] option:hover:not(:focus-visible)::before { background-color: transparent; }
+    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover) .option-description,
+    select.input[data-input="key"] option:hover:not(:focus-visible) .option-description { color: var(--basalt-text-tertiary); }
+    /* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */
+    select.input option::checkmark { content: ""; grid-area: 1 / 1; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-primary); mask: url("%icon:Check%") center / contain no-repeat; }
+    select.input option:not(:checked)::checkmark { visibility: hidden; }
+    /* A second line: the description runs from the text's edge to the row's end, 13/18 in tertiary (secondary on the lit row), cut with an ellipsis. */
+    select.input option:has(> .option-description) {
+      grid-template-rows: var(--basalt-text-base-line-height) var(--basalt-text-sm-line-height);
+      align-content: center;
+      min-height: calc(var(--_h) + var(--basalt-text-sm-line-height) + 2 * var(--_inset));
+      padding-block: calc(var(--_inset) + (var(--_h) - var(--basalt-text-base-line-height)) / 2);
+    }
+    select.input option .option-description { display: block; grid-column: 2; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    select.input option:is(:hover, :focus-visible) .option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+    select.input option:disabled .option-description { color: var(--basalt-text-disabled); }
+    @media (pointer: coarse) {
+      select.input option { min-height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
+      select.input option:has(> .option-description) { min-height: max(calc(var(--_h) + var(--basalt-text-sm-line-height) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      select.input::picker(select), select.input::picker(select):not(:popover-open) { transform: none; }
+      @starting-style { select.input::picker(select):popover-open { transform: none; } }
+    }
+  }
+
+  /* On touch the trigger is at least 44 and its text 16px (React's Select trigger), whatever its size. */
+  @media (pointer: coarse) { select.input { min-height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); } }
+
+  @media (forced-colors: active) {
+    select.input:has(> option:checked[value=""]) { color: GrayText; }
+    .select::after { forced-color-adjust: none; background: ButtonText; }
+    select.input:disabled + .select::after { background: GrayText; }
+    @supports (appearance: base-select) {
+      select.input::picker-icon { forced-color-adjust: none; background: ButtonText; }
+      select.input::picker(select) { border-color: CanvasText; }
+      select.input option:is(:hover, :focus-visible) { forced-color-adjust: none; color: HighlightText; }
+      select.input option:is(:hover, :focus-visible)::before { background-color: Highlight; }
+      select.input option:is(:hover, :focus-visible)::checkmark { background: HighlightText; }
+      select.input option:is(:hover, :focus-visible) .option-description { color: HighlightText; }
+    }
+  }
+}

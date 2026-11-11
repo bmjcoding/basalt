@@ -16,6 +16,7 @@ const pages = {
   static: EXAMPLES.static,
   interactive: EXAMPLES.interactive,
   "kitchen-sink": read(here, "fixtures", "kitchen-sink.body.html"),
+  forms: read(here, "fixtures", "forms.body.html"),
 };
 
 for (const [name, body] of Object.entries(pages)) {

@@ -21,10 +21,6 @@
   }
   /* A textarea is two lines plus 16px (56px), as React's. */
   textarea.input { height: auto; min-height: calc(var(--basalt-text-base-line-height) * 2 + var(--basalt-space-4)); padding-block: var(--basalt-space-2); line-height: var(--basalt-text-base-line-height); resize: vertical; }
-  .select { position: relative; display: block; }
-  /* stylelint-disable-next-line unit-disallowed-list -- the chevron is drawn with two borders; its size and stroke have no token */
-  .select::after { content: ""; position: absolute; inset-inline-end: var(--basalt-space-3); top: 50%; width: 7px; height: 7px; border-inline-end: 1.5px solid var(--basalt-text-secondary); border-bottom: 1.5px solid var(--basalt-text-secondary); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
-  select.input { padding-inline-end: var(--basalt-space-8); appearance: none; }
   .input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .input:disabled { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
