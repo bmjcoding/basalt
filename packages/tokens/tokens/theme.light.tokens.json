@@ -217,6 +217,36 @@
         "$description": "A chart's axis labels and the words for a gap."
       }
     },
+    "art": {
+      "field": {
+        "$value": "{color.neutral.98}",
+        "$description": "The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads."
+      },
+      "tone-1": {
+        "$value": "{color.neutral.94}",
+        "$description": "The first step off the field: a sky's horizon, a far ridge, a shadow."
+      },
+      "tone-2": {
+        "$value": "{color.neutral.75}",
+        "$description": "Middle forms, and the last tone a quiet zone may hold."
+      },
+      "tone-3": {
+        "$value": "{color.neutral.52}",
+        "$description": "Detail starts here: lit edges, lines, most stars. Never in a quiet zone."
+      },
+      "tone-4": {
+        "$value": "{color.neutral.30}",
+        "$description": "Strong forms and highlights."
+      },
+      "mark": {
+        "$value": "{color.text.primary}",
+        "$description": "The strongest point drawn art may reach. It is text-primary, so art never outshouts the words."
+      },
+      "quiet-limit": {
+        "$value": "{color.art.tone-2}",
+        "$description": "In a quiet zone no pixel is lighter (dark) or darker (light) than this: the stage's headroom under the bar, and each data-quiet zone. Primary and secondary text and the focus ring hold their contrast on it."
+      }
+    },
     "scrim": {
       "$value": "{color.black.40}",
       "$description": "Behind modal dialogs and sheets."

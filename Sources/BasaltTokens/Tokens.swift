@@ -311,6 +311,48 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads.
+    public static let artField = ThemedColor(
+      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+    )
+
+    /// The first step off the field: a sky's horizon, a far ridge, a shadow.
+    public static let artTone1 = ThemedColor(
+      light: RGBA(red: 0.941124, green: 0.941124, blue: 0.941124, alpha: 1),
+      dark: RGBA(red: 0.066634, green: 0.066634, blue: 0.066634, alpha: 1)
+    )
+
+    /// Middle forms, and the last tone a quiet zone may hold.
+    public static let artTone2 = ThemedColor(
+      light: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1),
+      dark: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1)
+    )
+
+    /// Detail starts here: lit edges, lines, most stars. Never in a quiet zone.
+    public static let artTone3 = ThemedColor(
+      light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
+      dark: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1)
+    )
+
+    /// Strong forms and highlights.
+    public static let artTone4 = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1)
+    )
+
+    /// The strongest point drawn art may reach. It is text-primary, so art never outshouts the words.
+    public static let artMark = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+    )
+
+    /// In a quiet zone no pixel is lighter (dark) or darker (light) than this: the stage's headroom under the bar, and each data-quiet zone. Primary and secondary text and the focus ring hold their contrast on it.
+    public static let artQuietLimit = ThemedColor(
+      light: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1),
+      dark: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1)
+    )
+
     /// Behind modal dialogs and sheets.
     public static let scrim = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.4),
@@ -480,6 +522,20 @@ extension Basalt {
     public static let chartDashGap: Double = 4
     /// A chart plot's height at every width.
     public static let chartPlot: Double = 240
+    /// The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed.
+    public static let stageHeadroom: Double = 80
+  }
+
+  /// Aspect ratios, width over height: the four a framed picture takes. `photo` is the default.
+  public enum Aspect {
+    /// 1:1. Tiles and square pictures.
+    public static let square: Double = 1
+    /// 3:2. Photographs and drawn scenes in the flow. The default.
+    public static let photo: Double = 1.5
+    /// 16:10. Product screenshots.
+    public static let screen: Double = 1.6
+    /// 16:9. Video stills and wide figures.
+    public static let wide: Double = 1.7778
   }
 
   /// A step of the type scale: size and line height in points, tracking in em.

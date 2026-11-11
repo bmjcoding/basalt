@@ -26,7 +26,9 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
   bar ([Chrome](#chrome-the-smoked-header)). Every dialog, sheet, menu, popover, toast and the
-  command menu is solid. Use the class once per viewport; translucent layers never stack.
+  command menu is solid. Use the class once per viewport; translucent layers never stack. Over art
+  at the top of a site's page the same bar may be clear, with no fill and no blur
+  ([The clear bar](#the-clear-bar-over-art)).
 - **Native is first-class.** Tokens are platform-neutral and generate CSS, TypeScript and
   Swift (Kotlin when an Android app needs it). Components are native per platform; tokens, icons and type are shared.
 
@@ -663,6 +665,46 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
 - **Use it where something scrolls under the bar.** If nothing does, an opaque `surface-page` bar is
   the same bar without the layer (`solid` on `SiteHeader` and `AppHeader`).
 
+#### The clear bar over art
+
+A site's header may be clear, with no fill and no blur, over full-bleed art at the top of its page, and only there (decision 104; the
+council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
+
+**Status:** decided by the council (DECISIONS 104); the implementation has not been reviewed.
+
+- **When it may be clear.** `SiteHeader` only (never `AppHeader`, never the opaque form `solid`), over a [stage](#art) that has declared its
+  headroom passed, at the very top of the page, while the page is at scroll 0. Smoked is the default and the fallback: no stage, a stage
+  that has not declared its headroom, no script, reduced transparency, forced colours and print all keep the smoked bar. Clear is an
+  enhancement the art earns.
+- **What clear is.** No fill, no blur and a transparent hairline: the line is a transparent border, so the bar is 56px in both states and
+  nothing moves when it arrives. The bar sits on the art with no scrim, gradient, text-shadow or blend. The ink is always the theme's own
+  and never changes (art that does not fit the theme gets the smoked bar from the top, not a second ink). The focus ring is the standard
+  ring.
+- **Why this holds AA without a scrim.** The art keeps the [headroom](#art) quiet: no pixel of it is lighter than `art-quiet-limit` in dark
+  or darker than it in light, so the weakest ink in the bar, `text-secondary` (links at rest), holds 4.5:1 on it (4.89:1 in dark, 4.60:1 in
+  light), and the focus ring and the icons hold 3:1. `text-primary` holds on the selected and hover washes over the limit (8.14:1 and
+  8.96:1 in dark, 8.42:1 and 8.97:1 in light, at worst). One tone further (tone 3) secondary falls to about 2:1, which is why the limit
+  stops at tone 2. The contrast tests carry these pairs.
+- **The change.** From the first pixel of scroll the bar is the smoked bar again. One `IntersectionObserver` on a 1px sentinel at the
+  document's top reports where the page is (there is no scroll handler, and the rubber band above the top counts as the top). The fill
+  (`surface-chrome`) and the line (`border-hairline`) fade in over `duration-base` on `ease-out`, and back to clear at 0.75 of that on
+  `ease-in`. The blur (`blur-chrome`) switches at once, in both directions, and the ink does not change. Under reduced motion it is the
+  duration tokens' 100ms fade. A departure from the top that the observer first reports past the headroom's slack (24px: `size-stage-headroom` less
+  `size-header`) switches all of it at once, because art past the headroom is already under the bar and there is no fade for it to show
+  through. That is what the build catches: an instant anchor, a `scrollTo`, a restored scroll position, a scroll the browser does not
+  animate. A scroll the browser animates (Page Down, Space, or an anchor with smooth scrolling on) is first reported inside the slack, so
+  it gets the decided fade. A page that opens at the top is clear in its first frame when script runs, with no fade from smoked; without
+  script it stays smoked.
+- **The menu from a clear bar** is the narrow menu, unchanged: a solid top sheet on Base UI's Dialog, its first row drawing the bar in
+  place, focus on Close. Closing returns the bar to the state it was in.
+- **Fallbacks.** Reduced transparency: opaque `surface-page` with its hairline, from the first frame. Forced colours: `Canvas` and
+  `CanvasText` with a real line. Print: the bar is static and opaque, decorative stage art does not print and the stage takes its place in
+  the flow. Without `backdrop-filter`: clear still works at the top, since it uses no filter, and the scrolled state is the smoked bar's
+  opaque fallback, `surface-page` with its hairline. (The HTML skill hides a site bar in print; batch 7 reconciles
+  that with this.)
+- **Translucent layers never stack.** A clear bar has no fill, so it is not a layer. Nothing translucent goes on a stage, and a panel on a
+  stage is solid, at level 1, with its rim.
+
 Portals inherit a shared modal-depth context. A menu, select, combobox or popover opened
 inside a modal sits above its parent. A necessary nested confirmation has a backdrop above
 the previous popup. Tooltips use their intended layer, a tooltip role and an explicit
@@ -1085,6 +1127,80 @@ because no whole set had two of three votes; the owner is asked to look at them 
 - **The HTML skill's build** will substitute these values instead of hand-writing 720 (DECISIONS 91, batch 7); until then its sources
   keep their literals.
 
+## Art
+
+Full-bleed art at the top of a page, and pictures in the flow (decision 104; the council voted 8.5, 8.5 and 8, a three-member round, DECISIONS
+93). The components are `Stage` and `PairedArt` (the stage), `FramedArt` (a figure), and the headroom check, a test helper.
+
+**Status:** decided by the council (DECISIONS 104); the implementation has not been reviewed.
+
+### The stage
+
+Full-bleed art at the top of a page, behind a clear [site header](#the-clear-bar-over-art). One per page, and the page's first content.
+
+- **Level 0.** It is the page painted with art: no rim, radius, shadow, line or fade is added where it ends. It ends on `art-field`, the page
+  colour, so there is no seam. A soft end is the art's own pixels.
+- **It starts at y = 0 under the bar,** pulled up by `size-header` plus the top safe area (the sticky offset), and its content starts below
+  the headroom. Its height is the hero's, not the stage's. While its art loads it shows `art-field`.
+- **Paired art.** The stage takes a dark and a light version and shows the one for the page's theme, including a theme chosen with the toggle
+  (the theme roots choose, as the tokens do, so `prefers-color-scheme` alone is not enough). Art drawn with the art tokens swaps by itself.
+  It is never dimmed, inverted, tinted, filtered or blended. A picture with one version is not a stage: it goes in a frame.
+- **Decorative.** Stage art is hidden from assistive technology. In forced colours it is not drawn (the stage is `Canvas`), and in print it
+  does not print.
+- **What is on it** is ink in quiet zones and solid level-1 panels with their rim: never glass, a scrim or a translucent card. A credit goes
+  under the stage in the flow, never on the art.
+- **The headroom** is the top `size-stage-headroom` (80px: the bar's 56 plus `space-6`) plus the top safe area, across the full width. It
+  holds no pixel past `art-quiet-limit`: nothing lighter in dark, nothing darker in light. The stage declares that its headroom passed (the
+  `headroom` prop), and `SiteHeader` clears only over a stage that declares it. The same limit holds for any ink the stage's content puts on
+  the art: its zone is marked `data-quiet`, and the drawn art keeps detail out of it. How the art leaves room is the art's; a quiet zone need
+  not be a box. The top safe area is unverified on a real notch.
+
+### The headroom check
+
+A test helper for a product's own browser tests, and Basalt's, imported from `@srasyndicate/basalt/testing` (a module of its own; the root
+export and the components never import it, so it is not in an app's bundle). `checkHeadroom(browser, { load })` renders the page at 390 and
+1440, in each theme, at 1x and 2x, with the bar's ink and the stage's content hidden, reads every device pixel of the headroom and of each
+`data-quiet` zone, and fails if any pixel crosses the limit, naming the worst one. Nothing samples at run time: a cross-origin image cannot be
+read, and it would cost every page. The pixels come from a screenshot decoded on the page's own canvas, so the browser resolves every colour,
+`oklab()` and `oklch()` included. Add the product's own art breakpoints to `widths`.
+
+### Framed art
+
+A picture in the flow is a distinct object, so a panel's geometry.
+
+- **The rim** is a real 1px border outside the art (`border-rim`, lit on top in dark), never laid over its pixels. **Radius 12** on the page
+  (`radius-lg`); inside a panel the nested-radius rule (a card's 12 less its 16 of padding is square). **No shadow:** it does not float.
+- **An aspect ratio is always set,** from the four tokens (`aspect-photo`, 3:2, is the default), so the frame reserves its box before the art
+  loads and nothing shifts. The art fills it with `object-fit: cover`.
+- **While it loads,** and if it fails, the frame shows `surface-placeholder` and nothing else: no shimmer (nothing loops), no spinner, no
+  blurred preview (blur belongs to the chrome). Once decoded the art fades in over `duration-base` on `ease-out` (100ms, opacity only, under
+  reduced motion). If it fails, meaningful art shows its alt text in secondary at 13/18, centred; decorative art shows nothing.
+- **Caption and credit** are a `figcaption` under the frame, `space-2` below it, start-aligned, at most `size-prose-width`: the caption is
+  `text-sm` in secondary and the credit a line of its own at `text-xs` in tertiary. Never over the art.
+- **Print and forced colours:** framed art is content, so it prints and keeps its pixels, and its rim is `CanvasText`.
+
+### Art tokens
+
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `art-field` (`color.art.field`) | `neutral-0` | `neutral-98` | The ground of drawn art and of a stage: the page colour |
+| `art-tone-1` | `neutral-7` | `neutral-94` | The first step off the field: a horizon, a far ridge, a shadow |
+| `art-tone-2` | `neutral-20` | `neutral-75` | Middle forms, and the last tone a quiet zone may hold |
+| `art-tone-3` | `neutral-42` | `neutral-52` | Detail starts here: lit edges, lines, stars. Never in a quiet zone |
+| `art-tone-4` | `neutral-75` | `neutral-30` | Strong forms and highlights |
+| `art-mark` | `text-primary` | `text-primary` | The strongest point art may reach |
+| `art-quiet-limit` | `art-tone-2` | `art-tone-2` | No pixel past it in the headroom or a quiet zone: `#333333` in dark, `#bfbfbf` in light |
+| `size-stage-headroom` | 80px | 80px | `size-header` plus `space-6`; the safe area is added by the layout CSS (`--basalt-stage-headroom`) |
+| `aspect-square`, `-photo`, `-screen`, `-wide` | 1, 1.5, 1.6, 1.7778 | | 1:1, 3:2 (the default), 16:10, 16:9 |
+
+- **Drawn art is monochrome:** greys from the tones, named by their distance from the field and not by light or dark, so one drawing swaps
+  between the themes by itself. It never goes past `art-mark`, and gradients are only between neighbouring tones. No accent.
+- **Photographs are content:** they keep their own colour, in a frame, as they are.
+- Every colour is an existing neutral, so no primitive is new. The contrast tests carry `text-primary`, `text-secondary` and `border-focus` on
+  `art-quiet-limit`, and `text-primary` on `state-selected` and `state-hover` over it, in both themes.
+- **On Apple platforms** the system bar is transparent at the scroll edge and a material once content scrolls under it, so it does this
+  itself; the art tokens generate to Swift like every colour (`Basalt.Colors.artField`, `Basalt.Aspect.photo`).
+
 ## Motion
 
 | Token | Value | Use |
@@ -1205,6 +1321,7 @@ adjusts a scalar or range, with distinct names for range thumbs. Confirmations u
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side, bottom or top panel, including safe-area padding and motion preferences.
 
 TimeChart draws a series over time (see [Charts](#charts)), ChartGroup stacks charts on one gutter, and Prose sets a text column's measure (see [Layout](#layout)).
+Stage and PairedArt put full-bleed art under a clear site header, and FramedArt frames a picture in the flow (see [Art](#art)).
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
@@ -1242,6 +1359,10 @@ four-member vote and approved by the owner on 9 Nov 2026. Their implementation h
 The site header, the narrow menu, the app shell and the phone tab bar were decided by the council in a three-member round (DECISIONS
 96, scores 8.5, 8.5 and 8; the sidebar's 256px, the links' 44px hit area, the one shared glide, the 18/26 title and the tab bar's
 circle and inset focus were each 2 to 1). Their implementation has not been reviewed by the panel.
+
+The clear bar over art, the stage, paired art, framed art and the art tokens were decided by the council in a three-member vote (decision
+104: opus, sol and grok, 2 of 3 deciding, with Muse out until 16 Nov 2026; the fade into smoked was 2 to 1, sol wanting every change at
+once, and print 2 to 1, grok wanting a site bar hidden). Their implementation has not been reviewed by the panel.
 
 Navigation (the sidebar and the rail, with their glide) was decided by the council and the owner in decisions 42, 45, 48,
 49, 55, 69 and 70 (the drawing is `.review/council/menus-final/`, section 1). Its implementation has not been reviewed by the

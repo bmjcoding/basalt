@@ -329,6 +329,11 @@ ${byPrefix("blur").map((t) => `${doc(t, "    ")}    public static let ${camel(t.
 ${byPrefix("size").map((t) => `${doc(t, "    ")}    public static let ${camel(t.path.slice(1).join("-"))}: Double = ${px(t)}`).join("\n")}
   }
 
+  /// Aspect ratios, width over height: the four a framed picture takes. \`photo\` is the default.
+  public enum Aspect {
+${byPrefix("aspect").map((t) => `${doc(t, "    ")}    public static let ${t.path[1]}: Double = ${t.$value}`).join("\n")}
+  }
+
   /// A step of the type scale: size and line height in points, tracking in em.
   public struct TypeStyle: Sendable, Equatable {
     public let size: Double

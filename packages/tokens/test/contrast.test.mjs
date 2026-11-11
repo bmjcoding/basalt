@@ -493,37 +493,6 @@ for (const theme of THEMES) {
       for (const [role, grounds] of cases) for (const [name, bg] of grounds) {
         const r = ratio(over(color(theme, role), bg), bg);
         assert.ok(r >= 3, `${theme}: ${role} on the ${name} at ${level} is ${fmt(r)}:1, needs 3:1`);
-// ---- Display states (DECISIONS 95): "Not observed", the scroll hint, the choice card, the pressed toggle, the pending ring ----
-//
-// The solid plate (--_plate-solid) is the plate of the menus round painted as ONE opaque colour: the wash mixed over the level in
-// the CSS, at the token's own alpha (9% white in dark, 7% black in light). A choice card and a pressed toggle replace their own
-// fill with it, so these are the pairs a reader sees. The page (level 0) has no plate of its own: a toggle there takes level 1's
-// recipe over surface-1 in both themes.
-
-for (const theme of THEMES) {
-  test(`${theme}: the CSS's 9% and 7% are the selected wash's own alpha`, () => {
-    near(alphaOf(theme, "state-selected"), theme === "dark" ? 0.09 : 0.07, 0.0005, `${theme}: state-selected's alpha`);
-  });
-
-  const levels = [0, 1, 2, 3];
-  const base = (level) => (theme === "dark" ? { 0: "surface-1", 1: "surface-2", 2: "surface-3", 3: "surface-3" }[level] : level === 0 ? "surface-page" : `surface-${level}`);
-  const solid = (level) => over(color(theme, "state-selected"), color(theme, base(level)));
-  const surface = (level) => color(theme, `surface-${level}`);
-
-  test(`${theme}: the page's own plate: dark is the next level plus the wash, light is the wash over surface-page, about #e8e8e8 (DECISIONS 100)`, () => {
-    const plate = solid(0);
-    if (theme === "light") for (const [channel, want] of [["r", 0xe8], ["g", 0xe8], ["b", 0xe8]]) assert.ok(Math.abs(plate[channel] * 255 - want) <= 1, `light: the page plate ${channel} is ${(plate[channel] * 255).toFixed(1)}, about ${want}`);
-    for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(color(theme, text), plate) >= 4.5, `${theme}: ${text} on the page plate`);
-    assert.ok(ratio(plate, color(theme, "surface-page")) >= 1.1, `${theme}: the page plate is a step from the page`);
-  });
-
-  test(`${theme}: "Not observed" is tertiary on every level, and secondary on the hover and selected washes over every level`, () => {
-    for (const level of levels) {
-      const panel = surface(level);
-      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: tertiary on level ${level}`);
-      for (const wash of washes) {
-        const under = over(color(theme, wash), panel);
-        assert.ok(ratio(over(color(theme, "text-secondary"), under), under) >= 4.5, `${theme}: secondary on ${wash} over level ${level}`);
       }
     }
   });
@@ -572,6 +541,43 @@ for (const theme of THEMES) {
       assert.ok(ratio(over(color(theme, "border-focus"), band), band) >= 3, `${theme}: the −2 inset ring on the band over level ${level}`);
     });
   }
+}
+
+// ---- Display states (DECISIONS 95): "Not observed", the scroll hint, the choice card, the pressed toggle, the pending ring ----
+//
+// The solid plate (--_plate-solid) is the plate of the menus round painted as ONE opaque colour: the wash mixed over the level in
+// the CSS, at the token's own alpha (9% white in dark, 7% black in light). A choice card and a pressed toggle replace their own
+// fill with it, so these are the pairs a reader sees. The page (level 0) has no plate of its own: a toggle there takes level 1's
+// recipe over surface-1 in both themes.
+
+for (const theme of THEMES) {
+  test(`${theme}: the CSS's 9% and 7% are the selected wash's own alpha`, () => {
+    near(alphaOf(theme, "state-selected"), theme === "dark" ? 0.09 : 0.07, 0.0005, `${theme}: state-selected's alpha`);
+  });
+
+  const levels = [0, 1, 2, 3];
+  const base = (level) => (theme === "dark" ? { 0: "surface-1", 1: "surface-2", 2: "surface-3", 3: "surface-3" }[level] : level === 0 ? "surface-page" : `surface-${level}`);
+  const solid = (level) => over(color(theme, "state-selected"), color(theme, base(level)));
+  const surface = (level) => color(theme, `surface-${level}`);
+
+  test(`${theme}: the page's own plate: dark is the next level plus the wash, light is the wash over surface-page, about #e8e8e8 (DECISIONS 100)`, () => {
+    const plate = solid(0);
+    if (theme === "light") for (const [channel, want] of [["r", 0xe8], ["g", 0xe8], ["b", 0xe8]]) assert.ok(Math.abs(plate[channel] * 255 - want) <= 1, `light: the page plate ${channel} is ${(plate[channel] * 255).toFixed(1)}, about ${want}`);
+    for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(color(theme, text), plate) >= 4.5, `${theme}: ${text} on the page plate`);
+    assert.ok(ratio(plate, color(theme, "surface-page")) >= 1.1, `${theme}: the page plate is a step from the page`);
+  });
+
+  test(`${theme}: "Not observed" is tertiary on every level, and secondary on the hover and selected washes over every level`, () => {
+    for (const level of levels) {
+      const panel = surface(level);
+      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: tertiary on level ${level}`);
+      for (const wash of washes) {
+        const under = over(color(theme, wash), panel);
+        assert.ok(ratio(over(color(theme, "text-secondary"), under), under) >= 4.5, `${theme}: secondary on ${wash} over level ${level}`);
+      }
+    }
+  });
+
   test(`${theme}: the scroll hint, tertiary 12px text, holds 4.5:1 on the page and every level`, () => {
     for (const level of levels) assert.ok(ratio(over(color(theme, "text-tertiary"), surface(level)), surface(level)) >= 4.5, `${theme}: the hint on level ${level}`);
   });
@@ -608,5 +614,47 @@ for (const theme of THEMES) {
 
   test(`${theme}: the pending ring, in the badge word's secondary ink, holds 3:1 as a non-text mark on every level and the page`, () => {
     for (const level of levels) assert.ok(ratio(over(color(theme, "text-secondary"), surface(level)), surface(level)) >= 3, `${theme}: the ring on level ${level}`);
+  });
+}
+
+// ---- Art (council item 104): the clear bar's ink on the quietest pixel art may hold ----
+//
+// A stage keeps its headroom, and each quiet zone, to no lighter (dark) or darker (light) than art-quiet-limit. The bar's ink is the theme's
+// own and never changes, so its weakest pair decides the limit: secondary text (4.5:1), which also covers the ring and the icons (3:1).
+// The hover and selected washes are drawn over the limit (the bar has no fill while it is clear), and primary text holds on them.
+
+const ART_TONES = { "art-field": ["neutral-0", "neutral-98"], "art-tone-1": ["neutral-7", "neutral-94"], "art-tone-2": ["neutral-20", "neutral-75"], "art-tone-3": ["neutral-42", "neutral-52"], "art-tone-4": ["neutral-75", "neutral-30"] };
+
+for (const theme of THEMES) {
+  const index = theme === "dark" ? 0 : 1;
+  test(`${theme}: the art tokens are the neutrals the decision names, the mark is text-primary and the quiet limit is tone 2`, () => {
+    for (const [role, names] of Object.entries(ART_TONES)) assert.deepEqual(color(theme, role), color(theme, names[index]), `${role} is not ${names[index]}`);
+    assert.deepEqual(color(theme, "art-mark"), color(theme, "text-primary"));
+    assert.deepEqual(color(theme, "art-quiet-limit"), color(theme, "art-tone-2"));
+    assert.deepEqual(color(theme, "art-field"), color(theme, "surface-page"), "a stage meets the page with no seam");
+  });
+
+  test(`${theme}: the tones step away from the field, never past the mark, and the quiet limit is the second of them`, () => {
+    const field = color(theme, "art-field");
+    const distance = (name) => ratio(color(theme, name), field);
+    const steps = ["art-tone-1", "art-tone-2", "art-tone-3", "art-tone-4", "art-mark"].map(distance);
+    for (let i = 1; i < steps.length; i++) assert.ok(steps[i] > steps[i - 1], `${theme}: the tones do not step away from the field in order (${steps.map(fmt).join(", ")})`);
+  });
+
+  test(`${theme}: primary and secondary text hold 4.5:1 on the quiet limit, and the focus ring 3:1`, () => {
+    const limit = [["art-quiet-limit", color(theme, "art-quiet-limit")]];
+    atLeast(theme, "text-primary", 4.5, limit);
+    atLeast(theme, "text-secondary", 4.5, limit);
+    atLeast(theme, "border-focus", 3, limit);
+  });
+
+  test(`${theme}: primary text holds 4.5:1 on the selected and hover washes over the quiet limit`, () => {
+    const limit = color(theme, "art-quiet-limit");
+    atLeast(theme, "text-primary", 4.5, ["state-selected", "state-hover"].map((wash) => [`${wash} over art-quiet-limit`, over(color(theme, wash), limit)]));
+  });
+
+  test(`${theme}: one step further (tone 3) secondary text no longer holds, which is why the limit stops at tone 2`, () => {
+    const tone3 = color(theme, "art-tone-3");
+    assert.ok(ratio(color(theme, "text-secondary"), tone3) < 4.5, `${theme}: secondary holds on tone 3, so the limit could be higher`);
   });
 }

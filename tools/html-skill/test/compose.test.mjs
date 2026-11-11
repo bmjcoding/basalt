@@ -45,6 +45,22 @@ describe("what a body gets", () => {
     assert.deepEqual(used('<script>Basalt.copyText("x"); Basalt.init();</script>'), ["copy"]);
   });
 
+  test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
+    for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
+      assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);
+    }
+    assert.deepEqual(used('<div class="panel"><p style="color: var(--basalt-text-secondary)">x</p></div>'), [], "a body that names none of them gets none");
+    const core = part("core", "css");
+    for (const name of ["--basalt-art-tone-2", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed"]) assert.ok(!core.includes(name), `${name} is not in the core`);
+    const art = part("art", "css");
+    for (const name of ["--basalt-art-field", "--basalt-art-tone-1", "--basalt-art-tone-2", "--basalt-art-tone-3", "--basalt-art-tone-4", "--basalt-art-mark", "--basalt-art-quiet-limit", "--basalt-aspect-wide", "--basalt-size-stage-headroom", "--basalt-chart-axis"]) assert.ok(art.includes(`${name}:`), `${name} is in the art module`);
+    assert.ok(art.includes("[data-theme=dark]") && art.includes("prefers-color-scheme:dark"), "in both themes, the toggle's and the system's");
+    assert.ok(Buffer.byteLength(art) <= manifest.modules.art.budget, `the art module is ${Buffer.byteLength(art)} bytes of ${manifest.modules.art.budget}`);
+    const page = compose("<style>.h { color: var(--basalt-art-tone-2) }</style><p class=\"h\">x</p>", { fonts: false }).html;
+    assert.ok(page.includes("--basalt-art-tone-2:"), "the composed page carries the declaration");
+    assert.ok(!compose("<p>x</p>", { fonts: false }).html.includes("--basalt-art-tone-2"), "a page with none carries none");
+  });
+
   test("a class written in a script's string, or className, or classList is seen", () => {
     assert.deepEqual(used("<script>el.innerHTML = '<div class=\"callout\"></div>'; Basalt.init();</script>"), ["callout"]);
     assert.deepEqual(used("<script>el.className = 'progress'; Basalt.init();</script>"), ["progress"]);

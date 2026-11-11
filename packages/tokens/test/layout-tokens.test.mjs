@@ -52,3 +52,35 @@ test("the breakpoints are generated as @custom-media rules, and exported as numb
   const all = await import(new URL("../dist/js/tokens.js", import.meta.url));
   assert.deepEqual({ ...all.breakpoint }, { ...breakpoint });
 });
+
+// ---- Art (council item 104): the art tokens, the headroom and the four aspect ratios, in CSS, JS and Swift ----
+
+const ART_COLORS = { "art-field": "artField", "art-tone-1": "artTone1", "art-tone-2": "artTone2", "art-tone-3": "artTone3", "art-tone-4": "artTone4", "art-mark": "artMark", "art-quiet-limit": "artQuietLimit" };
+const ASPECTS = { "aspect-square": ["1", 1, "square"], "aspect-photo": ["1.5", 1.5, "photo"], "aspect-screen": ["1.6", 1.6, "screen"], "aspect-wide": ["1.7778", 1.7778, "wide"] };
+
+test("every art colour is emitted to CSS, in both themes of the JS tokens, and to Swift as a themed colour", () => {
+  for (const [name, id] of Object.entries(ART_COLORS)) {
+    assert.match(css, new RegExp(`--basalt-${name}: var\\(--basalt-[a-z0-9-]+\\);`), `${name} in CSS`);
+    for (const theme of ["light", "dark"]) assert.equal(json[theme][name]?.type, "color", `${theme}: ${name}`);
+    assert.match(swift, new RegExp(`public static let ${id} = ThemedColor`), id);
+  }
+});
+
+test("the stage's headroom is 80px, the bar's 56 plus space-6, in CSS, JS and Swift", () => {
+  assert.match(css, /--basalt-size-stage-headroom: 80px;/);
+  assert.ok(json.primitives["size-stage-headroom"]);
+  assert.match(swift, /public static let stageHeadroom: Double = 80\n/);
+  assert.equal(80, 56 + 24);
+  assert.equal(json.primitives["size-header"].css, "56px");
+  assert.equal(json.primitives["space-6"].css, "24px");
+});
+
+test("the four aspect ratios are numbers in CSS, JS and Swift", () => {
+  for (const [name, [value, number, id]] of Object.entries(ASPECTS)) {
+    assert.match(css, new RegExp(`--basalt-${name}: ${value.replace(".", "\\.")};`), name);
+    assert.equal(json.primitives[name]?.type, "number", name);
+    assert.equal(Number(json.primitives[name].css), number, name);
+    assert.match(swift, new RegExp(`public static let ${id}: Double = ${value.replace(".", "\\.")}\n`), `Basalt.Aspect.${id}`);
+  }
+  assert.match(swift, /public enum Aspect \{/);
+});
