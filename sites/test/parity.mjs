@@ -37,7 +37,7 @@ export async function read(page, selector, props, { pseudo = null, index = 0 } =
       tabindex: el.getAttribute("tabindex") ?? "",
       text: (el.textContent || "").replace(/\s+/g, " ").trim(),
       paths: [...el.querySelectorAll("path")].map((p) => p.getAttribute("d")).join(" | "),
-      glyph: el.querySelector("svg")?.getAttribute("data-icon") ?? "",
+      glyph: el.querySelector("svg")?.getAttribute("data-icon") ?? el.querySelector("svg")?.getAttribute("data-glyph") ?? "",
       svgSize: (() => { const svg = el.querySelector("svg"); return svg ? `${svg.getAttribute("width")}x${svg.getAttribute("height")}` : ""; })(),
       stroke: (() => { const g = el.querySelector("svg g"); return g ? `${g.getAttribute("stroke-width")} ${g.getAttribute("stroke-linecap")} ${g.getAttribute("stroke-linejoin")}` : ""; })(),
       dataSide: el.getAttribute("data-side") ?? "",

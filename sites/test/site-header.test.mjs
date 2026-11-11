@@ -13,14 +13,28 @@ import { fixturesDir, launch, openHtml, settled } from "./support.mjs";
 let browser;
 let sample;
 let stage;
+let solidSample;
 before(async () => {
   browser = await launch();
   const out = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-sites-header-"));
   sample = buildPage(path.join(fixturesDir, "sample", "index.body.html"), { outFile: path.join(out, "sample.html") }).html;
   stage = buildPage(path.join(fixturesDir, "stage", "index.body.html"), { outFile: path.join(out, "stage.html") }).html;
+  // The solid form is chosen by the page: the same page, written with data-solid on its header (the build finishes it, and adds no report of the top).
+  const source = fs.readFileSync(path.join(fixturesDir, "sample", "index.body.html"), "utf8").replace('class="basalt-chrome basalt-site-header"', 'class="basalt-chrome basalt-site-header" data-solid');
+  fs.writeFileSync(path.join(out, "solid.body.html"), source);
+  solidSample = buildPage(path.join(out, "solid.body.html"), { outFile: path.join(out, "solid.html"), siteDir: out }).html;
 });
 after(async () => { await browser?.close(); });
 
+/** Runs before the page: records each transition that starts on the header, at the moment it starts, so a slow machine cannot read it after it has ended. */
+const recordFades = () => {
+  document.addEventListener("transitionrun", (event) => {
+    if (event.target.tagName !== "HEADER") return;
+    const animation = event.target.getAnimations().find((a) => a.transitionProperty === event.propertyName);
+    if (animation) (window.__fades ??= []).push([event.propertyName, Math.round(animation.effect.getTiming().duration * 100) / 100, animation.effect.getTiming().easing]);
+  }, true);
+};
+const takeFades = (page) => page.evaluate(() => { const fades = (window.__fades ?? []).slice().sort(); window.__fades = []; return fades; });
 const alphaOf = (page, css) => page.evaluate((c) => { const x = document.createElement("canvas").getContext("2d"); x.clearRect(0, 0, 1, 1); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return x.getImageData(0, 0, 1, 1).data[3]; }, css);
 const state = (page) => page.locator("header.basalt-site-header").evaluate((el) => {
   const s = getComputedStyle(el);
@@ -195,8 +209,7 @@ describe("the bar's three forms", () => {
   }
 
   test("solid is the same bar on surface-page with no filter, and it never reports the top", async () => {
-    const html = sample.replace('class="basalt-chrome basalt-site-header"', 'class="basalt-chrome basalt-site-header" data-solid');
-    const { page, context } = await openHtml(browser, html);
+    const { page, context } = await openHtml(browser, solidSample);
     const s = await state(page);
     assert.equal(s.filter, "none");
     assert.equal(await alphaOf(page, s.background), 255);
@@ -217,7 +230,7 @@ describe("the bar's three forms", () => {
 describe("the clear bar over a stage", () => {
   for (const theme of ["dark", "light"]) {
     test(`clear at the very top (no fill, no blur, a transparent line, still 56), smoked from the first pixel of scroll, clear again back at the top (${theme})`, async () => {
-      const { page, context, errors } = await openHtml(browser, stage, { scheme: theme });
+      const { page, context, errors } = await openHtml(browser, stage, { scheme: theme, init: recordFades });
       let s = await state(page);
       assert.ok(s.top, "the page reports it is at its top");
       assert.equal(await alphaOf(page, s.background), 0, "no fill");
@@ -228,7 +241,7 @@ describe("the clear bar over a stage", () => {
       s = await state(page);
       assert.equal(s.top, false, "1px of scroll is not the top");
       assert.match(s.filter, /blur\(12px\)/, "the blur switches at once");
-      assert.ok(s.running.includes("background-color"), `the fill is fading in: ${s.running}`);
+      assert.ok((await takeFades(page)).some(([property]) => property === "background-color"), "the fill is fading in");
       await settled(page);
       s = await state(page);
       assert.ok((await alphaOf(page, s.background)) > 0, "the fill has arrived");
@@ -248,13 +261,11 @@ describe("the clear bar over a stage", () => {
   }
 
   test("the fill and the line fade over duration-base on ease-out, and back at 0.75 of it on ease-in", async () => {
-    const { page, context } = await openHtml(browser, stage);
-    const timing = () => page.locator("header.basalt-site-header").evaluate((el) => el.getAnimations().filter((a) => a.transitionProperty).map((a) => [a.transitionProperty, Math.round(a.effect.getTiming().duration * 100) / 100, a.effect.getTiming().easing]).sort());
-    // Read in the frame the page reports the change, when the fade has only begun.
-    const leaveTop = async (y, top) => { await page.evaluate((to) => window.scrollTo(0, to), y); await page.waitForFunction((want) => document.querySelector("header.basalt-site-header").hasAttribute("data-top") === want, top); return timing(); };
+    const { page, context } = await openHtml(browser, stage, { init: recordFades });
+    // Each transition is recorded as it starts (recordFades), so the read cannot come after the fade has ended.
+    const leaveTop = async (y, top) => { await takeFades(page); await page.evaluate((to) => window.scrollTo(0, to), y); await page.waitForFunction((want) => document.querySelector("header.basalt-site-header").hasAttribute("data-top") === want, top); await settled(page); return takeFades(page); };
     const forward = await leaveTop(1, false);
     assert.deepEqual(forward, [["background-color", 150, "cubic-bezier(0.16, 1, 0.3, 1)"], ["border-bottom-color", 150, "cubic-bezier(0.16, 1, 0.3, 1)"]], "in: duration-base on ease-out");
-    await settled(page);
     const back = await leaveTop(0, true);
     assert.deepEqual(back, [["background-color", 112.5, "cubic-bezier(0.4, 0, 1, 1)"], ["border-bottom-color", 112.5, "cubic-bezier(0.4, 0, 1, 1)"]], "out: 0.75 of it on ease-in");
     await context.close();
