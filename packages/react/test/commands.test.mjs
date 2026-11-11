@@ -574,6 +574,10 @@ describe("list plus preview", () => {
     await ready(page);
     await page.focus(".basalt-command-input");
     await page.keyboard.press("Enter");
+    // the push is a React update: wait until the pane has started its entry before reading it (no wall-clock wait; it still fails if
+    // the pane never animates)
+    const pushed = (p) => p.waitForFunction(() => { const pane = document.querySelector(".basalt-command-pane"); return pane && getComputedStyle(pane).animationName !== "none"; });
+    await pushed(page);
     const motion = await page.evaluate(() => {
       const pane = document.querySelector(".basalt-command-pane");
       const cs = getComputedStyle(pane);
@@ -590,12 +594,14 @@ describe("list plus preview", () => {
     await ready(reduced.page);
     await reduced.page.focus(".basalt-command-input");
     await reduced.page.keyboard.press("Enter");
+    await pushed(reduced.page);
     assert.equal(await reduced.page.locator(".basalt-command-pane").evaluate((el) => getComputedStyle(el).animationName), "basalt-push-fade");
     await reduced.page.close();
     const rtl = await open(`window.__dir = "rtl"; ${listFixture(DETAIL)}`);
     await ready(rtl.page);
     await rtl.page.focus(".basalt-command-input");
     await rtl.page.keyboard.press("Enter");
+    await pushed(rtl.page);
     assert.equal(await rtl.page.evaluate(() => getComputedStyle(document.querySelector(".basalt-command-split")).getPropertyValue("--_push").trim()), "-1");
     assert.match(await rtl.page.evaluate(() => [...document.getAnimations()].find((a) => a.animationName === "basalt-push-in")?.effect.getKeyframes()[0].transform), /-8px|matrix\(1, 0, 0, 1, -8, 0\)/);
     await rtl.page.close();
