@@ -144,7 +144,7 @@ describe("accent classes: no class, none and unknown names are ink", () => {
 
 describe("accent classes: forced colours", () => {
   for (const scheme of ["dark", "light"]) {
-    test(`${scheme}: the accent dot is CanvasText on Canvas, drawn, with colour adjustment off on the dot alone`, async () => {
+    test(`${scheme}: the accent dot is a border disc in CanvasText on Canvas, drawn with forced colours left on (DECISIONS 106)`, async () => {
       const { page: p } = await fixturePage(browser, page(scope("cobalt", 'data-accent="cobalt"')), { theme: scheme });
       await p.emulateMedia({ forcedColors: "active", colorScheme: scheme });
       await p.locator("#cobalt-badge").waitFor();
@@ -162,7 +162,9 @@ describe("accent classes: forced colours", () => {
         const dot = badge.querySelector(".basalt-badge-dot");
         const box = dot.getBoundingClientRect();
         return {
-          dot: getComputedStyle(dot).backgroundColor,
+          dot: getComputedStyle(dot).borderTopColor,
+          fill: getComputedStyle(dot).backgroundColor,
+          border: [getComputedStyle(dot).borderTopWidth, getComputedStyle(dot).borderTopStyle],
           canvasText: probe("color: CanvasText"),
           canvas: probe("background-color: Canvas"),
           dotAdjust: getComputedStyle(dot).forcedColorAdjust,
@@ -170,11 +172,12 @@ describe("accent classes: forced colours", () => {
           size: [box.width, box.height],
         };
       });
-      assert.equal(out.dot, out.canvasText, "the dot is CanvasText");
+      assert.equal(out.dot, out.canvasText, "the dot takes CanvasText from where it sits");
       assert.notEqual(out.dot, out.canvas, "the dot is not the colour of the page behind it");
-      assert.notEqual(out.dot, "rgba(0, 0, 0, 0)", "the dot is painted");
-      assert.equal(out.dotAdjust, "none", "colour adjustment is off on the dot");
-      assert.equal(out.badgeAdjust, "auto", "and not on the badge around it");
+      assert.deepEqual(out.border, ["3px", "solid"], "the dot is its own border, half its size");
+      assert.match(out.fill, /, 0\)$/, "with no fill");
+      assert.notEqual(out.dotAdjust, "none", "forced colours are left on, so no system colour is named");
+      assert.equal(out.badgeAdjust, "auto", "nor on the badge around it");
       assert.deepEqual(out.size, [6, 6]);
       await p.close();
     });

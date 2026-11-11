@@ -148,3 +148,32 @@ export async function freezeAnimations(page) {
 
 /** Wait `ms` on the page: on the frozen clock if it is frozen (see freezeAnimations), real time otherwise. */
 export const tick = (page, ms) => (page.animationClock?.frozen ? page.animationClock.advance(ms) : page.waitForTimeout(ms));
+
+/** Device pixels of a clip, from a screenshot decoded in the page: [[r, g, b], ...] row by row (a test of what is painted, in forced colours too). */
+export async function pixels(page, clip) {
+  const png = (await page.screenshot({ clip, type: "png" })).toString("base64");
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const { data } = ctx.getImageData(0, 0, img.width, img.height);
+    return Array.from({ length: img.width * img.height }, (_, i) => [data[i * 4], data[i * 4 + 1], data[i * 4 + 2]]);
+  }, png);
+}
+
+const luminance = ([r, g, b]) => { const f = (c) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+/** WCAG contrast ratio of two [r, g, b] pixels. */
+export const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+
+/** The most contrast any pixel of a locator's box has against the pixel just left of it (the surface it sits on): how well it shows. */
+export async function visibleAgainst(page, locator) {
+  const r = await locator.evaluate((el) => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; });
+  const box = { x: Math.floor(r.x), y: Math.floor(r.y), width: Math.ceil(r.width), height: Math.ceil(r.height) };
+  const own = await pixels(page, box);
+  const beside = (await pixels(page, { x: Math.max(0, box.x - 3), y: box.y + Math.floor(box.height / 2), width: 1, height: 1 }))[0];
+  return Math.max(...own.map((p) => contrast(p, beside)));
+}

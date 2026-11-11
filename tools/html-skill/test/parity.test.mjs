@@ -17,6 +17,9 @@ const GEOMETRY = ["boxHeight", "paddingTop", "paddingRight", "paddingBottom", "p
 const TYPE = ["fontSize", "fontWeight", "lineHeight", "letterSpacing"];
 const COLOUR = ["color", "backgroundColor", "borderTopColor", "borderTopWidth", "boxShadow"];
 const BOX = [...GEOMETRY, ...TYPE, ...COLOUR];
+// Every status a Badge can say, and what a status dot is drawn as (React's .basalt-badge-dot, the skill's ::before).
+const STATUSES = ["neutral", "success", "warning", "danger", "accent", "pending"];
+const DOT = ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "borderTopWidth", "borderTopStyle", "borderTopColor", "boxSizing", "marginLeft", "marginRight"];
 const OUTLINE = ["outlineStyle", "outlineWidth", "outlineColor", "outlineOffset"];
 
 /**
@@ -55,27 +58,30 @@ const CASES = [
     ],
   },
   {
+    // The outline badge in every status (a count with none, neutral asked for by name, the four colours of a dot, and pending's ring).
     id: "badge",
-    react: `<><Badge>Plain</Badge><Badge status="success">Healthy</Badge><Badge status="warning">Watching</Badge><Badge status="danger">Failing</Badge></>`,
-    skill: `<span class="badge">Plain</span><span class="badge" data-status="success">Healthy</span><span class="badge" data-status="warning">Watching</span><span class="badge" data-status="danger">Failing</span>`,
+    react: `<><Badge>Plain</Badge><Badge status="neutral">Idle</Badge><Badge status="success">Healthy</Badge><Badge status="warning">Watching</Badge><Badge status="danger">Failing</Badge><Badge status="accent">Needs you</Badge><Badge status="pending">In review</Badge></>`,
+    skill: `<span class="badge">Plain</span><span class="badge" data-status="neutral">Idle</span><span class="badge" data-status="success">Healthy</span><span class="badge" data-status="warning">Watching</span><span class="badge" data-status="danger">Failing</span><span class="badge" data-status="accent">Needs you</span><span class="badge" data-status="pending">In review</span>`,
     pairs: [
-      ["plain", ".basalt-badge[data-status=neutral]", ".badge:not([data-status])", [...BOX, "gap", "whiteSpace"]],
-      ["success", ".basalt-badge[data-status=success]", ".badge[data-status=success]", [...BOX, "gap"]],
-      ["success dot", ".basalt-badge[data-status=success] .basalt-badge-dot", ".badge[data-status=success]", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius"], { skillPseudo: "::before" }],
-      ["warning dot", ".basalt-badge[data-status=warning] .basalt-badge-dot", ".badge[data-status=warning]", ["backgroundColor"], { skillPseudo: "::before" }],
-      ["danger dot", ".basalt-badge[data-status=danger] .basalt-badge-dot", ".badge[data-status=danger]", ["backgroundColor"], { skillPseudo: "::before" }],
+      ["plain", ".basalt-badge:not([data-status])", ".badge:not([data-status])", [...BOX, "gap", "whiteSpace", "boxSizing", "verticalAlign"]],
+      ...STATUSES.flatMap((status) => [
+        [`${status}`, `.basalt-badge[data-status=${status}]`, `.badge[data-status=${status}]`, [...BOX, "gap", "boxSizing", "boxWidth"]],
+        [`${status} dot`, `.basalt-badge[data-status=${status}] .basalt-badge-dot`, `.badge[data-status=${status}]`, DOT, { skillPseudo: "::before" }],
+      ]),
     ],
   },
   {
-    // The skill's .status is a dot and a word, with no box; React draws that dot inside a Badge, so the dot and the gap are what compare.
+    // The skill's .status is the plain Badge: a dot or ring and the word, no box. React's plain Badge is the reference, in every status.
     id: "status",
-    react: `<><Badge status="success">Done</Badge><Badge status="warning">Slow</Badge><Badge status="danger">Down</Badge></>`,
-    skill: `<span class="status" data-status="success">Done</span><span class="status" data-status="warning">Slow</span><span class="status" data-status="danger">Down</span>`,
+    react: `<><Badge variant="plain">Count</Badge><Badge variant="plain" status="neutral">Idle</Badge><Badge variant="plain" status="success">Done</Badge><Badge variant="plain" status="warning">Slow</Badge><Badge variant="plain" status="danger">Down</Badge><Badge variant="plain" status="accent">Needs you</Badge><Badge variant="plain" status="pending">Queued</Badge><Badge variant="plain"><Spinner variant="braille" />Running</Badge></>`,
+    skill: `<span class="status">Count</span><span class="status" data-status="neutral">Idle</span><span class="status" data-status="success">Done</span><span class="status" data-status="warning">Slow</span><span class="status" data-status="danger">Down</span><span class="status" data-status="accent">Needs you</span><span class="status" data-status="pending">Queued</span><span class="status"><braille-spinner></braille-spinner>Running</span>`,
     pairs: [
-      ["success dot", ".basalt-badge[data-status=success] .basalt-badge-dot", ".status[data-status=success]", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius"], { skillPseudo: "::before" }],
-      ["warning dot", ".basalt-badge[data-status=warning] .basalt-badge-dot", ".status[data-status=warning]", ["backgroundColor"], { skillPseudo: "::before" }],
-      ["danger dot", ".basalt-badge[data-status=danger] .basalt-badge-dot", ".status[data-status=danger]", ["backgroundColor"], { skillPseudo: "::before" }],
-      ["gap to the word", ".basalt-badge[data-status=success]", ".status[data-status=success]", ["gap", "alignItems", "display"]],
+      ["count", ".basalt-badge:not([data-status]):not(:has(.basalt-spinner))", ".status:not([data-status]):not(:has(braille-spinner))", [...GEOMETRY, ...TYPE, ...COLOUR, "gap", "alignItems", "display", "whiteSpace", "verticalAlign"]],
+      ["running", ".basalt-badge:has(.basalt-spinner)", ".status:has(braille-spinner)", [...GEOMETRY, ...TYPE, ...COLOUR, "gap", "alignItems", "display", "whiteSpace", "verticalAlign", "boxWidth"]],
+      ...STATUSES.flatMap((status) => [
+        [`${status}`, `.basalt-badge[data-status=${status}]`, `.status[data-status=${status}]`, [...GEOMETRY, ...TYPE, ...COLOUR, "gap", "alignItems", "display", "whiteSpace", "verticalAlign", "boxWidth"]],
+        [`${status} dot`, `.basalt-badge[data-status=${status}] .basalt-badge-dot`, `.status[data-status=${status}]`, DOT, { skillPseudo: "::before" }],
+      ]),
     ],
   },
   {

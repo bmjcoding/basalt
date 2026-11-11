@@ -35,8 +35,7 @@
     .topbar { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
   @media print {
-    /* The bar's own fallback is the opaque page colour with no filter, but the skill's pages don't print it: !important so a page's own display rule can't bring it back. */
-    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
-    .topbar { display: none !important; }
+    /* The bar prints, as React's does: static (a sticky bar would repeat or float over the page) and opaque, with no filter. */
+    .topbar { position: static; background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
 }
