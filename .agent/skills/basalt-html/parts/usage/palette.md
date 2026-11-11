@@ -10,7 +10,7 @@ One item:
 { label: 'Save', icon: 'Check', keys: ['⌘', 'S'], hint: 'Writes the draft', keywords: ['store', 'write'], onSelect: function () { save(); } }
 ```
 
-Also `danger: true` and `href`. `keywords` is an array of strings, `['store', 'write']`; a string stops the palette's search from filtering.
+Also `description` (a second line under the label, never wrapped), `danger: true` and `href`. `keywords` is an array of strings, `['store', 'write']`; a string stops the palette's search from filtering.
 
 - `keys` is an array of single keys, as the chips draw them: `['⌘', 'S']` or `['⌘', '⇧', 'C']`. Never a string such as `'⌘ S'` (that warns and draws no chip).
 - It needs ⌘, ⌃ or ⌥ and one other key; ⇧ may join them. ⌘ answers to Meta or Ctrl, and an ⌥-only combination is ignored while typing in a field.

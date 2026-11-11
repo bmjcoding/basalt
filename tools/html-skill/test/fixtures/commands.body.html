@@ -1,0 +1,20 @@
+<title>Commands</title>
+<main class="page stack">
+  <h1>Commands</h1>
+  <section class="section" aria-labelledby="cm-list-h">
+    <div class="section-head"><h2 id="cm-list-h">The list in the page</h2></div>
+    <div class="command-list" data-label="Console"><script type="application/json" data-commands>{"groups": [{"label": "Sandbox", "items": [{"id": "new", "label": "New sandbox", "icon": "Plus", "description": "Create a fresh environment", "keys": ["⌘", "N"], "href": "#new"}, {"id": "dup", "label": "Duplicate", "icon": "Copy", "description": "Copy the current one", "href": "#dup"}, {"id": "rename", "label": "Rename", "href": "#rename"}, {"id": "del", "label": "Delete sandbox", "icon": "Trash", "danger": true, "description": "Remove it for good", "href": "#del"}]}, {"label": "Account", "items": [{"id": "profile", "label": "Profile", "href": "#profile"}, {"id": "keys", "label": "API keys", "description": "A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap", "keys": ["⌘", "J"], "href": "#keys"}, {"id": "billing", "label": "Billing", "description": "Plans and invoices", "href": "#billing"}, {"id": "team", "label": "Team", "href": "#team"}]}]}</script></div>
+  </section>
+  <section class="section" aria-labelledby="cm-pane-h">
+    <div class="section-head"><h2 id="cm-pane-h">List plus preview</h2></div>
+    <div class="command-list" data-label="Sandboxes"><script type="application/json" data-commands>{"groups": [{"label": "Sandbox", "items": [{"id": "new", "label": "New sandbox", "icon": "Plus", "description": "Create a fresh environment", "keys": ["⌘", "N"], "href": "#new"}, {"id": "dup", "label": "Duplicate", "icon": "Copy", "description": "Copy the current one", "href": "#dup"}, {"id": "rename", "label": "Rename", "href": "#rename"}, {"id": "del", "label": "Delete sandbox", "icon": "Trash", "danger": true, "description": "Remove it for good", "href": "#del"}]}, {"label": "Account", "items": [{"id": "profile", "label": "Profile", "href": "#profile"}, {"id": "keys", "label": "API keys", "description": "A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap", "keys": ["⌘", "J"], "href": "#keys"}, {"id": "billing", "label": "Billing", "description": "Plans and invoices", "href": "#billing"}, {"id": "team", "label": "Team", "href": "#team"}]}]}</script>
+<template data-detail="new"><div><h3>New sandbox</h3><p>Create a fresh environment</p><div><button class="btn" type="button">Run New sandbox</button></div></div></template>
+<template data-detail="dup"><div><h3>Duplicate</h3><p>Copy the current one</p><div><button class="btn" type="button">Run Duplicate</button></div></div></template>
+<template data-detail="rename"><div><h3>Rename</h3><p>No description</p><div><button class="btn" type="button">Run Rename</button></div></div></template>
+<template data-detail="del"><div><h3>Delete sandbox</h3><p>Remove it for good</p><div><button class="btn" type="button">Run Delete sandbox</button></div></div></template>
+<template data-detail="profile"><div><h3>Profile</h3><p>No description</p><div><button class="btn" type="button">Run Profile</button></div></div></template>
+<template data-detail="keys"><div><h3>API keys</h3><p>A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap</p><div><button class="btn" type="button">Run API keys</button></div></div></template>
+<template data-detail="billing"><div><h3>Billing</h3><p>Plans and invoices</p><div><button class="btn" type="button">Run Billing</button></div></div></template>
+<template data-detail="team"><div><h3>Team</h3><p>No description</p><div><button class="btn" type="button">Run Team</button></div></div></template></div>
+  </section>
+</main>

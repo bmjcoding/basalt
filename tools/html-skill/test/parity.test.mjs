@@ -224,12 +224,15 @@ const PALETTE_PAIRS = [
   ["glide plate", ".basalt-plate", ".palette-list > .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity", "transitionProperty", "transitionDuration", "transitionTimingFunction"]],
   ["row hit area", ".basalt-menu-item[data-selected=false]", ".row[aria-selected=false]", ["boxHeight", "marginTop", "marginBottom"]],
   ["shortcut chip", ".basalt-menu-item-shortcut .basalt-kbd-key", ".row .kbd", [...GEOMETRY, "color", "backgroundColor"]],
+  ["two-line row", ".basalt-menu-item[data-described]", ".row[data-described]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "boxHeight", "boxWidth", "display", "gridTemplateColumns", "gridTemplateRows", "rowGap", "columnGap"]],
+  ["row description", ".basalt-menu-item-description", ".row-description", [...TYPE, "color", "boxHeight", "boxWidth", "overflowX", "textOverflow", "whiteSpace", "gridColumnStart", "gridRowStart"]],
+  ["row description's label", ".basalt-menu-item[data-described] .basalt-menu-item-label", ".row[data-described] .row-label", ["boxHeight", "boxWidth", "gridColumnStart", "gridRowStart"]],
   ["footer", ".basalt-command-footer", ".palette-footer", [...TYPE, "color", "paddingTop", "paddingLeft", "gap", "borderTopWidth"]],
 ];
 
 const PALETTE_REACT = `
 const root = createRoot(document.getElementById("root"));
-flushSync(() => root.render(<B.CommandMenu hints open onOpenChange={() => {}} groups={[{ label: "Group", commands: [{ id: "a", label: "First", shortcut: "⌘D", onSelect() {} }, { id: "b", label: "Second", onSelect() {} }, { id: "c", label: "Danger", danger: true, onSelect() {} }] }]} />));`;
+flushSync(() => root.render(<B.CommandMenu hints open onOpenChange={() => {}} groups={[{ label: "Group", commands: [{ id: "a", label: "First", shortcut: "⌘D", onSelect() {} }, { id: "b", label: "Second", onSelect() {} }, { id: "c", label: "Danger", danger: true, onSelect() {} }, { id: "d", label: "Described", description: "A second line", onSelect() {} }] }]} />));`;
 
 /** What a pair reads from an element: computed style, plus the box (the rect has the height a column of text makes; a pseudo-element has no rect, so its computed size). */
 async function read(page, selector, props, { pseudo = null } = {}) {
@@ -257,8 +260,9 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       ink: () => (ps ? style.backgroundColor : style.color),
       inLeft: () => px(rect.left - el.parentElement.getBoundingClientRect().left), inTop: () => px(rect.top - el.parentElement.getBoundingClientRect().top),
       gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
+      tabIndex: () => el.getAttribute("tabindex"), ariaLabel: () => el.getAttribute("aria-label"), role: () => el.getAttribute("role"), labelledByText: () => document.getElementById(el.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, isActive: () => String(document.activeElement === el),
       ariaSort: () => el.getAttribute("aria-sort"), ariaHidden: () => el.getAttribute("aria-hidden"), ariaLive: () => el.getAttribute("aria-live"), ariaAtomic: () => el.getAttribute("aria-atomic"),
-      text: () => el.textContent.trim(), scrollHeight: () => px(el.scrollHeight),
+      text: () => el.textContent.trim(), ownText: () => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim(), scrollHeight: () => px(el.scrollHeight),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
     return Object.fromEntries(names.map((n) => [n, special[n] ? special[n]() : plain(n)]));
@@ -1215,6 +1219,240 @@ const TABLES = [
   },
 ];
 
+
+// ---- The command list in the page, and list plus preview (step 7 of batch 7: DECISIONS 103) ----
+// React's CommandList and the skill's .command-list built from the same synthetic commands, beside each other. Rows are marked by script (data-parity-row, by the command's id)
+// because React's rows and the skill's share no attribute. The skill draws the field's trailing slot, the foot, the held height, the no-match state, the split and the push as React does.
+const CMD_LONG = "A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap";
+const CMD_GROUPS = [
+  ["Sandbox", [
+    { id: "new", label: "New sandbox", icon: "Plus", description: "Create a fresh environment", keys: ["⌘", "N"] },
+    { id: "dup", label: "Duplicate", icon: "Copy", description: "Copy the current one" },
+    { id: "rename", label: "Rename" },
+    { id: "del", label: "Delete sandbox", icon: "Trash", danger: true, description: "Remove it for good" },
+  ]],
+  ["Account", [
+    { id: "profile", label: "Profile" },
+    { id: "keys", label: "API keys", description: CMD_LONG, keys: ["⌘", "J"] },
+    { id: "billing", label: "Billing", description: "Plans and invoices" },
+    { id: "team", label: "Team" },
+  ]],
+];
+const CMD_IDS = CMD_GROUPS.flatMap(([, items]) => items.map((item) => item.id));
+const CMD_IMPORTS = `import { CopyIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";\nconst { CommandList } = B;`;
+const cmdReactGroups = `[${CMD_GROUPS.map(([label, items]) => `{ label: ${JSON.stringify(label)}, commands: [${items.map((c) => `{ id: ${JSON.stringify(c.id)}, label: ${JSON.stringify(c.label)}${c.icon ? `, icon: ${c.icon}Icon` : ""}${c.description ? `, description: ${JSON.stringify(c.description)}` : ""}${c.keys ? `, shortcut: ${JSON.stringify(c.keys.join(""))}` : ""}${c.danger ? ", danger: true" : ""}, onSelect() {} }`).join(", ")}] }`).join(", ")}]`;
+const CMD_DETAIL_REACT = `detail={(c) => <div style={{ height: 96 }}><h3 style={{ margin: 0, font: "inherit" }}>{c.label}</h3><p style={{ margin: 0 }}>{c.description ?? "No description"}</p><div><button>Run {c.label}</button></div></div>}`;
+const cmdSkillData = (preview) => `<script type="application/json" data-commands>${JSON.stringify({ groups: CMD_GROUPS.map(([label, items]) => ({ label, items })) })}</script>${preview ? CMD_IDS.map((id) => { const c = CMD_GROUPS.flatMap(([, items]) => items).find((x) => x.id === id); return `<template data-detail="${id}"><div style="height: 96px"><h3 style="margin: 0; font: inherit">${c.label}</h3><p style="margin: 0">${c.description ?? "No description"}</p><div><button>Run ${c.label}</button></div></div></template>`; }).join("") : ""}`;
+const cmdReact = (width, preview = false) => `<div style={{ width: ${width} }}><CommandList label="Console" groups={${cmdReactGroups}} ${preview ? CMD_DETAIL_REACT : ""} /></div>`;
+const cmdSkill = (width, preview = false) => `<div style="width: ${width}px"><div class="command-list" data-label="Console">${cmdSkillData(preview)}</div></div>`;
+const markRows = {
+  react: (p) => p.evaluate((ids) => [...document.querySelectorAll("[cmdk-item]")].forEach((el, i) => el.setAttribute("data-parity-row", ids[i])), CMD_IDS),
+  skill: (p) => p.evaluate((ids) => [...document.querySelectorAll(".command-results .row")].forEach((el, i) => el.setAttribute("data-parity-row", ids[i])), CMD_IDS),
+};
+const cmdOpen = (more) => ({ react: async (p) => { await markRows.react(p); await more?.react?.(p); }, skill: async (p) => { await markRows.skill(p); await more?.skill?.(p); } });
+const typeInto = (text) => ({ react: async (p) => { await p.locator(".basalt-command-input").focus(); await p.keyboard.type(text); }, skill: async (p) => { await p.locator(".input-row > input").focus(); await p.keyboard.type(text); } });
+const keysInto = (...keys) => ({ react: async (p) => { await p.locator(".basalt-command-input").focus(); for (const k of keys) await p.keyboard.press(k); }, skill: async (p) => { await p.locator(".input-row > input").focus(); for (const k of keys) await p.keyboard.press(k); } });
+const rowR = (id) => `[data-parity-row=${id}]`;
+const CMD_PANEL = ["backgroundColor", "borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor", "borderTopWidth", "borderRightWidth", "boxShadow", "boxWidth", "boxHeight", "display", "flexDirection", "overflowX", "overflowY", "color"];
+const CMD_ROW = [...BOXRECT, ...PAD, "display", "alignItems", "gridTemplateColumns", "gridTemplateRows", "columnGap", "rowGap", ...TYPE, "color", "backgroundColor", "cursor"];
+const CMD_LIST_PAIRS = [
+  ["panel", ".basalt-command-page", ".command-page", [...CMD_PANEL, "tabIndex"]],
+  ["band", ".basalt-command-search", ".input-row", [...BOXRECT, ...PAD, "gap", "backgroundColor", "borderBottomWidth", "borderBottomColor", "color", "display", "alignItems"]],
+  ["glass", ".basalt-command-search > svg", ".input-row > svg", [...BOXRECT, "color"]],
+  ["field", ".basalt-command-input", ".input-row > input", [...BOXRECT, ...TYPE, "color", "backgroundColor", "borderTopWidth", "paddingLeft", "outlineStyle"]],
+  ["placeholder", ".basalt-command-input", ".input-row > input", ["color", "opacity"], { pseudo: "::placeholder" }],
+  ["slot", ".basalt-command-slot", ".command-slot", [...BOXRECT, "color", "display"]],
+  ["body", ".basalt-command-body", ".command-body", [...BOXRECT, "position"]],
+  ["list", ".basalt-command-list", ".command-results", [...BOXRECT, ...PAD, "overflowY", "overscrollBehaviorY", "scrollPaddingTop", "position"]],
+  ["group heading", "[cmdk-group]:nth-child(2) [cmdk-group-heading]", ".command-sizer > :nth-child(1) .row-group", [...BOXRECT, ...TYPE, "color", "paddingTop", "paddingLeft", "paddingBottom"]],
+  ["second group heading", "[cmdk-group]:nth-child(3) [cmdk-group-heading]", ".command-sizer > :nth-child(2) .row-group", [...BOXRECT, ...TYPE, "color"]],
+  ["one-line row", rowR("rename"), rowR("rename"), CMD_ROW],
+  ["two-line row", rowR("new"), rowR("new"), [...CMD_ROW, "minHeight"]],
+  ["row glyph", `${rowR("new")} > svg`, `${rowR("new")} > svg`, [...BOXRECT, "color", "gridColumnStart", "gridRowStart", "marginRight"]],
+  ["row label", `${rowR("new")} .basalt-menu-item-label`, `${rowR("new")} .row-label`, [...BOXRECT, ...TYPE, "color", "overflowX", "textOverflow", "whiteSpace", "gridColumnStart", "gridRowStart"]],
+  ["row description", `${rowR("new")} .basalt-menu-item-description`, `${rowR("new")} .row-description`, [...BOXRECT, ...TYPE, "color", "overflowX", "textOverflow", "whiteSpace", "gridColumnStart", "gridColumnEnd", "gridRowStart"]],
+  ["row chip", `${rowR("new")} kbd[data-shortcut]`, `${rowR("new")} .kbd-group`, [...BOXRECT, "marginLeft", "gridColumnStart", "gridRowStart"]],
+  ["row chip key", `${rowR("new")} .basalt-kbd-key:last-child`, `${rowR("new")} .kbd:last-child`, [...BOXRECT, ...TYPE, "color", "backgroundColor", "fontFamily"]],
+  ["row without a glyph", rowR("billing"), rowR("billing"), [...BOXRECT, "gridTemplateColumns"]],
+  ["label without a glyph", `${rowR("billing")} .basalt-menu-item-label`, `${rowR("billing")} .row-label`, [...BOXRECT]],
+  ["long description", `${rowR("keys")} .basalt-menu-item-description`, `${rowR("keys")} .row-description`, [...BOXRECT, "textOverflow", "overflowX"]],
+  ["danger row", rowR("del"), rowR("del"), ["color", "boxHeight"]],
+  ["danger description", `${rowR("del")} .basalt-menu-item-description`, `${rowR("del")} .row-description`, ["color"]],
+  ["lit row at rest", rowR("new"), rowR("new"), ["color", "backgroundColor"]],
+  ["lit row's description at rest", `${rowR("new")} .basalt-menu-item-description`, `${rowR("new")} .row-description`, ["color"]],
+  ["lit row's plate at rest", rowR("new"), rowR("new"), ["backgroundColor", "borderTopLeftRadius", "boxHeight", "top", "bottom"], { pseudo: "::before" }],
+  ["lit row's chip at rest", `${rowR("new")} .basalt-kbd-key`, `${rowR("new")} .kbd`, ["color", "backgroundColor"]],
+  ["shared plate at rest", ".basalt-plate", ".command-results > .plate", ["opacity", "display", "backgroundColor", "borderTopLeftRadius"]],
+  ["foot", ".basalt-command-foot", ".command-foot", [...BOXRECT, ...PAD, "borderTopWidth", "borderTopColor", "display", "flexWrap", "alignItems", "columnGap", "rowGap", "color"]],
+  ["count", ".basalt-command-count", ".command-count", [...BOXRECT, ...TYPE, "color", "fontVariantNumeric", "marginTop", "marginBottom"]],
+  ["shown count", ".basalt-command-count > span[aria-hidden]", ".command-count > span[aria-hidden]", ["text", "boxWidth"]],
+  ["spoken count", ".basalt-command-count > span[role=status]", ".command-count > span[role=status]", ["text", "ariaLive", "ariaAtomic", "boxWidth", "boxHeight"]],
+  ["hints", ".basalt-command-hints", ".command-hints", [...BOXRECT, ...TYPE, "columnGap", "marginLeft", "display", "color", "ariaHidden"]],
+  ["hint", ".basalt-command-hints > span:nth-child(1)", ".command-hints > span:nth-child(1)", [...BOXRECT, "columnGap", "display", "alignItems"]],
+  ["arrow keys", ".basalt-command-keys", ".command-hints .kbd-group", [...BOXRECT, "columnGap", "display"]],
+  ["arrow key", ".basalt-command-keys .basalt-kbd-key", ".command-hints .kbd-group .kbd", [...BOXRECT, ...TYPE, "color", "backgroundColor", "borderTopLeftRadius"]],
+  ["Enter key", ".basalt-command-hints > span:nth-child(2) .basalt-kbd-key", ".command-hints > span:nth-child(2) .kbd", [...BOXRECT, ...TYPE, "color", "backgroundColor"]],
+  ["Esc hint", ".basalt-command-hints > span:nth-child(3)", ".command-hints > span:nth-child(3)", [...BOXRECT, "ownText"]],
+  ["Esc key", ".basalt-command-hints > span:nth-child(3) .basalt-kbd-key", ".command-hints > span:nth-child(3) .kbd", [...BOXRECT, ...TYPE, "color", "backgroundColor"]],
+];
+const CMD_IN_USE = { focusOn: [".basalt-command-input", ".input-row > input"] };
+const COMMANDS = [
+  { id: "command list", width: 1440, react: cmdReact(640), skill: cmdSkill(640), ready: { react: "[cmdk-item]", skill: ".command-results .row" }, open: cmdOpen(), pairs: CMD_LIST_PAIRS },
+  {
+    id: "command list, in use",
+    width: 1440,
+    react: cmdReact(640),
+    skill: cmdSkill(640),
+    ready: { react: "[cmdk-item]", skill: ".command-results .row" },
+    open: cmdOpen(),
+    pairs: [
+      ["field's ring", ".basalt-command-search", ".input-row", [...OUTLINE], CMD_IN_USE],
+      ["lit row", rowR("new"), rowR("new"), ["color", "backgroundColor"], CMD_IN_USE],
+      ["lit row's description", `${rowR("new")} .basalt-menu-item-description`, `${rowR("new")} .row-description`, ["color"], CMD_IN_USE],
+      ["lit row's label", `${rowR("new")} .basalt-menu-item-label`, `${rowR("new")} .row-label`, ["color"], CMD_IN_USE],
+      ["lit row's chip", `${rowR("new")} .basalt-kbd-key`, `${rowR("new")} .kbd`, ["color", "backgroundColor"], CMD_IN_USE],
+      ["lit row's glyph", `${rowR("new")} > svg`, `${rowR("new")} > svg`, ["color"], CMD_IN_USE],
+      ["shared plate on the two-line row", ".basalt-plate", ".command-results > .plate", ["opacity", "display", "backgroundColor", "borderTopLeftRadius", "boxWidth", "boxHeight", "transform", "transitionProperty", "transitionDuration", "transitionTimingFunction"], CMD_IN_USE],
+      ["group heading", "[cmdk-group]:nth-child(2) [cmdk-group-heading]", ".command-sizer > :nth-child(1) .row-group", ["color"], CMD_IN_USE],
+    ],
+  },
+  {
+    id: "command list, the one-line row lit",
+    width: 1440,
+    react: cmdReact(640),
+    skill: cmdSkill(640),
+    ready: { react: "[cmdk-item]", skill: ".command-results .row" },
+    open: cmdOpen(keysInto("ArrowDown", "ArrowDown")),
+    pairs: [
+      ["lit row", rowR("rename"), rowR("rename"), ["color", "backgroundColor"], CMD_IN_USE],
+      ["shared plate on the one-line row", ".basalt-plate", ".command-results > .plate", ["opacity", "backgroundColor", "boxWidth", "boxHeight", "transform"], CMD_IN_USE],
+      ["the row that was lit", rowR("new"), rowR("new"), ["color"], CMD_IN_USE],
+      ["the lit row's plate (own)", rowR("rename"), rowR("rename"), ["backgroundColor", "boxHeight"], { ...CMD_IN_USE, pseudo: "::before" }],
+    ],
+  },
+  {
+    id: "command list, a danger row lit",
+    width: 1440,
+    react: cmdReact(640),
+    skill: cmdSkill(640),
+    ready: { react: "[cmdk-item]", skill: ".command-results .row" },
+    open: cmdOpen(keysInto("ArrowDown", "ArrowDown", "ArrowDown")),
+    pairs: [
+      ["lit danger row", rowR("del"), rowR("del"), ["color", "backgroundColor"], CMD_IN_USE],
+      ["lit danger description", `${rowR("del")} .basalt-menu-item-description`, `${rowR("del")} .row-description`, ["color"], CMD_IN_USE],
+      ["lit danger glyph", `${rowR("del")} > svg`, `${rowR("del")} > svg`, ["color"], CMD_IN_USE],
+      ["shared plate on the danger row", ".basalt-plate", ".command-results > .plate", ["opacity", "backgroundColor", "boxWidth", "boxHeight", "transform"], CMD_IN_USE],
+    ],
+  },
+  {
+    id: "command list, no match",
+    width: 1440,
+    react: cmdReact(640),
+    skill: cmdSkill(640),
+    ready: { react: "[cmdk-item]", skill: ".command-results .row" },
+    open: cmdOpen(typeInto("zzz")),
+    pairs: [
+      ["panel", ".basalt-command-page", ".command-page", ["boxHeight", "boxWidth"]],
+      ["held body", ".basalt-command-body", ".command-body", [...BOXRECT]],
+      ["none", ".basalt-command-none", ".command-none", [...BOXRECT, ...PAD, "display", "flexDirection", "alignItems", "justifyContent", "rowGap", "textAlign", ...TYPE, "color", "position"]],
+      ["sentence", ".basalt-command-none p", ".command-none p", [...BOXRECT, ...TYPE, "color", "text", "marginTop", "marginBottom"]],
+      ["clear button", ".basalt-command-none button", ".command-none button", [...BOXRECT, ...TYPE, "color", "backgroundColor", "borderTopWidth", "borderTopLeftRadius", "text"]],
+      ["count", ".basalt-command-count > span[aria-hidden]", ".command-count > span[aria-hidden]", ["text", "boxWidth"]],
+      ["foot", ".basalt-command-foot", ".command-foot", [...BOXRECT]],
+      ["list is empty", ".basalt-command-list", ".command-results", [...BOXRECT, "overflowY"]],
+    ],
+  },
+  {
+    id: "list plus preview, split",
+    width: 1440,
+    react: cmdReact(900, true),
+    skill: cmdSkill(900, true),
+    ready: { react: ".basalt-command-split[data-mode=split]", skill: ".command-split[data-mode=split]" },
+    open: cmdOpen(),
+    pairs: [
+      ["split", ".basalt-command-split", ".command-split", [...BOXRECT, "display", "gridTemplateColumns", "columnGap", "alignItems"]],
+      ["list panel", ".basalt-command-page", ".command-page", [...CMD_PANEL, ...BOXRECT]],
+      ["pane panel", ".basalt-command-pane", ".command-pane", [...CMD_PANEL, ...BOXRECT, "contain"]],
+      ["pane body", ".basalt-command-pane-body", ".command-pane-body", [...BOXRECT, ...PAD]],
+      ["back band", ".basalt-command-back", ".command-back", ["display"]],
+      ["chevron", `${rowR("new")} .basalt-menu-item-chevron`, `${rowR("new")} .row-chevron`, ["display"]],
+      ["hints", ".basalt-command-hints > span:nth-child(2)", ".command-hints > span:nth-child(2)", ["ownText"]],
+      ["panel", ".basalt-command-page", ".command-page", ["boxHeight"]],
+      ["pane heading", ".basalt-command-pane-body h3", ".command-pane-body h3", ["text", "ariaHidden"]],
+      ["row", rowR("new"), rowR("new"), [...BOXRECT]],
+      ["hovered row's ink", rowR("dup"), rowR("dup"), ["color"], { hover: [rowR("dup"), rowR("dup")] }],
+      ["hovered row's description", `${rowR("dup")} .basalt-menu-item-description`, `${rowR("dup")} .row-description`, ["color"], { hover: [rowR("dup"), rowR("dup")] }],
+      ["hovered row keeps no plate", rowR("dup"), rowR("dup"), ["backgroundColor"], { pseudo: "::before", hover: [rowR("dup"), rowR("dup")] }],
+    ],
+  },
+  {
+    id: "list plus preview, just under the split",
+    width: 1440,
+    react: cmdReact(815, true),
+    skill: cmdSkill(815, true),
+    ready: { react: ".basalt-command-split[data-mode=push]", skill: ".command-split[data-mode=push]" },
+    open: cmdOpen(),
+    pairs: [
+      ["split", ".basalt-command-split", ".command-split", [...BOXRECT, "display", "gridTemplateColumns"]],
+      ["list panel", ".basalt-command-page", ".command-page", [...BOXRECT, "display"]],
+      ["pane panel", ".basalt-command-pane", ".command-pane", ["display"]],
+      ["chevron", `${rowR("new")} .basalt-menu-item-chevron`, `${rowR("new")} .row-chevron`, [...BOXRECT, "display", "color", "marginLeft", "gridColumnStart", "gridRowStart"]],
+      ["chevron without a description", `${rowR("rename")} .basalt-menu-item-chevron`, `${rowR("rename")} .row-chevron`, [...BOXRECT, "display", "marginLeft"]],
+      ["hints", ".basalt-command-hints > span:nth-child(2)", ".command-hints > span:nth-child(2)", ["ownText"]],
+      ["one-line row", rowR("rename"), rowR("rename"), [...BOXRECT, "gridTemplateColumns", "columnGap"]],
+      ["two-line row", rowR("new"), rowR("new"), [...BOXRECT, "gridTemplateColumns"]],
+    ],
+  },
+  {
+    id: "list plus preview, the push at 390",
+    width: 390,
+    touch: true,
+    react: cmdReact(390, true),
+    skill: cmdSkill(390, true),
+    ready: { react: ".basalt-command-split[data-mode=push]", skill: ".command-split[data-mode=push]" },
+    open: {
+      react: async (p) => { await markRows.react(p); await p.locator(rowR("dup")).tap(); await p.waitForSelector(".basalt-command-split[data-view=detail]"); },
+      skill: async (p) => { await markRows.skill(p); await p.locator(rowR("dup")).tap(); await p.waitForSelector(".command-split[data-view=detail]"); },
+    },
+    pairs: [
+      ["split", ".basalt-command-split", ".command-split", [...BOXRECT, "display", "gridTemplateColumns"]],
+      ["list panel", ".basalt-command-page", ".command-page", ["display"]],
+      ["pane panel", ".basalt-command-pane", ".command-pane", [...CMD_PANEL, ...BOXRECT]],
+      ["back band", ".basalt-command-back", ".command-back", [...BOXRECT, ...PAD, "display", "alignItems", "borderBottomWidth", "borderBottomColor"]],
+      ["back button", ".basalt-command-back button", ".command-back button", [...BOXRECT, ...PAD, ...TYPE, "color", "backgroundColor", "gap", "borderTopLeftRadius", "ariaLabel"]],
+      ["back glyph", ".basalt-command-back button svg", ".command-back button svg", [...BOXRECT, "color"]],
+      ["pane body", ".basalt-command-pane-body", ".command-pane-body", [...BOXRECT, ...PAD]],
+      ["pane heading", ".basalt-command-pane-body h3", ".command-pane-body h3", ["text"]],
+      ["heading has focus", ".basalt-command-pane-body h3", ".command-pane-body h3", ["outlineStyle", "tabIndex", "isActive"]],
+      ["region", ".basalt-command-pane", ".command-pane", ["role", "labelledByText"]],
+    ],
+  },
+  {
+    id: "list plus preview, the push at 390: the list",
+    width: 390,
+    touch: true,
+    react: cmdReact(390, true),
+    skill: cmdSkill(390, true),
+    ready: { react: ".basalt-command-split[data-mode=push]", skill: ".command-split[data-mode=push]" },
+    open: cmdOpen(),
+    pairs: [
+      ["split", ".basalt-command-split", ".command-split", [...BOXRECT, "display"]],
+      ["list panel", ".basalt-command-page", ".command-page", [...CMD_PANEL, ...BOXRECT]],
+      ["pane panel", ".basalt-command-pane", ".command-pane", ["display"]],
+      ["two-line row", rowR("new"), rowR("new"), [...CMD_ROW, "minHeight"]],
+      ["chevron", `${rowR("new")} .basalt-menu-item-chevron`, `${rowR("new")} .row-chevron`, [...BOXRECT, "display", "color"]],
+      ["one-line row", rowR("rename"), rowR("rename"), CMD_ROW],
+      ["chevron, one line", `${rowR("rename")} .basalt-menu-item-chevron`, `${rowR("rename")} .row-chevron`, [...BOXRECT, "display"]],
+      ["hints are not drawn on touch", ".basalt-command-hints", ".command-hints", ["display"]],
+      ["foot", ".basalt-command-foot", ".command-foot", [...BOXRECT, ...PAD]],
+      ["count", ".basalt-command-count", ".command-count", [...BOXRECT, ...TYPE]],
+      ["band", ".basalt-command-search", ".input-row", [...BOXRECT, ...PAD, "backgroundColor"]],
+      ["field", ".basalt-command-input", ".input-row > input", [...BOXRECT, ...TYPE]],
+      ["body", ".basalt-command-body", ".command-body", [...BOXRECT]],
+    ],
+  },
+];
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -1299,7 +1537,7 @@ describe("each skill component renders as its React counterpart does, but for th
       await reactPage.waitForSelector(".basalt-menu-item");
       await settle(reactPage);
       const { page: skillPage, context } = await openHtml(skillBrowser, compose("<title>Parity</title><button class=\"btn\" data-open-palette>Open</button>", { fonts: false }).html, { scheme: theme });
-      await skillPage.evaluate(() => window.Basalt.openPalette({ groups: [{ label: "Group", items: [{ label: "First", keys: ["⌘", "D"] }, { label: "Second" }, { label: "Danger", danger: true }] }] }));
+      await skillPage.evaluate(() => window.Basalt.openPalette({ groups: [{ label: "Group", items: [{ label: "First", keys: ["⌘", "D"] }, { label: "Second" }, { label: "Danger", danger: true }, { label: "Described", description: "A second line" }] }] }));
       await skillPage.locator(".palette .row").first().waitFor();
       await compare(theme, "palette", reactPage, skillPage, PALETTE_PAIRS, null);
       await reactPage.close();
@@ -1357,6 +1595,24 @@ describe("each skill component renders as its React counterpart does, but for th
         await reactPage.waitForSelector(table.ready.react, { state: "attached" });
         for (const p of [reactPage, skillPage]) await settle(p);
         await compare(theme, table.id, reactPage, skillPage, table.pairs, null);
+        assert.deepEqual([errors, skillErrors], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
+
+    for (const command of COMMANDS) {
+      test(`${command.id} (${theme})`, async () => {
+        const touch = command.touch ? { isMobile: true, hasTouch: true } : {};
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `${CMD_IMPORTS}\ndocument.body.style.margin = "0";\nflushSync(() => createRoot(document.getElementById("root")).render(<>${command.react}</>));`, { theme, viewport: { width: command.width, height: command.width === 390 ? 844 : 900 }, ...touch });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        if (command.touch) await reactPage.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.appendChild(meta); });
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${command.skill}`, { fonts: false }).html, { scheme: theme, width: command.width, touch: Boolean(command.touch) });
+        await skillPage.waitForSelector(command.ready.skill, { state: "attached" });
+        await reactPage.waitForSelector(command.ready.react, { state: "attached" });
+        for (const p of [reactPage, skillPage]) await settle(p);
+        if (command.open) { await command.open.react(reactPage); await command.open.skill(skillPage); for (const p of [reactPage, skillPage]) await settle(p); }
+        await compare(theme, command.id, reactPage, skillPage, command.pairs, null);
         assert.deepEqual([errors, skillErrors], [[], []]);
         await reactPage.close();
         await context.close();

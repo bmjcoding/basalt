@@ -113,7 +113,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the fallback column width when a page sets no --min; no token is a column width */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 220px), 100%), 1fr)); gap: var(--gap, var(--basalt-space-4)); }
   .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap, var(--basalt-space-6)); }
-  @media (width >= %bp-md%) { .split.aside { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; } }
+  @media (width >= %bp-md%) { .split.aside { grid-template-columns: minmax(0, var(--basalt-size-list-width)) minmax(0, 1fr); align-items: start; } }
   @media (width < %bp-md%) { .split { grid-template-columns: minmax(0, 1fr); } }
   .spacer { flex: 1; }
   @media (width < %bp-md%) { .hide-narrow { display: none !important; } }

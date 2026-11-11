@@ -76,16 +76,65 @@
     }
   }
 
-  function matches(item, query) {
-    if (!query) return true;
-    var hay = (item.label + ' ' + (item.keywords || []).join(' ') + ' ' + (item.hint || '')).toLowerCase();
-    return query.toLowerCase().split(/\s+/).filter(Boolean).every(function (t) { return hay.indexOf(t) !== -1; });
+  /**
+   * How an item answers a query: 0 when every word is in its label (a title match), 1 when every word is found only by its keywords, hint or description
+   * (they rank below titles, as cmdk ranks them), -1 for no match. An empty query is 0 for everything.
+   */
+  function tier(item, query) {
+    if (!query) return 0;
+    var terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    var all = function (hay) { return terms.every(function (t) { return hay.indexOf(t) !== -1; }); };
+    if (all(item.label.toLowerCase())) return 0;
+    return all((item.label + ' ' + (item.keywords || []).join(' ') + ' ' + (item.hint || '') + ' ' + (item.description || '')).toLowerCase()) ? 1 : -1;
+  }
+
+  function matches(item, query) { return tier(item, query) >= 0; }
+
+  /**
+   * The result rows for a list of groups, shared with the in-page command list: { html, words, flat }. `words` is the hidden elements that say each
+   * shortcut aloud (the chip is aria-hidden), `flat` the items in row order; a row's index is its place in it. An item with a `description` is a two-line
+   * row. `chevron` is the push's arrow, drawn only while a list with a preview is narrower than its split.
+   */
+  function rowsOf(groups, id, q, chevron) {
+    var flat = [];
+    var html = '';
+    var words = '';
+    // Title matches come before keyword and description matches, each keeping its order; a group is placed by its best row, as cmdk does.
+    var ranked = [];
+    groups.forEach(function (g, gi) {
+      var items = (g.items || []).map(function (it, i) { return { it: it, t: tier(it, q), i: i }; }).filter(function (x) { return x.t >= 0; })
+        .sort(function (a, b) { return a.t - b.t || a.i - b.i; });
+      if (items.length) ranked.push({ g: g, gi: gi, items: items });
+    });
+    ranked.sort(function (a, b) { return a.items[0].t - b.items[0].t || a.gi - b.gi; });
+    ranked.forEach(function (r) {
+      var g = r.g;
+      var gi = r.gi;
+      var items = r.items.map(function (x) { return x.it; });
+      var gid = id + '-g' + gi;
+      html += '<div role="group"' + (g.label ? ' aria-labelledby="' + gid + '"' : '') + '>';
+      if (g.label) html += '<div class="row-group" id="' + gid + '">' + esc(g.label) + '</div>';
+      items.forEach(function (it) {
+        var n = flat.length;
+        flat.push(it);
+        var keys = binding(it) ? it.keys : null;
+        // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
+        if (keys) words += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
+        html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') + (it.description ? ' data-described' : '') +
+          (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
+          (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
+          (it.description ? '<span class="row-description">' + esc(it.description) + '</span>' : '') +
+          (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + (chevron || '') + '</div>';
+      });
+      html += '</div>';
+    });
+    return { html: html, words: words, flat: flat };
   }
 
   /**
    * Opens the command palette: a modal floating panel at level 1 with the raised input row (level 2). It opens and closes with no animation; the lit row's plate glides between rows.
    * Returns { close }.
-   *   openPalette({ groups: [{ label, items: [{ label, icon?, keys?: ['⌘','K'], hint?, keywords?, danger?, href?, onSelect? }] }],
+   *   openPalette({ groups: [{ label, items: [{ label, icon?, keys?: ['⌘','K'], description?, hint?, keywords?, danger?, href?, onSelect? }] }],
    *                 placeholder?, label?, onSelect?(item), onClose?() })
    */
   function openPalette(options) {
@@ -140,31 +189,11 @@
 
     function render() {
       var q = input.value.trim();
-      flat = [];
-      var html = '';
-      var described = '';
-      groups.forEach(function (g, gi) {
-        var items = (g.items || []).filter(function (it) { return matches(it, q); });
-        if (!items.length) return;
-        var gid = id + '-g' + gi;
-        html += '<div role="group"' + (g.label ? ' aria-labelledby="' + gid + '"' : '') + '>';
-        if (g.label) html += '<div class="row-group" id="' + gid + '">' + esc(g.label) + '</div>';
-        items.forEach(function (it) {
-          var n = flat.length;
-          flat.push(it);
-          var keys = binding(it) ? it.keys : null;
-          // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
-          if (keys) described += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
-          html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') +
-            (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
-            (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
-            (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + '</div>';
-        });
-        html += '</div>';
-      });
-      list.innerHTML = html;
+      var r = rowsOf(groups, id, q);
+      flat = r.flat;
+      list.innerHTML = r.html;
       list.insertBefore(plate, list.firstChild);
-      words.innerHTML = described;
+      words.innerHTML = r.words;
       list.hidden = flat.length === 0;
       empty.hidden = flat.length !== 0;
       index = Math.min(index, Math.max(flat.length - 1, 0));
@@ -317,6 +346,8 @@
     bindPaletteShortcut(options);
   }
 
+  // The in-page command list builds its rows, filters and runs items with these.
+  _.palette = { rows: rowsOf, tier: tier, matches: matches, activate: activate, composing: composing };
   B.openPalette = openPalette;
   B.closePalette = closePalette;
   _.step(110, 'wirePalette', function (o) { wirePalette(o.palette); });
