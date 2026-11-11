@@ -341,13 +341,15 @@ describe("the layout tokens and the faults the hero stream logged", () => {
     assert.deepEqual([prose.w, prose.x - page.x - 24], [544, 0], "34rem, on the row's start edge, never centred");
     assert.equal(await css(wide.page, ".topbar-inner", "paddingLeft"), "24px");
     const footer = await box(wide.page, ".footer");
-    assert.deepEqual([footer.x, footer.w], [(1440 - 1152) / 2 + 24, 1152 - 48], "outside the page the footer sits on the row's column by itself");
+    // Against the page's row, not the window: with classic scrollbars (a Mac with a mouse, CI's Linux) the stable gutter takes 15px of it.
+    assert.deepEqual([footer.x, footer.w], [page.x + 24, 1152 - 48], "outside the page the footer sits on the row's column by itself");
     await wide.context.close();
     const narrow = await open(BODY, { scheme: "dark", width: 390, touch: true });
     assert.equal(await css(narrow.page, ".page", "paddingLeft"), "16px");
     assert.equal(await css(narrow.page, ".topbar-inner", "paddingLeft"), "16px");
     const narrowFooter = await box(narrow.page, ".footer");
-    assert.deepEqual([narrowFooter.x, narrowFooter.w], [16, 390 - 32]);
+    const narrowPage = await box(narrow.page, ".page");
+    assert.deepEqual([narrowFooter.x, narrowFooter.w], [16, narrowPage.w - 32]);
     await narrow.context.close();
     // a width on the seam: 719.5 is the phone, 720 is not (range syntax, no gap on a fractional viewport)
     const seam = await open(BODY, { scheme: "dark", width: 720 });
