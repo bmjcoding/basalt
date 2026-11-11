@@ -1,0 +1,142 @@
+/* N1's first screen (hero-n1): the mark, the line, one sentence and the status on the row's start edge, the chart beside them from 1024
+   (under them below), a rule, and the head of the next section. Tokens only. The header is the shared stand-in (shared/site-header.css),
+   the chart is the HTML skill's chart module, and the mark is brand/n1/hero.html; what is here is the page's own layout. */
+
+/* ---- The page: the surface, and the one thing the stand-in leaves to a page ---- */
+body { margin: 0; background: var(--basalt-surface-page); color: var(--basalt-text-primary); }
+
+/* ---- The brand: N1 alone is 32 wide, so its target takes 6px on each side to make 44 by 44. The link grows by its padding and gives the
+   same back in margin, so the mark and everything after it stay exactly where they were: the hit area draws nothing and moves nothing.
+   The file's <title> is not a tooltip from outside the file: the drawing takes no pointer, and the wrapper is aria-hidden. ---- */
+.basalt-site-brand {
+  --_reach: calc((var(--basalt-size-tap-min) - var(--basalt-size-control-md)) / 2);
+  box-sizing: content-box;
+  padding-inline: var(--_reach);
+  margin-inline: calc(-1 * var(--_reach));
+}
+.basalt-site-brand-mark > svg { display: block; width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); pointer-events: none; }
+
+/* ---- The hero ---- */
+.n1-hero {
+  box-sizing: border-box;
+  max-width: var(--basalt-size-page-width);
+  margin-inline: auto;
+  padding: var(--basalt-space-10) var(--_pad-right) var(--basalt-space-16) var(--_pad-left);
+}
+.n1-hero-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-12); align-items: start; }
+.n1-hero-copy { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+
+/* The mark (brand/n1/hero.html, byte for byte): 144 wide, 96 under 720. The drawing's ink starts 9 units into its 48-unit box, so the
+   box steps back by 9/48 of its width and the N's stem stands on the row's start edge with the line under it. The file is not changed. */
+.hero-mark {
+  display: block;
+  flex: none;
+  width: var(--w);
+  height: auto;
+  margin-inline-start: calc(var(--w) * -9 / 48);
+  color: var(--basalt-text-primary);
+}
+.n1-title {
+  margin: var(--basalt-space-4) 0 0;
+  max-width: var(--basalt-size-prose-width);
+  color: var(--basalt-text-primary);
+  font: var(--basalt-font-weight-semibold) var(--basalt-text-4xl-size) / var(--basalt-text-4xl-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-4xl-tracking);
+  text-wrap: balance;
+}
+.n1-lead {
+  margin: var(--basalt-space-4) 0 0;
+  max-width: var(--basalt-size-prose-width);
+  color: var(--basalt-text-secondary);
+  font: var(--basalt-font-weight-regular) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-lg-tracking);
+  text-wrap: pretty;
+}
+/* The status: plain words on their own line, in the place the reference's action row had (space-8 above). */
+.n1-status {
+  margin: var(--basalt-space-8) 0 0;
+  color: var(--basalt-text-secondary);
+  font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+}
+
+/* ---- The chart: the skill's module draws it from its JSON when the script runs, so the figure reserves the room it will fill and
+   nothing beside or below it moves when it is drawn. The room is the drawn chart's height at the figure's own width (its summary
+   wraps to more lines as it narrows, and its key and hint to more at the narrowest), measured with the page's Geist and stepped by the
+   row's width, not the screen's, so a scrollbar changes nothing. sites/test/n1.test.mjs fails if the drawn chart is ever taller than
+   the room, or the room is a line more than the chart needs. The chart sits on the page with no panel. ---- */
+.n1-hero-row { container-type: inline-size; }
+.n1-chart { --_cut: var(--basalt-surface-page); box-sizing: content-box; }
+/* stylelint-disable unit-disallowed-list -- the heights the skill's chart draws at each width, measured: a length no token holds, and a container query cannot read one */
+@media (width < 1024px) {
+  /* stacked: the figure is the row's width */
+  .n1-chart { min-height: 694px; }
+  @container (width >= 296px) { .n1-chart { min-height: 676px; } }
+  @container (width >= 344px) { .n1-chart { min-height: 658px; } }
+  @container (width >= 353px) { .n1-chart { min-height: 634px; } }
+  @container (width >= 409px) { .n1-chart { min-height: 616px; } }
+  @container (width >= 443px) { .n1-chart { min-height: 596px; } }
+  @container (width >= 505px) { .n1-chart { min-height: 578px; } }
+}
+@media (width >= 1024px) {
+  /* beside the copy: the figure is 480 until the row is 1097 wide, then the rest of the row after the copy and its gap (its summary
+     is five lines at 480 and four from 505) */
+  .n1-chart { min-height: 596px; }
+  @container (width >= 1097px) { .n1-chart { min-height: 578px; } }
+}
+/* stylelint-enable unit-disallowed-list */
+
+/* ---- The hand-over: a divider across the row, then the next section's head on the same start edge ---- */
+.n1-next {
+  box-sizing: border-box;
+  max-width: var(--basalt-size-page-width);
+  margin-inline: auto;
+  padding: 0 var(--_pad-right) var(--basalt-space-24) var(--_pad-left);
+}
+.n1-next-head { display: flex; flex-direction: column; gap: var(--basalt-space-3); padding-top: var(--basalt-space-12); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+.n1-next-title {
+  margin: 0;
+  color: var(--basalt-text-primary);
+  font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-2xl-tracking);
+}
+.n1-next-lead {
+  margin: 0;
+  max-width: var(--basalt-size-prose-width);
+  color: var(--basalt-text-secondary);
+  font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-md-tracking);
+}
+
+/* ---- Under 720 ---- */
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+@media (width < 720px) {
+  .n1-hero { padding-top: var(--basalt-space-6); padding-bottom: var(--basalt-space-12); }
+  .hero-mark { width: var(--w-narrow); margin-inline-start: calc(var(--w-narrow) * -9 / 48); }
+  .n1-title {
+    margin-top: var(--basalt-space-2);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-3xl-size) / var(--basalt-text-3xl-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-3xl-tracking);
+  }
+  .n1-lead {
+    margin-top: var(--basalt-space-3);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-md-tracking);
+  }
+  .n1-status { margin-top: var(--basalt-space-6); }
+  .n1-next-head { padding-top: var(--basalt-space-10); }
+}
+
+/* ---- From 1024: the chart beside the copy, never narrower than its own breakpoint (size-breakpoint-container) ---- */
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token */
+@media (width >= 1024px) {
+  .n1-hero-row { grid-template-columns: minmax(0, var(--basalt-size-prose-width)) minmax(var(--basalt-size-breakpoint-container), 1fr); }
+  /* The chart's title stands level with the top of N's ink: the mark's 144px box has 24px of air above the ink (8 of its 48 units), and
+     the title's 16/24 line puts its cap 5px into its box, so 19px of padding sets the two caps on one line. */
+  .n1-chart { padding-top: calc(var(--basalt-space-5) - var(--basalt-size-hairline)); }
+}
+
+/* ---- Forced colours: the mark takes the text colour, the rule is a real line ---- */
+@media (forced-colors: active) {
+  .hero-mark { color: CanvasText; }
+  .n1-next-head { border-top-color: CanvasText; }
+}
