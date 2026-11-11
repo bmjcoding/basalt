@@ -438,6 +438,8 @@ extension Basalt {
     public static let selectMin: Double = 160
     /// Maximum height of a scrolling popup list, such as the command list.
     public static let popupMaxHeight: Double = 360
+    /// The list column of a list with a preview pane, fixed: a two-line row fits beside a 16px glyph. The pane takes the rest, space-4 away; below this plus that gap plus size-breakpoint-container the pane is pushed instead.
+    public static let listWidth: Double = 320
     /// The sticky bar: its border box, with its hairline inside. The top safe area is padding above it, added by the layout CSS.
     public static let header: Double = 56
     /// The phone tab bar, its hairline inside, before the bottom safe area.

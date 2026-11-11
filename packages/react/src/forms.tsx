@@ -50,6 +50,8 @@ export function Fieldset({ legend, children, className, disabled = false, ...pro
 export interface ComboboxOption {
   value: string;
   label: string;
+  /** A second line under the label (13/18, tertiary, one line). Use it only when the label can't tell options apart. It is searched too, after the label. */
+  description?: string;
   disabled?: boolean;
 }
 
@@ -103,8 +105,16 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const byValue = new Map(options.map((option) => [option.value, option]));
+  // A description is a search keyword: with none given, a typed query also finds the words under a label.
+  const described = options.some((option) => option.description);
+  const describedFilter = (value: string, query: string) => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    const option = byValue.get(value);
+    return `${option?.label ?? value}`.toLowerCase().includes(needle) || (option?.description?.toLowerCase().includes(needle) ?? false);
+  };
   return (
-    <BaseCombobox.Root {...props} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
+    <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
       <BaseCombobox.InputGroup className={join("basalt-combobox", className)}>
         <BaseCombobox.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} placeholder={placeholder} data-size={controlSize} className="basalt-input basalt-combobox-input" />
         <BaseCombobox.Trigger render={<IconButton icon={CaretUpDownIcon} label="Show options" size={controlSize} />} className="basalt-combobox-trigger" />
@@ -116,9 +126,10 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
             <BaseCombobox.Empty className="basalt-combobox-empty">{emptyMessage}</BaseCombobox.Empty>
             <BaseCombobox.List>
               {(value: string) => (
-                <BaseCombobox.Item key={value} value={value} disabled={byValue.get(value)?.disabled} className="basalt-menu-item">
+                <BaseCombobox.Item key={value} value={value} disabled={byValue.get(value)?.disabled} data-described={byValue.get(value)?.description ? "" : undefined} data-lead="" className="basalt-menu-item">
                   <span className="basalt-menu-check"><BaseCombobox.ItemIndicator className="basalt-select-check"><Icon icon={CheckIcon} size={16} /></BaseCombobox.ItemIndicator></span>
                   <span className="basalt-menu-item-label">{byValue.get(value)?.label ?? value}</span>
+                  {byValue.get(value)?.description ? <span className="basalt-menu-item-description">{byValue.get(value)?.description}</span> : null}
                 </BaseCombobox.Item>
               )}
             </BaseCombobox.List>

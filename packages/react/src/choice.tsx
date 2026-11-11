@@ -153,6 +153,8 @@ export function Radio({ children, className, disabled, ...props }: RadioProps) {
 export interface SelectOption {
   value: string;
   label: React.ReactNode;
+  /** A second line under the label (13/18, tertiary, one line). Use it only when the label can't tell the choices apart. It follows the label in the option's name. */
+  description?: string;
   disabled?: boolean;
 }
 
@@ -207,7 +209,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
             <GlidePlate />
             <BaseSelect.List>
               {options.map((o) => (
-                <BaseSelect.Item key={o.value} value={o.value} disabled={o.disabled} className="basalt-menu-item basalt-select-item">
+                <BaseSelect.Item key={o.value} value={o.value} disabled={o.disabled} data-described={o.description ? "" : undefined} data-lead="" className="basalt-menu-item basalt-select-item">
                   {/* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */}
                   <span className="basalt-menu-check">
                     <BaseSelect.ItemIndicator className="basalt-select-check">
@@ -215,6 +217,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
                     </BaseSelect.ItemIndicator>
                   </span>
                   <BaseSelect.ItemText className="basalt-menu-item-label">{o.label}</BaseSelect.ItemText>
+                  {o.description ? <span className="basalt-menu-item-description">{o.description}</span> : null}
                 </BaseSelect.Item>
               ))}
             </BaseSelect.List>

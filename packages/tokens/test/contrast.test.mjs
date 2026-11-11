@@ -513,3 +513,32 @@ for (const theme of THEMES) {
     assert.ok(step >= 1.5, `${theme}: observed against plan is ${step.toFixed(2)}x`);
   });
 }
+
+// ---- Two-line rows, the command list in the page and the checklist's search band (council item 103) ----
+//
+// A description is tertiary at rest and lifts to secondary on the plate, the hint rule above; a danger row's description keeps its
+// own ink, so the pair on the plate is secondary, not danger. The in-page list's foot is secondary 12/16 on the panel, and the push's
+// chevron a secondary icon (3:1). The search band (the command's, and the checklist's) is the next level's fill, capped at 3: its
+// placeholder and glyph are tertiary, its text primary, and the −2 inset ring is the focus colour.
+for (const theme of THEMES) {
+  for (const level of [1, 2, 3]) {
+    const panel = color(theme, `surface-${level}`);
+    const plate = plateOf(theme, level);
+
+    test(`${theme}, level ${level}: a description holds 4.5:1 (tertiary at rest, secondary lit), and the foot's text and the chevron hold`, () => {
+      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: a description at rest on level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: a lit description on the plate at level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), panel), panel) >= 4.5, `${theme}: the foot's count and legend on level ${level}`);
+      for (const [name, bg] of [["the panel", panel], ["the plate", plate]]) {
+        assert.ok(ratio(over(color(theme, "text-secondary"), bg), bg) >= 3, `${theme}: the push's chevron on ${name} at level ${level}`);
+      }
+    });
+
+    test(`${theme}, level ${level}: the search band's placeholder, glyph, text and ring hold on the next level's fill`, () => {
+      const band = color(theme, `surface-${Math.min(level + 1, 3)}`);
+      assert.ok(ratio(over(color(theme, "text-tertiary"), band), band) >= 4.5, `${theme}: the placeholder on the band over level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-primary"), band), band) >= 4.5, `${theme}: typed text on the band over level ${level}`);
+      assert.ok(ratio(over(color(theme, "border-focus"), band), band) >= 3, `${theme}: the −2 inset ring on the band over level ${level}`);
+    });
+  }
+}

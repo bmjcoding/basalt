@@ -763,12 +763,15 @@ describe("NotificationCentre", () => {
     await page.close();
   });
 
-  test("rows are buttons (or links), not options; each paints its own plate on hover and no shared plate is drawn", async () => {
+  test("rows are buttons (or links), not options; where the glide is off (here, reduced motion) each paints its own plate on hover", async () => {
+    // DECISIONS 103 (F2): the centre joins the hover glide, so on a fine pointer with motion one shared plate paints the hover
+    // (tests/commands.test.mjs). The entries' own plates are what remain on touch, under reduced motion and in forced colours.
     const { page } = await fixturePage(browser, app("defaultOpen"), { theme: "dark" });
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.locator(".basalt-notification").first().waitFor();
     await settle(page);
     assert.equal(await page.locator('.basalt-notifications [role="option"], .basalt-notifications [role="menuitem"]').count(), 0);
-    assert.equal(await page.locator(".basalt-notifications .basalt-plate").count(), 0, "no glide in this list");
+    assert.equal(await page.locator(".basalt-notifications .basalt-plate").evaluate((el) => getComputedStyle(el).display), "none", "the shared plate is not drawn here");
     assert.deepEqual(await page.locator(".basalt-notification").evaluateAll((els) => els.map((el) => el.tagName)), ["BUTTON", "BUTTON", "BUTTON", "BUTTON"]);
     const plate = () => page.locator(".basalt-notification").nth(1).evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
     assert.equal(await plate(), "rgba(0, 0, 0, 0)");
