@@ -244,8 +244,8 @@ async function read(page, selector, props, { pseudo = null } = {}) {
     // Where a popup sits: against its trigger (the element marked data-parity-trigger), or against the window.
     const trigger = document.querySelector("[data-parity-trigger]")?.getBoundingClientRect();
     const special = {
-      boxHeight: () => (ps ? style.height : px(rect.height)),
-      boxWidth: () => (ps ? style.width : px(rect.width)),
+      boxHeight: () => (ps ? (Number.isNaN(parseFloat(style.height)) ? style.height : px(parseFloat(style.height))) : px(rect.height)),
+      boxWidth: () => (ps ? (Number.isNaN(parseFloat(style.width)) ? style.width : px(parseFloat(style.width))) : px(rect.width)),
       rectLeft: () => px(rect.left), rectTop: () => px(rect.top), rectRight: () => px(window.innerWidth - rect.right), rectBottom: () => px(window.innerHeight - rect.bottom),
       pathCount: () => `${el.querySelectorAll("path").length}`,
       attrX: () => el.getAttribute("x"), attrY: () => el.getAttribute("y"), attrW: () => el.getAttribute("width"), attrH: () => el.getAttribute("height"), attrD: () => el.getAttribute("d"), attrAnchor: () => el.getAttribute("text-anchor"),
@@ -760,6 +760,224 @@ const CHOICES = [
 ];
 CASES.push(...CHOICES);
 
+// ---- Navigation and layout: the site header and its narrow menu, Nav, the app shell, its rail and the phone tab bar ----
+// Each is rendered in React and in the skill at the same width, with the same words and the same mark, then settled, and the pairs read like the others. The skill
+// builds the narrow menu from the bar's markup (topbar-nav), the rail from the sidebar's (app-shell); React does both itself.
+const NAV_MARK = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/></svg>`;
+const SITE_LINKS = [["product", "Product"], ["docs", "Docs"], ["changelog", "Changelog"], ["pricing", "Pricing"], ["about", "About"]];
+const siteReact = `document.body.style.margin = "0"; flushSync(() => createRoot(document.getElementById("root")).render(<div><SiteHeader brand={<>${NAV_MARK}<span>Acme</span></>} brandLabel="Acme home" links={[${SITE_LINKS.map(([id, label]) => `{ href: "#${id}", label: "${label}"${id === "docs" ? ", current: true" : ""} }`).join(", ")}]} themeToggle={<IconButton icon={SettingsGlyph} label="Switch theme" />} action={<Button variant="primary">Get started</Button>} /><main style={{ height: 1200, padding: 24 }}><p>Synthetic page.</p></main></div>));`;
+const siteSkill = `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Acme home">${NAV_MARK}<span>Acme</span></a><nav class="topbar-links" aria-label="Primary">${SITE_LINKS.map(([id, label]) => `<a href="#${id}"${id === "docs" ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav><span class="spacer"></span><button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button><button class="btn topbar-action" data-variant="primary">Get started</button></div></header><main style="height: 1200px; padding: 24px"><p>Synthetic page.</p></main>`;
+const HEADER_BAR = ["boxHeight", "boxWidth", "position", "top", "zIndex", "backgroundColor", "backdropFilter", "borderBottomWidth", "borderBottomStyle", "borderBottomColor", "color", "paddingTop", "boxSizing"];
+const SITE_LINK = ["rectLeft", "rectTop", "boxWidth", "boxHeight", "color"];
+const BOXRECT = ["rectLeft", "rectTop", "boxWidth", "boxHeight"];
+const NAV_ROW = [...BOXRECT, "paddingTop", "paddingBottom"];
+const NAV_PILL = [...BOXRECT, "paddingLeft", "paddingRight", "borderTopLeftRadius", "backgroundColor", "gap", "color"];
+const NAV_LABEL = [...TYPE, "color", "whiteSpace"];
+const APP_NAV = [["home", "Home", "HomeGlyph", "home"], ["search", "Search", "SearchGlyph", "search"], ["inbox", "Inbox", "NotificationsGlyph", "notifications"], ["messages", "Messages", "MessagesGlyph", "messages"]];
+const appReact = (tabs) => `document.body.style.margin = "0"; flushSync(() => createRoot(document.getElementById("root")).render(<ToastProvider><AppShell brand={<>${NAV_MARK}<span>Workbench</span></>} brandMark={${NAV_MARK}} brandLabel="Workbench home"
+  sidebar={<Nav aria-label="Primary">${APP_NAV.map(([id, label, glyph]) => `<NavItem href="#${id}" icon={${glyph}}${id === "home" ? " current" : ""}${id === "inbox" ? " count={12}" : ""}>${label}</NavItem>`).join("")}<NavGroup label="Workspace"><NavItem href="#plan" icon={PlanGlyph}>Plan</NavItem></NavGroup></Nav>}
+  account={<Nav aria-label="Account"><NavItem href="#settings" icon={SettingsGlyph}>Settings</NavItem></Nav>}
+  header={<AppHeader title="Overview" actions={<><IconButton icon={SettingsGlyph} label="Switch theme" /><Button variant="primary">New entry</Button></>} />}
+  ${tabs ? `tabBar={<TabBar><TabBarItem href="#home" icon={HomeGlyph} current>Home</TabBarItem><TabBarItem href="#search" icon={SearchGlyph}>Search</TabBarItem><TabBarItem href="#inbox" icon={NotificationsGlyph} dot="New activity">Inbox</TabBarItem><TabBarMore><NavItem href="#settings" icon={SettingsGlyph}>Settings</NavItem></TabBarMore></TabBar>}` : ""}>
+  <div style={{ height: 1600 }} /></AppShell></ToastProvider>));`;
+const appSkill = (tabs) => `<div class="app-shell"${tabs ? " data-tabbar" : ""}><aside class="app-sidebar"><div class="app-brand"><a class="brand" href="#" aria-label="Workbench home"><span class="brand-full">${NAV_MARK}<span>Workbench</span></span><span class="brand-rail">${NAV_MARK}</span></a></div>
+  <div class="app-nav"><nav class="nav" aria-label="Primary"><ul class="nav-list">${APP_NAV.map(([id, label, , glyph]) => `<li><a class="nav-item" href="#${id}"${id === "home" ? ' aria-current="page"' : ""}><span class="nav-pill"><span data-glyph="${glyph}" data-size="24"></span><span class="nav-label">${label}</span>${id === "inbox" ? '<span class="nav-count"><span class="visually-hidden">, </span>12</span>' : ""}</span></a></li>`).join("")}<li><span class="nav-group-label" id="ws">Workspace</span><ul class="nav-list" aria-labelledby="ws"><li><a class="nav-item" href="#plan"><span class="nav-pill"><span data-glyph="plan" data-size="24"></span><span class="nav-label">Plan</span></span></a></li></ul></li></ul></nav></div>
+  <div class="app-account"><nav class="nav" aria-label="Account"><ul class="nav-list"><li><a class="nav-item" href="#settings"><span class="nav-pill"><span data-glyph="settings" data-size="24"></span><span class="nav-label">Settings</span></span></a></li></ul></nav></div></aside>
+  <div class="app-column"><header class="app-header"><div class="app-bar"><h1 class="app-title">Overview</h1><span class="spacer"></span><div class="app-actions"><button class="btn" data-variant="ghost" data-icon-only aria-label="Switch theme"><span data-glyph="settings"></span></button><button class="btn" data-variant="primary">New entry</button></div></div></header>
+  <main class="app-main"><div style="height: 1600px"></div></main></div>
+  ${tabs ? `<nav class="tab-bar" aria-label="Primary"><ul class="tab-bar-list"><li><a class="tab-bar-item" href="#home" aria-current="page"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Home</span></a></li><li><a class="tab-bar-item" href="#search"><span class="tab-bar-glyph"><span data-glyph="search" data-size="24"></span></span><span class="tab-bar-label">Search</span></a></li><li><a class="tab-bar-item" href="#inbox"><span class="tab-bar-glyph"><span data-glyph="notifications" data-size="24"></span><span class="tab-bar-dot" aria-hidden="true"></span></span><span class="tab-bar-label">Inbox</span><span class="visually-hidden">, New activity</span></a></li><li><button class="tab-bar-item" type="button" data-dialog-open="#more" aria-label="More"><span class="tab-bar-glyph"><span data-glyph="more-nav" data-size="24"></span></span><span class="tab-bar-label">More</span></button></li></ul></nav>
+  <dialog class="panel float modal sheet" id="more" data-side="bottom"><div class="tab-bar-sheet-head"><h2 class="dialog-title">More</h2><button class="btn" data-variant="ghost" data-icon-only aria-label="Close more" data-dialog-close><span data-glyph="close"></span></button></div><nav class="nav" aria-label="More"><ul class="nav-list"><li><a class="nav-item" href="#settings"><span class="nav-pill"><span data-glyph="settings" data-size="24"></span><span class="nav-label">Settings</span></span></a></li></ul></nav></dialog>` : ""}</div>`;
+const NAV_IMPORTS = "SiteHeader, IconButton, Button, SettingsGlyph, ToastProvider, AppShell, AppHeader, Nav, NavItem, NavGroup, TabBar, TabBarItem, TabBarMore, HomeGlyph, SearchGlyph, NotificationsGlyph, MessagesGlyph, PlanGlyph, Sheet, SheetContent";
+const NAVIGATION = [
+  {
+    id: "site header",
+    width: 1440,
+    react: siteReact,
+    skill: siteSkill,
+    ready: { react: ".basalt-site-header", skill: ".topbar" },
+    pairs: [
+      ["bar", ".basalt-site-header", ".topbar", HEADER_BAR],
+      ["row", ".basalt-site-bar", ".topbar-inner", [...BOXRECT, "paddingTop", "paddingLeft", "paddingRight", "display", "alignItems"]],
+      ["brand target", ".basalt-site-brand", ".brand", [...BOXRECT, "color", "display", "alignItems", "textDecorationLine"]],
+      ["brand lockup", ".basalt-site-brand-mark", ".brand", [...TYPE, "gap", "whiteSpace", "color"]],
+      ["brand word", ".basalt-site-brand-mark > span", ".brand > span", [...BOXRECT]],
+      ["brand mark", ".basalt-site-brand-mark > svg", ".brand > svg", [...BOXRECT]],
+      ["links", ".basalt-site-links", ".topbar-links", [...BOXRECT, "display"]],
+      ["current link", ".basalt-site-link[aria-current=page]", ".topbar-links a[aria-current=page]", SITE_LINK],
+      ["current link's words", ".basalt-site-link[aria-current=page] .basalt-site-label", ".topbar-links a[aria-current=page]", [...TYPE, "color"]],
+      ["link at rest", ".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])", SITE_LINK],
+      ["link's words at rest", ".basalt-site-link:not([aria-current]) .basalt-site-label", ".topbar-links a:not([aria-current])", [...TYPE, "color"]],
+      ["last link", ".basalt-site-links li:last-child .basalt-site-link", ".topbar-links a:last-child", SITE_LINK],
+      ["pill at rest", ".basalt-site-link:not([aria-current]) .basalt-site-pill", ".topbar-links a:not([aria-current])", ["boxHeight", "boxWidth", "backgroundColor", "borderTopLeftRadius"], { skillPseudo: "::before" }],
+      ["link focus ring", ".basalt-site-link:not([aria-current]) .basalt-site-pill", ".topbar-links a:not([aria-current])", OUTLINE, { skillPseudo: "::before", focusOn: [".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])"] }],
+      ["brand focus ring", ".basalt-site-brand-mark", ".brand", OUTLINE, { skillPseudo: "::after", focusOn: [".basalt-site-brand", ".brand"] }],
+      ["action", ".basalt-site-action .basalt-button", ".topbar-action", [...BOX, ...BOXRECT]],
+      ["theme toggle", ".basalt-bar-actions > .basalt-button[data-variant=ghost]", ".topbar-inner > .btn[data-variant=ghost]", [...BOX, ...BOXRECT]],
+      ["menu button, hidden", ".basalt-site-menu-trigger", ".topbar-menu-trigger", ["display"]],
+      ["hovered link", ".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])", ["color"], { hover: [".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])"] }],
+      ["shared pill", ".basalt-site-links > .basalt-plate", ".topbar-links > .plate", ["display", "opacity", "backgroundColor", "borderTopLeftRadius", ...BOXRECT, "transitionProperty", "transitionDuration", "transitionTimingFunction"], { hover: [".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])"] }],
+      ["pill under the shared one", ".basalt-site-link:not([aria-current]) .basalt-site-pill", ".topbar-links a:not([aria-current])", ["backgroundColor"], { skillPseudo: "::before", hover: [".basalt-site-link:not([aria-current])", ".topbar-links a:not([aria-current])"] }],
+    ],
+  },
+  {
+    id: "site header, narrow",
+    width: 390,
+    touch: true,
+    react: siteReact,
+    skill: siteSkill,
+    ready: { react: ".basalt-site-header", skill: ".topbar" },
+    pairs: [
+      ["bar", ".basalt-site-header", ".topbar", HEADER_BAR],
+      ["row", ".basalt-site-bar", ".topbar-inner", [...BOXRECT, "paddingTop", "paddingLeft", "paddingRight"]],
+      ["brand target", ".basalt-site-brand", ".brand", BOXRECT],
+      ["links, gone", ".basalt-site-links", ".topbar-links", ["display"]],
+      ["action, gone", ".basalt-site-action", ".topbar-action", ["display"]],
+      ["theme toggle", ".basalt-bar-actions > .basalt-button[data-variant=ghost]", ".topbar-inner > .btn[data-variant=ghost]", [...BOXRECT, "borderTopLeftRadius", "color", "backgroundColor"]],
+      ["menu button", ".basalt-site-menu-trigger", ".topbar-menu-trigger", [...BOX, ...BOXRECT, "display"]],
+    ],
+  },
+  {
+    id: "site header, the narrow menu",
+    width: 390,
+    touch: true,
+    react: siteReact,
+    skill: siteSkill,
+    ready: { react: ".basalt-site-menu", skill: "dialog.topbar-menu[open]" },
+    open: { react: (p) => p.click(".basalt-site-menu-trigger"), skill: (p) => p.click(".topbar-menu-trigger") },
+    pairs: [
+      ["sheet", ".basalt-site-menu", "dialog.topbar-menu", [...PANEL, ...PAD, ...BOXRECT, "display", "flexDirection", "overflowY", "rectRight", "rectBottom", "clipPath", "transform", "opacity", "maxHeight"]],
+      ["band", ".basalt-site-menu-band", ".sheet-band", [...BOXRECT, "display", "alignItems", "borderBottomWidth", "borderBottomColor", "paddingTop", "paddingRight", "paddingLeft"]],
+      ["brand", ".basalt-site-menu-band .basalt-site-brand", ".sheet-band .brand", BOXRECT],
+      ["brand word", ".basalt-site-menu-band .basalt-site-brand-mark > span", ".sheet-band .brand > span", BOXRECT],
+      ["theme toggle", ".basalt-site-menu-band .basalt-bar-actions > .basalt-button:first-child", ".sheet-band [data-theme-toggle]", [...BOXRECT, "borderTopLeftRadius", "color"]],
+      ["close, on the menu button's box", ".basalt-site-menu-close", ".sheet-band .btn[data-dialog-close]", [...BOX, ...BOXRECT]],
+      ["close, first focus", ".basalt-site-menu-close", ".sheet-band .btn[data-dialog-close]", OUTLINE],
+      ["close glyph", ".basalt-site-menu-close svg", ".sheet-band .btn[data-dialog-close] svg", ["boxWidth", "boxHeight", "color"]],
+      ["links", ".basalt-site-menu-nav", ".topbar-menu .nav", [...BOXRECT, "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"]],
+      ["row", ".basalt-site-menu-nav .basalt-nav-item[aria-current=page]", ".topbar-menu .nav-item[aria-current=page]", NAV_ROW],
+      ["row at rest", ".basalt-site-menu-nav .basalt-nav-item:not([aria-current])", ".topbar-menu .nav-item:not([aria-current])", NAV_ROW],
+      ["pill", ".basalt-site-menu-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill", ".topbar-menu .nav-item:not([aria-current]) .nav-pill", NAV_PILL],
+      ["label at rest", ".basalt-site-menu-nav .basalt-nav-item:not([aria-current]) .basalt-nav-label", ".topbar-menu .nav-item:not([aria-current]) .nav-label", NAV_LABEL],
+      ["current label", ".basalt-site-menu-nav .basalt-nav-item[aria-current=page] .basalt-nav-label", ".topbar-menu .nav-item[aria-current=page] .nav-label", NAV_LABEL],
+      ["foot", ".basalt-site-menu-foot", ".topbar-menu-foot", [...BOXRECT, "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]],
+      ["action", ".basalt-site-menu-foot .basalt-button", ".topbar-menu-foot .btn", [...BOX, ...BOXRECT]],
+      ["scrim", ".basalt-dialog-backdrop", "dialog.topbar-menu", ["backgroundColor", "opacity"], { skillPseudo: "::backdrop" }],
+    ],
+  },
+  {
+    id: "app shell",
+    width: 1440,
+    react: appReact(true),
+    skill: appSkill(true),
+    ready: { react: ".basalt-app-shell", skill: ".app-shell" },
+    pairs: [
+      ["shell", ".basalt-app-shell", ".app-shell", ["display", "gridTemplateColumns", "boxHeight", "boxWidth"]],
+      ["sidebar", ".basalt-app-sidebar", ".app-sidebar", [...BOXRECT, "position", "top", "backgroundColor", "borderRightWidth", "borderRightStyle", "borderRightColor", "paddingLeft", "paddingRight", "overflowY", "display", "flexDirection", "color"]],
+      ["brand band", ".basalt-app-brand", ".app-brand", [...BOXRECT, "paddingTop", "paddingLeft", "paddingRight", "display", "alignItems", "borderBottomWidth"]],
+      ["brand target", ".basalt-app-brand .basalt-site-brand", ".app-brand .brand", [...BOXRECT, "color"]],
+      ["brand lockup", ".basalt-app-brand-full", ".brand-full", [...BOXRECT, "display", "gap"]],
+      ["brand mark, hidden", ".basalt-app-brand-rail", ".brand-rail", ["display"]],
+      ["nav", ".basalt-app-nav .basalt-nav", ".app-nav .nav", [...BOXRECT, "paddingLeft", "paddingRight"]],
+      ["current item", ".basalt-app-nav .basalt-nav-item[aria-current=page]", ".app-nav .nav-item[aria-current=page]", NAV_ROW],
+      ["item at rest", ".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])", NAV_ROW],
+      ["pill", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill", ".app-nav .nav-item:not([aria-current]) .nav-pill", NAV_PILL],
+      ["current label", ".basalt-app-nav .basalt-nav-item[aria-current=page] .basalt-nav-label", ".app-nav .nav-item[aria-current=page] .nav-label", NAV_LABEL],
+      ["label at rest", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-label", ".app-nav .nav-item:not([aria-current]) .nav-label", NAV_LABEL],
+      ["glyph at rest", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill > svg", ".app-nav .nav-item:not([aria-current]) .nav-pill > svg", [...BOXRECT, "pathCount", "childCount", "color"]],
+      ["glyph at rest, drawn", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill > svg path", ".app-nav .nav-item:not([aria-current]) .nav-pill > svg path", ["attrD", "strokeWidth", "strokeLinecap", "strokeLinejoin", "fill", "stroke"]],
+      ["current glyph", ".basalt-app-nav .basalt-nav-item[aria-current=page] .basalt-nav-pill > svg", ".app-nav .nav-item[aria-current=page] .nav-pill > svg", [...BOXRECT, "pathCount", "childCount", "color"]],
+      ["current glyph, drawn", ".basalt-app-nav .basalt-nav-item[aria-current=page] .basalt-nav-pill > svg path", ".app-nav .nav-item[aria-current=page] .nav-pill > svg path", ["attrD", "fill", "stroke"]],
+      ["count", ".basalt-nav-count", ".nav-count", [...TYPE, "color", ...BOXRECT]],
+      ["group label", ".basalt-nav-group-label", ".nav-group-label", [...TYPE, "color", "paddingTop", "paddingLeft", "paddingBottom", ...BOXRECT]],
+      ["item ring", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill", ".app-nav .nav-item:not([aria-current]) .nav-pill", OUTLINE, { focusOn: [".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])"] }],
+      ["account", ".basalt-app-account", ".app-account", [...BOXRECT, "paddingBottom"]],
+      ["header", ".basalt-app-header", ".app-header", [...HEADER_BAR, "rectLeft"]],
+      ["bar", ".basalt-app-bar", ".app-bar", [...BOXRECT, "paddingTop", "paddingLeft", "paddingRight", "display", "alignItems", "gap"]],
+      ["title", ".basalt-app-title", ".app-title", [...TYPE, "color", ...BOXRECT, "overflowX", "whiteSpace"]],
+      ["actions", ".basalt-app-bar .basalt-bar-actions", ".app-actions", [...BOXRECT, "display", "gap"]],
+      ["primary action", ".basalt-app-bar .basalt-button[data-variant=primary]", ".app-actions .btn[data-variant=primary]", [...BOX, ...BOXRECT]],
+      ["main", ".basalt-app-main", ".app-main", [...BOXRECT, "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "maxWidth"]],
+      ["tab bar, hidden", ".basalt-tabbar", ".tab-bar", ["display"]],
+      ["hovered item", ".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])", ["color"], { hover: [".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])"] }],
+      ["shared pill", ".basalt-app-nav .basalt-plate", ".app-nav .plate", ["display", "opacity", "backgroundColor", "borderTopLeftRadius", ...BOXRECT, "transitionProperty", "transitionDuration", "transitionTimingFunction"], { hover: [".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])"] }],
+      ["pill under the shared one", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill", ".app-nav .nav-item:not([aria-current]) .nav-pill", ["backgroundColor"], { hover: [".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])"] }],
+    ],
+  },
+  {
+    id: "app shell, the rail",
+    width: 900,
+    react: appReact(true),
+    skill: appSkill(true),
+    ready: { react: ".basalt-app-shell", skill: ".app-shell" },
+    pairs: [
+      ["shell", ".basalt-app-shell", ".app-shell", ["display", "gridTemplateColumns", "boxHeight"]],
+      ["sidebar", ".basalt-app-sidebar", ".app-sidebar", [...BOXRECT, "paddingLeft", "paddingRight", "borderRightWidth"]],
+      ["brand band", ".basalt-app-brand", ".app-brand", [...BOXRECT, "paddingLeft", "paddingRight", "justifyContent"]],
+      ["brand lockup, hidden", ".basalt-app-brand-full", ".brand-full", ["display"]],
+      ["brand mark", ".basalt-app-brand-rail", ".brand-rail", [...BOXRECT, "display"]],
+      ["brand target", ".basalt-app-brand .basalt-site-brand", ".app-brand .brand", BOXRECT],
+      ["item", ".basalt-app-nav .basalt-nav-item:not([aria-current])", ".app-nav .nav-item:not([aria-current])", [...NAV_ROW, "justifyContent"]],
+      ["pill, a circle", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill", ".app-nav .nav-item:not([aria-current]) .nav-pill", [...NAV_PILL, "justifyContent"]],
+      ["glyph", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-nav-pill > svg", ".app-nav .nav-item:not([aria-current]) .nav-pill > svg", BOXRECT],
+      ["current glyph", ".basalt-app-nav .basalt-nav-item[aria-current=page] .basalt-nav-pill > svg", ".app-nav .nav-item[aria-current=page] .nav-pill > svg", BOXRECT],
+      ["label, kept for the name", ".basalt-app-nav .basalt-nav-item:not([aria-current]) .basalt-visually-hidden", ".app-nav .nav-item:not([aria-current]) .nav-label", ["boxWidth", "boxHeight", "position", "overflowX", "whiteSpace"]],
+      ["header", ".basalt-app-header", ".app-header", [...HEADER_BAR, "rectLeft"]],
+      ["main", ".basalt-app-main", ".app-main", [...BOXRECT, "paddingLeft", "paddingRight"]],
+    ],
+  },
+  {
+    id: "app shell, the tab bar",
+    width: 390,
+    touch: true,
+    react: appReact(true),
+    skill: appSkill(true),
+    ready: { react: ".basalt-app-shell", skill: ".app-shell" },
+    pairs: [
+      ["shell", ".basalt-app-shell", ".app-shell", ["display", "gridTemplateColumns"]],
+      ["sidebar, gone", ".basalt-app-sidebar", ".app-sidebar", ["display"]],
+      ["header", ".basalt-app-header", ".app-header", [...HEADER_BAR, "rectLeft"]],
+      ["bar", ".basalt-app-bar", ".app-bar", [...BOXRECT, "paddingTop", "paddingLeft", "paddingRight", "gap"]],
+      ["primary action, gone", ".basalt-app-bar .basalt-button[data-variant=primary]", ".app-actions .btn[data-variant=primary]", ["display"]],
+      ["header button", ".basalt-app-bar .basalt-button[data-variant=ghost]", ".app-actions .btn[data-variant=ghost]", [...BOXRECT, "borderTopLeftRadius"]],
+      ["main", ".basalt-app-main", ".app-main", [...BOXRECT, "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]],
+      ["tab bar", ".basalt-tabbar", ".tab-bar", [...BOXRECT, "position", "bottom", "zIndex", "display", "backgroundColor", "borderTopWidth", "borderTopStyle", "borderTopColor", "paddingBottom", "paddingLeft", "paddingRight", "color", "backdropFilter", "boxShadow"]],
+      ["list", ".basalt-tabbar-list", ".tab-bar-list", [...BOXRECT, "display", "gridAutoFlow"]],
+      ["current item", ".basalt-tabbar-item[aria-current=page]", ".tab-bar-item[aria-current=page]", [...BOXRECT, "paddingTop", "paddingLeft", "paddingBottom", "gap", "color", "display", "flexDirection", "alignItems"]],
+      ["item", ".basalt-tabbar-entry:nth-child(2) .basalt-tabbar-item", ".tab-bar-list > li:nth-child(2) .tab-bar-item", [...BOXRECT, "color"]],
+      ["glyph circle", ".basalt-tabbar-item:not([aria-current]) .basalt-tabbar-glyph", ".tab-bar-item:not([aria-current]) .tab-bar-glyph", [...BOXRECT, "borderTopLeftRadius", "backgroundColor"]],
+      ["glyph", ".basalt-tabbar-item:not([aria-current]) .basalt-tabbar-glyph > svg", ".tab-bar-item:not([aria-current]) .tab-bar-glyph > svg", [...BOXRECT, "pathCount", "childCount", "color"]],
+      ["current glyph", ".basalt-tabbar-item[aria-current=page] .basalt-tabbar-glyph > svg", ".tab-bar-item[aria-current=page] .tab-bar-glyph > svg", [...BOXRECT, "pathCount", "childCount"]],
+      ["label", ".basalt-tabbar-item:not([aria-current]) .basalt-tabbar-label", ".tab-bar-item:not([aria-current]) .tab-bar-label", [...TYPE, "color", ...BOXRECT]],
+      ["current label", ".basalt-tabbar-item[aria-current=page] .basalt-tabbar-label", ".tab-bar-item[aria-current=page] .tab-bar-label", [...TYPE, "color", ...BOXRECT]],
+      ["dot", ".basalt-tabbar-dot", ".tab-bar-dot", [...BOXRECT, "backgroundColor", "borderTopLeftRadius", "position"]],
+      ["more", ".basalt-tabbar-more", ".tab-bar-list > li:last-child .tab-bar-item", [...BOXRECT, "color", "backgroundColor", "borderTopWidth", "cursor"]],
+      ["item ring", ".basalt-tabbar-item[aria-current=page]", ".tab-bar-item[aria-current=page]", OUTLINE, { focus: true }],
+      ["pressed circle", ".basalt-tabbar-item:not([aria-current]) .basalt-tabbar-glyph", ".tab-bar-item:not([aria-current]) .tab-bar-glyph", ["backgroundColor"], { press: [".basalt-tabbar-item:not([aria-current])", ".tab-bar-item:not([aria-current])"] }],
+    ],
+  },
+  {
+    id: "app shell, More",
+    width: 390,
+    touch: true,
+    react: appReact(true),
+    skill: appSkill(true),
+    ready: { react: ".basalt-tabbar-sheet", skill: "dialog#more[open]" },
+    open: { react: (p) => p.click(".basalt-tabbar-more"), skill: (p) => p.click(".tab-bar-list > li:last-child .tab-bar-item") },
+    pairs: [
+      ["sheet", ".basalt-tabbar-sheet", "dialog#more", [...PANEL, ...PAD, ...BOXRECT, "display", "flexDirection", "rectRight", "rectBottom", "maxHeight", "transform", "opacity"]],
+      ["scrim", ".basalt-dialog-backdrop", "dialog#more", ["backgroundColor", "opacity"], { skillPseudo: "::backdrop" }],
+      ["head", ".basalt-tabbar-sheet-head", ".tab-bar-sheet-head", [...BOXRECT, "display", "alignItems", "justifyContent", "gap", "marginBottom"]],
+      ["title", ".basalt-tabbar-sheet .basalt-dialog-title", ".tab-bar-sheet-head .dialog-title", [...TYPE, "color", ...BOXRECT, "marginTop", "marginBottom"]],
+      ["close", ".basalt-tabbar-sheet-head .basalt-button", ".tab-bar-sheet-head .btn", [...BOX, ...BOXRECT]],
+      ["rows", ".basalt-tabbar-sheet .basalt-nav", ".tab-bar-sheet-head + .nav", [...BOXRECT, "paddingLeft", "paddingRight"]],
+      ["row", ".basalt-tabbar-sheet .basalt-nav-item", "#more .nav-item", NAV_ROW],
+      ["pill", ".basalt-tabbar-sheet .basalt-nav-pill", "#more .nav-pill", NAV_PILL],
+      ["label", ".basalt-tabbar-sheet .basalt-nav-label", "#more .nav-label", NAV_LABEL],
+      ["glyph", ".basalt-tabbar-sheet .basalt-nav-pill > svg", "#more .nav-pill > svg", [...BOXRECT, "pathCount"]],
+    ],
+  },
+];
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -778,6 +996,19 @@ const found = []; // every difference this run saw, in the list's own shape
 async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
   for (const [label, reactSel, skillSel, props, options = {}] of pairs) {
     const scope = (sel, side) => (scopes ? `${scopes[side]} ${sel}` : sel);
+    // The pointer rests on the element (the shared pill follows it), or presses it; the pages settle before they are read.
+    for (const kind of ["hover", "press"]) {
+      if (!options[kind]) continue;
+      for (const [p, sel] of [[reactPage, options[kind][0]], [skillPage, options[kind][1]]]) {
+        await p.locator(sel).first().hover();
+        if (kind === "press") await p.mouse.down();
+        await settle(p);
+      }
+    }
+    if (options.focusOn) {
+      await reactPage.locator(options.focusOn[0]).first().focus();
+      await skillPage.locator(options.focusOn[1]).first().focus();
+    }
     if (options.focus) {
       await reactPage.locator(scope(reactSel, "react")).first().focus();
       await skillPage.locator(scope(skillSel, "skill")).first().focus();
@@ -790,10 +1021,12 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
     const skill = await read(skillPage, scope(skillSel, "skill"), props, { pseudo: "skillPseudo" in options ? options.skillPseudo : options.pseudo });
     assert.ok(react, `${area}: React has no ${reactSel}`);
     assert.ok(skill, `${area}: the skill has no ${skillSel}`);
-    if (options.focus || options.focusIn) {
+    if (options.focus || options.focusIn || options.focusOn) {
       await reactPage.evaluate(() => document.activeElement?.blur());
       await skillPage.evaluate(() => document.activeElement?.blur());
     }
+    if (options.press) for (const p of [reactPage, skillPage]) await p.mouse.up();
+    if (options.hover || options.press) for (const p of [reactPage, skillPage]) { await p.mouse.move(0, 0); await settle(p); }
     for (const prop of props) if (react[prop] !== skill[prop]) found.push({ area, pair: label, prop, theme, react: react[prop], skill: skill[prop] });
   }
 }
@@ -843,6 +1076,26 @@ describe("each skill component renders as its React counterpart does, but for th
         for (const p of [reactPage, skillPage]) await quiet(p);
         if (overlay.after) { await overlay.after.react(reactPage); await overlay.after.skill(skillPage); for (const p of [reactPage, skillPage]) await quiet(p); }
         await compare(theme, overlay.id, reactPage, skillPage, overlay.pairs, null);
+        assert.deepEqual([errors, skillErrors], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
+
+    for (const nav of NAVIGATION) {
+      test(`${nav.id} (${theme})`, async () => {
+        const touch = nav.touch ? { isMobile: true, hasTouch: true } : {};
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `const { ${NAV_IMPORTS} } = B;\n${nav.react}`, { theme, viewport: { width: nav.width, height: nav.width === 390 ? 844 : 900 }, ...touch });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        // The skill's page carries the viewport meta compose writes; a phone lays the React page out at 980 without it.
+        if (nav.touch) await reactPage.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.appendChild(meta); });
+        await reactPage.waitForSelector("#root > *", { state: "attached" });
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${nav.skill}`, { fonts: false }).html, { scheme: theme, width: nav.width, touch: Boolean(nav.touch) });
+        if (nav.open) { await nav.open.react(reactPage); await nav.open.skill(skillPage); }
+        await skillPage.waitForSelector(nav.ready.skill, { state: "attached" });
+        await reactPage.waitForSelector(nav.ready.react, { state: "attached" });
+        for (const p of [reactPage, skillPage]) await settle(p);
+        await compare(theme, nav.id, reactPage, skillPage, nav.pairs, null);
         assert.deepEqual([errors, skillErrors], [[], []]);
         await reactPage.close();
         await context.close();

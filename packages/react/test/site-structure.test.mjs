@@ -96,6 +96,20 @@ describe("the site header: the bar", () => {
     }
   }
 
+  test("a brand with a mark and no word is still a target of at least 44 by 44, the mark at its start, and the ring is round the mark", async () => {
+    const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<B.SiteHeader brand={${MARK}} brandLabel="Acme home" />);`);
+    const link = await box(page, ".basalt-site-brand");
+    const mark = await box(page, ".basalt-site-brand-mark");
+    assert.deepEqual([link.w, link.h], [44, 44], "the target is 44 by 44");
+    near(mark.x, link.x, "the mark sits at the start of the target");
+    assert.equal(mark.h, 32, "the lockup is 32 tall");
+    await page.keyboard.press("Tab");
+    const ring = await page.locator(".basalt-site-brand-mark").evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: s.outlineWidth, offset: s.outlineOffset }; });
+    assert.deepEqual(ring, { style: "solid", width: "2px", offset: "2px" }, "the control ring is round the 32px mark, not the 44px target");
+    assert.deepEqual(page.errors, []);
+    await page.close();
+  });
+
   test("the order is the brand, the links beside it (start-aligned), a spacer, then the actions; the row is 72rem wide", async () => {
     const page = await open(site(), { width: 1600 });
     const brand = await box(page, ".basalt-site-brand");

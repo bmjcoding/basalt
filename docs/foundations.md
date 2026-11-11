@@ -870,8 +870,8 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
   inset (`scroll-padding-top` also adds a step, `space-4`). Its inline padding is the gutter (`space-6`, `space-4` under 720) or
   `env(safe-area-inset-left/right)`, whichever is larger, and the inner row is 72rem wide.
 - **The order:** the brand, the links beside it (start-aligned, never centred), a spacer, then the actions.
-- **The brand** is the 32px header lockup an app passes in (`brand/` ships them), a link home in a 44px target, with no wash; its ring
-  is the control ring at +2 round the lockup, radius 6.
+- **The brand** is the 32px header lockup an app passes in (`brand/` ships them), a link home in a target at least 44 by 44 (a mark with no word keeps the 44 width,
+  the mark at its start), with no wash; its ring is the control ring at +2 round the lockup, radius 6.
 - **The links** are `text-base` (14/20) at 400 in `text-secondary`, each on a 32px hugging pill (`radius-full`, `space-3` either
   side). Each link's hit area is 44px tall at every pointer, with 2px either side of the pill, so pills are 4px apart and
   neighbouring hit areas touch and a pointer crossing between them never leaves a link.
@@ -1135,8 +1135,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
   with the brand above it and with every chart and table. A data page fills the row.
 - **On Apple platforms** the sidebar width is `navigationSplitViewColumnWidth(Basalt.Size.sidebarWidth)`, the system's bars stay native,
   the compact size class is the phone, and measures are `@ScaledMetric` so a prose column grows with Dynamic Type.
-- **The HTML skill's build** will substitute these values instead of hand-writing 720 (DECISIONS 91, batch 7); until then its sources
-  keep their literals.
+- **The HTML skill's build** substitutes these values instead of hand-writing 720 (DECISIONS 91, batch 7): its sources write `%bp-md%`,
+  `%bp-lg%` and `%bp-container%` in range syntax, and the build reads them from the generated tokens.
 
 ## Art
 

@@ -1,12 +1,17 @@
 <title>Basalt kitchen sink</title>
-<!-- basalt:use art choice choice-card toggle selection loops -->
+<!-- basalt:use art choice choice-card toggle selection loops app-shell tab-bar -->
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="#top">Kitchen sink</a>
+    <nav class="topbar-links" aria-label="Primary">
+      <a href="#top" aria-current="page">Sink</a>
+      <a href="#ks-nav-h">Navigation</a>
+    </nav>
     <span class="spacer"></span>
     <button class="btn" data-open-palette><i data-icon="MagnifyingGlass"></i><span>Commands</span><span data-kbd="⌘ K"></span></button>
     <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+    <a class="btn topbar-action" data-variant="primary" href="#ks-nav-h">Go</a>
   </div>
 </header>
 <main id="main" class="page">
@@ -260,6 +265,19 @@
           "format": { "duration": "minutes" } }
         </script>
       </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="ks-nav-h">
+    <div class="section-head"><h2 id="ks-nav-h">Navigation</h2></div>
+    <div style="max-width: var(--basalt-size-sidebar-width)">
+      <nav class="nav" aria-label="Sample">
+        <ul class="nav-list">
+          <li><a class="nav-item" href="#top" aria-current="page"><span class="nav-pill"><span data-glyph="home" data-size="24"></span><span class="nav-label">Home</span></span></a></li>
+          <li><a class="nav-item" href="#top"><span class="nav-pill"><span data-glyph="notifications" data-size="24"></span><span class="nav-label">Inbox</span><span class="nav-count"><span class="visually-hidden">, </span>12</span></span></a></li>
+          <li><a class="nav-item" href="#top"><span class="nav-pill"><span data-glyph="messages" data-size="24"></span><span class="nav-label">Messages</span></span></a></li>
+        </ul>
+      </nav>
     </div>
   </section>
 

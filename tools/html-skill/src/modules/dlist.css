@@ -16,8 +16,8 @@
   /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
   .dlist dd[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
   .dlist dd[data-missing] { color: var(--basalt-text-tertiary); }
-  /* size-breakpoint-container (480px): a container query cannot read a token */
-  @container (width < 480px) {
+  /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
+  @container (width < %bp-container%) {
     .dlist > div { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
     .dlist dd + dd { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
   }

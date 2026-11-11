@@ -37,12 +37,11 @@
   h1, h2, h3, h4 { font-weight: var(--basalt-font-weight-semibold); color: var(--basalt-text-primary); text-wrap: balance; }
   h5, h6 { font-weight: var(--basalt-font-weight-semibold); }
   h1, .display { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
-  h2 { font-size: var(--basalt-text-xl-size); line-height: var(--basalt-text-xl-line-height); letter-spacing: var(--basalt-text-xl-tracking); }
+  h2 { font-size: var(--basalt-text-2xl-size); line-height: var(--basalt-text-2xl-line-height); letter-spacing: var(--basalt-text-2xl-tracking); }
   h3 { font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); letter-spacing: var(--basalt-text-lg-tracking); }
   h4 { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
 
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (min-width: 720px) {
+  @media (width >= %bp-md%) {
     h1, .display { font-size: var(--basalt-text-4xl-size); line-height: var(--basalt-text-4xl-line-height); letter-spacing: var(--basalt-text-4xl-tracking); }
   }
 
@@ -73,8 +72,9 @@
     --bh-sm-mono: var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono);
   }
 
-  :root { accent-color: var(--basalt-action-primary); }
-  html:has(.topbar) { scroll-padding-top: calc(var(--basalt-size-tap-min) + var(--basalt-space-6)); }
+  /* The row's inline padding: size-gutter, or size-gutter-narrow under the medium breakpoint (foundations, "Layout"). Apps and bars use this one. */
+  :root { accent-color: var(--basalt-action-primary); --basalt-gutter: var(--basalt-size-gutter); }
+  @media (width < %bp-md%) { :root { --basalt-gutter: var(--basalt-size-gutter-narrow); } }
   a, button, summary, [role="tab"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   :focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -86,14 +86,15 @@
   .display { font-weight: var(--basalt-font-weight-semibold); }
   /* The Display step of the type scale (56/60), for a page's one headline. Not responsive: a long word needs room at 390. */
   .text-5xl { font-size: var(--basalt-text-5xl-size); line-height: var(--basalt-text-5xl-line-height); letter-spacing: var(--basalt-text-5xl-tracking); font-weight: var(--basalt-font-weight-semibold); }
-  .lead { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); color: var(--basalt-text-secondary); max-width: 60ch; text-wrap: pretty; }
+  .lead { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); color: var(--basalt-text-secondary); max-width: var(--basalt-size-prose-width); text-wrap: pretty; }
   .eyebrow { font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); }
   .muted { color: var(--basalt-text-secondary); }
   .faint { color: var(--basalt-text-tertiary); }
   .small { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   .mono { font-family: var(--basalt-font-family-mono); }
   .num { font-variant-numeric: tabular-nums; }
-  .prose { max-width: 68ch; }
+  /* A prose column is size-prose-width on the row's start edge, never centred (foundations, "Layout"). */
+  .prose { max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; }
   .prose > * + * { margin-top: var(--basalt-space-4); }
   .prose > :is(h2, h3) { margin-top: var(--basalt-space-8); }
   .prose > :is(h2, h3) + * { margin-top: var(--basalt-space-2); }
@@ -103,30 +104,25 @@
 
   /* ---- Layout ---- */
 
-  .page { width: 100%; max-width: 72rem; margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-space-6) var(--basalt-space-16); }
+  .page { width: 100%; max-width: var(--basalt-size-page-width); margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-gutter) var(--basalt-space-16); }
+  /* A raw length on purpose: 46rem is a narrower data page, and no layout token names it (size-prose-width is a text measure). A token would be a design decision, so it stays a length of its own. */
   .page.narrow { max-width: 46rem; }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .page { padding: var(--basalt-space-6) var(--basalt-space-4) var(--basalt-space-12); } }
+  @media (width < %bp-md%) { .page { padding-block: var(--basalt-space-6) var(--basalt-space-12); } }
   .stack { display: flex; flex-direction: column; gap: var(--gap, var(--basalt-space-4)); min-width: 0; }
   .cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap, var(--basalt-space-2)); min-width: 0; }
   /* stylelint-disable-next-line unit-disallowed-list -- the fallback column width when a page sets no --min; no token is a column width */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 220px), 100%), 1fr)); gap: var(--gap, var(--basalt-space-4)); }
   .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap, var(--basalt-space-6)); }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (min-width: 720px) { .split.aside { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; } }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .split { grid-template-columns: minmax(0, 1fr); } }
+  @media (width >= %bp-md%) { .split.aside { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; } }
+  @media (width < %bp-md%) { .split { grid-template-columns: minmax(0, 1fr); } }
   .spacer { flex: 1; }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .hide-narrow { display: none !important; } }
+  @media (width < %bp-md%) { .hide-narrow { display: none !important; } }
   .section { margin-top: var(--basalt-space-12); }
   .section > .section-head { margin-bottom: var(--basalt-space-4); }
 
   .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
   /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
-  .footer:not(.page .footer) { width: calc(min(100%, 72rem) - 2 * var(--basalt-space-6)); margin-top: 0; margin-inline: auto; padding-bottom: var(--basalt-space-8); }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .footer:not(.page .footer) { width: calc(100% - 2 * var(--basalt-space-4)); } }
+  .footer:not(.page .footer) { width: calc(min(100%, var(--basalt-size-page-width)) - 2 * var(--basalt-gutter)); margin-top: 0; margin-inline: auto; padding-bottom: var(--basalt-space-8); }
   .skip-link { position: absolute; inset-inline-start: var(--basalt-space-2); top: var(--basalt-space-2); transform: translateY(-200%); padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-3); color: var(--basalt-text-primary); z-index: var(--basalt-layer-toast); }
   .skip-link:focus { transform: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
@@ -156,8 +152,7 @@
   %panel% %panel% { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); }
   %panel% %panel% %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
   .panel-pad, .card { padding: var(--basalt-space-4); }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (min-width: 720px) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
+  @media (width >= %bp-md%) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
   .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
 
   /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (with a shadow). A popup is its opener plus one with a
@@ -249,9 +244,9 @@
       display: inline-flex;
       align-items: center;
       min-height: var(--basalt-size-tap-min);
-      margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2));
+      margin-block: var(--bh-tap-margin, min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2)));
     }
-    .brand, .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
+    .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
   }
 
   @keyframes bh-spin { to { transform: rotate(360deg); } }

@@ -58,10 +58,78 @@ function classesIn(text) {
 }
 
 /**
- * Which modules and icons a body needs. `manifest` is parts/manifest.json, `icons` the names parts/icons.json has.
- * Returns { modules: [names, in the manifest's order], icons: [names, in icons.json's order] }.
+ * JavaScript with its comments taken out. Strings, template literals and regular expressions are copied whole, so a `//` in a URL or a quote in a
+ * regular expression is not mistaken for a comment or a string. Each comment becomes one space (or the line's end), so two words never join.
  */
-export function detect(text, manifest, iconNames, { all = false, use = [] } = {}) {
+export function stripJsComments(code) {
+  let out = "";
+  let i = 0;
+  const n = code.length;
+  const regexAfter = /[(,=:[!&|?{};+\-*%<>~^]$/;
+  const wordAfter = /(?:^|[^\w$.])(?:return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/;
+  while (i < n) {
+    const c = code[i];
+    const d = code[i + 1];
+    if (c === "/" && d === "/") {
+      while (i < n && code[i] !== "\n") i++;
+    } else if (c === "/" && d === "*") {
+      const end = code.indexOf("*/", i + 2);
+      i = end === -1 ? n : end + 2;
+      out += " ";
+    } else if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && code[j] !== c && code[j] !== "\n") j += code[j] === "\\" ? 2 : 1;
+      out += code.slice(i, j + 1);
+      i = j + 1;
+    } else if (c === "`") {
+      // A template literal, with `${ }` nested: copied whole, comments inside an expression included.
+      let j = i + 1;
+      let depth = 0;
+      while (j < n && !(code[j] === "`" && depth === 0)) {
+        if (code[j] === "\\") j += 2;
+        else if (code[j] === "$" && code[j + 1] === "{") { depth++; j += 2; } else if (code[j] === "}" && depth > 0) { depth--; j++; } else if (code[j] === "`" && depth > 0) { const end = code.indexOf("`", j + 1); j = end === -1 ? n : end + 1; } else j++;
+      }
+      out += code.slice(i, j + 1);
+      i = j + 1;
+    } else if (c === "/") {
+      const before = out.trimEnd();
+      if (before === "" || regexAfter.test(before) || wordAfter.test(before)) {
+        let j = i + 1;
+        let inClass = false;
+        while (j < n && code[j] !== "\n" && (inClass || code[j] !== "/")) {
+          if (code[j] === "\\") j++;
+          else if (code[j] === "[") inClass = true;
+          else if (code[j] === "]") inClass = false;
+          j++;
+        }
+        out += code.slice(i, j + 1);
+        i = j + 1;
+      } else { out += c; i++; }
+    } else { out += c; i++; }
+  }
+  return out;
+}
+
+/**
+ * A body as markup and code, with the comments left out: HTML comments, and the comments inside a script (a comment is not use: a `data-glyph` or
+ * `Basalt.toast` written about in one must not bring a module in). A JSON script and a style are kept as they are; the page's own styles are
+ * read without their comments by stripCssComments.
+ */
+export function withoutComments(text) {
+  return text.replace(/<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi, (all, attrs, body) => {
+    if (all.startsWith("<!--")) return " ";
+    const type = attrs.match(/\btype\s*=\s*["']?([^\s"'>]+)/i)?.[1] ?? "";
+    if (type && !/^(?:module|(?:text|application)\/(?:javascript|ecmascript))$/i.test(type)) return all;
+    return `<script${attrs}>${stripJsComments(body)}</script>`;
+  });
+}
+export const stripCssComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, " ");
+
+/**
+ * Which modules and icons a body needs. `manifest` is parts/manifest.json, `icons` the names parts/icons.json has.
+ * Returns { modules: [names, in the manifest's order], icons: [names, in icons.json's order], glyphs: [core glyph names, in glyphs.json's order] }.
+ */
+export function detect(text, manifest, iconNames, { all = false, use = [], glyphNames = [] } = {}) {
   const classes = classesIn(text);
   const tags = new Set([...text.matchAll(/<([a-zA-Z][\w-]*)[\s/>]/g)].map((m) => m[1].toLowerCase()));
   const wanted = new Set(use);
@@ -84,7 +152,11 @@ export function detect(text, manifest, iconNames, { all = false, use = [] } = {}
   const named = new Set();
   for (const name of iconNames) if (all || new RegExp(`["'\`]${name}["'\`]`).test(text)) named.add(name);
   for (const m of modules) for (const name of manifest.modules[m].icons ?? []) named.add(name);
-  return { modules, icons: iconNames.filter((n) => named.has(n)) };
+  // A core glyph is in when the body draws it (data-glyph="home") or a module in use draws it itself.
+  const drawn = new Set();
+  for (const m of text.matchAll(/\bdata-glyph\s*=\s*\\?["']?([\w-]+)/g)) drawn.add(m[1]);
+  for (const m of modules) for (const name of manifest.modules[m].glyphs ?? []) drawn.add(name);
+  return { modules, icons: iconNames.filter((n) => named.has(n)), glyphs: glyphNames.filter((n) => all || drawn.has(n)) };
 }
 
 /**
@@ -96,6 +168,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) throw new Error(`"${lang}" is not a language code`);
   const manifest = JSON.parse(read(parts, "manifest.json"));
   const iconFile = JSON.parse(read(parts, "icons.json"));
+  const glyphFile = JSON.parse(read(parts, "glyphs.json"));
 
   // Comments and scripts are looked at for what they are, never for markup inside them.
   const shield = protect(body, [/<!--[\s\S]*?-->/g, /<script\b[\s\S]*?<\/script\s*>/gi]);
@@ -117,10 +190,12 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   const content = shield.restore(markup).replace(/^\s+/, "");
   title ??= content.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1].replace(/<[^>]*>/g, "").trim() || "Untitled page";
 
-  const chosen = detect(content + "\n" + styles.join("\n"), manifest, Object.keys(iconFile.icons), { all, use });
+  // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
+  const code = `${withoutComments(content)}\n${styles.map(stripCssComments).join("\n")}`;
+  const chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
   // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
   const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
-  const direct = detect(content + "\n" + styles.join("\n"), bare, [], { all, use }).modules;
+  const direct = detect(code, bare, [], { all, use }).modules;
   const built = Object.fromEntries(chosen.modules.filter((n) => !direct.includes(n)).flatMap((n) => chosen.modules.filter((m) => (manifest.modules[m].builds ?? []).includes(n)).slice(0, 1).map((m) => [n, m])));
 
   const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`))].join("");
@@ -129,16 +204,19 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     read(parts, "core.js"),
     chosen.icons.length ? `${iconFile.notice}\nBasalt._.addIcons(${JSON.stringify(icons)});\n` : "",
     ...chosen.modules.filter((n) => exists(parts, `${n}.js`)).map((n) => read(parts, `${n}.js`)),
+    // The glyph module defines addGlyphs, so the drawings come after the modules' scripts.
+    chosen.glyphs.length ? `Basalt._.addGlyphs(${JSON.stringify(Object.fromEntries(chosen.glyphs.map((n) => [n, glyphFile[n]])))});\n` : "",
   ].join("");
   // The body may make the init call itself (to pass palette items that run code); otherwise it is made at the end.
-  const callsInit = /\bBasalt\s*\.\s*init\s*\(/.test(content.replace(/<!--[\s\S]*?-->/g, "").replace(/<script\b[^>]*type\s*=\s*["']?application\/json[\s\S]*?<\/script\s*>/gi, ""));
+  const callsInit = /\bBasalt\s*\.\s*init\s*\(/.test(withoutComments(content).replace(/<script\b[^>]*type\s*=\s*["']?application\/json[\s\S]*?<\/script\s*>/gi, ""));
 
   const html = [
     "<!doctype html>",
     `<html lang="${lang}">`,
     "<head>",
     '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    // A page with a phone tab bar or an app shell reads the safe-area insets, which a phone gives only to a page that covers its whole screen.
+    `<meta name="viewport" content="width=device-width, initial-scale=1${chosen.modules.some((n) => manifest.modules[n].viewportFit) ? ", viewport-fit=cover" : ""}">`,
     '<meta name="color-scheme" content="dark light">',
     `<title>${title}</title>`,
     `<script>${THEME_INIT}</script>`,
@@ -155,7 +233,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, built, bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, bytes: Buffer.byteLength(html) };
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */

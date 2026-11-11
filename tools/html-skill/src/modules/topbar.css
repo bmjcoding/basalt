@@ -1,13 +1,35 @@
-/* The top bar: Basalt's one smoked surface. A module: compose.mjs adds it when the markup has a .topbar. */
+/* The site header's bar: Basalt's one smoked surface (React's SiteHeader and AppHeader, DECISIONS 96 and 108). A module: compose.mjs adds it when the markup has a
+   .topbar. This file is the bar itself: its smoke, its 56px, its brand and its narrow-screen buttons. The links, the shared pill and the narrow menu are
+   the topbar-nav module's; the app shell's header (.app-header) shares the smoke and the 56px with this bar and is laid out by the app-shell module. */
 
 @layer basalt {
 
-  /* The top bar is Basalt's chrome (foundations, "Chrome: the smoked header"; the .basalt-chrome class in @basalt/react): the one
-     smoked surface. surface-chrome over a 12px blur (no saturate), a hairline below, primary ink. Use it once per viewport. */
-  .topbar {
+  /* What a device adds to the layout tokens is derived here and is not a token, because only the device knows it (foundations, "Layout"):
+     --basalt-sticky-offset is the bar plus the top safe area, the `top` of anything sticky under it. The safe areas read 0 unless the page covers the
+     screen (viewport-fit=cover, which compose.mjs sets for a page with a tab bar or an app shell). */
+  :root {
+    --bh-inset-top: env(safe-area-inset-top, var(--basalt-space-0));
+    --bh-inset-left: env(safe-area-inset-left, var(--basalt-space-0));
+    --bh-inset-right: env(safe-area-inset-right, var(--basalt-space-0));
+    --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--bh-inset-top));
+    --bh-pad-left: max(var(--basalt-gutter), var(--bh-inset-left));
+    --bh-pad-right: max(var(--basalt-gutter), var(--bh-inset-right));
+  }
+  /* A page with a bar keeps its scrollbar's room (a filter that shortens the page must not widen it) and scrolls anchors and focus clear of the sticky bar. */
+  :root:has(.topbar, .app-header) {
+    scrollbar-gutter: stable;
+    scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+  }
+
+  /* The bar is Basalt's chrome (foundations, "Chrome: the smoked header"; the .basalt-chrome class in @basalt/react): the one smoked surface.
+     surface-chrome over a 12px blur (no saturate), a hairline below, primary ink. Use it once per viewport. It is 56px in all, border box, its 1px line
+     inside; the top safe area is padding above it. */
+  .topbar, .app-header {
     position: sticky;
     top: 0;
     z-index: var(--basalt-layer-sticky);
+    height: var(--basalt-sticky-offset);
+    padding-top: var(--bh-inset-top);
     background: var(--basalt-surface-chrome);
     -webkit-backdrop-filter: blur(var(--basalt-blur-chrome));
     backdrop-filter: blur(var(--basalt-blur-chrome));
@@ -16,26 +38,77 @@
     color: var(--basalt-text-primary);
   }
   /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
-  .topbar .faint { color: var(--basalt-text-secondary); }
-  .topbar .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  :is(.topbar, .app-header) .faint { color: var(--basalt-text-secondary); }
+  :is(.topbar, .app-header) .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  /* The opaque form of the bar, for a page whose content does not scroll under it: the same bar on the page colour, with no filter. */
+  :is(.topbar, .app-header)[data-solid] { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   /* No backdrop-filter, or the reader asks for less transparency: the page colour, opaque, with no filter. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .topbar { background: var(--basalt-surface-page); }
+    .topbar, .app-header { background: var(--basalt-surface-page); }
   }
   @media (prefers-reduced-transparency: reduce) {
-    .topbar { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .topbar, .app-header { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
-  .topbar-inner { display: flex; align-items: center; gap: var(--basalt-space-3); max-width: 72rem; margin-inline: auto; padding: var(--basalt-space-2) var(--basalt-space-6); min-height: var(--basalt-size-table-row); }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .topbar-inner { padding-inline: var(--basalt-space-4); } }
-  .brand { font-weight: var(--basalt-font-weight-semibold); text-decoration: none; letter-spacing: -0.01em; }
+
+  /* The row: 55 with the 1px line on top of its box, so what sits in it is centred on the bar's whole height (a 44 target has 6 above and 6 below,
+     counting the line). The gutter, or the side safe area when that is larger. The row of a site is the page's width; an app's header spans its column. */
+  .topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    height: calc(var(--basalt-size-header) - var(--basalt-size-hairline));
+    max-width: var(--basalt-size-page-width);
+    margin-inline: auto;
+    padding-top: var(--basalt-size-hairline);
+    padding-inline: var(--bh-pad-left) var(--bh-pad-right);
+  }
+
+  /* The brand slot: the 32px header lockup (a mark, or a mark and a word) in a target at least 44 by 44. Identity, not a link of the row: no wash. The focus
+     ring is the control ring round the 32px lockup, +2, drawn by a box the height of the lockup. */
+  .brand {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: var(--basalt-space-2);
+    height: var(--basalt-size-tap-min);
+    min-width: var(--basalt-size-tap-min);
+    margin: 0;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-semibold) var(--bh-md);
+    letter-spacing: var(--basalt-text-md-tracking);
+    text-decoration: none;
+    white-space: nowrap;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .brand:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset-block: calc((var(--basalt-size-tap-min) - var(--basalt-size-control-md)) / 2);
+    inset-inline: 0;
+    border-radius: var(--basalt-radius-sm);
+    outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
+    outline-offset: var(--basalt-size-focus-offset);
+    pointer-events: none;
+  }
+
+  /* Under 720 the bar's buttons are 44 whatever the pointer, radius 8, and the gap closes to space-1. */
+  @media (width < %bp-md%) {
+    .topbar-inner { gap: var(--basalt-space-1); }
+    :is(.topbar, .app-header) .btn {
+      --_h: var(--basalt-size-tap-min);
+      border-radius: var(--basalt-radius-md);
+      min-width: var(--basalt-size-tap-min);
+    }
+  }
 
   @media (forced-colors: active) {
     /* The header is Canvas with a real border and no filter or alpha fill. */
-    .topbar { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .topbar, .app-header { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
   @media print {
     /* The bar prints, as React's does: static (a sticky bar would repeat or float over the page) and opaque, with no filter. */
-    .topbar { position: static; background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .topbar, .app-header { position: static; background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
 }

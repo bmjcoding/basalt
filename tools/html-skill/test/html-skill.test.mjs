@@ -1072,7 +1072,7 @@ describe("touch and anchors", () => {
 
   test("an anchor lands below the sticky top bar", async () => {
     const { page, context } = await open("template-static.html");
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop), "68px");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop), "72px", "the bar (56) plus space-4, as React's page has it");
     await page.evaluate(() => document.querySelector("#services").scrollIntoView());
     const gap = await page.evaluate(() => document.querySelector("#services").getBoundingClientRect().top - document.querySelector(".topbar").getBoundingClientRect().bottom);
     assert.ok(gap >= 0, `the section starts ${gap}px below the bar`);

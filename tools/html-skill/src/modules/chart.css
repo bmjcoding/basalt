@@ -105,8 +105,8 @@
   @media (pointer: coarse) {
     .chart-table tbody th, .chart-table thead th { height: var(--basalt-size-tap-min); }
   }
-  /* size-breakpoint-container (480px): a container query cannot read a token */
-  @container (width < 480px) {
+  /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
+  @container (width < %bp-container%) {
     .chart-legend { column-gap: var(--basalt-space-4); }
   }
   @media (forced-colors: active) {

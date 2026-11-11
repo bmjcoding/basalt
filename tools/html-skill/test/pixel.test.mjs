@@ -103,7 +103,7 @@ describe("a page with every component matches its recorded baseline, pixel for p
           // Animations hold their first frame, so two renders of a spinner can be compared.
           await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
           pictures[which] = { rest: await shot(page, width) };
-          for (const selector of ["#t1", "a.row[data-active]", "#f1", ".btn[data-variant=primary]:not([disabled])"]) {
+          for (const selector of ["#t1", "a.row[data-active]", "#f1", "main .btn[data-variant=primary]:not([disabled])"]) {
             await page.locator(selector).focus();
             pictures[which][selector] = await shot(page, width);
           }

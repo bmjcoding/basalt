@@ -1,0 +1,112 @@
+/* The site header's links, its one action and its narrow menu (React's SiteHeader, DECISIONS 96 and 108). A module: compose.mjs adds it when the markup has
+   a .topbar-links or a .topbar-action. The bar itself is the topbar module's. Under 720 the links and the action leave the bar and a Menu button opens a top
+   sheet that redraws the bar in its first row and unrolls the links beneath it (the sheet, the nav and the shared pill are their modules'; topbar-nav.js builds it). */
+
+@layer basalt {
+
+  /* The links: navigation, so Nav's language. 14/20 at 400 in secondary ink on a 32px hugging pill; the hit area is 44 tall at every pointer, with 2px either
+     side of the pill, so pills are 4 apart and neighbouring hit areas touch. Hover is the pill at the selected wash and the ink to primary; the current page is
+     primary at 600 with its width reserved, and no background, underline or bar. The ring is the control ring round the pill. The pill is each link's ::before. */
+  .topbar-links {
+    --bh-tap-margin: 0;
+    --panel-plate: var(--basalt-state-selected);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    margin-inline-start: var(--basalt-space-2);
+  }
+  .topbar .topbar-links a {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: var(--basalt-size-tap-min);
+    min-height: 0;
+    margin: 0;
+    padding-inline: calc(var(--basalt-space-0-5) + var(--basalt-space-3));
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--bh-base);
+    letter-spacing: var(--basalt-text-base-tracking);
+    text-decoration: none;
+    white-space: nowrap;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .topbar-links a::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: calc((var(--basalt-size-tap-min) - var(--basalt-size-control-md)) / 2) var(--basalt-space-0-5);
+    border-radius: var(--basalt-radius-full);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  /* The label reserves its 600 width (topbar-nav.js writes data-label), so becoming current moves nothing. */
+  .topbar-links a[data-label]::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .topbar .topbar-links a[aria-current="page"] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  @media (hover: hover) {
+    .topbar .topbar-links a:hover { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+    .topbar-links a:hover::before { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  }
+  .topbar .topbar-links a:is(:active, :focus-visible) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .topbar-links a:active::before { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  .topbar-links a:focus-visible::before { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The first key hides the hover (shared pill and fallback alike): focus is the cue, until the pointer moves again. */
+  .topbar-links[data-keys] a:is(:hover, :active)::before { background-color: transparent; }
+  .topbar .topbar-links[data-keys] a:hover:not([aria-current], :focus-visible) { color: var(--basalt-text-secondary); }
+  /* The glide: Nav's rules, on the links. The links' own pills step aside only while the shared one is live. */
+  .topbar-links > .plate { border-radius: var(--basalt-radius-full); }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    .topbar-links[data-glide] a::before { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
+  }
+
+  /* Under 720 the links and the action leave the bar; the brand, the toggle and the Menu button (topbar-nav.js adds it) stay. */
+  .topbar-menu-trigger { display: none; }
+  @media (width < %bp-md%) {
+    .topbar-links, .topbar-action { display: none; }
+    .topbar-menu-trigger { display: inline-flex; }
+  }
+
+  /* The narrow menu: a top sheet. Its band is the bar's own row, redrawn (sheet.css); its buttons are the bar's, 44 with radius 8. The list is Nav's rows with
+     no glyph. The foot holds the action, full width. */
+  .topbar-menu-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-1); }
+  @media (width < %bp-md%) {
+    .topbar-menu .sheet-band .btn {
+      --_h: var(--basalt-size-tap-min);
+      border-radius: var(--basalt-radius-md);
+      min-width: var(--basalt-size-tap-min);
+    }
+  }
+  .topbar-menu .sheet-band { gap: var(--basalt-space-2); }
+  .topbar-menu .nav {
+    padding-block: var(--basalt-space-2);
+    padding-inline: max(var(--basalt-space-1-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-1-5), env(safe-area-inset-right, var(--basalt-space-0)));
+  }
+  .topbar-menu-foot {
+    padding: var(--basalt-space-2) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-4), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0)));
+  }
+  .topbar-menu-foot .btn {
+    --_h: var(--basalt-size-tap-min);
+    border-radius: var(--basalt-radius-md);
+    width: 100%;
+  }
+
+  @media (forced-colors: active) {
+    .topbar .topbar-links a:hover, .topbar .topbar-links a:active { forced-color-adjust: none; color: HighlightText; }
+    .topbar-links a:hover::before, .topbar-links a:active::before { background-color: Highlight; }
+    .topbar .topbar-links[data-keys] a:is(:hover, :active) { forced-color-adjust: auto; color: inherit; }
+    .topbar-links[data-keys] a:is(:hover, :active)::before { background-color: transparent; }
+  }
+}
