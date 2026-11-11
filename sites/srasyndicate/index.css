@@ -1,0 +1,110 @@
+/* srasyndicate.io: the first screen and the head of the section below it (hero-nov11, hero-srasyndicate; DECISIONS 113).
+   Page CSS, tokens only, unlayered so it wins over @layer basalt. The site header, its link glide and its narrow menu are the shared
+   stand-in (sites/shared/site-header.css); nothing of them is redrawn here. */
+
+/* ---- The brand slot: the header lockup files, inlined as they are, the 1x and the 2x, switched by resolution (brand/README.md) ----
+   The file carries a <title> that describes the file. The wrapper is aria-hidden and takes no pointer, so the title can't show as a
+   tooltip from outside the file; the link carries the name. */
+.sra-lockup { display: block; flex: none; pointer-events: none; }
+.sra-lockup > svg { display: block; }
+.sra-lockup[data-density="2x"] { display: none; }
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+  .sra-lockup[data-density="1x"] { display: none; }
+  .sra-lockup[data-density="2x"] { display: block; }
+}
+
+/* ---- The first screen ----
+   Datum alone (brand/sra-syndicate/hero.html), the line, one sentence; centred, because it is a statement, not reading. Its height is
+   a minimum: the small viewport less the bar less a 120px peek (space-24 plus space-6), at every width, so the next section's head
+   shows at the same depth on every screen, and content may push it lower. The free height is rounded to 2px and the group is an
+   even number of pixels tall, so Datum's 48 grid (x6 = 288, x4 = 192) lands on whole pixels; an odd-width viewport shifts the group
+   by half a pixel. The padding is uneven (space-12 over space-24; space-10 over space-16 under 720): Datum's box is empty above its
+   ink, so a box centred on the screen sits low, and this lifts the group by half the difference to centre its ink. */
+.hero {
+  --_peek: calc(var(--basalt-space-24) + var(--basalt-space-6));
+  box-sizing: border-box;
+  min-height: calc(100svh - var(--basalt-sticky-offset) - var(--_peek));
+  min-height: round(down, calc(100svh - var(--basalt-sticky-offset) - var(--_peek)), var(--basalt-space-0-5));
+  display: grid;
+  place-items: center;
+  padding: var(--basalt-space-12) var(--basalt-gutter) var(--basalt-space-24);
+  container-type: inline-size;
+}
+.hero-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  translate: calc(mod(100cqw, var(--basalt-space-0-5)) / -2) 0;
+}
+.hero-mark { color: var(--basalt-text-primary); width: var(--w); height: auto; }
+.hero-line {
+  margin: var(--basalt-space-8) 0 0;
+  font: var(--basalt-font-weight-semibold) var(--basalt-text-5xl-size) / var(--basalt-text-5xl-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-5xl-tracking);
+  color: var(--basalt-text-primary);
+  text-wrap: balance;
+}
+/* One sentence per line wherever the longer one fits the row at its step; narrower it wraps, balanced, inside the row. */
+.hero-line > span { display: block; }
+.hero-what {
+  max-width: var(--basalt-size-prose-width);
+  margin: var(--basalt-space-6) 0 0;
+  font: var(--basalt-font-weight-regular) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-lg-tracking);
+  color: var(--basalt-text-secondary);
+  text-wrap: balance;
+}
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the mark is its narrow size, the line is text-3xl and the spacing steps down */
+@media (width < 720px) {
+  .hero { padding-block: var(--basalt-space-10) var(--basalt-space-16); }
+  .hero-mark { width: var(--w-narrow); }
+  .hero-line {
+    margin-top: var(--basalt-space-6);
+    font-size: var(--basalt-text-3xl-size);
+    line-height: var(--basalt-text-3xl-line-height);
+    letter-spacing: var(--basalt-text-3xl-tracking);
+  }
+  .hero-what { margin-top: var(--basalt-space-4); }
+}
+
+/* ---- The hand-over: the next section's head, on the row's start edge, under the brand ---- */
+.layout-row {
+  box-sizing: border-box;
+  max-width: var(--basalt-size-page-width);
+  margin-inline: auto;
+  padding-inline: var(--basalt-gutter);
+}
+.name { padding-bottom: var(--basalt-space-24); }
+.name-head { padding-top: var(--basalt-space-10); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+.name-head .eyebrow { margin: 0; }
+.name-title {
+  margin: var(--basalt-space-2) 0 0;
+  font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-2xl-tracking);
+  color: var(--basalt-text-primary);
+}
+.name-lede {
+  max-width: var(--basalt-size-prose-width);
+  margin: var(--basalt-space-6) 0 0;
+  font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-md-tracking);
+  color: var(--basalt-text-secondary);
+  text-wrap: pretty;
+}
+
+/* ---- Forced colours and print ---- */
+@media (forced-colors: active) {
+  .name-head { border-top-color: CanvasText; }
+  /* Chromium keeps an explicit colour on an inline SVG in forced colours, so Datum takes the system ink here by a page rule
+     (the file in brand/ is not changed); otherwise it can vanish when the page's theme is opposite to the system's. */
+  .hero-mark { color: CanvasText; }
+}
+@media print {
+  :root { scrollbar-gutter: auto; }
+  /* The screen height drops: a centred title block with the mark at its narrow size, then the line, the sentence and the section. */
+  .hero { min-height: 0; padding-block: var(--basalt-space-16) var(--basalt-space-12); }
+  .hero-mark { width: var(--w-narrow); }
+  .hero-line { margin-top: var(--basalt-space-6); }
+}
