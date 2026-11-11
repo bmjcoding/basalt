@@ -20,13 +20,13 @@
   'use strict';
   var _ = B._;
 
-  // The two glyphs, from packages/react/src/glyphs/menu.ts and close.ts as MorphIcon draws them settled at 16 (named data-glyph: the core script
-  // replaces any [data-icon] with a Phosphor icon)
+  // The two glyphs, from packages/react/src/glyphs/menu.ts and close.ts as MorphIcon draws them settled at 16 (named data-site-glyph: the skill's core script
+  // replaces any [data-icon] with a Phosphor icon, and its sheet module any [data-glyph])
   // (sites/test/site-header-parity.test.mjs renders React's and fails if these two strings drift from it). The skill's icon set has no
   // Menu or Close glyph of the core set, so they live here; they are never redrawn.
   var GLYPH = {
-    menu: '<svg class="basalt-morph" data-glyph="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>',
-    close: '<svg class="basalt-morph" data-glyph="close" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7.05 7.05C10.35 10.35 13.65 13.65 16.95 16.95"></path><path d="M16.95 7.05C13.65 10.35 10.35 13.65 7.05 16.95"></path></g></svg>'
+    menu: '<svg class="basalt-morph" data-site-glyph="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>',
+    close: '<svg class="basalt-morph" data-site-glyph="close" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7.05 7.05C10.35 10.35 13.65 13.65 16.95 16.95"></path><path d="M16.95 7.05C13.65 10.35 10.35 13.65 7.05 16.95"></path></g></svg>'
   };
   // Size-breakpoint-md (packages/tokens): below it the links and the action are in the menu.
   var WIDE = '(width >= 720px)';

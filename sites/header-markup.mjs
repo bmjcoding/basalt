@@ -17,8 +17,8 @@
 // The shape is constrained, and a header that does not match it fails the build, naming the page. A header that already carries the
 // final markup (its links are `basalt-site-link`) is left as it is. Nothing here runs at import time.
 
-/** The Menu glyph, as MorphIcon draws it settled at 16 (named data-glyph, not data-icon: the skill's core script replaces any [data-icon] with a Phosphor icon). Equal to the one in shared/site-header.js (a test checks it against that and against React). */
-export const MENU_GLYPH = '<svg class="basalt-morph" data-glyph="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>';
+/** The Menu glyph, as MorphIcon draws it settled at 16 (named data-site-glyph: the skill's core script replaces any [data-icon], and its sheet module any [data-glyph], with a Phosphor icon). Equal to the one in shared/site-header.js (a test checks it against that and against React). */
+export const MENU_GLYPH = '<svg class="basalt-morph" data-site-glyph="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>';
 
 const attr = (value) => value.replace(/&(?!(?:[a-z]+|#\d+|#x[0-9a-f]+);)/gi, "&amp;").replace(/"/g, "&quot;");
 const has = (attrs, name) => new RegExp(`(?:^|\\s)${name}(?:\\s*=|\\s|$)`).test(attrs);
