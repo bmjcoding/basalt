@@ -9,7 +9,7 @@ import { after, before, describe, test } from "node:test";
 
 import * as esbuild from "esbuild";
 
-import { fixturePage, launch, pkg, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const AXE = { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] };
@@ -572,12 +572,15 @@ describe("list plus preview", () => {
   test("the push enters 8px along the reading direction with a fade over duration-slow on ease-out; a fade alone under reduced motion; flipped in rtl", async () => {
     const { page } = await open(listFixture(DETAIL));
     await ready(page);
+    // The pane clears its entry (data-enter) when the 200ms animation ends, so on a loaded machine a real-time read can come after
+    // the end and find nothing. Freeze animation time and read the entry at a known instant instead.
+    const clock = await freezeAnimations(page);
     await page.focus(".basalt-command-input");
     await page.keyboard.press("Enter");
-    // the push is a React update: wait until the pane has started its entry before reading it (no wall-clock wait; it still fails if
+    // the push is a React update: let a frame of animation time pass, then the pane must have started its entry (it still fails if
     // the pane never animates)
-    const pushed = (p) => p.waitForFunction(() => { const pane = document.querySelector(".basalt-command-pane"); return pane && getComputedStyle(pane).animationName !== "none"; });
-    await pushed(page);
+    const pushed = async (p, c) => { await c.advance(16); assert.notEqual(await p.evaluate(() => getComputedStyle(document.querySelector(".basalt-command-pane")).animationName), "none", "the pane has started its entry"); };
+    await pushed(page, clock);
     const motion = await page.evaluate(() => {
       const pane = document.querySelector(".basalt-command-pane");
       const cs = getComputedStyle(pane);
@@ -592,16 +595,18 @@ describe("list plus preview", () => {
     const reduced = await open(listFixture(DETAIL));
     await reduced.page.emulateMedia({ reducedMotion: "reduce" });
     await ready(reduced.page);
+    const reducedClock = await freezeAnimations(reduced.page);
     await reduced.page.focus(".basalt-command-input");
     await reduced.page.keyboard.press("Enter");
-    await pushed(reduced.page);
+    await pushed(reduced.page, reducedClock);
     assert.equal(await reduced.page.locator(".basalt-command-pane").evaluate((el) => getComputedStyle(el).animationName), "basalt-push-fade");
     await reduced.page.close();
     const rtl = await open(`window.__dir = "rtl"; ${listFixture(DETAIL)}`);
     await ready(rtl.page);
+    const rtlClock = await freezeAnimations(rtl.page);
     await rtl.page.focus(".basalt-command-input");
     await rtl.page.keyboard.press("Enter");
-    await pushed(rtl.page);
+    await pushed(rtl.page, rtlClock);
     assert.equal(await rtl.page.evaluate(() => getComputedStyle(document.querySelector(".basalt-command-split")).getPropertyValue("--_push").trim()), "-1");
     assert.match(await rtl.page.evaluate(() => [...document.getAnimations()].find((a) => a.animationName === "basalt-push-in")?.effect.getKeyframes()[0].transform), /-8px|matrix\(1, 0, 0, 1, -8, 0\)/);
     await rtl.page.close();
@@ -989,6 +994,8 @@ describe("F2: the notification centre joins the hover glide", () => {
     const { page } = await open(ENTRIES);
     await page.waitForSelector(".basalt-notification");
     await settle(page);
+    // The travel is read while it is in flight; freeze animation time so a loaded machine cannot run it out before the read.
+    const clock = await freezeAnimations(page);
     const plate = page.locator(".basalt-notifications-scroll .basalt-plate");
     const geometry = () => plate.evaluate((p) => ({ state: p.dataset.state, h: Number.parseFloat(p.style.getPropertyValue("--_plate-h")), y: Number.parseFloat(p.style.getPropertyValue("--_plate-y")), opacity: getComputedStyle(p).opacity, display: getComputedStyle(p).display }));
     assert.equal((await geometry()).state, "off", "no plate at rest");
@@ -1004,6 +1011,7 @@ describe("F2: the notification centre joins the hover glide", () => {
     const second = await box(entry(page, 1));
     await page.mouse.move(second.x + 100, second.y + 20);
     // travelling: the plate's transform and height are transitions in flight (read from the animations, not sampled on a timer)
+    await clock.advance(16);
     const flying = await plate.evaluate((p) => p.getAnimations().filter((a) => ["transform", "height"].includes(a.transitionProperty)).map((a) => a.transitionProperty).sort());
     assert.deepEqual(flying, ["height", "transform"], "it travels and changes height as it goes");
     await settle(page);

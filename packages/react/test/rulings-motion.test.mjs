@@ -397,9 +397,11 @@ describe("TravelSpinner", () => {
 
   test("it travels by transform on slower, ease-in-out, from one anchor to the other", async () => {
     const { page } = await fixturePage(browser, fixture);
+    // The spinner is read at the instant it starts: on a loaded machine the real 300ms travel can be half over by the first read.
+    const clock = await freezeAnimations(page);
     await page.evaluate(() => window.go());
     const travel = page.locator(".basalt-travel");
-    await travel.waitFor();
+    await clock.advance(16);
     const a = await travel.evaluate((el) => { const s = getComputedStyle(el); const [anim] = el.getAnimations(); return { name: s.animationName, duration: s.animationDuration, ease: s.animationTimingFunction, left: s.left, top: s.top, props: anim?.effect.getKeyframes().map((k) => Object.keys(k).filter((p) => !["offset", "easing", "composite", "computedOffset"].includes(p))) }; });
     assert.deepEqual([a.name, a.duration, a.ease, a.left, a.top], ["basalt-travel", "0.3s", "cubic-bezier(0.65, 0, 0.35, 1)", "0px", "0px"]);
     assert.ok(a.props.flat().every((p) => p === "transform"), `it animates ${a.props.flat()}`);
