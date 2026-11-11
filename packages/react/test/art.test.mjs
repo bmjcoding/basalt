@@ -483,7 +483,8 @@ describe("the stage", () => {
     const stage = await box(p, ".basalt-stage");
     assert.equal(stage.y, 0);
     const headroom = await box(p, "[data-basalt-headroom]");
-    assert.deepEqual([headroom.y, headroom.h, headroom.x, headroom.w], [0, 80, 0, 1440]);
+    // across the full width of the content area: the viewport less any classic scrollbar's gutter
+    assert.deepEqual([headroom.y, headroom.h, headroom.x, headroom.w], [0, 80, 0, await p.evaluate(() => document.documentElement.clientWidth)]);
     const content = await box(p, ".basalt-stage-content");
     assert.equal(content.y, 80, "the content starts at the headroom's bottom edge");
     assert.ok((await box(p, "[data-quiet]")).y >= 80);
