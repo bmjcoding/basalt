@@ -21,7 +21,8 @@
   var _ = B._;
 
   // The two glyphs, from packages/react/src/glyphs/menu.ts and close.ts as MorphIcon draws them settled at 16 (named data-site-glyph: the skill's core script
-  // replaces any [data-icon] with a Phosphor icon, and its sheet module any [data-glyph])
+  // replaces any [data-icon] with a Phosphor icon, and its sheet module redraws its own glyph attribute; this file must not
+  // spell that attribute, even in a comment: compose brings a module in for the attribute's name wherever it appears)
   // (sites/test/site-header-parity.test.mjs renders React's and fails if these two strings drift from it). The skill's icon set has no
   // Menu or Close glyph of the core set, so they live here; they are never redrawn.
   var GLYPH = {
