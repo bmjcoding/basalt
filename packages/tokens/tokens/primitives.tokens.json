@@ -963,6 +963,33 @@
         "unit": "px"
       },
       "$description": "A chart plot's height at every width."
+    },
+    "stage-headroom": {
+      "$type": "dimension",
+      "$value": {
+        "value": 80,
+        "unit": "px"
+      },
+      "$description": "The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed."
+    }
+  },
+  "aspect": {
+    "$type": "number",
+    "square": {
+      "$value": 1,
+      "$description": "1:1. Tiles and square pictures."
+    },
+    "photo": {
+      "$value": 1.5,
+      "$description": "3:2. Photographs and drawn scenes in the flow. The default."
+    },
+    "screen": {
+      "$value": 1.6,
+      "$description": "16:10. Product screenshots."
+    },
+    "wide": {
+      "$value": 1.7778,
+      "$description": "16:9. Video stills and wide figures."
     }
   },
   "font": {

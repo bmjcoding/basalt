@@ -7,6 +7,7 @@
 //   parts/<module>.css|js     src/modules/<module>.css|js, minified; compose.mjs adds the ones a page uses
 //   parts/accent.css          the accent module: packages/tokens/dist/css/accents.css (the generated accent classes), minified; a page gets
 //                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
+//   parts/art.css             the chart, art, aspect and stage-headroom tokens, taken out of core.css; a page gets it only when its body names one of them
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold and Regular paths) and Phosphor's MIT notice
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
 //   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
@@ -62,6 +63,25 @@ function dedupeSystemDark(css) {
     open + body.split("\n").filter((l) => !lines.has(l.trim())).join("\n") + close);
 }
 
+/**
+ * The token groups only some pages name: the chart roles and lengths, the art colours and the stage's headroom, and the aspect ratios. They
+ * are not in every page's core (the core is capped, DECISIONS 79); they are the `art` module, which a page gets when its body names one of
+ * them (a `var(--basalt-art-tone-2)` in its own `<style>` is enough). The same declarations, in the same blocks, so a nested theme root still
+ * resolves them.
+ */
+const MODULE_TOKEN = /^--basalt-(?:chart-|size-chart-|art-|aspect-|size-stage-headroom\b)/;
+
+/** The tokens CSS with each block's declarations kept where `keep(name)` is true; a block left with none is dropped, and so is a media rule left empty. */
+function filterTokens(css, keep) {
+  const kept = css.replace(/\{([^{}]*)\}/g, (_, body) => {
+    const lines = body.split("\n").filter((line) => { const name = line.trim().match(/^(--[\w-]+):/)?.[1]; return name ? keep(name) : keep.keepsOther; });
+    return lines.some((line) => line.trim()) ? `{${lines.join("\n")}}` : "{}";
+  });
+  return kept.replace(/[^{}]*\{\}/g, "").replace(/@media[^{}]*\{\s*\}/g, "").replace(/\n{3,}/g, "\n\n");
+}
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name), { keepsOther: true });
+const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
+
 function findPackage(name) {
   for (let dir = here; dir !== path.dirname(dir); dir = path.dirname(dir)) {
     const candidate = path.join(dir, "node_modules", name);
@@ -106,11 +126,13 @@ export function build() {
   const files = {};
   files["compose.mjs"] = src("compose.mjs");
   files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
-  files["parts/core.css"] = minifyCss(`${dedupeSystemDark(tokensCss())}\n${src("core.css")}`);
+  files["parts/core.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inCore))}\n${src("core.css")}`);
   files["parts/core.js"] = minify(src("core.js"), "js");
   for (const name of Object.keys(manifest.modules)) {
     // The accent module has no source file of its own: it is the tokens package's generated accents.css.
     if (name === "accent") files["parts/accent.css"] = minifyCss(tokensFile("accents.css"));
+    // The art module is the token groups taken out of the core (see MODULE_TOKEN); it has no source file either.
+    if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minify(fs.readFileSync(file, "utf8"), "js");

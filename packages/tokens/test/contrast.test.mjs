@@ -513,3 +513,45 @@ for (const theme of THEMES) {
     assert.ok(step >= 1.5, `${theme}: observed against plan is ${step.toFixed(2)}x`);
   });
 }
+
+// ---- Art (council item 104): the clear bar's ink on the quietest pixel art may hold ----
+//
+// A stage keeps its headroom, and each quiet zone, to no lighter (dark) or darker (light) than art-quiet-limit. The bar's ink is the theme's
+// own and never changes, so its weakest pair decides the limit: secondary text (4.5:1), which also covers the ring and the icons (3:1).
+// The hover and selected washes are drawn over the limit (the bar has no fill while it is clear), and primary text holds on them.
+
+const ART_TONES = { "art-field": ["neutral-0", "neutral-98"], "art-tone-1": ["neutral-7", "neutral-94"], "art-tone-2": ["neutral-20", "neutral-75"], "art-tone-3": ["neutral-42", "neutral-52"], "art-tone-4": ["neutral-75", "neutral-30"] };
+
+for (const theme of THEMES) {
+  const index = theme === "dark" ? 0 : 1;
+  test(`${theme}: the art tokens are the neutrals the decision names, the mark is text-primary and the quiet limit is tone 2`, () => {
+    for (const [role, names] of Object.entries(ART_TONES)) assert.deepEqual(color(theme, role), color(theme, names[index]), `${role} is not ${names[index]}`);
+    assert.deepEqual(color(theme, "art-mark"), color(theme, "text-primary"));
+    assert.deepEqual(color(theme, "art-quiet-limit"), color(theme, "art-tone-2"));
+    assert.deepEqual(color(theme, "art-field"), color(theme, "surface-page"), "a stage meets the page with no seam");
+  });
+
+  test(`${theme}: the tones step away from the field, never past the mark, and the quiet limit is the second of them`, () => {
+    const field = color(theme, "art-field");
+    const distance = (name) => ratio(color(theme, name), field);
+    const steps = ["art-tone-1", "art-tone-2", "art-tone-3", "art-tone-4", "art-mark"].map(distance);
+    for (let i = 1; i < steps.length; i++) assert.ok(steps[i] > steps[i - 1], `${theme}: the tones do not step away from the field in order (${steps.map(fmt).join(", ")})`);
+  });
+
+  test(`${theme}: primary and secondary text hold 4.5:1 on the quiet limit, and the focus ring 3:1`, () => {
+    const limit = [["art-quiet-limit", color(theme, "art-quiet-limit")]];
+    atLeast(theme, "text-primary", 4.5, limit);
+    atLeast(theme, "text-secondary", 4.5, limit);
+    atLeast(theme, "border-focus", 3, limit);
+  });
+
+  test(`${theme}: primary text holds 4.5:1 on the selected and hover washes over the quiet limit`, () => {
+    const limit = color(theme, "art-quiet-limit");
+    atLeast(theme, "text-primary", 4.5, ["state-selected", "state-hover"].map((wash) => [`${wash} over art-quiet-limit`, over(color(theme, wash), limit)]));
+  });
+
+  test(`${theme}: one step further (tone 3) secondary text no longer holds, which is why the limit stops at tone 2`, () => {
+    const tone3 = color(theme, "art-tone-3");
+    assert.ok(ratio(color(theme, "text-secondary"), tone3) < 4.5, `${theme}: secondary holds on tone 3, so the limit could be higher`);
+  });
+}

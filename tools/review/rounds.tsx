@@ -88,6 +88,7 @@ import { ROUND_19 } from "./round19";
 
 import { ROUND_21 } from "./round21";
 import { ROUND_23 } from "./round23";
+import { ROUND_25 } from "./round25";
 
 export interface Step {
   id: string;
@@ -612,3 +613,4 @@ export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROU
 // Rounds 21 and 23 are registered apart from the list above, so merging them with rounds 20 and 22 (built on other branches) keeps all of them.
 ROUNDS.push(ROUND_21);
 ROUNDS.push(ROUND_23);
+ROUNDS.push(ROUND_25);

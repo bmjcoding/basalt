@@ -92,3 +92,7 @@ export type { TextMorphProps } from "./text-morph";
 export { Avatar, EmptyState, Heading, InlineCode, Separator, Text } from "./composition";
 export type { AvatarProps, EmptyStateProps, HeadingProps, SeparatorProps, TextProps, TextSize, TextTone, TextWeight } from "./composition";
 export type { ChangeDetails, ChoiceValue, CommitDetails, FocusTarget, HighlightDetails, IconComponent, IconGlyphProps, OpenChangeDetails, PartClassName, PartProps, PartRender, PartState, PartStyle, PopupActions, SubmitDetails, ValidateActions } from "./types";
+export { Stage, PairedArt } from "./stage";
+export type { PairedArtProps, StageProps } from "./stage";
+export { FramedArt } from "./framed-art";
+export type { FramedArtAspect, FramedArtProps } from "./framed-art";

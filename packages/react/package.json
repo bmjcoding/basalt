@@ -13,6 +13,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./testing": {
+      "types": "./dist/testing/headroom.d.ts",
+      "default": "./dist/testing/headroom.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
     "./fonts.css": "./dist/fonts.css"

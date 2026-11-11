@@ -112,6 +112,24 @@ A chart (decision 101) is drawn at rest on its first paint: no draw-on animation
 | Picking a day (hover, a tap, a key) | Instant. The plate does not glide: chart days are dense, and a gliding plate trails the pointer. |
 | Reduced motion | Values and the scale snap; a new range is a 100ms fade. |
 
+## The clear bar and framed art
+
+Decision 104. A bar that is clear over a stage (see [foundations](foundations.md#the-clear-bar-over-art)) changes to the smoked bar from the
+first pixel of scroll.
+
+| Moment | What moves |
+|---|---|
+| Clear to smoked (an entry) | The fill (`surface-chrome`) and the line (`border-hairline`) fade in over `duration-base` on `ease-out`. The blur (`blur-chrome`) switches at once, and the ink never changes. |
+| Smoked to clear (an exit) | The fill and the line fade out over 0.75 of `duration-base` on `ease-in`, and the blur is gone at once. |
+| A departure first reported past the headroom's 24px slack: an instant anchor, a `scrollTo`, a restored scroll position, a scroll the browser doesn't animate | Everything switches at once: art past the headroom is already under the bar. A scroll the browser animates (Page Down, Space, a smooth anchor) is first reported inside the slack and gets the fade above. |
+| A page opening at the top | Clear in its first frame when script runs: no fade from smoked. Without script it stays smoked. |
+| Reduced motion | The duration tokens' 100ms fade (75ms leaving). Nothing moves, so there is no movement to remove. |
+| Reduced transparency, forced colours, print | No change: the bar is opaque in both states. |
+| No `backdrop-filter` | Clear at the top as usual; scrolled, the fill fades to the opaque `surface-page` fallback and the line arrives, the same fade. |
+| Framed art arrives | The art fades in over `duration-base` on `ease-out`, once decoded, opacity only. Art already loaded when the component mounts shows at once. Under reduced motion it is 100ms. |
+
+The frame has no shimmer, spinner or blurred preview while it loads, and stage art never animates.
+
 ## Spinners
 
 | Variant | Use it |
@@ -136,6 +154,8 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 | `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |
 | `TravelSpinner` | Opt in. After you accept work, the spinner moves to where that work now lives, by transform on `slower` and `ease-in-out`: the one move between two resting places that the eye has to follow. | It appears at the destination with a 100ms fade |
 | Narrow menu (`SiteHeader`) | `Sheet side="top"`: the band is there at once and the list unrolls beneath it as a clip over `slower` on `ease-out`; leaves at 0.75 on `ease-in`; Menu morphs to Close over `slow`. | Opacity only, 100ms |
+| Clear bar (`SiteHeader` over a `Stage`) | Fill and line fade in over `duration-base` on `ease-out` and out at 0.75 on `ease-in`; the blur switches at once; a departure first reported past the headroom's slack, and the page opening at the top, switch all of it at once. | A 100ms fade |
+| `FramedArt` | The art fades in over `duration-base` on `ease-out` once decoded. | A 100ms fade |
 | Toast | Enters on `duration-slow` and `ease-out`, leaves at 0.75 on `ease-in`. Running work shows braille in the mark seat and updates the same toast in place to its result: the title never moves, because the seat is kept. Swipe is Base UI's 40px, by distance alone, with no spring. | Opacity only, at the resting offsets |
 | Toast drain | A 1px line, drawn on the straight part of the bottom rim, shrinks for the timeout (only a toast that is not the only copy of what it says has one). Hover, focus, a blurred window and a hidden tab pause it and the toast's own clock together. No glow. | The line is not drawn |
 | `CommandMenu` | cmdk filters and selects. It loads the first time the menu opens, so an app that never opens one does not download it. No open or close animation. | No extra motion |

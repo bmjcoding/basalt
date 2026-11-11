@@ -235,17 +235,25 @@ for (const id of rounds) {
       for (const [width, tag] of widths) {
        for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
           const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch"), ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
+          // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
+          if (id === "25") {
+            await page.route(/basalt\.invalid\/hold/, () => new Promise(() => {}));
+            await page.route(/basalt\.invalid\/fail/, (route) => route.abort());
+          }
+          // Reduced transparency is emulated through the protocol: Playwright's own option does not apply it. Print is the print media.
+          if (state.endsWith("reduced-transparency")) await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
           const inspectorNoise = (text) => (state === "film" || state === "ghost") && /^Unsafe attempt to load URL file:/.test(text);
-          page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
+          const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
+          page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
@@ -348,6 +356,7 @@ for (const id of rounds) {
               if (!held) throw new Error(`${step.id}/${state}: the pill has no ${kind === "moving" ? "move" : "fade"} to hold`);
             }
           }
+          if (state === "print") { await page.emulateMedia({ media: "print" }); await page.waitForTimeout(100); }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);
           const name = `${String(n).padStart(2, "0")}-${step.id}${stateFull === "default" ? "" : `-${state}`}${tag}${scale === 1 ? "-1x" : ""}-${theme}.png`;
@@ -360,6 +369,23 @@ for (const id of rounds) {
     n++;
   }
   if (errors.length) throw new Error(`round ${id}: page errors:\n${errors.join("\n")}`);
+
+  // Round 25: the headroom check, run on the walkthrough's own stages. The paired scene passes in each theme at 390 and 1440, at 1x and 2x;
+  // the night-only scene passes in dark and fails in light; the busy scene fails everywhere. A round whose stages don't do that does not build.
+  if (id === "25") {
+    const { checkHeadroom } = await import(path.join(reactPkg, "dist", "testing", "headroom.js"));
+    const run = (step, themes) => checkHeadroom(browser, { themes, load: async (page, r) => { await page.goto(url({ step, theme: r.theme, shot: "1" })); await page.evaluate(() => document.fonts.ready); await page.evaluate(() => Promise.all([...document.images].map((i) => i.decode().catch(() => {})))); } });
+    const paired = await run("stage-paired", ["dark", "light"]);
+    const night = await run("stage-night", ["dark"]);
+    const nightLight = await run("stage-night", ["light"]);
+    const busy = await run("stage-busy", ["dark", "light"]);
+    const worst = (r) => [...new Set(r.failures.map((f) => `${f.theme}: ${f.worst.color}`))].join(", ");
+    console.log(`headroom check: paired ${paired.ok ? "passes" : "FAILS"} (${paired.runs} runs, ${paired.checked} pixels); night-only passes in dark: ${night.ok}, fails in light: ${!nightLight.ok} (${worst(nightLight)}); busy fails: ${!busy.ok} (${worst(busy)})`);
+    if (!paired.ok) throw new Error(`round 25: the paired stage fails its own headroom check: ${JSON.stringify(paired.failures)}`);
+    if (!night.ok) throw new Error(`round 25: the night-only stage should pass in dark: ${JSON.stringify(night.failures)}`);
+    if (nightLight.ok) throw new Error("round 25: the night-only stage should fail in light");
+    if (busy.ok || busy.failures.length !== busy.runs) throw new Error("round 25: the busy stage should fail every run");
+  }
 
   const zip = `${dir}.zip`;
   fs.rmSync(zip, { force: true });
