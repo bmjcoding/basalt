@@ -7,7 +7,7 @@ import { after, before, describe, test } from "node:test";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
@@ -494,7 +494,7 @@ describe("vertical tabs", () => {
   test("a tab change moves the panel 8px and fades it in at the indicator's timing, without remounting; under reduced motion it is a 100ms crossfade", async () => {
     const horizontal = `<B.Tabs defaultValue="a"><B.TabsList aria-label="S"><B.Tab value="a">A</B.Tab><B.Tab value="b">B</B.Tab></B.TabsList><B.TabsPanel value="a">Panel A</B.TabsPanel><B.TabsPanel value="b" keepMounted><input aria-label="draft" /></B.TabsPanel></B.Tabs>`;
     const { page } = await fixturePage(browser, render(horizontal), { theme: "dark" });
-    await settle(page);
+    await freezeAnimations(page); // the panel's 200ms slide is read after a click and a fill: freeze it at its start
     await page.getByRole("tab", { name: "B" }).click();
     const input = page.getByRole("textbox", { name: "draft" });
     await input.fill("kept");
