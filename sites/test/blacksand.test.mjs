@@ -423,10 +423,7 @@ describe("the bar and the shape", () => {
 });
 
 describe("the entrance", () => {
-  // KNOWN FAULT, scoped round: the shared header stand-in adds classes to the bar's links after the first paint, so about one load in
-  // twelve a short colour transition runs on them right after load (document.getAnimations() is not empty). It is being fixed in the
-  // scaffold. Until it lands, the assertions below about what animates ignore anything inside `.basalt-site-links` (the "inLinks" filter);
-  // tighten them to "nothing at all" once the fix is merged.
+  // The header is finished at build time (sites/header-markup.mjs), so nothing in it animates on load either: these read every animation on the page.
 
   test("across the entrance nothing below the mark moves and the layout shift is 0", async () => {
     // Measured from the moment Geist is ready, which is within the first frames of the entrance (it runs 300ms from load). The skill's
@@ -460,7 +457,7 @@ describe("the entrance", () => {
       await context.route("**/*", (route) => (route.request().url() === HOST ? route.fulfill({ contentType: "text/html", body: built.html }) : route.abort()));
       const page = await context.newPage();
       await page.goto(HOST);
-      const anims = (await page.evaluate(() => window.__anims)).filter((a) => !a.inLinks);
+      const anims = await page.evaluate(() => window.__anims);
       await context.close();
       assert.deepEqual(anims.map((a) => a.target).sort(), ["p-agent", "p-bar"], "One bridge's agent and bar");
       assert.ok(anims.every((a) => a.inMark));
@@ -475,8 +472,8 @@ describe("the entrance", () => {
       const first = await page.evaluate(() => window.__first);
       const later = await page.evaluate(() => document.getAnimations().map((a) => ({ inLinks: !!a.effect.target?.closest?.(".basalt-site-links") })));
       await context.close();
-      assert.deepEqual(first.anims.filter((a) => !a.inLinks), [], "nothing animates in the first frame");
-      assert.deepEqual(later.filter((a) => !a.inLinks), [], "nothing animates after it");
+      assert.deepEqual(first.anims, [], "nothing animates in the first frame");
+      assert.deepEqual(later, [], "nothing animates after it");
       for (const [opacity, transform, name] of first.marks) assert.deepEqual([opacity, transform, name], ["1", "none", "none"], "the mark is at rest");
     }
   });
