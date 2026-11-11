@@ -20,6 +20,11 @@
 // fill), now the shared sliding pill. Added to the comparison with no difference: the lit row's plate, the glide's shared plate, and the segment's
 // shared pill (size and fill) and its pressed button (transparent while the pill is drawn).
 
+// Recorded in the fourth parity PR (skill-parity-4, the overlay layer): the site header's Menu-to-Close morph, one entry. Every other part of the overlay layer
+// (Dialog, AlertDialog, Sheet on every side, Popover, Menu with its radio and checkbox items and two-line rows, Tooltip, Toast and the notification centre) was
+// added to the comparison with no difference.
+
 export const DIFFERENCES = [
   { area: "tabs", pair: "focus ring", prop: "outlineOffset", react: "2px", skill: "-2px", reason: "The skill draws a tab's ring inset on purpose, because its tab row scrolls and a ring outside it would be clipped on three sides; React's row doesn't clip.", source: "RULED (council, DECISIONS 69, 2-2 so the tie keeps what is built): React keeps +2 and the skill's scrolling row keeps -2. Not a gap to close; stays listed so the test sees it." },
+  { area: "sheet top, the band's close", pair: "close glyph, the morph's structure", prop: "pathCount", react: "2", skill: "1", reason: "The narrow menu draws Menu in its band's button and morphs it to Close (React's MorphIcon, over duration-slow on ease-out). The skill draws the same core glyphs (the Menu and Close of packages/react/glyphs/source.mjs, read at build time: same strokes, same 2.25 round stroke, same box) but carries no MorphIcon, which would put a morph engine on every page that has a sheet, so it swaps the glyph at once. MorphIcon draws each stroke as its own path so one can move into another; the skill draws a glyph as one path. Only the morph differs.", source: "RECORDED (council, DECISIONS 108, opus): the Menu-to-Close morph is a recorded parity difference, the skill swapping the glyph." },
 ];

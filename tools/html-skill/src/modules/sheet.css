@@ -1,0 +1,72 @@
+@layer basalt {
+
+  /* ---- Sheet (React's Sheet): a modal side panel, a <dialog class="panel float modal sheet" data-side="right|left|bottom|top"> ----
+     The dialog's shell (dialog.css) with the sheet's own box. Level 1 above the scrim, the modal shadow, no radius against the viewport's
+     edges (the bottom sheet keeps its 16px top corners), and a rim on its inner edge only, the one that meets the page. It slides in over
+     duration-slower on ease-out and leaves at 0.75 on ease-in; its scrim fades in over duration-slow and out with it. Under reduced motion it
+     only fades. The top sheet is the site header's narrow menu: it covers the bar, which it redraws in its first row (.sheet-band), and the
+     list unrolls beneath from the bar's edge (a clip, not a slide). It is as tall as its content and scrolls inside at the viewport's height. */
+
+  dialog.sheet {
+    --_dur: var(--basalt-duration-slower);
+    --_bin: var(--basalt-duration-slow);
+    --_bout: calc(var(--basalt-duration-slower) * 0.75);
+    --_safe-top: env(safe-area-inset-top, var(--basalt-space-0));
+    --_pad: var(--basalt-space-6);
+    margin: 0;
+    height: auto;
+    max-height: none;
+    padding: max(var(--_pad), var(--_safe-top)) max(var(--_pad), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--_pad), env(safe-area-inset-left, var(--basalt-space-0)));
+    border: 0;
+    border-radius: 0;
+    opacity: 1;
+  }
+  dialog.sheet[open] { display: flex; flex-direction: column; }
+  .sheet[data-side="right"], .sheet[data-side="left"] { top: 0; bottom: 0; width: min(var(--basalt-size-sheet-width), 100%); }
+  .sheet[data-side="right"] { inset-inline: auto 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(100%); }
+  .sheet[data-side="left"] { inset-inline: 0 auto; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(-100%); }
+  .sheet[data-side="bottom"] { inset: auto 0 0 0; width: auto; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); transform: translateY(100%); }
+  .sheet[open] { transform: none; }
+  @starting-style { dialog.sheet[open] { opacity: 1; transform: translateX(100%); } }
+  @starting-style { dialog.sheet[data-side="left"][open] { transform: translateX(-100%); } }
+  @starting-style { dialog.sheet[data-side="bottom"][open] { transform: translateY(100%); } }
+
+  /* Top: a clip from the bar's edge, with the clip reaching past the sides and bottom so the shadow shows once it is open. */
+  dialog.sheet[data-side="top"] {
+    --_reach: calc(-1 * var(--basalt-space-16));
+    --_bin: var(--basalt-duration-slower);
+    inset: 0 0 auto 0;
+    width: auto;
+    max-height: 100dvh;
+    padding: 0;
+    padding-top: var(--_safe-top);
+    overscroll-behavior: contain;
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-radius: 0 0 var(--basalt-radius-xl) var(--basalt-radius-xl);
+    transform: none;
+    clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-size-header) - var(--_safe-top)) var(--_reach));
+  }
+  dialog.sheet[data-side="top"][open] { clip-path: inset(0 var(--_reach) var(--_reach) var(--_reach)); }
+  @starting-style { dialog.sheet[data-side="top"][open] { opacity: 1; transform: none; clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-size-header) - var(--_safe-top)) var(--_reach)); } }
+
+  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding: var(--basalt-size-hairline) var(--basalt-space-6) 0; border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
+  @media (max-width: 719px) { .sheet-band { padding-inline: var(--basalt-space-4); } }
+
+  /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. */
+  .sheet > .dialog-actions {
+    position: sticky;
+    bottom: calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
+    margin: auto calc(-1 * var(--_pad)) calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
+    padding: var(--basalt-space-4) var(--_pad) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    background: var(--panel-bg);
+    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    dialog.sheet { transform: none; opacity: 0; clip-path: none; }
+    dialog.sheet[open] { opacity: 1; }
+    @starting-style { dialog.sheet[open], dialog.sheet[data-side][open] { transform: none; opacity: 0; clip-path: none; } }
+    dialog.sheet[data-side="top"], dialog.sheet[data-side="top"][open] { clip-path: none; }
+  }
+}

@@ -1,0 +1,99 @@
+@layer basalt {
+
+  /* ---- Toast (React's ToastProvider and useToast) ----
+     Bottom right, inset space-4 (more where a notch or the home indicator needs it); at phone widths the stack is the bottom edge, full width,
+     above the safe area. The viewport is a native popover="manual", so it sits in the top layer above a dialog. A toast is level 1, fixed (it does
+     not sense what is under it), with the neutral rim and the overlay shadow: never tinted, never a status rim. Up to three stack with the ones
+     behind peeking; the stack expands on hover or focus. It enters from below over duration-slow on ease-out and leaves at 0.75 on ease-in. */
+
+  .toast-viewport {
+    --_inset: max(var(--basalt-space-4), env(safe-area-inset-left, var(--basalt-space-0)), env(safe-area-inset-right, var(--basalt-space-0)));
+    position: fixed;
+    inset: auto max(var(--basalt-space-4), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-4), env(safe-area-inset-bottom, var(--basalt-space-0))) auto;
+    width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+    color: var(--basalt-text-primary);
+  }
+  .toast {
+    --_gap: var(--basalt-space-2);
+    --_peek: var(--basalt-space-2);
+    --_scale: calc(max(0, 1 - (var(--toast-index, 0) * 0.05)));
+    --_shrink: calc(1 - var(--_scale));
+    --_height: var(--toast-frontmost-height, var(--toast-height));
+    --_offset-y: calc(var(--toast-offset-y, var(--basalt-space-0)) * -1 + (var(--toast-index, 0) * var(--_gap) * -1) + var(--toast-swipe-movement-y, var(--basalt-space-0)));
+    --_rest: translateX(var(--toast-swipe-movement-x, var(--basalt-space-0))) translateY(calc(var(--toast-swipe-movement-y, var(--basalt-space-0)) - (var(--toast-index, 0) * var(--_peek)) - (var(--_shrink) * var(--_height)))) scale(var(--_scale));
+    box-sizing: border-box;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: var(--_height);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-lg);
+    background: var(--basalt-surface-1);
+    box-shadow: var(--basalt-shadow-overlay);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+    transform-origin: bottom center;
+    z-index: calc(1000 - var(--toast-index, 0));
+    transform: var(--_rest);
+    transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), opacity var(--basalt-duration-slow) var(--basalt-ease-out), height var(--basalt-duration-base) var(--basalt-ease-out);
+    user-select: none;
+  }
+  .toast[data-expanded] { --_rest: translateX(var(--toast-swipe-movement-x, var(--basalt-space-0))) translateY(var(--_offset-y)); height: var(--toast-height); }
+  .toast[data-starting-style], .toast[data-ending-style] { opacity: 0; transform: translateY(calc(100% + var(--basalt-space-4))); }
+  /* Leaving runs at 0.75 of its entry, easing in. */
+  .toast[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+  .toast[data-limited] { opacity: 0; }
+  .toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x, var(--basalt-space-0)) + 120%)) translateY(var(--_offset-y)); }
+  .toast[data-swiping] { transition-property: opacity, height; }
+  .toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
+
+  .toast-content { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding: var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-4); overflow: hidden; transition: opacity var(--basalt-duration-base) var(--basalt-ease-out); }
+  .toast-content[data-behind] { opacity: 0; }
+  .toast-content[data-expanded] { opacity: 1; }
+  /* The mark seat: 16px, centred on the title's first line. It is there for a marked toast and for one that ran (so the result does not move the
+     title), and absent from an ordinary neutral toast (no empty seat). The mark is an icon, so its shape survives forced colours. */
+  .toast-seat { flex: none; display: grid; place-items: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); margin-top: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2 + var(--basalt-space-0-5) / 2); color: var(--basalt-text-primary); }
+  .toast[data-status="success"] .toast-seat { color: var(--basalt-status-success); }
+  .toast[data-status="warning"] .toast-seat { color: var(--basalt-status-warning); }
+  .toast[data-status="danger"] .toast-seat { color: var(--basalt-status-danger); }
+  .toast[data-running] .toast-seat { color: var(--basalt-text-primary); }
+  .toast-text { flex: 1; min-width: 0; padding-top: calc(var(--basalt-space-0-5) / 2); }
+  .toast-title { margin: 0; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .toast-description { margin: var(--basalt-space-0-5) 0 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
+  .toast-description:empty { display: none; }
+  /* Danger's title takes its colour; the mark and the words carry the rest. */
+  .toast[data-status="danger"] .toast-title { color: var(--basalt-status-danger); }
+  /* A group's count: "×3", beside the title, quieter than it. */
+  .toast-count { margin-inline-start: var(--basalt-space-1-5); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
+  .toast-close { color: var(--basalt-text-secondary); }
+  .toast .btn[data-size="xs"] { --_h: var(--basalt-size-control-xs); --_px: var(--basalt-space-2); font-size: var(--basalt-text-sm-size); }
+
+  /* The drain line is drawn on top of the bottom rim's straight part: it starts where the corner curve ends. It pauses exactly when every toast's
+     own clock does: the stack hovered or focused (it is then expanded), the window out of focus, or the tab hidden (data-away). */
+  .toast-drain { position: absolute; right: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); bottom: calc(-1 * var(--basalt-size-hairline)); left: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); height: var(--basalt-size-hairline); background: var(--basalt-text-tertiary); transform-origin: right center; pointer-events: none; animation: bh-drain linear forwards; }
+  .toast[data-expanded] .toast-drain, .toast-viewport[data-away] .toast-drain { animation-play-state: paused; }
+  @keyframes bh-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The stack sits at its final offsets: only opacity changes, and no height or position eases. */
+    .toast { transition-property: opacity; }
+    .toast[data-starting-style], .toast[data-ending-style] { transform: var(--_rest); }
+    .toast[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); }
+    /* The drain is not drawn: a static full-width line would only brighten the bottom edge. */
+    .toast-drain { display: none; }
+  }
+  @media (forced-colors: active) {
+    .toast { border-color: CanvasText; }
+    .toast[data-status] :is(.toast-seat, .toast-title) { color: CanvasText; }
+    .toast-drain { forced-color-adjust: none; background: CanvasText; }
+  }
+  @media print { .toast-viewport { display: none; } }
+}

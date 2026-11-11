@@ -58,14 +58,8 @@
      has a glyph, so every name starts at one x. Scoped to .profile-links: a blanket rule would re-indent every menu and palette row that has no icon. */
   .profile-links:has(> .row > svg) > .row:not(:has(> svg)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--basalt-space-3)); }
 
-  /* The glide: one shared plate follows the lit row on duration-base (palette.js places it). It appears in place, a key moves it at once,
-     and on leaving it freezes and fades in place. Drawn only where hover is real: not on touch, not under reduced motion, not in forced
-     colours, where each row's own plate above is the whole story. */
-  .plate { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--plate-w); height: var(--plate-h); transform: translate(var(--plate-x), var(--plate-y)); border-radius: var(--basalt-radius-md); background-color: var(--panel-plate); opacity: 0; pointer-events: none; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-in); }
-  .plate[data-state="on"] { opacity: 1; transition-property: transform, width, height; transition-duration: var(--basalt-duration-base); transition-timing-function: var(--basalt-ease-out); }
-  .plate[data-snap] { transition: none; }
+  /* While the glide's shared plate is live (the glide module sets data-glide on the host), the lit row's own plate steps aside. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
-    [data-glide] > .plate { display: block; }
     [data-glide] .row:is([data-active], [aria-selected="true"])::before { background-color: transparent; }
   }
 

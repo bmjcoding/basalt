@@ -83,105 +83,6 @@
   }
 
   /**
-   * The glide: one plate that follows the lit row (React's GlidePlate). Each row paints its own plate when lit; that stays the fallback, and
-   * the whole story on touch, under reduced motion and in forced colours. Where it can, the list also draws ONE plate, placed by four CSS
-   * variables (the stylesheet transitions transform, width and height on duration-base). The pointer moving the highlight travels it; a key
-   * moves it at once; from nowhere it appears in place; when the highlight clears it freezes and fades where it is, and a return during the
-   * fade travels from there. Returns the cleanup. The list's rows are rebuilt on every query, so the plate is put back by the caller.
-   */
-  function glide(host, plate) {
-    var OFF = matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)');
-    var modality = 'keyboard';
-    var last = null;
-    var target = '';
-    var snapNext = false;
-    var leaving;
-
-    function on() { return !OFF.matches && modality !== 'touch'; }
-    function lit() { return plate.dataset.state === 'on'; }
-    // The row's own plate (its ::before) is the shape to follow, so the shared one matches the fallback to the pixel.
-    function geometry(row) {
-      var box = host.getBoundingClientRect();
-      var at = row.getBoundingClientRect();
-      var own = getComputedStyle(row, '::before');
-      var ratio = host.offsetWidth > 0 ? box.width / host.offsetWidth : 1;
-      var scale = Math.abs(ratio - 1) < 0.01 ? 1 : ratio;
-      return {
-        x: (at.left - box.left) / scale - host.clientLeft + host.scrollLeft + (parseFloat(own.left) || 0),
-        y: (at.top - box.top) / scale - host.clientTop + host.scrollTop + (parseFloat(own.top) || 0),
-        w: parseFloat(own.width) || at.width / scale,
-        h: parseFloat(own.height) || at.height / scale
-      };
-    }
-    function write(g) {
-      var st = plate.style;
-      st.setProperty('--plate-x', g.x + 'px'); st.setProperty('--plate-y', g.y + 'px');
-      st.setProperty('--plate-w', g.w + 'px'); st.setProperty('--plate-h', g.h + 'px');
-    }
-    // Runs `change` with the plate's transitions off and commits it, so it takes effect in place.
-    function inPlace(change) {
-      plate.setAttribute('data-snap', '');
-      change();
-      void plate.offsetWidth;
-      plate.removeAttribute('data-snap');
-    }
-    function leave() {
-      if (!lit()) return;
-      // Freeze a move in progress where it has reached, then fade there: the off state has no transform transition, so what is written stays.
-      var st = getComputedStyle(plate);
-      var m = new DOMMatrixReadOnly(st.transform);
-      write({ x: m.m41, y: m.m42, w: parseFloat(st.width), h: parseFloat(st.height) });
-      plate.dataset.state = 'off';
-      last = null;
-      target = '';
-    }
-    function settle() {
-      clearTimeout(leaving);
-      leaving = undefined;
-      host.toggleAttribute('data-glide', on());
-      if (!on()) { plate.dataset.state = 'off'; return; }
-      var row = host.querySelector('.row[data-active]');
-      if (!row) { leaving = setTimeout(function () { if (!host.querySelector('.row[data-active]')) leave(); }, 0); return; }
-      var g = geometry(row);
-      var key = g.x + ' ' + g.y + ' ' + g.w + ' ' + g.h;
-      if (row === last && lit() && key === target) return; // nothing changed: leave a move in flight alone
-      target = key;
-      // How much of the plate still shows: 0 once a fade has finished, so the plate appears in place.
-      var shown = lit() ? 1 : parseFloat(getComputedStyle(plate).opacity) || 0;
-      var travel = !snapNext && row !== last && modality === 'pointer' && shown > 0.01;
-      snapNext = false;
-      if (travel) { write(g); plate.dataset.state = 'on'; } else inPlace(function () { write(g); plate.dataset.state = 'on'; });
-      last = row;
-    }
-    function input(e) {
-      var next = modality;
-      if (e.type === 'keydown') { if (!/^(Shift|Control|Alt|Meta)$/.test(e.key)) next = 'keyboard'; } else next = e.pointerType === 'touch' ? 'touch' : 'pointer';
-      if (next === modality) return;
-      var was = on();
-      modality = next;
-      if (on() !== was) settle();
-    }
-
-    plate.dataset.state = 'off';
-    var changes = new MutationObserver(settle);
-    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-active'] });
-    // A row that moved under a still highlight (a filter, a font, a resize) is re-placed in place.
-    var resizes = new ResizeObserver(function () { snapNext = true; target = ''; settle(); });
-    resizes.observe(host);
-    OFF.addEventListener('change', settle);
-    var events = ['pointermove', 'pointerdown', 'keydown'];
-    events.forEach(function (t) { document.addEventListener(t, input, { capture: true, passive: true }); });
-    settle();
-    return function () {
-      clearTimeout(leaving);
-      changes.disconnect();
-      resizes.disconnect();
-      OFF.removeEventListener('change', settle);
-      events.forEach(function (t) { document.removeEventListener(t, input, { capture: true }); });
-    };
-  }
-
-  /**
    * Opens the command palette: a modal floating panel at level 1 with the raised input row (level 2). It opens and closes with no animation; the lit row's plate glides between rows.
    * Returns { close }.
    *   openPalette({ groups: [{ label, items: [{ label, icon?, keys?: ['⌘','K'], hint?, keywords?, danger?, href?, onSelect? }] }],
@@ -356,7 +257,7 @@
       document.body.appendChild(scrim);
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
-      unglide = glide(list, plate);
+      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;
       input.focus();

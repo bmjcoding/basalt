@@ -1,0 +1,37 @@
+@layer basalt {
+
+  /* ---- Popover, and the shell every native popup shares (menu, notification centre) ----
+     A popup is a native [popover] element: the browser gives it the top layer, light dismiss and Esc, and popover.js positions it beside its
+     opener, which sits before it in the markup, so a popup's level is its opener plus one, with a floor of 1 (core.css: .float inside a panel
+     is the next level). It grows from .98 at the opener's side over duration-base on ease-out, and leaves at 0.75 on ease-in; under reduced
+     motion it only fades. The UA's own popover box (inset 0, centred, a border, 0.25em padding) is replaced by a fixed box at top/left. */
+
+  .float[popover] {
+    position: fixed;
+    inset: auto;
+    top: 0;
+    left: 0;
+    margin: 0;
+    box-sizing: border-box;
+    outline: none;
+    opacity: 0;
+    transform: scale(0.98);
+    transform-origin: var(--origin, top left);
+    transition-property: opacity, transform, overlay, display;
+    transition-behavior: allow-discrete;
+    transition-duration: calc(var(--basalt-duration-base) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+  }
+  .float[popover]:popover-open { opacity: 1; transform: none; transition-duration: var(--basalt-duration-base); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { .float[popover]:popover-open { opacity: 0; transform: scale(0.98); } }
+
+  .popover { width: max-content; max-width: min(var(--basalt-size-popover-max), var(--available-width, 100vw)); padding: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .popover-title { margin: 0; font-size: var(--basalt-text-base-size); line-height: inherit; letter-spacing: inherit; font-weight: var(--basalt-font-weight-semibold); }
+  .popover-description { margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .float[popover], .float[popover]:popover-open { transform: none; }
+    @starting-style { .float[popover]:popover-open { transform: none; } }
+  }
+  @media print { .float[popover] { display: none; } }
+}
