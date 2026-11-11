@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -46,6 +46,10 @@ const open = async (fixture, { width = 1440, height = 800, theme = "dark", ...op
   return page;
 };
 const box = (page, selector, n = 0) => page.locator(selector).nth(n).evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; });
+// The width of the area the page lays out in: the viewport less a classic scrollbar's gutter. On a Mac with overlay scrollbars it
+// is the viewport's width; with classic scrollbars (a docked mouse, CI's Linux runner) `scrollbar-gutter: stable` reserves 15px
+// of it. Compare a width with this, never with `innerWidth`.
+const contentWidth = (page) => page.evaluate(() => document.documentElement.clientWidth);
 const css = (page, selector, property, n = 0) => page.locator(selector).nth(n).evaluate((el, p) => getComputedStyle(el)[p], property);
 const resolve = (page, value, property = "backgroundColor") => page.evaluate(({ value, property }) => { const probe = document.createElement("div"); document.body.append(probe); probe.style[property] = value; const c = getComputedStyle(probe)[property]; probe.remove(); return c; }, { value, property });
 const filtered = (page) => page.evaluate(() => [...document.querySelectorAll("body *")].filter((el) => { const s = getComputedStyle(el); return (s.backdropFilter && s.backdropFilter !== "none") || (s.webkitBackdropFilter && s.webkitBackdropFilter !== "none"); }).length);
@@ -61,6 +65,18 @@ const axe = async (page, { contrast = true } = {}) => {
 };
 
 describe("the site header: the bar", () => {
+  // The cause of the 15px every width test here has to allow for. Foundations ask for `scrollbar-gutter: stable` on a page with a
+  // header, so a classic scrollbar (a docked mouse, CI's Linux runner) takes 15px from the layout viewport at once, and an overlay
+  // scrollbar takes none. This holds either way, so it names the rule without depending on the kind of scrollbar.
+  test("a page with a site header sets scrollbar-gutter: stable on the root, and the header runs to the root's clientWidth", async () => {
+    const page = await open(site(), { width: 1100 });
+    assert.equal(await css(page, "html", "scrollbarGutter"), "stable");
+    const { right, client, inner } = await page.evaluate(() => ({ right: document.querySelector(".basalt-site-header").getBoundingClientRect().right, client: document.documentElement.clientWidth, inner: innerWidth }));
+    near(right, client, "the header's right edge is the root's clientWidth", 0.05);
+    assert.ok(client <= inner, `the layout viewport (${client}) is never wider than the window (${inner})`);
+    await page.close();
+  });
+
   for (const theme of ["dark", "light"]) {
     for (const width of [1440, 390]) {
       test(`56px with its hairline inside, at ${width}, in ${theme}`, async () => {
@@ -173,20 +189,22 @@ describe("the site header: the bar", () => {
 
   test("one shared pill glides, as Nav's does: in place on entry, travelling after, hidden by the first key", async () => {
     const page = await open(site(), { width: 1100 });
+    // Animation time is the test's: a transition is read 40ms into its move, which a loaded machine could run out in real time.
+    const clock = await freezeAnimations(page);
     const at = async (n) => { const b = await box(page, ".basalt-site-pill", n); await page.mouse.move(b.x + b.w / 2, b.y + b.h / 2); };
     const plate = () => page.locator(".basalt-site-links > .basalt-plate").evaluate((el) => ({ state: el.dataset.state, display: getComputedStyle(el).display, running: el.getAnimations().map((a) => a.transitionProperty) }));
     assert.equal(await page.locator(".basalt-site-links > .basalt-plate").count(), 1);
     await at(0);
-    await page.waitForTimeout(60);
+    await clock.advance(60);
     let p = await plate();
     assert.deepEqual([p.state, p.display], ["on", "block"]);
     assert.ok(!p.running.includes("transform"), "it appears in place on entry");
     await at(3);
-    await page.waitForTimeout(40);
+    await clock.advance(40);
     assert.ok((await plate()).running.includes("transform"), "it travels to the next link");
-    await page.waitForTimeout(300);
+    await clock.advance(300);
     await page.keyboard.press("ArrowDown");
-    await page.waitForTimeout(60);
+    await clock.advance(60);
     p = await plate();
     assert.equal(p.state, "off", "the first key hides it");
     assert.ok(await page.locator(".basalt-site-links").evaluate((el) => el.hasAttribute("data-keys")));
@@ -346,7 +364,7 @@ describe("the narrow menu", () => {
     assert.equal(await page.locator(".basalt-site-menu .basalt-nav-item").nth(0).evaluate((a) => getComputedStyle(a.querySelector(".basalt-nav-label")).fontWeight), "400");
     const foot = await box(page, ".basalt-site-menu-foot .basalt-button");
     assert.equal(foot.h, 44);
-    near(foot.w, 390 - 32, "the action is full width", 0.6);
+    near(foot.w, (await contentWidth(page)) - 32, "the action is full width", 0.6);
     const band = await box(page, ".basalt-site-menu-band");
     assert.equal(band.h, 56);
     assert.equal(await css(page, ".basalt-site-menu-band", "borderBottomWidth"), "1px", "a divider under the band");
@@ -466,14 +484,14 @@ describe("the app shell", () => {
     const side = await box(page, ".basalt-app-sidebar");
     const head = await box(page, ".basalt-app-header");
     near(head.x, side.right, "the header starts at the sidebar's edge", 0.05);
-    near(head.right, 1440, "and runs to the right edge", 0.05);
+    near(head.right, await contentWidth(page), "and runs to the right edge of the content area", 0.05);
     assert.equal(head.h, 56);
     const title = await page.locator(".basalt-app-title").evaluate((h) => { const s = getComputedStyle(h); return { size: s.fontSize, line: s.lineHeight, weight: s.fontWeight, tag: h.tagName }; });
     assert.deepEqual(title, { size: "18px", line: "26px", weight: "600", tag: "H1" });
     await page.close();
     page = await open(shell(), { width: 390 });
     const phone = await box(page, ".basalt-app-header");
-    assert.deepEqual([phone.x, phone.w, phone.h], [0, 390, 56]);
+    assert.deepEqual([phone.x, phone.w, phone.h], [0, await contentWidth(page), 56]);
     assert.equal(await css(page, ".basalt-app-header", "position"), "sticky");
     await page.close();
   });
@@ -546,7 +564,7 @@ describe("the phone tab bar", () => {
   test("56px with its hairline inside, plus the bottom inset; content pads past it by the bar, the inset and 24; toasts sit above it", async () => {
     const page = await phone();
     let bar = await box(page, ".basalt-tabbar");
-    assert.deepEqual([bar.h, bar.bottom, bar.w], [56, 700, 390]);
+    assert.deepEqual([bar.h, bar.bottom, bar.w], [56, 700, await contentWidth(page)]);
     assert.equal(await css(page, ".basalt-tabbar", "borderTopWidth"), "1px");
     await page.evaluate(() => document.documentElement.style.setProperty("--_inset-bottom-sim", "34px"));
     bar = await box(page, ".basalt-tabbar");
@@ -577,7 +595,8 @@ describe("the phone tab bar", () => {
     assert.equal(await page.locator(".basalt-tabbar [role=tablist], .basalt-tabbar [role=tab]").count(), 0);
     const widths = [];
     for (let i = 0; i < 4; i++) widths.push((await box(page, ".basalt-tabbar-item", i)).w);
-    widths.forEach((w) => near(w, 390 / 4, "equal cells", 0.05));
+    const cells = (await contentWidth(page)) / 4;
+    widths.forEach((w) => near(w, cells, "equal cells", 0.05));
     assert.equal(await page.locator('.basalt-tabbar [aria-current="page"]').count(), 1);
     assert.equal(await page.locator('.basalt-tabbar [aria-current="page"]').innerText(), "Trends");
     await page.close();

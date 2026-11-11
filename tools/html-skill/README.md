@@ -17,7 +17,7 @@ src/
   modules.json             the manifest: each module's classes, attributes, tags, text patterns, requirements, icons, byte budget and usage cap
   usage/<name>.md          the module's usage, in prose, printed by `compose.mjs --usage <name>` (core.md is layout, type, panels, buttons);
                            build.mjs copies them into the skill's parts/usage/
-  icons.json               the Phosphor names a page can draw (Bold and Regular paths are read from @phosphor-icons/react)
+  icons.json               the Phosphor names a page can draw (Bold paths, at every size, are read from @phosphor-icons/react; the build fails for a name it hasn't got)
   compose.mjs              the tool an agent runs; copied into the skill folder as it is
   examples/*.body.html     two example bodies, copied into the skill folder
 build.mjs                  writes the skill folder: minified parts/, compose.mjs, examples/ (npm run build runs it)
@@ -47,7 +47,7 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
    that uses the module). Keep each line short and `SKILL.md` within its byte budget. The test checks that every class in the index and
    in the usage texts belongs to the core or to one module, that a usage names only its own module's classes (or the modules it
    requires, or a mention listed in the test), and that using one brings its module.
-   A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI.
+   A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI. A module's script can write `%glyph:name%` for the path of a core glyph (the drawn set, `packages/react/glyphs/source.mjs`): `links.js` draws the new-tab arrow from `external` this way.
 5. `npm run build`, then `npm run test:html-skill`. Rendered output must match React: add the component to `test/parity.test.mjs`.
 
 ## Parity with React
@@ -57,7 +57,7 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
 exists today is in `test/parity-differences.mjs` with its reason and source. The list only shrinks: a new difference fails the test,
 and so does an entry that no longer differs. `PARITY_REPORT=1 npm run test:html-skill` prints what the run found. Loops (the spinners) are read at their first frame. A native `input[type=range]`
 can't be read this way (Chromium doesn't resolve its `::-webkit-` parts in computed style), so `parity-1.test.mjs` measures the range's track,
-thumb and fill by pixel instead, and pins the rest of the first parity PR's behaviour (number field, braille, ring, accent reader, forced colours). `parity-2.test.mjs` pins the second's (the palette's levels and rows, the glide, a focusable row's ring, the bar's removal, the selected table row, the segment's sliding pill and its fallbacks, a tab's icon).
+thumb and fill by pixel instead, and pins the rest of the first parity PR's behaviour (number field, braille, ring, accent reader, forced colours). `parity-2.test.mjs` pins the second's (the palette's levels and rows, the glide, a focusable row's ring, the bar's removal, the selected table row, the segment's sliding pill and its fallbacks, a tab's icon). `parity-3.test.mjs` pins the third's, part A of batch 7 (the status family in forced colours on Canvas and on a lit row, beside React's; the links module: the social row, the new-tab arrow, icon only, the long form; the site bar in print). The status family's computed styles are compared with React's in every status in `parity.test.mjs`. `parity.test.mjs` also compares the overlay layer (the dialog and alert dialog, the sheet on every side, the popover, the menu, the tooltip, the toast and the notification centre, opened in React and in the skill, read against their trigger) and holds the one recorded difference, the site header's Menu-to-Close morph. `parity-4.test.mjs` pins the fourth's behaviour (focus in, trap and wrap, Esc, focus back, light dismiss, the menu's keys and typeahead, the tooltip, the toast's stack, clocks and announcements, the centre's glide and ring, reduced motion, forced colours, touch, axe), on the shared animation clock. The fifth, step 3 of batch 7 (the figures: the description list, the meter, the stat's source line, the terminal and the time chart), is compared in `parity.test.mjs` too (the chart's every drawn line, label and gap against React's, the terminal's gutter and marks) and `parity-5.test.mjs` pins its behaviour: the chart drawn from the data in its body, its reading by keyboard, hover and touch, its table, the missing-data hatch, narrow labels at 390, a group's shared gutter, the meter's reading and glide, the terminal's replay and copy (on the shared animation clock), reduced motion, forced colours, axe.
 
 ## The pixel baseline
 

@@ -28,21 +28,34 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **number** `.number-field`: wraps `input.input.num`; a bare number input has no steppers.
 - **range** `type="range"`: styled bare; no wrapper, no class.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
+- **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
+- **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
-- **status** `.status`, `.badge`: a dot beside its word; never one without a word.
+- **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
 - **accent** `data-accent="cobalt"`: the one accent, on `<html>` or a section; `none` turns it off.
 - **art** `var(--basalt-art-tone-2)`: tokens only (art tones, chart roles, aspects); greys only, never an accent.
 - **stats** `.stats`: never a row of boxed tiles; up to 3 figures.
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
+- **meter** `.meter`: not `.progress`; `--value` and `--target` are percentages; write `aria-valuetext`.
+- **dlist** `.dlist`: a `dl` of `div` rows, never in a panel; no value writes `Not observed`.
+- **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
+- **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
+- **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.
+- **menu** `.menu`: rows are `button.menu-item` with a role; a radio sits in a `role="group"`.
+- **dialog** `data-dialog-open`: a `<dialog>` with a `.dialog-title`; an alert dialog marks its safe button `data-cancel`.
+- **sheet** `.sheet`: a dialog with `data-side`; the top one opens with a `.sheet-band`.
+- **tooltip** `data-tooltip`: only supplements a name the control already has; plain text.
+- **toast** `Basalt.toast`: no `home` means it stays until dismissed; never build your own.
+- **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
 
@@ -57,4 +70,4 @@ Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's)
 - **Motion** from the tokens only; entries ease out, nothing bounces or overshoots; under reduced motion, opacity only. A press is a colour step; only `.btn` scales (`--usage core`).
 - **390px wide** must work: no sideways scroll, touch targets at least 44px (standalone links too: `--usage core`), inputs 16px (the CSS does this on coarse pointers). Don't hide a column to make a table fit.
 - **No** CDN, framework, web font request, glow, gradient, dot grid, outer frame around the page, bounce, press scale beyond `.btn`'s .98, red fill, or decorative colour. Danger is red text with a red hairline.
-- Icons: Phosphor via `<i data-icon="Name"></i>`: Bold at 16px, Regular from 20px (`data-size="20"`). Available: Command, Option, Control, MagnifyingGlass, Copy, Check, Sun, Moon, Info, Warning, X, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretDown, CaretRight, Plus, Minus, Trash, Download, ArrowClockwise, CheckCircle, XCircle. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.
+- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, MagnifyingGlass, Copy, Check, Sun, Moon, Info, Warning, X, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretDown, CaretRight, Plus, Minus, Trash, Download, ArrowClockwise, CheckCircle, XCircle, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.

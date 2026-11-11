@@ -1,5 +1,5 @@
 {
-  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). Raised in the second parity PR (popup rows, levels and the segment's pill): segment 1400 to 3700 (the shared sliding pill: its script, 1.5 KB, and its CSS with the pill's two fallbacks), rows 3600 to 4300 (#27's plate-in-a-row geometry, the plate per level, the glide's shared plate and the forced-colours lit row, net of the removed bar), palette 9400 to 11300 (the glide's script, 2.4 KB: it follows the lit row, travels on a pointer, snaps on a key, and fades in place on leaving). The art module (DECISIONS 101 and 104) is the token groups only some pages name, taken out of the core so the core stays under its cap: the chart roles and lengths, the art colours, the aspect ratios and the stage headroom, in both themes (2087 bytes at 2100; it grows only when a token of those groups is added). A page gets it when its body names one of them, a var() in its own style included. The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses. usage: the most bytes of a module's usage text (src/usage/NAME.md; core.usage for core.md), which compose.mjs --usage prints on demand. It is context an agent pays only for the modules its page uses, so it is capped per part as SKILL.md and the CSS and script are (DECISIONS 79 and 109). Each is set a little above what its text was when the usage moved out of SKILL.md (DECISIONS 109); raising one needs a reason in the PR, and a rise of 40 to 50% is the owner's. textWords: each text pattern said in words, which compose.mjs --usage prints instead of the regular expression (one for each entry of text, in order). builds: modules a module requires whose markup its script writes, so --usage prints a line saying so instead of their usage text (the palette builds its own rows and key chips). The council's clarity check of the usage texts (all three: not yet clear) raised eight caps because the texts gained what an agent had to guess: callout 200 to 700 (the icon and one wrapper div around the title and body as markup, the four status icons, the role React's Callout renders), palette 1100 to 1300 (an item shown whole, keys as an array, keywords), stats 450 to 800 (a snippet of the figures and of the dl), tabs 500 to 650 (the unselected panels), code 250 to 450 (the markup and what each token class means), segment 150 to 300 (a click does not switch it), progress 150 to 350 (the empty span that paints the fill), theme 250 to 400 (leave the button empty), and accent 250 to 300. Topbar went down, 700 to 500, as its build detail was cut. Raised in the usage PR (the council's clarity check): palette 11300 to 11450 (the module grew 11283 to 11448, +165, about 1.5%), for the guard that makes a string `keys` warn and draw no chip instead of throwing in `keys.filter`, which the palette's usage already promised. Round 2 of the clarity check: tabs 650 to 750 (the panel's top space shown in the snippet, and that the script selects a tab on click).",
+  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). Raised in the second parity PR (popup rows, levels and the segment's pill): segment 1400 to 3700 (the shared sliding pill: its script, 1.5 KB, and its CSS with the pill's two fallbacks), rows 3600 to 4300 (#27's plate-in-a-row geometry, the plate per level, the glide's shared plate and the forced-colours lit row, net of the removed bar), palette 9400 to 11300 (the glide's script, 2.4 KB: it follows the lit row, travels on a pointer, snaps on a key, and fades in place on leaving). The art module (DECISIONS 101 and 104) is the token groups only some pages name, taken out of the core so the core stays under its cap: the chart roles and lengths, the art colours, the aspect ratios and the stage headroom, in both themes (2087 bytes at 2100; it grows only when a token of those groups is added). A page gets it when its body names one of them, a var() in its own style included. The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses. usage: the most bytes of a module's usage text (src/usage/NAME.md; core.usage for core.md), which compose.mjs --usage prints on demand. It is context an agent pays only for the modules its page uses, so it is capped per part as SKILL.md and the CSS and script are (DECISIONS 79 and 109). Each is set a little above what its text was when the usage moved out of SKILL.md (DECISIONS 109); raising one needs a reason in the PR, and a rise of 40 to 50% is the owner's. textWords: each text pattern said in words, which compose.mjs --usage prints instead of the regular expression (one for each entry of text, in order). builds: modules a module requires whose markup its script writes, so --usage prints a line saying so instead of their usage text (the palette builds its own rows and key chips). The council's clarity check of the usage texts (all three: not yet clear) raised eight caps because the texts gained what an agent had to guess: callout 200 to 700 (the icon and one wrapper div around the title and body as markup, the four status icons, the role React's Callout renders), palette 1100 to 1300 (an item shown whole, keys as an array, keywords), stats 450 to 800 (a snippet of the figures and of the dl), tabs 500 to 650 (the unselected panels), code 250 to 450 (the markup and what each token class means), segment 150 to 300 (a click does not switch it), progress 150 to 350 (the empty span that paints the fill), theme 250 to 400 (leave the button empty), and accent 250 to 300. Topbar went down, 700 to 500, as its build detail was cut. Raised in the usage PR (the council's clarity check): palette 11300 to 11450 (the module grew 11283 to 11448, +165, about 1.5%), for the guard that makes a string `keys` warn and draw no chip instead of throwing in `keys.filter`, which the palette's usage already promised. Round 2 of the clarity check: tabs 650 to 750 (the panel's top space shown in the snippet, and that the script selects a tab on click). Raised in the site-icons and status PR (skill-parity part A, DECISIONS 106 and 107): status 1650 to 1900 (the neutral, pending and running marks, the badge's real border, and the forced-colours disc, net of the red danger word it drops) and its usage 400 to 1000 (every status in words, the word alone, running, forced colours); rows 4300 to 4450 (the profile list's seat rule and the status parts on a lit row) and its usage 300 to 600 (the profile list, with the one mistake: never an empty element for the seat). New: the links module (2671 bytes: the social row, the new-tab arrow's CSS and the script that draws it; budget 2750) and its usage (1746 bytes; cap 1850), which carries the social link, the glyph set, icon only and the new tab. Dropping Regular halves icons.json. Added in the overlay PR (skill-parity-4, batch 7 step 2, DECISIONS 108): the shared plate leaves palette.js for a glide module (the palette, a menu and the notification centre all call it), so the palette's cap went down, 11450 to 9250, and rows 4450 to 3850 (the plate's CSS moved to glide); and the overlay layer comes in as seven modules a page carries only when it uses them, each with its own cap and usage cap set a little above its size: popover (the native popup shell), menu, dialog (the dialog and alert dialog), sheet (on every side, the top one the site header's narrow menu), tooltip, toast and notifications (the centre). skillMd is unchanged in its cap (the eight new index lines fit within it); the core is unchanged in bytes. Added in the figures and charts PR (skill-parity-5, batch 7 step 3, DECISIONS 108): four modules a page carries only when it uses them, each with its own cap and usage cap set a little above its size: meter (React's Meter, CSS only, 2581 bytes), dlist (the description list, CSS only, 1265), terminal (the code block's transcript: its CSS, 3242, and the script that draws the gutter, the copy button and the replay, 4824) and chart (React's TimeChart and ChartGroup: 7313 of CSS and 23262 of script, which port chart.tsx's scale, layout, lane, labels, sentences, keyboard and table; it needs the art tokens, the table and the kbd chips, and a page without a chart carries none of it). Stats grew for the source line (budget 700 to 850, 798 bytes; its usage 800 to 950, 675 to 899 bytes, +33%, under the owner's 40 to 50%). skillMd is unchanged in its cap (four index lines fit within it); the core is unchanged in bytes.",
   "budgets": {
     "skillMd": 10900,
     "core": 30720
@@ -63,7 +63,8 @@
       "attrs": [
         "data-kbd",
         "data-kbd-hint",
-        "data-doc"
+        "data-doc",
+        "data-tooltip-keys"
       ],
       "tags": [
         "kbd"
@@ -140,10 +141,32 @@
         "row-group",
         "row-label",
         "row-hint",
-        "input-row"
+        "input-row",
+        "profile-links"
       ],
-      "budget": 4300,
-      "usage": 300
+      "budget": 3850,
+      "usage": 600
+    },
+    "glide": {
+      "classes": [
+        "plate"
+      ],
+      "budget": 3700,
+      "usage": 250
+    },
+    "links": {
+      "classes": [
+        "links",
+        "ext"
+      ],
+      "text": [
+        "\\btarget\\s*=\\s*[\"']?_blank\\b"
+      ],
+      "budget": 2750,
+      "usage": 1850,
+      "textWords": [
+        "a link with target=\"_blank\""
+      ]
     },
     "tabs": {
       "classes": [
@@ -214,8 +237,8 @@
         "status",
         "badge"
       ],
-      "budget": 1650,
-      "usage": 400
+      "budget": 1900,
+      "usage": 1000
     },
     "accent": {
       "attrs": [
@@ -240,10 +263,11 @@
         "stat",
         "stat-label",
         "stat-value",
-        "stat-note"
+        "stat-note",
+        "stat-source"
       ],
-      "budget": 700,
-      "usage": 800
+      "budget": 850,
+      "usage": 950
     },
     "progress": {
       "classes": [
@@ -251,6 +275,136 @@
       ],
       "budget": 700,
       "usage": 350
+    },
+    "meter": {
+      "classes": [
+        "meter",
+        "meter-head",
+        "meter-label",
+        "meter-reading",
+        "meter-value",
+        "meter-track",
+        "meter-fill",
+        "meter-tick",
+        "meter-foot",
+        "meter-left",
+        "meter-target"
+      ],
+      "budget": 2650,
+      "usage": 1350
+    },
+    "dlist": {
+      "classes": [
+        "dlist"
+      ],
+      "budget": 1300,
+      "usage": 950
+    },
+    "terminal": {
+      "classes": [
+        "terminal",
+        "terminal-title",
+        "terminal-actions",
+        "terminal-lines",
+        "terminal-line",
+        "terminal-gutter",
+        "terminal-text",
+        "terminal-mark",
+        "terminal-hint",
+        "terminal-state",
+        "terminal-swap",
+        "terminal-done",
+        "terminal-failed",
+        "terminal-copy",
+        "terminal-copy-compact"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*terminal\\b"
+      ],
+      "textWords": [
+        "a call to Basalt.terminal"
+      ],
+      "requires": [
+        "code",
+        "copy",
+        "braille"
+      ],
+      "icons": [
+        "Copy",
+        "Check",
+        "CheckCircle",
+        "Warning",
+        "XCircle"
+      ],
+      "budget": 8100,
+      "usage": 1350,
+      "builds": [
+        "braille"
+      ]
+    },
+    "chart": {
+      "classes": [
+        "chart",
+        "chart-group",
+        "chart-head",
+        "chart-title",
+        "chart-source",
+        "chart-key",
+        "chart-date",
+        "chart-legend",
+        "chart-entry",
+        "chart-swatch",
+        "chart-name",
+        "chart-value",
+        "chart-reserve",
+        "chart-plot",
+        "chart-ruler",
+        "chart-svg",
+        "chart-axis",
+        "chart-lane",
+        "chart-direct",
+        "chart-grid",
+        "chart-baseline",
+        "chart-plate",
+        "chart-band",
+        "chart-band-edge",
+        "chart-hatch-line",
+        "chart-bar",
+        "chart-cut",
+        "chart-ring",
+        "chart-plan",
+        "chart-line",
+        "chart-mark",
+        "chart-days",
+        "chart-day",
+        "chart-hint",
+        "chart-summary",
+        "chart-foot",
+        "chart-table",
+        "chart-scroll-hint",
+        "chart-not-observed",
+        "chart-note"
+      ],
+      "attrs": [
+        "data-chart"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*chart\\b"
+      ],
+      "textWords": [
+        "a call to Basalt.chart"
+      ],
+      "requires": [
+        "art",
+        "table",
+        "kbd"
+      ],
+      "budget": 30700,
+      "usage": 2500,
+      "builds": [
+        "table",
+        "kbd"
+      ]
     },
     "palette": {
       "classes": [
@@ -271,12 +425,13 @@
       ],
       "requires": [
         "rows",
-        "kbd"
+        "kbd",
+        "glide"
       ],
       "icons": [
         "MagnifyingGlass"
       ],
-      "budget": 11450,
+      "budget": 9250,
       "usage": 1300,
       "textWords": [
         "a call to Basalt.openPalette or Basalt.closePalette",
@@ -284,7 +439,8 @@
       ],
       "builds": [
         "kbd",
-        "rows"
+        "rows",
+        "glide"
       ]
     },
     "spinner": {
@@ -332,6 +488,165 @@
       ],
       "budget": 650,
       "usage": 400
+    },
+    "popover": {
+      "classes": [
+        "popover",
+        "popover-title",
+        "popover-description"
+      ],
+      "attrs": [
+        "popovertarget"
+      ],
+      "budget": 4950,
+      "usage": 950
+    },
+    "menu": {
+      "classes": [
+        "menu",
+        "menu-item",
+        "menu-item-label",
+        "menu-item-description",
+        "menu-check",
+        "menu-radio-dot",
+        "menu-separator",
+        "menu-group-label"
+      ],
+      "requires": [
+        "popover",
+        "glide"
+      ],
+      "icons": [
+        "Check"
+      ],
+      "budget": 8600,
+      "usage": 2000,
+      "builds": [
+        "glide"
+      ]
+    },
+    "dialog": {
+      "classes": [
+        "dialog",
+        "dialog-title",
+        "dialog-description",
+        "dialog-actions"
+      ],
+      "attrs": [
+        "data-dialog-open",
+        "data-dialog-close"
+      ],
+      "tags": [
+        "dialog"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*(?:openDialog|closeDialog)"
+      ],
+      "textWords": [
+        "a call to Basalt.openDialog or Basalt.closeDialog"
+      ],
+      "budget": 5100,
+      "usage": 1200
+    },
+    "sheet": {
+      "classes": [
+        "sheet",
+        "sheet-band"
+      ],
+      "attrs": [
+        "data-glyph"
+      ],
+      "requires": [
+        "dialog"
+      ],
+      "budget": 4050,
+      "usage": 1050
+    },
+    "tooltip": {
+      "attrs": [
+        "data-tooltip"
+      ],
+      "requires": [
+        "popover"
+      ],
+      "budget": 3200,
+      "usage": 500
+    },
+    "toast": {
+      "classes": [
+        "toast",
+        "toast-viewport",
+        "toast-content",
+        "toast-seat",
+        "toast-text",
+        "toast-title",
+        "toast-description",
+        "toast-count",
+        "toast-close",
+        "toast-drain"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*toast\\b"
+      ],
+      "textWords": [
+        "a call to Basalt.toast"
+      ],
+      "requires": [
+        "braille"
+      ],
+      "icons": [
+        "CheckCircle",
+        "Warning",
+        "XCircle",
+        "X"
+      ],
+      "budget": 13850,
+      "usage": 1100,
+      "builds": [
+        "braille"
+      ]
+    },
+    "notifications": {
+      "classes": [
+        "notifications",
+        "notifications-head",
+        "notifications-title",
+        "notifications-count",
+        "notifications-mark",
+        "notifications-foot",
+        "notifications-empty",
+        "notifications-scroll",
+        "notifications-list",
+        "notifications-dot",
+        "notification",
+        "notification-dot",
+        "notification-mark",
+        "notification-text",
+        "notification-title",
+        "notification-line",
+        "notification-time"
+      ],
+      "text": [
+        "Basalt\\s*\\.\\s*notifications\\b"
+      ],
+      "textWords": [
+        "a call to Basalt.notifications"
+      ],
+      "requires": [
+        "popover",
+        "glide"
+      ],
+      "icons": [
+        "CheckCircle",
+        "Warning",
+        "XCircle"
+      ],
+      "budget": 9050,
+      "usage": 1050,
+      "builds": [
+        "popover",
+        "glide"
+      ]
     }
   }
 }

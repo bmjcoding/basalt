@@ -131,9 +131,14 @@ for (const theme of ["dark", "light"]) {
         // no ring from a shadow: popups keep only their drop
         assert.ok(!/ 0px 0px 0px 1px/.test(s.boxShadow), `${selector} still draws a 1px ring: ${s.boxShadow}`);
       }
-      for (const selector of [".basalt-button", ".basalt-input", ".basalt-badge", ".basalt-kbd-key"]) {
+      for (const selector of [".basalt-button", ".basalt-input", ".basalt-kbd-key"]) {
         assert.equal((await style(page.locator(selector).first(), "borderTopWidth")).borderTopWidth, "0px", `${selector} is a control or chip: no rim`);
       }
+      // A badge's edge is its own hairline, a real border so forced colours keep it: the colour of the hairline it was, the same on every side, never a panel's rim.
+      const badge = await style(page.locator(".basalt-badge").first(), "borderTopWidth", "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor", "boxShadow");
+      assert.equal(badge.borderTopWidth, "1px", ".basalt-badge has its 1px edge");
+      assert.deepEqual([badge.borderTopColor, badge.borderBottomColor, badge.borderLeftColor, badge.borderRightColor], Array(4).fill(await resolve(page, "border-hairline")), "the hairline, uniform: no lit top, so not a rim");
+      assert.equal(badge.boxShadow, "none");
       await page.close();
     });
 

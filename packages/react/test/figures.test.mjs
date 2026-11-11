@@ -124,6 +124,34 @@ describe("DescriptionList", () => {
     await page.close();
   });
 
+  test("on touch a link in a value is a 44 by 44 box, and the row is still 40px; with a mouse the link is its line", async () => {
+    const linked = wide(640, `
+      <B.DescriptionList data-testid="list">
+        <B.DescriptionItem term="Owner"><a href="#owner">Go</a></B.DescriptionItem>
+        <B.DescriptionItem term="Region">Ashburn (us-east)</B.DescriptionItem>
+        <B.DescriptionItem term="Docs"><a href="#docs">Runbook for the egress policy</a></B.DescriptionItem>
+      </B.DescriptionList>`);
+    const rowHeights = (page) => page.locator(".basalt-description-item").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+    const touch = await fixturePage(browser, linked, { theme: "dark", viewport: { width: 1440, height: 900 }, hasTouch: true });
+    assert.ok(await touch.page.evaluate(() => matchMedia("(pointer: coarse)").matches), "the fixture is a coarse pointer");
+    for (const href of ["#owner", "#docs"]) {
+      const link = await box(touch.page.locator(`a[href="${href}"]`));
+      assert.ok(link.height >= 44 && link.width >= 44, `${href}: ${link.width} by ${link.height}`);
+    }
+    const short = await box(touch.page.locator('a[href="#owner"]'));
+    assert.equal(Math.round(short.height), 44);
+    assert.equal(Math.round(short.width), 44, "a short link is still 44 wide");
+    const touched = await rowHeights(touch.page);
+    await touch.page.close();
+    const mouse = await fixturePage(browser, linked, { theme: "dark", viewport: { width: 1440, height: 900 } });
+    assert.equal(await mouse.page.evaluate(() => matchMedia("(pointer: coarse)").matches), false);
+    const mouseRows = await rowHeights(mouse.page);
+    const mouseLink = await box(mouse.page.locator('a[href="#owner"]'));
+    assert.ok(mouseLink.height < 24, `with a mouse the link is its line: ${mouseLink.height}`);
+    await mouse.page.close();
+    assert.deepEqual(touched, mouseRows, "a linked value sits exactly like an unlinked one: only the hit box grew");
+  });
+
   test("a divider between rows, never above the first or below the last, and the first and last lose their outer padding", async () => {
     const { page } = await fixturePage(browser, wide(640, LIST), { theme: "dark" });
     const rows = await page.locator(".basalt-description-item").evaluateAll((els) => els.map((el) => { const s = getComputedStyle(el); return { shadow: s.boxShadow, top: s.paddingTop, bottom: s.paddingBottom, border: [s.borderTopWidth, s.borderBottomWidth] }; }));

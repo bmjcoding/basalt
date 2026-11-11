@@ -31,11 +31,11 @@ window.D = {
   train: trainingData(28), trainLate: trainingData(28, { late: true }), train7: trainingData(7), train90: trainingData(90),
 };
 function Sleep({ data, ...rest }) {
-  return <B.TimeChart title="Sleep" source="06:12 · Ring and watch" kind="line" days={data.days} series={data.series} plan={data.plan} format={hm} spoken={hmSpoken}
+  return <B.TimeChart title="Sleep" source="06:12 · Ring and watch" kind="line" days={data.days} series={data.series} plan={data.plan} format={hm} spoken={hmSpoken} now={Date.UTC(2026, 10, 10, 12)}
     step={60} formatTick={(v) => String(v / 60)} unit="h" summary="Ring averaged 7 h 20 m over 28 nights. Watch not observed 26 to 28 October, not worn, travel." {...rest} />;
 }
 function Train({ data, ...rest }) {
-  return <B.TimeChart title="Training" source="Watch" kind="bar" days={data.days} series={data.series} plan={data.plan} partial={data.partial} format={min} spoken={minSpoken}
+  return <B.TimeChart title="Training" source="Watch" kind="bar" days={data.days} series={data.series} plan={data.plan} partial={data.partial} format={min} spoken={minSpoken} now={Date.UTC(2026, 10, 10, 12)}
     unit="min" summary="Training averaged 54 min a day." {...rest} />;
 }
 window.__cfg = { width: 900, chart: "sleep", data: "sleep", extra: {}, level: 0 };
@@ -539,14 +539,14 @@ describe("Chart missing data", () => {
     await page.close();
   });
 
-  test("the reason is also in the readout, the day's name and the table, in the words 'Not observed'", async () => {
+  test("the reason is also in the readout ('Not observed · why'), the day's name and the table, in the words 'Not observed'", async () => {
     const { page } = await chartPage({ cfg: { chart: "sleep", data: "sleep" } });
     const missingDay = await page.evaluate(() => window.D.sleep.series[1].values.findIndex((v) => v == null));
     const days = await dayBoxes(page);
     await page.mouse.move(days[missingDay].x + days[missingDay].width / 2, days[missingDay].y + 20);
     await frames(page);
     const values = await valueTexts(page);
-    assert.ok(values.includes("Not observed"), `${values}`);
+    assert.ok(values.includes("Not observed · not worn, travel"), `the readout says why the day was not observed: ${values}`);
     assert.equal(await page.locator('.basalt-chart-value [data-missing]').first().evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
     const sentence = await page.locator(".basalt-chart-day").nth(missingDay).getAttribute("aria-label");
     assert.match(sentence, /Watch not observed, not worn, travel/);
@@ -726,6 +726,38 @@ describe("Chart keyboard", () => {
     assert.ok(gap, "a day with a reason is named with it");
     assert.ok(names.some((n) => /Ring not observed, no device synced\. Watch not observed, no device synced/.test(n)), "and a day nothing was observed names every series");
     assert.equal(new Set(names).size, 28, "every day has its own name");
+    await page.close();
+  });
+
+  test("the last day is 'today' only when it is today's date: `now` says what today is, and a range that ends before it is never 'today'", async () => {
+    const lastName = async (page) => (await page.locator(".basalt-chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).at(-1);
+    const { page } = await chartPage();
+    assert.match(await lastName(page), /^Tuesday 10 November, today\./, "the last day is today's UTC date");
+    await configure(page, { extra: { now: Date.UTC(2026, 10, 11, 12) } });
+    assert.match(await lastName(page), /^Tuesday 10 November\. /, "a day later it is yesterday, with no 'today'");
+    await configure(page, { extra: { now: Date.UTC(2026, 10, 10, 0, 0, 1) } });
+    assert.match(await lastName(page), /^Tuesday 10 November, today\./, "the same UTC date from its first second");
+    await configure(page, { extra: { now: Date.UTC(2026, 10, 9, 23, 59, 59) } });
+    assert.ok(!(await lastName(page)).includes("today"), "the day before is not today either");
+    await configure(page, { chart: "train", data: "train", extra: { now: Date.UTC(2026, 10, 20) } });
+    assert.ok(!(await lastName(page)).includes("today"), "a bar chart's last day too");
+    await page.close();
+  });
+
+  test("with no `now` the chart compares its last day with the clock", async () => {
+    const { page } = await chartPage();
+    const names = () => page.locator(".basalt-chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    await page.evaluate(() => {
+      // five days ending today, and five days that ended 40 days ago
+      const ending = (daysAgo) => Array.from({ length: 5 }, (_, i) => new Date(Date.now() - (daysAgo + 4 - i) * 86_400_000).toISOString().slice(0, 10));
+      const slice = (days) => ({ ...window.D.sleep, days, series: window.D.sleep.series.map((s) => ({ ...s, values: s.values.slice(-5), reasons: s.reasons.slice(-5) })), plan: { ...window.D.sleep.plan, values: window.D.sleep.plan.values.slice(-5) } });
+      window.D.sleep7 = slice(ending(0));
+      window.D.sleep3 = slice(ending(40));
+    });
+    await configure(page, { data: "sleep7", extra: { now: undefined } });
+    assert.ok((await names()).at(-1).includes(", today"), `a range ending today says so: ${(await names()).at(-1)}`);
+    await configure(page, { data: "sleep3", extra: { now: undefined } });
+    assert.ok(!(await names()).at(-1).includes("today"), "a range that ended 40 days ago does not");
     await page.close();
   });
 

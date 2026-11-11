@@ -1,0 +1,36 @@
+@layer basalt {
+
+  /* ---- Meter: React's Meter. How much of a cap is used; not .progress (a task finishing) ----
+     An outlined slot (8px with its 1px input boundary, transparent inside) that is the cap and never rescales, a fill in primary ink, and a foot
+     that is always there so a change of state never adds a line. */
+
+  .meter { --_cut: var(--panel-bg, var(--basalt-surface-0)); display: grid; gap: var(--basalt-space-1); width: 100%; min-width: 0; font: var(--basalt-font-weight-regular) var(--bh-sm); }
+  .meter-head, .meter-foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); min-width: 0; }
+  .meter-label { min-width: 0; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .meter-reading { flex: none; color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .meter-value { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  /* The slot is 8px with its border: 6px inside, so the fill (the track's height) sits inside the border. The tick reaches 4px past the slot, which the 4px margin above and below keeps clear. */
+  .meter-track { position: relative; box-sizing: content-box; height: calc(var(--basalt-space-2) - 2 * var(--basalt-size-hairline)); margin-block: var(--basalt-space-1); border: var(--basalt-size-hairline) solid var(--basalt-border-input); border-radius: var(--basalt-radius-full); background: transparent; }
+  /* The fill stops at the slot's end whatever --value says: over the cap the overage is in words. */
+  .meter-fill { position: absolute; inset-block-start: 0; inset-inline-start: 0; height: inherit; width: min(var(--value, 0%), 100%); border-radius: inherit; background: var(--basalt-text-primary); transition: width var(--basalt-duration-slow) var(--basalt-ease-out); }
+  /* The target: a 2px line in secondary ink, 4px past the slot on each side, with a cut (size-cut) on each side in the colour of the surface it sits on. The cut is a border, so forced colours keep it. */
+  .meter-tick { box-sizing: content-box; position: absolute; inset-block: calc(-1 * (var(--basalt-space-1) + var(--basalt-size-hairline))); inset-inline-start: var(--target); width: var(--basalt-size-indicator); margin-inline-start: calc(-1 * (var(--basalt-size-indicator) / 2 + var(--basalt-size-cut))); border-inline: var(--basalt-size-cut) solid var(--_cut); background: var(--basalt-text-secondary); background-clip: padding-box; }
+  .meter-foot { align-items: center; min-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; }
+  /* Over the cap the overage is words in primary ink: no status colour, no dot. */
+  .meter-left[data-over] { color: var(--basalt-text-primary); }
+  .meter-target { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); margin-inline-start: auto; white-space: nowrap; }
+  .meter-target::before { content: ""; width: var(--basalt-size-indicator); height: var(--basalt-space-2-5); background: var(--basalt-text-secondary); }
+
+  @media (forced-colors: active) {
+    .meter-track { background: Canvas; border-color: CanvasText; }
+    .meter-fill { forced-color-adjust: none; background: CanvasText; }
+    .meter-tick { forced-color-adjust: none; background: CanvasText; border-color: Canvas; }
+    .meter-target::before { forced-color-adjust: none; background: CanvasText; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meter-fill { transition: none; }
+  }
+  @media print {
+    .meter-track, .meter-fill, .meter-tick { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+}
