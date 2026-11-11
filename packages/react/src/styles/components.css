@@ -752,34 +752,34 @@
   }
 
   /* ---- Site structure: the site header, the narrow menu, the app shell and the phone tab bar (decisions 96) ----
-     The layout lengths below are written once, here, from today's tokens; batch 4 makes each a token and swaps this block.
-     Media queries cannot read custom properties, so the two breakpoints (720, where the links go into the menu and the
-     rail gives way to the tab bar, and 1024, where the sidebar becomes the rail) are written raw, each with its reason. */
+     The layout lengths are tokens (decision 101): size-header, size-tab-bar, size-sidebar-width, size-rail-width, size-page-width,
+     size-gutter and size-gutter-narrow. What a device adds to them is derived here and is not a token, because only the device
+     knows it: --basalt-gutter (the gutter, or the narrow one under 720), --basalt-sticky-offset (the bar plus the top safe area, the
+     `top` of anything sticky under it) and --basalt-bottom-offset (the tab bar plus the bottom safe area under 720 in an app with
+     one, else 0). A media query cannot read a custom property, so each breakpoint is written as a number in range syntax,
+     with a lint exception that names its token. */
   :root {
-    --_size-chrome: calc(var(--basalt-space-12) + var(--basalt-space-2));           /* 56: a bar's whole height, its line inside */
-    --_size-tabbar: var(--_size-chrome);                                             /* 56, plus the bottom safe area */
-    --_size-sidebar: calc(var(--basalt-space-16) * 4);                              /* 256 */
-    --_size-rail: calc(var(--basalt-space-16) + var(--basalt-space-2));              /* 72 */
-    --_size-content: calc(var(--basalt-space-24) * 12);                             /* 1152 (72rem): the site header's row */
-    --_gutter: var(--basalt-space-6);                                                /* 24, and 16 under 720 */
+    --basalt-gutter: var(--basalt-size-gutter);
     --_inset-top: env(safe-area-inset-top, var(--basalt-space-0));
     --_inset-left: env(safe-area-inset-left, var(--basalt-space-0));
     --_inset-right: env(safe-area-inset-right, var(--basalt-space-0));
     /* --_inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
     --_inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--_inset-bottom-sim, var(--basalt-space-0)));
-    --_sticky-offset: calc(var(--_size-chrome) + var(--_inset-top));                 /* what a sticky thing under a bar adds */
-    --_pad-left: max(var(--_gutter), var(--_inset-left));                            /* a bar's inline padding: the gutter or the side inset */
-    --_pad-right: max(var(--_gutter), var(--_inset-right));
+    --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--_inset-top));     /* what a sticky thing under a bar adds */
+    --basalt-bottom-offset: var(--basalt-space-0);
+    --_pad-left: max(var(--basalt-gutter), var(--_inset-left));                      /* a bar's inline padding: the gutter or the side inset */
+    --_pad-right: max(var(--basalt-gutter), var(--_inset-right));
   }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a custom property: 720 is where the links go into the menu */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu and the gutter narrows */
   @media (width < 720px) {
-    :root { --_gutter: var(--basalt-space-4); }
+    :root { --basalt-gutter: var(--basalt-size-gutter-narrow); }
+    :root:has(.basalt-tabbar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); }
   }
   /* A page with a bar keeps its scrollbar's room (a filter that shortens the page must not widen it) and scrolls anchors
      and focus clear of the sticky bar. */
   :root:has(.basalt-site-header, .basalt-app-header) {
     scrollbar-gutter: stable;
-    scroll-padding-top: calc(var(--_sticky-offset) + var(--basalt-space-4));
+    scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
   }
 
   /* The opaque form of the bar: the same bar without the layer, for a product whose content does not scroll under it. */
@@ -792,7 +792,7 @@
   /* The bar: 56 in all, border box, its 1px line inside; the top safe area is padding above it. The row is 55 with 1 on top,
      so what sits in it is centred on the bar's whole height (a 44 target has 6 above and 6 below, counting the line). */
   :is(.basalt-site-header, .basalt-app-header) {
-    height: var(--_sticky-offset);
+    height: var(--basalt-sticky-offset);
     padding-top: var(--_inset-top);
   }
   .basalt-site-bar,
@@ -800,11 +800,11 @@
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    height: calc(var(--_size-chrome) - var(--basalt-size-hairline));
+    height: calc(var(--basalt-size-header) - var(--basalt-size-hairline));
     padding-top: var(--basalt-size-hairline);
     padding-inline: var(--_pad-left) var(--_pad-right);
   }
-  .basalt-site-bar { max-width: var(--_size-content); margin-inline: auto; }
+  .basalt-site-bar { max-width: var(--basalt-size-page-width); margin-inline: auto; }
   .basalt-app-bar { gap: var(--basalt-space-2); }
   .basalt-bar-spacer { flex: 1 1 auto; }
   .basalt-bar-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-2); }
@@ -920,7 +920,7 @@
   /* Under 720 the links and the action leave the bar; the brand, the toggle and a Menu button stay. The bar's buttons are 44
      whatever the pointer, radius 8, and the glyph keeps IconButton's own 16. */
   .basalt-site-menu-trigger { display: none; }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a custom property: 720 is where the links go into the menu */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu */
   @media (width < 720px) {
     .basalt-site-links,
     .basalt-site-action { display: none; }
@@ -952,14 +952,14 @@
     transition: clip-path var(--basalt-duration-slower) var(--basalt-ease-out);
   }
   .basalt-sheet[data-side="top"][data-starting-style],
-  .basalt-sheet[data-side="top"][data-ending-style] { clip-path: inset(0 var(--_reach) calc(100% - var(--_sticky-offset)) var(--_reach)); }
+  .basalt-sheet[data-side="top"][data-ending-style] { clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-sticky-offset)) var(--_reach)); }
   .basalt-sheet-backdrop[data-side="top"] { transition-duration: var(--basalt-duration-slower); }
   .basalt-site-menu-band {
     box-sizing: border-box;
     display: flex;
     align-items: center;
     flex: none;
-    height: var(--_size-chrome);
+    height: var(--basalt-size-header);
     padding-top: var(--basalt-size-hairline);
     padding-inline: var(--_pad-left) var(--_pad-right);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
@@ -987,7 +987,7 @@
      edge, a 1px divider that is structure and never a mark. */
   .basalt-app-shell {
     display: grid;
-    grid-template-columns: var(--_size-sidebar) minmax(0, 1fr);
+    grid-template-columns: var(--basalt-size-sidebar-width) minmax(0, 1fr);
     min-height: 100dvh;
   }
   .basalt-app-column { min-width: 0; }
@@ -1012,7 +1012,7 @@
     display: flex;
     align-items: center;
     flex: none;
-    height: var(--_sticky-offset);
+    height: var(--basalt-sticky-offset);
     padding-top: var(--_inset-top);
     padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3));
   }
@@ -1022,34 +1022,34 @@
   .basalt-app-main {
     box-sizing: border-box;
     min-width: 0;
-    max-width: var(--_size-content);
+    max-width: var(--basalt-size-page-width);
     padding: var(--basalt-space-6) var(--_pad-right) var(--basalt-space-16) var(--_pad-left);
   }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a custom property: 720 and 1024 are where the tab bar gives way to the rail and the rail to the sidebar */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
   @media (width >= 720px) and (width < 1024px) {
-    .basalt-app-shell { grid-template-columns: var(--_size-rail) minmax(0, 1fr); }
+    .basalt-app-shell { grid-template-columns: var(--basalt-size-rail-width) minmax(0, 1fr); }
     .basalt-app-sidebar { padding-inline: 0; }
     .basalt-app-brand { justify-content: center; padding-inline: 0; }
     .basalt-app-brand-full { display: none; }
     .basalt-app-brand-rail { display: inline-flex; }
   }
   /* Under 720: no sidebar and no rail; the phone tab bar is the navigation. */
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a custom property: 720 is where the tab bar takes over */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the tab bar takes over */
   @media (width < 720px) {
     .basalt-app-shell { grid-template-columns: minmax(0, 1fr); }
     .basalt-app-sidebar { display: none; }
     /* The header's one primary leaves the bar under 720, as the site header's does; the app puts it elsewhere. */
     .basalt-app-header .basalt-button[data-variant="primary"] { display: none; }
-    .basalt-app-shell[data-tabbar] .basalt-app-main { padding-bottom: calc(var(--_size-tabbar) + var(--_inset-bottom) + var(--basalt-space-6)); }
+    .basalt-app-shell[data-tabbar] .basalt-app-main { padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6)); }
     /* Toasts sit above the tab bar. */
-    :root:has(.basalt-tabbar) .basalt-toast-viewport { bottom: calc(var(--_size-tabbar) + var(--_inset-bottom) + var(--basalt-space-4)); }
+    :root:has(.basalt-tabbar) .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
 
   /* The phone tab bar: solid surface-page for every product, a hairline on top, no shadow and no blur. 56 with the hairline
      inside, plus the bottom safe area; the side insets in landscape. Not shown from 720 up, and not in print. */
   .basalt-tabbar { display: none; }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a custom property: 720 is where the tab bar takes over */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the tab bar takes over */
   @media (width < 720px) {
     .basalt-tabbar {
       position: fixed;
@@ -1073,7 +1073,7 @@
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
-    height: calc(var(--_size-tabbar) - var(--basalt-size-hairline));
+    height: calc(var(--basalt-size-tab-bar) - var(--basalt-size-hairline));
     margin: 0;
     padding: 0;
     list-style: none;
@@ -2312,7 +2312,7 @@
 
   /* DescriptionList: a dl of div rows, on the page, with no rim and no level. The label column is a fixed width, never sized to
      its longest label, so every list on a page shares one value edge. The list is the container: it stacks (label over value)
-     when its own width, not the viewport's, is under 30rem (480px). */
+     when its own width, not the viewport's, is under size-breakpoint-container (480px). */
   .basalt-description-list { container-type: inline-size; margin: 0; padding: 0; font-family: var(--basalt-font-family-sans); }
   .basalt-description-item {
     display: grid;
@@ -2343,7 +2343,8 @@
   /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
   .basalt-description-details[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
   .basalt-description-details[data-missing] { color: var(--basalt-text-tertiary); }
-  @container (width < 30rem) {
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  @container (width < 480px) {
     .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
     /* several values stay space-1 apart: the row gap is already space-0-5 */
     .basalt-description-details + .basalt-description-details { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
@@ -2384,7 +2385,7 @@
     background: var(--basalt-text-primary);
     transition: width var(--basalt-duration-slow) var(--basalt-ease-out);
   }
-  /* The target: a 2px line in secondary ink, 4px past the slot on each side, with a 2px cut on each side in the colour of the surface
+  /* The target: a 2px line in secondary ink, 4px past the slot on each side, with a cut (size-cut, 2px) on each side in the colour of the surface
      it sits on. The cut is a border (not a shadow), so forced colours keep it. A labelled scale tick, never a mark of state. */
   .basalt-meter-tick {
     box-sizing: content-box;
@@ -2392,8 +2393,8 @@
     inset-block: calc(-1 * (var(--basalt-space-1) + var(--basalt-size-hairline)));
     inset-inline-start: var(--_target);
     width: var(--basalt-size-indicator);
-    margin-inline-start: calc(-1 * (var(--basalt-size-indicator) / 2 + var(--basalt-space-0-5)));
-    border-inline: var(--basalt-space-0-5) solid var(--_cut);
+    margin-inline-start: calc(-1 * (var(--basalt-size-indicator) / 2 + var(--basalt-size-cut)));
+    border-inline: var(--basalt-size-cut) solid var(--_cut);
     background: var(--basalt-text-secondary);
     background-clip: padding-box;
   }
@@ -2440,12 +2441,13 @@
   .basalt-terminal .basalt-code-line[data-kind="done"] .basalt-terminal-mark, .basalt-terminal-done { color: var(--basalt-status-success); }
   .basalt-terminal .basalt-code-line[data-kind="warning"] .basalt-terminal-mark { color: var(--basalt-status-warning); }
   .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-terminal-mark, .basalt-terminal-failed { color: var(--basalt-status-danger); }
-  /* The terminal is the container for its own head: under 30rem of its own width (as the description list stacks) the copy button is the
+  /* The terminal is the container for its own head: under 480px (size-breakpoint-container) of its own width (as the description list stacks) the copy button is the
      icon alone, whatever the viewport. */
   .basalt-terminal { container-type: inline-size; }
   .basalt-terminal-head { flex-wrap: wrap; column-gap: var(--basalt-space-3); }
   .basalt-terminal-actions .basalt-terminal-copy-compact { display: none; }
-  @container (width < 30rem) {
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  @container (width < 480px) {
     .basalt-terminal-actions .basalt-terminal-copy { display: none; }
     .basalt-terminal-actions .basalt-terminal-copy-compact { display: inline-flex; }
   }
@@ -2467,6 +2469,131 @@
     .basalt-code-title { box-shadow: none; border-bottom: var(--basalt-size-hairline) solid CanvasText; padding-bottom: calc(var(--basalt-space-1) - var(--basalt-size-hairline)); }
     /* Marks are icons, which keep their shapes; they take the system foreground as the callout's do. */
     .basalt-terminal .basalt-code-line[data-kind] .basalt-terminal-mark, .basalt-terminal .basalt-terminal-done, .basalt-terminal .basalt-terminal-failed, .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-code-text, .basalt-terminal-state [data-error] { color: CanvasText; }
+  }
+
+  /* A prose page's column is size-prose-width on the row's start edge, never centred. */
+  .basalt-prose { box-sizing: border-box; max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; min-width: 0; }
+
+  /* ---- Charts (decision 101): a series over time ----
+     Ink is the kind of value: primary was observed, secondary was planned, the input-boundary hatch is missing, divider is
+     structure and tertiary is a label. Series are told apart by dash, marker and name, never by colour. Every length is a
+     chart token; every colour a chart role. The chart draws in real pixels at its measured width, so its 12px text is 12px.
+     --_cut is the colour of the panel the chart sits on: the marker rings, the plan's cut out of a bar and a hollow mark. */
+  .basalt-chart {
+    --_cut: var(--_surface, var(--basalt-surface-page));
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: var(--basalt-space-4);
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-chart-group { display: flex; flex-direction: column; gap: var(--basalt-space-8); width: 100%; min-width: 0; }
+  .basalt-chart-head { display: flex; flex-direction: column; gap: var(--basalt-space-0-5); min-width: 0; }
+  .basalt-chart-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-chart-source { margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  /* The legend is the readout: the date it reads, then each key with its value for that day. Every value reserves the widest of its
+     forms (hidden copies share its cell), so picking a day changes words and moves nothing. 12/16, like the axes. */
+  .basalt-chart-key { display: flex; flex-direction: column; gap: var(--basalt-space-1); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-chart-date { display: inline-grid; margin: 0; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); white-space: nowrap; }
+  .basalt-chart-legend { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-5); margin: 0; padding: 0; list-style: none; }
+  .basalt-chart-entry { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .basalt-chart-swatch { flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); overflow: visible; }
+  .basalt-chart-name { color: var(--basalt-text-secondary); }
+  .basalt-chart-value { display: inline-grid; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-chart-date > *, .basalt-chart-value > * { grid-area: 1 / 1; }
+  .basalt-chart-value [data-missing] { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
+  .basalt-chart-reserve { visibility: hidden; }
+  /* The plot is the pointer's: a finger scrubs sideways and the page still scrolls up and down. */
+  .basalt-chart-plot {
+    position: relative;
+    min-height: calc(var(--basalt-size-chart-plot) + var(--basalt-text-xs-line-height) * 3 + var(--basalt-space-1) + var(--basalt-space-2));
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-chart-ruler { position: absolute; visibility: hidden; white-space: pre; pointer-events: none; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-chart-svg { display: block; overflow: visible; }
+  /* A new range fades in; the frame, the legend and the controls do not move. */
+  .basalt-chart-svg[data-entering] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-chart-svg text { font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; dominant-baseline: central; }
+  .basalt-chart-axis, .basalt-chart-lane { fill: var(--basalt-chart-axis); }
+  .basalt-chart-axis[data-active] { fill: var(--basalt-text-primary); }
+  .basalt-chart-direct { fill: var(--basalt-text-secondary); }
+  /* Gridlines are decorative, and a divider's weight. */
+  .basalt-chart-grid { stroke: var(--basalt-chart-grid); stroke-width: var(--basalt-size-hairline); shape-rendering: crispEdges; }
+  .basalt-chart-baseline { stroke: var(--basalt-chart-baseline); stroke-width: var(--basalt-size-hairline); shape-rendering: crispEdges; }
+  .basalt-chart-plate { fill: var(--basalt-state-selected); }
+  .basalt-chart-band { fill: var(--basalt-chart-band); }
+  .basalt-chart-band-edge { stroke: var(--basalt-chart-plan); stroke-width: var(--basalt-size-hairline); shape-rendering: crispEdges; }
+  .basalt-chart-hatch-line { stroke: var(--basalt-chart-missing); stroke-width: var(--basalt-size-hairline); }
+  .basalt-chart-bar { fill: var(--basalt-chart-observed); shape-rendering: crispEdges; }
+  .basalt-chart-bar[data-so-far] { fill: var(--_cut); stroke: var(--basalt-chart-observed); stroke-width: var(--basalt-size-chart-line); }
+  .basalt-chart-cut { fill: var(--_cut); shape-rendering: crispEdges; }
+  .basalt-chart-ring { fill: var(--_cut); }
+  .basalt-chart-plan { fill: none; stroke: var(--basalt-chart-plan); stroke-width: var(--basalt-size-chart-line); stroke-linecap: butt; shape-rendering: crispEdges; }
+  .basalt-chart-line { fill: none; stroke: var(--basalt-chart-observed); stroke-width: var(--basalt-size-chart-line); stroke-linejoin: round; stroke-linecap: round; }
+  .basalt-chart-line[data-dash="dash"] { stroke-dasharray: var(--basalt-size-chart-dash) var(--basalt-size-chart-dash-gap); stroke-linecap: butt; }
+  .basalt-chart-line[data-dash="dot"] { stroke-dasharray: 0 var(--basalt-size-chart-dash); }
+  .basalt-chart-mark { fill: var(--basalt-chart-observed); }
+  .basalt-chart-mark[data-so-far] { fill: var(--_cut); stroke: var(--basalt-chart-observed); stroke-width: var(--basalt-size-chart-line); }
+  /* One tab stop, one focusable image a day; the ring is the control ring at +2 round the day. */
+  .basalt-chart-days { position: absolute; inset: 0; pointer-events: none; }
+  .basalt-chart-day { position: absolute; border-radius: var(--basalt-radius-xs); outline: none; pointer-events: none; }
+  .basalt-chart-day:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-chart-hint { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-4); margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-chart-hint > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1); }
+  .basalt-chart-summary { max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  /* The figure's order on the page is the reader's: the summary sits under the plot; the table is disclosed last. */
+  .basalt-chart-summary { order: 1; }
+  .basalt-chart-foot { order: 2; display: flex; }
+  .basalt-chart-table { order: 3; }
+  .basalt-chart-table[hidden] { display: none; }
+  .basalt-chart-scroll-hint { margin: var(--basalt-space-2) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  /* The chart's table is the still table. Its date is a pinned row header: opaque at its row's level in every state, with the
+     hover wash laid over the panel's fill as one cell background. "Not observed" is tertiary with no mark. */
+  .basalt-chart-table tbody th {
+    height: var(--basalt-size-table-row);
+    padding: 0 var(--basalt-space-4);
+    background-color: var(--_surface, var(--basalt-surface-raised));
+    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    text-align: start;
+  }
+  .basalt-chart-not-observed { color: var(--basalt-text-tertiary); }
+  .basalt-chart-note { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    .basalt-chart-table tbody tr:hover > th { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-chart-table tbody tr:hover .basalt-chart-not-observed { color: var(--basalt-text-secondary); }
+  }
+  @media (pointer: coarse) {
+    .basalt-chart-table tbody th { height: var(--basalt-size-tap-min); }
+  }
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  @container (width < 480px) {
+    .basalt-chart-legend { column-gap: var(--basalt-space-4); }
+  }
+  @media (forced-colors: active) {
+    .basalt-chart-svg, .basalt-chart-swatch { forced-color-adjust: none; }
+    .basalt-chart-svg text { fill: CanvasText; }
+    .basalt-chart-axis[data-active] { fill: Highlight; }
+    /* The grid is decorative and drops, so the plan's GrayText is never mistaken for it. */
+    .basalt-chart-grid { stroke: none; }
+    .basalt-chart-hatch-line, .basalt-chart-band-edge, .basalt-chart-plan { stroke: GrayText; }
+    .basalt-chart-baseline { stroke: CanvasText; }
+    .basalt-chart-plate, .basalt-chart-band { fill: none; }
+    .basalt-chart-bar, .basalt-chart-mark { fill: CanvasText; }
+    .basalt-chart-bar[data-so-far], .basalt-chart-mark[data-so-far] { fill: Canvas; stroke: CanvasText; }
+    .basalt-chart-line { fill: none; stroke: CanvasText; }
+    .basalt-chart-cut, .basalt-chart-ring { fill: Canvas; }
+    .basalt-chart-day[data-active] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: var(--basalt-size-focus-offset); }
+    .basalt-chart-name, .basalt-chart-value, .basalt-chart-date, .basalt-chart-title { color: CanvasText; }
+    .basalt-chart-source, .basalt-chart-hint, .basalt-chart-value [data-missing], .basalt-chart-not-observed { color: GrayText; }
+    .basalt-chart-table tbody th { background-color: Canvas; background-image: none; }
   }
 
   /* ---- Accordion ---- */
@@ -2538,6 +2665,10 @@
   .basalt-chrome .basalt-chip-seat,
   .basalt-chrome .basalt-filter-count,
   .basalt-chrome .basalt-stat-source,
+  .basalt-chrome .basalt-chart-source,
+  .basalt-chrome .basalt-chart-hint,
+  .basalt-chrome .basalt-chart-value [data-missing],
+  .basalt-chrome .basalt-chart-not-observed,
   .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-preview-kicker { color: var(--basalt-text-secondary); }
 
