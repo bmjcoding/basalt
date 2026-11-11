@@ -1,14 +1,17 @@
 /* STAND-IN: the site header's behaviour, until the HTML skill gains the real module (finish-nov10, batch 7). With site-header.css.
    It is packages/react/src/site-header.tsx, at-top.ts and the navigation half of plate.tsx, ported to plain script, not redesigned.
 
-   What it does, once, as an init step of the skill's core script (so it needs no call of its own):
-   - upgrades the links the page wrote: each gets its pill and its label that reserves the 600 width;
+   The bar's markup is finished at build time (sites/header-markup.mjs: the link classes, pills and labels, the shared pill's element, the
+   Menu button, and the early report that the page opens at the top), so the bar in the first paint is the bar after this script runs and
+   this changes nothing in it. What it does, once, as an init step of the skill's core script (so it needs no call of its own):
+   - adopts that markup and wires it;
    - draws the one shared hover pill on the links and on the menu's rows (Nav's glide);
    - reports where the page is (data-top, data-jump on the header) from one IntersectionObserver on a sentinel at the top;
    - under 720 puts the Menu button in the bar and builds the narrow menu: a top sheet whose first row redraws the bar, then the
      links as glyphless Nav rows, then the bar's action. The skill has no Dialog, so the focus trap is here: focus lands on Close, Tab
      wraps inside, Escape and the scrim and Close and a link close it, focus goes back to Menu, widening past 720 closes it and
      focuses the current link in the bar, and the page under it is inert and does not scroll.
+   Nothing here changes a pixel of the bar, so nothing in it can start a transition on load; markup that was not built throws, loudly.
    Nothing runs when this file loads except the registration of that step.
 
    Differences from React, all listed in sites/test/site-header-parity.test.mjs: the skill has no MorphIcon, so Menu and Close swap
@@ -17,12 +20,13 @@
   'use strict';
   var _ = B._;
 
-  // The two glyphs, from packages/react/src/glyphs/menu.ts and close.ts as MorphIcon draws them settled at 16
+  // The two glyphs, from packages/react/src/glyphs/menu.ts and close.ts as MorphIcon draws them settled at 16 (named data-glyph: the core script
+  // replaces any [data-icon] with a Phosphor icon)
   // (sites/test/site-header-parity.test.mjs renders React's and fails if these two strings drift from it). The skill's icon set has no
   // Menu or Close glyph of the core set, so they live here; they are never redrawn.
   var GLYPH = {
-    menu: '<svg class="basalt-morph" data-icon="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>',
-    close: '<svg class="basalt-morph" data-icon="close" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7.05 7.05C10.35 10.35 13.65 13.65 16.95 16.95"></path><path d="M16.95 7.05C13.65 10.35 10.35 13.65 7.05 16.95"></path></g></svg>'
+    menu: '<svg class="basalt-morph" data-glyph="menu" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7C9.667 7 14.333 7 19 7"></path><path d="M5 12C9.667 12 14.333 12 19 12"></path><path d="M5 17C9.667 17 14.333 17 19 17"></path></g></svg>',
+    close: '<svg class="basalt-morph" data-glyph="close" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"><g fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7.05 7.05C10.35 10.35 13.65 13.65 16.95 16.95"></path><path d="M16.95 7.05C13.65 10.35 10.35 13.65 7.05 16.95"></path></g></svg>'
   };
   // Size-breakpoint-md (packages/tokens): below it the links and the action are in the menu.
   var WIDE = '(width >= 720px)';
@@ -199,20 +203,10 @@
     return node;
   }
 
-  function upgradeLinks(nav) {
-    var list = nav.querySelector('ul');
-    list.classList.add('basalt-site-links-list');
-    list.querySelectorAll('a').forEach(function (a) {
-      a.classList.add('basalt-site-link');
-      var label = el('span', 'basalt-site-label', { 'data-label': a.textContent.trim() });
-      label.textContent = a.textContent.trim();
-      var pill = el('span', 'basalt-site-pill');
-      pill.append(label);
-      a.textContent = '';
-      a.append(pill);
-    });
-    var plate = el('span', 'basalt-plate', { 'aria-hidden': 'true', 'data-state': 'off' });
-    nav.prepend(plate);
+  /** Wires the glide on the links. Their pills and the shared pill's element are in the built markup (sites/header-markup.mjs). */
+  function wireLinks(nav) {
+    var plate = nav.querySelector('.basalt-plate');
+    if (!plate) throw new Error('the site header is not built: its links have no shared pill (build the page with sites/build.mjs)');
     attachPlate(plate, '.basalt-site-link', '.basalt-site-pill');
   }
 
@@ -225,9 +219,9 @@
     var toggle = actions.querySelector('[data-theme-toggle]');
     var brand = bar.querySelector('.basalt-site-brand');
 
-    var trigger = el('button', 'btn basalt-site-menu-trigger', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'aria-label': menuLabel, 'aria-haspopup': 'dialog', 'aria-expanded': 'false' });
-    trigger.innerHTML = GLYPH.menu;
-    actions.append(trigger);
+    // The Menu button is in the built markup, under 720 where the links and the action are not in the bar.
+    var trigger = actions.querySelector('.basalt-site-menu-trigger');
+    if (!trigger) throw new Error('the site header is not built: it has no Menu button (build the page with sites/build.mjs)');
 
     var root = el('div', 'basalt-site-menu-root', { hidden: '' });
     root.style.display = 'contents';
@@ -376,7 +370,7 @@
     var bar = header.querySelector('.basalt-site-bar');
     var nav = header.querySelector('nav.basalt-site-links');
     var actions = header.querySelector('.basalt-bar-actions');
-    if (nav) upgradeLinks(nav);
+    if (nav) wireLinks(nav);
     if (actions && (nav || actions.querySelector('.basalt-site-action'))) buildMenu(header, bar, nav, actions);
     reportTop(header);
   }

@@ -13,7 +13,8 @@
 //
 // FILE is looked up by its first part: `shared/…` is sites/shared (the stand-ins), `brand/…` is the repo's brand/ (used byte for byte:
 // the file is never read through anything that changes it), and anything else is relative to the page's own folder and must stay inside
-// its site. An include inside an included file is not resolved. A file that is missing fails the build, naming the page and the include.
+// its site. An include inside an included file is not resolved. The site header's short markup is finished at build time
+// (header-markup.mjs): the built page carries the final bar, so nothing in it changes when the script runs. A file that is missing fails the build, naming the page and the include.
 //
 // Nothing runs when this file is imported: the tests call buildSites and buildPage.
 import fs from "node:fs";
@@ -21,6 +22,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { compose } from "../.agent/skills/basalt-html/compose.mjs";
+import { finishHeaders } from "./header-markup.mjs";
 
 export const sitesDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.dirname(sitesDir);
@@ -78,7 +80,8 @@ export function resolveIncludes(body, context) {
  */
 export function buildPage(bodyFile, { outFile, siteDir = path.dirname(bodyFile), sharedDir = path.join(sitesDir, "shared"), brandDir = path.join(repoRoot, "brand"), fonts = true } = {}) {
   const source = fs.readFileSync(bodyFile, "utf8");
-  const { body, includes } = resolveIncludes(source, { bodyFile, siteDir, sharedDir, brandDir });
+  // The header is finished on the page's own text, before the includes go in, so nothing an include holds can be taken for it.
+  const { body, includes } = resolveIncludes(finishHeaders(source, bodyFile), { bodyFile, siteDir, sharedDir, brandDir });
   let composed;
   try {
     composed = compose(body, { fonts });
