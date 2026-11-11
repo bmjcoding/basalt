@@ -46,6 +46,8 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
 - **accent** `data-accent="cobalt"`: the one accent, on `<html>` or a section; `none` turns it off.
 - **art** `var(--basalt-art-tone-2)`: tokens only (art tones, chart roles, aspects); greys only, never an accent.
+- **stage** `.stage`: first content after the bar, outside `.page`; art in `.stage-art`, never filtered; the bar stays smoked.
+- **framed-art** `.framed`: a `figure` for a one-version picture; `data-aspect` sets the box; always write `alt`.
 - **stats** `.stats`: never a row of boxed tiles; up to 3 figures.
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
 - **meter** `.meter`: not `.progress`; `--value` and `--target` are percentages; write `aria-valuetext`.

@@ -200,3 +200,29 @@ describe("the commands page matches its recorded baseline, pixel for pixel", () 
     }
   }
 });
+
+// The tenth parity PR (art): the stage under the site header with paired art, and framed art in every aspect, a card, and a failure, at rest. The existing baselines above did not move
+// but for the status callouts: a success, warning or danger callout's rim is now the status colour at 45% (DECISIONS 82), so the pages that draw one were re-recorded (see the PR).
+describe("the art page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "art.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("art") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          // Every frame has settled (loaded or failed), and its fade has run, before the page is read.
+          await page.waitForFunction(() => [...document.querySelectorAll(".framed-frame")].every((f) => ["loaded", "failed"].includes(f.dataset.phase)));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});

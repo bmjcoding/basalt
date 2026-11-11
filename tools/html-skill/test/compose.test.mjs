@@ -123,6 +123,16 @@ describe("what a body gets", () => {
     assert.ok(!compose("<p>x</p>", { fonts: false }).html.includes("--basalt-art-tone-2"), "a page with none carries none");
   });
 
+  test("the stage and framed art come by their own classes with the art tokens they read, and prose that merely names them gets none", () => {
+    assert.deepEqual(used('<section class="stage"><div class="stage-art"></div></section>'), ["art", "stage"]);
+    assert.deepEqual(used('<img class="paired-art" data-art="dark" src="a.webp" alt="">'), ["art", "stage"]);
+    assert.deepEqual(used('<figure class="framed"><div class="framed-frame"><img src="a.webp" alt="x"></div></figure>'), ["art", "framed-art"]);
+    assert.deepEqual(used("<p>The stage is the first screen of a framed page.</p>"), []);
+    const page = compose('<figure class="framed"><div class="framed-frame"><img src="a.webp" alt="x"></div></figure>', { fonts: false }).html;
+    assert.ok(page.includes("--basalt-aspect-photo:") && page.includes("wireFramedArt"), "the tokens and the script come with it");
+    assert.ok(!compose('<section class="stage"></section>', { fonts: false }).html.includes("wireFramedArt"), "a stage carries no frame script");
+  });
+
   test("a class written in a script's string, or className, or classList is seen", () => {
     assert.deepEqual(used("<script>el.innerHTML = '<div class=\"callout\"></div>'; Basalt.init();</script>"), ["callout"]);
     assert.deepEqual(used("<script>el.className = 'progress'; Basalt.init();</script>"), ["progress"]);
@@ -437,7 +447,7 @@ describe("modules map to the index and the usage texts", () => {
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
     // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
     // The app shell names the phone tab bar that goes in it; the tab bar names the sheet and the nav rows of its More cell (a page that uses them brings them by their own markup).
-    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"] };
+    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
