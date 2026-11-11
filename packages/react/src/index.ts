@@ -16,12 +16,15 @@ export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel } from "./tab
 export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsProps } from "./tabs";
 export {
   Badge,
+  BadgePair,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
+  ChoiceCard,
+  ChoiceCardGroup,
   Table,
   TableBody,
   TableCell,
@@ -30,10 +33,12 @@ export {
   TableHead,
   TableHeader,
   TableRow,
+  TableRowHead,
+  TableScrollHint,
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgeProps, BadgeStatus, SortDirection, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgePairProps, BadgeProps, BadgeStatus, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
 export { MultiSelect } from "./filter";
 export type { MultiSelectOption, MultiSelectProps } from "./filter";
 export { FilterResult } from "./filter-result";
@@ -64,6 +69,8 @@ export { Terminal } from "./terminal";
 export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStatus } from "./terminal";
 export { NumberTicker } from "./number-ticker";
 export { Spinner } from "./spinner";
+export { loopsBootstrap, useLoops } from "./loops";
+export type { LoopsState } from "./loops";
 export { preloadCodeLanguages } from "./syntax";
 export type { AccordionItemProps, AccordionProps, CalloutProps, CalloutStatus, CodeBlockProps, PopoverCloseProps, PopoverContentProps, PopoverProps, PopoverTriggerProps, ProgressProps, SkeletonProps, TextareaProps } from "./feedback";
 export type { NumberTickerProps } from "./number-ticker";

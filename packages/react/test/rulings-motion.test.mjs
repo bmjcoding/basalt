@@ -109,7 +109,8 @@ describe("the spinners", () => {
     }
     assert.deepEqual(sizes, {
       16: { w: 6, h: 10, rootW: 6, rootH: 10, whole: true, dot: 2 },
-      20: { w: 9, h: 15, rootW: 9, rootH: 15, whole: true, dot: 3 },
+      // the 9 by 15 cell sits in a 9 by 16 box, one hairline below (DECISIONS 99), so it centres on whole pixels in an even line
+      20: { w: 9, h: 15, rootW: 9, rootH: 16, whole: true, dot: 3 },
       24: { w: 12, h: 20, rootW: 12, rootH: 20, whole: true, dot: 4 },
     }, "the square size box no longer applies to braille");
     await page.close();

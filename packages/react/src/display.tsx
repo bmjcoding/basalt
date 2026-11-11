@@ -4,10 +4,13 @@ import * as React from "react";
 
 import { ArrowDownGlyph } from "./glyphs/arrow-down";
 import { ArrowUpGlyph } from "./glyphs/arrow-up";
+import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { inLevel, usePanelLevel } from "./layers";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
+import { StatusSizeContext } from "./status-size";
+import type { StatusSize } from "./status-size";
 import type { Side } from "./types";
 import { join } from "./utils";
 
@@ -18,26 +21,67 @@ export { Kbd } from "./kbd";
 /**
  * `accent` paints the dot in the product's accent class (`data-accent` on its root; see foundations), and nothing else: the word stays ink.
  * With no class, or none, it is an ink dot. Use it only for the product's council-approved accent role.
+ * `pending` is waiting (or in review, or queued): a hollow ring in the word's own ink, in the dot's seat, with no colour.
+ * The app's word says what is pending.
  */
-export type BadgeStatus = "neutral" | "success" | "warning" | "danger" | "accent";
+export type BadgeStatus = "neutral" | "success" | "warning" | "danger" | "accent" | "pending";
 
-export interface BadgeProps extends React.ComponentProps<"span"> {
+export type BadgeProps = React.ComponentProps<"span"> & {
   /** A status dot before the label. The label always says the status in words; the dot never carries it alone. */
   status?: BadgeStatus;
-  /**
-   * `outline` (default): a small hairline label. `plain`: dot and text only, for places a
-   * status repeats down a column, such as table cells, where a pill on every row is noise.
-   */
-  variant?: "outline" | "plain";
-}
+} & (
+    | {
+        /**
+         * `outline` (default): a small hairline label. `plain`: dot and text only, for places a
+         * status repeats down a column, such as table cells, where a pill on every row is noise.
+         */
+        variant?: "outline";
+        size?: never;
+      }
+    | {
+        variant: "plain";
+        /**
+         * The size of the mark's seat, which follows its word's cap height: 16 beside text of 12 to 16px (the default, and what
+         * shipped), 20 beside 18 to 24px, 24 beside 30px and up. The seat is the braille cell's width (6, 9 or 12) and the gap
+         * after it is as wide, so words start at 12, 18 and 24 whichever mark is in the seat. The 6px dot centres in the seat on
+         * whole pixels. A running status is a plain badge whose first child is a braille `Spinner`, which takes this size.
+         */
+        size?: StatusSize;
+      }
+  );
 
 /** A small label, e.g. a deployment state. Neutral; colour only in the dot. */
-export function Badge({ status = "neutral", variant = "outline", className, children, ...props }: BadgeProps) {
-  return (
-    <span {...props} data-status={status} data-variant={variant} className={join("basalt-badge", className)}>
+export function Badge({ status = "neutral", variant = "outline", size, className, children, ...props }: BadgeProps) {
+  const plain = variant === "plain";
+  const badge = (
+    <span {...props} data-status={status} data-variant={variant} data-size={plain ? size ?? 16 : undefined} className={join("basalt-badge", className)}>
       {status === "neutral" ? null : <span className="basalt-badge-dot" aria-hidden="true" />}
       {children}
     </span>
+  );
+  return plain ? <StatusSizeContext.Provider value={size ?? 16}>{badge}</StatusSizeContext.Provider> : badge;
+}
+
+export interface BadgePairProps extends Omit<React.ComponentProps<"div">, "children"> {
+  /** The object's name. It keeps its line; it truncates only when it alone is wider than the row. */
+  name: React.ReactNode;
+  /** The one status, right after the name. A `Badge` with a `status`. Never two statuses on one object. */
+  status?: React.ReactElement<BadgeProps>;
+  /** One neutral fact after the status: an environment, a plan, "Demo". A third fact goes in words. */
+  fact?: React.ReactElement<BadgeProps>;
+}
+
+/**
+ * A name with at most two badges: the status first, then one neutral fact, `space-2` apart and `space-2` after the name. When
+ * the name and the pair don't fit on one line the pair moves under the name as a unit. A badge never truncates. Spoken in
+ * DOM order: the name, the status, the fact.
+ */
+export function BadgePair({ name, status, fact, className, ...props }: BadgePairProps) {
+  return (
+    <div {...props} className={join("basalt-badge-pair", className)}>
+      <span className="basalt-badge-pair-name">{name}</span>
+      {status || fact ? <span className="basalt-badge-pair-badges">{status}{fact}</span> : null}
+    </div>
   );
 }
 
@@ -67,6 +111,63 @@ export function CardContent({ className, ...props }: React.ComponentProps<"div">
 
 export function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return <div {...props} className={join("basalt-card-footer", className)} />;
+}
+
+export interface ChoiceCardProps extends Omit<React.ComponentProps<"input">, "type" | "title" | "children" | "size" | "onChange"> {
+  /** Any of many (a checkbox) when set; one of many (a radio) otherwise. Radios sharing a `name` are one group. */
+  multiple?: boolean;
+  /** The card's name. It sits on the header line, with the box inline-end of it. */
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  /** The rest of the card. */
+  children?: React.ReactNode;
+  /** Called with the new checked state. For a radio it is called when this card becomes the choice. */
+  onCheckedChange?: (checked: boolean, event: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Goes on the card (the `label`), not the input. */
+  className?: string;
+}
+
+/**
+ * A card you can choose: a native radio or checkbox wearing a card. The whole card is the label, the input is visually
+ * hidden and focusable, and a real choice box sits in a seat on the header line that is reserved on every choice card, so
+ * choosing moves no title. Selected is the selected wash as one solid fill at the card's own level, with the rim and level
+ * unchanged. Plain `Card` takes no selected prop. Put the cards of one choice in a `ChoiceCardGroup`.
+ */
+export function ChoiceCard({ multiple = false, title, description, children, onCheckedChange, className, ...props }: ChoiceCardProps) {
+  const level = usePanelLevel();
+  const id = React.useId();
+  const titleId = `${id}-title`;
+  const descriptionId = `${id}-description`;
+  return (
+    <label data-level={level} data-type={multiple ? "checkbox" : "radio"} className={join("basalt-card basalt-choice-card", className)}>
+      <input
+        {...props}
+        type={multiple ? "checkbox" : "radio"}
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        className="basalt-choice-card-input"
+        onChange={(event) => onCheckedChange?.(event.currentTarget.checked, event)}
+      />
+      <span className="basalt-choice-card-head">
+        <span id={titleId} className="basalt-card-title basalt-choice-card-title">{title}</span>
+        <span className="basalt-choice-card-box" aria-hidden="true">
+          {multiple ? <Icon icon={CheckGlyph} size={16} className="basalt-choice-card-mark" /> : <span className="basalt-choice-card-dot" />}
+        </span>
+      </span>
+      {description ? <span id={descriptionId} className="basalt-card-description basalt-choice-card-description">{description}</span> : null}
+      {children ? <span className="basalt-choice-card-body">{inLevel(level, children)}</span> : null}
+    </label>
+  );
+}
+
+export interface ChoiceCardGroupProps extends React.ComponentProps<"div"> {
+  /** Any of many (`group`) when set; one of many (`radiogroup`) otherwise. Name it with `aria-label` or `aria-labelledby`. */
+  multiple?: boolean;
+}
+
+/** The cards of one choice, in a grid with `space-4` between them, which keeps each one's focus ring clear of its neighbours. */
+export function ChoiceCardGroup({ multiple = false, className, ...props }: ChoiceCardGroupProps) {
+  return <div {...props} role={multiple ? "group" : "radiogroup"} className={join("basalt-choice-card-group", className)} />;
 }
 
 // ---- Table ----
@@ -245,8 +346,65 @@ export function TableHead({ numeric, sort, onSortChange, firstSort, className, c
   );
 }
 
-export function TableCell({ numeric, mono, className, ...props }: React.ComponentProps<"td"> & { numeric?: boolean; mono?: boolean }) {
-  return <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} className={className} />;
+/**
+ * The header of one row: a `th scope="row"` in the body, in the row's own type (13/18 at 500, primary, start-aligned) on the
+ * row's own fill, so the washes run through it. It has no band and never sorts. When the table pins a column, the row
+ * header is the pinned name column.
+ */
+export function TableRowHead({ className, ...props }: React.ComponentProps<"th">) {
+  return <th scope="row" {...props} className={className} />;
+}
+
+export interface TableCellProps extends React.ComponentProps<"td"> {
+  numeric?: boolean;
+  mono?: boolean;
+  /**
+   * No reading was taken: the cell says "Not observed" in tertiary ink, with no mark, ending on the numbers' edge in a numeric
+   * column. It is not zero (`0` is a digit in primary) and not empty (an empty string stays blank). Children replace the words,
+   * for translation. A not-observed value sorts after every observed value in both directions: see foundations.
+   */
+  notObserved?: boolean;
+}
+
+export function TableCell({ numeric, mono, notObserved, className, children, ...props }: TableCellProps) {
+  return (
+    <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
+      {notObserved && children === undefined ? "Not observed" : children}
+    </td>
+  );
+}
+
+export interface TableScrollHintProps extends Omit<React.ComponentProps<"p">, "children"> {
+  /** The line, from the table's column count. Default "Scroll sideways to see all 6 columns". */
+  label?: (columns: number) => string;
+}
+
+const defaultHint = (columns: number) => `Scroll sideways to see all ${columns} columns`;
+
+/**
+ * One line under a `TableContainer` that is wider than its box: "Scroll sideways to see all 6 columns". Put it directly after
+ * the container. It shows only while the table overflows, is `aria-hidden` (a screen reader reaches every cell), and never
+ * changes while the table scrolls, so nothing in the table moves. The count is the table's.
+ */
+export function TableScrollHint({ label = defaultHint, className, ...props }: TableScrollHintProps) {
+  const node = React.useRef<HTMLParagraphElement | null>(null);
+  const [columns, setColumns] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const frame = node.current?.previousElementSibling;
+    if (!(frame instanceof HTMLElement) || !frame.classList.contains("basalt-table-container")) return undefined;
+    const measure = () => {
+      const table = frame.querySelector("table");
+      const count = table ? (table.querySelectorAll("colgroup > col").length || table.querySelector("tr")?.children.length || 0) : 0;
+      setColumns(frame.scrollWidth > frame.clientWidth ? count : 0);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    const table = frame.querySelector("table");
+    if (table) observer.observe(table);
+    return () => observer.disconnect();
+  }, []);
+  return <p {...props} ref={node} aria-hidden="true" hidden={columns === 0} className={join("basalt-table-hint", className)}>{columns ? label(columns) : null}</p>;
 }
 
 export interface TableEmptyProps extends Omit<React.ComponentProps<"td">, "colSpan"> {

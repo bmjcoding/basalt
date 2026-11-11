@@ -94,7 +94,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
   hairline, a check, or a checked box. One state, one look, across components (tabs,
-  segments, pagination, table rows). **There is no vertical bar and no inset outline
+  segments, pagination, table rows, choice cards and pressed toggle buttons). **There is no vertical bar and no inset outline
   anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
   flush-field −2 inset (so does a phone tab bar cell, which is itself a link), and these structural vertical lines, each
   named and never a selection, sort, active or status mark: the 1px divider at a pinned table column's edge while the table
