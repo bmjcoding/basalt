@@ -39,6 +39,35 @@ A path with no `shared/` or `brand/` in front is relative to the page and must s
 resolved. A built page has no path into the repo and makes no network request. The files in `brand/` are never redrawn, recoloured,
 cropped or edited, not even to drop an element (`brand/README.md`).
 
+**The header's markup is finished at build time** (`sites/header-markup.mjs`). A page writes the short form, as in
+`sites/test/fixtures/sample/index.body.html`:
+
+```html
+<header class="basalt-chrome basalt-site-header" [data-solid] [data-menu-label="Menu"]>
+  <div class="basalt-site-bar">
+    <a class="basalt-site-brand" href="/" aria-label="Sample home"><span class="basalt-site-brand-mark">Sample</span></a>
+    <nav class="basalt-site-links" aria-label="Primary"><ul><li><a href="/docs" aria-current="page">Docs</a></li> …</ul></nav>
+    <span class="basalt-bar-spacer"></span>
+    <div class="basalt-bar-actions">
+      <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+      <span class="basalt-site-action"><a class="btn" data-variant="primary" href="/start">Get started</a></span>
+    </div>
+  </div>
+</header>
+```
+
+and the built page carries the final bar: each link's `basalt-site-link` class, pill and label (which reserves the current page's 600
+width), the shared hover pill's element, the Menu button, and a one-line report that the page opens at the top (not for `data-solid`).
+So **the bar in the first paint is the bar after the script runs**: the script only wires behaviour (the glide, the menu's opening, focus,
+the clear bar's report) and builds the closed menu, which is invisible until used. The theme toggle's icon is the one thing the skill's own
+script draws. A link may carry only `href` and `aria-current`, its label is plain text, the actions are the toggle and one
+`.basalt-site-action`, and a page has one header; anything else fails the build, naming the page. Choose the form by the page: smoked is the
+default, `data-solid` is solid, and the bar is clear over a `.basalt-stage[data-headroom]` that follows it.
+
+**With scripts off**, a page at 1440 and above 720 shows the same bar, with real links. Under 720 there is no Menu button (nothing could open
+it): the links are on a second row of the bar under the brand and the action stays beside the toggle, so every link is reachable. A page
+with a stage and no script has the smoked bar, which is decided; with script it is the clear one.
+
 ## Add a site, or a page
 
 1. Make `sites/SITE/index.body.html` (the skill's SKILL.md says what a body is). Put its own CSS and script in files beside it and
@@ -60,7 +89,7 @@ redesigning them:
 
 - `site-header.css` and `site-header.js`: the smoked, solid and clear bar, the brand slot, the links with Nav's glide, the theme toggle,
   the one action, and the narrow menu (a top sheet with a real focus trap, Escape, focus return, an inert page and opacity only under
-  reduced motion). The page writes the bar's markup and the script builds the pill spans, the Menu button and the menu from it.
+  reduced motion). The page writes the short markup, the build finishes it (above), and the script wires it and builds the closed menu.
 - `stage.css`: the stage and the paired art's dark and light switch. It has no art of its own.
 
 Their class names are React's (`basalt-site-header`, `basalt-stage`, …), so `sites/test/site-header-parity.test.mjs` and

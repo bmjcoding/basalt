@@ -312,6 +312,20 @@
     }
   }
 
+  /* ---- Under 720 with no script ----
+     The Menu button opens a menu that only script can open, so where script is off the bar does not offer it: the links are in the bar,
+     on a second row under the brand, and the action stays beside the toggle. The bar grows to hold them; it is a plain page, not the
+     decided bar, and it keeps every link reachable. Where script runs this does not apply, so the bar is the decided one from the first paint. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links would go into the menu */
+  @media (scripting: none) and (width < 720px) {
+    .basalt-site-header { height: auto; }
+    .basalt-site-bar { flex-wrap: wrap; height: auto; }
+    .basalt-site-links { display: flex; order: 1; flex: 1 0 100%; margin-inline-start: calc(-1 * var(--basalt-space-0-5)); }
+    .basalt-site-links-list { flex-wrap: wrap; }
+    .basalt-site-action { display: inline-flex; }
+    .basalt-site-menu-trigger { display: none; }
+  }
+
   /* ---- The narrow menu: Sheet side="top" ----
      The bar's own band at once, the rest unrolling beneath it from the band's edge (a clip, over duration-slower on ease-out;
      closing at 0.75 on ease-in). Level 1, the scrim, shadow-modal, bottom corners 16. As tall as its content; scrolls inside at
