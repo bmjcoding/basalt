@@ -175,6 +175,8 @@ line per module, so an agent pays for the modules its page uses and no more. The
 `tools/html-skill/` (its README says how to add a module); edit those and run `npm run build`, never the files in the
 skill folder.
 
+The four sites' pages (`sites/`) are HTML-skill pages too: `sites/README.md` says how they are laid out and built.
+
 ## Checks
 
 | Command | What it checks | When |

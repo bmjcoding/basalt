@@ -1,0 +1,22 @@
+<title>Sample brand</title>
+<!-- A fixture, not a site: a page that includes files from brand/ (an inline SVG hero, its motion CSS, an image as a data: URL), so the checks
+     on every brand/ file a page includes have one to run on. It has no design. -->
+<!-- @include shared/site-header.css -->
+<!-- @include brand/motion/one-bridge.css -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="basalt-chrome basalt-site-header" data-solid>
+  <div class="basalt-site-bar">
+    <a class="basalt-site-brand" href="#top" aria-label="Sample home"><span class="basalt-site-brand-mark">Sample</span></a>
+    <span class="basalt-bar-spacer"></span>
+    <div class="basalt-bar-actions">
+      <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+    </div>
+  </div>
+</header>
+<main id="main" class="page">
+  <h1>A sample page with brand files</h1>
+  <p class="lead">Synthetic text.</p>
+  <!-- @include brand/blacksand/hero.html -->
+  <img alt="" width="32" height="32" src="<!-- @data brand/blacksand/png/favicon-32-on-dark.png -->">
+</main>
+<!-- @include shared/site-header.js -->
