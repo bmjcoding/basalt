@@ -1,15 +1,16 @@
 // The sliding pill (SegmentedControl, vertical Tabs) and the hover glide (Menu, Select, Combobox, CommandMenu), council item
 // 69 and owner item 70. Driven in Chromium against the built package with the real stylesheet. The shared pill and the shared
 // plate are enhancements over each item's own: where they are off (no JS, touch, reduced motion, forced colours) the item
-// paints its own, and the tests prove that fallback as well as the motion. Timings are real-time with a wide margin: they
-// show the shape of the motion (a transition on transform, 150 or 200ms, ease-out), not a frame count.
+// paints its own, and the tests prove that fallback as well as the motion. The tests that sample a move part-way through
+// freeze animation time and move it by hand (freezeAnimations in support.mjs): they show the shape of the motion (a transition
+// on transform, 150 or 200ms, ease-out), not a frame count, and no load on the machine can change what they read.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, pkg, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, pkg, settle, tick } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -19,7 +20,9 @@ after(async () => { await browser?.close(); });
 const render = (jsx) => `createRoot(document.getElementById("root")).render(${jsx});`;
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
-const wait = (page, ms) => page.waitForTimeout(ms);
+// Real time, or animation time once a test has frozen it (freezeAnimations): the mid-motion tests freeze it, so a busy machine
+// cannot let a transition run out between an action and the reading of it.
+const wait = tick;
 
 const segmented = `<B.SegmentedControl aria-label="Range" defaultValue="a"><B.Segment value="a">One</B.Segment><B.Segment value="b">Second</B.Segment><B.Segment value="c">Third one</B.Segment></B.SegmentedControl>`;
 const vertical = `<B.Tabs orientation="vertical" defaultValue="a"><B.TabsList aria-label="Sections"><B.Tab value="a">Account</B.Tab><B.Tab value="b">Billing</B.Tab><B.Tab value="c">Access keys</B.Tab><B.Tab value="d">Notifications</B.Tab></B.TabsList><B.TabsPanel value="a">A</B.TabsPanel><B.TabsPanel value="b">B</B.TabsPanel><B.TabsPanel value="c">C</B.TabsPanel><B.TabsPanel value="d">D</B.TabsPanel></B.Tabs>`;
@@ -79,7 +82,7 @@ describe("the sliding pill", () => {
 
     test(`${name}: choosing travels by transform and size on duration-slow with ease-out, whatever the distance`, async () => {
       const { page } = await fixturePage(browser, render(spec.fixture), { theme: "dark" });
-      await settle(page);
+      await freezeAnimations(page);
       const items = page.locator(spec.item);
       const durations = [];
       for (const index of [1, 2]) {
@@ -105,23 +108,24 @@ describe("the sliding pill", () => {
 
     test(`${name}: a second change 60ms into a move turns the pill from where it is`, async () => {
       const { page } = await fixturePage(browser, render(spec.fixture), { theme: "dark" });
-      await settle(page);
-      const result = await page.evaluate(async ({ root, item, axis }) => {
+      const clock = await freezeAnimations(page);
+      // time moves only when the clock is advanced, so each reading is of a known instant of the move
+      const at = () => page.evaluate(({ root, axis }) => { const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector(`${root} > .basalt-pill`)).transform); return axis === "x" ? m.m41 : m.m42; }, spec);
+      const start = await at();
+      await page.evaluate(({ item }) => { const items = [...document.querySelectorAll(item)]; items[items.length - 1].click(); }, spec);
+      await clock.advance(60);
+      const mid = await at();
+      const turn = await page.evaluate(({ root, item, axis }) => {
         const pill = document.querySelector(`${root} > .basalt-pill`);
         const items = [...document.querySelectorAll(item)];
-        const at = () => { const m = new DOMMatrixReadOnly(getComputedStyle(pill).transform); return axis === "x" ? m.m41 : m.m42; };
-        const start = at();
-        items[items.length - 1].click();
-        await new Promise((r) => setTimeout(r, 60));
-        const mid = at();
+        const now = () => { const m = new DOMMatrixReadOnly(getComputedStyle(pill).transform); return axis === "x" ? m.m41 : m.m42; };
         items[1].click(); // the turn
-        const justAfter = at();
-        const types = pill.getAnimations().map((a) => a.constructor.name);
-        await new Promise((r) => setTimeout(r, 40));
-        const later = at();
-        await Promise.all(pill.getAnimations().map((a) => a.finished.catch(() => {})));
-        return { start, mid, justAfter, later, end: at(), types, target: axis === "x" ? items[1].offsetLeft : items[1].offsetTop, far: axis === "x" ? items[items.length - 1].offsetLeft : items[items.length - 1].offsetTop };
+        return { justAfter: now(), types: pill.getAnimations().map((a) => a.constructor.name), target: axis === "x" ? items[1].offsetLeft : items[1].offsetTop, far: axis === "x" ? items[items.length - 1].offsetLeft : items[items.length - 1].offsetTop };
       }, spec);
+      await clock.advance(40);
+      const later = await at();
+      await settle(page);
+      const result = { start, mid, later, end: await at(), ...turn };
       assert.ok(result.mid > result.start + 4 && result.mid < result.far - 1, `in flight at 60ms: ${JSON.stringify(result)}`);
       near(result.justAfter, result.mid, "the turn starts where the pill is, with no snap back or ahead", Math.abs(result.far - result.start) * 0.08);
       assert.ok(result.later < result.mid + 1 && result.later > result.target - 1, "then heads back to the second item");
@@ -132,12 +136,12 @@ describe("the sliding pill", () => {
 
     test(`${name}: the chosen label's ink changes at the press, over duration-fast, without waiting for the pill`, async () => {
       const { page } = await fixturePage(browser, render(spec.fixture), { theme: "dark" });
-      await settle(page);
-      const result = await page.evaluate(async ({ root, item }) => {
+      const clock = await freezeAnimations(page);
+      await page.evaluate(({ item }) => { [...document.querySelectorAll(item)][2].click(); }, spec);
+      await clock.advance(16); // the frame after the press
+      const result = await page.evaluate(({ root, item }) => {
         const pill = document.querySelector(`${root} > .basalt-pill`);
         const target = [...document.querySelectorAll(item)][2];
-        target.click();
-        await new Promise((r) => requestAnimationFrame(r));
         const ink = target.getAnimations().find((a) => a.transitionProperty === "color");
         return { ink: ink && { duration: ink.effect.getTiming().duration, easing: ink.effect.getTiming().easing, playState: ink.playState }, pill: pill.getAnimations().length, bgFade: target.getAnimations().some((a) => a.transitionProperty === "background-color") };
       }, spec);
@@ -387,6 +391,7 @@ for (const [name, spec] of Object.entries(popups)) {
 
     test("entering from outside, the plate appears in place at once, with no flight from a stale row", async () => {
       const page = await open(spec);
+      await freezeAnimations(page);
       if (spec.persistent) {
         // cmdk always has one row selected, and the plate keeps it lit: there is no "outside" to enter from, so the plate
         // is already on the selected row at open and glides from there, as it does between any two rows.
@@ -408,6 +413,7 @@ for (const [name, spec] of Object.entries(popups)) {
 
     test("between rows it travels on duration-base with ease-out, whatever the distance", async () => {
       const page = await open(spec);
+      await freezeAnimations(page);
       await pointAt(page, spec, 0);
       await wait(page, 60);
       const durations = [];
@@ -434,6 +440,7 @@ for (const [name, spec] of Object.entries(popups)) {
 
     test("leaving mid-move freezes the plate where it is and fades it in place over duration-fast on ease-in", async () => {
       const page = await open(spec);
+      await freezeAnimations(page);
       if (spec.persistent) {
         // cmdk never clears its selection, so the plate stays lit and keeps its row when the pointer leaves (#27).
         await pointAt(page, spec, 4);
@@ -474,6 +481,7 @@ for (const [name, spec] of Object.entries(popups)) {
 
     test("grace: a return during the fade travels from where the plate is and returns to full opacity; after the fade it appears in place", async () => {
       const page = await open(spec);
+      await freezeAnimations(page);
       if (spec.persistent) {
         // no fade happens, so there is nothing to return into: leaving and coming back never dims the plate
         await pointAt(page, spec, 4);
@@ -649,6 +657,7 @@ describe("the hover glide: how each popup behaves when the pointer leaves", () =
       const wrapped = { ...spec, fixture: spec.fixture.replace("createRoot(document.getElementById(\"root\")).render(", `window.__commits = 0; createRoot(document.getElementById("root")).render(<React.Profiler id="p" onRender={() => { window.__commits += 1; }}>`).replace(/\);$/, "</React.Profiler>);") };
       // the replace above wraps the whole tree: `render(<>…</>)` becomes render(<Profiler><>…</></Profiler>)
       const page = await open(wrapped);
+      await freezeAnimations(page);
       await pointAt(page, wrapped, 0);
       await wait(page, 60);
       await pointAt(page, wrapped, 4);

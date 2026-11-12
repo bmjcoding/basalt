@@ -1,5 +1,5 @@
 {
-  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). Raised in the second parity PR (popup rows, levels and the segment's pill): segment 1400 to 3700 (the shared sliding pill: its script, 1.5 KB, and its CSS with the pill's two fallbacks), rows 3600 to 4300 (#27's plate-in-a-row geometry, the plate per level, the glide's shared plate and the forced-colours lit row, net of the removed bar), palette 9400 to 11300 (the glide's script, 2.4 KB: it follows the lit row, travels on a pointer, snaps on a key, and fades in place on leaving). The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses.",
+  "$comment": "Which parts of the skill's CSS and JS a page gets. The core is always in. A module is in when the page's body has one of its classes, attributes or tags, matches one of its text patterns, or is named in a <!-- basalt:use name --> comment, and when another module needs it (requires). Modules are added in the order listed here, which is the order of the source files' cascade. classes: every class the module's CSS styles (the test checks them against the CSS and against SKILL.md). budget: the most bytes its minified CSS and JS may reach together. budgets: skillMd (SKILL.md, the context an agent pays: never above what it was), core (the CSS and JS of every page). icons: Phosphor names the module's script draws itself. Raised in the first parity PR (the owner's \"bring up the parity\"): forms (the number-input, search-clear and file-input chrome), disclosure (the native details marker), status (the accent reader and the forced-colours badge border), spinner (a fixed 16px ring), and the new number, range and accent modules. skillMd rose 10555 to 10900 for the new rules (number field, native chrome, the braille rule, the accent). Raised in the second parity PR (popup rows, levels and the segment's pill): segment 1400 to 3700 (the shared sliding pill: its script, 1.5 KB, and its CSS with the pill's two fallbacks), rows 3600 to 4300 (#27's plate-in-a-row geometry, the plate per level, the glide's shared plate and the forced-colours lit row, net of the removed bar), palette 9400 to 11300 (the glide's script, 2.4 KB: it follows the lit row, travels on a pointer, snaps on a key, and fades in place on leaving). The every-module page has no cap of its own (owner, DECISIONS 79): each part is capped, and a page carries only the parts it uses. usage: the most bytes of a module's usage text (src/usage/NAME.md; core.usage for core.md), which compose.mjs --usage prints on demand. It is context an agent pays only for the modules its page uses, so it is capped per part as SKILL.md and the CSS and script are (DECISIONS 79 and 109). Each is set a little above what its text was when the usage moved out of SKILL.md (DECISIONS 109); raising one needs a reason in the PR, and a rise of 40 to 50% is the owner's. textWords: each text pattern said in words, which compose.mjs --usage prints instead of the regular expression (one for each entry of text, in order). builds: modules a module requires whose markup its script writes, so --usage prints a line saying so instead of their usage text (the palette builds its own rows and key chips). The council's clarity check of the usage texts (all three: not yet clear) raised eight caps because the texts gained what an agent had to guess: callout 200 to 700 (the icon and one wrapper div around the title and body as markup, the four status icons, the role React's Callout renders), palette 1100 to 1300 (an item shown whole, keys as an array, keywords), stats 450 to 800 (a snippet of the figures and of the dl), tabs 500 to 650 (the unselected panels), code 250 to 450 (the markup and what each token class means), segment 150 to 300 (a click does not switch it), progress 150 to 350 (the empty span that paints the fill), theme 250 to 400 (leave the button empty), and accent 250 to 300. Topbar went down, 700 to 500, as its build detail was cut. Raised in the usage PR (the council's clarity check): palette 11300 to 11450 (the module grew 11283 to 11448, +165, about 1.5%), for the guard that makes a string `keys` warn and draw no chip instead of throwing in `keys.filter`, which the palette's usage already promised. Round 2 of the clarity check: tabs 650 to 750 (the panel's top space shown in the snippet, and that the script selects a tab on click).",
   "budgets": {
     "skillMd": 10900,
     "core": 30720
@@ -42,7 +42,8 @@
       "modal",
       "btn",
       "icon"
-    ]
+    ],
+    "usage": 2000
   },
   "modules": {
     "topbar": {
@@ -51,7 +52,8 @@
         "topbar-inner",
         "brand"
       ],
-      "budget": 1600
+      "budget": 1600,
+      "usage": 500
     },
     "kbd": {
       "classes": [
@@ -74,13 +76,18 @@
         "Option",
         "Control"
       ],
-      "budget": 2900
+      "budget": 2900,
+      "usage": 550,
+      "textWords": [
+        "a call to Basalt.kbdGroup or Basalt.hardwareKeyboard"
+      ]
     },
     "segment": {
       "classes": [
         "segment"
       ],
-      "budget": 3700
+      "budget": 3700,
+      "usage": 300
     },
     "forms": {
       "classes": [
@@ -96,7 +103,8 @@
         "select",
         "textarea"
       ],
-      "budget": 3650
+      "budget": 3650,
+      "usage": 350
     },
     "number": {
       "classes": [
@@ -109,7 +117,8 @@
         "Minus",
         "Plus"
       ],
-      "budget": 2900
+      "budget": 2900,
+      "usage": 250
     },
     "range": {
       "text": [
@@ -118,7 +127,11 @@
       "requires": [
         "forms"
       ],
-      "budget": 1750
+      "budget": 1750,
+      "usage": 150,
+      "textWords": [
+        "type=\"range\" on an input"
+      ]
     },
     "rows": {
       "classes": [
@@ -129,7 +142,8 @@
         "row-hint",
         "input-row"
       ],
-      "budget": 4300
+      "budget": 4300,
+      "usage": 300
     },
     "tabs": {
       "classes": [
@@ -143,7 +157,11 @@
       "text": [
         "role\\s*=\\s*[\"']?tab(?:list|panel)?\\b"
       ],
-      "budget": 2300
+      "budget": 2300,
+      "usage": 750,
+      "textWords": [
+        "role=\"tab\", role=\"tablist\" or role=\"tabpanel\""
+      ]
     },
     "disclosure": {
       "classes": [
@@ -155,7 +173,8 @@
       "tags": [
         "details"
       ],
-      "budget": 1550
+      "budget": 1550,
+      "usage": 250
     },
     "table": {
       "classes": [
@@ -164,7 +183,8 @@
       "tags": [
         "table"
       ],
-      "budget": 1400
+      "budget": 1400,
+      "usage": 650
     },
     "code": {
       "classes": [
@@ -177,7 +197,8 @@
         "tok-f",
         "tok-c"
       ],
-      "budget": 1000
+      "budget": 1000,
+      "usage": 450
     },
     "callout": {
       "classes": [
@@ -185,20 +206,23 @@
         "callout-title",
         "callout-body"
       ],
-      "budget": 900
+      "budget": 900,
+      "usage": 700
     },
     "status": {
       "classes": [
         "status",
         "badge"
       ],
-      "budget": 1650
+      "budget": 1650,
+      "usage": 400
     },
     "accent": {
       "attrs": [
         "data-accent"
       ],
-      "budget": 300
+      "budget": 300,
+      "usage": 300
     },
     "stats": {
       "classes": [
@@ -208,13 +232,15 @@
         "stat-value",
         "stat-note"
       ],
-      "budget": 700
+      "budget": 700,
+      "usage": 800
     },
     "progress": {
       "classes": [
         "progress"
       ],
-      "budget": 700
+      "budget": 700,
+      "usage": 350
     },
     "palette": {
       "classes": [
@@ -240,13 +266,23 @@
       "icons": [
         "MagnifyingGlass"
       ],
-      "budget": 11300
+      "budget": 11450,
+      "usage": 1300,
+      "textWords": [
+        "a call to Basalt.openPalette or Basalt.closePalette",
+        "palette: inside a Basalt.init call"
+      ],
+      "builds": [
+        "kbd",
+        "rows"
+      ]
     },
     "spinner": {
       "classes": [
         "spinner"
       ],
-      "budget": 650
+      "budget": 650,
+      "usage": 300
     },
     "braille": {
       "classes": [
@@ -255,7 +291,8 @@
       "tags": [
         "braille-spinner"
       ],
-      "budget": 2000
+      "budget": 2000,
+      "usage": 400
     },
     "copy": {
       "attrs": [
@@ -269,7 +306,11 @@
         "Check",
         "X"
       ],
-      "budget": 1900
+      "budget": 1900,
+      "usage": 250,
+      "textWords": [
+        "a call to Basalt.copyText"
+      ]
     },
     "theme": {
       "attrs": [
@@ -279,7 +320,8 @@
         "Sun",
         "Moon"
       ],
-      "budget": 650
+      "budget": 650,
+      "usage": 400
     }
   }
 }
