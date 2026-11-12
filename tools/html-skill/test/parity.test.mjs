@@ -257,6 +257,8 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       ink: () => (ps ? style.backgroundColor : style.color),
       inLeft: () => px(rect.left - el.parentElement.getBoundingClientRect().left), inTop: () => px(rect.top - el.parentElement.getBoundingClientRect().top),
       gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
+      ariaSort: () => el.getAttribute("aria-sort"), ariaHidden: () => el.getAttribute("aria-hidden"), ariaLive: () => el.getAttribute("aria-live"), ariaAtomic: () => el.getAttribute("aria-atomic"),
+      text: () => el.textContent.trim(), scrollHeight: () => px(el.scrollHeight),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
     return Object.fromEntries(names.map((n) => [n, special[n] ? special[n]() : plain(n)]));
@@ -787,6 +789,7 @@ const appSkill = (tabs) => `<div class="app-shell"${tabs ? " data-tabbar" : ""}>
   <main class="app-main"><div style="height: 1600px"></div></main></div>
   ${tabs ? `<nav class="tab-bar" aria-label="Primary"><ul class="tab-bar-list"><li><a class="tab-bar-item" href="#home" aria-current="page"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Home</span></a></li><li><a class="tab-bar-item" href="#search"><span class="tab-bar-glyph"><span data-glyph="search" data-size="24"></span></span><span class="tab-bar-label">Search</span></a></li><li><a class="tab-bar-item" href="#inbox"><span class="tab-bar-glyph"><span data-glyph="notifications" data-size="24"></span><span class="tab-bar-dot" aria-hidden="true"></span></span><span class="tab-bar-label">Inbox</span><span class="visually-hidden">, New activity</span></a></li><li><button class="tab-bar-item" type="button" data-dialog-open="#more" aria-label="More"><span class="tab-bar-glyph"><span data-glyph="more-nav" data-size="24"></span></span><span class="tab-bar-label">More</span></button></li></ul></nav>
   <dialog class="panel float modal sheet" id="more" data-side="bottom"><div class="tab-bar-sheet-head"><h2 class="dialog-title">More</h2><button class="btn" data-variant="ghost" data-icon-only aria-label="Close more" data-dialog-close><span data-glyph="close"></span></button></div><nav class="nav" aria-label="More"><ul class="nav-list"><li><a class="nav-item" href="#settings"><span class="nav-pill"><span data-glyph="settings" data-size="24"></span><span class="nav-label">Settings</span></span></a></li></ul></nav></dialog>` : ""}</div>`;
+const TABLE_IMPORTS = "TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableRowHead, TableCell, TableEmpty, TableScrollHint, Checkbox, Button, MultiSelect, FilterResult";
 const NAV_IMPORTS = "SiteHeader, IconButton, Button, SettingsGlyph, ToastProvider, AppShell, AppHeader, Nav, NavItem, NavGroup, TabBar, TabBarItem, TabBarMore, HomeGlyph, SearchGlyph, NotificationsGlyph, MessagesGlyph, PlanGlyph, Sheet, SheetContent";
 const NAVIGATION = [
   {
@@ -978,6 +981,240 @@ const NAVIGATION = [
   },
 ];
 
+
+// ---- Tables and filters: the still table, the table additions, the multi-select and its result line (batch 7, step 6) ----
+// Each is rendered in React and in the skill at the same width, in both themes, and read like the others. A state (hover, focus, scrolled, a popup open) is reached in both pages first.
+const TBL_COLS = `columns={[{ width: 160 }, { width: 140 }, { width: 120 }, {}]} minWidth={560}`;
+const stillReact = (extra = "") => `<div style={{ width: 720 }}><TableContainer><Table ${TBL_COLS}${extra}><TableHeader><TableRow><TableHead onSortChange={() => {}}>Name</TableHead><TableHead sort="ascending" onSortChange={() => {}}>Status</TableHead><TableHead numeric sort="descending" onSortChange={() => {}}>Duration</TableHead><TableHead>Commit</TableHead></TableRow></TableHeader><TableBody><TableRow><TableRowHead>build-0141</TableRowHead><TableCell>Passed</TableCell><TableCell numeric>312</TableCell><TableCell mono>a1b2c3</TableCell></TableRow><TableRow selected><TableRowHead>build-0140</TableRowHead><TableCell>Failed</TableCell><TableCell numeric notObserved /><TableCell mono>d4e5f6</TableCell></TableRow></TableBody></Table></TableContainer></div>`;
+const stillSkill = (extra = "") => `<div style="width: 720px"><div class="panel table-wrap"><table data-fixed${extra} style="min-width: 560px"><colgroup><col style="width: 160px"><col style="width: 140px"><col style="width: 120px"><col></colgroup><thead><tr><th data-sortable>Name</th><th data-sortable aria-sort="ascending">Status</th><th data-sortable data-numeric aria-sort="descending">Duration</th><th scope="col">Commit</th></tr></thead><tbody><tr><th scope="row">build-0141</th><td>Passed</td><td data-numeric>312</td><td data-mono>a1b2c3</td></tr><tr aria-selected="true"><th scope="row">build-0140</th><td>Failed</td><td data-numeric data-not-observed>Not observed</td><td data-mono>d4e5f6</td></tr></tbody></table></div></div>`;
+const SORT_BOX = [...BOXRECT, "paddingLeft", "paddingRight", "display", "flexDirection", "alignItems", "gap", "color", "backgroundColor", "borderTopWidth", "borderTopLeftRadius", "cursor", ...TYPE];
+const OPTS4 = `[{ value: "passed", label: "Passed" }, { value: "failed", label: "Failed" }, { value: "running", label: "Running" }, { value: "queued", label: "Queued", disabled: true }]`;
+const filterLabels = (list, checked = [], disabled = []) => list.map(([v, l]) => `<label><input type="checkbox" value="${v}"${checked.includes(v) ? " checked" : ""}${disabled.includes(v) ? " disabled" : ""}> ${l}</label>`).join("");
+const FOUR = [["passed", "Passed"], ["failed", "Failed"], ["running", "Running"], ["queued", "Queued"]];
+const NAMES = ["Alder", "Birch", "Cedar", "Dogwood", "Elm", "Fir", "Gingko", "Hazel", "Ironwood", "Juniper", "Katsura", "Larch"];
+const optsOf = (n) => `[${NAMES.slice(0, n).map((x) => `{ value: "${x.toLowerCase()}", label: "${x}" }`).join(", ")}]`;
+const labelsOf = (n, checked = []) => filterLabels(NAMES.slice(0, n).map((x) => [x.toLowerCase(), x]), checked);
+const CHIP = [...BOXRECT, "paddingLeft", "paddingRight", "borderTopLeftRadius", "borderTopWidth", "borderTopColor", "backgroundColor", "color", "gap", "display", "alignItems", ...TYPE, "cursor"];
+const CHIP_HOVER_BLUR = [["hover", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))"]];
+const hoverOf = (react, skill) => ({ hover: [react, skill] });
+const parkPointer = async (page) => { await page.mouse.move(0, 0); };
+const markTrigger = { react: (p) => p.evaluate(() => document.querySelector(".basalt-filter-trigger")?.setAttribute("data-parity-trigger", "")), skill: (p) => p.evaluate(() => document.querySelector(".filter-trigger")?.setAttribute("data-parity-trigger", "")) };
+const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await parkPointer(p); } };
+const POPUP_BOX = ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "gapBelow", "startOffset"];
+const ROW = [...BOXRECT, "paddingLeft", "paddingRight", "display", "alignItems", "gap", "color", "backgroundColor", ...TYPE];
+const TABLES = [
+  {
+    id: "still table",
+    width: 1440,
+    react: stillReact(),
+    skill: stillSkill(),
+    ready: { react: ".basalt-table[data-fixed]", skill: "table[data-fixed] .sort" },
+    pairs: [
+      ["container", ".basalt-table-container", ".table-wrap", ["backgroundColor", "borderTopLeftRadius", "overflowX", "boxWidth"]],
+      ["table", ".basalt-table", "table", ["tableLayout", "boxWidth", "minWidth", "borderCollapse", ...TYPE]],
+      ["name header", "th:nth-child(1)", "th:nth-child(1)", [...BOXRECT, "paddingLeft", "paddingRight", "backgroundColor", "color", "textAlign", "whiteSpace", "overflowX", "ariaSort"]],
+      ["status header, sorted", "th:nth-child(2)", "th:nth-child(2)", [...BOXRECT, "ariaSort", "color"]],
+      ["duration header, numeric", "th:nth-child(3)", "th:nth-child(3)", [...BOXRECT, "textAlign", "ariaSort"]],
+      ["commit header, plain", "th:nth-child(4)", "th:nth-child(4)", [...BOXRECT, "paddingLeft", "color", "backgroundColor"]],
+      ["sort button", "th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort", SORT_BOX],
+      ["sort label", "th:nth-child(1) .basalt-sort-label", "th:nth-child(1) .sort-label", [...BOXRECT, ...TYPE, "color"]],
+      ["sort seat", "th:nth-child(1) .basalt-sort-seat", "th:nth-child(1) .sort-seat", [...BOXRECT, "color"]],
+      ["caret at rest", "th:nth-child(1) .basalt-sort-caret", "th:nth-child(1) .sort-caret", ["opacity", "boxWidth", "boxHeight"]],
+      ["sorted button", "th:nth-child(2) .basalt-sort", "th:nth-child(2) .sort", SORT_BOX],
+      ["sorted seat", "th:nth-child(2) .basalt-sort-seat", "th:nth-child(2) .sort-seat", [...BOXRECT, "color"]],
+      ["ascending arrow", "th:nth-child(2) .basalt-sort-up", "th:nth-child(2) .sort-up", ["opacity", "boxWidth", "boxHeight"]],
+      ["descending arrow, hidden", "th:nth-child(2) .basalt-sort-down", "th:nth-child(2) .sort-down", ["opacity"]],
+      ["numeric button", "th:nth-child(3) .basalt-sort", "th:nth-child(3) .sort", SORT_BOX],
+      ["numeric label", "th:nth-child(3) .basalt-sort-label", "th:nth-child(3) .sort-label", [...BOXRECT]],
+      ["numeric seat", "th:nth-child(3) .basalt-sort-seat", "th:nth-child(3) .sort-seat", [...BOXRECT]],
+      ["descending arrow", "th:nth-child(3) .basalt-sort-down", "th:nth-child(3) .sort-down", ["opacity"]],
+      ["row header", "tbody tr:first-child th", "tbody tr:first-child th", [...BOXRECT, "paddingLeft", "backgroundColor", "color", "boxShadow", ...TYPE, "textAlign"]],
+      ["body cell", "tbody tr:first-child td:nth-child(2)", "tbody tr:first-child td:nth-child(2)", [...BOXRECT, "color", "backgroundColor", ...TYPE]],
+      ["numeric cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", [...BOXRECT, "textAlign", "fontVariantNumeric"]],
+      ["not observed", "td[data-not-observed]", "td[data-not-observed]", [...BOXRECT, "color", "textAlign", "fontVariantNumeric"]],
+      ["selected row", "tbody tr:nth-child(2)", "tbody tr:nth-child(2)", ["backgroundColor", "boxHeight"]],
+      ["not observed, selected", "td[data-not-observed]", "td[data-not-observed]", ["color"], hoverOf("tbody tr:first-child td", "tbody tr:first-child td")],
+      ["hovered header", "th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort", ["color"], hoverOf("th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort")],
+      ["caret on hover", "th:nth-child(1) .basalt-sort-caret", "th:nth-child(1) .sort-caret", ["opacity", "color"], hoverOf("th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort")],
+      ["header focus ring", "th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort", [...OUTLINE, "color"], { focus: true }],
+      ["caret on focus", "th:nth-child(1) .basalt-sort-caret", "th:nth-child(1) .sort-caret", ["opacity"], { focusOn: ["th:nth-child(1) .basalt-sort", "th:nth-child(1) .sort"] }],
+      ["row on hover", "tbody tr:first-child", "tbody tr:first-child", ["backgroundColor"], hoverOf("tbody tr:first-child td:nth-child(2)", "tbody tr:first-child td:nth-child(2)")],
+      ["not observed on hover", "td[data-not-observed]", "td[data-not-observed]", ["color"], hoverOf("td[data-not-observed]", "td[data-not-observed]")],
+    ],
+  },
+  {
+    id: "still table, compact and the empty row",
+    width: 1440,
+    react: `<div style={{ width: 720 }}><TableContainer density="compact"><Table ${TBL_COLS}><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Status</TableHead><TableHead numeric>Duration</TableHead><TableHead>Commit</TableHead></TableRow></TableHeader><TableBody><TableRow><TableRowHead>build-0141</TableRowHead><TableCell>Passed</TableCell><TableCell numeric>312</TableCell><TableCell mono>a1b2c3</TableCell></TableRow><TableEmpty colSpan={4} action={<Button size="sm" variant="ghost">Clear filters</Button>}>No runs match.</TableEmpty></TableBody></Table></TableContainer></div><div style={{ width: 360, marginTop: 16 }}><TableContainer><Table ${TBL_COLS}><TableBody><TableRow><TableRowHead>wide</TableRowHead><TableCell>x</TableCell><TableCell numeric>1</TableCell><TableCell>y</TableCell></TableRow></TableBody></Table></TableContainer><TableScrollHint /></div>`,
+    skill: `<div style="width: 720px"><div class="panel table-wrap" data-row-density="compact"><table data-fixed style="min-width: 560px"><colgroup><col style="width: 160px"><col style="width: 140px"><col style="width: 120px"><col></colgroup><thead><tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col" data-numeric>Duration</th><th scope="col">Commit</th></tr></thead><tbody><tr><th scope="row">build-0141</th><td>Passed</td><td data-numeric>312</td><td data-mono>a1b2c3</td></tr><tr data-empty><td colspan="4"><div class="table-empty"><span>No runs match.</span><button class="btn" type="button" data-variant="ghost" data-size="sm">Clear filters</button></div></td></tr></tbody></table></div></div><div style="width: 360px; margin-top: 16px"><div class="panel table-wrap"><table data-fixed style="min-width: 560px"><colgroup><col style="width: 160px"><col style="width: 140px"><col style="width: 120px"><col></colgroup><tbody><tr><th scope="row">wide</th><td>x</td><td data-numeric>1</td><td>y</td></tr></tbody></table></div><p class="table-hint" hidden></p></div>`,
+    ready: { react: ".basalt-table-hint:not([hidden])", skill: ".table-hint:not([hidden])" },
+    pairs: [
+      ["compact cell", "tbody tr:first-child td:nth-child(2)", "tbody tr:first-child td:nth-child(2)", ["boxHeight", ...PAD]],
+      ["compact row header", "tbody tr:first-child th", "tbody tr:first-child th", ["boxHeight", ...PAD]],
+      ["header, compact", "thead th:first-child", "thead th:first-child", ["boxHeight"]],
+      ["empty row", "tr[data-empty]", "tr[data-empty]", ["backgroundColor", "boxHeight"]],
+      ["empty cell", "tr[data-empty] > td", "tr[data-empty] > td", [...PAD, "boxHeight", "color", "whiteSpace", "overflowX", "backgroundColor", "boxWidth"]],
+      ["empty block", ".basalt-table-empty", ".table-empty", [...BOXRECT, "display", "flexDirection", "alignItems", "gap", "position", "maxWidth"]],
+      ["empty action", ".basalt-table-empty .basalt-button", ".table-empty .btn", [...BOXRECT, "color", "backgroundColor"]],
+      ["empty row on hover", "tr[data-empty]", "tr[data-empty]", ["backgroundColor"], hoverOf("tr[data-empty] > td", "tr[data-empty] > td")],
+      ["scroll hint", ".basalt-table-hint", ".table-hint", [...BOXRECT, ...TYPE, "color", "marginTop", "display", "ariaHidden", "text"]],
+    ],
+  },
+  {
+    id: "still table, pinned at 390",
+    width: 390,
+    touch: true,
+    react: `<div style={{ width: 358, margin: 16 }}><TableContainer><Table columns={[{ width: 40 }, { width: 160 }, { width: 140 }, { width: 120 }, {}]} minWidth={640} pinned={2}><TableHeader><TableRow><TableHead><Checkbox aria-label="Select all" /></TableHead><TableHead onSortChange={() => {}}>Name</TableHead><TableHead>Status</TableHead><TableHead numeric>Duration</TableHead><TableHead>Commit</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell><Checkbox aria-label="Select one" /></TableCell><TableRowHead>build-0141</TableRowHead><TableCell>Passed</TableCell><TableCell numeric>312</TableCell><TableCell mono>a1b2c3</TableCell></TableRow><TableRow selected><TableCell><Checkbox aria-label="Select two" defaultChecked /></TableCell><TableRowHead>build-0140</TableRowHead><TableCell>Failed</TableCell><TableCell numeric>45</TableCell><TableCell mono>d4e5f6</TableCell></TableRow></TableBody></Table></TableContainer></div>`,
+    skill: `<div style="width: 358px; margin: 16px"><div class="panel table-wrap"><table data-fixed data-pinned="2" style="min-width: 640px"><colgroup><col style="width: 40px"><col style="width: 160px"><col style="width: 140px"><col style="width: 120px"><col></colgroup><thead><tr><th class="select-col"><input type="checkbox" aria-label="Select all"></th><th data-sortable>Name</th><th scope="col">Status</th><th scope="col" data-numeric>Duration</th><th scope="col">Commit</th></tr></thead><tbody><tr><td class="select-col"><input type="checkbox" aria-label="Select one"></td><th scope="row">build-0141</th><td>Passed</td><td data-numeric>312</td><td data-mono>a1b2c3</td></tr><tr aria-selected="true"><td class="select-col"><input type="checkbox" aria-label="Select two" checked></td><th scope="row">build-0140</th><td>Failed</td><td data-numeric>45</td><td data-mono>d4e5f6</td></tr></tbody></table></div></div>`,
+    ready: { react: ".basalt-table[data-pinned]", skill: "table[data-pinned] .sort" },
+    pairs: [
+      ["header height on touch", "thead th:nth-child(3)", "thead th:nth-child(3)", [...BOXRECT, "paddingLeft"]],
+      ["row height on touch", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", [...BOXRECT, "paddingLeft"]],
+      ["sort button on touch", ".basalt-sort", ".sort", [...BOXRECT, "paddingLeft"]],
+      ["caret on touch", ".basalt-sort-caret", ".sort-caret", ["opacity"]],
+      ["pinned select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
+      ["pinned name cell", "tbody tr:first-child th", "tbody tr:first-child th", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
+      ["pinned name cell, selected", "tbody tr:nth-child(2) th", "tbody tr:nth-child(2) th", ["backgroundColor"]],
+      ["pinned header, name", "thead th:nth-child(2)", "thead th:nth-child(2)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
+      ["a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["position"]],
+      ["edge divider at rest", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "boxWidth", "backgroundColor", "position", "content"], { pseudo: "::after" }],
+      ["scroll padding", ".basalt-table-container", ".table-wrap", ["scrollPaddingLeft"]],
+      ["scrolled: pinned name", "tbody tr:first-child th", "tbody tr:first-child th", ["rectLeft", "backgroundColor"], { scroll: 120 }],
+      ["scrolled: divider", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "backgroundColor", "boxWidth"], { pseudo: "::after", scroll: 120 }],
+      ["scrolled: select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["rectLeft", "backgroundColor"], { scroll: 120 }],
+      ["scrolled: a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["rectLeft"], { scroll: 120 }],
+    ],
+  },
+  {
+    id: "chips",
+    width: 1440,
+    react: `<div style={{ width: 480 }}><MultiSelect label="Status" options={${OPTS4}} defaultValue={["failed"]} /></div><div style={{ width: 480, marginTop: 24 }} id="zero"><MultiSelect label="Status" options={${OPTS4}} /></div>`,
+    skill: `<div style="width: 480px"><div class="filter" data-label="Status">${filterLabels(FOUR, ["failed"], ["queued"])}</div></div><div style="width: 480px; margin-top: 24px" id="zero"><div class="filter" data-label="Status">${filterLabels(FOUR, [], ["queued"])}</div></div>`,
+    ready: { react: ".basalt-chip", skill: ".chip" },
+    pairs: [
+      ["filter", ".basalt-filter", ".filter", [...BOXRECT, "display", "flexDirection", "gap"]],
+      ["head", ".basalt-filter-head", ".filter-head", [...BOXRECT, "display", "alignItems", "gap"]],
+      ["label", ".basalt-filter-label", ".filter-label", [...BOXRECT, ...TYPE, "color"]],
+      ["count", ".basalt-filter-count", ".filter-count", [...BOXRECT, ...TYPE, "color", "fontVariantNumeric", "display"]],
+      ["count value", ".basalt-filter-count-value", ".filter-count-value", [...BOXRECT]],
+      ["clear", ".basalt-filter-clear", ".filter-clear", [...BOX, ...BOXRECT]],
+      ["chips", ".basalt-filter-chips", ".filter-chips", [...BOXRECT, "display", "flexWrap", "gap"]],
+      ["chip, off", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))", CHIP],
+      ["chip, on", ".basalt-chip[data-checked]", ".chip:has(input:checked)", CHIP],
+      ["chip, disabled", ".basalt-chip[data-disabled]", ".chip:has(input:disabled)", [...CHIP, "opacity"]],
+      ["chip's seat", ".basalt-chip[data-checked] .basalt-chip-seat", ".chip:has(input:checked) .chip-seat", [...BOXRECT, "color"]],
+      ["chip's seat, off", ".basalt-chip:not([data-checked]):not([data-disabled]) .basalt-chip-seat", ".chip:not(:has(input:checked)):not(:has(input:disabled)) .chip-seat", [...BOXRECT, "color"]],
+      ["plus, off", ".basalt-chip:not([data-checked]):not([data-disabled]) .basalt-chip-plus", ".chip:not(:has(input:checked)):not(:has(input:disabled)) .chip-plus", ["opacity", "boxWidth", "boxHeight", "transitionDuration", "transitionTimingFunction"]],
+      ["check, off", ".basalt-chip:not([data-checked]):not([data-disabled]) .basalt-chip-check", ".chip:not(:has(input:checked)):not(:has(input:disabled)) .chip-check", ["opacity"]],
+      ["plus, on", ".basalt-chip[data-checked] .basalt-chip-plus", ".chip:has(input:checked) .chip-plus", ["opacity"]],
+      ["check, on", ".basalt-chip[data-checked] .basalt-chip-check", ".chip:has(input:checked) .chip-check", ["opacity", "transitionDuration"]],
+      ["chip's label", ".basalt-chip[data-checked] .basalt-chip-label", ".chip:has(input:checked) .chip-label", [...BOXRECT, "color"]],
+      ["chip, hovered", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))", ["color", "borderTopColor", "backgroundColor"], hoverOf(".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))")],
+      ["chip's seat, hovered", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled]) .basalt-chip-seat", ".chip:not(:has(input:checked)):not(:has(input:disabled)) .chip-seat", ["color"], hoverOf(".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))")],
+      ["chip, on, hovered", ".basalt-chip[data-checked]", ".chip:has(input:checked)", ["color", "borderTopColor", "backgroundColor"], hoverOf(".basalt-chip[data-checked]", ".chip:has(input:checked)")],
+      ["chip, pressed", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))", ["backgroundColor"], { press: [".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))"] }],
+      ["chip focus ring", ".basalt-chip[data-checked]", ".chip:has(input:checked)", OUTLINE, { focusOn: [".basalt-chip[data-checked]", ".chip:has(input:checked) input"] }],
+      ["clear at zero", "#zero .basalt-filter-clear", "#zero .filter-clear", [...BOX, "cursor", "opacity"]],
+      ["count at zero", "#zero .basalt-filter-count", "#zero .filter-count", [...BOXRECT, "color"]],
+      ["count value at zero", "#zero .basalt-filter-count-value", "#zero .filter-count-value", [...BOXRECT]],
+    ],
+  },
+  {
+    id: "chips on touch",
+    width: 390,
+    touch: true,
+    react: `<div style={{ width: 358, margin: 16 }}><MultiSelect label="Status" options={${OPTS4}} defaultValue={["failed"]} /></div>`,
+    skill: `<div style="width: 358px; margin: 16px"><div class="filter" data-label="Status">${filterLabels(FOUR, ["failed"], ["queued"])}</div></div>`,
+    ready: { react: ".basalt-chip", skill: ".chip" },
+    pairs: [
+      ["chip, off", ".basalt-chip[role=checkbox]:not([data-checked]):not([data-disabled])", ".chip:not(:has(input:checked)):not(:has(input:disabled))", CHIP],
+      ["chip, on", ".basalt-chip[data-checked]", ".chip:has(input:checked)", CHIP],
+      ["chip's tap target", ".basalt-chip[data-checked]", ".chip:has(input:checked)", [...BOXRECT, "content", "position", "top", "bottom"], { pseudo: "::before" }],
+      ["chips", ".basalt-filter-chips", ".filter-chips", [...BOXRECT, "gap"]],
+      ["clear", ".basalt-filter-clear", ".filter-clear", [...BOXRECT]],
+    ],
+  },
+  {
+    id: "checklist",
+    width: 1440,
+    react: `<div style={{ padding: 16 }}><MultiSelect label="Status" options={${optsOf(8)}} defaultValue={["cedar", "elm"]} /></div>`,
+    skill: `<div style="padding: 16px"><div class="filter" data-label="Status">${labelsOf(8, ["cedar", "elm"])}</div></div>`,
+    ready: { react: ".basalt-filter-popup .basalt-filter-row", skill: ".filter-popup:popover-open .filter-row" },
+    open: openTrigger,
+    pairs: [
+      ["filter", ".basalt-filter", ".filter", [...BOXRECT, "display", "flexDirection", "alignItems"]],
+      ["trigger", ".basalt-filter-trigger", ".filter-trigger", [...BOX, ...BOXRECT, "display", "gap"]],
+      ["trigger's words", ".basalt-button-label", ".filter-trigger-label-wrap", [...BOXRECT, "gap", "display"]],
+      ["trigger's label", ".basalt-filter-trigger-label", ".filter-trigger-label", [...BOXRECT, "color"]],
+      ["trigger's value", ".basalt-filter-trigger-value", ".filter-trigger-value", [...BOXRECT, "color"]],
+      ["trigger's caret", ".basalt-filter-trigger > svg", ".filter-trigger > svg", [...BOXRECT]],
+      ["popup", ".basalt-filter-popup", ".filter-popup", POPUP_BOX],
+      ["rows", ".basalt-filter-rows", ".filter-rows", [...BOXRECT, "maxHeight", "overflowY", "paddingLeft", "paddingRight", "marginLeft"]],
+      ["row at rest", ".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))", ROW],
+      ["row, checked", ".basalt-filter-row[data-checked]", ".filter-row:has(input:checked)", ROW],
+      ["row's box", ".basalt-filter-row[data-checked] .basalt-checkbox", ".filter-row:has(input:checked) input", [...BOXRECT, "backgroundColor"]],
+      ["row's unchecked box", ".basalt-filter-row:not([data-checked]) .basalt-checkbox", ".filter-row:not(:has(input:checked)) input", [...BOXRECT, "backgroundColor", "boxShadow"]],
+      ["row's label", ".basalt-filter-row:not([data-checked]) .basalt-menu-item-label", ".filter-row:not(:has(input:checked)) .filter-row-label", [...BOXRECT, "flexGrow"]],
+      ["foot", ".basalt-filter-foot", ".filter-foot", [...BOXRECT, "paddingLeft", "paddingTop", "borderTopWidth", "borderTopColor", "marginLeft", "marginTop", "display", "justifyContent", "gap"]],
+      ["foot count", ".basalt-filter-foot .basalt-filter-count", ".filter-foot .filter-count", [...BOXRECT, ...TYPE, "color"]],
+      ["foot clear", ".basalt-filter-foot .basalt-filter-clear", ".filter-foot .filter-clear", [...BOX, ...BOXRECT]],
+      ["lit row", ".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))", ["color", "backgroundColor"], { focusOn: [".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked)) input"] }],
+      ["shared plate", ".basalt-filter-popup > .basalt-plate", ".filter-popup > .plate", ["display", "opacity", "backgroundColor", "borderTopLeftRadius", ...BOXRECT, "transitionProperty", "transitionDuration", "transitionTimingFunction"], { hover: [".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))"] }],
+      ["row under the shared plate", ".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))", ["backgroundColor", "color"], { pseudo: "::before", hover: [".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))"] }],
+      ["lit row's plate", ".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked))", ["backgroundColor"], { pseudo: "::before", focusOn: [".basalt-filter-row:not([data-checked])", ".filter-row:not(:has(input:checked)) input"] }],
+    ],
+  },
+  {
+    id: "checklist with a search band",
+    width: 1440,
+    react: `<div style={{ padding: 16 }}><MultiSelect label="Tree" options={${optsOf(12)}} /></div>`,
+    skill: `<div style="padding: 16px"><div class="filter" data-label="Tree">${labelsOf(12)}</div></div>`,
+    ready: { react: ".basalt-filter-band", skill: ".filter-band" },
+    open: openTrigger,
+    pairs: [
+      ["trigger, none chosen", ".basalt-filter-trigger", ".filter-trigger", [...BOX, ...BOXRECT]],
+      ["popup", ".basalt-filter-popup", ".filter-popup", POPUP_BOX],
+      ["band", ".basalt-filter-band", ".filter-band", [...BOXRECT, "paddingLeft", "paddingRight", "gap", "backgroundColor", "borderBottomWidth", "borderBottomColor", "marginTop", "marginLeft", "marginBottom", "color", "display", "alignItems"]],
+      ["band's glyph", ".basalt-filter-band > svg", ".filter-band > svg", [...BOXRECT, "color"]],
+      ["band's input", ".basalt-filter-band-input", ".filter-band-input", [...BOXRECT, ...TYPE, "color", "backgroundColor", "outlineStyle"]],
+      ["band's placeholder", ".basalt-filter-band-input", ".filter-band-input", ["color", "opacity"], { pseudo: "::placeholder" }],
+      ["rows", ".basalt-filter-rows", ".filter-rows", [...BOXRECT, "maxHeight", "overflowY", "scrollHeight"]],
+      ["first row", ".basalt-filter-row", ".filter-row", ROW],
+      ["foot", ".basalt-filter-foot", ".filter-foot", [...BOXRECT]],
+      ["band in focus", ".basalt-filter-band", ".filter-band", [...OUTLINE, "backgroundColor"], { focusOn: [".basalt-filter-band-input", ".filter-band-input"] }],
+    ],
+  },
+  {
+    id: "checklist on touch",
+    width: 390,
+    touch: true,
+    react: `<div style={{ padding: 16 }}><MultiSelect label="Tree" options={${optsOf(12)}} defaultValue={["alder"]} /></div>`,
+    skill: `<div style="padding: 16px"><div class="filter" data-label="Tree">${labelsOf(12, ["alder"])}</div></div>`,
+    ready: { react: ".basalt-filter-band", skill: ".filter-band" },
+    open: openTrigger,
+    pairs: [
+      ["trigger", ".basalt-filter-trigger", ".filter-trigger", [...BOXRECT]],
+      ["popup", ".basalt-filter-popup", ".filter-popup", [...POPUP_BOX]],
+      ["band", ".basalt-filter-band", ".filter-band", [...BOXRECT]],
+      ["band's input", ".basalt-filter-band-input", ".filter-band-input", [...BOXRECT, "fontSize", "lineHeight"]],
+      ["first row", ".basalt-filter-row", ".filter-row", [...BOXRECT, "paddingLeft", "gap"]],
+      ["foot clear", ".basalt-filter-foot .basalt-filter-clear", ".filter-foot .filter-clear", [...BOXRECT]],
+    ],
+  },
+  {
+    id: "result line",
+    width: 1440,
+    react: `<FilterResult>Showing 3 of 24 runs</FilterResult>`,
+    skill: `<p class="filter-result" data-noun="runs">Showing 3 of 24 runs</p>`,
+    ready: { react: ".basalt-filter-result", skill: ".filter-result" },
+    pairs: [
+      ["line", ".basalt-filter-result", ".filter-result", [...BOXRECT, ...TYPE, "color", "marginTop", "marginBottom", "fontVariantNumeric"]],
+      ["shown words", ".basalt-filter-result > span[aria-hidden]", ".filter-result > span[aria-hidden]", [...BOXRECT, "text"]],
+      ["spoken words", ".basalt-filter-result > span[role=status]", ".filter-result > span[role=status]", ["text", "ariaLive", "ariaAtomic", "boxWidth", "boxHeight"]],
+    ],
+  },
+];
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -1005,6 +1242,9 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
         await settle(p);
       }
     }
+    if (options.scroll != null) {
+      for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) { await p.evaluate(([frame, x]) => { document.querySelector(frame).scrollLeft = x; }, [sel, options.scroll]); await settle(p); }
+    }
     if (options.focusOn) {
       await reactPage.locator(options.focusOn[0]).first().focus();
       await skillPage.locator(options.focusOn[1]).first().focus();
@@ -1017,6 +1257,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
     if (options.focusIn) {
       for (const [p, sel] of [[reactPage, scope(reactSel, "react")], [skillPage, scope(skillSel, "skill")]]) { await p.evaluate(() => document.activeElement?.blur()); await p.locator(sel).first().locator(options.focusIn).focus(); await p.keyboard.press("Shift+Tab"); await p.keyboard.press("Tab"); }
     }
+    // A focus ring and the ink beside it settle over duration-fast: both pages are read at rest, never part-way through it.
+    if (options.focus || options.focusOn || options.focusIn) for (const p of [reactPage, skillPage]) await settle(p);
     const react = await read(reactPage, scope(reactSel, "react"), props, { pseudo: options.pseudo });
     const skill = await read(skillPage, scope(skillSel, "skill"), props, { pseudo: "skillPseudo" in options ? options.skillPseudo : options.pseudo });
     assert.ok(react, `${area}: React has no ${reactSel}`);
@@ -1026,6 +1268,7 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
       await skillPage.evaluate(() => document.activeElement?.blur());
     }
     if (options.press) for (const p of [reactPage, skillPage]) await p.mouse.up();
+    if (options.scroll != null) for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) await p.evaluate((frame) => { document.querySelector(frame).scrollLeft = 0; }, sel);
     if (options.hover || options.press) for (const p of [reactPage, skillPage]) { await p.mouse.move(0, 0); await settle(p); }
     for (const prop of props) if (react[prop] !== skill[prop]) found.push({ area, pair: label, prop, theme, react: react[prop], skill: skill[prop] });
   }
@@ -1096,6 +1339,24 @@ describe("each skill component renders as its React counterpart does, but for th
         await reactPage.waitForSelector(nav.ready.react, { state: "attached" });
         for (const p of [reactPage, skillPage]) await settle(p);
         await compare(theme, nav.id, reactPage, skillPage, nav.pairs, null);
+        assert.deepEqual([errors, skillErrors], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
+
+    for (const table of TABLES) {
+      test(`${table.id} (${theme})`, async () => {
+        const touch = table.touch ? { isMobile: true, hasTouch: true } : {};
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `const { ${TABLE_IMPORTS} } = B;\ndocument.body.style.margin = "0";\nflushSync(() => createRoot(document.getElementById("root")).render(<>${table.react}</>));`, { theme, viewport: { width: table.width, height: table.width === 390 ? 844 : 900 }, ...touch });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        if (table.touch) await reactPage.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.appendChild(meta); });
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${table.skill}`, { fonts: false }).html, { scheme: theme, width: table.width, touch: Boolean(table.touch) });
+        if (table.open) { await table.open.react(reactPage); await table.open.skill(skillPage); }
+        await skillPage.waitForSelector(table.ready.skill, { state: "attached" });
+        await reactPage.waitForSelector(table.ready.react, { state: "attached" });
+        for (const p of [reactPage, skillPage]) await settle(p);
+        await compare(theme, table.id, reactPage, skillPage, table.pairs, null);
         assert.deepEqual([errors, skillErrors], [[], []]);
         await reactPage.close();
         await context.close();

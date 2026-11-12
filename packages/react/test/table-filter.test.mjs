@@ -436,6 +436,22 @@ describe("the multi-select: chips", () => {
     assert.equal(await wide.page.getByRole("checkbox", { name: "Failed" }).evaluate((el) => el.getBoundingClientRect().height), 32);
   });
 
+  test("on touch the chip's hit area is 44px tall: 4px beyond the 36px chip above and below, measured from its box and by hit-testing (foundations: touch targets of at least 44px)", async () => {
+    const { page } = await open({ ...PHONE });
+    const chip = page.getByRole("checkbox", { name: "Failed" });
+    const reach = await chip.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el, "::before");
+      // The box is placed against the chip's padding box, so the border is added back to its offset.
+      const top = r.top + parseFloat(getComputedStyle(el).borderTopWidth) + parseFloat(s.top);
+      const height = parseFloat(s.height);
+      const at = (y) => document.elementFromPoint(r.left + r.width / 2, y) === el;
+      return { chip: r.height, height, above: r.top - top, below: top + height - r.bottom, hitAbove: at(r.top - 3), hitBelow: at(r.bottom + 3), missAbove: at(r.top - 5.5), missBelow: at(r.bottom + 5.5) };
+    });
+    assert.deepEqual([reach.chip, reach.height, reach.above, reach.below], [36, 44, 4, 4], "a 44px target around the 36px chip");
+    assert.deepEqual([reach.hitAbove, reach.hitBelow, reach.missAbove, reach.missBelow], [true, true, false, false], "and the pointer finds the chip inside it and not outside");
+  });
+
   test("a chip is a checkbox in a labelled group whose description is the count (not live); Tab reaches each and Space toggles it", async () => {
     const { page } = await open({ ...DESKTOP });
     const g = group(page);

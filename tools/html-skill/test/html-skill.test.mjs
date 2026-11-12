@@ -631,7 +631,8 @@ describe("tables at 390", () => {
       assert.ok(out.shown, "every column is there");
       assert.ok(out.fitting.every((overhang) => overhang <= 0), `Service and Status end inside the table's edge: ${out.fitting}`);
       assert.ok(out.scrolls, "the numbers scroll");
-      assert.deepEqual(out.padding, ["12px", "16px"]);
+      // A plain table keeps React's 16px cell padding at 390 as at 1440 (it tightened to 12px before the tables and filters PR, DECISIONS 108).
+      assert.deepEqual(out.padding, ["16px", "16px"]);
       await context.close();
     });
   }
