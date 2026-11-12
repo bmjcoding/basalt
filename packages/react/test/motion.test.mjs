@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -168,13 +168,14 @@ describe("Toast", () => {
 
   test("a toast the pointer left behind still has time on its line while another is hovered", async () => {
     const { page } = await fixturePage(browser, toasts);
+    const clock = await freezeAnimations(page); // the 1500ms timers and their lines run on the test's clock
     await page.evaluate(() => window.show("toast"));
     await page.evaluate(() => window.show_({ title: "Toast A", home: "page", timeout: 1500 }));
-    await page.waitForTimeout(200);
+    await clock.advance(200);
     await page.evaluate(() => window.show_({ title: "Toast B", home: "page", timeout: 1500 }));
-    await page.waitForTimeout(200);
+    await clock.advance(200);
     await page.locator(".basalt-toast-title", { hasText: "Toast B" }).hover();
-    await page.waitForTimeout(2000); // longer than either timeout, but the timers are held
+    await clock.advance(2000); // longer than either timeout, but the timers are held
     const held = await drains(page);
     assert.equal(held.length, 2, "both toasts are still shown");
     for (const d of held) assert.ok(d.scale > 0.05, `${d.title} ran out while its timer was held (${d.scale})`);
@@ -199,6 +200,7 @@ describe("SharedElement (internal)", () => {
 
   test("an element that moves between places in one update still travels", async () => {
     const { page } = await fixturePage(browser, shared);
+    await freezeAnimations(page); // the 200ms flight is read after a round trip: on a busy machine that is past its end
     await page.evaluate(() => window.show("shared"));
     await page.evaluate(() => window.show("shared", { moved: true }));
     assert.equal(await page.locator("[data-layout]").evaluate((el) => el.getAnimations().length), 1);
