@@ -17,6 +17,10 @@
       "types": "./dist/testing/headroom.d.ts",
       "default": "./dist/testing/headroom.js"
     },
+    "./phosphor": {
+      "types": "./dist/tooling/phosphor.d.ts",
+      "default": "./dist/tooling/phosphor.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
     "./fonts.css": "./dist/fonts.css"
