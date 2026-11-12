@@ -1,0 +1,108 @@
+/* blacksand.run: the first screen (hero-nov11, DECISIONS 116 and 117). The page's own CSS: the stage's art switch, the composition and the
+   hand-over. The header, the narrow menu and the stage are the shared stand-ins (sites/shared/); the art is art/ (generated). Tokens only. */
+
+/* The row: the header's row, so the hero's first letter is under the brand's first pixel. It is also the line's size container, below. */
+.hero-row {
+  box-sizing: border-box; max-width: var(--basalt-size-page-width); margin-inline: auto;
+  padding-inline: var(--_pad-left) var(--_pad-right);
+  container: hero-row / inline-size;
+}
+
+/* The stage fills the first screen less a peek of the section below, and never less than its content and the dunes' room. */
+.hero { min-height: calc(100svh - var(--basalt-space-24)); }
+.hero-block { display: flex; flex-direction: column; align-items: flex-start; padding-top: var(--basalt-space-10); padding-bottom: var(--_room); }
+
+/* The brand's lockup in the header: the 1x file by default, the 2x file from 2dppx (brand/README.md). Each file's own title must not
+   show as a tooltip, and the files are not edited: the drawing takes no pointer, so the link's label is the only name. */
+.lockup-2x { display: none; }
+.lockup-1x, .lockup-2x { line-height: 0; }
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) { .lockup-1x { display: none; } .lockup-2x { display: block; } }
+.basalt-site-brand-mark svg { pointer-events: none; }
+
+/* The mark: brand/blacksand/hero.html as it is, 192 wide at every width. Its drawing sits inside a 48-unit box with 7 units of air on the
+   start side and 8 above and below; the layout takes that air back, so the wall lines up with the brand's mark and the words' start edge. */
+.hero-mark-zone { display: block; }
+.hero-mark { display: block; max-width: none; flex: none; color: var(--basalt-text-primary); margin-inline-start: calc(var(--w) * -7 / 48); margin-block: calc(var(--w) * -8 / 48); }
+
+/* The line: one sentence, two phrases, always broken between them. */
+.hero-line {
+  margin: var(--basalt-space-10) 0 0; max-width: none; color: var(--basalt-text-primary); text-wrap: balance;
+  font: var(--basalt-font-weight-semibold) var(--basalt-text-5xl-size) / var(--basalt-text-5xl-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-5xl-tracking);
+}
+.hero-line .phrase, .hero-line .nobr { white-space: nowrap; }
+.hero-line .phrase:first-child::after { content: "\A"; white-space: pre; }
+.hero-lead {
+  margin: var(--basalt-space-5) 0 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); text-wrap: pretty;
+  font: var(--basalt-font-weight-regular) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+  letter-spacing: var(--basalt-text-lg-tracking);
+}
+/* The actions: React's Button xl (40, radius 8, 16px label), which the skill doesn't carry; at least 44 on touch, as every control. */
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3); margin-top: var(--basalt-space-8); }
+.hero-actions .btn { --_h: var(--basalt-size-control-xl); --_px: var(--basalt-space-4); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); }
+.hero-status { display: block; margin: var(--basalt-space-4) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+.hero-status .badge { margin-inline-end: var(--basalt-space-1); }
+
+/* A quiet zone is the ink and the 6px round it that a focus ring reaches (2 at +2, and a pixel of anti-aliasing): the zone's box
+   grows by space-1-5 on every side and gives it back, so nothing moves. */
+[data-quiet] { padding: var(--basalt-space-1-5); margin-inline: calc(-1 * var(--basalt-space-1-5)); }
+.hero-line[data-quiet] { margin-top: calc(var(--basalt-space-10) - var(--basalt-space-1-5)); margin-bottom: calc(-1 * var(--basalt-space-1-5)); }
+.hero-lead[data-quiet] { margin-top: calc(var(--basalt-space-5) - var(--basalt-space-1-5)); margin-bottom: calc(-1 * var(--basalt-space-1-5)); max-width: calc(var(--basalt-size-prose-width) + 2 * var(--basalt-space-1-5)); box-sizing: border-box; }
+.hero-actions[data-quiet] { margin-top: calc(var(--basalt-space-8) - var(--basalt-space-1-5)); margin-bottom: calc(-1 * var(--basalt-space-1-5)); }
+.hero-status[data-quiet] { margin-top: calc(var(--basalt-space-4) - var(--basalt-space-1-5)); margin-bottom: calc(-1 * var(--basalt-space-1-5)); }
+.hero-mark-zone[data-quiet] { margin-block: calc(-1 * var(--basalt-space-1-5)); }
+
+/* The art. The sky: the field, then tone-1 towards the horizon (neighbouring tones). */
+.sky { position: absolute; inset: 0; background: linear-gradient(to bottom, var(--basalt-art-field) 42%, var(--basalt-art-tone-1) 88%); }
+.sky-row { position: absolute; inset: 0; max-width: var(--basalt-size-page-width); margin-inline: auto; }
+.stars { position: absolute; top: 0; left: 0; overflow: visible; display: var(--_stars, none); }
+/* The dunes are sized from the stage (a size container), and placed on the row: where the row starts and how wide it is. */
+.dune-frame { position: absolute; inset: 0; container-type: size; }
+.dunes { position: absolute; bottom: 0; display: block; max-width: none; overflow: visible; --_row-start: max(var(--basalt-space-0), (100cqw - var(--basalt-size-page-width)) / 2); --_row-w: min(100cqw, var(--basalt-size-page-width)); }
+
+/* Each theme's stars: night has them, day has none. (The dunes' fills per theme are art/fills.css.) */
+:root, [data-theme="light"] { --_stars: none; }
+[data-theme="dark"] { --_stars: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --_stars: block; } }
+
+/* From 1024: the words on the start side, the big dune rising beside them on the end side, its crest near the row's end. The dunes are
+   60% of the stage's height, so they grow with the screen and the sky stays the larger part. */
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token */
+@media (width >= 1024px) {
+  :root { --_room: calc(var(--basalt-space-24) + var(--basalt-space-12)); }
+  /* The dunes' height: 60% of the stage, but never more than two thirds of the free width beside the words (a 1024 screen gets a
+     smaller dune, so its slope stays out of the sentence's quiet zone). */
+  .dunes { --_free: calc(100cqw - var(--_row-start) - var(--basalt-size-gutter) - var(--basalt-size-prose-width)); --_h: min(60cqh, var(--_free) * 0.66); height: var(--_h); width: calc(var(--_h) * 5); left: calc(var(--_row-start) + var(--_row-w) * 0.9); transform: translateX(-60%); }
+  .stars-below { display: none; }
+}
+/* Under 1024: the dunes are a band under the words, never behind them. */
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token */
+@media (width < 1024px) {
+  :root { --_band: clamp(calc(var(--basalt-space-24) * 2), 30svh, calc(var(--basalt-space-24) * 4)); --_room: calc(var(--_band) + var(--basalt-space-8)); }
+  .dunes { height: var(--_band); width: calc(var(--_band) * 5); left: calc(var(--_row-start) + var(--_row-w) * 0.8); transform: translateX(-60%); }
+  .stars-side { display: none; }
+}
+/* Under 720: the line at text-4xl, the sentence at text-md. The second phrase wraps where it must, and "run on." stays together, so it
+   is two lines where "your AI agents run on." fits and three where it doesn't (DECISIONS 117). */
+/* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+@media (width < 720px) {
+  .hero-block { padding-top: var(--basalt-space-6); }
+  .hero-line { margin-top: var(--basalt-space-8); font-size: var(--basalt-text-4xl-size); line-height: var(--basalt-text-4xl-line-height); letter-spacing: var(--basalt-text-4xl-tracking); }
+  .hero-line[data-quiet] { margin-top: calc(var(--basalt-space-8) - var(--basalt-space-1-5)); }
+  .hero-line .phrase { white-space: normal; }
+  .hero-lead { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+}
+
+/* Where "The secure ground" at text-4xl (334px in Geist 600) doesn't fit the row's column, the line steps down to text-3xl rather than
+   break the phrase ("The secure / ground" was the fault at 360 and 320). The row answers its own width, so a scrollbar counts. */
+/* 336px is the width of "The secure ground" at text-4xl in Geist 600 (334px) plus 2px: a copy measure, not a token. A test pins it. */
+@container hero-row (width < 336px) {
+  .hero-line { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
+}
+
+/* The hand-over: the stage ends on the field, and the next section starts on the page with its head on the row's start edge. */
+.next { min-height: 60svh; padding-top: var(--basalt-space-12); }
+.next-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); }
+
+@media print { .hero { min-height: 0; } .hero-block { padding-bottom: var(--basalt-space-8); } .next { min-height: 0; } }
+@media (forced-colors: active) { .hero-block { padding-bottom: var(--basalt-space-12); } .hero { min-height: 0; } }

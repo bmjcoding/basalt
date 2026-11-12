@@ -1,0 +1,61 @@
+<title>Blacksand: the secure ground your AI agents run on</title>
+<!-- COPY. Verbatim from .review/sites/content/blacksand.md (Positioning, Links): the line, both sentences of the supporting text, "Alpha",
+     the status words, the three header links, the two action labels and "How it works".
+     Not verbatim, [confirm]:
+     - the page title "Blacksand: the secure ground your AI agents run on" (the content file has none; made from the line and the name);
+     - the brand link's accessible name "Blacksand home" (the lockup is a drawing; its own title is kept from showing as a tooltip);
+     - the skip link "Skip to content" (the skill's own text);
+     - the actions' and header links' targets, all "#" (pages and sections that don't exist yet): Quick start, Threat model, Docs, Security, GitHub.
+     The stage's art is generated: art/art.mjs (the designer's, unchanged) by art/generate.mjs. See sites/blacksand/art/. -->
+<!-- LOGGED FOR BASALT'S BACKLOG (nothing built here): the skill's Button has no `xl` (40px, radius 8, 16px label), so index.css sets those
+     values from tokens on the two actions; the hero mark's optical inset (7/48 of its width) is page CSS that knows the drawing. -->
+<!-- @include shared/site-header.css -->
+<!-- @include shared/stage.css -->
+<!-- @include brand/motion/one-bridge.css -->
+<!-- @include art/fills.css -->
+<!-- @include index.css -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="basalt-chrome basalt-site-header">
+  <div class="basalt-site-bar">
+    <a class="basalt-site-brand" href="#top" aria-label="Blacksand home"><span class="basalt-site-brand-mark"><span class="lockup-1x" aria-hidden="true"><!-- @include brand/blacksand/lockup-header-1x.svg --></span><span class="lockup-2x" aria-hidden="true"><!-- @include brand/blacksand/lockup-header-2x.svg --></span></span></a>
+    <nav class="basalt-site-links" aria-label="Primary">
+      <ul>
+        <li><a href="#">Docs</a></li>
+        <li><a href="#">Security</a></li>
+        <li><a href="#">GitHub</a></li>
+      </ul>
+    </nav>
+    <span class="basalt-bar-spacer"></span>
+    <div class="basalt-bar-actions">
+      <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+    </div>
+  </div>
+</header>
+<main id="main">
+  <section class="basalt-stage hero" id="top" data-headroom aria-labelledby="hero-line">
+    <div class="basalt-stage-art" aria-hidden="true">
+      <div class="sky"></div>
+      <div class="sky-row"><!-- @include art/stars-side.svg --><!-- @include art/stars-below.svg --></div>
+      <div class="dune-frame"><!-- @include art/dunes.svg --></div>
+    </div>
+    <span class="basalt-stage-headroom" data-basalt-headroom aria-hidden="true"></span>
+    <div class="basalt-stage-content">
+      <div class="hero-row">
+        <div class="hero-block">
+          <div class="hero-mark-zone" data-quiet="mark"><!-- @include brand/blacksand/hero.html --></div>
+          <h1 class="hero-line" id="hero-line" data-quiet="line"><span class="phrase">The secure ground</span> <span class="phrase">your AI agents <span class="nobr">run on.</span></span></h1>
+          <p class="hero-lead" data-quiet="lead">Blacksand runs AI agents in disposable sandboxes, so they reach only what you allow and never hold your keys. It works with Claude Code, Codex, or your own agents.</p>
+          <div class="hero-actions" data-quiet="actions">
+            <a class="btn" data-variant="primary" href="#">Quick start</a>
+            <a class="btn" href="#">Threat model</a>
+          </div>
+          <p class="hero-status" data-quiet="status"><span class="badge">Alpha</span> An open-source product from SRA Syndicate. MIT licensed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="next" id="how-it-works" aria-labelledby="how-title">
+    <div class="hero-row"><h2 class="next-title" id="how-title">How it works</h2></div>
+  </section>
+</main>
+<!-- @include shared/site-header.js -->

@@ -1,0 +1,46 @@
+<title>Sample stage</title>
+<!-- A fixture, not a site: the clear header over a stage whose art is drawn from the art tokens with its headroom left to the field, so the
+     checks that run on a page with a stage (the headroom check, the clear bar) have one. It has no design. -->
+<!-- @include shared/site-header.css -->
+<!-- @include shared/stage.css -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="basalt-chrome basalt-site-header">
+  <div class="basalt-site-bar">
+    <a class="basalt-site-brand" href="#top" aria-label="Sample home"><span class="basalt-site-brand-mark">Sample</span></a>
+    <nav class="basalt-site-links" aria-label="Primary">
+      <ul>
+        <li><a href="#overview" aria-current="page">Overview</a></li>
+        <li><a href="#guides">Guides</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+    </nav>
+    <span class="basalt-bar-spacer"></span>
+    <div class="basalt-bar-actions">
+      <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
+      <span class="basalt-site-action"><a class="btn" data-variant="primary" href="#start">Get started</a></span>
+    </div>
+  </div>
+</header>
+<main id="main">
+  <section class="basalt-stage" data-headroom>
+    <div class="basalt-stage-art" aria-hidden="true">
+      <svg viewBox="0 0 1440 600" preserveAspectRatio="none">
+        <rect width="1440" height="600" fill="var(--basalt-art-field)"/>
+        <path d="M0 330 C300 250 520 400 760 320 S1200 260 1440 330 V600 H0Z" fill="var(--basalt-art-tone-1)"/>
+        <path d="M0 430 C260 360 480 480 760 410 S1180 380 1440 440 V600 H0Z" fill="var(--basalt-art-tone-2)"/>
+      </svg>
+    </div>
+    <span class="basalt-stage-headroom" data-basalt-headroom aria-hidden="true"></span>
+    <div class="basalt-stage-content">
+      <div class="page" style="padding-block: 0 var(--basalt-space-16)">
+        <h1 data-quiet="headline">A sample stage</h1>
+        <p class="lead">Synthetic text on drawn art.</p>
+      </div>
+    </div>
+  </section>
+  <div class="page" style="min-height: 2400px">
+    <h2>Below the stage</h2>
+    <p>Synthetic text, so the page scrolls.</p>
+  </div>
+</main>
+<!-- @include shared/site-header.js -->

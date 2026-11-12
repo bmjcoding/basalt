@@ -1,0 +1,50 @@
+/* STAND-IN: the stage, until the HTML skill gains the real module (finish-nov10, batch 7). Delete this file then.
+   It is the shipped React Stage's stylesheet (packages/react/src/styles/components.css, "Art": the stage and paired art), carried over
+   rule for rule and not redesigned; the class names are React's so sites/test/stage-parity.test.mjs compares them element by element.
+   It needs shared/site-header.css (the bar's pull-up is --basalt-sticky-offset, and the clear bar is that file's). No art of its own.
+
+   Full-bleed art at the top of a page, behind a clear site header. Level 0: it is the page painted with art, so no rim, radius,
+   shadow, line or fade is added where it ends; it ends on art-field. It starts at y = 0 under the bar, and its content starts below the
+   headroom. While its art loads it shows art-field. Decorative: hidden from assistive technology, not drawn in forced colours, not
+   printed. The headroom (the top size-stage-headroom plus the top safe area) holds no pixel past art-quiet-limit; the page declares that
+   it checked it with data-headroom (sites/test: checkHeadroom is the test). */
+
+@layer basalt {
+  :root { --basalt-stage-headroom: calc(var(--basalt-size-stage-headroom) + var(--_inset-top)); }
+
+  .basalt-stage {
+    position: relative;
+    box-sizing: border-box;
+    margin-top: calc(-1 * var(--basalt-sticky-offset));
+    padding-top: var(--basalt-stage-headroom);
+    background-color: var(--basalt-art-field);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .basalt-stage-art > :is(svg, canvas, picture, img, video) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .basalt-stage-headroom { position: absolute; inset: 0 0 auto 0; height: var(--basalt-stage-headroom); pointer-events: none; }
+  .basalt-stage-content { position: relative; }
+
+  /* Paired art shows the picture for the page's theme, the toggle's as well as the system's: the theme roots set which one, the way
+     tokens.css sets the colours, so a nested theme root has its own. Never filtered. */
+  :root, [data-theme="light"], .light { --_art-dark: none; --_art-light: block; }
+  [data-theme="dark"], .dark { --_art-dark: block; --_art-light: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) { --_art-dark: block; --_art-light: none; }
+  }
+  .basalt-paired-art { object-fit: cover; }
+  .basalt-paired-art[data-art="dark"] { display: var(--_art-dark); }
+  .basalt-paired-art[data-art="light"] { display: var(--_art-light); }
+
+  @media (forced-colors: active) {
+    /* Decorative art is not drawn, and the stage is Canvas: a picture behind system colours would undo the mode. */
+    .basalt-stage { background-color: Canvas; }
+    .basalt-stage-art { display: none; }
+  }
+  @media print {
+    /* Decorative stage art does not print, and the bar is not over it, so the stage takes its place in the flow. */
+    .basalt-stage { margin-top: 0; padding-top: 0; background: none; }
+    .basalt-stage-art { display: none; }
+  }
+}

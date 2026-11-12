@@ -1,0 +1,460 @@
+/* STAND-IN: the site header and its narrow menu, until the HTML skill gains the real module (finish-nov10, batch 7).
+   Delete this file and site-header.js then; the pages' markup (sites/README.md) is the only other thing that names them.
+
+   It is the shipped React component's stylesheet (packages/react/src/styles/components.css: the chrome, the site header, the narrow
+   menu as Sheet side="top", Nav's rows and glide, the clear bar over art), carried over rule for rule and not redesigned. The class
+   names are React's (basalt-chrome, basalt-site-*, basalt-nav-*, basalt-sheet), so sites/test/site-header-parity.test.mjs compares
+   the two element by element. The buttons are the skill's own .btn. Tokens only: every raw length keeps its lint exception, and
+   everything is in @layer basalt, as React's is, so a page's own CSS wins. */
+
+@layer basalt {
+
+  /* ---- Layout lengths a device adds to the tokens (React: --basalt-gutter, --basalt-sticky-offset and the safe areas) ---- */
+  :root {
+    --basalt-gutter: var(--basalt-size-gutter);
+    --_inset-top: env(safe-area-inset-top, var(--basalt-space-0));
+    --_inset-left: env(safe-area-inset-left, var(--basalt-space-0));
+    --_inset-right: env(safe-area-inset-right, var(--basalt-space-0));
+    --_inset-bottom: env(safe-area-inset-bottom, var(--basalt-space-0));
+    --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--_inset-top));     /* what a sticky thing under a bar adds */
+    --_pad-left: max(var(--basalt-gutter), var(--_inset-left));                      /* a bar's inline padding: the gutter or the side inset */
+    --_pad-right: max(var(--basalt-gutter), var(--_inset-right));
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu and the gutter narrows */
+  @media (width < 720px) {
+    :root { --basalt-gutter: var(--basalt-size-gutter-narrow); }
+  }
+  /* A page with a bar keeps its scrollbar's room and scrolls anchors and focus clear of the sticky bar. */
+  :root:has(.basalt-site-header) {
+    scrollbar-gutter: stable;
+    scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+  }
+
+  /* ---- Chrome: the one smoked surface ----
+     surface-chrome over a 12px blur, a hairline below, primary ink. Use it once per viewport. Only primary and secondary text may sit
+     on it: tertiary text is promoted to secondary. A pressed ghost button takes primary ink on its wash. */
+  .basalt-chrome {
+    position: sticky;
+    top: 0;
+    z-index: var(--basalt-layer-sticky);
+    box-sizing: border-box;
+    background: var(--basalt-surface-chrome);
+    -webkit-backdrop-filter: blur(var(--basalt-blur-chrome));
+    backdrop-filter: blur(var(--basalt-blur-chrome));
+    /* The hairline, not the divider: the bar sits on level 0 and has no rim, so it is the exception to a divider never
+       being brighter than the rim (council, 3-1). Light is black 8% either way. */
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-chrome .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  .basalt-chrome .faint { color: var(--basalt-text-secondary); }
+  /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .basalt-chrome { background: var(--basalt-surface-page); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .basalt-chrome {
+      background: var(--basalt-surface-page);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  @media print {
+    .basalt-chrome {
+      background: var(--basalt-surface-page);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  /* The opaque form of the bar: the same bar without the layer, for a product whose content does not scroll under it. */
+  .basalt-chrome[data-solid] {
+    background: var(--basalt-surface-page);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* ---- The bar ----
+     56 in all, border box, its 1px line inside; the top safe area is padding above it. The row is 55 with 1 on top, so what sits in
+     it is centred on the bar's whole height (a 44 target has 6 above and 6 below, counting the line). */
+  .basalt-site-header {
+    height: var(--basalt-sticky-offset);
+    padding-top: var(--_inset-top);
+  }
+  .basalt-site-bar {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    max-width: var(--basalt-size-page-width);
+    height: calc(var(--basalt-size-header) - var(--basalt-size-hairline));
+    margin-inline: auto;
+    padding-top: var(--basalt-size-hairline);
+    padding-inline: var(--_pad-left) var(--_pad-right);
+  }
+  .basalt-bar-spacer { flex: 1 1 auto; }
+  .basalt-bar-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-2); }
+  .basalt-site-action { display: inline-flex; }
+
+  /* The brand slot: the 32px header lockup in a 44px target. Identity, not a nav item: no wash. */
+  .basalt-site-brand {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    height: var(--basalt-size-tap-min);
+    margin: 0;
+    color: var(--basalt-text-primary);
+    text-decoration: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The skill's touch rule for a standalone link (a negative block margin) is for links in a page; the brand is sized on its own. */
+  :is(.basalt-site-bar, .basalt-site-menu-band) .basalt-site-brand { margin: 0; }
+  .basalt-site-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    height: var(--basalt-size-control-md);
+    border-radius: var(--basalt-radius-sm);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-md-tracking);
+    white-space: nowrap;
+  }
+  .basalt-site-brand:focus-visible .basalt-site-brand-mark { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+
+  /* The links: navigation, so Nav's language. 14/20 at 400 in secondary ink on a 32px hugging pill; the hit area is 44 tall
+     at every pointer, with 2px either side of the pill, so pills are 4 apart and neighbouring hit areas touch. Hover is the
+     pill at the selected wash and the ink to primary; the current page is primary at 600 with its width reserved, and no
+     background, underline or bar. The ring is the control ring round the pill. */
+  .basalt-site-links {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    margin-inline-start: var(--basalt-space-4);
+  }
+  .basalt-site-links-list { display: flex; margin: 0; padding: 0; list-style: none; }
+  .basalt-site-links-list > li { display: flex; margin: 0; padding: 0; }
+  .basalt-site-link {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: var(--basalt-size-tap-min);
+    margin: 0;
+    padding-inline: var(--basalt-space-0-5);
+    color: var(--basalt-text-secondary);
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-site-pill {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    height: var(--basalt-size-control-md);
+    padding-inline: var(--basalt-space-3);
+    border-radius: var(--basalt-radius-full);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-site-label {
+    display: inline-flex;
+    flex-direction: column;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-base-tracking);
+    white-space: nowrap;
+  }
+  /* The label reserves its 600 width, so becoming current moves nothing. */
+  .basalt-site-label[data-label]::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .basalt-site-link[aria-current="page"] { color: var(--basalt-text-primary); }
+  .basalt-site-link[aria-current="page"] .basalt-site-label { font-weight: var(--basalt-font-weight-semibold); }
+  @media (hover: hover) {
+    .basalt-site-link:hover { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+    .basalt-site-link:hover .basalt-site-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  }
+  .basalt-site-link:active,
+  .basalt-site-link:focus-visible { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-site-link:active .basalt-site-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  .basalt-site-link:focus-visible .basalt-site-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The first key hides the hover (shared pill and fallback alike): focus is the cue, until the pointer moves again. */
+  .basalt-site-links[data-keys] .basalt-site-link:is(:hover, :active) .basalt-site-pill { background-color: transparent; }
+  .basalt-site-links[data-keys] .basalt-site-link:hover:not([aria-current], :focus-visible) { color: var(--basalt-text-secondary); }
+  /* The glide: Nav's rules, on the links. The links' own pills step aside only while the shared one is live. */
+  .basalt-site-links > .basalt-plate { --_plate: var(--basalt-state-selected); border-radius: var(--basalt-radius-full); }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    .basalt-site-links[data-glide] .basalt-site-link .basalt-site-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
+  }
+
+  /* The hover glide. One shared plate follows the item under the pointer. It travels by transform and size on duration-base with
+     ease-out, whatever the distance. It appears in place when the pointer comes from outside, and the first key hides it. When the
+     pointer leaves it stops where it is and fades in place over duration-fast on ease-in; a return during that fade travels from
+     there. It is decoration: pointer-inert, aria-hidden, and drawn only where hover is real: not on touch, not under reduced motion,
+     not in forced colours, where each item lights on its own. */
+  .basalt-plate {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: var(--_plate-w);
+    height: var(--_plate-h);
+    transform: translate(var(--_plate-x), var(--_plate-y));
+    border-radius: var(--basalt-radius-md);
+    background-color: var(--_plate);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--basalt-duration-fast) var(--basalt-ease-in);
+  }
+  .basalt-plate[data-state="on"] {
+    opacity: 1;
+    transition-property: transform, width, height;
+    transition-duration: var(--basalt-duration-base);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-plate[data-snap],
+  .basalt-plate[data-state][data-snap] { transition-property: none; }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    [data-glide] .basalt-plate { display: block; }
+  }
+
+  /* ---- Nav's rows, for the narrow menu (glyphless) ---- */
+  .basalt-nav {
+    --_nav-height: var(--basalt-space-12);
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    min-width: 0;
+    padding-inline: var(--basalt-space-1-5);
+    color: var(--basalt-text-primary);
+  }
+  .basalt-nav-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+  .basalt-nav-entry { display: flex; flex-direction: column; margin: 0; padding: 0; }
+  .basalt-nav-item {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    min-height: calc(var(--_nav-height) + 2 * var(--basalt-space-0-5));
+    padding-block: var(--basalt-space-0-5);
+    color: var(--basalt-text-primary);
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-nav-pill {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-4);
+    height: var(--_nav-height);
+    padding-inline: var(--basalt-space-3) var(--basalt-space-5);
+    border-radius: var(--basalt-radius-full);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-nav-label {
+    display: inline-flex;
+    flex-direction: column;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-xl-tracking);
+    white-space: nowrap;
+  }
+  /* The label reserves its 600 width, so becoming current never moves the pill's far edge. */
+  .basalt-nav-label[data-label]::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .basalt-nav-item[aria-current="page"] .basalt-nav-label { font-weight: var(--basalt-font-weight-semibold); }
+  @media (hover: hover) {
+    .basalt-nav-item:hover .basalt-nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  }
+  .basalt-nav-item:active .basalt-nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  .basalt-nav-item:focus-visible .basalt-nav-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-nav[data-keys] .basalt-nav-item:hover .basalt-nav-pill,
+  .basalt-nav[data-keys] .basalt-nav-item:active .basalt-nav-pill { background-color: transparent; }
+  .basalt-nav > .basalt-plate { --_plate: var(--basalt-state-selected); border-radius: var(--basalt-radius-full); }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    .basalt-nav[data-glide] .basalt-nav-item .basalt-nav-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
+  }
+
+  /* ---- Under 720 ----
+     The links and the action leave the bar; the brand, the toggle and a Menu button stay. The bar's buttons are 44 whatever the
+     pointer, radius 8, and the glyph keeps the icon button's own 16. */
+  .basalt-morph { display: block; flex: none; overflow: visible; transform-origin: center; }
+  .basalt-site-menu-trigger { display: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu */
+  @media (width < 720px) {
+    .basalt-site-links,
+    .basalt-site-action { display: none; }
+    .basalt-site-menu-trigger { display: inline-flex; }
+    .basalt-bar-actions { gap: var(--basalt-space-1); }
+    :is(.basalt-site-header, .basalt-site-menu-band) .btn {
+      --_h: var(--basalt-size-tap-min);
+      min-width: var(--basalt-size-tap-min);
+      border-radius: var(--basalt-radius-md);
+    }
+  }
+
+  /* ---- Under 720 with no script ----
+     The Menu button opens a menu that only script can open, so where script is off the bar does not offer it: the links are in the bar,
+     on a second row under the brand, and the action stays beside the toggle. The bar grows to hold them; it is a plain page, not the
+     decided bar, and it keeps every link reachable. Where script runs this does not apply, so the bar is the decided one from the first paint. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links would go into the menu */
+  @media (scripting: none) and (width < 720px) {
+    .basalt-site-header { height: auto; }
+    .basalt-site-bar { flex-wrap: wrap; height: auto; }
+    .basalt-site-links { display: flex; order: 1; flex: 1 0 100%; margin-inline-start: calc(-1 * var(--basalt-space-0-5)); }
+    .basalt-site-links-list { flex-wrap: wrap; }
+    .basalt-site-action { display: inline-flex; }
+    .basalt-site-menu-trigger { display: none; }
+  }
+
+  /* ---- The narrow menu: Sheet side="top" ----
+     The bar's own band at once, the rest unrolling beneath it from the band's edge (a clip, over duration-slower on ease-out;
+     closing at 0.75 on ease-in). Level 1, the scrim, shadow-modal, bottom corners 16. As tall as its content; scrolls inside at
+     the viewport's height. The clip reaches past the sides and bottom so the shadow shows once it is open. */
+  .basalt-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--basalt-layer-overlay);
+    background: var(--basalt-scrim);
+    transition: opacity var(--basalt-duration-slow) var(--basalt-ease-out);
+  }
+  .basalt-dialog-backdrop[data-starting-style],
+  .basalt-dialog-backdrop[data-ending-style] { opacity: 0; }
+  /* A modal is level 1 (React writes data-level="1" on the sheet; its two variables are set here). */
+  .basalt-sheet { --_surface: var(--basalt-surface-1); }
+  .basalt-sheet {
+    box-sizing: border-box;
+    position: fixed;
+    z-index: var(--basalt-layer-dialog);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--basalt-space-6);
+    padding-top: max(var(--basalt-space-6), env(safe-area-inset-top));
+    padding-right: max(var(--basalt-space-6), env(safe-area-inset-right));
+    padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom));
+    padding-left: max(var(--basalt-space-6), env(safe-area-inset-left));
+    background: var(--_surface, var(--basalt-surface-overlay));
+    color: var(--basalt-text-primary);
+    box-shadow: var(--basalt-shadow-modal);
+    font-family: var(--basalt-font-family-sans);
+    outline: none;
+    transition: transform var(--basalt-duration-slower) var(--basalt-ease-out), opacity var(--basalt-duration-slower) var(--basalt-ease-out);
+  }
+  .basalt-sheet[data-side="top"] {
+    --_reach: calc(-1 * var(--basalt-space-16));
+    top: 0;
+    left: 0;
+    right: 0;
+    max-height: 100dvh;
+    padding: 0;
+    padding-top: var(--_inset-top);
+    overscroll-behavior: contain;
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-radius: 0 0 var(--basalt-radius-xl) var(--basalt-radius-xl);
+    clip-path: inset(0 var(--_reach) var(--_reach) var(--_reach));
+    transition: clip-path var(--basalt-duration-slower) var(--basalt-ease-out);
+  }
+  .basalt-sheet[data-side="top"][data-starting-style],
+  .basalt-sheet[data-side="top"][data-ending-style] { clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-sticky-offset)) var(--_reach)); }
+  .basalt-sheet-backdrop[data-side="top"] { transition-duration: var(--basalt-duration-slower); }
+  /* Closing runs at 0.75 of opening, easing in. After the rules above, as React's is, so it wins their transition shorthand. */
+  .basalt-sheet[data-ending-style], .basalt-sheet-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+  .basalt-site-menu-band {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    flex: none;
+    height: var(--basalt-size-header);
+    padding-top: var(--basalt-size-hairline);
+    padding-inline: var(--_pad-left) var(--_pad-right);
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-site-menu-nav {
+    padding-block: var(--basalt-space-2);
+    padding-inline: max(var(--basalt-space-1-5), var(--_inset-left)) max(var(--basalt-space-1-5), var(--_inset-right));
+  }
+  .basalt-site-menu-foot {
+    padding: var(--basalt-space-2) var(--_pad-right) max(var(--basalt-space-4), var(--_inset-bottom)) var(--_pad-left);
+  }
+  .basalt-site-menu-foot .btn {
+    --_h: var(--basalt-size-tap-min);
+    width: 100%;
+    border-radius: var(--basalt-radius-md);
+  }
+  /* The page does not scroll under the open menu. The gutter is kept, so nothing shifts. */
+  :root[data-site-menu-open] { overflow: hidden; }
+
+  /* ---- Reduced motion: opacity only ---- */
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-sheet[data-side="top"] { clip-path: none; transition-property: opacity; }
+    .basalt-sheet[data-side="top"][data-starting-style],
+    .basalt-sheet[data-side="top"][data-ending-style] { clip-path: none; opacity: 0; }
+  }
+
+  /* ---- Forced colours: Canvas with a CanvasText line, solid and unblurred; the hovered link is Highlight on HighlightText ---- */
+  @media (forced-colors: active) {
+    .basalt-site-link:hover .basalt-site-pill,
+    .basalt-site-link:active .basalt-site-pill,
+    .basalt-nav-item:hover .basalt-nav-pill,
+    .basalt-nav-item:active .basalt-nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    .basalt-site-links[data-keys] .basalt-site-link:is(:hover, :active) .basalt-site-pill,
+    .basalt-nav[data-keys] .basalt-nav-item:is(:hover, :active) .basalt-nav-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
+    .basalt-site-menu-band { border-bottom-color: CanvasText; }
+    .basalt-sheet { border-color: CanvasText; }
+    .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+
+  /* ---- The clear bar over art (decision 104) ----
+     Clear only over a stage that declares its headroom passed (shared/stage.css), only at the very top of the page. The script
+     reports where the page is (data-top, from one IntersectionObserver on a sentinel at the document's top); this decides what that
+     means. Clear is no fill, no blur and a transparent line: the 56px bar never grows, the ink never changes. From the first pixel of
+     scroll the fill and the line fade in over duration-base on ease-out, and back at 0.75 on ease-in; the blur switches at once. A
+     departure first reported past the headroom's slack, and the page opening at the top (data-jump), switch all of it at once. Smoked
+     is the default and the fallback: no stage, an undeclared stage, no script, reduced transparency, forced colours and print. */
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid]) {
+    transition: background-color var(--basalt-duration-base) var(--basalt-ease-out), border-bottom-color var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] {
+    background-color: transparent;
+    border-bottom-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transition-duration: calc(var(--basalt-duration-base) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+  }
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-jump] { transition-duration: var(--basalt-duration-instant); }
+  @media (prefers-reduced-transparency: reduce) {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: var(--basalt-surface-page); border-bottom-color: var(--basalt-border-hairline); }
+  }
+  @media print {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: var(--basalt-surface-page); border-bottom-color: var(--basalt-border-hairline); }
+    /* A difference from React, which does not switch theme to print: the skill's page does (in beforeprint), and a fade of the bar's
+       fill and line between the two themes would be caught part-way by the printed page. In print the bar is static. */
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid]),
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top],
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-jump] { transition: none; }
+  }
+  @media (forced-colors: active) {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: Canvas; border-bottom-color: CanvasText; }
+  }
+}
