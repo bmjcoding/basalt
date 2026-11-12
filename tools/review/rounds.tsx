@@ -84,6 +84,7 @@ import { ROUND_15 } from "./round15";
 import { ROUND_16 } from "./round16";
 import { ROUND_17 } from "./round17";
 import { ROUND_18 } from "./round18";
+import { ROUND_19 } from "./round19";
 import { ROUND_20 } from "./round20";
 
 export interface Step {
@@ -95,8 +96,14 @@ export interface Step {
   decisions: string[];
   /** Things to try in the live demo. */
   tryIt: string[];
-  /** Extra states to screenshot besides the default, e.g. "open". */
+  /** Extra states to screenshot besides the default, e.g. "open". "name@1024" is shot at that one width. */
   states?: string[];
+  /** The widths to shoot every state at. Default 960 and 390. */
+  widths?: number[];
+  /** 1 for 1x, 2 for 2x. Default 2x only. */
+  scales?: number[];
+  /** The viewport height. Default 400, or 640 for an open state. */
+  height?: number;
   demo: (props: { state: string }) => React.ReactNode;
 }
 
@@ -598,4 +605,4 @@ const ROUND_2: Round = {
   ],
 };
 
-export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9, ROUND_10, ROUND_11, ROUND_12, ROUND_13, ROUND_14, ROUND_15, ROUND_16, ROUND_17, ROUND_18, ROUND_20];
+export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROUND_6, ROUND_7, ROUND_8, ROUND_9, ROUND_10, ROUND_11, ROUND_12, ROUND_13, ROUND_14, ROUND_15, ROUND_16, ROUND_17, ROUND_18, ROUND_19, ROUND_20];
