@@ -49,6 +49,21 @@ describe("what a body gets", () => {
     assert.deepEqual(used('<script>Basalt.copyText("x"); Basalt.init();</script>'), ["copy"]);
   });
 
+  test("the overlay layer comes in as modules, each by its own markup, attribute or call, with what it needs, and prose that merely names one gets none", () => {
+    assert.deepEqual(used('<button popovertarget="p">x</button>'), ["popover"]);
+    assert.deepEqual(used('<div class="menu" popover></div>'), ["glide", "popover", "menu"], "a menu brings the popup rules and the shared plate");
+    assert.deepEqual(used('<button data-dialog-open="#d">x</button>'), ["dialog"]);
+    assert.deepEqual(used("<dialog>x</dialog>"), ["dialog"], "a native dialog is drawn as the dialog");
+    assert.deepEqual(used('<dialog class="sheet" data-side="top"></dialog>'), ["dialog", "sheet"], "a sheet brings the dialog it is");
+    assert.deepEqual(used('<script>Basalt.openDialog("#d"); Basalt.init();</script>'), ["dialog"]);
+    assert.deepEqual(used('<button data-tooltip="Save">x</button>'), ["popover", "tooltip"]);
+    assert.deepEqual(used('<button data-tooltip="Save" data-tooltip-keys="⌘ S">x</button>'), ["kbd", "popover", "tooltip"], "a tooltip's shortcut brings the chips");
+    assert.deepEqual(used('<script>Basalt.toast({ title: "Saved" }); Basalt.init();</script>'), ["braille", "toast"], "a toast brings the braille it shows while work runs");
+    assert.deepEqual(used('<script>Basalt.notifications("#bell", { entries: [] }); Basalt.init();</script>'), ["glide", "popover", "notifications"]);
+    assert.deepEqual(used('<span class="plate"></span>'), ["glide"]);
+    assert.deepEqual(used("<p>A popover, a menu, a dialog and a toast are words here.</p>"), []);
+  });
+
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
     for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
       assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);
@@ -72,8 +87,8 @@ describe("what a body gets", () => {
   });
 
   test("the palette brings the rows and the kbd it needs, in the manifest's order", () => {
-    assert.deepEqual(used("<button data-open-palette>Commands</button>"), ["kbd", "rows", "palette"]);
-    assert.deepEqual(used('<script>Basalt.init({ palette: { groups: [] } })</script>'), ["kbd", "rows", "palette"]);
+    assert.deepEqual(used("<button data-open-palette>Commands</button>"), ["kbd", "rows", "glide", "palette"]);
+    assert.deepEqual(used('<script>Basalt.init({ palette: { groups: [] } })</script>'), ["kbd", "rows", "glide", "palette"]);
   });
 
   test("an icon is drawn when its name is quoted in the body or a module in use draws it, and not for a word in prose", () => {
@@ -99,7 +114,7 @@ describe("what a body gets", () => {
 
   test("the example bodies get the modules their markup needs", () => {
     assert.deepEqual(used(EXAMPLES.static), ["topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
-    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "rows", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
   });
 });
 
@@ -230,8 +245,8 @@ describe("the command line", () => {
       const heads = [...r.stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]);
       assert.deepEqual(heads, ["palette"]);
       assert.ok(r.stdout.includes(usageOf("palette").trim()), "the palette's usage is printed whole");
-      assert.match(r.stdout, /Its script builds the markup of kbd and rows: nothing to add\. If your page uses one itself, print its usage by name\./);
-      for (const name of ["kbd", "rows"]) assert.ok(!r.stdout.includes(usageOf(name).trim()), `${name}'s usage is not printed with the palette`);
+      assert.match(r.stdout, /Its script builds the markup of kbd, rows and glide: nothing to add\. If your page uses one itself, print its usage by name\./);
+      for (const name of ["kbd", "rows", "glide"]) assert.ok(!r.stdout.includes(usageOf(name).trim()), `${name}'s usage is not printed with the palette`);
       assert.match(r.stdout, /^Brought in by: /m);
       assert.doesNotMatch(r.stdout, /\\s|\(\?:/, "no regular expression is printed");
       assert.match(r.stdout, /the body has a call to Basalt\.openPalette or Basalt\.closePalette; or palette: inside a Basalt\.init call/);
@@ -337,7 +352,7 @@ describe("modules map to the index and the usage texts", () => {
   });
 
   test("every behaviour attribute in the index and the usage texts brings the module that wires it", () => {
-    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd" };
+    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd", "data-dialog-open": "dialog", "data-dialog-close": "dialog", "data-tooltip": "tooltip", "data-tooltip-keys": "kbd" };
     const behaviour = attrs.filter((a) => a in wires);
     assert.ok(behaviour.length >= 6);
     for (const attr of behaviour) assert.ok(used(`<div ${attr}></div>`).includes(wires[attr]), `${attr} should bring ${wires[attr]}`);
@@ -379,6 +394,7 @@ describe("modules map to the index and the usage texts", () => {
         else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x`;
         else if (/^type="range"$/.test(span)) markup = `<input ${span}>`;
         else if (/^role="tablist"$/.test(span)) markup = `<div ${span}>x</div>`;
+        else if (/^popovertarget$/.test(span)) markup = `<button ${span}="p">x</button>`;
         if (markup) assert.ok(used(markup).includes(name), `${name}'s trigger ${span} should bring it in`);
       }
     }

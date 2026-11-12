@@ -28,6 +28,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **number** `.number-field`: wraps `input.input.num`; a bare number input has no steppers.
 - **range** `type="range"`: styled bare; no wrapper, no class.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
+- **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
@@ -44,6 +45,13 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
+- **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.
+- **menu** `.menu`: rows are `button.menu-item` with a role; a radio sits in a `role="group"`.
+- **dialog** `data-dialog-open`: a `<dialog>` with a `.dialog-title`; an alert dialog marks its safe button `data-cancel`.
+- **sheet** `.sheet`: a dialog with `data-side`; the top one opens with a `.sheet-band`.
+- **tooltip** `data-tooltip`: only supplements a name the control already has; plain text.
+- **toast** `Basalt.toast`: no `home` means it stays until dismissed; never build your own.
+- **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
 

@@ -195,7 +195,7 @@ export function usageText(names, { parts = path.join(here, "parts") } = {}) {
     const lead = name === "core" ? "Always in." : by ? `Required by ${by}.` : "";
     out.push(`${read(parts, path.join("usage", `${name}.md`)).trim()}\n\n${[lead, brings ? (name === "core" ? `Core ${brings}.` : `Brought in by: ${brings}.`) : ""].filter(Boolean).join(" ")}\n`);
     const builds = manifest.modules[name]?.builds ?? [];
-    if (builds.length) out.push(`Its script builds the markup of ${builds.join(" and ")}: nothing to add. If your page uses ${builds.length > 1 ? "one" : "it"} itself, print its usage by name.\n`);
+    if (builds.length) out.push(`Its script builds the markup of ${builds.length > 2 ? `${builds.slice(0, -1).join(", ")} and ${builds[builds.length - 1]}` : builds.join(" and ")}: nothing to add. If your page uses ${builds.length > 1 ? "one" : "it"} itself, print its usage by name.\n`);
     const needs = new Set((manifest.modules[name]?.requires ?? []).filter((n) => !builds.includes(n)));
     for (let grew = true; grew;) { grew = false; for (const n of [...needs]) for (const r of manifest.modules[n].requires ?? []) if (!needs.has(r)) { needs.add(r); grew = true; } }
     for (const n of Object.keys(manifest.modules)) if (needs.has(n)) section(n, name);

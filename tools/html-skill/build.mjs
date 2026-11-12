@@ -28,7 +28,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as esbuild from "esbuild";
 
-import { GLYPHS } from "../../packages/react/glyphs/source.mjs";
+import { GLYPHS, slots } from "../../packages/react/glyphs/source.mjs";
 import { iconData } from "./icons.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -125,9 +125,11 @@ const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%ico
  */
 const glyphPath = (name) => {
   const glyph = GLYPHS[name];
-  if (!glyph?.s) throw new Error(`html-skill: "${name}" is not a core glyph with a drawing of its own`);
+  // A glyph with its own drawing (`s`), or one the set derives by turning another (close is plus turned 45 degrees): its slots, read from the set.
+  if (!glyph || !(glyph.s || glyph.of)) throw new Error(`html-skill: "${name}" is not a core glyph with a drawing`);
+  const drawing = glyph.s ?? slots(name);
   const near = (a, b) => Math.abs(a - b) < 1e-6;
-  return glyph.s.filter((slot) => slot[8]).map(([x0, y0, x1, y1, x2, y2, x3, y3]) => {
+  return drawing.filter((slot) => slot[8]).map(([x0, y0, x1, y1, x2, y2, x3, y3]) => {
     const straight = near(x1, x0 + (x3 - x0) / 3) && near(y1, y0 + (y3 - y0) / 3) && near(x2, x0 + (2 * (x3 - x0)) / 3) && near(y2, y0 + (2 * (y3 - y0)) / 3);
     return straight ? `M${x0} ${y0}L${x3} ${y3}` : `M${x0} ${y0}C${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`;
   }).join("");

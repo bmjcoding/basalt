@@ -240,9 +240,213 @@ async function read(page, selector, props, { pseudo = null } = {}) {
     const rect = el.getBoundingClientRect();
     // text-align: start and left are the same thing in a left-to-right page
     const plain = (n) => (n === "textAlign" ? { left: "start", right: "end" }[style.textAlign] ?? style.textAlign : style[n]);
-    return Object.fromEntries(names.map((n) => [n, n === "boxHeight" ? (ps ? style.height : `${Math.round(rect.height * 100) / 100}px`) : n === "boxWidth" ? (ps ? style.width : `${Math.round(rect.width * 100) / 100}px`) : plain(n)]));
+    const px = (v) => `${Math.round(v * 100) / 100}px`;
+    // Where a popup sits: against its trigger (the element marked data-parity-trigger), or against the window.
+    const trigger = document.querySelector("[data-parity-trigger]")?.getBoundingClientRect();
+    const special = {
+      boxHeight: () => (ps ? style.height : px(rect.height)),
+      boxWidth: () => (ps ? style.width : px(rect.width)),
+      rectLeft: () => px(rect.left), rectTop: () => px(rect.top), rectRight: () => px(window.innerWidth - rect.right), rectBottom: () => px(window.innerHeight - rect.bottom),
+      pathCount: () => `${el.querySelectorAll("path").length}`,
+      gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
+      firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
+    };
+    return Object.fromEntries(names.map((n) => [n, special[n] ? special[n]() : plain(n)]));
   }, { selector, props, pseudo });
 }
+
+
+// ---- The overlay layer: Dialog, AlertDialog, Sheet, Popover, Menu, Tooltip, Toast and the notification centre ----
+// Each is opened in React (open by default) and in the skill (opened from script), then settled, and the pairs read like the others. A popup's place
+// is read against its trigger (data-parity-trigger), so the two pages' layouts need not agree. Exit timing is read in the behaviour tests (parity-4).
+const PANEL = ["backgroundColor", "borderTopLeftRadius", "borderTopRightRadius", "borderBottomLeftRadius", "borderBottomRightRadius", "borderTopColor", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth", "borderRightColor", "borderBottomColor", "borderLeftColor", "boxShadow", "color"];
+const PAD = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
+const ENTRY = ["firstTransitionDuration", "firstTransitionTimingFunction"];
+const SIDES = ["right", "left", "bottom", "top"];
+const MENU_ROWS = {
+  react: `import { CopyIcon, TrashIcon } from "@phosphor-icons/react";`,
+  menuReact: `<MenuItem icon={CopyIcon} shortcut="⌘D">Duplicate</MenuItem><MenuSeparator /><MenuGroup><MenuGroupLabel>Sort by</MenuGroupLabel><MenuRadioGroup defaultValue="name"><MenuRadioItem value="name">Name</MenuRadioItem><MenuRadioItem value="date" description="Newest first">Date</MenuRadioItem></MenuRadioGroup></MenuGroup><MenuCheckboxItem defaultChecked>Show hidden</MenuCheckboxItem><MenuItem icon={TrashIcon} danger>Delete</MenuItem>`,
+};
+const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }]`;
+const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'");
+
+const OVERLAYS = [
+  {
+    id: "dialog",
+    uses: "Dialog, DialogContent, DialogTitle, DialogDescription, DialogActions, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<Dialog defaultOpen><DialogContent><DialogTitle>Rename sandbox</DialogTitle><DialogDescription>The new name shows everywhere.</DialogDescription><DialogActions><Button>Cancel</Button><Button variant="primary">Save</Button></DialogActions></DialogContent></Dialog>));`,
+    skill: `<dialog class="panel float modal dialog" id="d"><h2 class="dialog-title">Rename sandbox</h2><p class="dialog-description">The new name shows everywhere.</p><div class="dialog-actions"><button class="btn" data-dialog-close>Cancel</button><button class="btn" data-variant="primary" data-dialog-close>Save</button></div></dialog>`,
+    open: "Basalt.openDialog('#d')",
+    ready: { react: ".basalt-dialog", skill: "dialog.dialog[open]" },
+    pairs: [
+      ["dialog", ".basalt-dialog", "dialog.dialog", [...PANEL, ...PAD, "boxWidth", "boxHeight", "fontFamily", "opacity", "maxHeight", "overflowY", "outlineStyle", ...ENTRY, "rectLeft", "rectTop"]],
+      ["scrim", ".basalt-dialog-backdrop", "dialog.dialog", ["backgroundColor", "opacity", ...ENTRY], { skillPseudo: "::backdrop" }],
+      ["title", ".basalt-dialog-title", ".dialog-title", [...TYPE, "color", "marginTop", "marginBottom", "boxHeight"]],
+      ["description", ".basalt-dialog-description", ".dialog-description", [...TYPE, "color", "marginTop", "boxHeight"]],
+      ["actions", ".basalt-dialog-actions", ".dialog-actions", ["display", "justifyContent", "gap", "marginTop", "boxHeight"]],
+      ["primary action", ".basalt-button[data-variant=primary]", ".dialog-actions .btn[data-variant=primary]", [...GEOMETRY, ...COLOUR]],
+    ],
+  },
+  {
+    id: "alert dialog",
+    uses: "AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogActions, AlertDialogCancel, AlertDialogAction, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<AlertDialog defaultOpen><AlertDialogContent><AlertDialogTitle>Delete sandbox?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription><AlertDialogActions><AlertDialogCancel render={<Button>Cancel</Button>} /><AlertDialogAction render={<Button variant="danger">Delete</Button>} /></AlertDialogActions></AlertDialogContent></AlertDialog>));`,
+    skill: `<dialog class="panel float modal dialog" id="d" role="alertdialog"><h2 class="dialog-title">Delete sandbox?</h2><p class="dialog-description">This cannot be undone.</p><div class="dialog-actions"><button class="btn" data-dialog-close data-cancel>Cancel</button><button class="btn" data-variant="danger" data-dialog-close>Delete</button></div></dialog>`,
+    open: "Basalt.openDialog('#d')",
+    ready: { react: ".basalt-dialog", skill: "dialog.dialog[open]" },
+    pairs: [
+      ["dialog", ".basalt-dialog", "dialog.dialog", [...PANEL, ...PAD, "boxWidth", "boxHeight", "rectLeft", "rectTop"]],
+      ["safe action, first focus", "[data-basalt-cancel]", ".btn[data-cancel]", ["boxHeight", "outlineStyle"]],
+      ["danger action", ".basalt-button[data-variant=danger]", ".btn[data-variant=danger]", [...GEOMETRY, ...COLOUR]],
+    ],
+  },
+  ...SIDES.map((side) => ({
+    id: `sheet ${side}`,
+    uses: "Sheet, SheetContent, SheetTitle, SheetDescription, SheetActions, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<Sheet defaultOpen><SheetContent side="${side}"><SheetTitle>Details</SheetTitle><SheetDescription>A side panel.</SheetDescription><SheetActions><Button>Close</Button></SheetActions></SheetContent></Sheet>));`,
+    skill: `<dialog class="panel float modal sheet" id="s" data-side="${side}"><h2 class="dialog-title">Details</h2><p class="dialog-description">A side panel.</p><div class="dialog-actions"><button class="btn" data-dialog-close>Close</button></div></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-sheet", skill: "dialog.sheet[open]" },
+    pairs: [
+      ["sheet", ".basalt-sheet", "dialog.sheet", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowY", "rectLeft", "rectTop", "rectRight", "rectBottom", ...ENTRY, "clipPath", "transform", "opacity"]],
+      ["scrim", ".basalt-dialog-backdrop", "dialog.sheet", ["backgroundColor", "opacity"], { skillPseudo: "::backdrop" }],
+      ["actions", ".basalt-dialog-actions", ".dialog-actions", ["position", "bottom", "marginTop", "marginRight", "marginBottom", "marginLeft", ...PAD, "backgroundColor", "boxShadow", "boxHeight"]],
+    ],
+  })),
+  {
+    // The site header's narrow menu draws Menu in its band and morphs it to Close (React's MorphIcon). The skill carries no MorphIcon: it swaps the glyph at once
+    // and draws the core Close glyph as one path where MorphIcon draws one path for each stroke (see parity-differences.mjs).
+    id: "sheet top, the band's close",
+    imports: `import { CloseGlyph } from "./dist/glyphs/close.js";`,
+    uses: "Sheet, SheetContent, SheetTitle, SheetClose, MorphIcon",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<Sheet defaultOpen><SheetContent side="top"><SheetTitle className="basalt-visually-hidden">Menu</SheetTitle><div className="basalt-site-menu-band"><SheetClose aria-label="Close menu" className="basalt-button" data-variant="ghost" data-icon-only=""><MorphIcon glyph={CloseGlyph} /></SheetClose></div></SheetContent></Sheet>));`,
+    skill: `<dialog class="panel float modal sheet" id="s" data-side="top" aria-label="Menu"><div class="sheet-band"><button class="btn" data-variant="ghost" data-icon-only aria-label="Close menu" data-dialog-close><span data-glyph="close"></span></button></div></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-sheet", skill: "dialog.sheet[open]" },
+    pairs: [
+      ["band", ".basalt-site-menu-band", ".sheet-band", ["boxHeight", "display", "alignItems", "borderBottomWidth", "borderBottomColor", "paddingTop", "paddingRight", "paddingLeft"]],
+      ["close glyph", ".basalt-morph", ".sheet-band .btn svg", ["boxWidth", "boxHeight"]],
+      ["close glyph, drawn", ".basalt-morph path", ".sheet-band .btn svg path", ["strokeWidth", "strokeLinecap", "strokeLinejoin", "fill", "stroke"]],
+      // MorphIcon draws each stroke of the glyph as its own path, so it can move one into another; the skill draws the same two strokes as one path.
+      ["close glyph, the morph's structure", ".basalt-morph", ".sheet-band .btn svg", ["pathCount"]],
+    ],
+  },
+  {
+    id: "popover",
+    uses: "Popover, PopoverTrigger, PopoverContent, PopoverTitle, PopoverDescription, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><Popover defaultOpen><PopoverTrigger render={<Button data-parity-trigger>Details</Button>} /><PopoverContent><PopoverTitle>Region</PopoverTitle><PopoverDescription>Where it runs.</PopoverDescription></PopoverContent></Popover></div>));`,
+    skill: `<div style="padding: 16px"><button class="btn" id="b" popovertarget="p" data-parity-trigger>Details</button><div class="panel float popover" popover id="p"><h2 class="popover-title">Region</h2><p class="popover-description">Where it runs.</p></div></div>`,
+    open: "document.getElementById('p').showPopover({ source: document.getElementById('b') })",
+    ready: { react: ".basalt-popover", skill: ".popover:popover-open" },
+    pairs: [
+      ["popover", ".basalt-popover", ".popover", [...PANEL, ...PAD, "boxWidth", "boxHeight", "fontSize", "lineHeight", "fontFamily", "maxWidth", "gapBelow", "startOffset", ...ENTRY]],
+      ["title", ".basalt-popover-title", ".popover-title", [...TYPE, "color", "marginTop", "marginBottom"]],
+      ["description", ".basalt-popover-description", ".popover-description", [...TYPE, "color", "marginTop"]],
+    ],
+  },
+  {
+    id: "menu",
+    imports: MENU_ROWS.react,
+    uses: "Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator, MenuGroup, MenuGroupLabel, MenuRadioGroup, MenuRadioItem, MenuCheckboxItem, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><Menu defaultOpen><MenuTrigger render={<Button data-parity-trigger>Options</Button>} /><MenuContent>${MENU_ROWS.menuReact}</MenuContent></Menu></div>));`,
+    skill: `<div style="padding: 16px"><button class="btn" id="b" popovertarget="m" data-parity-trigger>Options</button><div class="panel float menu" popover id="m">
+      <button class="menu-item" role="menuitem"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button><div class="menu-separator" role="separator"></div>
+      <div role="group" aria-labelledby="g"><div class="menu-group-label" id="g">Sort by</div><button class="menu-item" role="menuitemradio" aria-checked="true"><span class="menu-item-label">Name</span></button><button class="menu-item" role="menuitemradio" aria-checked="false"><span class="menu-item-label">Date</span><span class="menu-item-description">Newest first</span></button></div>
+      <button class="menu-item" role="menuitemcheckbox" aria-checked="true"><span class="menu-item-label">Show hidden</span></button><button class="menu-item" role="menuitem" data-danger><i data-icon="Trash"></i><span class="menu-item-label">Delete</span></button></div></div>`,
+    open: "document.getElementById('m').showPopover({ source: document.getElementById('b') })",
+    ready: { react: ".basalt-menu", skill: ".menu:popover-open" },
+    // The pointer lights a row in both; the lit pair is read after it.
+    after: {
+      react: async (page) => { await page.locator(".basalt-menu-item").nth(0).hover(); },
+      skill: async (page) => { await page.locator(".menu-item").nth(0).hover(); },
+    },
+    pairs: [
+      ["menu", ".basalt-menu", ".menu", [...PANEL, ...PAD, "boxWidth", "boxHeight", "minWidth", "gapBelow", "startOffset", "overflowY", ...ENTRY]],
+      ["item", ".basalt-menu-item:not([data-highlighted]):not([data-described]):not([data-danger])", ".menu-item[role=menuitemradio][aria-checked=true]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "gap", "boxHeight", "display", "cursor"]],
+      ["item plate", ".basalt-menu-item:not([data-highlighted]):not([data-described]):not([data-danger])", ".menu-item[role=menuitemradio][aria-checked=true]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
+      ["lit item", ".basalt-menu-item[data-highlighted]", ".menu-item[data-highlighted]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "gap", "boxHeight"]],
+      ["lit plate", ".basalt-menu-item[data-highlighted]", ".menu-item[data-highlighted]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
+      ["glide plate", ".basalt-plate", ".menu > .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity", "firstTransitionDuration", "firstTransitionTimingFunction"]],
+      ["glyph and shortcut item", ".basalt-menu-item:has(.basalt-menu-item-shortcut)", ".menu-item:has(.kbd-group)", [...GEOMETRY, "gap", "boxHeight"]],
+      ["shortcut", ".basalt-menu-item-shortcut", ".menu-item .kbd-group", ["marginLeft", "gap", "display"]],
+      ["described item", ".basalt-menu-item[data-described]", ".menu-item:has(.menu-item-description)", [...GEOMETRY, ...TYPE, "color", "gap", "boxHeight", "display", "gridTemplateColumns", "gridTemplateRows"]],
+      ["description", ".basalt-menu-item-description", ".menu-item-description", [...TYPE, "color", "boxHeight", "whiteSpace", "textOverflow"]],
+      ["check seat", ".basalt-menu-check", ".menu-check", ["boxWidth", "boxHeight", "color", "display"]],
+      ["radio dot", ".basalt-menu-radio-dot", ".menu-radio-dot", ["boxWidth", "boxHeight", "borderTopLeftRadius", "backgroundColor"]],
+      ["danger item", ".basalt-menu-item[data-danger]", ".menu-item[data-danger]", ["color", "boxHeight"]],
+      ["separator", ".basalt-menu-separator", ".menu-separator", ["boxHeight", "backgroundColor", "marginTop", "marginBottom", "marginLeft", "marginRight"]],
+      ["group label", ".basalt-menu-group-label", ".menu-group-label", [...TYPE, "color", "paddingTop", "paddingLeft", "paddingBottom", "boxHeight"]],
+    ],
+  },
+  {
+    id: "tooltip",
+    uses: "Tooltip, TooltipProvider, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 48 }}><TooltipProvider><Tooltip content="Copy" defaultOpen><Button data-parity-trigger>Copy</Button></Tooltip></TooltipProvider></div>));`,
+    skill: `<div style="padding: 48px"><button class="btn" data-parity-trigger data-tooltip="Copy">Copy</button></div>`,
+    open: "void 0",
+    after: { react: async () => {}, skill: async (page) => { await page.keyboard.press("Tab"); await page.waitForSelector(".tooltip:popover-open"); } },
+    ready: { react: ".basalt-tooltip", skill: "body" },
+    pairs: [
+      ["tooltip", ".basalt-tooltip", ".tooltip", [...PANEL, ...PAD, ...TYPE, "boxHeight", "display", "alignItems", "maxWidth", "gapAbove", ...ENTRY]],
+    ],
+  },
+  {
+    id: "toast",
+    uses: "ToastProvider, useToast, Button",
+    react: `function Show() { const t = B.useToast(); React.useEffect(() => { t.show({ title: "Sandbox deleted", description: "api-preview", status: "success", home: "centre", action: { label: "Undo", onClick() {} } }); }, []); return null; }
+      flushSync(() => createRoot(document.getElementById("root")).render(<ToastProvider><Show /></ToastProvider>));`,
+    skill: `<!-- basalt:use toast --><p>page</p>`,
+    open: "Basalt.toast({ title: 'Sandbox deleted', description: 'api-preview', status: 'success', home: 'centre', action: { label: 'Undo', onClick: function () {} } })",
+    ready: { react: ".basalt-toast", skill: ".toast" },
+    still: true,
+    pairs: [
+      ["viewport", ".basalt-toast-viewport", ".toast-viewport", ["position", "boxWidth", "rectRight", "rectBottom"]],
+      ["toast", ".basalt-toast", ".toast", [...PANEL, "boxWidth", "boxHeight", "position", "fontFamily", "transform", "opacity", "zIndex"]],
+      ["content", ".basalt-toast-content", ".toast-content", [...PAD, "gap", "alignItems", "display", "overflowX", "boxHeight"]],
+      ["seat", ".basalt-toast-seat", ".toast-seat", ["boxWidth", "boxHeight", "marginTop", "color", "display"]],
+      ["text", ".basalt-toast-text", ".toast-text", ["paddingTop", "boxHeight"]],
+      ["title", ".basalt-toast-title", ".toast-title", [...TYPE, "color", "marginTop", "boxHeight"]],
+      ["description", ".basalt-toast-description", ".toast-description", [...TYPE, "color", "marginTop", "boxHeight"]],
+      ["action", ".basalt-toast-action", ".toast-action", [...GEOMETRY, ...TYPE, ...COLOUR]],
+      ["dismiss", ".basalt-toast-close", ".toast-close", [...GEOMETRY, "color", "backgroundColor", "boxWidth"]],
+      ["drain", ".basalt-toast-drain", ".toast-drain", ["boxHeight", "backgroundColor", "position", "left", "right", "bottom", "animationDuration", "animationTimingFunction", "animationFillMode", "transformOrigin"]],
+    ],
+  },
+  {
+    id: "notification centre",
+    uses: "NotificationCentre",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><NotificationCentre defaultOpen entries={${NOTES}} /></div>));`,
+    skill: `<!-- basalt:use notifications --><div style="padding: 16px"><span id="bell"></span></div>`,
+    open: `window.centre = Basalt.notifications('#bell', { entries: ${NOTES_SKILL}, viewAllHref: '#all' }); window.centre.open();`,
+    ready: { react: ".basalt-notifications", skill: ".notifications:popover-open" },
+    after: {
+      react: async (page) => { await page.evaluate(() => document.querySelector(".basalt-notifications-trigger").setAttribute("data-parity-trigger", "")); await page.locator(".basalt-notification").nth(1).hover(); },
+      skill: async (page) => { await page.evaluate(() => document.querySelector("#bell > .btn").setAttribute("data-parity-trigger", "")); await page.locator(".notification").nth(1).hover(); },
+    },
+    pairs: [
+      ["bell", ".basalt-notifications-trigger", "#bell > .btn", [...GEOMETRY, ...COLOUR, "boxWidth", "boxHeight", "position"]],
+      ["bell dot", ".basalt-notifications-trigger", "#bell > .btn .notifications-dot", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "position", "top", "right"], { pseudo: "::after", skillPseudo: null }],
+      ["popover", ".basalt-notifications", ".notifications", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowX", "gapBelow", "endOffset"]],
+      ["head", ".basalt-notifications-head", ".notifications-head", [...PAD, "gap", "display", "alignItems", "borderBottomWidth", "borderBottomColor", "boxHeight"]],
+      ["title", ".basalt-notifications-title", ".notifications-title", [...TYPE, "color", "marginTop", "boxHeight"]],
+      ["count", ".basalt-notifications-count", ".notifications-count", [...TYPE, "color", "fontVariantNumeric", "boxHeight"]],
+      ["mark all", ".basalt-notifications-mark", ".notifications-mark", [...GEOMETRY, ...TYPE, ...COLOUR]],
+      ["list", ".basalt-notifications-list", ".notifications-list", [...PAD, "listStyleType", "marginTop"]],
+      ["entry", ".basalt-notification:not(:hover)", ".notification:not(:hover)", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "display", "gridTemplateColumns", "columnGap", "boxHeight", "cursor"]],
+      ["entry plate", ".basalt-notification:not(:hover)", ".notification:not(:hover)", ["top", "bottom", "borderTopLeftRadius", "backgroundColor"], { pseudo: "::before" }],
+      ["unread dot", ".basalt-notification[data-unread] .basalt-notification-dot", ".notification[data-unread] .notification-dot", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "marginTop"]],
+      ["status mark", ".basalt-notification[data-status=success] .basalt-notification-mark", ".notification[data-status=success] .notification-mark", ["boxWidth", "boxHeight", "color", "marginTop"]],
+      ["unread title", ".basalt-notification[data-unread] .basalt-notification-title", ".notification[data-unread] .notification-title", [...TYPE, "color", "boxHeight"]],
+      ["read title", ".basalt-notification:not([data-unread]) .basalt-notification-title", ".notification:not([data-unread]) .notification-title", ["color"]],
+      ["line", ".basalt-notification-line", ".notification-line", [...TYPE, "color", "boxHeight", "whiteSpace"]],
+      ["time", ".basalt-notification-time", ".notification-time", [...TYPE, "color", "marginTop", "boxHeight", "fontVariantNumeric"]],
+      ["hovered entry", ".basalt-notification:hover", ".notification:hover", ["color", "backgroundColor", "boxHeight"]],
+      ["hovered entry's own plate (the glide hides it)", ".basalt-notification:hover", ".notification:hover", ["backgroundColor"], { pseudo: "::before" }],
+      ["glide plate", ".basalt-notifications-scroll > .basalt-plate", ".notifications-scroll > .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity"]],
+      ["foot", ".basalt-notifications-foot", ".notifications-foot", [...PAD, "display", "justifyContent", "borderTopWidth", "borderTopColor", "boxHeight"]],
+    ],
+  },
+];
 
 let reactBrowser;
 let skillBrowser;
@@ -266,7 +470,7 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
       await skillPage.locator(scope(skillSel, "skill")).first().focus();
     }
     const react = await read(reactPage, scope(reactSel, "react"), props, { pseudo: options.pseudo });
-    const skill = await read(skillPage, scope(skillSel, "skill"), props, { pseudo: options.pseudo ?? options.skillPseudo });
+    const skill = await read(skillPage, scope(skillSel, "skill"), props, { pseudo: "skillPseudo" in options ? options.skillPseudo : options.pseudo });
     assert.ok(react, `${area}: React has no ${reactSel}`);
     assert.ok(skill, `${area}: the skill has no ${skillSel}`);
     if (options.focus) {
@@ -308,6 +512,25 @@ describe("each skill component renders as its React counterpart does, but for th
       await reactPage.close();
       await context.close();
     });
+
+    for (const overlay of OVERLAYS) {
+      test(`${overlay.id} (${theme})`, async () => {
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `${overlay.imports ?? ""}\nconst { ${overlay.uses} } = B;\n${overlay.react}`, { theme, viewport: { width: 1440, height: 900 } });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        await reactPage.waitForSelector(overlay.ready.react);
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${overlay.skill}`, { fonts: false }).html, { scheme: theme });
+        await skillPage.evaluate(overlay.open);
+        await skillPage.waitForSelector(overlay.ready.skill);
+        // A toast with a home runs its drain line for five seconds, so it is not settled (that would wait out the drain): its transitions are awaited instead, and it is read at rest.
+        const quiet = async (p) => (overlay.still ? p.evaluate(async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); await Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {}))); }) : settle(p));
+        for (const p of [reactPage, skillPage]) await quiet(p);
+        if (overlay.after) { await overlay.after.react(reactPage); await overlay.after.skill(skillPage); for (const p of [reactPage, skillPage]) await quiet(p); }
+        await compare(theme, overlay.id, reactPage, skillPage, overlay.pairs, null);
+        assert.deepEqual([errors, skillErrors], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
   }
 
   test("the differences found are exactly the differences listed: nothing new, nothing fixed and left in the list", () => {

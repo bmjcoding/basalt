@@ -182,6 +182,40 @@
     </div></div>
   </section>
 
+  <section class="section" id="overlays">
+    <div class="section-head"><h2>Overlays</h2></div>
+    <div class="cluster">
+      <button class="btn" data-dialog-open="#ks-dialog">Dialog</button>
+      <button class="btn" data-dialog-open="#ks-alert">Alert dialog</button>
+      <button class="btn" data-dialog-open="#ks-sheet">Sheet</button>
+      <button class="btn" popovertarget="ks-popover">Popover</button>
+      <button class="btn" popovertarget="ks-menu">Menu</button>
+      <button class="btn" data-variant="ghost" data-icon-only aria-label="Copy" data-tooltip="Copy" data-tooltip-keys="⌘ C"><i data-icon="Copy"></i></button>
+      <button class="btn" id="ks-toast">Toast</button>
+      <span id="ks-bell"></span>
+    </div>
+    <div class="panel float popover" popover id="ks-popover"><h2 class="popover-title">Region</h2><p class="popover-description">Where it runs.</p></div>
+    <div class="panel float menu" popover id="ks-menu">
+      <button class="menu-item" role="menuitem"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
+      <div class="menu-separator" role="separator"></div>
+      <div role="group" aria-labelledby="ks-sort"><div class="menu-group-label" id="ks-sort">Sort by</div>
+        <button class="menu-item" role="menuitemradio" aria-checked="true"><span class="menu-item-label">Name</span></button>
+        <button class="menu-item" role="menuitemradio" aria-checked="false"><span class="menu-item-label">Date</span><span class="menu-item-description">Newest first</span></button></div>
+      <button class="menu-item" role="menuitemcheckbox" aria-checked="false"><span class="menu-item-label">Show hidden</span></button>
+      <button class="menu-item" role="menuitem" data-danger><i data-icon="Trash"></i><span class="menu-item-label">Delete</span></button>
+    </div>
+    <dialog class="panel float modal dialog" id="ks-dialog"><h2 class="dialog-title">Rename sandbox</h2><p class="dialog-description">The new name shows everywhere.</p><div class="dialog-actions"><button class="btn" data-dialog-close>Cancel</button><button class="btn" data-dialog-close>Save</button></div></dialog>
+    <dialog class="panel float modal dialog" id="ks-alert" role="alertdialog"><h2 class="dialog-title">Delete sandbox?</h2><p class="dialog-description">This cannot be undone.</p><div class="dialog-actions"><button class="btn" data-dialog-close data-cancel>Cancel</button><button class="btn" data-variant="danger" data-dialog-close>Delete</button></div></dialog>
+    <dialog class="panel float modal sheet" id="ks-sheet" data-side="right"><h2 class="dialog-title">Details</h2><p class="dialog-description">A side panel.</p><div class="dialog-actions"><button class="btn" data-dialog-close>Close</button></div></dialog>
+  </section>
+
   <footer class="footer">Footer · <a href="#top">Top</a></footer>
 </main>
 <script type="application/json" data-palette>{ "groups": [{ "label": "Go", "items": [{ "label": "Home", "icon": "ArrowRight", "keys": ["⌥", "H"], "href": "#top" }, { "label": "Delete", "icon": "Trash", "danger": true }] }] }</script>
+<script>
+Basalt.notifications('#ks-bell', { entries: [
+  { id: 'a', title: 'Deploy finished', description: 'api, production', time: '2m ago', status: 'success', unread: true },
+  { id: 'b', title: 'Invoice ready', time: 'Yesterday' }
+] });
+document.getElementById('ks-toast').addEventListener('click', function () { Basalt.toast({ title: 'Saved', status: 'success', home: 'page' }); });
+</script>
