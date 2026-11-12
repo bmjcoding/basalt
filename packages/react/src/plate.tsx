@@ -13,9 +13,14 @@ import * as React from "react";
 //
 // The geometry is four CSS variables on the plate, written from the DOM. No React state, no animation frames.
 //
+// A popup list can also go idle (the in-page command list, which sits in the page and is lit only while it is in use): the host
+// carries `data-idle`, which counts as no active row, so the plate fades where it is and comes back when the list is used.
+//
 // Navigation is the second place the glide lives. A navigation list has no highlight of its own, so the glide marks the
 // item under the pointer `data-hovered` (an attribute, not state) and follows that; it hugs the item's pill, not its
-// row; and the first key hides it instead of moving it (the focus ring shows), until the next pointer move.
+// row; and the first key hides it instead of moving it (the focus ring shows), until the next pointer move. The notification
+// centre's list is the third: its entries are links and buttons, so it follows the pointer the same way, with the entry's own
+// plate as its shape (40 or 58 tall, whatever the entry holds).
 
 /** What a glide follows: the host that holds the rows, which row is lit, and the shape to hug. */
 interface Kind {
@@ -33,7 +38,7 @@ interface Kind {
 const POPUP: Kind = {
   host: ".basalt-menu, .basalt-command-list",
   active: ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']",
-  attributes: ["data-highlighted", "data-selected"],
+  attributes: ["data-highlighted", "data-selected", "data-idle"],
 };
 // The site header's row of links is the same glide laid on its side: its own host, links and pills, the same rules.
 const NAVIGATION: Kind = {
@@ -43,6 +48,13 @@ const NAVIGATION: Kind = {
   item: ".basalt-nav-item, .basalt-site-link",
   hideOnKey: true,
   shape: ".basalt-nav-pill, .basalt-site-pill",
+};
+const NOTIFICATIONS: Kind = {
+  host: ".basalt-notifications-scroll",
+  active: ".basalt-notification[data-hovered]",
+  attributes: ["data-hovered"],
+  item: ".basalt-notification",
+  hideOnKey: true,
 };
 /** No shared plate: the hand can't hover (touch), or motion or colour is the user's. The stylesheet repeats this. */
 const OFF = "(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)";
@@ -64,6 +76,8 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
 
   const on = () => !off.matches && (kind.hideOnKey ? modality === "pointer" : modality !== "touch");
   const lit = () => plate.dataset.state === "on";
+  // The active row, or none while the host says it is idle (a list in the page that is not being used).
+  const activeRow = () => (host.hasAttribute("data-idle") ? null : host.querySelector<HTMLElement>(ACTIVE));
   // The row's own plate (its ::before), or the item's pill, is the shape to follow, so the shared one matches the
   // fallback to the pixel.
   const geometry = (row: HTMLElement) => {
@@ -117,12 +131,12 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
       target = "";
       return;
     }
-    const row = host.querySelector<HTMLElement>(ACTIVE);
+    const row = activeRow();
     if (!row) {
       // Base UI clears the highlight on one row just before it sets the next, so a clear only counts if it is still
       // clear a task later. cmdk never clears: its plate stays when the pointer leaves, as it always has.
       leaving = window.setTimeout(() => {
-        if (!host.querySelector(ACTIVE)) leave();
+        if (!activeRow()) leave();
       }, 0);
       return;
     }
@@ -222,11 +236,11 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
 
 /**
  * The shared plate of a popup's rows. Render it inside the popup (Menu, Select, Combobox) or the command list, before
- * the rows; with `navigation`, render it as the first child of a navigation list. It is decoration: hidden from
+ * the rows; with `navigation`, render it as the first child of a navigation list; with `notifications`, in the notification centre's list. It is decoration: hidden from
  * assistive technology, never hit by the pointer, and drawn only when the stylesheet and the input allow it.
  */
-export function GlidePlate({ navigation = false }: { navigation?: boolean }) {
+export function GlidePlate({ navigation = false, notifications = false }: { navigation?: boolean; notifications?: boolean }) {
   const plate = React.useRef<HTMLSpanElement>(null);
-  React.useLayoutEffect(() => (plate.current ? attachPlate(plate.current, navigation ? NAVIGATION : POPUP) : undefined), [navigation]);
+  React.useLayoutEffect(() => (plate.current ? attachPlate(plate.current, navigation ? NAVIGATION : notifications ? NOTIFICATIONS : POPUP) : undefined), [navigation, notifications]);
   return <span ref={plate} aria-hidden="true" className="basalt-plate" data-state="off" />;
 }

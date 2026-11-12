@@ -9,13 +9,16 @@
 //                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
 //   parts/art.css             the chart, art, aspect and stage-headroom tokens, taken out of core.css; a page gets it only when its body names one of them
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold and Regular paths) and Phosphor's MIT notice
+//   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
+//                             module; a module without a usage file, or a usage file without a module, fails the build.
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
 //   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
 //
 //   node tools/html-skill/build.mjs                  write the files (committed; a test fails if they drift)
 //   node tools/html-skill/build.mjs --out <dir>      write somewhere else
 //
-// Run `npm run build` first: the tokens CSS comes from packages/tokens/dist. SKILL.md is written by hand.
+// Run `npm run build` first: the tokens CSS comes from packages/tokens/dist. SKILL.md is written by hand (its index of modules is what
+// `compose.mjs --usage` with no name prints).
 // Minified with esbuild (a dev dependency, in the root package.json); legal comments (/*!) are kept.
 
 import fs from "node:fs";
@@ -142,6 +145,13 @@ export function build() {
   const notice = licenceComment(path.join(findPackage("@phosphor-icons/react"), "LICENSE"), "The icon paths below are from Phosphor Icons (@phosphor-icons/react):");
   files["parts/icons.json"] = `${JSON.stringify({ notice, icons: iconData(JSON.parse(src("icons.json"))) })}\n`;
   files["parts/geist.css"] = `${geistFonts()}\n`;
+  // The usage text is prose, so it is copied as it is: one file for the core and one for each module.
+  const usageDir = path.join(srcDir, "usage");
+  const usageNames = ["core", ...Object.keys(manifest.modules)];
+  const usageFiles = fs.readdirSync(usageDir).filter((f) => !f.startsWith(".")).sort();
+  for (const name of usageNames) if (!usageFiles.includes(`${name}.md`)) throw new Error(`html-skill: ${name} has no usage text; write src/usage/${name}.md`);
+  for (const file of usageFiles) if (!usageNames.includes(file.replace(/\.md$/, "")) || !file.endsWith(".md")) throw new Error(`html-skill: src/usage/${file} is not the usage of the core or a module in modules.json`);
+  for (const name of usageNames) files[`parts/usage/${name}.md`] = src(`usage/${name}.md`);
   for (const name of fs.readdirSync(path.join(srcDir, "examples")).sort()) files[`examples/${name}`] = src(`examples/${name}`);
   return files;
 }

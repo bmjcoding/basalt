@@ -66,6 +66,17 @@ test("Spinner and Sparkline, with splitting, pull neither the keyboard machinery
   }
 });
 
+// The hold's state is opt-in: an app that never imports useLoops loads none of it, whatever else it imports.
+test("the hold's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
+  for (const name of ["Spinner", "Badge", "Button", "Skeleton", "Progress", "Sparkline", "CommandMenu", "ToastProvider"]) {
+    const { inputs } = await graph(name);
+    assert.deepEqual(inputs.filter((f) => /\/dist\/loops\.js$/.test(f)), [], `${name} loads the hold's state`);
+  }
+  const { bytes, inputs } = await graph("useLoops");
+  assert.ok(bytes < 2_500, `useLoops alone: ${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), []);
+});
+
 test("Button alone stays small and pulls in neither Shiki nor other Base UI parts", async () => {
   const { bytes, inputs } = await bundle("Button");
   assert.ok(bytes < 30_000, `Button bundle is ${bytes} bytes`);
@@ -122,7 +133,7 @@ for (const [name, limit] of [["HomeGlyph", 3_000], ["SearchGlyph", 3_250], ["Clo
   });
 }
 
-test("MorphIcon alone carries the engine and no glyph; Stepper carries the three it draws", async () => {
+test("MorphIcon alone carries the engine and no glyph; Stepper carries the three it draws, and Button's new-tab arrow", async () => {
   // which glyphs' drawings a bundle holds: each glyph module declares `name: "…"` once (a chunk may hold a glyph module, so read the text)
   const glyphsIn = async (name) => {
     const out = await esbuild.build({
@@ -132,7 +143,8 @@ test("MorphIcon alone carries the engine and no glyph; Stepper carries the three
     return [...out.outputFiles[0].text.matchAll(/^\s+name: "([a-z-]+)",$/gm)].map((m) => m[1]).sort();
   };
   assert.deepEqual(await glyphsIn("MorphIcon"), [], "MorphIcon carries a glyph of its own");
-  assert.deepEqual(await glyphsIn("Stepper"), ["check", "chevron-left", "chevron-right"]);
+  // Stepper wraps Button, and Button draws the new-tab arrow (`external`) for a link that opens one (DECISIONS 95), so it comes with it.
+  assert.deepEqual(await glyphsIn("Stepper"), ["check", "chevron-left", "chevron-right", "external"]);
 });
 
 test("an imported glyph that is never used costs nothing", async () => {
@@ -223,7 +235,7 @@ test("importing the keyboard, motion, sparkline and ticker modules allocates no 
     for (const key of ["Set", "Map", "WeakMap", "WeakSet"]) globalThis[key] = count(key, globalThis[key]);
     for (const key of ["NumberFormat", "DateTimeFormat"]) Intl[key] = count("Intl." + key, Intl[key]);
     const dist = process.argv[1];
-    const modules = ["keyboard", "shortcut", "motion", "number-ticker", "sparkline", "spinner", "utils"];
+    const modules = ["keyboard", "shortcut", "motion", "number-ticker", "sparkline", "spinner", "loops", "status-size", "utils"];
     for (const name of modules) await import(pathToFileURL(dist + "/" + name + ".js"));
     console.log(JSON.stringify(counts));
   `;
@@ -260,8 +272,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 
 // Toast is in the default bundle (an app mounts the provider once, near its root), so it is kept lean. Base UI's toast is 77,043 bytes
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
-// announcer) and the running state bring it to about 91,000. The limits sit just above what is measured.
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 140_000]]) {
+// announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
+// before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
+// so its limit is 146,000.
+for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 146_000]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);

@@ -235,7 +235,7 @@ for (const id of rounds) {
       for (const [width, tag] of widths) {
        for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !state.startsWith("cmd-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
@@ -325,6 +325,48 @@ for (const id of rounds) {
               await page.locator("[data-wt-chart] .basalt-chart-toggle").click();
               await page.waitForTimeout(250);
             }
+          }
+          // The in-page command list (round 24): "cmd-focus" focuses the field and moves one row down, "cmd-filter" and "cmd-empty" type a
+          // query that finds some and none, "cmd-pick" presses the second row of the split (the list marked `data-wt-split`), and
+          // "cmd-push" presses ↵ in the pushed list (marked `data-wt-push`), which replaces it with its detail.
+          if (state.startsWith("cmd-")) {
+            const kind = state.replace(/^cmd-/, "").replace(/-(reduced-motion|forced-colours)$/, "");
+            const field = (scope) => page.locator(`${scope} .basalt-command-input`).first();
+            await page.setViewportSize({ width, height: Math.min(await page.evaluate(() => document.documentElement.scrollHeight), 6000) });
+            if (kind === "focus" || kind === "filter" || kind === "empty") {
+              await field("body").focus();
+              if (kind === "focus") await page.keyboard.press("ArrowDown");
+              if (kind === "filter") await page.keyboard.type("sand");
+              if (kind === "empty") await page.keyboard.type("zzz");
+            }
+            if (kind === "pick") await page.locator("[data-wt-split] [cmdk-item]").nth(1).click();
+            if (kind === "push") { await field("[data-wt-push]").focus(); await page.keyboard.press("Enter"); }
+            await page.waitForTimeout(400);
+          }
+          // The checklist (round 24): "t2-open" opens it, "t2-filter" types a query that finds some values, "t2-empty" one that finds none.
+          if (state.startsWith("t2-")) {
+            const kind = state.replace(/^t2-/, "").replace(/-(reduced-motion|forced-colours)$/, "");
+            await page.locator(".basalt-filter-trigger").click();
+            await page.waitForTimeout(300);
+            if (kind === "filter") await page.keyboard.type("ga");
+            if (kind === "empty") await page.keyboard.type("zzz");
+            await page.waitForTimeout(200);
+          }
+          // The notification centre (round 24): "centre-travel" rests the pointer on the first entry and moves it to the second, held
+          // 60ms into the plate's 150ms move; "centre-keys" tabs to an entry (the demo does); "centre-open" only opens it.
+          if (state.startsWith("centre-travel")) {
+            const entries = page.locator(".basalt-notification");
+            await entries.nth(0).hover();
+            await page.waitForTimeout(300);
+            await entries.nth(2).hover();
+            await page.waitForTimeout(20);
+            const held = await page.evaluate(() => {
+              const plate = document.querySelector(".basalt-notifications-scroll .basalt-plate");
+              const running = plate.getAnimations().filter((a) => a.transitionProperty === "transform");
+              for (const a of running) { a.pause(); a.currentTime = 60; }
+              return running.length;
+            });
+            if (!held) throw new Error(`${step.id}/${state}: the plate has no move to hold`);
           }
           // Navigation: "nav-hover" hovers the sidebar's second item, "nav-rail-hover" the rail's second (and its tooltip opens),
           // "nav-current-hover" the current one; "nav-focus" tabs to the first item (the glide hides, the ring shows);

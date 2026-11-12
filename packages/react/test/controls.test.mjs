@@ -337,3 +337,33 @@ describe("CodeBlock", () => {
     await page.close();
   });
 });
+
+// E1 (the backlog's "the Combobox placeholder renders dark red in forced colours"). In Chromium's emulation GrayText itself is
+// a dark red on the light palette (and a bright green on the dark one), so a placeholder that takes the system's placeholder
+// colour looks like that: it is the browser's own colour, the same as Input's, not a Basalt token leaking through. A Select's
+// placeholder is a text span, not a ::placeholder, so one forced-colours rule gives it the same GrayText (DECISIONS 102); a chosen
+// value keeps its system foreground.
+describe("forced colours: placeholders", () => {
+  for (const theme of ["dark", "light"]) {
+    for (const colorScheme of ["dark", "light"]) {
+      test(`the Combobox's and the Select's placeholders are GrayText, as Input's is, and a chosen value is not (authored ${theme}, ${colorScheme} palette)`, async () => {
+        const { page, errors } = await fixturePage(browser, render(`<><B.Input aria-label="Name" placeholder="Name" id="input" /><B.Combobox aria-label="Zone" options={[{ value: "x", label: "X-ray" }]} inputProps={{ id: "combo" }} /><B.Select aria-label="Region" placeholder="Pick one" options={[{ value: "x", label: "Frankfurt" }]} /><B.Select aria-label="Chosen" defaultValue="x" options={[{ value: "x", label: "Frankfurt" }]} /></>`), { theme, forcedColors: "active", colorScheme });
+        const read = await page.evaluate(() => {
+          const probe = (value) => { const i = document.createElement("i"); i.style.color = value; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; };
+          const placeholder = (id) => getComputedStyle(document.getElementById(id), "::placeholder").color;
+          const values = [...document.querySelectorAll(".basalt-select-value")];
+          return { grayText: probe("GrayText"), canvasText: probe("CanvasText"), input: placeholder("input"), combobox: placeholder("combo"), selectPlaceholder: getComputedStyle(values.find((v) => v.hasAttribute("data-placeholder"))).color, chosen: getComputedStyle(values.find((v) => !v.hasAttribute("data-placeholder"))).color, count: values.length };
+        });
+        assert.equal(read.count, 2);
+        assert.equal(read.combobox, read.grayText, "the Combobox placeholder is GrayText");
+        assert.equal(read.input, read.grayText, "Input's is GrayText");
+        assert.equal(read.selectPlaceholder, read.grayText, "the Select placeholder is GrayText");
+        assert.equal(read.selectPlaceholder, read.input, "the same colour as Input's");
+        assert.notEqual(read.chosen, read.grayText, "a chosen value is not");
+        assert.equal(read.chosen, read.canvasText, "it keeps its system foreground");
+        assert.deepEqual(errors, []);
+        await page.close();
+      });
+    }
+  }
+});

@@ -1,7 +1,7 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { CheckboxGroup as BaseCheckboxGroup } from "@base-ui/react/checkbox-group";
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import { CaretDownIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Button } from "./button";
@@ -24,6 +24,8 @@ import { join } from "./utils";
 
 /** The most values the chips hold. Seven or more are a trigger and a checklist. */
 const MAX_CHIPS = 6;
+/** The checklist gains a search band from this many values: the rows are 40px and the popup caps at 360, so from ten they scroll. */
+const SEARCH_FROM = 10;
 
 export interface MultiSelectOption {
   value: string;
@@ -63,6 +65,10 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
   };
   const ids = { label: React.useId(), count: React.useId() };
   const count = ordered.length === 0 ? "Any" : `${ordered.length} of ${options.length}`;
+  // The count reserves the width of its widest form ("Any" or "N of N": two hidden pseudo-elements share the one grid cell with the
+  // text, tabular figures), so Clear, which follows it, holds still as the count changes. They are CSS content, so no sizer text is
+  // in the DOM for the group's description to read.
+  const wide = `${options.length} of ${options.length}`;
   const popup = toolbar || options.length > MAX_CHIPS;
   const clear = (
     <Button
@@ -82,7 +88,9 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
     <div className={join("basalt-filter", className)}>
       <div className="basalt-filter-head">
         <span id={ids.label} className="basalt-filter-label">{label}</span>
-        <span id={ids.count} className="basalt-filter-count">{count}</span>
+        <span id={ids.count} className="basalt-filter-count" data-reserved="" data-any="Any" data-widest={wide}>
+          <span className="basalt-filter-count-value">{count}</span>
+        </span>
         {clear}
       </div>
       <BaseCheckboxGroup value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} className="basalt-filter-chips">
@@ -112,18 +120,33 @@ interface ChecklistProps {
   clear: React.ReactNode;
 }
 
-/** The trigger and the checklist: the same checkbox group, in a non-modal popup of popup rows. */
+/**
+ * The trigger and the checklist: the same checkbox group, in a non-modal popup of popup rows. The rows scroll inside
+ * `size-popup-max-height` (nine 40px rows show whole, the tenth is the first to scroll), with the foot outside them. From ten
+ * values a search band sits above the rows: 40px, the next level's fill, a divider below.
+ */
 function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear }: ChecklistProps) {
   const layer = useFloatingLayer();
   // A popup is its opener plus one, with a floor of 1: from the page it is level 1.
   const level = usePopupLevel();
-  const ids = { label: React.useId(), count: React.useId() };
+  const ids = { label: React.useId(), count: React.useId(), rows: React.useId() };
   const [lit, setLit] = React.useState<string | null>(null);
+  const [query, setQuery] = React.useState("");
   const names = options.filter((o) => ordered.includes(o.value)).map((o) => o.label);
   const summary = names.length === 0 ? "Any" : names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
   const rows = React.useRef<HTMLDivElement>(null);
+  const band = React.useRef<HTMLInputElement>(null);
+  const searchable = options.length >= SEARCH_FROM;
+  const needle = query.trim().toLowerCase();
+  const shown = searchable && needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+  const noun = label.toLowerCase();
   // The group is one tab stop per row, as the chips are; the arrow keys also move between rows, as in a popup of rows.
+  // With a search band, up from the first row goes back to it, and typing on a row goes to it.
   const move = (event: React.KeyboardEvent) => {
+    if (searchable && event.key.length === 1 && event.key !== " " && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      band.current?.focus();
+      return;
+    }
     const keys: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity };
     const step = keys[event.key];
     if (step === undefined) return;
@@ -131,12 +154,30 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
     if (!all.length) return;
     event.preventDefault();
     const at = all.indexOf(document.activeElement as HTMLElement);
+    if (searchable && step === -1 && at <= 0) {
+      band.current?.focus();
+      return;
+    }
     const to = Number.isFinite(step) ? Math.min(all.length - 1, Math.max(0, at + step)) : step < 0 ? 0 : all.length - 1;
     all[to]?.focus();
   };
+  const bandKeys = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      const first = rows.current?.querySelector<HTMLElement>("[role=checkbox]:not([aria-disabled=true])");
+      if (first) {
+        event.preventDefault();
+        first.focus();
+      }
+    } else if (event.key === "Escape" && query) {
+      // Esc clears the text first, and only the next one closes.
+      event.preventDefault();
+      event.stopPropagation();
+      setQuery("");
+    }
+  };
   return (
     <div className={join("basalt-filter", className)} data-popup="">
-      <BasePopover.Root>
+      <BasePopover.Root onOpenChange={(open) => { if (!open) setQuery(""); }}>
         {/* A secondary Button's look on Base UI's popover trigger (a Button element would take the trigger's children away). */}
         <BasePopover.Trigger
           disabled={disabled}
@@ -153,14 +194,40 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
         </BasePopover.Trigger>
         <BasePopover.Portal>
           <BasePopover.Positioner side="bottom" align="start" sideOffset={6} style={layer} className="basalt-positioner">
-            <BasePopover.Popup data-level={level} aria-labelledby={ids.label} className="basalt-menu basalt-filter-popup">
+            <BasePopover.Popup
+              data-level={level}
+              aria-labelledby={ids.label}
+              className="basalt-menu basalt-filter-popup"
+              // The search band takes focus on opening, except on touch, where it would raise the keyboard over the list.
+              initialFocus={searchable ? (type) => (type === "touch" ? false : band.current ?? true) : undefined}
+            >
               <GlidePlate />
               <span id={ids.label} className="basalt-visually-hidden">{label}</span>
               {inLevel(
                 level,
                 <>
-                  <BaseCheckboxGroup value={ordered} onValueChange={set} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rows}>
-                    {options.map((o) => (
+                  {searchable ? (
+                    <div className="basalt-filter-band" data-level={Math.min(level + 1, 3)}>
+                      <Icon icon={MagnifyingGlassIcon} size={16} />
+                      <input
+                        ref={band}
+                        className="basalt-filter-band-input"
+                        type="text"
+                        role="searchbox"
+                        aria-label={`Search ${noun}`}
+                        aria-controls={ids.rows}
+                        placeholder={`Search ${noun}`}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={bandKeys}
+                      />
+                    </div>
+                  ) : null}
+                  <BaseCheckboxGroup id={ids.rows} value={ordered} onValueChange={set} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rows}>
+                    {shown.map((o) => (
                       <BaseCheckbox.Root
                         key={o.value}
                         value={o.value}
@@ -184,6 +251,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
                         <span className="basalt-menu-item-label">{o.label}</span>
                       </BaseCheckbox.Root>
                     ))}
+                    {shown.length === 0 ? <p className="basalt-filter-none">No {noun} matches.</p> : null}
                   </BaseCheckboxGroup>
                   <div className="basalt-filter-foot">
                     <span id={ids.count} className="basalt-filter-count">{count}</span>
@@ -196,33 +264,5 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
         </BasePopover.Portal>
       </BasePopover.Root>
     </div>
-  );
-}
-
-// ---- FilterResult: the one thing a filter says aloud ----
-
-export interface FilterResultProps extends Omit<React.ComponentProps<"p">, "children"> {
-  /** The result in words, e.g. "Showing 3 of 24 runs". */
-  children: string;
-  /** Milliseconds the text must hold still before it is spoken. Toggling several chips in a row is one announcement. */
-  delay?: number;
-}
-
-/**
- * The result of filtering, shown at once and spoken once: a polite, atomic live region outside the filter, updated after the
- * text has held still for `delay` milliseconds. Each chip speaks its own state ("checked"); this says only what it did to the
- * list. Render it once per filtered list.
- */
-export function FilterResult({ children, delay = 400, className, ...props }: FilterResultProps) {
-  const [spoken, setSpoken] = React.useState(children);
-  React.useEffect(() => {
-    const timer = window.setTimeout(() => setSpoken(children), delay);
-    return () => window.clearTimeout(timer);
-  }, [children, delay]);
-  return (
-    <p {...props} className={join("basalt-filter-result", className)}>
-      <span aria-hidden="true">{children}</span>
-      <span role="status" aria-live="polite" aria-atomic="true" className="basalt-visually-hidden">{spoken}</span>
-    </p>
   );
 }

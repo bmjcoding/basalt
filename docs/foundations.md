@@ -140,7 +140,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
   flush-field −2 inset above. A sortable table header is exactly that band (see the still table below). Navigation
   items are focusable rows: their ring goes around the hugging pill (see [Navigation](#navigation)). So are the
-  notification centre's entries: links or buttons, each painting its own plate on hover. Otherwise Basalt ships none:
+  notification centre's entries: links or buttons, which join the hover glide on navigation's rules (below). Otherwise Basalt ships none:
   the rows of Menu, Select, Combobox and CommandMenu are options and show the plate, breadcrumbs and pagination are
   inline, and a settings or list row is the app's own markup. The accordion trigger is the one full-width band that is
   itself a button; it keeps the ring it was built with
@@ -224,6 +224,76 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
   column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
   scrollbar never shows the problem, which is why a test on a Mac cannot either).
+- **Table additions** (council, DECISIONS 95). **A row header** is a `th scope="row"` in the body (`TableRowHead`): 13/18 at
+  500 in primary, start-aligned, with the cell's height, padding and divider, on the row's own fill, so the hover and
+  selected washes run through it, and with no band fill (the 12px secondary band names columns across the top; a row
+  header names one row, inside it). Data cells stay 400; the step is structure, not state. A row header never sorts. When a
+  table is pinned the row header is the pinned name column, opaque at its level in every state as any pinned cell is.
+  **A not-observed cell** (`TableCell notObserved`) says "Not observed" in `text-tertiary` (4.5:1 or better on every level, proved),
+  lifting to `text-secondary` on the hover and selected washes, where tertiary alone fails. It has no
+  mark, no swatch and no dash (the dash already means a range, and "none", and is the ordinary em dash the owner
+  disliked). In a numeric column the words end on the numbers' edge. It is spoken as the words, with the headers around
+  it. Missing is not zero: `0` stays a digit in primary, and an empty string stays blank, which says nothing. A column
+  that can hold the words is wide enough for them at 13px inside its padding (112px). **Sorting** (app guidance: `Table`
+  does not sort data itself) puts a not-observed value after every observed value in both directions, and an empty string
+  after the observed values too; a total or mean says what it skipped. Every example and review round that sorts follows
+  it. **Narrow tables** stay the still table: pin the row header and scroll, never cards, never a hidden column. **The
+  scroll hint** (`TableScrollHint`, directly under the container) is one line, "Scroll sideways to see all 6 columns" (the
+  count is the table's), `text-tertiary`, 12/16, `aria-hidden`, shown only while the table overflows its container and
+  never changed while it scrolls, so nothing in the table moves; a column cut by the edge is not a cue when the next
+  column is numeric, because an end-aligned column shows only its empty start.
+- **Selected is shown by shape or a step in ink, and a card and a toggle follow it** (council, DECISIONS 95; one state,
+  one look). Wherever Basalt says on, selected or chosen it paints one solid selected fill, steps the ink to primary and
+  adds a shape: a raised pill in a track (one of many), a check in a reserved seat or a filled choice box (any of many, and
+  on), a closed glyph. The silhouette follows the furniture the state sits in; the fill, the ink step and the shape do not
+  change, and the wash alone is never the cue.
+- **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
+  wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
+  prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
+  checked control's own look) sits in a seat reserved on every choice card, on its header line, inline-end of the title,
+  empty at rest with the input boundary, so choosing moves no title. Selected is the selected wash as one solid fill at the
+  card's own level (the active-row plate recipe: `--_plate-solid`, about `#262626` on level 1 in dark and `#ededed` on
+  white), with the rim and the level unchanged: level is position, and a chosen card is not nested deeper. The title stays
+  primary with no weight change; tertiary content steps to secondary on the fill. Hover on an unselected card is the
+  hover wash alone, with no further step on a selected one; there is no press scale; focus is the control ring at +2
+  outside the card, so the grid keeps at least `space-1-5` to any clipping edge (the group's `space-4` gap does); state
+  changes crossfade over `duration-fast`, the same 100ms under reduced motion. In forced colours the wash drops, the card
+  keeps `Canvas` with a `CanvasText` edge, and the checked box is `Highlight` with `HighlightText`. Not used: a coloured
+  or ink ring round the chosen card (it reads as focus and breaks the one neutral rim), a darker or lighter card fill (it
+  vanishes in light and reads as a level in dark), and the wash alone. **A choice card holds words only:
+  choose, don't hold controls.** A link that explains the options goes beside or under the group; a field for the chosen
+  option goes under the group. (A link or button inside the label lights the card under it, makes near-misses choose, overlaps
+  touch targets, and is invalid HTML.) `ChoiceCard` still accepts any children, and the rule is the app's; it warns at no time.
+- **The pressed toggle** (`pressed` on a secondary or ghost `Button`, and on `IconButton`; it writes `aria-pressed`). Never
+  primary (a latched primary reads as the action) and never danger (a latched red reads as an error). Pressed is the
+  selected plate as one solid fill per level (never a layered wash, so forced colours can replace it; on the page itself, with no level, it is the wash over `surface-page` in light, about `#e8e8e8`, and the next level plus the wash in dark), the label steps to
+  `text-primary` with no weight change, a secondary's hairline steps to `border-hover`, a ghost gains its rectangle, and the
+  radius does not change. A text toggle holds a 16px seat at the label's inline start that shows the core `check` while
+  pressed and is empty while not, so a pressed and an unpressed toggle of one label are the same width; the check swaps,
+  it does not morph. An icon toggle, and every IconButton toggle, carries no check: the plate, the ink step and the glyph's
+  selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
+  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the check, at rest,
+  hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
+  `Switch`; exactly one of many is a segmented control, never toggle buttons.
+- **External links** (`Link`, and a `Button` or `IconButton` rendered as an anchor; council, DECISIONS 95). The arrow means
+  "opens in a new tab" and nothing else, so it comes automatically from `target="_blank"`, with no prop and no opt-out;
+  a same-tab link to another site gets nothing. It is the core `external` glyph after the label, `aria-hidden`, never
+  underlined, 16px beside 12 to 16px text and in Buttons xs to lg, 20px beside text of 20px and up (`Text` and `Heading` at xl or larger set a private size for what they hold) and in an xl Button, where it takes the trailing-icon
+  slot at the button's own gap (a new-tab Button has no other trailing icon). In running text it adds no space: the glyph's
+  own side bearing, a word joiner (U+2060) before it and `nowrap` keep it with the last word, so it never starts a line.
+  In a still-table cell the label truncates and the arrow stays whole. Ink: `text-secondary` at rest, lifting to the
+  link's own ink on hover and focus with the underline; a Button's own ink; `LinkText` or `ButtonText` in forced colours
+  through `currentColor`. Spoken: a visually hidden " (opens in a new tab)" inside the link or button, after the label, one
+  translatable string (`newTabLabel`); an IconButton gets it in its label and no second glyph; a link that holds only a
+  logo skips the glyph and keeps the phrase. Open a new tab only where leaving would lose the user's place.
+- **Badges, pending and pairs** (council, DECISIONS 95). `pending` (waiting, in review, queued) is a hollow 6px ring, a 1px
+  border in the badge word's own ink (`text-secondary` in `Badge`, `currentColor`), in the status dot's seat, with the app's
+  word ("Pending", "In review", "Queued"). No colour: waiting is not a warning. The ring is `aria-hidden`, the word is
+  spoken, the plain variant carries the same mark, and in forced colours it is a border in `CanvasText`. At most two badges
+  sit on one object (`BadgePair`): the status first, right after the name, then one neutral fact, `space-2` apart and
+  `space-2` after the name. Never two statuses; a third fact goes in words. When the name and the pair don't fit on one line
+  the pair moves under the name as a unit, the name truncates only when it alone is wider than the row, and a badge never
+  truncates. Spoken in DOM order.
 - **The multi-select filter** (`MultiSelect`; decisions 82 and 83). One rule picks the control: one of many is a pill in a
   track (`SegmentedControl`), any of many is a check with no track. Up to six values are independent chips: 32px, or 36
   inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
@@ -235,9 +305,18 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   **Seven or more values, or any use in a toolbar, are a trigger and a checklist**: a non-modal popup of popup rows, with
   the same checkbox group, a count and Clear in its footer. The switch depends on the count and the `toolbar` prop, never
   the viewport. **Clear** is always mounted, in place, with the same label; at zero it is `aria-disabled`, not `disabled`
-  (activation is suppressed and keyboard focus stays on it), and it never hides and never moves focus. What is spoken
+  (activation is suppressed and keyboard focus stays on it), and it never hides and never moves focus. In the chips' head it
+  sits right after the count, `space-2` apart ("Status · 2 of 4 · Clear"), and the count reserves the width of its widest form
+  ("Any" and "N of N" share one grid cell, tabular figures), so Clear never moves as the count changes; the checklist's footer
+  (count at the start, Clear at the end) is as it was. What is spoken
   is one polite, atomic result line outside the filter (`FilterResult`: "Showing 3 of 24 runs"), updated after the text
-  has held still for 400ms, so three toggles are one announcement. In forced colours every part of a chip uses a system
+  has held still for 400ms, so three toggles are one announcement. **The checklist's rows scroll inside `size-popup-max-height`
+  (360), with the search band and the foot outside them**: nine 40px rows show whole and the tenth is the first to scroll. **From
+  ten values it has a search band**: 40px (`size-control-xl`), 14/20 text (16 on touch), the next level's fill, a divider below and
+  the −2 inset ring, because the popup has other stops. Focus opens in the band with a hardware keyboard; on touch the checklist
+  opens without focusing it, so no keyboard rises over the list. ↓ goes from the band to the first row, ↑ from the first row comes
+  back, and typing on a row goes to the band. Esc clears the text first, and only the next one closes. The count still counts every
+  value, and no match is one line ("No service matches.", from the filter's own label). In forced colours every part of a chip uses a system
   pair: off is `ButtonText` on a real border; on is `Highlight` with `HighlightText` for the label and the check, and it
   stays that way on hover.
 - **Checked controls** (checkbox, radio, switch) fill with the primary action colour; a switch
@@ -268,8 +347,13 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   a popover at its opener's level plus one, with a header band (title, count, "Mark all as read") and a footer ("View
   all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
   line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
-  the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The app owns the entries,
-  their read state, persistence and the "View all" page; the component is presentational.
+  the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
+  entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
+  somewhere to go without moving every title. The app owns the entries,
+  their read state, persistence and the "View all" page; the component is presentational. **The hover glide** is navigation's,
+  in the same plumbing: one plate follows the pointer between entries (40 or 58 tall); the first key hides it and the resting
+  hover, so only the shipped rounded control ring at +2, outside the row, shows; the next pointer move brings the plate back.
+  Off on touch, under reduced motion and in forced colours, where each entry paints its own.
 - **Callouts** keep a neutral fill at their own level, with no tint. Status is the icon and the words, and success,
   warning and danger also draw the rim in their status colour, mixed in sRGB at 45% over the callout's own level (the
   danger Button's hairline recipe, but one solid colour on every side, in both themes). The icon takes the status
@@ -347,6 +431,48 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
   Under reduced motion the ring fades and braille holds its first frame.
+  **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
+  portals included: braille, the ring, a busy Button's ring, the indeterminate Progress bar,
+  Sparkline's loading line and Skeleton's pulse. There is no per-spinner prop, and the attribute
+  can't be set on a subtree. Braille holds its first frame and the ring stands still at its
+  drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
+  words still say the work is running. Skeleton and the loading line hold at their reduced-motion
+  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, with or
+  without reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
+  done), so none is drawn. Its label still says the work is running and it keeps its indeterminate
+  semantics (no `aria-valuenow`). Held is one look whatever the OS says: it outranks
+  reduced motion and stops the ring's fade too, and reduced motion never turns it on. Releasing
+  jumps to now: every loop rejoins the shared clock, and nothing resumes from where it stopped.
+  `useLoops()` keeps the state (lazy, no module-scope side effects), stored in `localStorage`
+  (`basalt-loops`) for this app's origin in this browser and carried across the app's tabs by the
+  `storage` event; the server renders "running". `loopsBootstrap` is a line for the head, beside the
+  theme's, so a stored hold applies before the first frame. This is the mechanism WCAG 2.2.2
+  (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
+  reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
+  **The control is the app's part, built from shipped parts, with no new component:** a
+  pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work,
+  labelled "Pause animations" with a fixed name and `aria-pressed`; the same words as a settings
+  row (the label, the description "Spinners hold still and timers show when work started. Your work
+  keeps running.", and a `Switch` at its end); and a command, "Pause animations", reading "Resume
+  animations" while held. Nothing is announced when the hold changes: the control speaks its own
+  state. **The app's own text is its part too:** while held, an elapsed time shows when the work
+  started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
+  hides while the status word stays; on release the current text is written. A result lands as
+  usual: the word turns to Passed or Failed and a toast speaks once. A column that holds an
+  elapsed time is wide enough for the held form. A step line under a name (a two-line cell) hides
+  with `visibility: hidden` while held, which keeps its box and takes it out of the accessibility
+  tree; on release the current text is written into the same box, so neither the hold nor its
+  release moves a row. (A step line in a column of its own just empties.) A Select's placeholder
+  is `GrayText` in forced colours, as Input's and the Combobox's are, so it never looks like a
+  chosen value. **Braille's size follows its word's cap height:**
+  16 beside 12 to 16px text, 20 beside 18 to 24px, 24 beside 30px and up. In a status the seat is
+  the braille cell's width and the gap equals it (6, 9 and 12px, `size-dot` times 1, 1.5 and 2), so
+  words start at 12, 18 and 24 whichever mark is in the seat; the 6px dot stays 6px and centres in
+  the wider seat on whole pixels (1 + 6 + 2 at 20, 3 + 6 + 3 at 24). The 20 cell (9 by 15) sits in a
+  9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
+  takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
+  size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
+  implementation hasn't been reviewed.
 
 ### Accent classes
 
@@ -602,6 +728,84 @@ lit when the pointer leaves a row, as cmdk does everywhere. Menu, Select and Com
 touch (the 4px gap between plates is drawn inside the rows, 2px above and below each plate), so a pointer crossing the gap never
 leaves one. A panel's padding is 4px inline and 2px block, so a plate is 4px from the rim on every side. It is summoned from the
 keyboard many times a day, so it neither opens nor closes with motion, its backdrop included.
+
+**Status:** decided by the council (DECISIONS 103); the implementation has not been reviewed. A three-member round (DECISIONS 93).
+
+### The command list in the page
+
+`CommandList` is the command panel set in the page, not a new surface: the same cmdk body, band, rows and plate, in a level-1 panel
+in the flow (its parent plus one) with its rim and no scrim or shadow. The band is the modal's: 48px (`size-command-input`), a divider
+below, one level up, no rim or radius of its own.
+
+- **Focus lives in the field**: a combobox with `aria-activedescendant` on a `listbox` of `option`s in labelled groups. ↑ and ↓ move
+  with wrap and snap the plate; ↵ runs the row; Tab leaves (the list is one stop in the page's order); Esc clears the query and does
+  nothing when it is empty, and never blurs or closes anything. **No autofocus on load**: it would steal a screen reader's start and
+  raise a phone's keyboard.
+- **The field takes the flush-field −2 ring**, because in the page it is one stop among many. The modal's field is its only stop and
+  stays ringless.
+- **The plate shows only while the list is in use**: while the field has focus or the pointer is over the list. It fades, as Menu's
+  does, when neither is true, and while the field has focus it stays when the pointer leaves, because it marks what ↵ will run. A page
+  at rest with one row lit reads as a selection that isn't there. (The modal's plate is always lit: the modal exists only while it is used.)
+- **The list holds its unfiltered height**, up to `size-popup-max-height` (360), and scrolls inside. Filtering never changes it, so
+  what is below it never moves: the still table's rule, applied to a list.
+- **A foot band** shows the count at the start ("9 commands", "3 of 9") and the key legend at the end (`data-kbd-hint`, hidden on touch). The
+  count is shown at once and spoken once, through a polite, atomic live region after 400ms of stillness (`FilterResult`'s rule). No match
+  is one centred sentence ("Nothing matches “zzz”.") and a ghost "Clear search", in the held area and outside the listbox, so the button is valid.
+- **Until cmdk arrives** the rows are drawn as they will be and what is typed is kept, then becomes the first search. cmdk stays behind
+  its dynamic import, loaded when the list first mounts.
+- **⌘K belongs to one command surface per page.** A page with a modal `CommandMenu` gives ⌘K to the modal, and its list has no
+  shortcut of its own. A page whose command surface is in the page gives ⌘K to that list (`bindShortcut`): focus the field, select its
+  text and scroll it into view, and that page has no modal. The component offers the binding; the app chooses which surface owns it.
+  A ⌥ plus letter chip on a row is ignored while typing, as in the modal, so it can't be used from inside the field.
+
+#### List plus preview
+
+A pattern on the in-page list (`detail`), not a new surface: the list, and a pane the app renders for the active command.
+
+- **Two level-1 panels `space-4` apart**: the list a fixed `size-list-width` (320px), the pane the rest, equal in height, with no line
+  between (Basalt allows one vertical line, at a scrolled pinned table edge; space groups these). The pane scrolls inside if it is taller.
+- **It answers its own width, not the viewport's**: side by side from `size-list-width` + `space-4` + `size-breakpoint-container`
+  = 816px of its container's content width, so the pane is never narrow beside the list (and what is in it, a description list or a
+  chart, never goes to its narrow form); below that, the push. The container query writes the number, because it can't read a token,
+  and names all three.
+- **Hover lifts a row's ink only.** The plate, which marks what the pane shows, moves only by ↑ ↓ in the field or by a press (a press
+  glides it, a key snaps it), and it stays lit when focus leaves. A pointer crossing other rows to reach the pane would otherwise repaint
+  half the component.
+- **↵ runs the pane's primary action**: its first button, so ↵ is never a surprise. Tab goes into the pane's controls in order. The pane
+  is a `region` named by its heading and isn't live: the option's name already says the row on each arrow.
+- **The push, under 816**: the list alone, a chevron at each row's end on the title line. A tap or ↵ replaces it with the detail, the
+  same panel with a Back band at its top (a ghost `sm` button, a chevron-left and the list's name, labelled "Back to …"). It enters
+  from 8px along the reading direction with a fade over `duration-slow` on `ease-out` (a fade alone under reduced motion; the travel
+  flips under `:dir(rtl)`). Focus moves to the detail's heading (`tabindex="-1"`, no ring, since nothing operates it). Back keeps the
+  query, the scroll and the active row, and returns focus to the field with a hardware keyboard, or to the list's region on touch, so a
+  phone's keyboard doesn't spring up. It isn't the pane below (the pane would sit below the fold, and a tap would change something you
+  can't see) and isn't a sheet (a modal on a page that has none, hiding the list you came from).
+
+### Two-line rows
+
+A row may carry a `description` (`CommandItem`, `MenuItem`, `MenuRadioItem`, `MenuCheckboxItem`, and Select's and Combobox's options).
+The padding is the one-line row's, so a two-line plate is the one-line plate plus `text-sm`'s line height:
+
+| | one line: row / plate | two lines: row / plate |
+|---|---|---|
+| Menu, Select, Combobox | 40 / 36 | 58 / 54 |
+| Command menu and list | 44 / 40 | 62 / 58 |
+| Menu, compact | 36 / 32 | 52 / 48 |
+| Command, compact | 40 / 36 | 56 / 52 |
+
+- **Type and ink.** The title is 14/20 at 400, secondary at rest and primary when lit. The description is 13/18 at 400, tertiary at rest
+  and secondary when lit (tertiary on the plate falls under 4.5:1), with no weight change; compact is 13/18 over 12/16. The 20 and 18
+  line boxes touch, with no gap.
+- **Where things sit.** The glyph, a check seat, a key chip and a time sit on the title line, centred on it; the description runs from the
+  text's edge to the row's end, under the chip's column too. Both lines truncate with an ellipsis and never wrap, so a row's height is known.
+- **Mixed lists.** One-line and two-line rows may share a list, each its own height, and the shared plate changes height as it glides.
+  A row with no description is one line: it holds no empty second line.
+- **Danger.** The title and the glyph take the danger ink; the description keeps its own.
+- **Names.** An option's name is its content in reading order: title, description, hint. The key chip stays `aria-hidden`.
+- **Search.** Descriptions are search keywords, ranked below title matches. There is no match highlighting: bold letters change widths as you type.
+- **Where to use it.** Freely in the command menu and the list. In Menu and Select, describe a choice only when the label alone can't tell the
+  choices apart (a visibility, a role, a plan, a model), never to explain an obvious action ("Copy link" stays one line). A described
+  menu is as wide as its content, up to `size-popover-max` (320), and then descriptions truncate.
 
 ## Navigation
 
@@ -899,6 +1103,7 @@ because no whole set had two of three votes; the owner is asked to look at them 
 | `size-breakpoint-lg` | 1024px | From it, the sidebar; below it, down to md, the rail |
 | `size-breakpoint-container` | 480px | A component's own width: a description list stacks and a chart goes narrow |
 | `size-description-label` | 160px | The description list's label column |
+| `size-list-width` | 320px | The list column of a list with a preview pane; the pane is pushed instead below this + `space-4` + `size-breakpoint-container` (816px) |
 
 - **A rem token** stays a rem in CSS and JavaScript, so the measure follows the reader's text size. In Swift the generator resolves it
   to points at 16 to the rem (72rem is 1152, 34rem is 544), and the generated doc comment says so.
@@ -1049,7 +1254,11 @@ the glide only paints it.
   arrows, Home and End snap it. The last input decides: a pointer glides, a key snaps. In navigation the first key hides the
   glide and the focus ring shows instead (see [Navigation](#navigation)).
 - **The command menu** keeps its plate when the pointer leaves, as it always has: it is the selected row, so it never
-  fades, and the pointer moves it from that row to the next.
+  fades, and the pointer moves it from that row to the next. **The command list in the page** shows its plate only while the field has
+  focus or the pointer is over the list, and fades it, as Menu's does, when neither is true; with a preview pane the plate marks what the
+  pane shows, so it stays lit and moves only by the arrows or a press.
+- **The notification centre** is the third kind: its entries are links and buttons, so the glide follows the pointer on navigation's rules, one
+  plate between entries of 40 and 58 tall, hidden by the first key (with the resting hover), back on the next pointer move.
 - **Off** on touch (`(hover: none)`, a coarse pointer or a touch `pointerType`), where the row under the finger shows
   its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with
   no travel; and in forced colours, where each row is `Highlight` with `HighlightText`.
@@ -1116,7 +1325,7 @@ Stage and PairedArt put full-bleed art under a clear site header, and FramedArt 
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
-window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover. Avatar, Separator and EmptyState provide
+window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover, and draws the new-tab arrow when it opens one. Avatar, Separator and EmptyState provide
 neutral composition without replacing meaningful words with imagery.
 
 Forced-colours mode uses real borders and system colour keywords for boundaries, focus
@@ -1163,6 +1372,13 @@ The still table and the multi-select filter were decided by the council in a fou
 9 Nov 2026 (decisions 71 and 82 to 84): the fixed layout and reserved seat, the whole header cell as the sort control, the
 chips and their switch to a checklist at seven values, Clear held in place, and the divider at a scrolled pinned edge.
 Their implementation has not been reviewed by the panel.
+
+The in-page command list, list plus preview and its push, two-line rows, the chips' Clear, the checklist's search band and the
+notification centre's glide were decided by the council in a three-member vote (DECISIONS 103: opus, sol and grok, 2 of 3
+deciding; Muse out). Their implementation has not been reviewed.
+Display states (the new-tab cue on links and Buttons, row headers, "Not observed", the scroll hint, the choice card, the
+pressed toggle, the pending ring and two badges) were decided by the council in a three-member round the owner ordered
+(DECISIONS 95; two of three deciding). The implementation has not been reviewed.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

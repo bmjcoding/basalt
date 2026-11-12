@@ -59,8 +59,11 @@ export type TextSize = "xs" | "sm" | "base" | "md" | "lg" | "xl" | "2xl" | "3xl"
 export type TextTone = "primary" | "secondary" | "tertiary" | "inherit";
 export type TextWeight = "regular" | "medium" | "semibold";
 
+/** Sizes of 20px and up: a new-tab arrow beside this text is drawn at 20px (see `.basalt-external` in the stylesheet). */
+const LARGE: readonly TextSize[] = ["xl", "2xl", "3xl", "4xl", "5xl"];
+
 function typeStyle(size: TextSize, weight: TextWeight): React.CSSProperties {
-  return { "--_basalt-type-size": `var(--basalt-text-${size}-size)`, "--_basalt-type-line": `var(--basalt-text-${size}-line-height)`, "--_basalt-type-tracking": `var(--basalt-text-${size}-tracking)`, "--_basalt-type-weight": `var(--basalt-font-weight-${weight})` } as React.CSSProperties;
+  return { ...(LARGE.includes(size) ? { "--_external-size": "var(--basalt-size-icon-md)" } : null), "--_basalt-type-size": `var(--basalt-text-${size}-size)`, "--_basalt-type-line": `var(--basalt-text-${size}-line-height)`, "--_basalt-type-tracking": `var(--basalt-text-${size}-tracking)`, "--_basalt-type-weight": `var(--basalt-font-weight-${weight})` } as React.CSSProperties;
 }
 
 export interface TextProps extends React.ComponentProps<"p"> {

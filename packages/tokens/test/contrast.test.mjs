@@ -514,6 +514,109 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- Two-line rows, the command list in the page and the checklist's search band (council item 103) ----
+//
+// A description is tertiary at rest and lifts to secondary on the plate, the hint rule above; a danger row's description keeps its
+// own ink, so the pair on the plate is secondary, not danger. The in-page list's foot is secondary 12/16 on the panel, and the push's
+// chevron a secondary icon (3:1). The search band (the command's, and the checklist's) is the next level's fill, capped at 3: its
+// placeholder and glyph are tertiary, its text primary, and the −2 inset ring is the focus colour.
+for (const theme of THEMES) {
+  for (const level of [1, 2, 3]) {
+    const panel = color(theme, `surface-${level}`);
+    const plate = plateOf(theme, level);
+
+    test(`${theme}, level ${level}: a description holds 4.5:1 (tertiary at rest, secondary lit), and the foot's text and the chevron hold`, () => {
+      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: a description at rest on level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: a lit description on the plate at level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-secondary"), panel), panel) >= 4.5, `${theme}: the foot's count and legend on level ${level}`);
+      for (const [name, bg] of [["the panel", panel], ["the plate", plate]]) {
+        assert.ok(ratio(over(color(theme, "text-secondary"), bg), bg) >= 3, `${theme}: the push's chevron on ${name} at level ${level}`);
+      }
+    });
+
+    test(`${theme}, level ${level}: the search band's placeholder, glyph, text and ring hold on the next level's fill`, () => {
+      const band = color(theme, `surface-${Math.min(level + 1, 3)}`);
+      assert.ok(ratio(over(color(theme, "text-tertiary"), band), band) >= 4.5, `${theme}: the placeholder on the band over level ${level}`);
+      assert.ok(ratio(over(color(theme, "text-primary"), band), band) >= 4.5, `${theme}: typed text on the band over level ${level}`);
+      assert.ok(ratio(over(color(theme, "border-focus"), band), band) >= 3, `${theme}: the −2 inset ring on the band over level ${level}`);
+    });
+  }
+}
+
+// ---- Display states (DECISIONS 95): "Not observed", the scroll hint, the choice card, the pressed toggle, the pending ring ----
+//
+// The solid plate (--_plate-solid) is the plate of the menus round painted as ONE opaque colour: the wash mixed over the level in
+// the CSS, at the token's own alpha (9% white in dark, 7% black in light). A choice card and a pressed toggle replace their own
+// fill with it, so these are the pairs a reader sees. The page (level 0) has no plate of its own: a toggle there takes level 1's
+// recipe over surface-1 in both themes.
+
+for (const theme of THEMES) {
+  test(`${theme}: the CSS's 9% and 7% are the selected wash's own alpha`, () => {
+    near(alphaOf(theme, "state-selected"), theme === "dark" ? 0.09 : 0.07, 0.0005, `${theme}: state-selected's alpha`);
+  });
+
+  const levels = [0, 1, 2, 3];
+  const base = (level) => (theme === "dark" ? { 0: "surface-1", 1: "surface-2", 2: "surface-3", 3: "surface-3" }[level] : level === 0 ? "surface-page" : `surface-${level}`);
+  const solid = (level) => over(color(theme, "state-selected"), color(theme, base(level)));
+  const surface = (level) => color(theme, `surface-${level}`);
+
+  test(`${theme}: the page's own plate: dark is the next level plus the wash, light is the wash over surface-page, about #e8e8e8 (DECISIONS 100)`, () => {
+    const plate = solid(0);
+    if (theme === "light") for (const [channel, want] of [["r", 0xe8], ["g", 0xe8], ["b", 0xe8]]) assert.ok(Math.abs(plate[channel] * 255 - want) <= 1, `light: the page plate ${channel} is ${(plate[channel] * 255).toFixed(1)}, about ${want}`);
+    for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(color(theme, text), plate) >= 4.5, `${theme}: ${text} on the page plate`);
+    assert.ok(ratio(plate, color(theme, "surface-page")) >= 1.1, `${theme}: the page plate is a step from the page`);
+  });
+
+  test(`${theme}: "Not observed" is tertiary on every level, and secondary on the hover and selected washes over every level`, () => {
+    for (const level of levels) {
+      const panel = surface(level);
+      assert.ok(ratio(over(color(theme, "text-tertiary"), panel), panel) >= 4.5, `${theme}: tertiary on level ${level}`);
+      for (const wash of washes) {
+        const under = over(color(theme, wash), panel);
+        assert.ok(ratio(over(color(theme, "text-secondary"), under), under) >= 4.5, `${theme}: secondary on ${wash} over level ${level}`);
+      }
+    }
+  });
+
+  test(`${theme}: the scroll hint, tertiary 12px text, holds 4.5:1 on the page and every level`, () => {
+    for (const level of levels) assert.ok(ratio(over(color(theme, "text-tertiary"), surface(level)), surface(level)) >= 4.5, `${theme}: the hint on level ${level}`);
+  });
+
+  test(`${theme}: a pressed toggle's primary ink and check hold 4.5:1 on its solid plate over every level, and the plate is a step from the level`, () => {
+    for (const level of levels) {
+      const plate = solid(level);
+      assert.ok(ratio(color(theme, "text-primary"), plate) >= 4.5, `${theme}: primary on the plate over level ${level}`);
+      assert.ok(ratio(color(theme, "text-secondary"), plate) >= 4.5, `${theme}: secondary on the plate over level ${level}`);
+      // the ink step is the cue the plate alone (about 1.2:1) cannot carry: primary is a real step above the unpressed ghost's secondary
+      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(over(color(theme, "text-secondary"), surface(level)), surface(level)) >= 1.4, `${theme}: the ink step at level ${level}`);
+      assert.ok(ratio(plate, surface(level)) >= 1.1, `${theme}: the plate is a visible step from level ${level}`);
+    }
+  });
+
+  for (const level of [1, 2, 3]) {
+    test(`${theme}, level ${level}: a selected choice card holds its ink on the plate, and its box holds 3:1 empty and checked`, () => {
+      const plate = solid(level);
+      const card = surface(level);
+      for (const [where, bg] of [["card", card], ["plate", plate]]) {
+        for (const text of ["text-primary", "text-secondary"]) assert.ok(ratio(over(color(theme, text), bg), bg) >= 4.5, `${theme}: ${text} on the ${where} at level ${level}`);
+        // the empty box is a raised fill with the input boundary round it: the boundary against the card is the 3:1 pair
+        const box = color(theme, "surface-raised");
+        const boundary = over(color(theme, "border-input"), box);
+        assert.ok(ratio(boundary, box) >= 3 || ratio(boundary, bg) >= 3, `${theme}: the empty box's boundary on the ${where} at level ${level}`);
+        // checked: the primary fill against the card
+        assert.ok(ratio(color(theme, "action-primary"), bg) >= 3, `${theme}: the checked box on the ${where} at level ${level}`);
+        assert.ok(ratio(color(theme, "action-primary-text"), color(theme, "action-primary")) >= 4.5, `${theme}: the mark in the checked box`);
+      }
+      // content that was tertiary steps to secondary on the fill, which tertiary may not hold
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: stepped content on the plate at level ${level}`);
+    });
+  }
+
+  test(`${theme}: the pending ring, in the badge word's secondary ink, holds 3:1 as a non-text mark on every level and the page`, () => {
+    for (const level of levels) assert.ok(ratio(over(color(theme, "text-secondary"), surface(level)), surface(level)) >= 3, `${theme}: the ring on level ${level}`);
+  });
+}
+
 // ---- Art (council item 104): the clear bar's ink on the quietest pixel art may hold ----
 //
 // A stage keeps its headroom, and each quiet zone, to no lighter (dark) or darker (light) than art-quiet-limit. The bar's ink is the theme's

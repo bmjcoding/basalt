@@ -16,12 +16,15 @@ export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel } from "./tab
 export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsProps } from "./tabs";
 export {
   Badge,
+  BadgePair,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
+  ChoiceCard,
+  ChoiceCardGroup,
   Table,
   TableBody,
   TableCell,
@@ -30,12 +33,16 @@ export {
   TableHead,
   TableHeader,
   TableRow,
+  TableRowHead,
+  TableScrollHint,
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgeProps, BadgeStatus, SortDirection, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TooltipProps, TooltipProviderProps } from "./display";
-export { FilterResult, MultiSelect } from "./filter";
-export type { FilterResultProps, MultiSelectOption, MultiSelectProps } from "./filter";
+export type { BadgePairProps, BadgeProps, BadgeStatus, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
+export { MultiSelect } from "./filter";
+export type { MultiSelectOption, MultiSelectProps } from "./filter";
+export { FilterResult } from "./filter-result";
+export type { FilterResultProps } from "./filter-result";
 export { Kbd } from "./kbd";
 export type { KbdProps } from "./kbd";
 export { Checkbox, Radio, RadioGroup, Select, Switch } from "./choice";
@@ -44,8 +51,8 @@ export { ToastProvider, useToast } from "./toast";
 export type { ToastAction, ToastApi, ToastHome, ToastOptions, ToastPromiseOptions, ToastStatus, ToastUpdate } from "./toast";
 export { NotificationCentre } from "./notifications";
 export type { NotificationCentreProps, NotificationEntry } from "./notifications";
-export { CommandMenu } from "./command";
-export type { Command, CommandGroup, CommandMenuProps } from "./command";
+export { CommandList, CommandMenu } from "./command";
+export type { Command, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
 export { Sparkline } from "./sparkline";
 export type { SparklineProps } from "./sparkline";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Textarea } from "./feedback";
@@ -62,6 +69,8 @@ export { Terminal } from "./terminal";
 export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStatus } from "./terminal";
 export { NumberTicker } from "./number-ticker";
 export { Spinner } from "./spinner";
+export { loopsBootstrap, useLoops } from "./loops";
+export type { LoopsState } from "./loops";
 export { preloadCodeLanguages } from "./syntax";
 export type { AccordionItemProps, AccordionProps, CalloutProps, CalloutStatus, CodeBlockProps, PopoverCloseProps, PopoverContentProps, PopoverProps, PopoverTriggerProps, ProgressProps, SkeletonProps, TextareaProps } from "./feedback";
 export type { NumberTickerProps } from "./number-ticker";
