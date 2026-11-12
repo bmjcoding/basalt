@@ -6,6 +6,7 @@ import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningI
 import * as React from "react";
 
 import { IconButton } from "./button";
+import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
@@ -226,11 +227,17 @@ export interface CodeBlockProps {
   title?: string;
   /** Show a copy button. On by default. */
   copyable?: boolean;
+  /**
+   * A shell prompt such as `"$"`. It puts every line in the gutter (16px plus `space-2`), and a line after one that ends in a
+   * backslash gets an empty gutter. The prompt is chrome: a selection and a screen reader skip it, and copy takes `code`
+   * exactly as given.
+   */
+  prompt?: string;
   className?: string;
 }
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
-export function CodeBlock({ code, language, title, copyable = true, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, title, copyable = true, prompt, className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
   const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
@@ -252,6 +259,8 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
     cursor = token.offset + token.content.length;
     return <React.Fragment key={i}>{gap}<span style={{ color: token.color }}>{token.content}</span></React.Fragment>;
   });
+  // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
+  const lines = React.useMemo(() => (prompt === undefined ? null : codeLines(code, tokens)), [prompt, code, tokens]);
   const [copied, setCopied] = React.useState(false);
   React.useEffect(() => {
     if (!copied) return;
@@ -282,7 +291,17 @@ export function CodeBlock({ code, language, title, copyable = true, className }:
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
       <pre className="basalt-code-pre" tabIndex={0} aria-label={title ? `${title} code` : "Code"}>
-        <code data-language={language}>{tokens ? <>{content}{code.slice(cursor)}</> : code}</code>
+        {lines ? (
+          <code data-language={language} className="basalt-code-lines">
+            {lines.map((line, i) => (
+              <CodeLine key={i} gutter={i > 0 && continues(lines[i - 1]) ? null : <CodePrompt>{prompt}</CodePrompt>}>
+                {line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
+              </CodeLine>
+            ))}
+          </code>
+        ) : (
+          <code data-language={language}>{tokens ? <>{content}{code.slice(cursor)}</> : code}</code>
+        )}
       </pre>
       {title ? null : copyButton}
     </figure>

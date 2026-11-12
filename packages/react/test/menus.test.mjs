@@ -421,7 +421,9 @@ describe("no vertical bar, anywhere", () => {
     const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     // the token's own definition (:root) is not a use of it
     const rules = [...css.matchAll(/([^{}]+)\{([^{}]*size-indicator[^{}]*)\}/g)].map((m) => m[1].trim().replace(/\s+/g, " ")).filter((selector) => selector !== ":root");
-    assert.deepEqual(rules, [".basalt-tabs-indicator"], `the indicator token draws something other than the horizontal underline: ${rules}`);
+    // The one other use is a meter's target tick and its legend line in the foot: a labelled scale tick, structure and never a mark of
+    // state (decision 94; foundations names it beside the pinned column's edge). Any other use is still a bar.
+    assert.deepEqual(rules, [".basalt-tabs-indicator", ".basalt-meter-tick", ".basalt-meter-target::before"], `the indicator token draws something other than the horizontal underline and a meter's tick: ${rules}`);
     assert.ok(!/inset\s+var\(--basalt-size-indicator\)\s+0/.test(css), "an inset side bar is back");
     assert.ok(!/border-inline-start:[^;]*size-indicator/.test(css), "a border-inline-start bar is back");
   });

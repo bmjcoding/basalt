@@ -96,8 +96,14 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   hairline, a check, or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows, choice cards and pressed toggle buttons). **There is no vertical bar and no inset outline
   anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
-  flush-field −2 inset, and the 1px divider at a pinned table column's edge while the table is scrolled (structure, never a
-  mark). The active row in a menu, select, combobox or command menu is a rounded plate
+<<<<<<< HEAD
+  flush-field −2 inset, and these structural vertical lines, each named and never a selection, sort, active or status mark:
+  the 1px divider at a pinned table column's edge while the table is scrolled, and a meter's labelled target tick. The active row in a menu, select, combobox or command menu is a rounded plate
+=======
+  flush-field −2 inset (so does a phone tab bar cell, which is itself a link), and the vertical lines that are structure,
+  never a selection, sort, active or status mark: the 1px divider at a pinned table column's edge while the table is scrolled,
+  and the app sidebar's 1px edge. The active row in a menu, select, combobox or command menu is a rounded plate
+>>>>>>> origin/main
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
@@ -165,10 +171,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 ## Generating HTML
 
 Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
-dashboard for this project first reads `.agent/skills/basalt-html/SKILL.md`, and only that: write the page's body
-(the HTML inside `<body>`) to a file, then run `node .agent/skills/basalt-html/compose.mjs <body.html>`. The script
-builds the page: it adds the core CSS and script and only the modules the body uses, Geist inlined, no CDN or
-framework. Don't open or paste `parts/`; it is minified output and costs context for nothing. The sources are in
+dashboard for this project reads `.agent/skills/basalt-html/SKILL.md` first, then loads each module it uses with
+`node .agent/skills/basalt-html/compose.mjs --usage core NAME` (`--usage` alone prints the index). It never reads `parts/`:
+it is minified output and costs context for nothing. Write the page's body (the HTML inside `<body>`) to a file, then run
+`node .agent/skills/basalt-html/compose.mjs <body.html>`. The script builds the page: it adds the core CSS and script and
+only the modules the body uses, Geist inlined, no CDN or framework. `SKILL.md` holds the rules every page needs and one
+line per module, so an agent pays for the modules its page uses and no more. The sources are in
 `tools/html-skill/` (its README says how to add a module); edit those and run `npm run build`, never the files in the
 skill folder.
 
