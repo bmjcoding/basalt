@@ -1,13 +1,14 @@
 // Navigation (Nav, NavGroup, NavItem): X's way, decisions 42, 45, 48, 49, 55, 69 and 70. Driven in Chromium against the built
 // package with the real stylesheet. The shared hover pill is an enhancement over each item painting its own: where it is off
 // (no JS, touch, reduced motion, forced colours) the item paints its own pill, and the tests prove that fallback as well as the
-// glide. Timings are real-time with a wide margin: they show the shape of the motion, not a frame count.
+// glide. The tests that sample the glide part-way through freeze animation time and move it by hand (freezeAnimations in
+// support.mjs): they show the shape of the motion, not a frame count, and no load on the machine can change what they read.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle, tick } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -17,7 +18,9 @@ after(async () => { await browser?.close(); });
 const render = (jsx) => `createRoot(document.getElementById("root")).render(${jsx});`;
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
-const wait = (page, ms) => page.waitForTimeout(ms);
+// Real time, or animation time once a test has frozen it (freezeAnimations): the mid-motion tests below freeze it, so a busy
+// machine cannot let a transition run out between an action and the reading of it.
+const wait = tick;
 const near = (actual, expected, message, tolerance = 0.6) => assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`);
 
 const ITEMS = [["home", "Home", "HomeGlyph"], ["runs", "Runs", "RunsGlyph"], ["sandboxes", "Sandboxes", "SandboxesGlyph"], ["routes", "Routes", "RoutesGlyph"], ["settings", "Settings", "SettingsGlyph"]];
@@ -324,6 +327,7 @@ describe("navigation: the hover glide", () => {
 
   test("between items it travels on duration-base with ease-out, whatever the distance, and changes width to hug each", async () => {
     const page = await open(side);
+    await freezeAnimations(page);
     await pointAt(page, 0);
     await wait(page, 60);
     const durations = [];
@@ -352,6 +356,7 @@ describe("navigation: the hover glide", () => {
 
   test("leaving mid-move freezes the pill where it is and fades it in place over duration-fast on ease-in", async () => {
     const page = await open(side);
+    await freezeAnimations(page);
     await pointAt(page, 0);
     await wait(page, 60);
     await pointAt(page, 4);
@@ -378,6 +383,7 @@ describe("navigation: the hover glide", () => {
 
   test("grace: a return during the fade travels from where the pill is and returns to full opacity; after the fade it appears in place", async () => {
     const page = await open(side);
+    await freezeAnimations(page);
     await pointAt(page, 0);
     await wait(page, 60);
     await pointAt(page, 4);
@@ -462,6 +468,7 @@ describe("navigation: the hover glide", () => {
   test("no animation frame is ever in React state: no commit while the pill travels", async () => {
     const wrapped = `window.__commits = 0; createRoot(document.getElementById("root")).render(<React.Profiler id="p" onRender={() => { window.__commits += 1; }}><B.TooltipProvider>${nav()}</B.TooltipProvider></React.Profiler>);`;
     const page = await open(wrapped);
+    await freezeAnimations(page);
     await pointAt(page, 0);
     await wait(page, 60);
     const start = await page.evaluate(() => window.__commits);
