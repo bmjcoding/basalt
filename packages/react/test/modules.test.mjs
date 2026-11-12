@@ -49,7 +49,9 @@ test("a server-rendered TextMorph shows its text, not only its live region", asy
 test("the text planner costs a scan for unchanged and slightly edited text, and is bounded for the rest", async () => {
   const { planTextMorph } = await import(pathToFileURL(path.join(dist, "text-morph.js")).href);
   const plan = (from, to) => planTextMorph(from, to, { previous: Array.from(from, () => 8), next: Array.from(to, () => 8) });
-  const time = (fn) => { const start = performance.now(); const result = fn(); return { ms: performance.now() - start, result }; };
+  // CPU time the planner itself used, not the wall clock: a busy machine can stretch the wall clock without the planner doing any
+  // more work, and the budgets below are about the work (a quadratic scan of 20,000 characters is seconds of CPU, not 250ms).
+  const time = (fn) => { const start = process.cpuUsage(); const result = fn(); const used = process.cpuUsage(start); return { ms: (used.user + used.system) / 1000, result }; };
   const same = "a".repeat(20_000);
   const unchanged = time(() => plan(same, same));
   assert.ok(unchanged.ms < 250, `identical strings took ${unchanged.ms}ms`);

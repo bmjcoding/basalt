@@ -16,12 +16,15 @@ export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel } from "./tab
 export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsProps } from "./tabs";
 export {
   Badge,
+  BadgePair,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
+  ChoiceCard,
+  ChoiceCardGroup,
   Table,
   TableBody,
   TableCell,
@@ -30,10 +33,12 @@ export {
   TableHead,
   TableHeader,
   TableRow,
+  TableRowHead,
+  TableScrollHint,
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgeProps, BadgeStatus, SortDirection, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgePairProps, BadgeProps, BadgeStatus, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
 export { FilterResult, MultiSelect } from "./filter";
 export type { FilterResultProps, MultiSelectOption, MultiSelectProps } from "./filter";
 export { Kbd } from "./kbd";
@@ -71,6 +76,12 @@ export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export { Nav, NavGroup, NavItem } from "./nav";
 export type { NavGroupProps, NavItemProps, NavProps } from "./nav";
+export { SiteHeader } from "./site-header";
+export type { SiteHeaderLink, SiteHeaderProps } from "./site-header";
+export { AppHeader, AppShell } from "./app-shell";
+export type { AppHeaderProps, AppShellProps } from "./app-shell";
+export { TabBar, TabBarItem, TabBarMore } from "./tab-bar";
+export type { TabBarItemProps, TabBarMoreProps, TabBarProps } from "./tab-bar";
 export { MorphIcon } from "./morph-icon";
 export type { MorphIconProps } from "./morph-icon";
 export { Slide, TravelSpinner, useGlide, useReducedMotion, useSlideDirection } from "./motion";

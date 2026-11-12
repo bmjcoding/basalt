@@ -13,10 +13,19 @@ import { join } from "./utils";
 /** Whether the list is the collapsed rail. Set by `Nav`, read by its items. */
 const NavContext = React.createContext(false);
 
+/**
+ * Whether the app shell is showing the rail. `AppShell` sets it, so the `Nav`s it holds collapse by the width of the page
+ * without the app measuring anything; a `collapsed` prop on a `Nav` still wins.
+ */
+export const NavRailContext = React.createContext(false);
+
 export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label" | "aria-labelledby"> {
   /** The landmark's name, e.g. "Primary" or the product's. Required: an app may have several navigations. */
   "aria-label": string;
-  /** The rail: a 48px circle around each glyph, with the label as the item's name and in a tooltip. */
+  /**
+   * The rail: a 48px circle around each glyph, with the label as the item's name and in a tooltip. Left unset, inside
+   * `AppShell` it follows the shell's width (the rail from 720 to 1023); anywhere else it is the sidebar's full form.
+   */
   collapsed?: boolean;
 }
 
@@ -26,7 +35,9 @@ export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label"
  * (150ms, ease-out); the first key hides it and the focus ring shows. The current page is its selected glyph and a 600
  * label, with no background and no bar. The column keeps `space-1-5` of inline padding so the focus ring never clips.
  */
-export function Nav({ collapsed = false, className, children, ...props }: NavProps) {
+export function Nav({ collapsed: collapsedProp, className, children, ...props }: NavProps) {
+  const rail = React.useContext(NavRailContext);
+  const collapsed = collapsedProp ?? rail;
   return (
     <nav {...props} data-collapsed={collapsed ? "" : undefined} className={join("basalt-nav", className)}>
       <GlidePlate navigation />
@@ -56,8 +67,12 @@ export function NavGroup({ label, className, children, ...props }: NavGroupProps
 }
 
 export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"> {
-  /** The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 and in its selected form when the item is current. */
-  icon: IconComponent;
+  /**
+   * The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 and in its selected form when the item is current. Leave it
+   * out for a row of words alone (the site header's narrow menu): the same 48px pill at 20/28, with no glyph and no seat for
+   * one. The rail needs glyphs, so a list that collapses gives every item one.
+   */
+  icon?: IconComponent;
   /** The label. In the rail it is the item's name and its tooltip. */
   children: string;
   /** This item is the current page: `aria-current="page"`, the selected glyph and a 600 label. */
@@ -72,9 +87,9 @@ export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"
 export function NavItem({ icon, children, current = false, count, dot, className, ...props }: NavItemProps) {
   const collapsed = React.useContext(NavContext);
   const link = (
-    <a {...props} aria-current={current ? "page" : props["aria-current"]} className={join("basalt-nav-item", className)}>
+    <a {...props} aria-current={current ? "page" : props["aria-current"]} data-glyphless={icon ? undefined : ""} className={join("basalt-nav-item", className)}>
       <span className="basalt-nav-pill">
-        <Icon icon={icon} size={24} selected={current} />
+        {icon ? <Icon icon={icon} size={24} selected={current} /> : null}
         <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-label"} data-label={collapsed ? undefined : children}>{children}</span>
         {count !== undefined ? <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-count"}><span className="basalt-visually-hidden">, </span>{count}</span> : null}
         {dot ? (

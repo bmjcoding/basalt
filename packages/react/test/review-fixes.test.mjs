@@ -12,7 +12,7 @@ import * as esbuild from "esbuild";
 
 import { createRequire } from "node:module";
 
-import { fixturePage, launch, pkg, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
@@ -432,6 +432,7 @@ describe("SharedElement registry", () => {
 
   test("an element that keeps its id still travels when it moves", async () => {
     const { page } = await fixturePage(browser, shared);
+    await freezeAnimations(page); // the 200ms flight is read after a round trip: on a busy machine that is past its end
     await page.evaluate(() => window.show("at", { id: "same" }));
     await page.evaluate(() => window.show("at", { id: "same", side: "right" }));
     assert.equal(await page.locator("[data-layout]").evaluate((el) => el.getAnimations().length), 1);

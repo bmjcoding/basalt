@@ -608,6 +608,8 @@ describe("code and focus", () => {
 /** The computed value of a CSS value (a token, say), read the way the page will see it. */
 const resolve = (page, prop, value) => page.evaluate(([p, v]) => { const el = document.createElement("i"); el.style[p] = v; document.body.append(el); const out = getComputedStyle(el)[p]; el.remove(); return out; }, [prop, value]);
 const skill = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf8");
+/** A usage text (`compose.mjs --usage NAME` prints it): where a rule that belongs to one module now lives. */
+const usageOf = (name) => fs.readFileSync(path.join(skillDir, "parts", "usage", `${name}.md`), "utf8");
 
 describe("tables at 390", () => {
   for (const scheme of ["dark", "light"]) {
@@ -963,6 +965,30 @@ describe("palette keys", () => {
     await context.close();
   });
 
+  test("keys that are not an array (a string like \"⌘ S\") warn once, draw no chip and bind nothing, and the palette still opens", async () => {
+    const { page, context, errors } = await open("template-static.html", { all: true });
+    await page.evaluate(() => {
+      window.__ran = [];
+      window.Basalt.init({ palette: { groups: [{ items: [
+        { label: "String keys", keys: "⌘ S", onSelect: () => __ran.push("string") },
+        { label: "Number keys", keys: 7, onSelect: () => __ran.push("number") },
+        { label: "Array keys", keys: ["⌘", "J"], onSelect: () => __ran.push("array") },
+      ] }] } });
+    });
+    await page.keyboard.press("Control+k");
+    await page.locator(".palette input").waitFor();
+    const rows = await page.evaluate(() => [...document.querySelectorAll(".palette [role=option]")].map((row) => [row.querySelector(".row-label").textContent, row.querySelectorAll(".kbd").length, row.getAttribute("aria-keyshortcuts")]));
+    assert.deepEqual(rows, [["String keys", 0, null], ["Number keys", 0, null], ["Array keys", 2, "Meta+J"]]);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Control+s");
+    await page.keyboard.press("Control+j");
+    assert.deepEqual(await ran(page), ["array"], "a string binds nothing");
+    assert.equal(errors.filter((e) => /not an array/.test(e)).length, 2, `warned once each: ${errors.join(" | ")}`);
+    assert.equal(errors.filter((e) => /filter is not a function/.test(e)).length, 0, errors.join(" | "));
+    assert.match(errors.join("\n"), /"String keys" has keys that are not an array/);
+    await context.close();
+  });
+
   test("the footer says Run and the empty state says No commands match.", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.keyboard.press("Control+k");
@@ -1045,22 +1071,31 @@ describe("touch and anchors", () => {
 });
 
 describe("the SKILL's rules", () => {
-  test("the new rules are written down", () => {
+  test("the new rules are written down: the ones every page needs in SKILL.md, a module's own in its usage text", () => {
     for (const rule of [
       /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
       /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
-      /At 390 a table's name column and any status column come first and fit on screen; only numbers may scroll\. Don't hide a column to make it fit\./,
-      /No row of stat tiles\.\*\* `\.stats` > `\.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number/,
-      /A badge\*\* labels one object's status or count, always with a word; never decoration\./,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
-      /\*\*Selected\*\* is a shape or a step in ink, never a wash alone: the raised pill, a row's plate, a checked box, a tab's underline\. No vertical bar, no inset outline\./,
-      /No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
+      /\*\*Selected\*\* is a shape or a step in ink, never a wash alone: the raised pill, a row's filled background, a checked box, a tab's underline\. No vertical bar, no inset outline\./,
       /standalone links too/,
-      /\*\*Braille\*\* is for a status: beside a word that names running work \(`<span class="status"><braille-spinner><\/braille-spinner>Running<\/span>`\), never in a button and never without its word\. The ring is for a wait\./,
-      /date and time pickers stay native: Basalt has no design for them/,
-      /never on the primary fill/,
-      /Tabs don't slide their indicator in static files/,
+      /\*\*Keys\.\*\* No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
     ]) assert.match(skill, rule);
+    for (const [name, rule] of [
+      ["table", /At 390 a table's name column and any status column come first and fit on screen; only numbers may scroll\. Don't hide a column to make it fit\./],
+      ["stats", /No row of stat tiles\.\*\* `\.stats` > `\.stat`: up to 3 figures that matter, on the page, never boxed; one headline figure when the page answers one number/],
+      ["status", /A badge labels one object's status or count, always with a word; never decoration\./],
+      ["braille", /\*\*Braille\*\* is for a status: beside a word that names running work, never in a button and never without its word\. The ring \(see the spinner\) is for a wait\./],
+      ["braille", /<span class="status"><braille-spinner><\/braille-spinner>Running<\/span>/],
+      ["forms", /Date and time pickers stay native: Basalt has no design for them/],
+      ["kbd", /never on the primary fill/],
+      ["tabs", /Tabs don't slide their indicator in static files/],
+      ["core", /\*\*Busy\*\* is `aria-busy="true"` on the button \(label in a `<span>`\): the label hides and a ring sits over it, so the width holds\./],
+      ["core", /the script prints in the light theme and goes back after; the top bar, skip link, theme toggle and copy buttons are not printed/],
+      ["topbar", /The page's one blurred \(smoked\) surface; it falls back to opaque on its own\./],
+      ["topbar", /- Once per page\./],
+      ["topbar", /Don't restyle it, and don't put a second blurred layer on the page\./],
+    ]) assert.match(usageOf(name), rule, `${name}: ${rule}`);
+    assert.match(skill, /\bpalette\b/, "the palette is in the index");
   });
 });
 
@@ -1235,7 +1270,9 @@ describe("the press scale", () => {
 
   test("the Rules no longer ban press-shrink, and say what the press is", () => {
     assert.doesNotMatch(skill, /press-shrink/);
-    assert.match(skill, /`\.btn` also scales to \.98 \(100ms, ease-out\) while pressed, never when disabled or busy and never under reduced motion/);
+    assert.match(usageOf("core"), /`\.btn` also scales to \.98 \(100ms, ease-out\) while pressed, never when disabled or busy and never under reduced motion/);
+    assert.doesNotMatch(usageOf("core"), /press-shrink/);
+    assert.match(skill, /A press is a colour step; only `\.btn` scales/);
   });
 });
 
@@ -1388,10 +1425,10 @@ describe("palette rows say their shortcut in words", () => {
   });
 });
 
-describe("the accessibility notes are in the SKILL", () => {
+describe("the accessibility notes are in the SKILL and the usage texts", () => {
   test("a spinner beside a word is aria-hidden; a section and its table region don't share a name", () => {
-    assert.match(skill, /A spinner beside a visible word is decoration: put `aria-hidden="true"` on it/);
-    assert.match(skill, /Don't give a section and an inner `\.table-wrap` region the same accessible name \(axe `landmark-unique`\)/);
+    assert.match(usageOf("spinner"), /A spinner beside a visible word is decoration: put `aria-hidden="true"` on it/);
+    assert.match(usageOf("table"), /Don't give a section and an inner `\.table-wrap` region the same accessible name \(axe `landmark-unique`\)/);
   });
 
   test("the layer is `basalt`, and the SKILL says an unlayered rule wins", () => {

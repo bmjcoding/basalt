@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { freezeAnimations } from "./support.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const demo = path.join(here, "..", ".demo");
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -722,8 +724,10 @@ for (const theme of ["light", "dark"]) {
       const before = await readGlyphs();
       const prefix = ["C", "o", "n"].map((letter) => before.find((glyph) => glyph.t === letter && glyph.kind === "stay"));
       assert.ok(prefix.every(Boolean), "shared prefix is missing before the morph");
+      // The morph is read 40ms in, on a clock the test holds: its exit timer (duration + 40ms) cannot have run on a slow machine.
+      const clock = await freezeAnimations(page);
       await action.click();
-      await page.waitForTimeout(40);
+      await clock.advance(40);
       const mid = await readGlyphs();
       for (const letter of prefix) {
         const again = mid.find((glyph) => glyph.t === letter.t && glyph.kind === "stay");
@@ -731,6 +735,7 @@ for (const theme of ["light", "dark"]) {
       }
       assert.ok(mid.some((glyph) => glyph.kind === "exit" && glyph.pos === "absolute"), "leaving letters still take layout");
       assert.ok(mid.every((glyph) => glyph.pos === "absolute"));
+      await clock.thaw(); // the rest runs on its own: waitForFunction polls on requestAnimationFrame
       await page.waitForFunction(() => {
         const root = document.querySelector("[aria-label='Benji'] .basalt-text-morph");
         const glyphs = [...(root?.querySelectorAll(".basalt-text-morph-glyph") ?? [])];

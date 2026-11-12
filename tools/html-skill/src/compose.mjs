@@ -1,6 +1,7 @@
 // Builds one standalone Basalt page from a body fragment.
 //
 //   node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]
+//   node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]
 //
 // The body is the part of the page you write: HTML for inside <body>, which may also carry
 //   <title>…</title>                          the page title (default: the first <h1>, else "Untitled page")
@@ -10,8 +11,14 @@
 //   <script>… Basalt.init({ palette: … }) …</script>   your own init call, for items that run code
 // compose.mjs wraps it in the doctype, meta and theme bootstrap, adds Geist (inlined, unless --no-fonts), the core CSS and
 // script and only the modules the body uses, the icons it names, and `Basalt.init()` unless the body already calls it.
-// The output is the same for the same input. It reads only the files beside it (parts/) and writes only --out.
+// The output is the same for the same input. It reads only the files beside it (parts/ and SKILL.md) and writes only --out.
 // --all adds every module and every icon (for a page that builds markup at run time, and for measuring). No dependencies.
+// After the page, it prints the one-line warning of each module it added (the module's line in SKILL.md's index), to stdout; a module
+// the body never uses itself, which is in only because another module's script builds it, says so instead.
+// --usage core NAME ... prints each one's usage text, the usage of each module it requires (unless its script builds that module's markup
+// itself: then one line says so), and for each the classes, attributes and tags that bring it in (read from the manifest, the same
+// file detection reads); NAME is `core` or a module. --usage alone prints SKILL.md's index
+// of modules; an unknown name prints it too and exits 1. --usage reads no body and writes no page.
 //
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
 import fs from "node:fs";
@@ -79,7 +86,7 @@ export function detect(text, manifest, iconNames, { all = false, use = [] } = {}
 
 /**
  * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts).
- * Returns { html, modules, icons, bytes }. Throws an Error with a plain message for input it can't use.
+ * Returns { html, modules, icons, built, bytes } (built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
  */
 export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts") } = {}) {
   if (/<!doctype|<html[\s>]|<head[\s>]|<body[\s>]/i.test(body)) throw new Error("the input is a whole page; give compose.mjs the body fragment only (the HTML that goes inside <body>)");
@@ -108,6 +115,10 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   title ??= content.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1].replace(/<[^>]*>/g, "").trim() || "Untitled page";
 
   const chosen = detect(content + "\n" + styles.join("\n"), manifest, Object.keys(iconFile.icons), { all, use });
+  // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
+  const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
+  const direct = detect(content + "\n" + styles.join("\n"), bare, [], { all, use }).modules;
+  const built = Object.fromEntries(chosen.modules.filter((n) => !direct.includes(n)).flatMap((n) => chosen.modules.filter((m) => (manifest.modules[m].builds ?? []).includes(n)).slice(0, 1).map((m) => [n, m])));
 
   const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`))].join("");
   const icons = Object.fromEntries(chosen.icons.map((n) => [n, iconFile.icons[n]]));
@@ -140,11 +151,68 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, built, bytes: Buffer.byteLength(html) };
+}
+
+/** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */
+export function indexLines(skillText) {
+  const section = skillText.match(/^## Modules\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] ?? "";
+  const lines = [];
+  for (const line of section.split("\n")) {
+    const m = line.match(/^- \*\*([\w-]+)\*\* (.*)$/);
+    if (!m) continue;
+    const at = m[2].indexOf("`: ");
+    lines.push({ name: m[1], trigger: at === -1 ? "" : m[2].slice(0, at + 1), warning: at === -1 ? m[2] : m[2].slice(at + 3), line: line.slice(2) });
+  }
+  return lines;
+}
+
+/** What brings a module in, read from the manifest: its classes, attributes, tags and the script calls detection looks for. */
+function triggers(manifest, name) {
+  const m = name === "core" ? manifest.core : manifest.modules[name];
+  const parts = [];
+  if (m.classes?.length) parts.push(`classes ${m.classes.map((c) => `.${c}`).join(" ")}`);
+  if (m.attrs?.length) parts.push(`attributes ${m.attrs.join(" ")}`);
+  if (m.tags?.length) parts.push(`tags ${m.tags.map((t) => `<${t}>`).join(" ")}`);
+  if (m.text?.length) parts.push(`the body has ${(m.textWords ?? m.text.map((t) => `a match for /${t}/`)).join("; or ")}`);
+  return parts.join("; ");
+}
+
+/**
+ * The usage text for `names` (`core` or modules): each one's usage file, then the usage of each module it requires (to a fixed point,
+ * in the manifest's order), and under each the classes, attributes and tags that bring it in. Throws for a name that is not one.
+ */
+export function usageText(names, { parts = path.join(here, "parts") } = {}) {
+  const manifest = JSON.parse(read(parts, "manifest.json"));
+  const known = ["core", ...Object.keys(manifest.modules)];
+  for (const name of names) if (!known.includes(name)) throw Object.assign(new Error(`"${name}" is not a module (core or: ${known.slice(1).join(", ")})`), { unknownName: name });
+  const out = [];
+  const done = new Set();
+  const section = (name, by) => {
+    if (done.has(name)) return;
+    done.add(name);
+    const brings = triggers(manifest, name);
+    const lead = name === "core" ? "Always in." : by ? `Required by ${by}.` : "";
+    out.push(`${read(parts, path.join("usage", `${name}.md`)).trim()}\n\n${[lead, brings ? (name === "core" ? `Core ${brings}.` : `Brought in by: ${brings}.`) : ""].filter(Boolean).join(" ")}\n`);
+    const builds = manifest.modules[name]?.builds ?? [];
+    if (builds.length) out.push(`Its script builds the markup of ${builds.join(" and ")}: nothing to add. If your page uses ${builds.length > 1 ? "one" : "it"} itself, print its usage by name.\n`);
+    const needs = new Set((manifest.modules[name]?.requires ?? []).filter((n) => !builds.includes(n)));
+    for (let grew = true; grew;) { grew = false; for (const n of [...needs]) for (const r of manifest.modules[n].requires ?? []) if (!needs.has(r)) { needs.add(r); grew = true; } }
+    for (const n of Object.keys(manifest.modules)) if (needs.has(n)) section(n, name);
+  };
+  for (const name of names) section(name);
+  return out.join("\n");
+}
+
+/** SKILL.md's index of modules as the text --usage prints, or null when SKILL.md is not beside compose.mjs. */
+function indexText(skill) {
+  if (!fs.existsSync(skill)) return null;
+  const lines = indexLines(fs.readFileSync(skill, "utf8")).map((l) => `- ${l.line}`);
+  return `Modules (node .agent/skills/basalt-html/compose.mjs --usage core NAME ... prints their usage; core is layout, type, panels and buttons):\n${lines.join("\n")}\n`;
 }
 
 function usage() {
-  console.error("usage: node compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]");
+  console.error("usage: node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]\n       node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]");
   process.exit(2);
 }
 
@@ -153,9 +221,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const options = { fonts: true, lang: "en", all: false };
   let input = null;
   let out = null;
+  let usageNames = null;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
-    if (a === "--no-fonts") options.fonts = false;
+    if (a === "--usage") {
+      usageNames = [];
+      while (args[i + 1] !== undefined && !args[i + 1].startsWith("--")) usageNames.push(args[++i]);
+    } else if (a === "--no-fonts") options.fonts = false;
     else if (a === "--all") options.all = true;
     else if (a === "--out" || a === "--lang") {
       if (args[i + 1] === undefined || args[i + 1].startsWith("--")) usage();
@@ -163,18 +235,43 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     } else if (a.startsWith("--") || input) usage();
     else input = a;
   }
-  if (!input) usage();
-  try {
-    if (!out) {
-      out = path.join(path.dirname(input), path.basename(input).replace(/\.body\.html?$/i, "").replace(/\.html?$/i, "") + ".html");
-      if (path.resolve(out) === path.resolve(input)) throw new Error(`${input} would be overwritten; name the page with --out`);
+  const skill = path.join(here, "SKILL.md");
+  if (usageNames) {
+    // The usage of modules: no body is read and no page is written.
+    if (input || out) usage();
+    const index = indexText(skill);
+    if (!usageNames.length) {
+      if (index === null) { console.error("compose.mjs: SKILL.md is not beside compose.mjs, so there is no index to print"); process.exitCode = 1; } else console.log(index);
+    } else {
+      try {
+        console.log(usageText(usageNames));
+      } catch (e) {
+        console.error(`compose.mjs: ${e.message}`);
+        if (e.unknownName !== undefined && index !== null) console.error(`\n${index}`);
+        process.exitCode = 1;
+      }
     }
-    if (path.resolve(out) === path.resolve(input)) throw new Error("--out is the input file; name another file");
-    const result = compose(fs.readFileSync(input, "utf8"), options);
-    fs.writeFileSync(out, result.html);
-    console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}`);
-  } catch (e) {
-    console.error(`compose.mjs: ${e.message}`);
-    process.exit(1);
+  } else {
+    if (!input) usage();
+    try {
+      if (!out) {
+        out = path.join(path.dirname(input), path.basename(input).replace(/\.body\.html?$/i, "").replace(/\.html?$/i, "") + ".html");
+        if (path.resolve(out) === path.resolve(input)) throw new Error(`${input} would be overwritten; name the page with --out`);
+      }
+      if (path.resolve(out) === path.resolve(input)) throw new Error("--out is the input file; name another file");
+      const result = compose(fs.readFileSync(input, "utf8"), options);
+      fs.writeFileSync(out, result.html);
+      console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}`);
+      // One line of warning for each module added: the mistake an agent makes with it. The full text is `--usage NAME`.
+      if (result.modules.length && fs.existsSync(skill)) {
+        const lines = indexLines(fs.readFileSync(skill, "utf8"));
+        const warnings = result.modules.map((n) => lines.find((l) => l.name === n)).filter(Boolean);
+        const say = (l) => (l.name in result.built ? `  ${l.name}: built by the ${result.built[l.name]}; nothing to check.` : `  ${l.name}: ${l.warning}`);
+        if (warnings.length) console.log(`Check before you hand it over (the full text of one: --usage NAME):\n${warnings.map(say).join("\n")}`);
+      }
+    } catch (e) {
+      console.error(`compose.mjs: ${e.message}`);
+      process.exit(1);
+    }
   }
 }

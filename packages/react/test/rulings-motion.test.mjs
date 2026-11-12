@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -242,6 +242,18 @@ describe("NumberTicker under reduced motion", () => {
   });
 });
 
+// The glide steps on requestAnimationFrame and performance.now, so these tests use Playwright's clock: time moves only when
+// `frames` runs it, 16ms a frame, and what is read at "100ms" is what the glide drew at 100ms on any machine at any load.
+const flushReact = (page) => page.evaluate(() => new Promise((resolve) => { const channel = new MessageChannel(); channel.port1.onmessage = () => resolve(); channel.port2.postMessage(0); }));
+/** Run the clock frame by frame for `total` ms, calling `sample(ms)` before the first frame and after each. */
+const frames = async (page, total, sample) => {
+  await flushReact(page); // the change has rendered and the glide has started, at the frozen time
+  for (let ms = 0; ms <= total; ms += 16) {
+    await sample(ms);
+    await page.clock.runFor(16);
+  }
+};
+
 describe("Sparkline", () => {
   const fixture = `function App(){const [d,sd]=React.useState([10,20,50]);window.set=sd;return <B.Sparkline label="Runs" data={d} />}
     createRoot(document.getElementById("root")).render(<App/>);`;
@@ -249,21 +261,13 @@ describe("Sparkline", () => {
   const shownPoints = (page) => page.locator(".basalt-sparkline-line").getAttribute("points");
 
   test("the scale eases over slow on ease-out, never in 8% steps, and lands on the target", async () => {
-    const { page } = await fixturePage(browser, fixture);
-    await settle(page);
+    const { page } = await fixturePage(browser, fixture, { clock: true });
     assert.equal(await axis(page), "50");
     // a smaller peak: the scale eases in; the readable label is the target at once
     await page.evaluate(() => window.set([10, 20, 20]));
     assert.equal(await page.locator(".basalt-sparkline-axis .basalt-visually-hidden").textContent(), "20", "the accessible value is the target");
-    const samples = await page.evaluate(async () => {
-      const out = [];
-      const start = performance.now();
-      while (performance.now() - start < 320) {
-        out.push([Math.round(performance.now() - start), Number(document.querySelector(".basalt-sparkline-axis span[aria-hidden]").textContent)]);
-        await new Promise((r) => requestAnimationFrame(r));
-      }
-      return out;
-    });
+    const samples = [];
+    await frames(page, 320, async (ms) => { samples.push([ms, Number(await axis(page))]); });
     assert.ok(samples.some(([, v]) => v > 20 && v < 50), "it passes through in-between values");
     const midway = samples.filter(([t]) => t >= 90 && t <= 110).map(([, v]) => v);
     assert.ok(midway.length && midway.every((v) => v < 29), `ease-out has covered most of the distance by 100ms (${midway})`);
@@ -297,17 +301,13 @@ describe("Sparkline", () => {
   });
 
   test("the headline eases with the scale, and what is read is the target", async () => {
-    const { page } = await fixturePage(browser, fixture);
-    await settle(page);
+    const { page } = await fixturePage(browser, fixture, { clock: true });
     await page.evaluate(() => window.set([10, 20, 20]));
     assert.equal(await page.locator(".basalt-sparkline-head .basalt-visually-hidden").textContent(), "20");
-    const seen = await page.evaluate(async () => {
-      const digits = () => [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((d) => d.style.getPropertyValue("--_d")).join("");
-      const out = new Set();
-      const start = performance.now();
-      while (performance.now() - start < 260) { out.add(digits()); await new Promise((r) => requestAnimationFrame(r)); }
-      return [...out];
-    });
+    const digits = () => page.evaluate(() => [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((d) => d.style.getPropertyValue("--_d")).join(""));
+    const out = new Set();
+    await frames(page, 260, async () => { out.add(await digits()); });
+    const seen = [...out];
     assert.ok(seen.length > 2, `the digits eased through ${seen}`);
     assert.equal(seen.at(-1), "20");
     await page.close();
@@ -319,24 +319,18 @@ describe("the sparkline headline has one clock", () => {
     createRoot(document.getElementById("root")).render(<App/>);`;
 
   test("what is drawn is where the glide puts it: no digit strip is mid-transition, and none outlasts the glide", async () => {
-    const { page } = await fixturePage(browser, fixture);
-    await settle(page);
-    const samples = await page.evaluate(async () => {
-      window.set([10, 20, 20]);
-      const out = [];
-      const start = performance.now();
-      while (performance.now() - start < 420) {
-        const ms = performance.now() - start;
-        const strips = [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((digit) => {
+    const { page } = await fixturePage(browser, fixture, { clock: true });
+    await page.evaluate(() => window.set([10, 20, 20]));
+    const read = (ms) => page.evaluate((ms) => {
+      const strips = [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((digit) => {
           const strip = digit.firstElementChild;
           const drawn = -new DOMMatrix(getComputedStyle(strip).transform).m42 / parseFloat(getComputedStyle(digit).fontSize);
           return Math.abs(drawn - Number(digit.style.getPropertyValue("--_d")));
         });
-        out.push({ ms: Math.round(ms), off: Math.max(0, ...strips), transitions: document.getAnimations().filter((a) => a.transitionProperty === "transform").length });
-        await new Promise((r) => requestAnimationFrame(r));
-      }
-      return out;
-    });
+        return { ms, off: Math.max(0, ...strips), transitions: document.getAnimations().filter((a) => a.transitionProperty === "transform").length };
+    }, ms);
+    const samples = [];
+    await frames(page, 420, async (ms) => { samples.push(await read(ms)); });
     assert.ok(samples.length > 10);
     for (const sample of samples) {
       assert.equal(sample.transitions, 0, `a transform transition is running at ${sample.ms}ms`);
@@ -348,9 +342,10 @@ describe("the sparkline headline has one clock", () => {
   test("the ordinary ticker still rolls its digits", async () => {
     const { page } = await fixturePage(browser, `function App(){const[n,s]=React.useState(10);window.set=s;return <B.NumberTicker value={n}/>}
       createRoot(document.getElementById("root")).render(<App/>);`);
-    await settle(page);
+    await freezeAnimations(page); // the strip's transition stays at its start until it is read
     await page.evaluate(() => window.set(29));
-    await page.waitForTimeout(40);
+    // wait for the render, not for a delay (waitForFunction polls on requestAnimationFrame, which the frozen clock holds)
+    for (let tries = 0; tries < 200 && !(await page.evaluate(() => document.getAnimations().some((a) => a.transitionProperty === "transform"))); tries += 1) await new Promise((resolve) => setTimeout(resolve, 10));
     assert.ok(await page.evaluate(() => document.getAnimations().some((a) => a.transitionProperty === "transform")), "an ordinary ticker transitions its strip");
     await page.close();
   });

@@ -3,13 +3,34 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { Icon } from "./icon";
+import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
 
-export type LinkProps = React.ComponentProps<"a">;
+export interface LinkProps extends React.ComponentProps<"a"> {
+  /**
+   * The words a link that opens a new tab adds to its name, for translation. Default "(opens in a new tab)". There is no
+   * prop for the arrow: it, and these words, come from `target="_blank"` and nothing else.
+   */
+  newTabLabel?: string;
+}
 
-export function Link({ className, target, rel, ...props }: LinkProps) {
-  const relationship = target === "_blank" ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
-  return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)} />;
+/**
+ * A link. A link with `target="_blank"` also draws the new-tab arrow after its label and says "(opens in a new tab)" in its
+ * name: automatically, with no opt-out. A same-tab link to another site gets neither.
+ */
+export function Link({ className, target, rel, children, newTabLabel, ...props }: LinkProps) {
+  const newTab = opensNewTab(target);
+  const relationship = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
+  if (!newTab) return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)}>{children}</a>;
+  // An aria-label replaces the content, so the words join the label itself. A link that holds only a logo keeps the words and skips the arrow.
+  const label = props["aria-label"];
+  return (
+    <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" className={join("basalt-link", className)}>
+      <span className="basalt-link-label">{children}</span>
+      {hasVisibleText(children) ? <NewTabGlyph /> : null}
+      {label ? null : <NewTabWords label={newTabLabel} />}
+    </a>
+  );
 }
 
 export interface BreadcrumbItem {
