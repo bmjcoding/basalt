@@ -27,12 +27,17 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **forms** `.field`, `.input`, `<input>`, `<select>`, `<textarea>`: wrap a select in `.select`; errors are `aria-invalid`.
 - **number** `.number-field`: wraps `input.input.num`; a bare number input has no steppers.
 - **range** `type="range"`: styled bare; no wrapper, no class.
+- **select** `<select>`: wrap in `.select`, class `input`; a second line is `.option-description`.
+- **choice** `type="checkbox"`, `role="switch"`: bare inputs in a `label.choice`; radios in `.radio-group`.
+- **choice-card** `.choice-card`: a `label.panel` around a hidden radio or checkbox; words only, no link or control inside.
+- **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; the `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
+- **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
@@ -45,8 +50,9 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
-- **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word.
+- **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word; a long wait needs `loops`.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
+- **loops** `data-loops-toggle`: a page that spins past five seconds needs it; the control's name stays fixed.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
 - **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.

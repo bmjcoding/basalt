@@ -253,6 +253,9 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       relTop: () => px(rect.top - el.closest("dl, .basalt-meter, .meter").getBoundingClientRect().top), roundWidth: () => `${Math.round(rect.width)}px`, roundMarginLeft: () => `${Math.round(parseFloat(style.marginLeft))}px`,
       paint: () => (/^url\(/.test(style.fill) ? "url(#pattern)" : style.fill),
       childCount: () => `${el.querySelectorAll("*").length}`, words: () => [...el.querySelectorAll("text")].map((t) => `${t.getAttribute("x")},${Math.round(+t.getAttribute("y") * 100) / 100}:${t.textContent}`).join(" | "),
+      // The ink of a mark: a mask draws it as a background, an SVG as the text colour. Where a part sits in its parent (a box in its label, a thumb in its track).
+      ink: () => (ps ? style.backgroundColor : style.color),
+      inLeft: () => px(rect.left - el.parentElement.getBoundingClientRect().left), inTop: () => px(rect.top - el.parentElement.getBoundingClientRect().top),
       gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
@@ -381,6 +384,34 @@ const OVERLAYS = [
       ["danger item", ".basalt-menu-item[data-danger]", ".menu-item[data-danger]", ["color", "boxHeight"]],
       ["separator", ".basalt-menu-separator", ".menu-separator", ["boxHeight", "backgroundColor", "marginTop", "marginBottom", "marginLeft", "marginRight"]],
       ["group label", ".basalt-menu-group-label", ".menu-group-label", [...TYPE, "color", "paddingTop", "paddingLeft", "paddingBottom", "boxHeight"]],
+    ],
+  },
+  {
+    // The styled list of a native select (Chromium's appearance: base-select), against React's Select popup. The popup is a pseudo-element of the select,
+    // so its box is read as computed style; its rows are real options. Where the popup sits is not read (a pseudo-element has no rectangle).
+    id: "select popup",
+    uses: "Select",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 16, width: 320 }}><Select aria-label="Region" defaultOpen defaultValue="us" options={[{ value: "eu", label: "Frankfurt", description: "eu-central, lowest latency" }, { value: "us", label: "Ashburn" }, { value: "ap", label: "Singapore" }]} /></div>));`,
+    skill: `<div style="padding: 16px; width: 352px"><span class="select"><select class="input" id="r" aria-label="Region"><button><selectedcontent></selectedcontent></button><option value="eu">Frankfurt<span class="option-description">eu-central, lowest latency</span></option><option value="us" selected>Ashburn</option><option value="ap">Singapore</option></select></span></div>`,
+    open: "0",
+    ready: { react: ".basalt-select-popup", skill: "select#r" },
+    after: {
+      react: async (page) => { await page.locator(".basalt-select-item").nth(2).hover(); },
+      skill: async (page) => { await page.locator("select#r").click(); await page.waitForFunction(() => document.querySelector("select#r").matches(":open")); await page.locator("select#r option[value=ap]").hover(); },
+    },
+    pairs: [
+      ["popup", ".basalt-select-popup", "select#r", [...PANEL, ...PAD, "minWidth", ...ENTRY, "transformOrigin"], { skillPseudo: "::picker(select)" }],
+      ["item", ".basalt-select-item[data-described]", "option[value=eu]", [...GEOMETRY, ...TYPE, "color", "boxHeight", "cursor"]],
+      ["item plate", ".basalt-select-item[data-described]", "option[value=eu]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
+      ["selected item", ".basalt-select-item[data-selected]", "option[value=us]", [...GEOMETRY, ...TYPE, "color", "boxHeight"]],
+      ["lit item", ".basalt-select-item[data-highlighted]", "option[value=ap]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "boxHeight"]],
+      // React's rows keep a transparent plate while its shared glide plate is live, and the glide plate is what paints; the skill's native popup has no glide, so its row paints its own plate.
+      // The row plate's own geometry is compared, and the look of the glide plate is compared with the skill's plate.
+      ["lit plate", ".basalt-select-item[data-highlighted]", "option[value=ap]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
+      ["glide plate, against the row's plate", ".basalt-plate", "option[value=ap]", ["backgroundColor", "borderTopLeftRadius", "boxHeight"], { skillPseudo: "::before" }],
+      ["described item", ".basalt-select-item[data-described]", "option[value=eu]", ["boxHeight", "gridTemplateRows"]],
+      ["description", ".basalt-menu-item-description", ".option-description", [...TYPE, "color", "boxHeight", "whiteSpace", "textOverflow"]],
+      ["check", ".basalt-select-item[data-selected] .basalt-select-check svg", "option[value=us]", ["boxWidth", "boxHeight", "ink"], { skillPseudo: "::checkmark" }],
     ],
   },
   {
@@ -607,6 +638,128 @@ const FIGURES = [
 ];
 CASES.push(...FIGURES);
 
+// ---- Forms and selection (skill-parity-6): checkbox, radio, switch, the select's trigger, the choice card, the pressed toggle, table selection ----
+const BOXPROPS = ["boxWidth", "boxHeight", "borderTopLeftRadius", "backgroundColor", "boxShadow", "color", "opacity", "borderTopWidth", "cursor"];
+const LABEL = [...TYPE, "color", "display", "alignItems", "gap", "boxHeight", "cursor"];
+const CHOICES = [
+  {
+    id: "checkbox",
+    react: `<><Checkbox aria-label="Off" /><Checkbox aria-label="On" defaultChecked /><Checkbox aria-label="Mixed" indeterminate /><Checkbox aria-label="Disabled on" defaultChecked disabled /><Checkbox aria-label="Disabled off" disabled /><Checkbox>Labelled</Checkbox><Checkbox disabled>Off label</Checkbox></>`,
+    skill: `<input type="checkbox" aria-label="Off"><input type="checkbox" aria-label="On" checked><input type="checkbox" aria-label="Mixed"><script>document.querySelector("[aria-label=Mixed]").indeterminate = true</script><input type="checkbox" aria-label="Disabled on" checked disabled><input type="checkbox" aria-label="Disabled off" disabled><label class="choice"><input type="checkbox"> Labelled</label><label class="choice"><input type="checkbox" disabled> Off label</label>`,
+    pairs: [
+      ["off", ".basalt-checkbox[aria-label=Off]", "input[aria-label=Off]", BOXPROPS],
+      ["on", ".basalt-checkbox[aria-label=On]", "input[aria-label=On]", BOXPROPS],
+      ["mixed", ".basalt-checkbox[aria-label=Mixed]", "input[aria-label=Mixed]", BOXPROPS],
+      ["disabled on", ".basalt-checkbox[aria-label='Disabled on']", "input[aria-label='Disabled on']", BOXPROPS],
+      ["disabled off", ".basalt-checkbox[aria-label='Disabled off']", "input[aria-label='Disabled off']", BOXPROPS],
+      ["check", ".basalt-checkbox[aria-label=On] .basalt-checkbox-indicator svg", "input[aria-label=On]", ["boxWidth", "boxHeight", "ink"], { skillPseudo: "::before" }],
+      ["mixed mark", ".basalt-checkbox[aria-label=Mixed] .basalt-checkbox-indicator svg", "input[aria-label=Mixed]", ["boxWidth", "boxHeight", "ink"], { skillPseudo: "::before" }],
+      ["focus ring", ".basalt-checkbox[aria-label=Off]", "input[aria-label=Off]", OUTLINE, { focus: true }],
+      ["label", ".basalt-choice:not(:has([data-disabled]))", ".choice:not(:has(:disabled))", LABEL],
+      ["box in label", ".basalt-choice:not(:has([data-disabled])) .basalt-checkbox", ".choice:not(:has(:disabled)) input", ["inLeft", "inTop"]],
+      ["label, disabled", ".basalt-choice:has([data-disabled])", ".choice:has(:disabled)", LABEL],
+    ],
+  },
+  {
+    id: "radio",
+    react: `<RadioGroup aria-label="Plan" defaultValue="a"><Radio value="a">A</Radio><Radio value="b">B</Radio><Radio value="c" disabled>C</Radio></RadioGroup>`,
+    skill: `<div class="radio-group" role="radiogroup" aria-label="Plan"><label class="choice"><input type="radio" name="size" value="a" checked> A</label><label class="choice"><input type="radio" name="size" value="b"> B</label><label class="choice"><input type="radio" name="size" value="c" disabled> C</label></div>`,
+    pairs: [
+      ["group", ".basalt-radio-group", ".radio-group", ["display", "flexDirection", "gap", "boxHeight"]],
+      ["on", ".basalt-radio[data-checked]", "input[type=radio]:checked", BOXPROPS],
+      ["off", ".basalt-radio[data-unchecked]:not([data-disabled])", "input[type=radio]:not(:checked):not(:disabled)", BOXPROPS],
+      ["disabled", ".basalt-radio[data-disabled]", "input[type=radio]:disabled", BOXPROPS],
+      ["dot", ".basalt-radio[data-checked] .basalt-radio-indicator", "input[type=radio]:checked", ["boxWidth", "boxHeight", "borderTopLeftRadius", "ink"], { skillPseudo: "::before" }],
+      ["focus ring", ".basalt-radio[data-checked]", "input[type=radio]:checked", OUTLINE, { focus: true }],
+      ["label", ".basalt-choice:first-child", ".choice:first-child", LABEL],
+      ["radio in label", ".basalt-choice:first-child .basalt-radio", ".choice:first-child input", ["inLeft", "inTop"]],
+    ],
+  },
+  {
+    id: "switch",
+    react: `<><Switch aria-label="Off" /><Switch aria-label="On" defaultChecked /><Switch aria-label="Disabled" disabled defaultChecked /><Switch>Auto-deploy</Switch></>`,
+    skill: `<input type="checkbox" role="switch" aria-label="Off"><input type="checkbox" role="switch" aria-label="On" checked><input type="checkbox" role="switch" aria-label="Disabled" disabled checked><label class="choice"><input type="checkbox" role="switch"> Auto-deploy</label>`,
+    pairs: [
+      ["off", ".basalt-switch[aria-label=Off]", "input[aria-label=Off]", [...BOXPROPS, "paddingLeft", "paddingRight"]],
+      ["on", ".basalt-switch[aria-label=On]", "input[aria-label=On]", [...BOXPROPS, "paddingLeft"]],
+      ["disabled", ".basalt-switch[aria-label=Disabled]", "input[aria-label=Disabled]", BOXPROPS],
+      ["thumb off", ".basalt-switch[aria-label=Off] .basalt-switch-thumb", "input[aria-label=Off]", ["boxWidth", "boxHeight", "borderTopLeftRadius", "backgroundColor", "transform", "transitionProperty", "transitionDuration"], { skillPseudo: "::before" }],
+      ["thumb on", ".basalt-switch[aria-label=On] .basalt-switch-thumb", "input[aria-label=On]", ["boxWidth", "boxHeight", "backgroundColor", "transform"], { skillPseudo: "::before" }],
+      ["focus ring", ".basalt-switch[aria-label=Off]", "input[aria-label=Off]", OUTLINE, { focus: true }],
+      ["label", ".basalt-choice", ".choice", LABEL],
+      ["switch in label", ".basalt-choice .basalt-switch", ".choice input", ["inLeft", "inTop"]],
+    ],
+  },
+  {
+    id: "select",
+    react: `<div style={{ width: 320 }}><Select aria-label="Empty" placeholder="Select…" options={[{ value: "eu", label: "Frankfurt" }, { value: "us", label: "Ashburn" }]} /></div><div style={{ width: 320 }}><Select aria-label="Chosen" defaultValue="eu" options={[{ value: "eu", label: "Frankfurt" }, { value: "us", label: "Ashburn" }]} /></div><div style={{ width: 320 }}><Select aria-label="Small" controlSize="sm" defaultValue="eu" options={[{ value: "eu", label: "Frankfurt" }]} /></div><div style={{ width: 320 }}><Select aria-label="Large" controlSize="lg" defaultValue="eu" options={[{ value: "eu", label: "Frankfurt" }]} /></div><div style={{ width: 320 }}><Select aria-label="Disabled" disabled defaultValue="eu" options={[{ value: "eu", label: "Frankfurt" }]} /></div>`,
+    skill: `<div style="width: 320px"><span class="select"><select class="input" aria-label="Empty"><option value="" disabled selected hidden>Select…</option><option value="eu">Frankfurt</option><option value="us">Ashburn</option></select></span></div><div style="width: 320px"><span class="select"><select class="input" aria-label="Chosen"><option value="eu" selected>Frankfurt</option><option value="us">Ashburn</option></select></span></div><div style="width: 320px"><span class="select"><select class="input" data-size="sm" aria-label="Small"><option value="eu">Frankfurt</option></select></span></div><div style="width: 320px"><span class="select"><select class="input" data-size="lg" aria-label="Large"><option value="eu">Frankfurt</option></select></span></div><div style="width: 320px"><span class="select"><select class="input" aria-label="Disabled" disabled><option value="eu">Frankfurt</option></select></span></div>`,
+    pairs: [
+      ["trigger", ".basalt-select-trigger[aria-label=Chosen]", "select[aria-label=Chosen]", [...BOX, "boxWidth", "display", "alignItems", "justifyContent", "gap", "minWidth", "cursor", "textAlign"]],
+      ["empty", ".basalt-select-trigger[aria-label=Empty]", "select[aria-label=Empty]", [...GEOMETRY, "boxWidth"]],
+      ["empty value", ".basalt-select-trigger[aria-label=Empty] .basalt-select-value", "select[aria-label=Empty]", ["color"]],
+      ["small", ".basalt-select-trigger[aria-label=Small]", "select[aria-label=Small]", [...GEOMETRY, "fontSize", "boxWidth"]],
+      ["large", ".basalt-select-trigger[aria-label=Large]", "select[aria-label=Large]", [...GEOMETRY, "fontSize", "boxWidth"]],
+      ["disabled", ".basalt-select-trigger[aria-label=Disabled]", "select[aria-label=Disabled]", [...COLOUR, "cursor"]],
+      ["icon", ".basalt-select-trigger[aria-label=Chosen] .basalt-select-icon svg", "select[aria-label=Chosen]", ["boxWidth", "boxHeight", "ink"], { skillPseudo: "::picker-icon" }],
+      ["focus ring", ".basalt-select-trigger[aria-label=Chosen]", "select[aria-label=Chosen]", [...OUTLINE, "boxShadow"], { focus: true }],
+    ],
+  },
+  {
+    id: "choice card",
+    react: `<div style={{ width: 640 }}><ChoiceCardGroup aria-label="Plan"><ChoiceCard title="Pro" description="For teams that deploy daily." name="plan" value="pro" defaultChecked /><ChoiceCard title="Free" description="For trying it out." name="plan" value="free" /><ChoiceCard title="Off" description="Not available." name="plan" value="off" disabled /></ChoiceCardGroup></div><div style={{ width: 640 }}><ChoiceCardGroup multiple aria-label="Extras"><ChoiceCard multiple title="Logs" description="Keep ninety days." name="x" value="logs" defaultChecked /><ChoiceCard multiple title="Alerts" description="Page on failure." name="y" value="alerts" /></ChoiceCardGroup></div>`,
+    skill: `<div style="width: 640px"><div class="choice-card-group" role="radiogroup" aria-label="Plan"><label class="panel choice-card"><input class="choice-card-input" type="radio" name="plan" value="pro" checked aria-labelledby="c1t" aria-describedby="c1d"><span class="choice-card-head"><span class="choice-card-title" id="c1t">Pro</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="c1d">For teams that deploy daily.</span></label><label class="panel choice-card"><input class="choice-card-input" type="radio" name="plan" value="free" aria-labelledby="c2t" aria-describedby="c2d"><span class="choice-card-head"><span class="choice-card-title" id="c2t">Free</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="c2d">For trying it out.</span></label><label class="panel choice-card"><input class="choice-card-input" type="radio" name="plan" value="off" disabled aria-labelledby="c3t" aria-describedby="c3d"><span class="choice-card-head"><span class="choice-card-title" id="c3t">Off</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="c3d">Not available.</span></label></div></div><div style="width: 640px"><div class="choice-card-group" role="group" aria-label="Extras"><label class="panel choice-card"><input class="choice-card-input" type="checkbox" name="x" value="logs" checked aria-labelledby="c4t" aria-describedby="c4d"><span class="choice-card-head"><span class="choice-card-title" id="c4t">Logs</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="c4d">Keep ninety days.</span></label><label class="panel choice-card"><input class="choice-card-input" type="checkbox" name="y" value="alerts" aria-labelledby="c5t" aria-describedby="c5d"><span class="choice-card-head"><span class="choice-card-title" id="c5t">Alerts</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="c5d">Page on failure.</span></label></div></div>`,
+    pairs: [
+      ["group", ".basalt-choice-card-group:first-child", ".choice-card-group[role=radiogroup]", ["display", "gridTemplateColumns", "gap", "boxWidth", "boxHeight"]],
+      ["selected card", ".basalt-choice-card:has(input[value=pro])", ".choice-card:has(input[value=pro])", [...PANEL, "boxWidth", "boxHeight", "paddingBottom", "cursor", "borderTopLeftRadius"]],
+      ["unselected card", ".basalt-choice-card:has(input[value=free])", ".choice-card:has(input[value=free])", [...PANEL, "boxWidth", "boxHeight", "cursor"]],
+      ["disabled card", ".basalt-choice-card:has(input[value=off])", ".choice-card:has(input[value=off])", ["color", "cursor", "backgroundColor"]],
+      ["head", ".basalt-choice-card:has(input[value=pro]) .basalt-choice-card-head", ".choice-card:has(input[value=pro]) .choice-card-head", [...PAD, "display", "alignItems", "gap", "boxHeight"]],
+      ["title", ".basalt-choice-card:has(input[value=pro]) .basalt-choice-card-title", ".choice-card:has(input[value=pro]) .choice-card-title", [...TYPE, "color", "marginTop", "boxHeight", "boxWidth"]],
+      ["description", ".basalt-choice-card:has(input[value=pro]) .basalt-choice-card-description", ".choice-card:has(input[value=pro]) .choice-card-description", [...TYPE, "color", "marginTop", "paddingLeft", "paddingRight", "boxHeight", "display"]],
+      ["description, unselected", ".basalt-choice-card:has(input[value=free]) .basalt-choice-card-description", ".choice-card:has(input[value=free]) .choice-card-description", ["color"]],
+      ["box on", ".basalt-choice-card:has(input[value=pro]) .basalt-choice-card-box", ".choice-card:has(input[value=pro]) .choice-card-box", [...BOXPROPS, "marginTop", "inLeft"]],
+      ["box off", ".basalt-choice-card:has(input[value=free]) .basalt-choice-card-box", ".choice-card:has(input[value=free]) .choice-card-box", BOXPROPS],
+      ["box disabled", ".basalt-choice-card:has(input[value=off]) .basalt-choice-card-box", ".choice-card:has(input[value=off]) .choice-card-box", ["opacity"]],
+      ["dot", ".basalt-choice-card:has(input[value=pro]) .basalt-choice-card-dot", ".choice-card:has(input[value=pro]) .choice-card-box", ["boxWidth", "boxHeight", "borderTopLeftRadius", "ink", "opacity"], { skillPseudo: "::before" }],
+      ["dot, unselected", ".basalt-choice-card:has(input[value=free]) .basalt-choice-card-dot", ".choice-card:has(input[value=free]) .choice-card-box", ["opacity"], { skillPseudo: "::before" }],
+      ["checkbox box", ".basalt-choice-card:has(input[value=logs]) .basalt-choice-card-box", ".choice-card:has(input[value=logs]) .choice-card-box", [...BOXPROPS]],
+      ["check", ".basalt-choice-card:has(input[value=logs]) .basalt-choice-card-mark", ".choice-card:has(input[value=logs]) .choice-card-box", ["boxWidth", "boxHeight", "ink", "opacity"], { skillPseudo: "::before" }],
+      ["focus ring", ".basalt-choice-card:has(input[value=free])", ".choice-card:has(input[value=free])", OUTLINE, { focusIn: "input" }],
+    ],
+  },
+  {
+    id: "pressed toggle",
+    react: `<><Button pressed>Pause animations</Button><Button pressed={false}>Pause animations</Button><Button variant="ghost" pressed>Ghost</Button><Button variant="ghost" pressed={false}>Ghost</Button></>`,
+    skill: `<button class="btn" aria-pressed="true"><span class="btn-check" aria-hidden="true"></span>Pause animations</button><button class="btn" aria-pressed="false"><span class="btn-check" aria-hidden="true"></span>Pause animations</button><button class="btn" data-variant="ghost" aria-pressed="true"><span class="btn-check" aria-hidden="true"></span>Ghost</button><button class="btn" data-variant="ghost" aria-pressed="false"><span class="btn-check" aria-hidden="true"></span>Ghost</button>`,
+    pairs: [
+      ["secondary pressed", ".basalt-button[data-variant=secondary][aria-pressed=true]", ".btn:not([data-variant])[aria-pressed=true]", [...BOX, "boxWidth"]],
+      ["secondary rest", ".basalt-button[data-variant=secondary][aria-pressed=false]", ".btn:not([data-variant])[aria-pressed=false]", [...BOX, "boxWidth"]],
+      ["ghost pressed", ".basalt-button[data-variant=ghost][aria-pressed=true]", ".btn[data-variant=ghost][aria-pressed=true]", [...BOX, "boxWidth"]],
+      ["ghost rest", ".basalt-button[data-variant=ghost][aria-pressed=false]", ".btn[data-variant=ghost][aria-pressed=false]", [...BOX, "boxWidth"]],
+      ["seat", ".basalt-button[aria-pressed=true] .basalt-button-check", ".btn[aria-pressed=true] .btn-check", ["boxWidth", "boxHeight", "inLeft"]],
+      ["check, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check .basalt-icon", ".btn:not([data-variant])[aria-pressed=true] .btn-check", ["opacity", "ink"], { skillPseudo: "::before" }],
+      ["check, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] .basalt-button-check .basalt-icon", ".btn:not([data-variant])[aria-pressed=false] .btn-check", ["opacity"], { skillPseudo: "::before" }],
+      ["focus ring", ".basalt-button[data-variant=secondary][aria-pressed=true]", ".btn:not([data-variant])[aria-pressed=true]", OUTLINE, { focus: true }],
+    ],
+  },
+  {
+    id: "table selection",
+    react: `<div style={{ width: 640 }}><TableContainer><Table><TableHeader><TableRow><TableHead style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select all" indeterminate /></TableHead><TableHead>Run</TableHead></TableRow></TableHeader><TableBody><TableRow selected><TableCell style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select one" defaultChecked /></TableCell><TableCell>run-0141</TableCell></TableRow><TableRow><TableCell style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select two" /></TableCell><TableCell>run-0140</TableCell></TableRow></TableBody></Table></TableContainer></div>`,
+    skill: `<div style="width: 640px"><div class="panel table-wrap"><table><thead><tr><th class="select-col"><input type="checkbox" data-select-all aria-label="Select all"></th><th>Run</th></tr></thead><tbody><tr><td class="select-col"><input type="checkbox" aria-label="Select one" checked></td><td>run-0141</td></tr><tr><td class="select-col"><input type="checkbox" aria-label="Select two"></td><td>run-0140</td></tr></tbody></table></div></div>`,
+    pairs: [
+      ["header cell", "th:first-child", "th:first-child", ["boxWidth", "boxHeight", ...PAD, "backgroundColor"]],
+      ["body cell", "tbody tr:first-child td:first-child", "tbody tr:first-child td:first-child", ["boxWidth", "boxHeight", ...PAD]],
+      ["name cell", "tbody tr:first-child td:nth-child(2)", "tbody tr:first-child td:nth-child(2)", ["inLeft", "paddingLeft"]],
+      ["selected row", "tbody tr:first-child", "tbody tr:first-child", ["backgroundColor", "boxHeight"]],
+      ["unselected row", "tbody tr:nth-child(2)", "tbody tr:nth-child(2)", ["backgroundColor", "boxHeight"]],
+      ["row box", "tbody tr:first-child .basalt-checkbox", "tbody tr:first-child input", [...BOXPROPS, "inLeft", "inTop"]],
+      ["header box", "thead .basalt-checkbox", "thead input", [...BOXPROPS, "inLeft", "inTop"]],
+    ],
+  },
+];
+CASES.push(...CHOICES);
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -629,11 +782,15 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
       await reactPage.locator(scope(reactSel, "react")).first().focus();
       await skillPage.locator(scope(skillSel, "skill")).first().focus();
     }
+    // A card's focus is its hidden input's: reach it from the keyboard, so :focus-visible matches.
+    if (options.focusIn) {
+      for (const [p, sel] of [[reactPage, scope(reactSel, "react")], [skillPage, scope(skillSel, "skill")]]) { await p.evaluate(() => document.activeElement?.blur()); await p.locator(sel).first().locator(options.focusIn).focus(); await p.keyboard.press("Shift+Tab"); await p.keyboard.press("Tab"); }
+    }
     const react = await read(reactPage, scope(reactSel, "react"), props, { pseudo: options.pseudo });
     const skill = await read(skillPage, scope(skillSel, "skill"), props, { pseudo: "skillPseudo" in options ? options.skillPseudo : options.pseudo });
     assert.ok(react, `${area}: React has no ${reactSel}`);
     assert.ok(skill, `${area}: the skill has no ${skillSel}`);
-    if (options.focus) {
+    if (options.focus || options.focusIn) {
       await reactPage.evaluate(() => document.activeElement?.blur());
       await skillPage.evaluate(() => document.activeElement?.blur());
     }
@@ -646,7 +803,7 @@ describe("each skill component renders as its React counterpart does, but for th
     test(`the components (${theme})`, async () => {
       const reactJsx = CASES.map((c) => `<section id="r-${slug(c.id)}" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", margin: 16 }}>${c.react}</section>`).join("");
       const { page: reactPage, errors } = await fixturePage(reactBrowser, `
-        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock, DescriptionList, DescriptionItem, Meter, Stats, Stat, Terminal, TimeChart } = B;
+        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock, DescriptionList, DescriptionItem, Meter, Stats, Stat, Terminal, TimeChart, Checkbox, Radio, RadioGroup, Switch, Select, ChoiceCard, ChoiceCardGroup } = B;
         flushSync(() => createRoot(document.getElementById("root")).render(<>${reactJsx}</>));`, { theme });
       await reactPage.addStyleTag({ content: APP_BODY });
       await settle(reactPage);

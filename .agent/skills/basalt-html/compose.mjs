@@ -30,6 +30,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // Sets the theme before first paint: the stored choice, else the system's; and a hardware key already seen this session.
 const THEME_INIT = `(function(){var t;try{t=localStorage.getItem("basalt-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
 
+// A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
+const LOOPS_INIT = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;
+
 const read = (dir, name) => fs.readFileSync(path.join(dir, name), "utf8");
 const exists = (dir, name) => fs.existsSync(path.join(dir, name));
 // A script inside a page can't contain a closing tag or a comment opener.
@@ -139,6 +142,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     '<meta name="color-scheme" content="dark light">',
     `<title>${title}</title>`,
     `<script>${THEME_INIT}</script>`,
+    ...(chosen.modules.includes("loops") ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
     `<style>${css}</style>`,
     ...styles.map((s) => `<style>${s}</style>`),
