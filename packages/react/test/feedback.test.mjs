@@ -893,15 +893,15 @@ describe("NotificationCentre", () => {
     await empty.page.close();
   });
 
-  test("forced colours: the dots keep a real fill and a hovered entry is Highlight with HighlightText", async () => {
+  test("forced colours: the dots are border discs and a hovered entry is Highlight with HighlightText", async () => {
     const { page } = await fixturePage(browser, app("defaultOpen"), { theme: "dark", forcedColors: "active" });
     await page.locator(".basalt-notification").first().waitFor();
     await settle(page);
     const sys = (name, prop = "color") => page.evaluate(([name, prop]) => { const p = document.createElement("i"); p.style[prop] = name; document.body.append(p); const c = getComputedStyle(p)[prop]; p.remove(); return c; }, [name, prop]);
-    const dot = await page.locator(".basalt-notification").first().locator(".basalt-notification-dot").evaluate((el) => getComputedStyle(el).backgroundColor);
-    assert.equal(dot, await sys("CanvasText"), "the unread dot is drawn");
-    const bellDot = await page.getByRole("button", { name: /Notifications/ }).evaluate((el) => getComputedStyle(el, "::after").backgroundColor);
-    assert.equal(bellDot, await sys("CanvasText"));
+    const dot = await page.locator(".basalt-notification").first().locator(".basalt-notification-dot").evaluate((el) => { const s = getComputedStyle(el); return [s.borderTopWidth, s.borderTopStyle, s.borderTopColor]; });
+    assert.deepEqual(dot, ["3px", "solid", await sys("CanvasText")], "the unread dot is drawn, as a border disc");
+    const bellDot = await page.getByRole("button", { name: /Notifications/ }).evaluate((el) => { const s = getComputedStyle(el, "::after"); return [s.borderTopWidth, s.borderTopStyle]; });
+    assert.deepEqual(bellDot, ["3px", "solid"]);
     await page.locator(".basalt-notification").nth(1).hover();
     await page.waitForTimeout(120);
     const lit = await page.locator(".basalt-notification").nth(1).evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el.querySelector(".basalt-notification-title")).color, time: getComputedStyle(el.querySelector(".basalt-notification-time")).color }));

@@ -49,6 +49,64 @@ describe("what a body gets", () => {
     assert.deepEqual(used('<script>Basalt.copyText("x"); Basalt.init();</script>'), ["copy"]);
   });
 
+  test("the overlay layer comes in as modules, each by its own markup, attribute or call, with what it needs, and prose that merely names one gets none", () => {
+    assert.deepEqual(used('<button popovertarget="p">x</button>'), ["popover"]);
+    assert.deepEqual(used('<div class="menu" popover></div>'), ["glide", "popover", "menu"], "a menu brings the popup rules and the shared plate");
+    assert.deepEqual(used('<button data-dialog-open="#d">x</button>'), ["dialog"]);
+    assert.deepEqual(used("<dialog>x</dialog>"), ["dialog"], "a native dialog is drawn as the dialog");
+    assert.deepEqual(used('<dialog class="sheet" data-side="top"></dialog>'), ["dialog", "sheet"], "a sheet brings the dialog it is");
+    assert.deepEqual(used('<script>Basalt.openDialog("#d"); Basalt.init();</script>'), ["dialog"]);
+    assert.deepEqual(used('<button data-tooltip="Save">x</button>'), ["popover", "tooltip"]);
+    assert.deepEqual(used('<button data-tooltip="Save" data-tooltip-keys="⌘ S">x</button>'), ["kbd", "popover", "tooltip"], "a tooltip's shortcut brings the chips");
+    assert.deepEqual(used('<script>Basalt.toast({ title: "Saved" }); Basalt.init();</script>'), ["braille", "toast"], "a toast brings the braille it shows while work runs");
+    assert.deepEqual(used('<script>Basalt.notifications("#bell", { entries: [] }); Basalt.init();</script>'), ["glide", "popover", "notifications"]);
+    assert.deepEqual(used('<span class="plate"></span>'), ["glide"]);
+    assert.deepEqual(used("<p>A popover, a menu, a dialog and a toast are words here.</p>"), []);
+  });
+
+  test("forms and selection come in as modules, each by its own markup, and prose that merely names one gets none", () => {
+    assert.deepEqual(used('<select class="input"><option>x</option></select>'), ["forms", "select"], "a select is its own module, with the form rules it needs");
+    assert.deepEqual(used('<input type="checkbox" aria-label="x">'), ["forms", "choice"]);
+    assert.deepEqual(used("<input type='radio' name='a'>"), ["forms", "choice"]);
+    assert.deepEqual(used('<input type="checkbox" role="switch" aria-label="x">'), ["forms", "choice"]);
+    assert.deepEqual(used('<label class="choice">x</label>'), ["choice"]);
+    assert.deepEqual(used('<label class="panel choice-card"><input class="choice-card-input" type="radio" name="a"></label>'), ["forms", "choice-card"], "a choice card's own input does not bring the bare choice rules");
+    assert.deepEqual(used('<input type="text" class="input">'), ["forms"]);
+    assert.deepEqual(used('<button class="btn" aria-pressed="false">x</button>'), ["toggle"]);
+    assert.deepEqual(used('<button aria-pressed="true" class="btn" data-variant="ghost">x</button>'), ["toggle"], "the attribute may come first");
+    assert.deepEqual(used('<div class="segment"><button aria-pressed="true">x</button></div>'), ["segment"], "a segment's buttons are not toggles");
+    assert.deepEqual(used('<span class="btn-check"></span>'), ["toggle"]);
+    assert.deepEqual(used('<th class="select-col">x</th>'), ["choice", "table", "selection"], "a checkbox column brings the table and the boxes");
+    assert.deepEqual(used('<input type="checkbox" data-select-all aria-label="x"><table></table>'), ["forms", "choice", "table", "selection"]);
+    assert.deepEqual(used('<button class="btn" data-loops-toggle aria-pressed="false">x</button>'), ["toggle", "loops"]);
+    assert.deepEqual(used("<script>Basalt.loops.set(true); Basalt.init();</script>"), ["loops"]);
+    assert.deepEqual(used("<p>A checkbox, a switch, a select, a toggle and a loop are words here.</p>"), []);
+  });
+
+  test("tables and filters come in as modules, each by its own markup: a plain table brings the table alone, and prose that merely names one gets none", () => {
+    assert.deepEqual(used("<table><tr><td>x</td></tr></table>"), ["table"], "a plain table is the table module only");
+    assert.deepEqual(used('<p class="table-hint" hidden></p>'), ["table"], "the scroll hint is the table module's");
+    assert.deepEqual(used("<table data-fixed><tr><td>x</td></tr></table>"), ["glyph", "table", "still-table"], "a fixed table brings the still table, with the glyphs its sort seat draws");
+    assert.deepEqual(used("<table><thead><tr><th data-sortable>x</th></tr></thead></table>"), ["glyph", "table", "still-table"], "a sortable header does too");
+    assert.deepEqual(used('<table data-pinned="1"><tr><td>x</td></tr></table>'), ["glyph", "table", "still-table"]);
+    assert.deepEqual(used('<div class="table-empty">x</div>'), ["glyph", "table", "still-table"], "the empty row's block names the still table");
+    assert.deepEqual(used('<div class="filter" data-label="Status"><label><input type="checkbox" value="a"> A</label></div>'), ["glyph", "forms", "choice", "glide", "filter", "popover"], "a filter brings the checklist's popup, its plate, the glyphs and the boxes, whichever form the count picks");
+    assert.deepEqual(used('<p class="filter-result">Showing 3 of 24 runs</p>'), ["glyph", "choice", "glide", "filter", "popover"], "so does the result line, which the filter writes");
+    assert.deepEqual(used("<p>A sortable table, a still table, a filter, a chip and a result line are words here.</p>"), []);
+    const filter = compose('<div class="filter" data-label="Status"></div>', { fonts: false });
+    for (const name of ["plus", "check"]) assert.ok(filter.glyphs.includes(name), `a filter draws the ${name} glyph, so the page carries it`);
+    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(filter.icons.includes(name), `and the ${name} icon`);
+    const still = compose("<table data-fixed><tr><td>x</td></tr></table>", { fonts: false });
+    for (const name of ["arrow-up", "arrow-down"]) assert.ok(still.glyphs.includes(name), `a still table draws the ${name} glyph`);
+    assert.ok(still.icons.includes("CaretUpDown"));
+  });
+
+  test("a page with the loops module sets a stored hold before first paint, in the head beside the theme's line, and no other page does", () => {
+    const withLoops = compose('<button class="btn" data-loops-toggle aria-pressed="false">x</button>', { fonts: false }).html;
+    assert.match(withLoops.split("</head>")[0], /<script>\(function\(\)\{try\{if\(localStorage\.getItem\("basalt-loops"\)==="held"\)document\.documentElement\.setAttribute\("data-loops","held"\)/);
+    assert.ok(!compose("<h1>x</h1>", { fonts: false }).html.includes("basalt-loops"));
+  });
+
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
     for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
       assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);
@@ -65,6 +123,16 @@ describe("what a body gets", () => {
     assert.ok(!compose("<p>x</p>", { fonts: false }).html.includes("--basalt-art-tone-2"), "a page with none carries none");
   });
 
+  test("the stage and framed art come by their own classes with the art tokens they read, and prose that merely names them gets none", () => {
+    assert.deepEqual(used('<section class="stage"><div class="stage-art"></div></section>'), ["art", "stage"]);
+    assert.deepEqual(used('<img class="paired-art" data-art="dark" src="a.webp" alt="">'), ["art", "stage"]);
+    assert.deepEqual(used('<figure class="framed"><div class="framed-frame"><img src="a.webp" alt="x"></div></figure>'), ["art", "framed-art"]);
+    assert.deepEqual(used("<p>The stage is the first screen of a framed page.</p>"), []);
+    const page = compose('<figure class="framed"><div class="framed-frame"><img src="a.webp" alt="x"></div></figure>', { fonts: false }).html;
+    assert.ok(page.includes("--basalt-aspect-photo:") && page.includes("wireFramedArt"), "the tokens and the script come with it");
+    assert.ok(!compose('<section class="stage"></section>', { fonts: false }).html.includes("wireFramedArt"), "a stage carries no frame script");
+  });
+
   test("a class written in a script's string, or className, or classList is seen", () => {
     assert.deepEqual(used("<script>el.innerHTML = '<div class=\"callout\"></div>'; Basalt.init();</script>"), ["callout"]);
     assert.deepEqual(used("<script>el.className = 'progress'; Basalt.init();</script>"), ["progress"]);
@@ -72,8 +140,8 @@ describe("what a body gets", () => {
   });
 
   test("the palette brings the rows and the kbd it needs, in the manifest's order", () => {
-    assert.deepEqual(used("<button data-open-palette>Commands</button>"), ["kbd", "rows", "palette"]);
-    assert.deepEqual(used('<script>Basalt.init({ palette: { groups: [] } })</script>'), ["kbd", "rows", "palette"]);
+    assert.deepEqual(used("<button data-open-palette>Commands</button>"), ["kbd", "rows", "glide", "palette"]);
+    assert.deepEqual(used('<script>Basalt.init({ palette: { groups: [] } })</script>'), ["kbd", "rows", "glide", "palette"]);
   });
 
   test("an icon is drawn when its name is quoted in the body or a module in use draws it, and not for a word in prose", () => {
@@ -99,7 +167,7 @@ describe("what a body gets", () => {
 
   test("the example bodies get the modules their markup needs", () => {
     assert.deepEqual(used(EXAMPLES.static), ["topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
-    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "rows", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "select", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
   });
 });
 
@@ -131,7 +199,40 @@ describe("the body's own parts", () => {
     const { html, modules: got } = compose("<!-- basalt:use callout, progress -->\n<p>x</p>", { fonts: false });
     assert.deepEqual(got, ["callout", "progress"]);
     assert.ok(!html.includes("basalt:use"));
-    assert.throws(() => compose("<!-- basalt:use nonsense -->", { fonts: false }), /"nonsense", which is not a module \(modules: topbar, /);
+    assert.throws(() => compose("<!-- basalt:use nonsense -->", { fonts: false }), /"nonsense", which is not a module \(modules: glyph, topbar, /);
+  });
+
+  test("detection reads markup and code, never comments: a word in an HTML, script or style comment brings nothing in, and basalt:use still does", () => {
+    // A comment that names a module's own attribute, class or call (a data-glyph, a .toast, Basalt.toast) is not use of it.
+    assert.deepEqual(used('<!-- <span data-glyph="home"></span> <dialog class="sheet"></dialog> -->\n<p>x</p>'), []);
+    assert.deepEqual(used('<p>x</p>\n<script>\n// Basalt.toast("x"); a data-glyph="close" on a .sheet\n/* <span data-dialog-open="#d"></span> */\nvar a = 1;\n</script>'), []);
+    assert.deepEqual(used('<style>/* .sheet { } [data-glyph] */ .x { color: red }</style><p>x</p>'), []);
+    assert.deepEqual(used('<p>x</p><script>var url = "http://a.test/data-glyph"; var re = /\\/\\/ data-dialog-open/;</script>'), ["glyph", "dialog"], "a // inside a string or a regular expression is not a comment");
+    assert.deepEqual(used("<!-- basalt:use glyph -->\n<!-- data-glyph in prose -->"), ["glyph"]);
+    // A real use beside a comment still counts, in markup and in code; the init call is not made for one written in a comment.
+    assert.deepEqual(used('<!-- one -->\n<span data-glyph="home"></span>\n<script>// Basalt.toast\nBasalt.toast("x");</script>'), ["glyph", "braille", "toast"]);
+    const commented = compose("<p>x</p><script>// Basalt.init();\n</script>", { fonts: false }).html;
+    assert.ok(commented.includes("<script>Basalt.init();</script>"), "a call written in a comment is not a call");
+  });
+
+  test("a core glyph is drawn by a part of its own: a page with a glyph and no sheet carries no sheet or dialog, and a module that needs the glyph requires it", () => {
+    const glyph = compose('<span data-glyph="home" data-size="24"></span>', { fonts: false });
+    assert.deepEqual(glyph.modules, ["glyph"]);
+    assert.deepEqual(glyph.glyphs, ["home"], "only the glyph it names");
+    assert.ok(!glyph.html.includes("dialog.sheet") && !glyph.html.includes("showModal"), "no sheet or dialog in the page");
+    assert.ok(glyph.html.includes("addGlyphs") && !glyph.html.includes('"close":['), "the table holds the glyph it names and no other");
+    // The sheet alone draws none.
+    assert.deepEqual(used('<dialog class="panel float modal sheet" data-side="right"><h2 class="dialog-title">x</h2></dialog>'), ["dialog", "sheet"]);
+    // The modules that draw a glyph themselves bring the part and the two glyphs they draw.
+    const bar = compose('<header class="topbar"><div class="topbar-inner"><a class="brand" href="#">x</a><nav class="topbar-links" aria-label="Primary"><a href="#">a</a></nav></div></header>', { fonts: false });
+    assert.ok(["glyph", "sheet", "dialog", "nav", "glide", "topbar", "topbar-nav"].every((n) => bar.modules.includes(n)), bar.modules.join(", "));
+    assert.deepEqual(bar.glyphs, ["menu", "close"]);
+    for (const [name, m] of Object.entries(manifest.modules)) if ((m.glyphs ?? []).length) assert.ok(m.requires.includes("glyph"), `${name} draws glyphs and must require glyph`);
+  });
+
+  test("a page with a tab bar or an app shell covers its whole screen (viewport-fit=cover), and no other page does", () => {
+    for (const body of ['<nav class="tab-bar" aria-label="Primary"></nav>', '<div class="app-shell"></div>']) assert.match(compose(body, { fonts: false }).html, /<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">/);
+    assert.match(compose('<header class="topbar"><div class="topbar-inner"></div></header>', { fonts: false }).html, /<meta name="viewport" content="width=device-width, initial-scale=1">/);
   });
 
   test("a whole page is refused with a plain message, and so is a bad language", () => {
@@ -230,8 +331,8 @@ describe("the command line", () => {
       const heads = [...r.stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]);
       assert.deepEqual(heads, ["palette"]);
       assert.ok(r.stdout.includes(usageOf("palette").trim()), "the palette's usage is printed whole");
-      assert.match(r.stdout, /Its script builds the markup of kbd and rows: nothing to add\. If your page uses one itself, print its usage by name\./);
-      for (const name of ["kbd", "rows"]) assert.ok(!r.stdout.includes(usageOf(name).trim()), `${name}'s usage is not printed with the palette`);
+      assert.match(r.stdout, /Its script builds the markup of kbd, rows and glide: nothing to add\. If your page uses one itself, print its usage by name\./);
+      for (const name of ["kbd", "rows", "glide"]) assert.ok(!r.stdout.includes(usageOf(name).trim()), `${name}'s usage is not printed with the palette`);
       assert.match(r.stdout, /^Brought in by: /m);
       assert.doesNotMatch(r.stdout, /\\s|\(\?:/, "no regular expression is printed");
       assert.match(r.stdout, /the body has a call to Basalt\.openPalette or Basalt\.closePalette; or palette: inside a Basalt\.init call/);
@@ -275,7 +376,7 @@ describe("the command line", () => {
       const bad = run(["--usage", "nope"], dir);
       assert.equal(bad.status, 1);
       assert.equal(bad.stdout, "", "nothing on stdout for a name that is not a module");
-      assert.match(bad.stderr, /compose\.mjs: "nope" is not a module \(core or: topbar, /);
+      assert.match(bad.stderr, /compose\.mjs: "nope" is not a module \(core or: glyph, topbar, /);
       assert.ok(bad.stderr.includes(indexLines(skill).map((l) => `- ${l.line}`).join("\n")), "the index is printed with the failure");
       const mixed = run(["--usage", "table", "nope"], dir);
       assert.equal(mixed.status, 1);
@@ -337,7 +438,7 @@ describe("modules map to the index and the usage texts", () => {
   });
 
   test("every behaviour attribute in the index and the usage texts brings the module that wires it", () => {
-    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd" };
+    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd", "data-dialog-open": "dialog", "data-dialog-close": "dialog", "data-tooltip": "tooltip", "data-tooltip-keys": "kbd", "data-glyph": "glyph" };
     const behaviour = attrs.filter((a) => a in wires);
     assert.ok(behaviour.length >= 6);
     for (const attr of behaviour) assert.ok(used(`<div ${attr}></div>`).includes(wires[attr]), `${attr} should bring ${wires[attr]}`);
@@ -345,7 +446,8 @@ describe("modules map to the index and the usage texts", () => {
 
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
     // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
-    const mentions = { core: ["hint"], braille: ["status"] };
+    // The app shell names the phone tab bar that goes in it; the tab bar names the sheet and the nav rows of its More cell (a page that uses them brings them by their own markup).
+    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
@@ -379,6 +481,7 @@ describe("modules map to the index and the usage texts", () => {
         else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x`;
         else if (/^type="range"$/.test(span)) markup = `<input ${span}>`;
         else if (/^role="tablist"$/.test(span)) markup = `<div ${span}>x</div>`;
+        else if (/^popovertarget$/.test(span)) markup = `<button ${span}="p">x</button>`;
         if (markup) assert.ok(used(markup).includes(name), `${name}'s trigger ${span} should bring it in`);
       }
     }
@@ -457,7 +560,9 @@ describe("budgets", () => {
     const bytes = Buffer.byteLength(compose("", { fonts: false, all: true }).html);
     const caps = manifest.budgets.core + Object.values(manifest.modules).reduce((sum, m) => sum + m.budget, 0);
     const icons = Buffer.byteLength(JSON.stringify(JSON.parse(fs.readFileSync(new URL("../../../.agent/skills/basalt-html/parts/icons.json", import.meta.url), "utf8"))));
-    assert.ok(bytes <= caps + icons + 4096, `the every-module page is ${bytes} bytes; the parts' caps plus the icons and the page shell allow ${caps + icons + 4096}`);
+    // The core glyphs are a table of drawings a page carries only for the glyphs it names, as it carries icons.
+    const glyphs = Buffer.byteLength(JSON.stringify(JSON.parse(fs.readFileSync(new URL("../../../.agent/skills/basalt-html/parts/glyphs.json", import.meta.url), "utf8"))));
+    assert.ok(bytes <= caps + icons + glyphs + 4096, `the every-module page is ${bytes} bytes; the parts' caps plus the icons, the glyphs and the page shell allow ${caps + icons + glyphs + 4096}`);
   });
 
   test("a smaller page is smaller: the static example is below the everything page by what it leaves out", () => {

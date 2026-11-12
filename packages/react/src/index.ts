@@ -79,6 +79,8 @@ export { Combobox, Fieldset, Form, NumberField, Slider } from "./forms";
 export type { ComboboxOption, ComboboxProps, FieldsetProps, FormProps, NumberFieldProps, SliderProps } from "./forms";
 export { AlertDialog, AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger, Sheet, SheetActions, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "./overlays";
 export type { AlertDialogProps, SheetContentProps, SheetSide } from "./overlays";
+export { ProfileLink, ProfileLinks, SocialLink, SocialLinks } from "./social-links";
+export type { ProfileLinkProps, ProfileLinksProps, SocialLinkProps, SocialLinksProps, SocialService, SocialSize } from "./social-links";
 export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export { Nav, NavGroup, NavItem } from "./nav";

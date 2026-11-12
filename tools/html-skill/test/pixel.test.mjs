@@ -7,6 +7,10 @@
 // Re-recorded so far: the first parity PR (the number field, the textarea's height, native chrome, braille, the ring, code radius).
 // The second parity PR (popup rows and levels, the glide, the bar's removal, the segment's pill): the palette (open), the kitchen sink's rows,
 // segment and selected table row; the two example pages at rest did not move.
+// The ninth parity PR (commands): the kitchen sink names the new module with a basalt:use comment (a list of its own is a new baseline below); every existing baseline's pixels are as they were.
+// The eleventh parity PR (the rest of the overlays): the kitchen sink names the combobox and the sparkline with a basalt:use comment (a page of their own is a new baseline below); every existing baseline's pixels are as they were.
+// The fifth parity PR (the figures): the kitchen sink gains a section of the description list, the meter, a stat's source line, the terminal and the chart, after its overlays;
+// every region above it, and the two example pages, did not move (the two examples' recorded files are as they were).
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
@@ -101,7 +105,7 @@ describe("a page with every component matches its recorded baseline, pixel for p
           // Animations hold their first frame, so two renders of a spinner can be compared.
           await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
           pictures[which] = { rest: await shot(page, width) };
-          for (const selector of ["#t1", "a.row[data-active]", "#f1", ".btn[data-variant=primary]:not([disabled])"]) {
+          for (const selector of ["#t1", "a.row[data-active]", "#f1", "main .btn[data-variant=primary]:not([disabled])"]) {
             await page.locator(selector).focus();
             pictures[which][selector] = await shot(page, width);
           }
@@ -117,6 +121,134 @@ describe("a page with every component matches its recorded baseline, pixel for p
           const result = await differing(scratch, pictures.composed[state], pictures.baseline[state]);
           assert.equal(result.count, 0, `${state}: ${result.count} pixels differ (${result.size.join("x")})`);
         }
+      });
+    }
+  }
+});
+
+// The sixth parity PR (forms and selection): a page of the select, the checkbox, radio and switch, the choice card, the pressed toggle, a table's checkbox column
+// (header box mixed, one row selected) and the loops hold's controls, at rest. (The kitchen sink names these modules with a basalt:use comment instead of drawing them:
+// its focus steps read the page again and again, and the new marks' edges made some of those reads differ by a few pixels from one load to the next.)
+describe("the forms and selection page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "forms.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("forms") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The eighth parity PR (tables and filters): a still table (a select column, sorted and sortable headers, a "Not observed" cell, pinned columns) with the chips, a collapsed
+// checklist and the result line above it, at rest. The existing baselines above did not move; these are new.
+describe("the tables and filters page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "tables.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("tables") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The ninth parity PR (commands): the command list in the page at rest (idle, the first row lit but not shown) and a list with a preview (side by side at 1440, the list alone at
+// 390 where it pushes). The existing baselines above did not move; this one is new.
+describe("the commands page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "commands.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("commands") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The tenth parity PR (art): the stage under the site header with paired art, and framed art in every aspect, a card, and a failure, at rest. The existing baselines above did not move
+// but for the status callouts: a success, warning or danger callout's rim is now the status colour at 45% (DECISIONS 82), so the pages that draw one were re-recorded (see the PR).
+describe("the art page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "art.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("art") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          // Every frame has settled (loaded or failed), and its fade has run, before the page is read.
+          await page.waitForFunction(() => [...document.querySelectorAll(".framed-frame")].every((f) => ["loaded", "failed"].includes(f.dataset.phase)));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The eleventh parity PR (the rest of the overlays): the combobox (empty, chosen, off) and the sparkline (data, a decimal, empty, loading) at rest. The existing baselines above did not
+// move in a pixel; this one is new.
+describe("the combobox and sparkline page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "rest.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("rest") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          // The loading line breathes: both renders are held at its first frame.
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
       });
     }
   }

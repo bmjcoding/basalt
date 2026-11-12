@@ -1,0 +1,12 @@
+@layer basalt {
+
+  /* ---- Table selection: a checkbox column (React's documented pattern, display.tsx and foundations "Selected rows") ----
+     The first column is a checkbox per row, labelled "Select NAME", under a header box that is mixed while some rows are selected. A selected row
+     is the wash band (table.css) with no bar and no edge mark, in forced colours too: the wash is about 1.2:1 and says nothing alone, so the
+     state is the row's checked box and the count in words. The column is size-control-md wide (foundations), the 16px box centred between two 8px insets, so it is the same
+     width whether a row is selected or not and no column moves. */
+
+  .select-col { box-sizing: border-box; width: var(--basalt-size-control-md); padding-inline: var(--basalt-space-2); }
+  /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. */
+  .select-col input[type="checkbox"] { display: flex; }
+}

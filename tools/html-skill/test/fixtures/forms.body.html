@@ -1,0 +1,46 @@
+<title>Forms and selection</title>
+<main class="page stack" id="main">
+  <h1>Forms and selection</h1>
+  <div class="field"><label for="g1">Region</label><span class="select"><select class="input" id="g1"><button><selectedcontent></selectedcontent></button><option value="" disabled selected hidden>Select…</option><option value="eu">Frankfurt<span class="option-description">eu-central, lowest latency</span></option><option value="us">Ashburn</option></select></span></div>
+  <div class="field"><label for="g2">Chosen</label><span class="select"><select class="input" id="g2"><option value="eu" selected>Frankfurt</option><option value="us">Ashburn</option></select></span></div>
+  <div class="cluster">
+    <span class="select" style="width: 10rem"><select class="input" data-size="sm" aria-label="Small"><option>Small</option></select></span>
+    <span class="select" style="width: 10rem"><select class="input" data-size="lg" aria-label="Large"><option>Large</option></select></span>
+    <span class="select" style="width: 10rem"><select class="input" disabled aria-label="Disabled"><option>Disabled</option></select></span>
+    <span class="select" style="width: 10rem"><select class="input" aria-invalid="true" aria-label="Invalid"><option>Invalid</option></select></span>
+  </div>
+      <div class="cluster">
+        <label class="choice"><input type="checkbox" checked> Checked</label>
+        <label class="choice"><input type="checkbox" disabled checked> Disabled on</label>
+        <label class="choice"><input type="checkbox"> Unchecked</label>
+        <label class="choice"><input type="checkbox" disabled> Disabled</label>
+      </div>
+      <div class="radio-group" role="radiogroup" aria-label="Plan">
+        <label class="choice"><input type="radio" name="sink-plan" value="free" checked> Free</label>
+        <label class="choice"><input type="radio" name="sink-plan" value="pro"> Pro</label>
+      </div>
+      <div class="cluster">
+        <label class="choice"><input type="checkbox" role="switch" checked> Auto-deploy</label>
+        <label class="choice"><input type="checkbox" role="switch"> Notifications</label>
+        <button class="btn" aria-pressed="true"><span class="btn-check" aria-hidden="true"></span>Pressed</button>
+        <button class="btn" aria-pressed="false"><span class="btn-check" aria-hidden="true"></span>Not pressed</button>
+        <button class="btn" data-variant="ghost" aria-pressed="true"><span class="btn-check" aria-hidden="true"></span>Ghost</button>
+        <button class="btn" data-loops-toggle aria-pressed="false"><span class="btn-check" aria-hidden="true"></span>Pause animations</button>
+      </div>
+      <div class="choice-card-group" role="radiogroup" aria-label="Billing">
+        <label class="panel choice-card"><input class="choice-card-input" type="radio" name="sink-bill" value="month" checked aria-labelledby="sk1t" aria-describedby="sk1d"><span class="choice-card-head"><span class="choice-card-title" id="sk1t">Monthly</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="sk1d">Pay as you go.</span></label>
+        <label class="panel choice-card"><input class="choice-card-input" type="radio" name="sink-bill" value="year" aria-labelledby="sk2t" aria-describedby="sk2d"><span class="choice-card-head"><span class="choice-card-title" id="sk2t">Yearly</span><span class="choice-card-box" aria-hidden="true"></span></span><span class="choice-card-description" id="sk2d">Two months free.</span></label>
+      </div>
+      <p role="status" data-select-count class="small muted"></p>
+      <div class="panel table-wrap" role="region" aria-label="Selectable runs table" tabindex="0"><table>
+        <thead><tr><th class="select-col"><input type="checkbox" data-select-all aria-label="Select all runs"></th><th>Run</th><th data-numeric>Time</th></tr></thead>
+        <tbody>
+          <tr><td class="select-col"><input type="checkbox" aria-label="Select run-0141" checked></td><td data-mono>run-0141</td><td data-numeric>4.2 s</td></tr>
+          <tr><td class="select-col"><input type="checkbox" aria-label="Select run-0140"></td><td data-mono>run-0140</td><td data-numeric>11.8 s</td></tr>
+        </tbody></table></div>
+  <div class="cluster">
+    <span class="spinner" role="status" aria-label="Loading"></span>
+    <span class="status"><braille-spinner></braille-spinner>Running</span>
+    <button class="btn" aria-busy="true">Saving</button>
+  </div>
+</main>

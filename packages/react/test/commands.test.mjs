@@ -133,6 +133,27 @@ describe("the command list in the page", () => {
     await page.close();
   });
 
+  test("in forced colours a lit command row is Highlight with HighlightText for every part, its description included (#27's rule); an idle list has none", async () => {
+    for (const where of ["the list in the page", "the modal"]) {
+      const body = where === "the modal" ? `${DATA} ${render("<B.CommandMenu open onOpenChange={() => {}} groups={GROUPS} />")}` : listFixture();
+      const { page } = await open(body);
+      await page.emulateMedia({ forcedColors: "active" });
+      await ready(page);
+      const resolve = (value) => page.evaluate((v) => { const probe = document.createElement("div"); probe.style.color = v; document.body.append(probe); const out = getComputedStyle(probe).color; probe.remove(); return out; }, value);
+      if (where !== "the modal") {
+        const idle = await style(page.locator("[cmdk-item][data-selected='true'] .basalt-menu-item-description"), "color");
+        assert.equal(idle.color, await resolve("CanvasText"), "an idle list's row is rest ink");
+      }
+      await page.focus(".basalt-command-input");
+      await settle(page);
+      const row = page.locator("[cmdk-item][data-selected='true']");
+      for (const part of [row, row.locator(".basalt-menu-item-label"), row.locator(".basalt-menu-item-description"), row.locator("svg").first()]) {
+        assert.equal((await style(part, "color")).color, await resolve("HighlightText"), `${where}: every part of the lit row is HighlightText`);
+      }
+      await page.close();
+    }
+  });
+
   test("Esc clears the query, and does nothing (it is not even prevented) once it is empty", async () => {
     const { page } = await open(listFixture());
     await ready(page);

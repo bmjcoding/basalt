@@ -1,0 +1,49 @@
+@layer basalt {
+
+  /* ---- Dialog and alert dialog (React's Dialog and AlertDialog), and the shell a sheet shares ----
+     A native <dialog> opened with showModal(): a modal panel at level 1 above its scrim, what it holds starting at 2 (core.css: .float.modal),
+     with the modal shadow and the 12px rim. It grows from .98 and fades in over duration-slow on ease-out, and leaves at 0.75 on ease-in; under
+     reduced motion it only fades. The scrim is the ::backdrop, which fades the same way. Outside it is inert (the browser's own), and the page
+     behind does not scroll (a page that sets scrollbar-gutter: stable, as the still table asks, does not shift when it locks). */
+
+  dialog.modal {
+    --_dur: var(--basalt-duration-slow);
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    max-width: none;
+    margin: auto;
+    overflow-y: auto;
+    outline: none;
+    opacity: 0;
+    transition-property: opacity, transform, clip-path, overlay, display;
+    transition-behavior: allow-discrete;
+    transition-duration: calc(var(--_dur) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+    font-family: var(--basalt-font-family-sans);
+  }
+  dialog.modal[open] { opacity: 1; transition-duration: var(--_dur); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { dialog.modal[open] { opacity: 0; } }
+  dialog.modal::backdrop {
+    background: var(--basalt-scrim);
+    opacity: 0;
+    transition: opacity var(--_bout, calc(var(--_dur) * 0.75)) var(--basalt-ease-in), overlay var(--_bout, calc(var(--_dur) * 0.75)) allow-discrete, display var(--_bout, calc(var(--_dur) * 0.75)) allow-discrete;
+  }
+  dialog.modal[open]::backdrop { opacity: 1; transition-duration: var(--_bin, var(--_dur)); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { dialog.modal[open]::backdrop { opacity: 0; } }
+  html:has(dialog.modal[open]) { overflow: hidden; }
+
+  .dialog { width: min(var(--basalt-size-dialog-width), calc(100vw - 2 * var(--basalt-space-4))); max-height: calc(100dvh - 2 * var(--basalt-space-4)); padding: var(--basalt-space-6); transform: scale(0.98); }
+  .dialog[open] { transform: none; }
+  @starting-style { .dialog[open] { transform: scale(0.98); } }
+
+  .dialog-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  .dialog-description { margin: var(--basalt-space-2) 0 0; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); color: var(--basalt-text-secondary); }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: var(--basalt-space-2); margin-top: var(--basalt-space-6); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dialog, .dialog[open] { transform: none; }
+    @starting-style { .dialog[open] { transform: none; } }
+  }
+  @media print { dialog.modal { display: none; } }
+}

@@ -1,6 +1,7 @@
 // The skill's icon data, generated at build time from @phosphor-icons/react (already a dependency of
 // packages/react, so nothing new ships). tools/html-skill/src/icons.json is the list of names; this reads each one's
-// Bold and Regular paths from the package's definition files and fails the build for a name Phosphor doesn't have.
+// Bold paths from the package's definition files and fails the build for a name Phosphor doesn't have. Bold at every size: the
+// skill draws no Regular weight (foundations: Phosphor Bold at 16, 20 and 24).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +26,7 @@ function weightPaths(source, weight, name) {
   return paths;
 }
 
-/** { Name: [boldPaths, regularPaths] } for a list of Phosphor names. Throws for a name that is not in Phosphor. */
+/** { Name: [Bold paths] } for a list of Phosphor names. Throws for a name that is not in Phosphor. */
 export function iconData(names, defsDir = path.join(findPackage("@phosphor-icons/react"), "dist", "defs")) {
   if (!Array.isArray(names) || names.some((n) => typeof n !== "string")) throw new Error("html-skill: icons.json must be an array of Phosphor icon names");
   const data = {};
@@ -34,7 +35,7 @@ export function iconData(names, defsDir = path.join(findPackage("@phosphor-icons
     const file = path.join(defsDir, `${name}.es.js`);
     if (!fs.existsSync(file)) throw new Error(`html-skill: "${name}" in icons.json is not a Phosphor icon`);
     const source = fs.readFileSync(file, "utf8");
-    data[name] = [weightPaths(source, "bold", name), weightPaths(source, "regular", name)];
+    data[name] = weightPaths(source, "bold", name);
   }
   return data;
 }

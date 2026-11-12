@@ -66,6 +66,11 @@ export interface TimeChartProps extends Omit<React.ComponentProps<"figure">, "ch
   partialSuffix?: string;
   /** How a plan value or band is written in the legend (default: `format`; a band is "low–high"). */
   formatPlan?: (plan: number | readonly [number, number]) => string;
+  /**
+   * What counts as today (a Date or a time in ms), for the last day's sentence to say "today". Days are UTC dates, so the last day is
+   * "today" only when it is the UTC date of this moment. Defaults to now: a closed range that ends before today is never "today".
+   */
+  now?: Date | number;
   locale?: string;
 }
 
@@ -90,6 +95,7 @@ const parseDay = (iso: string) => {
   return Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1);
 };
 const weekday = (ms: number) => new Date(ms).getUTCDay();
+const isoOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 /** A text with its digits as zeros: tabular numerals make every digit one width, so two texts of one shape are one width. */
 const shapeOf = (text: string) => text.replace(/\d/g, "0");
 const unique = <T,>(list: T[]) => [...new Set(list)];
@@ -263,7 +269,7 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,
-  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, locale = "en-GB", className, ...props
+  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", className, ...props
 }: TimeChartProps) {
   // The hint legend is hidden on touch until a hardware key is pressed; this asks for the same reveal the shortcut chips use.
   useShortcutsVisible();
@@ -425,9 +431,12 @@ export function TimeChart({
     dayRefs.current[to]?.focus({ preventScroll: true });
   };
 
+  // The last day is "today" only when it is today's UTC date (the days are UTC): read once a render, from `now` or the clock.
+  const todayIso = isoOf(now === undefined ? Date.now() : new Date(now).getTime());
+  const lastIsToday = days[n - 1] === todayIso;
   const sentences = React.useMemo(
-    () => stamps.map((_, i) => daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp: at(stamps, i), planLabel: plan?.label ?? "Plan" })),
-    [stamps, series, plan, partial, partialSuffix, say, formats, n],
+    () => stamps.map((_, i) => daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp: at(stamps, i), planLabel: plan?.label ?? "Plan", today: lastIsToday })),
+    [stamps, series, plan, partial, partialSuffix, say, formats, n, lastIsToday],
   );
 
   const Heading = `h${heading}` as const;
@@ -553,7 +562,8 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
   const dateOf = (i: number) => formats.withDay.format(at(stamps, i));
   const valueOf = (s: ChartSeries, i: number) => {
     const v = s.values[i];
-    return v == null ? NOT_OBSERVED : `${format(v)}${i === partial ? ` ${partialSuffix}` : ""}`;
+    // A day that was not observed says why, in the lane's own words ("Not observed · not worn, travel").
+    return v == null ? (s.reasons?.[i] ? `${NOT_OBSERVED} · ${s.reasons[i]}` : NOT_OBSERVED) : `${format(v)}${i === partial ? ` ${partialSuffix}` : ""}`;
   };
   // Each value reserves the widest of its forms (digits as zeros: the numerals are tabular), so a new day moves nothing.
   const reserveFor = (s: ChartSeries) => {
@@ -975,12 +985,12 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
 
 interface SentenceInput {
   i: number; n: number; series: ChartSeries[]; plan: ChartPlan | undefined; partial: number | undefined; partialSuffix: string; say: (value: number) => string;
-  formats: DateFormats; stamp: number; planLabel: string;
+  formats: DateFormats; stamp: number; planLabel: string; today: boolean;
 }
 
 /** The day's full sentence: the day, each series' value or "not observed" and its reason, the plan, and where the value sits against it. */
-function daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp, planLabel }: SentenceInput) {
-  const parts = [`${formats.long.format(stamp)}${i === n - 1 ? ", today" : ""}`];
+function daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp, planLabel, today }: SentenceInput) {
+  const parts = [`${formats.long.format(stamp)}${i === n - 1 && today ? ", today" : ""}`];
   series.forEach((s) => {
     const v = s.values[i];
     parts.push(`${s.name} ${v == null ? `not observed${s.reasons?.[i] ? `, ${s.reasons[i]}` : ""}` : `${say(v)}${i === partial ? ` ${partialSuffix}` : ""}`}`);

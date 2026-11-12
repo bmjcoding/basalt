@@ -289,11 +289,23 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Badges, pending and pairs** (council, DECISIONS 95). `pending` (waiting, in review, queued) is a hollow 6px ring, a 1px
   border in the badge word's own ink (`text-secondary` in `Badge`, `currentColor`), in the status dot's seat, with the app's
   word ("Pending", "In review", "Queued"). No colour: waiting is not a warning. The ring is `aria-hidden`, the word is
-  spoken, the plain variant carries the same mark, and in forced colours it is a border in `CanvasText`. At most two badges
+  spoken, the plain variant carries the same mark, and in forced colours it is a border in the word's own ink (see **Status in forced
+  colours**). With no `status` a badge is the word alone (a count, a fact); `neutral` asked for by name (Idle, Draft) draws the
+  tertiary dot; a running badge (a braille `Spinner` first) draws no dot, the cell taking its seat. At most two badges
   sit on one object (`BadgePair`): the status first, right after the name, then one neutral fact, `space-2` apart and
   `space-2` after the name. Never two statuses; a third fact goes in words. When the name and the pair don't fit on one line
   the pair moves under the name as a unit, the name truncates only when it alone is wider than the row, and a badge never
   truncates. Spoken in DOM order.
+- **Status in forced colours** (council, DECISIONS 106). A filled dot is a fill, which forced colours drop, so every status dot
+  (success, warning, danger, neutral, accent) is drawn as its own border (`box-sizing: border-box`, a border of half `size-dot`,
+  no background) with forced colours left on: the browser paints it in the system colour of where it sits (`CanvasText` on
+  Canvas, `HighlightText` on a lit row, `LinkText` in a link). Every settled status is the same disc there; the word says
+  which. The pending ring is a 1px border in `currentColor`, braille is `currentColor` and left to the browser, and an
+  outline badge's edge is a real 1px border in the word's own ink. **No dot, ring or edge names a system colour**: a named one
+  fails on a lit row (measured on a lit row: a `CanvasText` fill 2.31:1 in dark and 1.86:1 in light against Chromium's Highlight
+  plate; the border disc 9.10:1 and 11.31:1). A lit row names its status word and badge among its `HighlightText` parts, so the dot
+  follows. The nav dot, the checked radio's dot and the notification centre's dots are drawn the same way. The badge keeps
+  its box: border-box, its inline padding reduced by the hairline, so the border changes nothing.
 - **The multi-select filter** (`MultiSelect`; decisions 82 and 83). One rule picks the control: one of many is a pill in a
   track (`SegmentedControl`), any of many is a check with no track. Up to six values are independent chips: 32px, or 36
   inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
@@ -700,8 +712,7 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
 - **Fallbacks.** Reduced transparency: opaque `surface-page` with its hairline, from the first frame. Forced colours: `Canvas` and
   `CanvasText` with a real line. Print: the bar is static and opaque, decorative stage art does not print and the stage takes its place in
   the flow. Without `backdrop-filter`: clear still works at the top, since it uses no filter, and the scrolled state is the smoked bar's
-  opaque fallback, `surface-page` with its hairline. (The HTML skill hides a site bar in print; batch 7 reconciles
-  that with this.)
+  opaque fallback, `surface-page` with its hairline. (The HTML skill's top bar prints the same way: static and opaque.)
 - **Translucent layers never stack.** A clear bar has no fill, so it is not a layer. Nothing translucent goes on a stage, and a panel on a
   stage is solid, at level 1, with its rim.
 
@@ -859,8 +870,8 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
   inset (`scroll-padding-top` also adds a step, `space-4`). Its inline padding is the gutter (`space-6`, `space-4` under 720) or
   `env(safe-area-inset-left/right)`, whichever is larger, and the inner row is 72rem wide.
 - **The order:** the brand, the links beside it (start-aligned, never centred), a spacer, then the actions.
-- **The brand** is the 32px header lockup an app passes in (`brand/` ships them), a link home in a 44px target, with no wash; its ring
-  is the control ring at +2 round the lockup, radius 6.
+- **The brand** is the 32px header lockup an app passes in (`brand/` ships them), a link home in a target at least 44 by 44 (a mark with no word keeps the 44 width,
+  the mark at its start), with no wash; its ring is the control ring at +2 round the lockup, radius 6.
 - **The links** are `text-base` (14/20) at 400 in `text-secondary`, each on a 32px hugging pill (`radius-full`, `space-3` either
   side). Each link's hit area is 44px tall at every pointer, with 2px either side of the pill, so pills are 4px apart and
   neighbouring hit areas touch and a pointer crossing between them never leaves a link.
@@ -1124,8 +1135,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
   with the brand above it and with every chart and table. A data page fills the row.
 - **On Apple platforms** the sidebar width is `navigationSplitViewColumnWidth(Basalt.Size.sidebarWidth)`, the system's bars stay native,
   the compact size class is the phone, and measures are `@ScaledMetric` so a prose column grows with Dynamic Type.
-- **The HTML skill's build** will substitute these values instead of hand-writing 720 (DECISIONS 91, batch 7); until then its sources
-  keep their literals.
+- **The HTML skill's build** substitutes these values instead of hand-writing 720 (DECISIONS 91, batch 7): its sources write `%bp-md%`,
+  `%bp-lg%` and `%bp-container%` in range syntax, and the build reads them from the generated tokens.
 
 ## Art
 
@@ -1285,7 +1296,7 @@ The components and what each does are in [Motion and primitives](motion.md).
 Basalt has a core set of its own, drawn by the design council (decisions 38 to 40, 54 and 55): the
 core actions, navigation and Blacksand's product nouns. Each glyph is a module of
 `@srasyndicate/basalt` (`HomeGlyph`), and the long tail is Phosphor (MIT), Bold at 16, 20 and 24.
-Brand marks are each brand's own.
+A product's own logo is its own; the social marks are Phosphor's (below).
 
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
   agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
@@ -1305,6 +1316,33 @@ Brand marks are each brand's own.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
   Danger is the XCircle, everywhere.
+
+- **Site icons** (council, DECISIONS 106 and 107). The set for a site's links is Phosphor Bold's own logos, at 16, 20 and 24:
+  GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, and EnvelopeSimple for email, with TerminalWindow for a palette
+  or panel glyph (not a social link). Substack, Bluesky, Threads, TikTok, Medium and RSS have no mark here: a service
+  without one is its name alone, never a stand-in glyph and never a brand's own file (Bluesky's and Substack's guidelines forbid
+  the recolouring and redrawing Basalt's icons need, and a solid mark among Bold lines reads heavier). The new-tab arrow is the
+  core `external` glyph, not Phosphor's ArrowUpRight.
+- **A social link** is a glyph and the service's name, one pattern for a footer and a profile (`SocialLink` in `SocialLinks`;
+  the skill's `.links`). The glyph is before the name, `space-1-5` apart. The name is underlined in `border-input` at rest,
+  brightening to `currentColor` on hover, and the glyph is never underlined. Glyph and name are secondary at rest and primary on
+  hover and on focus, with the control ring at +2: no wash, no weight change, no press scale (it is a link, not a Button). A link
+  takes its container's text size (13/18 in a footer, 14/20 in a profile row), and the glyph is 16 beside 12 to 16px text and 20
+  beside 18 to 24px (the status seat's rule). It opens in the same tab by default, and the visible name is its accessible name;
+  `target="_blank"` draws the core arrow after the name and adds the phrase (none on `mailto:`). In forced colours it is
+  `LinkText`, glyph and arrow included.
+- **A row of social links.** Links are `space-4` apart and wrap. On touch each link is at least 44 by 44 as real layout, and the
+  16px gap becomes 8px of hit area on either side, so neighbours touch and a wrapped line never overlaps the next. A row never
+  goes in the site header's bar, which ends with the theme toggle and at most one primary Button.
+- **Icon only** is allowed only for a row made entirely of marks (an author card): ghost IconButtons rendered as links, 32px
+  (44 on touch), `space-1` apart, each named for its service, keeping IconButton's .98 press. A new-tab mark has no arrow and
+  keeps the phrase in its name. A row that needs Email or a service without a mark is the labelled row.
+- **The long form** is a profile list (`ProfileLinks`; the skill's `.rows` with `.profile-links`): a row per service, the
+  glyph in the row's seat and the handle as the hint. A service without a mark keeps an empty seat (the glyph's 16px and the
+  row's `space-3` gap, on the start side) only when another row in the list has a glyph, so every name starts at one x, as the
+  notification centre's mark seat does. The seat is padding, not an element, and it belongs to this list: it never re-indents
+  a menu or palette row without an icon (whether Menu's rows should line up the same way is a separate question).
+- **The skill draws Phosphor Bold at every size,** as above; it has no Regular weight.
 
 Icons take `currentColor`, default to the secondary text colour, and turn primary when active.
 Navigation glyphs in a sidebar or rail are primary at rest, like their labels. On iOS, system
@@ -1372,6 +1410,9 @@ The still table and the multi-select filter were decided by the council in a fou
 9 Nov 2026 (decisions 71 and 82 to 84): the fixed layout and reserved seat, the whole header cell as the sort control, the
 chips and their switch to a checklist at seven values, Clear held in place, and the divider at a scrolled pinned edge.
 Their implementation has not been reviewed by the panel.
+
+The site icons, the social link, the long form and status dots in forced colours were decided by the council in a three-member vote
+(DECISIONS 106 and 107: opus, sol and grok, with Muse out until 16 Nov 2026). The implementation hasn't been reviewed.
 
 The in-page command list, list plus preview and its push, two-line rows, the chips' Clear, the checklist's search band and the
 notification centre's glide were decided by the council in a three-member vote (DECISIONS 103: opus, sol and grok, 2 of 3

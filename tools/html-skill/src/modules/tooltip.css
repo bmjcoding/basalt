@@ -1,0 +1,26 @@
+@layer basalt {
+
+  /* ---- Tooltip (React's Tooltip) ----
+     A native popup built by tooltip.js (popover="manual", so it never takes focus or closes another popup). Always level 3: it floats above
+     whatever opened it. The popover shell (popover.css) gives it its position and its motion: it grows from .98 over duration-base on ease-out
+     and leaves at 0.75 on ease-in, and under reduced motion it only fades. It stays while the pointer is over it (WCAG 1.4.13). */
+
+  .tooltip {
+    --panel-bg: var(--basalt-surface-3);
+    box-sizing: border-box;
+    max-width: var(--basalt-size-tooltip-max);
+    align-items: center;
+    padding: var(--basalt-space-1) var(--basalt-space-2);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-3);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--bh-xs);
+    overflow: visible;
+  }
+  .tooltip:popover-open { display: flex; }
+  .tooltip[data-instant] { transition-duration: 0ms; }
+  .tooltip .kbd-group { margin-inline-start: var(--basalt-space-2); }
+  @media (forced-colors: active) { .tooltip { border-color: CanvasText; } }
+}

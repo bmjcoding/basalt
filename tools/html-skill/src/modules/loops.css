@@ -1,0 +1,11 @@
+@layer basalt {
+
+  /* ---- The hold: <html data-loops="held"> stops every loop the skill draws (React's useLoops) ----
+     The ring, a busy button's ring and braille (so a toast's, a status's and the terminal's). It outranks reduced motion by specificity, so
+     held is one look whatever the OS says, and it stops the ring's fade too. Braille holds its first frame (the base look, the dots that are
+     lit at rest); the ring stands still at its drawing, at full opacity. Nothing is hidden or swapped, and the words still say the work is
+     running. The toast's drain is a countdown, not a loop, so it is not held. */
+  :root[data-loops="held"] .spinner { animation: none; border-top-color: currentColor; }
+  :root[data-loops="held"] .braille-dot[data-dot] { animation: none; }
+  :root[data-loops="held"] .btn[aria-busy="true"]::after { animation: none; border-top-color: currentColor; }
+}

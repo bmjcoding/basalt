@@ -2,11 +2,13 @@
 
 ```
 <div class="stats">
-  <div class="stat"><span class="stat-label">Availability</span><span class="stat-value">99.97%</span><span class="stat-note">Target 99.95%</span></div>
+  <div class="stat"><span class="stat-label">Availability</span><span class="stat-value">99.97%</span><span class="stat-source"><time datetime="2026-11-10T04:41">04:41</time> <span aria-hidden="true">·</span><span class="visually-hidden">, </span> Probe</span></div>
 </div>
 ```
 
-`.stats` (`--min` sets the column width) > `.stat` (`.stat-label`, `.stat-value`, `.stat-note`), no panel, no border. One lone `.stat` is fine for a headline figure.
+`.stats` (`--min` sets the column width) > `.stat` (`.stat-label`, `.stat-value`, `.stat-note`, `.stat-source`), no panel, no border.
+
+`.stat-source`: where the figure came from and when, tertiary, at the foot; the time is absolute in a `<time datetime>`, never "2 min ago".
 
 A small `dl` of figures goes in `.stats.small.num`, one `<div><dt class="muted">…</dt><dd>…</dd></div>` for each.
 
