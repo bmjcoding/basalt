@@ -44,6 +44,8 @@ The code-block copy control swaps its Phosphor Copy icon for Check, instantly. T
 
 A multi-select chip (`MultiSelect`) shows a plus when off and the check when on in one 16px seat. The two glyphs are stacked and swap by opacity over `duration-fast` on `ease-out` (a crossfade, not a `MorphIcon` morph: plus to check is not one of the allowed morphs); under reduced motion they change at once. A chip's colour changes ease over `duration-fast` too, hover-in is instant, and a press is a colour step with no scale.
 
+A pressed toggle Button (`aria-pressed`; secondary and ghost) swaps its check the same way: the seat's glyph fades over `duration-fast` on `ease-out`, and the fill and ink step with it. It is a crossfade, not a `MorphIcon` morph, and the 100ms fade stays under reduced motion; the .98 press stays Button's momentary press (none under reduced motion). A choice card crossfades its fill, its hover wash and its box over `duration-fast` too, the same 100ms under reduced motion, and never scales.
+
 The sort indicator of a sortable table header (the caret and the two arrows) swaps at once: it has no transition, and nothing in a still table moves.
 
 ## The sliding pill

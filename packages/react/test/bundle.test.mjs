@@ -122,7 +122,7 @@ for (const [name, limit] of [["HomeGlyph", 3_000], ["SearchGlyph", 3_250], ["Clo
   });
 }
 
-test("MorphIcon alone carries the engine and no glyph; Stepper carries the three it draws", async () => {
+test("MorphIcon alone carries the engine and no glyph; Stepper carries the three it draws, and Button's new-tab arrow", async () => {
   // which glyphs' drawings a bundle holds: each glyph module declares `name: "…"` once (a chunk may hold a glyph module, so read the text)
   const glyphsIn = async (name) => {
     const out = await esbuild.build({
@@ -132,7 +132,8 @@ test("MorphIcon alone carries the engine and no glyph; Stepper carries the three
     return [...out.outputFiles[0].text.matchAll(/^\s+name: "([a-z-]+)",$/gm)].map((m) => m[1]).sort();
   };
   assert.deepEqual(await glyphsIn("MorphIcon"), [], "MorphIcon carries a glyph of its own");
-  assert.deepEqual(await glyphsIn("Stepper"), ["check", "chevron-left", "chevron-right"]);
+  // Stepper wraps Button, and Button draws the new-tab arrow (`external`) for a link that opens one (DECISIONS 95), so it comes with it.
+  assert.deepEqual(await glyphsIn("Stepper"), ["check", "chevron-left", "chevron-right", "external"]);
 });
 
 test("an imported glyph that is never used costs nothing", async () => {

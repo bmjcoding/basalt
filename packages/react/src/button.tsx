@@ -1,7 +1,9 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
+import { NewTabGlyph, NewTabWords, newTabRender, newTabWords } from "./new-tab";
 import { Spinner } from "./spinner";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
@@ -14,31 +16,50 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
   nativeButton?: boolean;
   /** Stay focusable while disabled, so a keyboard user can still reach it and read why. */
   focusableWhenDisabled?: boolean;
-  variant?: ButtonVariant;
   /** Control height: 24, 28, 32, 36 or 40px. md (32px) is the app default. */
   size?: ControlSize;
   /** Shows a spinner and ignores activation. The label stays, so the width does not jump. */
   loading?: boolean;
+  /**
+   * The words a button rendered as a link with `target="_blank"` adds to its name, for translation. Default
+   * "(opens in a new tab)". The arrow and the words come from the target alone; there is no prop for them.
+   */
+  newTabLabel?: string;
 };
 
-export type ButtonProps = BaseProps & {
-  /** An icon before the label. */
-  icon?: IconComponent;
-  /** An icon after the label, e.g. a caret. */
-  iconEnd?: IconComponent;
-  children: React.ReactNode;
-};
+/**
+ * A toggle: `pressed` writes `aria-pressed`. Only secondary and ghost buttons toggle (a latched primary would read as the
+ * primary action, a latched danger as an error); on those two `pressed` is a type error.
+ */
+type Toggle = { variant?: "secondary" | "ghost"; pressed?: boolean } | { variant: "primary" | "danger"; pressed?: never };
+
+export type ButtonProps = BaseProps &
+  Toggle & {
+    /** An icon before the label. On a toggle it is the toggle's glyph: pressed shows its selected form, and the toggle carries no check. */
+    icon?: IconComponent;
+    /** An icon after the label, e.g. a caret. A button that opens a new tab has no other trailing icon, so this is ignored there. */
+    iconEnd?: IconComponent;
+    /** `icon` is a long-tail glyph that keeps its silhouette when filled, so a pressed toggle may fill it. A core glyph needs no mark. */
+    fillSafe?: boolean;
+    children: React.ReactNode;
+  };
 
 const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 
 /** A button. Its label says what happens: "Deploy", not "OK". */
-export function Button({ variant = "secondary", size = "md", icon, iconEnd, loading = false, disabled, onClick, className, children, ...props }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", icon, iconEnd, fillSafe, pressed, loading = false, disabled, onClick, className, children, newTabLabel, render, ...props }: ButtonProps) {
+  // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
+  const link = newTabRender(render);
+  const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
+  const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
   return (
     <BaseButton
       {...props}
+      render={link.render}
       disabled={disabled}
       aria-disabled={disabled || loading || undefined}
       aria-busy={loading || undefined}
+      aria-pressed={toggles ? isPressed : undefined}
       data-loading={loading ? "" : undefined}
       data-variant={variant}
       data-size={size}
@@ -52,29 +73,42 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, load
         onClick?.(event);
       }}
     >
-      {icon ? <Icon icon={icon} size={iconSize(size)} /> : null}
-      <span className="basalt-button-label">{children}</span>
-      {iconEnd ? <Icon icon={iconEnd} size={iconSize(size)} /> : null}
+      {icon ? <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} /> : null}
+      {/* A text toggle's 16px seat holds the check while pressed and is empty while not, so both are one width. */}
+      {toggles && !icon ? <span className="basalt-button-check" aria-hidden="true"><Icon icon={CheckGlyph} size={16} /></span> : null}
+      <span className="basalt-button-label">
+        {children}
+        {link.newTab ? <NewTabWords label={newTabLabel} /> : null}
+      </span>
+      {link.newTab ? <NewTabGlyph size={iconSize(size)} /> : iconEnd ? <Icon icon={iconEnd} size={iconSize(size)} /> : null}
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>
   );
 }
 
-export type IconButtonProps = BaseProps & {
-  icon: IconComponent;
-  /** Required: an icon-only button has no visible text, so this is its name. Also shown as its tooltip by convention. */
-  label: string;
-};
+export type IconButtonProps = BaseProps &
+  Toggle & {
+    icon: IconComponent;
+    /** `icon` is a long-tail glyph that keeps its silhouette when filled, so a pressed toggle may fill it. A core glyph needs no mark. */
+    fillSafe?: boolean;
+    /** Required: an icon-only button has no visible text, so this is its name. Also shown as its tooltip by convention. For a button that opens a new tab, the words are added to it. */
+    label: string;
+  };
 
-/** A square button with only an icon. */
-export function IconButton({ variant = "ghost", size = "md", icon, label, loading = false, disabled, onClick, className, ...props }: IconButtonProps) {
+/** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
+export function IconButton({ variant = "ghost", size = "md", icon, fillSafe, pressed, label, loading = false, disabled, onClick, className, newTabLabel, render, ...props }: IconButtonProps) {
+  const link = newTabRender(render);
+  const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
+  const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
   return (
     <BaseButton
       {...props}
+      render={link.render}
       disabled={disabled}
       aria-disabled={disabled || loading || undefined}
       aria-busy={loading || undefined}
-      aria-label={label}
+      aria-pressed={toggles ? isPressed : undefined}
+      aria-label={link.newTab ? `${label}${newTabWords(newTabLabel)}` : label}
       data-loading={loading ? "" : undefined}
       data-variant={variant}
       data-size={size}
@@ -89,7 +123,7 @@ export function IconButton({ variant = "ghost", size = "md", icon, label, loadin
         onClick?.(event);
       }}
     >
-      <Icon icon={icon} size={iconSize(size)} />
+      <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>
   );

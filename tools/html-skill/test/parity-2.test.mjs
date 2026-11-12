@@ -3,6 +3,8 @@
 // the fallbacks, and a tab's icon on its label's centre line. parity.test.mjs compares computed styles with React; this file pins the
 // behaviour and the geometry it can't read that way, and the removals (nothing else in the suite would notice a bar coming back).
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
@@ -106,7 +108,8 @@ for (const scheme of ["dark", "light"]) {
         assert.ok(!read(skillDir, "parts", `${part}.css`).includes("--basalt-size-indicator"), `${part}.css has no 2px bar`);
       }
       assert.ok(read(skillDir, "parts", "tabs.css").includes("--basalt-size-indicator"), "a horizontal tab keeps its underline");
-      assert.ok(!/2px bar|vertical bar is/.test(read(skillDir, "SKILL.md").replace(/No vertical bar/, "")), "SKILL.md no longer describes the bar");
+      const words = [read(skillDir, "SKILL.md"), ...fs.readdirSync(path.join(skillDir, "parts", "usage")).map((f) => read(skillDir, "parts", "usage", f))].join("\n");
+      assert.ok(!/2px bar|vertical bar is/.test(words.replace(/No vertical bar/, "")), "SKILL.md and the usage texts no longer describe the bar");
     });
   });
 }

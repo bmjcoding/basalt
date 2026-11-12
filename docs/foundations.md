@@ -220,6 +220,76 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
   column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
   scrollbar never shows the problem, which is why a test on a Mac cannot either).
+- **Table additions** (council, DECISIONS 95). **A row header** is a `th scope="row"` in the body (`TableRowHead`): 13/18 at
+  500 in primary, start-aligned, with the cell's height, padding and divider, on the row's own fill, so the hover and
+  selected washes run through it, and with no band fill (the 12px secondary band names columns across the top; a row
+  header names one row, inside it). Data cells stay 400; the step is structure, not state. A row header never sorts. When a
+  table is pinned the row header is the pinned name column, opaque at its level in every state as any pinned cell is.
+  **A not-observed cell** (`TableCell notObserved`) says "Not observed" in `text-tertiary` (4.5:1 or better on every level, proved),
+  lifting to `text-secondary` on the hover and selected washes, where tertiary alone fails. It has no
+  mark, no swatch and no dash (the dash already means a range, and "none", and is the ordinary em dash the owner
+  disliked). In a numeric column the words end on the numbers' edge. It is spoken as the words, with the headers around
+  it. Missing is not zero: `0` stays a digit in primary, and an empty string stays blank, which says nothing. A column
+  that can hold the words is wide enough for them at 13px inside its padding (112px). **Sorting** (app guidance: `Table`
+  does not sort data itself) puts a not-observed value after every observed value in both directions, and an empty string
+  after the observed values too; a total or mean says what it skipped. Every example and review round that sorts follows
+  it. **Narrow tables** stay the still table: pin the row header and scroll, never cards, never a hidden column. **The
+  scroll hint** (`TableScrollHint`, directly under the container) is one line, "Scroll sideways to see all 6 columns" (the
+  count is the table's), `text-tertiary`, 12/16, `aria-hidden`, shown only while the table overflows its container and
+  never changed while it scrolls, so nothing in the table moves; a column cut by the edge is not a cue when the next
+  column is numeric, because an end-aligned column shows only its empty start.
+- **Selected is shown by shape or a step in ink, and a card and a toggle follow it** (council, DECISIONS 95; one state,
+  one look). Wherever Basalt says on, selected or chosen it paints one solid selected fill, steps the ink to primary and
+  adds a shape: a raised pill in a track (one of many), a check in a reserved seat or a filled choice box (any of many, and
+  on), a closed glyph. The silhouette follows the furniture the state sits in; the fill, the ink step and the shape do not
+  change, and the wash alone is never the cue.
+- **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
+  wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
+  prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
+  checked control's own look) sits in a seat reserved on every choice card, on its header line, inline-end of the title,
+  empty at rest with the input boundary, so choosing moves no title. Selected is the selected wash as one solid fill at the
+  card's own level (the active-row plate recipe: `--_plate-solid`, about `#262626` on level 1 in dark and `#ededed` on
+  white), with the rim and the level unchanged: level is position, and a chosen card is not nested deeper. The title stays
+  primary with no weight change; tertiary content steps to secondary on the fill. Hover on an unselected card is the
+  hover wash alone, with no further step on a selected one; there is no press scale; focus is the control ring at +2
+  outside the card, so the grid keeps at least `space-1-5` to any clipping edge (the group's `space-4` gap does); state
+  changes crossfade over `duration-fast`, the same 100ms under reduced motion. In forced colours the wash drops, the card
+  keeps `Canvas` with a `CanvasText` edge, and the checked box is `Highlight` with `HighlightText`. Not used: a coloured
+  or ink ring round the chosen card (it reads as focus and breaks the one neutral rim), a darker or lighter card fill (it
+  vanishes in light and reads as a level in dark), and the wash alone. **A choice card holds words only:
+  choose, don't hold controls.** A link that explains the options goes beside or under the group; a field for the chosen
+  option goes under the group. (A link or button inside the label lights the card under it, makes near-misses choose, overlaps
+  touch targets, and is invalid HTML.) `ChoiceCard` still accepts any children, and the rule is the app's; it warns at no time.
+- **The pressed toggle** (`pressed` on a secondary or ghost `Button`, and on `IconButton`; it writes `aria-pressed`). Never
+  primary (a latched primary reads as the action) and never danger (a latched red reads as an error). Pressed is the
+  selected plate as one solid fill per level (never a layered wash, so forced colours can replace it; on the page itself, with no level, it is the wash over `surface-page` in light, about `#e8e8e8`, and the next level plus the wash in dark), the label steps to
+  `text-primary` with no weight change, a secondary's hairline steps to `border-hover`, a ghost gains its rectangle, and the
+  radius does not change. A text toggle holds a 16px seat at the label's inline start that shows the core `check` while
+  pressed and is empty while not, so a pressed and an unpressed toggle of one label are the same width; the check swaps,
+  it does not morph. An icon toggle, and every IconButton toggle, carries no check: the plate, the ink step and the glyph's
+  selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
+  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the check, at rest,
+  hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
+  `Switch`; exactly one of many is a segmented control, never toggle buttons.
+- **External links** (`Link`, and a `Button` or `IconButton` rendered as an anchor; council, DECISIONS 95). The arrow means
+  "opens in a new tab" and nothing else, so it comes automatically from `target="_blank"`, with no prop and no opt-out;
+  a same-tab link to another site gets nothing. It is the core `external` glyph after the label, `aria-hidden`, never
+  underlined, 16px beside 12 to 16px text and in Buttons xs to lg, 20px beside text of 20px and up (`Text` and `Heading` at xl or larger set a private size for what they hold) and in an xl Button, where it takes the trailing-icon
+  slot at the button's own gap (a new-tab Button has no other trailing icon). In running text it adds no space: the glyph's
+  own side bearing, a word joiner (U+2060) before it and `nowrap` keep it with the last word, so it never starts a line.
+  In a still-table cell the label truncates and the arrow stays whole. Ink: `text-secondary` at rest, lifting to the
+  link's own ink on hover and focus with the underline; a Button's own ink; `LinkText` or `ButtonText` in forced colours
+  through `currentColor`. Spoken: a visually hidden " (opens in a new tab)" inside the link or button, after the label, one
+  translatable string (`newTabLabel`); an IconButton gets it in its label and no second glyph; a link that holds only a
+  logo skips the glyph and keeps the phrase. Open a new tab only where leaving would lose the user's place.
+- **Badges, pending and pairs** (council, DECISIONS 95). `pending` (waiting, in review, queued) is a hollow 6px ring, a 1px
+  border in the badge word's own ink (`text-secondary` in `Badge`, `currentColor`), in the status dot's seat, with the app's
+  word ("Pending", "In review", "Queued"). No colour: waiting is not a warning. The ring is `aria-hidden`, the word is
+  spoken, the plain variant carries the same mark, and in forced colours it is a border in `CanvasText`. At most two badges
+  sit on one object (`BadgePair`): the status first, right after the name, then one neutral fact, `space-2` apart and
+  `space-2` after the name. Never two statuses; a third fact goes in words. When the name and the pair don't fit on one line
+  the pair moves under the name as a unit, the name truncates only when it alone is wider than the row, and a badge never
+  truncates. Spoken in DOM order.
 - **The multi-select filter** (`MultiSelect`; decisions 82 and 83). One rule picks the control: one of many is a pill in a
   track (`SegmentedControl`), any of many is a check with no track. Up to six values are independent chips: 32px, or 36
   inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
@@ -746,7 +816,7 @@ AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolli
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
-window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover. Avatar, Separator and EmptyState provide
+window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover, and draws the new-tab arrow when it opens one. Avatar, Separator and EmptyState provide
 neutral composition without replacing meaningful words with imagery.
 
 Forced-colours mode uses real borders and system colour keywords for boundaries, focus
@@ -789,6 +859,10 @@ The still table and the multi-select filter were decided by the council in a fou
 9 Nov 2026 (decisions 71 and 82 to 84): the fixed layout and reserved seat, the whole header cell as the sort control, the
 chips and their switch to a checklist at seven values, Clear held in place, and the divider at a scrolled pinned edge.
 Their implementation has not been reviewed by the panel.
+
+Display states (the new-tab cue on links and Buttons, row headers, "Not observed", the scroll hint, the choice card, the
+pressed toggle, the pending ring and two badges) were decided by the council in a three-member round the owner ordered
+(DECISIONS 95; two of three deciding). The implementation has not been reviewed.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

@@ -23,13 +23,18 @@
 
   /**
    * The binding an item's `keys` draws, or null. A shortcut needs ⌘, ⌃ or ⌥ and one more key: anything else (a bare letter, Shift
-   * alone) would fire while a person types, so it warns once and gets no chip and no binding. ⌘ answers to Meta or Ctrl, as ⌘K does.
+   * alone) would fire while a person types, so it warns once and gets no chip and no binding; so does `keys` that is not an array (a
+   * string like "⌘ S" would throw in .filter). ⌘ answers to Meta or Ctrl, as ⌘K does.
    * ⌘K and ⌃K (nothing else held) open the palette itself, so an item cannot take them: it warns and gets no chip and no binding too.
    */
   var badKeys = {};
   function binding(item) {
     var keys = item.keys;
     if (!keys) return null;
+    if (!Array.isArray(keys)) {
+      if (!badKeys['a:' + item.label]) { badKeys['a:' + item.label] = 1; console.warn('Basalt: "' + item.label + '" has keys that are not an array; write keys: [\'⌘\', \'S\']'); }
+      return null;
+    }
     var mods = keys.filter(function (k) { return k === '⌘' || k === '⌃' || k === '⌥' || k === '⇧'; });
     var rest = keys.filter(function (k) { return mods.indexOf(k) === -1; });
     if (rest.length !== 1 || !mods.some(function (k) { return k !== '⇧'; })) {
