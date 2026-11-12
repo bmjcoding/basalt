@@ -269,3 +269,28 @@ for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["N
     assert.deepEqual(inputs.filter((f) => /shiki|cmdk/.test(f)), []);
   });
 }
+
+// The figures (decision 94): the description list and the stat are plain markup; the meter carries Base UI's Meter and nothing
+// else of it; the terminal carries a Button, an Icon and the braille spinner, and never Shiki or cmdk.
+for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stats, Stat", 3_500]]) {
+  test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
+  });
+}
+
+test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki", async () => {
+  const { bytes, inputs } = await bundle("Meter");
+  assert.ok(bytes < 14_000, `Meter bundle is ${bytes} bytes`);
+  assert.ok(inputs.some((f) => /@base-ui\/react\/(esm\/)?meter\//.test(f)), "Base UI's Meter is in");
+  assert.deepEqual(inputs.filter((f) => /@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
+  assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress)\//.test(f)), "an unrelated Base UI part is in a Meter-only bundle");
+});
+
+test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
+  const { bytes, inputs } = await bundle("Terminal");
+  assert.ok(bytes < 40_000, `Terminal bundle is ${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
+  assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
+});

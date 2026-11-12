@@ -618,6 +618,14 @@
       },
       "$description": "The underline of the active tab in a horizontal tab bar. There is no vertical bar anywhere: the active row, a selected table row and vertical tabs take a plate, a wash or a pill instead."
     },
+    "description-label": {
+      "$type": "dimension",
+      "$value": {
+        "value": 160,
+        "unit": "px"
+      },
+      "$description": "The label column of a DescriptionList: fixed, never sized to its longest label, so every list on a page shares one value edge and a long label wraps inside it."
+    },
     "track": {
       "$type": "dimension",
       "$value": {

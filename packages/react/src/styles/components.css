@@ -2439,6 +2439,167 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the standard screen-reader-only clip; not a design length */
   .basalt-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+  /* ---- Figures: the description list, the meter, the stat, and the gutter and terminal that CodeBlock shares ---- */
+
+  /* DescriptionList: a dl of div rows, on the page, with no rim and no level. The label column is a fixed width, never sized to
+     its longest label, so every list on a page shares one value edge. The list is the container: it stacks (label over value)
+     when its own width, not the viewport's, is under 30rem (480px). */
+  .basalt-description-list { container-type: inline-size; margin: 0; padding: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-description-item {
+    display: grid;
+    grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr);
+    column-gap: var(--basalt-space-4);
+    align-items: baseline;
+    padding-block: var(--basalt-space-2-5);
+  }
+  /* The divider is inside the row (as the table's is), so a one-line row is 40px: 10 + 20 + 10. None above the first row or below the last. */
+  .basalt-description-item + .basalt-description-item { box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
+  .basalt-description-item:first-child { padding-top: 0; }
+  .basalt-description-item:last-child { padding-bottom: 0; }
+  .basalt-description-term {
+    margin: 0;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    overflow-wrap: anywhere;
+  }
+  .basalt-description-details {
+    min-width: 0;
+    margin: 0;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .basalt-description-details + .basalt-description-details { grid-column: 2; margin-top: var(--basalt-space-1); }
+  /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
+  .basalt-description-details[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
+  .basalt-description-details[data-missing] { color: var(--basalt-text-tertiary); }
+  @container (width < 30rem) {
+    .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
+    /* several values stay space-1 apart: the row gap is already space-0-5 */
+    .basalt-description-details + .basalt-description-details { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
+  }
+
+  /* Meter: how much of a cap is used. Not Progress: an outlined slot (8px, 1px input boundary, transparent inside) that is the cap
+     and never rescales, a fill in primary ink, and a foot that is always there so a change of state never adds a line. */
+  .basalt-meter {
+    --_cut: var(--_surface, var(--basalt-surface-page));
+    display: grid;
+    gap: var(--basalt-space-1);
+    width: 100%;
+    min-width: 0;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+  }
+  .basalt-meter-head, .basalt-meter-foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); min-width: 0; }
+  .basalt-meter-label { min-width: 0; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  /* The reading holds the width of the cap written as the value, so a new value never reflows the label. */
+  .basalt-meter-reading { flex: none; display: inline-grid; justify-items: end; color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-meter-reading > * { grid-area: 1 / 1; }
+  .basalt-meter-reserve { visibility: hidden; }
+  .basalt-meter-value { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  /* The slot is 8px with its border: 6px inside, so the fill (which inherits the track's height) sits inside the border. The
+     tick reaches 4px past the slot, which the 4px margin above and below keeps clear. */
+  .basalt-meter-track {
+    position: relative;
+    box-sizing: content-box;
+    height: calc(var(--basalt-space-2) - 2 * var(--basalt-size-hairline));
+    margin-block: var(--basalt-space-1);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-full);
+    background: transparent;
+  }
+  .basalt-meter-fill {
+    position: absolute;
+    inset-block-start: 0;
+    border-radius: inherit;
+    background: var(--basalt-text-primary);
+    transition: width var(--basalt-duration-slow) var(--basalt-ease-out);
+  }
+  /* The target: a 2px line in secondary ink, 4px past the slot on each side, with a 2px cut on each side in the colour of the surface
+     it sits on. The cut is a border (not a shadow), so forced colours keep it. A labelled scale tick, never a mark of state. */
+  .basalt-meter-tick {
+    box-sizing: content-box;
+    position: absolute;
+    inset-block: calc(-1 * (var(--basalt-space-1) + var(--basalt-size-hairline)));
+    inset-inline-start: var(--_target);
+    width: var(--basalt-size-indicator);
+    margin-inline-start: calc(-1 * (var(--basalt-size-indicator) / 2 + var(--basalt-space-0-5)));
+    border-inline: var(--basalt-space-0-5) solid var(--_cut);
+    background: var(--basalt-text-secondary);
+    background-clip: padding-box;
+  }
+  .basalt-meter-foot { align-items: center; min-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; }
+  /* Over the cap the overage is words in primary ink: no status colour, no dot. */
+  .basalt-meter-left[data-over] { color: var(--basalt-text-primary); }
+  .basalt-meter-target { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); margin-inline-start: auto; white-space: nowrap; }
+  .basalt-meter-target::before { content: ""; width: var(--basalt-size-indicator); height: var(--basalt-space-2-5); background: var(--basalt-text-secondary); }
+  @media (forced-colors: active) {
+    .basalt-meter-track { background: Canvas; border-color: CanvasText; }
+    .basalt-meter-fill { forced-color-adjust: none; background: CanvasText; }
+    .basalt-meter-tick { forced-color-adjust: none; background: CanvasText; border-color: Canvas; }
+    .basalt-meter-target::before { forced-color-adjust: none; background: CanvasText; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-meter-fill { transition: none; }
+  }
+
+  /* Stats: figures on the page, never boxed. One dl; each stat is a div with a dt (the label) and dds (the figure, the note, the
+     source). The skill's look (tools/html-skill .stats), with the dl's margins reset. The source is pinned to the foot of the stat's
+     cell, so sources line up across a row even when one stat has no note. */
+  .basalt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 10rem), 100%), 1fr)); gap: var(--basalt-space-6); width: 100%; min-width: min(var(--min, 10rem), 100%); margin: 0; padding: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-stat { display: flex; flex-direction: column; gap: var(--basalt-space-1); min-width: 0; margin: 0; padding: 0; }
+  .basalt-stat-label { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-stat-value { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); font-variant-numeric: tabular-nums; }
+  .basalt-stat-note { margin: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-stat-source { margin: auto 0 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+
+  /* The gutter shared by a CodeBlock with a prompt and the Terminal: 16px plus space-2 at the start of every line, holding a prompt, a
+     status mark, or nothing. It is chrome: nothing in it can be selected, and the prompt is aria-hidden. */
+  /* The gutter is one column for the whole block, measured by the browser and never counted in characters: the widest gutter (a
+     prompt or a mark) plus 1ch, and at least 16px plus space-2 (24px, which "$" never exceeds). Every line is a subgrid row of it,
+     so the text of every line starts on one edge, even beside a longer prompt such as "PS>". */
+  .basalt-code-lines { display: grid; grid-template-columns: minmax(calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)), max-content) auto; width: max-content; min-width: 100%; }
+  .basalt-code-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; min-height: var(--basalt-size-code-line-height); }
+  .basalt-code-gutter { padding-inline-end: 1ch; color: var(--basalt-text-tertiary); -webkit-user-select: none; user-select: none; }
+  .basalt-code-text { min-width: 0; }
+  .basalt-terminal-mark { display: block; margin-block: calc((var(--basalt-size-code-line-height) - var(--basalt-size-icon-sm)) / 2); }
+
+  /* Terminal: CodeBlock's frame. Commands are primary behind a tertiary prompt; output is secondary with an empty gutter; a result
+     carries its mark in the gutter, and only an error's text takes danger ink. No syntax colour. */
+  .basalt-terminal .basalt-code-line[data-kind="output"] { color: var(--basalt-text-secondary); }
+  .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-code-text { color: var(--basalt-status-danger); }
+  .basalt-terminal .basalt-code-line[data-kind="done"] .basalt-terminal-mark, .basalt-terminal-done { color: var(--basalt-status-success); }
+  .basalt-terminal .basalt-code-line[data-kind="warning"] .basalt-terminal-mark { color: var(--basalt-status-warning); }
+  .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-terminal-mark, .basalt-terminal-failed { color: var(--basalt-status-danger); }
+  /* The terminal is the container for its own head: under 30rem of its own width (as the description list stacks) the copy button is the
+     icon alone, whatever the viewport. */
+  .basalt-terminal { container-type: inline-size; }
+  .basalt-terminal-head { flex-wrap: wrap; column-gap: var(--basalt-space-3); }
+  .basalt-terminal-actions .basalt-terminal-copy-compact { display: none; }
+  @container (width < 30rem) {
+    .basalt-terminal-actions .basalt-terminal-copy { display: none; }
+    .basalt-terminal-actions .basalt-terminal-copy-compact { display: inline-flex; }
+  }
+  /* Before the first line of a replay: one sentence in the log's box, in the text column. */
+  .basalt-terminal-hint { grid-column: 1 / -1; margin-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); color: var(--basalt-text-tertiary); }
+  .basalt-terminal-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 var(--basalt-space-2); max-width: 100%; margin-inline-start: auto; }
+  .basalt-terminal-actions:has(.basalt-button) { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
+  .basalt-terminal-state { display: inline-flex; font-weight: var(--basalt-font-weight-regular); }
+  .basalt-terminal-state [data-error] { color: var(--basalt-status-danger); }
+  /* A word that changes in place stands in one grid cell with all its forms, the others hidden, so the cell is as wide as the widest. */
+  .basalt-terminal-swap { display: inline-grid; }
+  .basalt-terminal-swap > * { grid-area: 1 / 1; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .basalt-terminal-swap > :not([data-on]) { visibility: hidden; }
+  /* A transcript whose lines arrive has a fixed height that scrolls inside, so arriving lines never move the page. */
+  .basalt-terminal[data-live] .basalt-code-pre { box-sizing: border-box; block-size: calc(var(--basalt-size-code-line-height) * 9 + var(--basalt-space-3) * 2); overflow-y: auto; scrollbar-gutter: stable; }
+  @media (forced-colors: active) {
+    /* A code block's and a terminal's title row draws its hairline as an inset shadow, which forced colours drop, so the head and the
+       body would run together: here it is a real border in CanvasText, with the padding giving back its 1px so the head is the same height. */
+    .basalt-code-title { box-shadow: none; border-bottom: var(--basalt-size-hairline) solid CanvasText; padding-bottom: calc(var(--basalt-space-1) - var(--basalt-size-hairline)); }
+    /* Marks are icons, which keep their shapes; they take the system foreground as the callout's do. */
+    .basalt-terminal .basalt-code-line[data-kind] .basalt-terminal-mark, .basalt-terminal .basalt-terminal-done, .basalt-terminal .basalt-terminal-failed, .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-code-text, .basalt-terminal-state [data-error] { color: CanvasText; }
+  }
+
   /* ---- Accordion ---- */
 
   .basalt-accordion { font-family: var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
@@ -2507,6 +2668,8 @@
   .basalt-chrome .basalt-sparkline-axis,
   .basalt-chrome .basalt-chip-seat,
   .basalt-chrome .basalt-filter-count,
+  .basalt-chrome .basalt-stat-source,
+  .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-table-hint,
   .basalt-chrome .basalt-preview-kicker { color: var(--basalt-text-secondary); }
 

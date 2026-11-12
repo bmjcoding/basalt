@@ -74,6 +74,13 @@ The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointe
 
 **In navigation** (`Nav`) the same plumbing (`plate.tsx`) marks the item under the pointer `data-hovered` (an attribute, not state) and the pill hugs that item's own pill, not its row, changing width as it goes: a 48px round pill at the selected wash, or the 48px circle in the rail. The rows are the same table with two differences. The first key hides the glide at once (not faded) and the focus ring shows, the control ring at +2 around the hugging pill; the pointer resting on an item hides its hover too while the keyboard is in use, and the next pointer move brings the glide back in place. The pill never touches the column's width. Off on touch, under reduced motion and in forced colours, where the hovered item is `Highlight` with `HighlightText` with no backplate; each item paints its own pill, in at once and out over `duration-fast`, and with no script that is the whole story.
 
+<<<<<<< HEAD
+## The meter's glide and the live transcript
+
+The `Meter`'s fill glides over `duration-slow` on `ease-out` when its value changes (a CSS transition on the fill's width, so a second change turns from where it has reached). Under reduced motion it jumps. The slot, the target tick and every word hold still: the fill is the only thing a new value moves, and over the cap it stops at the slot's end. A stat's source line, a description list and the stat's figures have no motion.
+
+A live `Terminal` (decision 94) is `role="log"` only while lines arrive, never while idle, paused or finished. A line appears when it arrives: it has no entry animation, so reduced motion changes nothing. The log has a fixed height that scrolls inside, so arriving lines never move the page, and it follows the end only while the reader is at it; scrolling up stops it, and scrolling back to the end resumes it. Pressing Play or Replay makes the region a `log` first and shows the first line one frame later (so a screen reader hears it), so a replay's box is never blank for an interval. A replay has a pause control (WCAG 2.2.2), and every word that changes in place in the head ("Not started", "Running", "Paused", "Done", "Failed, exit 1"; "Play", "Pause", "Resume", "Replay"; "Copy commands", "Copied") stands in one cell with the others hidden, so the head never moves. Braille beside "Running" holds its first frame under reduced motion.
+=======
 ## The narrow menu
 
 The site header's menu under 720 is `Sheet side="top"` (decision 96). It does not slide: the bar's own band, redrawn in the sheet's first
@@ -94,6 +101,7 @@ The scrim is unblurred and the sheet is solid: the bar under it stays the one fi
 A press or hover is a colour step on a 32px circle behind the glyph (`duration-fast`, in at once); the first key hides it. Nothing in the
 tab bar moves, resizes or glides, and no cell scales. The bar has no shared pill, because it exists only under 720, where the glide is
 off on touch anyway.
+>>>>>>> origin/main
 
 ## Spinners
 

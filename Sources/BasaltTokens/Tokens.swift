@@ -348,6 +348,8 @@ extension Basalt {
     public static let hairline: Double = 1
     /// The underline of the active tab in a horizontal tab bar. There is no vertical bar anywhere: the active row, a selected table row and vertical tabs take a plate, a wash or a pill instead.
     public static let indicator: Double = 2
+    /// The label column of a DescriptionList: fixed, never sized to its longest label, so every list on a page shares one value edge and a long label wraps inside it.
+    public static let descriptionLabel: Double = 160
     /// The track of Progress and Slider.
     public static let track: Double = 4
     /// Status dots and the radio's checked dot.
