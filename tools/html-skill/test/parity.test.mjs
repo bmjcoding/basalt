@@ -273,6 +273,7 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       tabIndex: () => el.getAttribute("tabindex"), ariaLabel: () => el.getAttribute("aria-label"), role: () => el.getAttribute("role"), labelledByText: () => document.getElementById(el.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, isActive: () => String(document.activeElement === el),
       dataPhase: () => el.getAttribute("data-phase"), ariaSort: () => el.getAttribute("aria-sort"), ariaHidden: () => el.getAttribute("aria-hidden"), ariaLive: () => el.getAttribute("aria-live"), ariaAtomic: () => el.getAttribute("aria-atomic"),
       text: () => el.textContent.trim(), ownText: () => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim(), scrollHeight: () => px(el.scrollHeight),
+      attrPoints: () => el.getAttribute("points"), attrViewBox: () => el.getAttribute("viewBox"), attrValue: () => el.getAttribute("aria-selected"), plainText: () => el.textContent.replace(/\s+/g, " ").trim(),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
     return Object.fromEntries(names.map((n) => [n, special[n] ? special[n]() : plain(n)]));
@@ -1549,6 +1550,170 @@ const ART = [
   },
 ];
 
+// ---- The rest of the overlays (step 9 of batch 7): the combobox and the sparkline ----
+// The combobox is read closed (the field, its placeholder and caret), chosen (a value in it), in focus, open (the popup, the rows, the check, the two-line row, the lit row, the shared
+// plate, the disabled row) and with no match (the empty sentence). The popup's place is read against the field, marked on both pages (the group has no props of its own in React). The
+// sparkline is read with data, with one sample, empty and loading.
+const REST_IMPORTS = `const { Combobox, Sparkline } = B;`;
+const CB_OPTIONS = `[{ value: "eu", label: "Frankfurt", description: "eu-central, lowest latency" }, { value: "us", label: "Ashburn" }, { value: "ap", label: "Singapore" }, { value: "gone", label: "Sydney", disabled: true }]`;
+const cbSkill = (inner = "", { chosen = true, attrs = "" } = {}) => `<div class="combobox" data-empty="No options match."><input class="input" aria-label="Region" placeholder="Search regions…"${attrs}><ul><li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li><li data-value="us"${chosen ? ' aria-selected="true"' : ""}>Ashburn</li><li data-value="ap">Singapore</li><li data-value="gone" aria-disabled="true">Sydney</li></ul></div>${inner}`;
+const cbFrame = (inner) => `<div style={{ padding: 16, width: 320 }}>${inner}</div>`;
+const cbFrameSkill = (inner) => `<div style="padding: 16px; width: 352px">${inner}</div>`;
+const CB_FIELD = [...BOXRECT, "display", "position", "minWidth"];
+const CB_INPUT = [...BOXRECT, ...GEOMETRY, "paddingRight", ...TYPE, "color", "backgroundColor", "boxShadow", "borderTopWidth", "outlineStyle", "fontFamily", "cursor"];
+const CB_TRIGGER = [...BOXRECT, "position", "display", ...GEOMETRY, "color", "backgroundColor", "boxShadow", "cursor", "transform"];
+const CB_ROW = [...GEOMETRY, ...TYPE, "color", "backgroundColor", "gap", "boxHeight", "boxWidth", "display", "cursor", "gridTemplateColumns", "gridTemplateRows"];
+const CB_PLATE = ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"];
+const cbRow = (n) => `[role=listbox] > :nth-child(${n})`;
+const cbMark = {
+  react: (p) => p.evaluate(() => document.querySelector(".basalt-combobox").setAttribute("data-parity-trigger", "")),
+  skill: (p) => p.evaluate(() => document.querySelector(".combobox").setAttribute("data-parity-trigger", "")),
+};
+const CB_FIELD_PAIRS = [
+  ["field", ".basalt-combobox", ".combobox", CB_FIELD],
+  ["input", ".basalt-combobox-input", ".combobox > .input", CB_INPUT],
+  ["placeholder", ".basalt-combobox-input", ".combobox > .input", ["color", "opacity"], { pseudo: "::placeholder" }],
+  ["caret button", ".basalt-combobox-trigger", ".combobox-trigger", CB_TRIGGER],
+  ["caret", ".basalt-combobox-trigger svg", ".combobox-trigger svg", [...BOXRECT, "color", "fill"]],
+];
+const CB_OPEN_PAIRS = [
+  ["popup", ".basalt-combobox-popup", ".combobox-popup", [...PANEL, ...PAD, "boxWidth", "boxHeight", "minWidth", "maxWidth", "gapBelow", "startOffset", "overflowY", ...ENTRY]],
+  ["row", `.basalt-combobox-popup ${cbRow(2)}`, `.combobox-popup ${cbRow(2)}`, CB_ROW],
+  ["row plate", `.basalt-combobox-popup ${cbRow(2)}`, `.combobox-popup ${cbRow(2)}`, CB_PLATE, { pseudo: "::before" }],
+  ["chosen row's check", `.basalt-combobox-popup ${cbRow(2)} .basalt-menu-check`, `.combobox-popup ${cbRow(2)} .combobox-check`, ["boxWidth", "boxHeight", "color", "display"]],
+  ["check mark", `.basalt-combobox-popup ${cbRow(2)} .basalt-menu-check svg`, `.combobox-popup ${cbRow(2)} .combobox-check svg`, ["boxWidth", "boxHeight", "color", "fill", "visibility"]],
+  ["label", `.basalt-combobox-popup ${cbRow(3)} .basalt-menu-item-label`, `.combobox-popup ${cbRow(3)} .combobox-option-label`, [...BOXRECT, ...TYPE, "color", "flexGrow"]],
+  ["unchosen row's seat", `.basalt-combobox-popup ${cbRow(3)} .basalt-menu-check`, `.combobox-popup ${cbRow(3)} .combobox-check`, ["boxWidth", "boxHeight", "display"]],
+  ["lit row", `.basalt-combobox-popup ${cbRow(1)}`, `.combobox-popup ${cbRow(1)}`, CB_ROW],
+  ["lit plate", `.basalt-combobox-popup ${cbRow(1)}`, `.combobox-popup ${cbRow(1)}`, CB_PLATE, { pseudo: "::before" }],
+  ["glide plate", ".basalt-combobox-popup .basalt-plate", ".combobox-popup .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity", "firstTransitionDuration", "firstTransitionTimingFunction"]],
+  ["described row's description", `.basalt-combobox-popup ${cbRow(1)} .basalt-menu-item-description`, `.combobox-popup ${cbRow(1)} .combobox-option-description`, [...TYPE, "color", "boxHeight", "boxWidth", "whiteSpace", "textOverflow", "gridColumnStart", "gridRowStart"]],
+  ["described row's label", `.basalt-combobox-popup ${cbRow(1)} .basalt-menu-item-label`, `.combobox-popup ${cbRow(1)} .combobox-option-label`, [...BOXRECT, "gridColumnStart", "gridRowStart", "overflowX", "textOverflow"]],
+  ["disabled row", `.basalt-combobox-popup ${cbRow(4)}`, `.combobox-popup ${cbRow(4)}`, [...CB_ROW]],
+  ["disabled row's ink", `.basalt-combobox-popup ${cbRow(4)}`, `.combobox-popup ${cbRow(4)}`, ["color"]],
+  ["list", ".basalt-combobox-popup [role=listbox]", ".combobox-popup [role=listbox]", [...BOXRECT, "role"]],
+  ["empty sentence", ".basalt-combobox-empty", ".combobox-empty", [...PAD, ...TYPE, "color", "display", "role", "ariaLive", "ariaAtomic"]],
+];
+const SPARK_DATA = "[12, 18, 9, 30, 24]";
+const sparkReact = (label, props) => `<div style={{ width: 240 }}><Sparkline label="${label}" ${props} /></div>`;
+const sparkSkill = (options) => `<div style="width: 240px"><div class="sparkline"><script type="application/json" data-sparkline>${JSON.stringify(options)}</script></div></div>`;
+const SPARK_BOX = [...BOXRECT, "display", "flexDirection", "rowGap", "minWidth"];
+const SPARK_PAIRS = [
+  ["sparkline", ".basalt-sparkline", ".sparkline", SPARK_BOX],
+  ["head", ".basalt-sparkline-head", ".sparkline-head", [...BOXRECT, "display", "justifyContent", "columnGap"]],
+  ["label", ".basalt-sparkline-label", ".sparkline-label", [...BOXRECT, ...TYPE, "color", "fontFamily"]],
+  ["value", ".basalt-ticker", ".sparkline-value", [...BOXRECT, "display", "alignItems", ...TYPE, "color", "fontVariantNumeric", "fontKerning"]],
+  ["value, as spoken", ".basalt-ticker-text", ".sparkline-value > .visually-hidden", ["plainText", "position", "boxWidth", "boxHeight"]],
+  ["value's digits", ".basalt-ticker-digit", ".sparkline-value [data-d]", ["rectLeft", "rectTop", "boxHeight", "display", "overflowX", "lineHeight"]],
+  ["image", ".basalt-sparkline svg", ".sparkline svg", [...BOXRECT, "color", "ariaLabel", "role", "attrViewBox"]],
+  ["line", ".basalt-sparkline-line", ".sparkline-line", ["attrPoints", "fill", "stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin"]],
+  ["axis", ".basalt-sparkline-axis", ".sparkline-axis", [...BOXRECT, "display", "justifyContent", "columnGap", "color", "fontSize", "lineHeight", "fontVariantNumeric"]],
+  ["axis's zero", ".basalt-sparkline-axis > :first-child", ".sparkline-axis > :first-child", [...BOXRECT, "plainText"]],
+  ["axis's peak", ".basalt-sparkline-axis > :last-child", ".sparkline-axis > :last-child", [...BOXRECT]],
+  ["axis's peak, as spoken", ".basalt-sparkline-axis .basalt-visually-hidden", ".sparkline-axis > :last-child", ["plainText"]],
+];
+const REST = [
+  {
+    id: "combobox, closed",
+    width: 1440,
+    react: cbFrame(`<Combobox aria-label="Region" placeholder="Search regions…" options={${CB_OPTIONS}} />`),
+    skill: cbFrameSkill(cbSkill("", { chosen: false })),
+    ready: { react: ".basalt-combobox", skill: ".combobox-trigger" },
+    pairs: [...CB_FIELD_PAIRS, ["focus ring", ".basalt-combobox-input", ".combobox > .input", [...OUTLINE, "boxShadow"], { focus: true }]],
+  },
+  {
+    id: "combobox, with a chosen value",
+    width: 1440,
+    react: cbFrame(`<Combobox aria-label="Region" defaultValue="us" options={${CB_OPTIONS}} />`),
+    skill: cbFrameSkill(cbSkill()),
+    ready: { react: ".basalt-combobox", skill: ".combobox-trigger" },
+    pairs: [["field", ".basalt-combobox", ".combobox", CB_FIELD], ["input", ".basalt-combobox-input", ".combobox > .input", [...CB_INPUT, "value"]], ["input's text", ".basalt-combobox-input", ".combobox > .input", ["color"]]],
+  },
+  {
+    id: "combobox, open",
+    width: 1440,
+    react: cbFrame(`<Combobox aria-label="Region" defaultOpen defaultValue="us" options={${CB_OPTIONS}} />`),
+    skill: cbFrameSkill(cbSkill()),
+    ready: { react: ".basalt-combobox-popup", skill: ".combobox-trigger" },
+    open: {
+      react: async (p) => { await cbMark.react(p); await p.locator(".basalt-combobox-popup [role=listbox] > :nth-child(1)").hover(); },
+      skill: async (p) => { await cbMark.skill(p); await p.locator(".combobox-trigger").click(); await p.waitForSelector(".combobox-popup:popover-open"); await p.locator(".combobox-popup [role=listbox] > :nth-child(1)").hover(); },
+    },
+    pairs: CB_OPEN_PAIRS.filter(([label]) => label !== "empty sentence"),
+  },
+  {
+    id: "combobox, with no match",
+    width: 1440,
+    react: cbFrame(`<Combobox aria-label="Region" defaultOpen options={${CB_OPTIONS}} />`),
+    skill: cbFrameSkill(cbSkill("", { chosen: false })),
+    ready: { react: ".basalt-combobox-popup", skill: ".combobox-trigger" },
+    open: {
+      react: async (p) => { await cbMark.react(p); await p.locator("input.basalt-combobox-input").pressSequentially("zzz"); },
+      skill: async (p) => { await cbMark.skill(p); await p.locator(".combobox > .input").pressSequentially("zzz"); await p.waitForSelector(".combobox-popup:popover-open"); },
+    },
+    pairs: [CB_OPEN_PAIRS[0], CB_OPEN_PAIRS.at(-1)],
+  },
+  {
+    id: "combobox on touch",
+    width: 390,
+    touch: true,
+    react: cbFrame(`<Combobox aria-label="Region" defaultOpen defaultValue="us" options={${CB_OPTIONS}} />`),
+    skill: cbFrameSkill(cbSkill()),
+    ready: { react: ".basalt-combobox-popup", skill: ".combobox-trigger" },
+    // Both fields are in focus with the first row lit, by the keys (a tap would leave a hover on the caret in the skill's page only).
+    open: {
+      react: async (p) => { await cbMark.react(p); await p.locator("input.basalt-combobox-input").focus(); await p.keyboard.press("ArrowDown"); },
+      skill: async (p) => { await cbMark.skill(p); await p.locator(".combobox > .input").focus(); await p.keyboard.press("ArrowDown"); await p.keyboard.press("ArrowUp"); await p.waitForSelector(".combobox-popup:popover-open"); },
+    },
+    pairs: [
+      ...CB_FIELD_PAIRS,
+      ["popup", ".basalt-combobox-popup", ".combobox-popup", [...PANEL, ...PAD, "boxWidth", "boxHeight", "minWidth", "gapBelow", "startOffset"]],
+      ["row", `.basalt-combobox-popup ${cbRow(2)}`, `.combobox-popup ${cbRow(2)}`, CB_ROW],
+      ["described row", `.basalt-combobox-popup ${cbRow(1)}`, `.combobox-popup ${cbRow(1)}`, [...CB_ROW, "minHeight"]],
+    ],
+  },
+  {
+    id: "sparkline",
+    width: 1440,
+    react: sparkReact("Requests", `data={${SPARK_DATA}}`),
+    skill: sparkSkill({ label: "Requests", data: [12, 18, 9, 30, 24] }),
+    ready: { react: ".basalt-sparkline-line", skill: ".sparkline-line" },
+    pairs: SPARK_PAIRS,
+  },
+  {
+    id: "sparkline, a decimal and one sample",
+    width: 1440,
+    react: sparkReact("Load", `data={[1234.5]}`),
+    skill: sparkSkill({ label: "Load", data: [1234.5] }),
+    ready: { react: ".basalt-sparkline-line", skill: ".sparkline-line" },
+    pairs: SPARK_PAIRS,
+  },
+  {
+    id: "sparkline, empty",
+    width: 1440,
+    react: sparkReact("Requests", `data={[]}`),
+    skill: sparkSkill({ label: "Requests", data: [] }),
+    ready: { react: ".basalt-sparkline-empty", skill: ".sparkline-empty" },
+    pairs: [...SPARK_PAIRS.filter(([label]) => ["sparkline", "head", "label"].includes(label)), ["sentence", ".basalt-sparkline-empty", ".sparkline-empty", [...BOXRECT, ...TYPE, "color", "marginTop", "marginBottom", "plainText"]], ["no image", ".basalt-sparkline", ".sparkline", ["childCount"]]],
+  },
+  {
+    id: "sparkline, loading",
+    width: 1440,
+    react: sparkReact("Requests", `data={${SPARK_DATA}} loading`),
+    skill: sparkSkill({ label: "Requests", data: [12, 18, 9, 30, 24], loading: true }),
+    ready: { react: ".basalt-sparkline[data-loading]", skill: ".sparkline[data-loading]" },
+    pairs: [...SPARK_PAIRS, ["breathing", ".basalt-sparkline-line", ".sparkline-line", ["animationDuration", "animationTimingFunction", "animationIterationCount", "animationDirection"]]],
+  },
+  {
+    id: "sparkline, loading with nothing yet",
+    width: 1440,
+    react: sparkReact("Requests", `data={[]} loading`),
+    skill: sparkSkill({ label: "Requests", data: [], loading: true }),
+    ready: { react: ".basalt-sparkline[data-loading]", skill: ".sparkline[data-loading]" },
+    pairs: [...SPARK_PAIRS.filter(([label]) => ["sparkline", "head", "image", "line"].includes(label)), ["no axis", ".basalt-sparkline", ".sparkline", ["childCount"]]],
+  },
+];
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -1729,6 +1894,24 @@ describe("each skill component renders as its React counterpart does, but for th
         await compare(theme, art.id, reactPage, skillPage, art.pairs, null);
         // A failed or broken data URI logs a console error; only a script error is a fault here.
         assert.deepEqual([errors.filter((e) => !/Failed to load resource|ERR_/.test(e)), skillErrors.filter((e) => !/Failed to load resource|ERR_/.test(e))], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
+
+    for (const rest of REST) {
+      test(`${rest.id} (${theme})`, async () => {
+        const touch = rest.touch ? { isMobile: true, hasTouch: true } : {};
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `${REST_IMPORTS}\ndocument.body.style.margin = "0";\nflushSync(() => createRoot(document.getElementById("root")).render(<>${rest.react}</>));`, { theme, viewport: { width: rest.width, height: rest.width === 390 ? 844 : 900 }, ...touch });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        if (rest.touch) await reactPage.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.appendChild(meta); });
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${rest.skill}`, { fonts: false }).html, { scheme: theme, width: rest.width, touch: Boolean(rest.touch) });
+        await skillPage.waitForSelector(rest.ready.skill, { state: "attached" });
+        await reactPage.waitForSelector(rest.ready.react, { state: "attached" });
+        for (const p of [reactPage, skillPage]) await settle(p);
+        if (rest.open) { await rest.open.react(reactPage); await rest.open.skill(skillPage); for (const p of [reactPage, skillPage]) await settle(p); }
+        await compare(theme, rest.id, reactPage, skillPage, rest.pairs, null);
+        assert.deepEqual([errors, skillErrors], [[], []]);
         await reactPage.close();
         await context.close();
       });

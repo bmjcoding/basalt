@@ -367,3 +367,21 @@ describe("forced colours: placeholders", () => {
     }
   }
 });
+
+// The Combobox's caret is 44px on touch, so the field's end padding is 44px there (not the 40px of a fine pointer): text never runs under the caret.
+describe("Combobox: the end padding on touch", () => {
+  for (const [name, options, expected] of [["touch", { hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } }, "44px"], ["a fine pointer", {}, "40px"]]) {
+    test(`the field's end padding is ${expected} on ${name}, and clears the caret`, async () => {
+      const { page } = await fixturePage(browser, render(`<div style={{ padding: 16 }}><B.Combobox aria-label="Zone" options={[{ value: "x", label: "X-ray" }]} /></div>`), options);
+      const read = await page.evaluate(() => {
+        const input = document.querySelector(".basalt-combobox-input");
+        const caret = document.querySelector(".basalt-combobox-trigger").getBoundingClientRect();
+        const box = input.getBoundingClientRect();
+        return { padding: getComputedStyle(input).paddingRight, room: box.right - caret.left };
+      });
+      assert.equal(read.padding, expected);
+      assert.ok(Number.parseFloat(read.padding) >= read.room - 1, `text stops at or before the caret (padding ${read.padding}, caret ${read.room}px wide)`);
+      await page.close();
+    });
+  }
+});

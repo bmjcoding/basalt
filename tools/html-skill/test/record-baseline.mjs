@@ -20,6 +20,7 @@ const pages = {
   tables: read(here, "fixtures", "tables.body.html"),
   commands: read(here, "fixtures", "commands.body.html"),
   art: read(here, "fixtures", "art.body.html"),
+  rest: read(here, "fixtures", "rest.body.html"),
 };
 
 for (const [name, body] of Object.entries(pages)) {

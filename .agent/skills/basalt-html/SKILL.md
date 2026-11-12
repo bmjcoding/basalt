@@ -54,6 +54,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **dlist** `.dlist`: a `dl` of `div` rows, never in a panel; no value writes `Not observed`.
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
+- **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word; a long wait needs `loops`.
@@ -63,6 +64,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
 - **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.
 - **menu** `.menu`: rows are `button.menu-item` with a role; a radio sits in a `role="group"`.
+- **combobox** `.combobox`: an `input.input` and a `ul` of `li`; the script builds the popup, caret and value.
 - **dialog** `data-dialog-open`: a `<dialog>` with a `.dialog-title`; an alert dialog marks its safe button `data-cancel`.
 - **sheet** `.sheet`: a dialog with `data-side`; the top one opens with a `.sheet-band`.
 - **tooltip** `data-tooltip`: only supplements a name the control already has; plain text.
