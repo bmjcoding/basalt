@@ -214,17 +214,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   one. A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours: the row's wash is laid
   over the panel's fill as one cell background), and a focused header or action scrolls clear of the pinned columns
   (the container's `scroll-padding-inline-start`, finished on focus for a cell that is only half covered). **The
-<<<<<<< HEAD
   scrolled-edge divider** is one of the few vertical lines Basalt allows, and a **meter's target tick** is another (see
-  Figures and transcripts under [Lines, states and actions](#lines-states-and-actions)): each is structure (a 1px `border-divider` at the pinned edge, drawn only while the
+  [Vertical lines](#vertical-lines)): each is structure (a 1px `border-divider` at the pinned edge, drawn only while the
   table is actually scrolled; a labelled scale tick on a meter's slot) and never a selection, sort, active or status
   mark. The owner's ruling against the vertical bar is about marks, and these are not marks. Another structural edge is
   added to this list by name, with its reason, never by a general exception. **App guidance:** set `scrollbar-gutter: stable` on the page's
-=======
-  scrolled-edge divider** is a 1px `border-divider` at the pinned edge, drawn only while the table is actually scrolled. It
-  is one of the vertical lines Basalt allows (see [Vertical lines](#vertical-lines)): structure, never a selection, sort or
-  status mark. **App guidance:** set `scrollbar-gutter: stable` on the page's
->>>>>>> origin/main
   scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
   column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
   scrollbar never shows the problem, which is why a test on a Mac cannot either).
@@ -806,8 +800,8 @@ is in).
 ### Vertical lines
 
 Basalt allows a short list of vertical lines. Each is structure, and none is a selection, sort, active or status mark (the owner's
-ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled, and
-the app sidebar's 1px edge.
+ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
+the app sidebar's 1px edge, and a meter's labelled target tick.
 
 ## Motion
 
