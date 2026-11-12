@@ -3206,7 +3206,8 @@
   .basalt-sheet[data-ending-style], .basalt-sheet-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); transition-timing-function: var(--basalt-ease-in); }
 
   @media (pointer: coarse) {
-    .basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
+    /* Two classes, as the 40px rule it replaces: a single class is outranked by it and never applied, leaving text under the 44px caret. */
+    .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
     .basalt-number-group .basalt-button { min-width: var(--basalt-size-tap-min); }
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
