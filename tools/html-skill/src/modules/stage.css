@@ -1,0 +1,46 @@
+/* The stage and paired art (React's Stage and PairedArt, DECISIONS 104 and 108): full-bleed art at the top of a page, under the site header. Level 0: the
+   page painted with art, so no rim, radius, shadow, line or fade is added where it ends. It starts at y = 0 under the bar (pulled up by the sticky offset the
+   topbar module derives: the bar plus the top safe area) and its content starts below the headroom, 80px (size-stage-headroom) plus that safe area. Its height is
+   its content's. While the art loads it shows art-field, the page colour, which meets the headroom by definition.
+   The bar stays smoked over it, from the first pixel: React's bar clears only over a stage whose headroom passed the test helper, and a page has no test run, so
+   the skill never declares one (DECISIONS 108's note). Nothing here changes the bar. */
+
+@layer basalt {
+
+  :root { --basalt-stage-headroom: calc(var(--basalt-size-stage-headroom) + var(--bh-inset-top, var(--basalt-space-0))); }
+
+  .stage {
+    position: relative;
+    box-sizing: border-box;
+    margin-top: calc(-1 * var(--basalt-sticky-offset, var(--basalt-space-0)));
+    padding-top: var(--basalt-stage-headroom);
+    background-color: var(--basalt-art-field);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .stage-art > :is(svg, canvas, picture, img, video) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .stage-content { position: relative; }
+
+  /* Paired art shows the picture for the page's theme, the toggle's as well as the system's: the theme roots set which one, the way the tokens set the colours,
+     so a nested theme root has its own. Never filtered. */
+  :root, [data-theme="light"], .light { --_art-dark: none; --_art-light: block; }
+  [data-theme="dark"], .dark { --_art-dark: block; --_art-light: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) { --_art-dark: block; --_art-light: none; }
+  }
+  .paired-art { object-fit: cover; }
+  .paired-art[data-art="dark"] { display: var(--_art-dark); }
+  .paired-art[data-art="light"] { display: var(--_art-light); }
+
+  @media (forced-colors: active) {
+    /* Decorative art is not drawn, and the stage is Canvas: a picture behind system colours would undo the mode. */
+    .stage { background-color: Canvas; }
+    .stage-art { display: none; }
+  }
+  @media print {
+    /* Decorative stage art does not print, and the bar is not over it, so the stage takes its place in the flow. */
+    .stage { margin-top: 0; padding-top: 0; background: none; }
+    .stage-art { display: none; }
+  }
+}

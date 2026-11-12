@@ -27,7 +27,11 @@ export { Kbd } from "./kbd";
 export type BadgeStatus = "neutral" | "success" | "warning" | "danger" | "accent" | "pending";
 
 export type BadgeProps = React.ComponentProps<"span"> & {
-  /** A status dot before the label. The label always says the status in words; the dot never carries it alone. */
+  /**
+   * A status dot before the label. The label always says the status in words; the dot never carries it alone. With no status the badge is the
+   * word alone (a count, a fact). `"neutral"` asked for by name draws the tertiary dot (Idle, Draft). A running badge is a plain badge whose first
+   * child is a braille `Spinner`, which takes the dot's seat, so it draws no dot.
+   */
   status?: BadgeStatus;
 } & (
     | {
@@ -51,11 +55,11 @@ export type BadgeProps = React.ComponentProps<"span"> & {
   );
 
 /** A small label, e.g. a deployment state. Neutral; colour only in the dot. */
-export function Badge({ status = "neutral", variant = "outline", size, className, children, ...props }: BadgeProps) {
+export function Badge({ status, variant = "outline", size, className, children, ...props }: BadgeProps) {
   const plain = variant === "plain";
   const badge = (
     <span {...props} data-status={status} data-variant={variant} data-size={plain ? size ?? 16 : undefined} className={join("basalt-badge", className)}>
-      {status === "neutral" ? null : <span className="basalt-badge-dot" aria-hidden="true" />}
+      {status === undefined ? null : <span className="basalt-badge-dot" aria-hidden="true" />}
       {children}
     </span>
   );

@@ -7,14 +7,14 @@
      button[data-disclosure][aria-controls]   disclosure       show and hide the element it controls
      [data-copy="#id"] or [data-copy-text]    copy             copy button
      [data-open-palette]                      palette          opens the command palette (also Cmd/Ctrl+K)
-     <i data-icon="Info"></i>                 core             inline Phosphor icon, 16px (data-size to change; Bold under 20px, Regular from 20px)
+     <i data-icon="Info"></i>                 core             inline Phosphor Bold icon, 16px (data-size to change)
      <span data-kbd="⌘ K"></span>             kbd              a shortcut: one chip per key
      <braille-spinner label="Loading">        braille          the braille spinner
    Source: tools/html-skill/src/core.js (do not edit the copy in the skill folder). */
 (function () {
   'use strict';
 
-  // Only the icons the page names (compose.mjs adds them with Basalt._.addIcons). Name -> [Bold paths, Regular paths].
+  // Only the icons the page names (compose.mjs adds them with Basalt._.addIcons). Name -> [Bold paths].
   var ICONS = {};
   // Steps init runs, in order: [order, name, function(options)]. A module adds its own.
   var steps = [];
@@ -29,19 +29,18 @@
 
   var warned = {};
 
-  /** Inline SVG string. Phosphor, 256 grid, drawn in currentColor: Bold under 20px, Regular from 20px. A label makes it an image;
+  /** Inline SVG string. Phosphor Bold, 256 grid, at every size, drawn in currentColor. A label makes it an image;
       without one it is decorative. The size is coerced to a finite positive number (16 otherwise). An unknown name warns once
       and draws nothing; it never throws. */
   function icon(name, opts) {
     var o = opts || {};
-    var weights = Object.prototype.hasOwnProperty.call(ICONS, name) ? ICONS[name] : null;
-    if (!weights) {
+    var paths = Object.prototype.hasOwnProperty.call(ICONS, name) ? ICONS[name] : null;
+    if (!paths) {
       if (!warned[name]) { warned[name] = 1; console.warn('Basalt: unknown icon "' + name + '" (on this page: ' + Object.keys(ICONS).join(', ') + '; name an icon in quotes in the page, or add it to icons.json, and compose again)'); }
       return '';
     }
     var size = Number(o.size);
     if (!(size > 0 && size < Infinity)) size = 16;
-    var paths = weights[size >= 20 ? 1 : 0];
     var a11y = o.label ? 'role="img" aria-label="' + esc(o.label) + '"' : 'aria-hidden="true"';
     return '<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="' + size + '" height="' + size +
       '" fill="currentColor" ' + a11y + ' focusable="false">' + paths.map(function (d) { return '<path d="' + d + '"/>'; }).join('') + '</svg>';

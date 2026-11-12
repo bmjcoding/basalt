@@ -53,24 +53,50 @@
   .row:is([data-active], [aria-selected="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .row:is([data-active], [aria-selected="true"]) .row-hint { color: var(--basalt-text-secondary); }
   .row[data-danger] { color: var(--basalt-status-danger); }
+  /* ---- Two-line rows (DECISIONS 103) ----
+     A described row is padding, a 20px title line, an 18px description line, then padding: the one-line row's 40px plate plus the description's
+     line (58 in a 62 row). The glyph, the label and the key chip sit on the title line and the description runs from the label's edge to the row's
+     end, under the chip's column too, cut with an ellipsis and never wrapped, so a row's height is known. A column with nothing in it is 0 wide and spacing
+     is margin, so a missing glyph leaves no gap. The chevron is the push's arrow of a list with a preview, drawn only while it is narrower than its split. */
+  .row[data-described] {
+    --row-line: var(--basalt-text-base-line-height);
+    --row-desc-line: var(--basalt-text-sm-line-height);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: var(--row-line) var(--row-desc-line);
+    align-items: center;
+    align-content: center;
+    gap: 0;
+    height: auto;
+    min-height: calc(var(--basalt-size-control-xl) + var(--row-desc-line) + 2 * var(--basalt-space-0-5));
+    padding-block: calc(var(--basalt-space-0-5) + (var(--basalt-size-control-xl) - var(--row-line)) / 2);
+  }
+  .row[data-described] > svg:not(.row-chevron) { grid-column: 1; grid-row: 1; margin-inline-end: var(--basalt-space-3); }
+  .row[data-described] > .row-label { grid-column: 2; grid-row: 1; }
+  .row[data-described] > .row-description { grid-column: 2 / -1; grid-row: 2; }
+  .row[data-described] > .kbd-group { grid-column: 3; grid-row: 1; margin-inline-start: var(--basalt-space-4); }
+  .row[data-described] > .row-chevron { grid-column: 4; grid-row: 1; }
+  .row-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .row:is([data-active], [aria-selected="true"]) .row-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+  .row-chevron { display: none; flex: none; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  .row-chevron:dir(rtl) { transform: scaleX(-1); }
 
-  /* The glide: one shared plate follows the lit row on duration-base (palette.js places it). It appears in place, a key moves it at once,
-     and on leaving it freezes and fades in place. Drawn only where hover is real: not on touch, not under reduced motion, not in forced
-     colours, where each row's own plate above is the whole story. */
-  .plate { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--plate-w); height: var(--plate-h); transform: translate(var(--plate-x), var(--plate-y)); border-radius: var(--basalt-radius-md); background-color: var(--panel-plate); opacity: 0; pointer-events: none; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-in); }
-  .plate[data-state="on"] { opacity: 1; transition-property: transform, width, height; transition-duration: var(--basalt-duration-base); transition-timing-function: var(--basalt-ease-out); }
-  .plate[data-snap] { transition: none; }
+  /* The long form of a profile (decisions 106 and 107): a .rows list of links, the glyph in the row's seat, the handle as the hint. A row for a
+     service without a mark keeps an empty seat (the glyph's 16px and the row's gap, on the start side), only when another row in this list
+     has a glyph, so every name starts at one x. Scoped to .profile-links: a blanket rule would re-indent every menu and palette row that has no icon. */
+  .profile-links:has(> .row > svg) > .row:not(:has(> svg)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--basalt-space-3)); }
+
+  /* While the glide's shared plate is live (the glide module sets data-glide on the host), the lit row's own plate steps aside. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
-    [data-glide] > .plate { display: block; }
     [data-glide] .row:is([data-active], [aria-selected="true"])::before { background-color: transparent; }
   }
 
   @media (forced-colors: active) {
     /* The lit row opts out of colour adjustment (Chromium paints a Canvas backplate behind forced text, which turns the label into a black
-       box) and names a system colour for every part: a solid Highlight plate, HighlightText for the label, glyph, hint and chip. A lit danger row too. */
+       box) and names a system colour for every part: a solid Highlight plate, HighlightText for the label, glyph, hint, status word and badge (so its dot, ring and edge follow, drawn as borders in currentColor) and chip. A lit danger row too. */
     .row:is([data-active], [aria-selected="true"]) { forced-color-adjust: none; color: HighlightText; }
     .row:is([data-active], [aria-selected="true"])::before { background-color: Highlight; }
-    .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint) { color: HighlightText; }
+    .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint, .row-description, .status, .badge) { color: HighlightText; }
     .row:is([data-active], [aria-selected="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
   }
 }

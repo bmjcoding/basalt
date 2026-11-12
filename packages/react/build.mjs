@@ -36,6 +36,9 @@ const packageDir = (name) => {
 // that the ordinary import then loads, whatever it needs: Spinner paid 12.7 KB for a 1 KB component, Skeleton 12 KB.
 // The panel is loaded on demand, so a second copy of those few files costs nothing until a menu opens.
 const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"];
+// The notice (without its comment marks) that the panel's banner carries and that the opt-in Phosphor plugin (src/tooling/phosphor.ts) puts
+// in front of the icons it trims. It is one string, so the two comments are identical and a bundler that holds both keeps one copy.
+const phosphorNotice = `Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}`;
 await esbuild.build({
   bundle: true,
   format: "esm",
@@ -49,7 +52,7 @@ await esbuild.build({
   // A published component boundary must retain this for React Server Component consumers.
   // The second comment is a legal comment (/*!): Phosphor's whole MIT notice, which its licence requires beside any copy of the
   // icons, and which a consumer's minifier keeps.
-  banner: { js: `"use client";\n/*! Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}\n*/` },
+  banner: { js: `"use client";\n/*! ${phosphorNotice}\n*/` },
 });
 
 await esbuild.build({
@@ -61,7 +64,10 @@ await esbuild.build({
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
     // Development tooling (the headroom check): its own entry under dist/testing, imported by no component and not exported from the root.
     ...fs.readdirSync(path.join(here, "src", "testing")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "testing", f)),
+    // Build tooling (the opt-in Phosphor weights plugin): its own entry under dist/tooling, at @srasyndicate/basalt/phosphor.
+    ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
+  define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice) },
   plugins: [{ name: "lazy-panel", setup(build) { build.onResolve({ filter: /^\.\/command-panel$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./command-panel.js", external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,

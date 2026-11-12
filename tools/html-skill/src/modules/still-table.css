@@ -1,0 +1,106 @@
+@layer basalt {
+
+  /* ---- The still table (React's Table with `columns`, display.tsx; DECISIONS 71, 82, 84 and the owner's rule) ----
+     Header positions, column widths and alignment never move, through sort, filter, paging or loading. The layout is fixed from a colgroup: every column has
+     a width except one, which takes the rest, and the table has a minimum width below which its container scrolls. Widths are never read from content, so a
+     filter that removes the long rows, or the sorted column's indicator arriving, moves nothing. A cell truncates with an ellipsis, never a hard clip. The
+     page keeps its scrollbar's room: a filter that shortens the page would remove a classic scrollbar, widen the page and so the one remainder column. */
+
+  :root:has(table[data-fixed]) { scrollbar-gutter: stable; }
+  table[data-fixed] { table-layout: fixed; width: 100%; --_head-h: var(--basalt-size-control-md); }
+  table[data-fixed] :is(th, td) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
+  table[data-fixed] :is(th, td):has(> :is(.btn, .choice, input[type="checkbox"])) { overflow: visible; }
+  table[data-fixed] thead th { height: var(--_head-h); }
+  /* A link, or anything the page puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
+  table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (pointer: coarse) { table[data-fixed] { --_head-h: var(--basalt-size-tap-min); } }
+
+  /* ---- The sort control: the whole header cell is the button (DECISION 84) ----
+     still-table.js writes the button around the header's words. It fills the cell, so the label sits exactly where a plain header's label does and a press
+     anywhere sorts. Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label, and on a numeric
+     (end-aligned) column before it, so the label's edge stays on the numbers' edge. No weight change and no wash on the cell. Hover and focus lift the label
+     from secondary to primary ink and show a tertiary up-down caret in the seat; on touch the caret is always there. Sorted, the direction arrow replaces
+     it, in primary. A band that is itself the button takes the flush-field focus ring, inset by 2px (so a pinned column cannot cover it). */
+
+  table[data-fixed] th[data-sortable] { padding: 0; }
+  .sort {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-1);
+    width: 100%;
+    height: var(--_head-h, var(--basalt-size-control-md));
+    margin: 0;
+    padding: 0 var(--basalt-space-4);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  /* In the seat's mirror the main axis runs from the end, so the label stays on the end edge and the seat is before it. */
+  th[data-numeric] .sort { flex-direction: row-reverse; }
+  .sort-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sort-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
+  .sort-seat > svg { position: absolute; inset: 0; opacity: 0; }
+  .sort:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); color: var(--basalt-text-primary); }
+  .sort:active { color: var(--basalt-text-primary); }
+  th:not([aria-sort]) .sort:focus-visible .sort-caret { opacity: 1; }
+  @media (hover: hover) {
+    .sort:hover { color: var(--basalt-text-primary); }
+    th:not([aria-sort]) .sort:hover .sort-caret { opacity: 1; }
+  }
+  @media (hover: none), (pointer: coarse) { th:not([aria-sort]) .sort-caret { opacity: 1; } }
+  th[aria-sort] .sort, th[aria-sort] .sort-seat { color: var(--basalt-text-primary); }
+  th[aria-sort="ascending"] .sort-up, th[aria-sort="descending"] .sort-down { opacity: 1; }
+
+  /* ---- The empty row: one cell across every column, under the unchanged header ----
+     Not a pinned or hoverable row; its sentence sticks to the container's start edge so a scrolled table does not carry it out of view. */
+
+  table tbody tr[data-empty]:hover { background: transparent; }
+  table tr[data-empty] > td { height: auto; padding: var(--basalt-space-6) var(--basalt-space-4); white-space: normal; overflow: visible; color: var(--basalt-text-secondary); }
+  .table-empty { position: sticky; inset-inline-start: var(--basalt-space-4); display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-2); max-width: var(--basalt-size-popover-max); }
+
+  /* ---- Pinned columns (narrow screens): the leading 1 to 3 columns stick to the container's start edge while it scrolls ----
+     A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours): the row's wash is laid over the panel's own fill as one
+     cell background, so nothing scrolls through it. The empty row is outside this. */
+
+  table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1),
+  table[data-pinned="2"] tr:not([data-empty]) > :nth-child(-n + 2),
+  table[data-pinned="3"] tr:not([data-empty]) > :nth-child(-n + 3) { position: sticky; inset-inline-start: 0; z-index: 1; }
+  table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: var(--panel-bg, var(--basalt-surface-raised)); }
+  table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
+  table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
+  table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
+  /* The row's wash is laid over the cell's own fill by the cell's ::before (a flat fill, behind the words), so a pinned cell shows the hover and selected
+     washes and stays opaque. It exists on the pinned columns only: they are the cells that are positioned. */
+  :is(table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1), table[data-pinned="2"] tr:not([data-empty]) > :nth-child(-n + 2), table[data-pinned="3"] tr:not([data-empty]) > :nth-child(-n + 3)):is(td, th[scope="row"])::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  @media (hover: hover) {
+    table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"])::before { background: var(--basalt-state-hover); }
+  }
+  table[data-pinned] tbody tr[aria-selected="true"] > :is(td, th[scope="row"])::before { background: var(--basalt-state-selected); }
+  /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is actually scrolled, and never a
+     selection, sort or status mark. */
+  table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+  table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+  table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { content: ""; position: absolute; inset-block: 0; inset-inline-end: 0; width: var(--basalt-size-hairline); background: var(--basalt-border-divider); opacity: 0; pointer-events: none; }
+  .table-wrap[data-scrolled] table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+  .table-wrap[data-scrolled] table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+  .table-wrap[data-scrolled] table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { opacity: 1; }
+
+  @media (forced-colors: active) {
+    /* A pinned column's divider, and the sort seat: system colours. */
+    table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
+    table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
+    table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { forced-color-adjust: none; background: CanvasText; }
+    table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: Canvas; }
+    table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"])::before { display: none; }
+    .sort-seat { color: ButtonText; }
+  }
+}

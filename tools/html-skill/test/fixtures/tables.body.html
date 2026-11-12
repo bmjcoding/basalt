@@ -1,0 +1,24 @@
+<title>Tables and filters</title>
+<main class="page stack">
+  <h1>Runs</h1>
+  <div class="filter" data-label="Status" data-for="runs" data-column="3"><label><input type="checkbox" value="passed"> Passed</label><label><input type="checkbox" value="failed" checked> Failed</label><label><input type="checkbox" value="running"> Running</label><label><input type="checkbox" value="queued" disabled> Queued</label></div>
+  <div class="filter" data-label="Owner" data-for="runs" data-column="5"><label><input type="checkbox" value="alder"> Alder</label><label><input type="checkbox" value="birch"> Birch</label><label><input type="checkbox" value="cedar"> Cedar</label><label><input type="checkbox" value="dogwood"> Dogwood</label><label><input type="checkbox" value="elm"> Elm</label><label><input type="checkbox" value="fir"> Fir</label><label><input type="checkbox" value="gingko"> Gingko</label><label><input type="checkbox" value="hazel"> Hazel</label></div>
+  <p class="filter-result" data-for="runs" data-noun="runs">Showing 8 of 8 runs</p>
+  <div class="panel table-wrap" role="region" aria-label="Runs table" tabindex="0">
+  <table id="runs" data-fixed data-pinned="2" style="min-width: 640px">
+    <colgroup><col style="width: 40px"><col style="width: 140px"><col style="width: 130px"><col style="width: 130px"><col></colgroup>
+    <thead><tr><th class="select-col"><input type="checkbox" data-select-all aria-label="Select all runs"></th><th data-sortable aria-sort="ascending">Name</th><th data-sortable>Status</th><th data-sortable data-numeric>Duration</th><th data-sortable>Owner</th></tr></thead>
+    <tbody>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0141"></td><th scope="row">build-0141</th><td data-value="passed"><span class="status" data-status="success">Passed</span></td><td data-numeric data-value="40">0m 40s</td><td data-value="alder">Alder</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0140" checked></td><th scope="row">build-0140</th><td data-value="queued"><span class="status" data-status="neutral">Queued</span></td><td data-numeric data-value="213">3m 33s</td><td data-value="birch">Birch</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0139"></td><th scope="row">build-0139</th><td data-value="queued"><span class="status" data-status="neutral">Queued</span></td><td data-numeric data-value="386">6m 26s</td><td data-value="cedar">Cedar</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0138"></td><th scope="row">build-0138</th><td data-value="running"><span class="status" data-status="pending">Running</span></td><td data-numeric data-not-observed>Not observed</td><td data-value="dogwood">Dogwood</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0137"></td><th scope="row">build-0137</th><td data-value="running"><span class="status" data-status="pending">Running</span></td><td data-numeric data-value="732">12m 12s</td><td data-value="elm">Elm</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0136"></td><th scope="row">build-0136</th><td data-value="failed"><span class="status" data-status="danger">Failed</span></td><td data-numeric data-value="105">1m 45s</td><td data-value="fir">Fir</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0135"></td><th scope="row">build-0135</th><td data-value="failed"><span class="status" data-status="danger">Failed</span></td><td data-numeric data-value="278">4m 38s</td><td data-value="gingko">Gingko</td></tr>
+    <tr><td class="select-col"><input type="checkbox" aria-label="Select build-0134"></td><th scope="row">build-0134</th><td data-value="passed"><span class="status" data-status="success">Passed</span></td><td data-numeric data-value="451">7m 31s</td><td data-value="hazel">Hazel</td></tr>
+    <tr data-empty hidden><td colspan="5"><div class="table-empty"><span>No runs match.</span><button class="btn" type="button" data-variant="ghost" data-size="sm">Clear filters</button></div></td></tr>
+    </tbody>
+  </table></div>
+  <p class="table-hint" hidden></p>
+</main>

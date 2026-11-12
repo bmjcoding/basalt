@@ -1,0 +1,44 @@
+@layer basalt {
+
+  /* ---- Links: the new-tab cue and social links (decisions 95, 106, 107) ----
+     A link that opens a new tab (target="_blank") gets the core arrow after its name, which links.js draws; a social link is a glyph and the
+     service's name. Both are React's (Link, SocialLinks). */
+
+  /* The new-tab cue: the core `external` glyph after the name, never underlined (an inline-block is not decorated). It adds no space of its
+     own: the glyph's side bearing is the gap, a word joiner in front and nowrap keep it with the last word. Secondary at rest, lifting to
+     the link's own ink with the underline; a button keeps its own ink; through currentColor it is LinkText in forced colours. The drop sits
+     the arrow's ink on the capitals; the negative margin keeps it from growing the line. */
+  .ext { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .ext > svg { display: inline-block; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
+  a:is(:hover, :focus-visible) .ext { color: inherit; }
+  .btn > .ext { display: inline-flex; align-items: center; color: inherit; }
+  .btn > .ext > svg { vertical-align: baseline; margin-block: 0; }
+
+  /* ---- A row of social links ----
+     Links are space-4 apart and wrap. A link is a glyph and the name, space-1-5 apart: the name underlined in the input-boundary colour (the
+     page's own link underline), brightening to the text on hover, and the glyph never (it has no text). Both are secondary at rest and
+     primary on hover and focus, with the control ring: no wash, no weight change, no press scale. The link takes its container's text size, and the
+     glyph is 16 beside 12 to 16px text and 20 beside 18 to 24px (data-size="20" on the row). Specific enough to win over the page's
+     coarse-pointer rules for a standalone link. */
+  .links { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-4); row-gap: var(--basalt-space-1); margin: 0; padding: 0; list-style: none; }
+  .links[data-icon-only] { column-gap: var(--basalt-space-1); }
+  /* The item is a flex box, not a line box: an inline-flex link in a line box takes its baseline from its glyph, which sat a word without a glyph 2px lower. */
+  .links > li { display: flex; }
+  .links > li > a:not(.btn) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); white-space: nowrap; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .links > li > a:not(.btn):is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+  .links[data-size="20"] > li > a > svg:not(.ext > svg) { width: var(--basalt-size-icon-md); height: var(--basalt-size-icon-md); }
+  /* The arrow follows the name with the glyph's own bearing, not a gap: it cancels the link's gap. */
+  .links > li > a:not(.btn) > .ext { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); }
+  /* On touch each link is at least 44 by 44 as real layout, and the 16px gap becomes 8px of hit area on either side, so a wrapped line touches the
+     next and never overlaps it (the page's negative block margin on a standalone link is cancelled here). The row's negative margin keeps
+     the first glyph on the content edge. An icon-only row is ghost icon buttons, which size themselves. */
+  @media (pointer: coarse) {
+    .links:not([data-icon-only]) { gap: 0; margin-inline: calc(-1 * var(--basalt-space-2)); }
+    .links:not([data-icon-only]) > li > a { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); justify-content: center; margin-block: 0; padding-inline: var(--basalt-space-2); }
+  }
+
+  @media (forced-colors: active) {
+    /* A link is LinkText, glyph and arrow included: they take the link's colour instead of their own secondary. */
+    .ext, .links > li > a:not(.btn) > svg { color: inherit; }
+  }
+}

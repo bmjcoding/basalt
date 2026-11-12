@@ -297,7 +297,7 @@ describe("the accent reader", () => {
   const dots = (p) => p.evaluate(() => {
     const dot = (id) => getComputedStyle(document.getElementById(id), "::before").backgroundColor;
     const probe = (v) => { const d = document.createElement("i"); d.style.color = v; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; };
-    return { a: dot("a"), b: dot("b"), plain: dot("plain"), none: dot("none"), unknown: dot("unknown"), ink: probe("var(--basalt-text-primary)"), word: getComputedStyle(document.getElementById("a")).color };
+    return { a: dot("a"), b: dot("b"), plain: dot("plain"), none: dot("none"), unknown: dot("unknown"), ink: probe("var(--basalt-text-primary)"), word: getComputedStyle(document.getElementById("a")).color, secondary: probe("var(--basalt-text-secondary)") };
   });
 
   for (const scheme of ["dark", "light"]) {
@@ -309,7 +309,7 @@ describe("the accent reader", () => {
       assert.equal(d.a, expected);
       assert.equal(d.b, expected);
       for (const id of ["plain", "none", "unknown"]) assert.equal(d[id], d.ink, `${id} is the ink dot`);
-      assert.equal(d.word, d.ink, "the word stays ink");
+      assert.equal(d.word, d.secondary, "the word keeps its ink, secondary as React's Badge word is; only the dot is the accent");
       await context.close();
     });
   }
@@ -323,20 +323,22 @@ describe("the accent reader", () => {
     assert.ok(compose(ACCENT, { fonts: false }).html.includes('[data-accent=cobalt]'));
   });
 
-  test("in forced colours the dot is a real fill in the system text colour", async () => {
+  test("in forced colours the dot is a border disc in the system text colour, with forced colours left on (DECISIONS 106)", async () => {
     const context = await browser.newContext({ forcedColors: "active" });
     const p = await context.newPage();
     await p.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: compose(`<title>t</title>${ACCENT}`, { fonts: false }).html }));
     await p.goto("https://basalt.test/");
-    const out = await p.evaluate(() => [getComputedStyle(document.getElementById("a"), "::before").backgroundColor, getComputedStyle(document.getElementById("a")).color, getComputedStyle(document.getElementById("a"), "::before").forcedColorAdjust]);
+    const out = await p.evaluate(() => { const dot = getComputedStyle(document.getElementById("a"), "::before"); return [dot.borderTopColor, getComputedStyle(document.getElementById("a")).color, dot.forcedColorAdjust, dot.borderTopWidth, dot.borderTopStyle, dot.backgroundColor, dot.boxSizing]; });
     assert.equal(out[0], out[1], "the dot is the text colour");
-    assert.equal(out[2], "none");
+    assert.notEqual(out[2], "none", "forced colours are not switched off: no colour is named");
+    assert.deepEqual([out[3], out[4], out[6]], ["3px", "solid", "border-box"], "a border of half its size");
+    assert.match(out[5], /, 0\)$/, "with no fill");
     await context.close();
   });
 });
 
 describe("forced colours: real borders on fields and badges", () => {
-  test(".input, a number group and .badge draw a ButtonText border instead of a box-shadow", async () => {
+  test(".input and a number group draw a ButtonText border, and .badge a real border, instead of a box-shadow", async () => {
     const context = await browser.newContext({ forcedColors: "active" });
     const p = await context.newPage();
     await p.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: compose(`<title>t</title><input class="input" id="i" aria-label="x"><input class="input" id="d" disabled aria-label="y"><span class="badge" id="b">Plain</span>${NUMBER}`, { fonts: false }).html }));

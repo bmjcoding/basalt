@@ -7,4 +7,6 @@
   .stat-label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-secondary); }
   .stat-value { font: var(--basalt-font-weight-semibold) var(--bh-2xl); letter-spacing: var(--basalt-text-2xl-tracking); font-variant-numeric: tabular-nums; }
   .stat-note { font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-secondary); }
+  /* Where the figure came from and when (React's Stat source): tertiary, pinned to the foot of the stat's cell, so sources line up across a row even when one stat has no note. */
+  .stat-source { margin-block-start: auto; font: var(--basalt-font-weight-regular) var(--bh-xs); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); }
 }

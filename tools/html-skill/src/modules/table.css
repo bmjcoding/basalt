@@ -8,13 +8,14 @@
   /* A selected row is the wash as a band, edge to edge: no bar and no edge mark, in forced colours too (the wash drops there). The state is carried
      by the row's checked box and a count in words, which the page writes (the wash is about 1.2:1 and says nothing alone). */
   tr[aria-selected="true"] { background: var(--basalt-state-selected); }
-  @media (pointer: coarse) { td { height: var(--basalt-size-tap-min); } }
-  /* At 390 a table's name column and any status column come first and fit; only the numbers scroll. Tighter cells, never a hidden column. */
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) {
-    th, td { padding-inline: var(--basalt-space-3); }
-    :is(th, td):first-child { padding-inline-start: var(--basalt-space-4); }
-  }
+  /* A row header (th scope="row" in the body) is the row's name in the row's own type: the cell's height, padding and divider, 13/18 at 500 in
+     primary, start-aligned, on the row's own fill (no band), so the washes run through it. Data cells stay 400. It never sorts. */
+  tbody th[scope="row"] { height: var(--basalt-size-table-row); background-color: transparent; box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); font-size: inherit; font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-primary); text-align: start; vertical-align: middle; }
+  /* "Not observed" is tertiary, lifting to secondary on the hover and selected washes (tertiary alone fails on them); the words end on the numbers' edge. */
+  td[data-not-observed] { color: var(--basalt-text-tertiary); }
+  tr[aria-selected="true"] > td[data-not-observed] { color: var(--basalt-text-secondary); }
+  @media (hover: hover) { tbody tr:hover > td[data-not-observed] { color: var(--basalt-text-secondary); } }
+  @media (pointer: coarse) { td, tbody th[scope="row"] { height: var(--basalt-size-tap-min); } }
 }
 
 @layer basalt {
@@ -22,4 +23,13 @@
   /* ---- Table: a panel, a header band, 40px rows with dividers ---- */
 
   .table-wrap { overflow-x: auto; }
+  /* Row density (React's data-row-density, its own attribute so the controls in the table keep their size): 32px for logs, 40 by default, 44 comfortable.
+     A touch row is 44px whatever the density: that rule comes after these and matches their specificity. */
+  .table-wrap[data-row-density="compact"] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-control-md); }
+  .table-wrap[data-row-density="comfortable"] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
+  @media (pointer: coarse) { .table-wrap[data-row-density] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); } }
+
+  /* The one line under a table that is wider than its box. table.js fills it and shows it only while the table overflows; never changed while scrolling. */
+  .table-hint { margin: var(--basalt-space-2) 0 0; font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }
+  .table-hint[hidden] { display: none; }
 }

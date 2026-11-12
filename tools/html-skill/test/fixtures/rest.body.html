@@ -1,0 +1,39 @@
+<title>The rest of the overlays</title>
+<main class="page stack" id="main">
+  <h1>Combobox and sparkline</h1>
+  <p class="lead muted">A search field with a list of options, and a small line with its latest value.</p>
+  <div class="grid">
+    <div class="field"><label for="c1">Region</label>
+      <div class="combobox"><input class="input" id="c1" name="region" placeholder="Search regions…">
+        <ul>
+          <li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li>
+          <li data-value="us">Ashburn</li>
+          <li data-value="ap">Singapore</li>
+          <li data-value="gone" aria-disabled="true">Sydney</li>
+        </ul>
+      </div>
+      <span class="hint">Type to filter; the arrow keys move.</span>
+    </div>
+    <div class="field"><label for="c2">Chosen</label>
+      <div class="combobox"><input class="input" id="c2" name="chosen">
+        <ul>
+          <li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li>
+          <li data-value="us" aria-selected="true">Ashburn</li>
+          <li data-value="ap">Singapore</li>
+        </ul>
+      </div>
+    </div>
+    <div class="field"><label for="c3">Off</label>
+      <div class="combobox"><input class="input" id="c3" name="off" placeholder="Not available" disabled>
+        <ul><li data-value="eu">Frankfurt</li></ul>
+      </div>
+    </div>
+  </div>
+  <h2>Sparkline</h2>
+  <div class="grid">
+    <div class="sparkline"><script type="application/json" data-sparkline>{ "label": "Requests", "data": [12, 18, 9, 30, 24] }</script></div>
+    <div class="sparkline"><script type="application/json" data-sparkline>{ "label": "Load", "data": [1234.5] }</script></div>
+    <div class="sparkline"><script type="application/json" data-sparkline>{ "label": "Errors", "data": [] }</script></div>
+    <div class="sparkline"><script type="application/json" data-sparkline>{ "label": "Latency", "data": [], "loading": true }</script></div>
+  </div>
+</main>

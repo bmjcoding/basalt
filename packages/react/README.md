@@ -51,9 +51,10 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Tabs`, `TabsList`, `Tab`, `TabsPanel` | For panels of one view. |
 | `SegmentedControl`, `Segment` | One choice that filters the current view; never empty. |
 | `Breadcrumbs`, `Pagination`, `Link` | Location, bounded page windows and native destination links. |
+| `SocialLinks`, `SocialLink`, `ProfileLinks`, `ProfileLink` | A glyph and the service's name (`service`: github, x, linkedin, instagram, youtube, email; none for a service without a mark). `SocialLinks` is the row (`size` 16 or 20; `iconOnly` for a row made entirely of marks); `ProfileLinks` is the long form, with `handle` as the hint. |
 | `Text`, `Heading`, `InlineCode` | Token type scale; Heading's semantic `level` is independent of visual `size`. |
 | `Avatar`, `Separator`, `EmptyState` | Named image/initials, semantic division and next-step guidance for empty views. |
-| `Badge` | Neutral pill; `status` adds a dot. The label says the status in words. |
+| `Badge` | Neutral pill; `status` adds a dot (success, warning, danger, accent, pending, or `"neutral"` by name). No `status` is the word alone; a running badge (a braille `Spinner` first) draws no dot. The label says the status in words. In forced colours every dot is a disc in the system colour of where it sits. |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
 | `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals; `mono` cells for IDs and hashes. |
 | `Tooltip`, `TooltipProvider` | Supplements a name with a linked accessible description; never replaces a label. |

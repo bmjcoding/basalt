@@ -76,115 +76,65 @@
     }
   }
 
-  function matches(item, query) {
-    if (!query) return true;
-    var hay = (item.label + ' ' + (item.keywords || []).join(' ') + ' ' + (item.hint || '')).toLowerCase();
-    return query.toLowerCase().split(/\s+/).filter(Boolean).every(function (t) { return hay.indexOf(t) !== -1; });
+  /**
+   * How an item answers a query: 0 when every word is in its label (a title match), 1 when every word is found only by its keywords, hint or description
+   * (they rank below titles, as cmdk ranks them), -1 for no match. An empty query is 0 for everything.
+   */
+  function tier(item, query) {
+    if (!query) return 0;
+    var terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    var all = function (hay) { return terms.every(function (t) { return hay.indexOf(t) !== -1; }); };
+    if (all(item.label.toLowerCase())) return 0;
+    return all((item.label + ' ' + (item.keywords || []).join(' ') + ' ' + (item.hint || '') + ' ' + (item.description || '')).toLowerCase()) ? 1 : -1;
   }
 
+  function matches(item, query) { return tier(item, query) >= 0; }
+
   /**
-   * The glide: one plate that follows the lit row (React's GlidePlate). Each row paints its own plate when lit; that stays the fallback, and
-   * the whole story on touch, under reduced motion and in forced colours. Where it can, the list also draws ONE plate, placed by four CSS
-   * variables (the stylesheet transitions transform, width and height on duration-base). The pointer moving the highlight travels it; a key
-   * moves it at once; from nowhere it appears in place; when the highlight clears it freezes and fades where it is, and a return during the
-   * fade travels from there. Returns the cleanup. The list's rows are rebuilt on every query, so the plate is put back by the caller.
+   * The result rows for a list of groups, shared with the in-page command list: { html, words, flat }. `words` is the hidden elements that say each
+   * shortcut aloud (the chip is aria-hidden), `flat` the items in row order; a row's index is its place in it. An item with a `description` is a two-line
+   * row. `chevron` is the push's arrow, drawn only while a list with a preview is narrower than its split.
    */
-  function glide(host, plate) {
-    var OFF = matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)');
-    var modality = 'keyboard';
-    var last = null;
-    var target = '';
-    var snapNext = false;
-    var leaving;
-
-    function on() { return !OFF.matches && modality !== 'touch'; }
-    function lit() { return plate.dataset.state === 'on'; }
-    // The row's own plate (its ::before) is the shape to follow, so the shared one matches the fallback to the pixel.
-    function geometry(row) {
-      var box = host.getBoundingClientRect();
-      var at = row.getBoundingClientRect();
-      var own = getComputedStyle(row, '::before');
-      var ratio = host.offsetWidth > 0 ? box.width / host.offsetWidth : 1;
-      var scale = Math.abs(ratio - 1) < 0.01 ? 1 : ratio;
-      return {
-        x: (at.left - box.left) / scale - host.clientLeft + host.scrollLeft + (parseFloat(own.left) || 0),
-        y: (at.top - box.top) / scale - host.clientTop + host.scrollTop + (parseFloat(own.top) || 0),
-        w: parseFloat(own.width) || at.width / scale,
-        h: parseFloat(own.height) || at.height / scale
-      };
-    }
-    function write(g) {
-      var st = plate.style;
-      st.setProperty('--plate-x', g.x + 'px'); st.setProperty('--plate-y', g.y + 'px');
-      st.setProperty('--plate-w', g.w + 'px'); st.setProperty('--plate-h', g.h + 'px');
-    }
-    // Runs `change` with the plate's transitions off and commits it, so it takes effect in place.
-    function inPlace(change) {
-      plate.setAttribute('data-snap', '');
-      change();
-      void plate.offsetWidth;
-      plate.removeAttribute('data-snap');
-    }
-    function leave() {
-      if (!lit()) return;
-      // Freeze a move in progress where it has reached, then fade there: the off state has no transform transition, so what is written stays.
-      var st = getComputedStyle(plate);
-      var m = new DOMMatrixReadOnly(st.transform);
-      write({ x: m.m41, y: m.m42, w: parseFloat(st.width), h: parseFloat(st.height) });
-      plate.dataset.state = 'off';
-      last = null;
-      target = '';
-    }
-    function settle() {
-      clearTimeout(leaving);
-      leaving = undefined;
-      host.toggleAttribute('data-glide', on());
-      if (!on()) { plate.dataset.state = 'off'; return; }
-      var row = host.querySelector('.row[data-active]');
-      if (!row) { leaving = setTimeout(function () { if (!host.querySelector('.row[data-active]')) leave(); }, 0); return; }
-      var g = geometry(row);
-      var key = g.x + ' ' + g.y + ' ' + g.w + ' ' + g.h;
-      if (row === last && lit() && key === target) return; // nothing changed: leave a move in flight alone
-      target = key;
-      // How much of the plate still shows: 0 once a fade has finished, so the plate appears in place.
-      var shown = lit() ? 1 : parseFloat(getComputedStyle(plate).opacity) || 0;
-      var travel = !snapNext && row !== last && modality === 'pointer' && shown > 0.01;
-      snapNext = false;
-      if (travel) { write(g); plate.dataset.state = 'on'; } else inPlace(function () { write(g); plate.dataset.state = 'on'; });
-      last = row;
-    }
-    function input(e) {
-      var next = modality;
-      if (e.type === 'keydown') { if (!/^(Shift|Control|Alt|Meta)$/.test(e.key)) next = 'keyboard'; } else next = e.pointerType === 'touch' ? 'touch' : 'pointer';
-      if (next === modality) return;
-      var was = on();
-      modality = next;
-      if (on() !== was) settle();
-    }
-
-    plate.dataset.state = 'off';
-    var changes = new MutationObserver(settle);
-    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-active'] });
-    // A row that moved under a still highlight (a filter, a font, a resize) is re-placed in place.
-    var resizes = new ResizeObserver(function () { snapNext = true; target = ''; settle(); });
-    resizes.observe(host);
-    OFF.addEventListener('change', settle);
-    var events = ['pointermove', 'pointerdown', 'keydown'];
-    events.forEach(function (t) { document.addEventListener(t, input, { capture: true, passive: true }); });
-    settle();
-    return function () {
-      clearTimeout(leaving);
-      changes.disconnect();
-      resizes.disconnect();
-      OFF.removeEventListener('change', settle);
-      events.forEach(function (t) { document.removeEventListener(t, input, { capture: true }); });
-    };
+  function rowsOf(groups, id, q, chevron) {
+    var flat = [];
+    var html = '';
+    var words = '';
+    // Title matches come before keyword and description matches, each keeping its order; a group is placed by its best row, as cmdk does.
+    var ranked = [];
+    groups.forEach(function (g, gi) {
+      var items = (g.items || []).map(function (it, i) { return { it: it, t: tier(it, q), i: i }; }).filter(function (x) { return x.t >= 0; })
+        .sort(function (a, b) { return a.t - b.t || a.i - b.i; });
+      if (items.length) ranked.push({ g: g, gi: gi, items: items });
+    });
+    ranked.sort(function (a, b) { return a.items[0].t - b.items[0].t || a.gi - b.gi; });
+    ranked.forEach(function (r) {
+      var g = r.g;
+      var gi = r.gi;
+      var items = r.items.map(function (x) { return x.it; });
+      var gid = id + '-g' + gi;
+      html += '<div role="group"' + (g.label ? ' aria-labelledby="' + gid + '"' : '') + '>';
+      if (g.label) html += '<div class="row-group" id="' + gid + '">' + esc(g.label) + '</div>';
+      items.forEach(function (it) {
+        var n = flat.length;
+        flat.push(it);
+        var keys = binding(it) ? it.keys : null;
+        // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
+        if (keys) words += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
+        html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') + (it.description ? ' data-described' : '') +
+          (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
+          (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
+          (it.description ? '<span class="row-description">' + esc(it.description) + '</span>' : '') +
+          (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + (chevron || '') + '</div>';
+      });
+      html += '</div>';
+    });
+    return { html: html, words: words, flat: flat };
   }
 
   /**
    * Opens the command palette: a modal floating panel at level 1 with the raised input row (level 2). It opens and closes with no animation; the lit row's plate glides between rows.
    * Returns { close }.
-   *   openPalette({ groups: [{ label, items: [{ label, icon?, keys?: ['⌘','K'], hint?, keywords?, danger?, href?, onSelect? }] }],
+   *   openPalette({ groups: [{ label, items: [{ label, icon?, keys?: ['⌘','K'], description?, hint?, keywords?, danger?, href?, onSelect? }] }],
    *                 placeholder?, label?, onSelect?(item), onClose?() })
    */
   function openPalette(options) {
@@ -239,31 +189,11 @@
 
     function render() {
       var q = input.value.trim();
-      flat = [];
-      var html = '';
-      var described = '';
-      groups.forEach(function (g, gi) {
-        var items = (g.items || []).filter(function (it) { return matches(it, q); });
-        if (!items.length) return;
-        var gid = id + '-g' + gi;
-        html += '<div role="group"' + (g.label ? ' aria-labelledby="' + gid + '"' : '') + '>';
-        if (g.label) html += '<div class="row-group" id="' + gid + '">' + esc(g.label) + '</div>';
-        items.forEach(function (it) {
-          var n = flat.length;
-          flat.push(it);
-          var keys = binding(it) ? it.keys : null;
-          // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
-          if (keys) described += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
-          html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') +
-            (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
-            (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
-            (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + '</div>';
-        });
-        html += '</div>';
-      });
-      list.innerHTML = html;
+      var r = rowsOf(groups, id, q);
+      flat = r.flat;
+      list.innerHTML = r.html;
       list.insertBefore(plate, list.firstChild);
-      words.innerHTML = described;
+      words.innerHTML = r.words;
       list.hidden = flat.length === 0;
       empty.hidden = flat.length !== 0;
       index = Math.min(index, Math.max(flat.length - 1, 0));
@@ -356,7 +286,7 @@
       document.body.appendChild(scrim);
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
-      unglide = glide(list, plate);
+      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;
       input.focus();
@@ -416,6 +346,8 @@
     bindPaletteShortcut(options);
   }
 
+  // The in-page command list builds its rows, filters and runs items with these.
+  _.palette = { rows: rowsOf, tier: tier, matches: matches, activate: activate, composing: composing };
   B.openPalette = openPalette;
   B.closePalette = closePalette;
   _.step(110, 'wirePalette', function (o) { wirePalette(o.palette); });
