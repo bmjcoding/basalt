@@ -28,7 +28,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as esbuild from "esbuild";
 
-import { GLYPHS, slots } from "../../packages/react/glyphs/source.mjs";
+import { GLYPHS, NAMES, knockOf, loopsOf, slots } from "../../packages/react/glyphs/source.mjs";
 import { iconData } from "./icons.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -117,7 +117,17 @@ const iconUri = (name) => {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>${bold.map((d) => `<path d='${d}'/>`).join("")}</svg>`;
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
-const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
+/**
+ * `%bp-md%`, `%bp-lg%` and `%bp-container%` in a source stylesheet are the layout tokens' breakpoints (size-breakpoint-md, -lg, -container, DECISIONS 101), read
+ * from the generated tokens package and written as range syntax in a media query (`@media (width < %bp-md%)`), so no source carries the number (foundations, "Layout").
+ */
+async function breakpoints() {
+  tokensFile("breakpoints"); // fails with the plain message when the tokens are not built
+  const { breakpoint } = await import(pathToFileURL(require.resolve("@srasyndicate/basalt-tokens/breakpoints")).href);
+  return { md: `${breakpoint.md}px`, lg: `${breakpoint.lg}px`, container: `${breakpoint.container}px` };
+}
+const BREAKPOINTS = await breakpoints();
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
 
 /**
  * `%glyph:name%` in a module's source is the path of a core glyph (packages/react/glyphs/source.mjs, the drawn set), read from the set and never copied
@@ -139,7 +149,51 @@ const glyphMaskUri = (name) => {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='${glyphPath(name)}' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
-const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)), "js");
+
+/**
+ * The core set drawn for the page (`parts/glyphs.json`): each glyph's inner SVG markup at rest and selected, worked out here from the drawn set the way
+ * packages/react/src/glyph.tsx works it out at run time (the settled drawing: eight slots, the loops filled, the knocked strokes cut out as a mask, a
+ * point drawn heavier). A page carries only the glyphs it names (`data-glyph="home"`), as it carries only the icons it names. `@` in a mask's id is
+ * replaced with a number for each drawing, by the glyph module. A glyph with no loops is drawn the same selected, so it has one drawing.
+ */
+const STROKE = 2.25;
+const r3 = (n) => Math.round(n * 1000) / 1000;
+const reachOf = (s) => Math.hypot(s[6] - s[0], s[7] - s[1]) + Math.hypot(s[2] - s[0], s[3] - s[1]) + Math.hypot(s[4] - s[6], s[5] - s[7]);
+const widthOfReach = (l) => (l >= STROKE ? STROKE : STROKE * (1 + 0.5 * (1 - l / STROKE)));
+const slotPath = (s, l, move = true) => `${move ? `M${r3(s[0])} ${r3(s[1])}` : ""}${l < 1e-3 ? `L${r3(s[6])} ${r3(s[7])}` : `C${r3(s[2])} ${r3(s[3])} ${r3(s[4])} ${r3(s[5])} ${r3(s[6])} ${r3(s[7])}`}`;
+function glyphMarkup(name, selected) {
+  const sl = slots(name, selected);
+  const loops = loopsOf(name);
+  const knock = knockOf(name);
+  const base = GLYPHS[name].of ? GLYPHS[GLYPHS[name].of] : GLYPHS[name];
+  const f = selected && loops.length ? 1 : 0;
+  const reach = sl.map(reachOf);
+  const strokes = `<g fill="none" stroke="currentColor" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${sl.map((s, i) => {
+    const opacity = s[8] * (knock.includes(i) ? 1 - f : 1);
+    if (opacity < 0.002) return "";
+    const w = widthOfReach(reach[i]);
+    return `<path d="${slotPath(s, reach[i])}"${Math.abs(w - STROKE) > 1e-6 ? ` stroke-width="${r3(w)}"` : ""}${opacity < 0.999 ? ` stroke-opacity="${r3(opacity)}"` : ""}/>`;
+  }).join("")}</g>`;
+  if (f <= 0.001 || !loops.length) return strokes;
+  const holes = knock.filter((i) => (sl[i]?.[8] ?? 0) > 0.001);
+  const fill = loops.map((loop) => `${loop.map((i, k) => slotPath(sl[i], reach[i], k === 0)).join("")}Z`).join("");
+  const mask = holes.length
+    ? `<mask id="@" maskUnits="userSpaceOnUse" x="-2" y="-2" width="28" height="28"><rect x="-2" y="-2" width="28" height="28" fill="#fff"/><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">${holes.map((i) => `<path d="${slotPath(sl[i], reach[i])}" stroke-width="${r3(widthOfReach(reach[i]))}"${sl[i][8] < 0.999 ? ` stroke-opacity="${r3(sl[i][8])}"` : ""}/>`).join("")}</g></mask>`
+    : "";
+  return `${mask}<g${holes.length ? ' mask="url(#@)"' : ""}><path d="${fill}" fill="currentColor"${base.evenodd ? ' fill-rule="evenodd"' : ""}/>${base.cutKnock ? strokes : ""}</g>${base.cutKnock ? "" : strokes}`;
+}
+/** { name: [rest, selected] } for every core glyph that is not a board drawing; selected is left out when it is the same drawing. */
+function glyphData() {
+  const out = {};
+  for (const name of NAMES) {
+    if (GLYPHS[name].board) continue;
+    const rest = glyphMarkup(name, false);
+    const selected = glyphMarkup(name, true);
+    out[name] = selected === rest ? [rest] : [rest, selected];
+  }
+  return out;
+}
+const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
@@ -167,6 +221,7 @@ export function build() {
   // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.
   const notice = licenceComment(path.join(findPackage("@phosphor-icons/react"), "LICENSE"), "The icon paths below are from Phosphor Icons (@phosphor-icons/react):");
   files["parts/icons.json"] = `${JSON.stringify({ notice, icons: iconData(JSON.parse(src("icons.json"))) })}\n`;
+  files["parts/glyphs.json"] = `${JSON.stringify(glyphData())}\n`;
   files["parts/geist.css"] = `${geistFonts()}\n`;
   // The usage text is prose, so it is copied as it is: one file for the core and one for each module.
   const usageDir = path.join(srcDir, "usage");

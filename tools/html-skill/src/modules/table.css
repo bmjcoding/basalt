@@ -10,8 +10,7 @@
   tr[aria-selected="true"] { background: var(--basalt-state-selected); }
   @media (pointer: coarse) { td { height: var(--basalt-size-tap-min); } }
   /* At 390 a table's name column and any status column come first and fit; only the numbers scroll. Tighter cells, never a hidden column. */
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) {
+  @media (width < %bp-md%) {
     th, td { padding-inline: var(--basalt-space-3); }
     :is(th, td):first-child { padding-inline-start: var(--basalt-space-4); }
   }

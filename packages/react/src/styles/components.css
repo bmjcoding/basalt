@@ -915,12 +915,14 @@
     letter-spacing: var(--basalt-text-lg-tracking);
   }
 
-  /* The brand slot: the 32px header lockup in a 44px target. Identity, not a nav item: no wash. */
+  /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
+     start, drawing nothing new). Identity, not a nav item: no wash. */
   .basalt-site-brand {
     display: inline-flex;
     align-items: center;
     flex: none;
     height: var(--basalt-size-tap-min);
+    min-width: var(--basalt-size-tap-min);
     margin: 0;
     color: var(--basalt-text-primary);
     text-decoration: none;

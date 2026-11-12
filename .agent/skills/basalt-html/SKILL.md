@@ -21,6 +21,7 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 Markup built only at run time (a `.row` your script writes) won't be seen: add `<!-- basalt:use rows -->` to the body.
 
 - **core** `.page`, `.stack`, `.panel`, `.card`, `.btn`: always in; always print its usage with your modules.
+- **glyph** `data-glyph`: Basalt's own glyph by name, never drawn by hand; filled inside `aria-current`.
 - **topbar** `.topbar`: once per page; never restyle it; no danger button; no second blurred layer.
 - **kbd** `data-kbd`, `.kbd`: only a real shortcut the page binds, never on the primary fill; `data-doc` for keys in prose.
 - **segment** `.segment`: `button[aria-pressed]`, one true; a click doesn't switch it, your script does.
@@ -62,6 +63,10 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **tooltip** `data-tooltip`: only supplements a name the control already has; plain text.
 - **toast** `Basalt.toast`: no `home` means it stays until dismissed; never build your own.
 - **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.
+- **nav** `.nav`: `a.nav-item` > `.nav-pill`; `aria-current` marks the page; never write a bar or a wash.
+- **topbar-nav** `.topbar-links`: five links at most, one `.topbar-action`; the script builds the narrow menu, never write it.
+- **app-shell** `.app-shell`: the document scrolls; one smoked bar per page; every sidebar item has a glyph.
+- **tab-bar** `.tab-bar`: three to five links, glyph over label; with more, four and a More sheet.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
 

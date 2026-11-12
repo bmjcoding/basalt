@@ -171,7 +171,40 @@ describe("the body's own parts", () => {
     const { html, modules: got } = compose("<!-- basalt:use callout, progress -->\n<p>x</p>", { fonts: false });
     assert.deepEqual(got, ["callout", "progress"]);
     assert.ok(!html.includes("basalt:use"));
-    assert.throws(() => compose("<!-- basalt:use nonsense -->", { fonts: false }), /"nonsense", which is not a module \(modules: topbar, /);
+    assert.throws(() => compose("<!-- basalt:use nonsense -->", { fonts: false }), /"nonsense", which is not a module \(modules: glyph, topbar, /);
+  });
+
+  test("detection reads markup and code, never comments: a word in an HTML, script or style comment brings nothing in, and basalt:use still does", () => {
+    // A comment that names a module's own attribute, class or call (a data-glyph, a .toast, Basalt.toast) is not use of it.
+    assert.deepEqual(used('<!-- <span data-glyph="home"></span> <dialog class="sheet"></dialog> -->\n<p>x</p>'), []);
+    assert.deepEqual(used('<p>x</p>\n<script>\n// Basalt.toast("x"); a data-glyph="close" on a .sheet\n/* <span data-dialog-open="#d"></span> */\nvar a = 1;\n</script>'), []);
+    assert.deepEqual(used('<style>/* .sheet { } [data-glyph] */ .x { color: red }</style><p>x</p>'), []);
+    assert.deepEqual(used('<p>x</p><script>var url = "http://a.test/data-glyph"; var re = /\\/\\/ data-dialog-open/;</script>'), ["glyph", "dialog"], "a // inside a string or a regular expression is not a comment");
+    assert.deepEqual(used("<!-- basalt:use glyph -->\n<!-- data-glyph in prose -->"), ["glyph"]);
+    // A real use beside a comment still counts, in markup and in code; the init call is not made for one written in a comment.
+    assert.deepEqual(used('<!-- one -->\n<span data-glyph="home"></span>\n<script>// Basalt.toast\nBasalt.toast("x");</script>'), ["glyph", "braille", "toast"]);
+    const commented = compose("<p>x</p><script>// Basalt.init();\n</script>", { fonts: false }).html;
+    assert.ok(commented.includes("<script>Basalt.init();</script>"), "a call written in a comment is not a call");
+  });
+
+  test("a core glyph is drawn by a part of its own: a page with a glyph and no sheet carries no sheet or dialog, and a module that needs the glyph requires it", () => {
+    const glyph = compose('<span data-glyph="home" data-size="24"></span>', { fonts: false });
+    assert.deepEqual(glyph.modules, ["glyph"]);
+    assert.deepEqual(glyph.glyphs, ["home"], "only the glyph it names");
+    assert.ok(!glyph.html.includes("dialog.sheet") && !glyph.html.includes("showModal"), "no sheet or dialog in the page");
+    assert.ok(glyph.html.includes("addGlyphs") && !glyph.html.includes('"close":['), "the table holds the glyph it names and no other");
+    // The sheet alone draws none.
+    assert.deepEqual(used('<dialog class="panel float modal sheet" data-side="right"><h2 class="dialog-title">x</h2></dialog>'), ["dialog", "sheet"]);
+    // The modules that draw a glyph themselves bring the part and the two glyphs they draw.
+    const bar = compose('<header class="topbar"><div class="topbar-inner"><a class="brand" href="#">x</a><nav class="topbar-links" aria-label="Primary"><a href="#">a</a></nav></div></header>', { fonts: false });
+    assert.ok(["glyph", "sheet", "dialog", "nav", "glide", "topbar", "topbar-nav"].every((n) => bar.modules.includes(n)), bar.modules.join(", "));
+    assert.deepEqual(bar.glyphs, ["menu", "close"]);
+    for (const [name, m] of Object.entries(manifest.modules)) if ((m.glyphs ?? []).length) assert.ok(m.requires.includes("glyph"), `${name} draws glyphs and must require glyph`);
+  });
+
+  test("a page with a tab bar or an app shell covers its whole screen (viewport-fit=cover), and no other page does", () => {
+    for (const body of ['<nav class="tab-bar" aria-label="Primary"></nav>', '<div class="app-shell"></div>']) assert.match(compose(body, { fonts: false }).html, /<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">/);
+    assert.match(compose('<header class="topbar"><div class="topbar-inner"></div></header>', { fonts: false }).html, /<meta name="viewport" content="width=device-width, initial-scale=1">/);
   });
 
   test("a whole page is refused with a plain message, and so is a bad language", () => {
@@ -315,7 +348,7 @@ describe("the command line", () => {
       const bad = run(["--usage", "nope"], dir);
       assert.equal(bad.status, 1);
       assert.equal(bad.stdout, "", "nothing on stdout for a name that is not a module");
-      assert.match(bad.stderr, /compose\.mjs: "nope" is not a module \(core or: topbar, /);
+      assert.match(bad.stderr, /compose\.mjs: "nope" is not a module \(core or: glyph, topbar, /);
       assert.ok(bad.stderr.includes(indexLines(skill).map((l) => `- ${l.line}`).join("\n")), "the index is printed with the failure");
       const mixed = run(["--usage", "table", "nope"], dir);
       assert.equal(mixed.status, 1);
@@ -377,7 +410,7 @@ describe("modules map to the index and the usage texts", () => {
   });
 
   test("every behaviour attribute in the index and the usage texts brings the module that wires it", () => {
-    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd", "data-dialog-open": "dialog", "data-dialog-close": "dialog", "data-tooltip": "tooltip", "data-tooltip-keys": "kbd" };
+    const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd", "data-dialog-open": "dialog", "data-dialog-close": "dialog", "data-tooltip": "tooltip", "data-tooltip-keys": "kbd", "data-glyph": "glyph" };
     const behaviour = attrs.filter((a) => a in wires);
     assert.ok(behaviour.length >= 6);
     for (const attr of behaviour) assert.ok(used(`<div ${attr}></div>`).includes(wires[attr]), `${attr} should bring ${wires[attr]}`);
@@ -385,7 +418,8 @@ describe("modules map to the index and the usage texts", () => {
 
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
     // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
-    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"] };
+    // The app shell names the phone tab bar that goes in it; the tab bar names the sheet and the nav rows of its More cell (a page that uses them brings them by their own markup).
+    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
@@ -498,7 +532,9 @@ describe("budgets", () => {
     const bytes = Buffer.byteLength(compose("", { fonts: false, all: true }).html);
     const caps = manifest.budgets.core + Object.values(manifest.modules).reduce((sum, m) => sum + m.budget, 0);
     const icons = Buffer.byteLength(JSON.stringify(JSON.parse(fs.readFileSync(new URL("../../../.agent/skills/basalt-html/parts/icons.json", import.meta.url), "utf8"))));
-    assert.ok(bytes <= caps + icons + 4096, `the every-module page is ${bytes} bytes; the parts' caps plus the icons and the page shell allow ${caps + icons + 4096}`);
+    // The core glyphs are a table of drawings a page carries only for the glyphs it names, as it carries icons.
+    const glyphs = Buffer.byteLength(JSON.stringify(JSON.parse(fs.readFileSync(new URL("../../../.agent/skills/basalt-html/parts/glyphs.json", import.meta.url), "utf8"))));
+    assert.ok(bytes <= caps + icons + glyphs + 4096, `the every-module page is ${bytes} bytes; the parts' caps plus the icons, the glyphs and the page shell allow ${caps + icons + glyphs + 4096}`);
   });
 
   test("a smaller page is smaller: the static example is below the everything page by what it leaves out", () => {

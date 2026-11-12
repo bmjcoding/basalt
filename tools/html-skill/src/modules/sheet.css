@@ -49,9 +49,8 @@
   dialog.sheet[data-side="top"][open] { clip-path: inset(0 var(--_reach) var(--_reach) var(--_reach)); }
   @starting-style { dialog.sheet[data-side="top"][open] { opacity: 1; transform: none; clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-size-header) - var(--_safe-top)) var(--_reach)); } }
 
-  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding: var(--basalt-size-hairline) var(--basalt-space-6) 0; border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
-  /* stylelint-disable-next-line unit-disallowed-list -- a media query cannot read a token; 720px is the page's one breakpoint */
-  @media (max-width: 719px) { .sheet-band { padding-inline: var(--basalt-space-4); } }
+  /* The band is the bar's own row, redrawn: the header's height, its line inside, and the gutter or the side safe area, whichever is larger. */
+  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding: var(--basalt-size-hairline) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) 0 max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0))); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
 
   /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. */
   .sheet > .dialog-actions {
@@ -68,5 +67,9 @@
     dialog.sheet[open] { opacity: 1; }
     @starting-style { dialog.sheet[open], dialog.sheet[data-side][open] { transform: none; opacity: 0; clip-path: none; } }
     dialog.sheet[data-side="top"], dialog.sheet[data-side="top"][open] { clip-path: none; }
+  }
+
+  @media (forced-colors: active) {
+    .sheet-band { border-bottom-color: CanvasText; }
   }
 }

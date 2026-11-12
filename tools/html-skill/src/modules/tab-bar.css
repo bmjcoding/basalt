@@ -1,0 +1,138 @@
+/* The phone tab bar (React's TabBar, TabBarItem and TabBarMore, DECISIONS 96 and 108): the destinations of an app under 720, always glyph over label. It is
+   navigation, so a `nav` of links with aria-current="page", never a tablist. A module: compose.mjs adds it when the markup has a .tab-bar. Solid surface-page
+   with a hairline on top: the header is the one smoked surface, and nothing translucent sits under the thumb. 56 with the hairline inside plus the bottom safe
+   area, and the side insets in landscape; fixed to the bottom under 720, not shown from 720 up or in print. Content pads past it by the bar, the inset and
+   space-6 (the app shell does), and toasts sit above it. More's bottom sheet is a .sheet (the sheet module) holding Nav rows. */
+
+@layer basalt {
+
+  /* --basalt-bottom-offset is the tab bar plus the bottom safe area under 720, in a page with one, else 0: the page's bottom padding and where the toasts sit.
+     --bh-inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
+  :root {
+    --bh-inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--bh-inset-bottom-sim, var(--basalt-space-0)));
+    --bh-inset-left: env(safe-area-inset-left, var(--basalt-space-0));
+    --bh-inset-right: env(safe-area-inset-right, var(--basalt-space-0));
+    --basalt-bottom-offset: var(--basalt-space-0);
+  }
+  @media (width < %bp-md%) {
+    :root:has(.tab-bar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--bh-inset-bottom)); }
+    /* Toasts sit above the tab bar. */
+    :root:has(.tab-bar) .toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
+  }
+
+  .tab-bar { display: none; }
+  @media (width < %bp-md%) {
+    .tab-bar {
+      --bh-tap-margin: 0;
+      position: fixed;
+      inset-inline: 0;
+      bottom: 0;
+      z-index: var(--basalt-layer-sticky);
+      box-sizing: border-box;
+      display: block;
+      padding-bottom: var(--bh-inset-bottom);
+      padding-inline: var(--bh-inset-left) var(--bh-inset-right);
+      border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
+      background: var(--basalt-surface-page);
+      color: var(--basalt-text-primary);
+      font-family: var(--basalt-font-family-sans);
+    }
+  }
+  @media print {
+    .tab-bar { display: none; }
+  }
+  .tab-bar-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    height: calc(var(--basalt-size-tab-bar) - var(--basalt-size-hairline));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tab-bar-list > li { display: flex; min-width: 0; margin: 0; padding: 0; }
+  .tab-bar-item {
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: var(--basalt-space-0-5) var(--basalt-space-0-5) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--basalt-space-0-5);
+    border: 0;
+    background: none;
+    color: var(--basalt-text-primary);
+    font: inherit;
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The glyph at 24 in a 32px circle: the circle is the press and hover, so nothing resizes. */
+  .tab-bar-glyph {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--basalt-size-control-md);
+    height: var(--basalt-size-control-md);
+    border-radius: var(--basalt-radius-full);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .tab-bar-label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+    font: var(--basalt-font-weight-regular) var(--bh-xs);
+    letter-spacing: var(--basalt-text-xs-tracking);
+    white-space: nowrap;
+  }
+  /* The label reserves its 600 width (tab-bar.js writes data-label), so becoming current moves nothing. */
+  .tab-bar-label[data-label]::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .tab-bar-item:is([aria-current="page"], [data-current]) .tab-bar-label { font-weight: var(--basalt-font-weight-semibold); }
+  /* Something new: a 6px dot in the label's ink at the glyph's top end. Its words are spoken with the name; counts are spoken, never drawn. */
+  .tab-bar-dot {
+    position: absolute;
+    top: var(--basalt-space-1);
+    inset-inline-end: var(--basalt-space-1);
+    width: var(--basalt-size-dot);
+    height: var(--basalt-size-dot);
+    border-radius: var(--basalt-radius-full);
+    background-color: currentColor;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tab-bar-item:hover .tab-bar-glyph { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  }
+  .tab-bar-item:active .tab-bar-glyph { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
+  /* The first key hides the circle: the ring is the cue. The ring is the control ring inset by its own width on the full cell (the flush-field rule),
+     because the cell meets the screen's edge. */
+  .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { background-color: transparent; }
+  .tab-bar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  /* More's bottom sheet: a title and Close, then Nav rows. */
+  .tab-bar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); }
+  .tab-bar-sheet-head .dialog-title { margin: 0; }
+
+  @media (forced-colors: active) {
+    .tab-bar { background: Canvas; border-top-color: CanvasText; }
+    .tab-bar-item { color: LinkText; }
+    .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: auto; background-color: transparent; color: inherit; }
+    .tab-bar-dot { forced-color-adjust: none; background-color: CanvasText; }
+  }
+}

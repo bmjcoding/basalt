@@ -32,8 +32,8 @@
   .terminal-swap > :not([data-on]) { visibility: hidden; }
   /* Wide: the words. Narrow (the terminal's own width, under 480px): the icon alone, with the same name. */
   .terminal-actions .terminal-copy-compact { display: none; }
-  /* size-breakpoint-container (480px): a container query cannot read a token */
-  @container (width < 480px) {
+  /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
+  @container (width < %bp-container%) {
     .terminal-actions .terminal-copy { display: none; }
     .terminal-actions .terminal-copy-compact { display: inline-flex; }
   }
