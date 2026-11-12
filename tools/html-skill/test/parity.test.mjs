@@ -248,6 +248,11 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       boxWidth: () => (ps ? style.width : px(rect.width)),
       rectLeft: () => px(rect.left), rectTop: () => px(rect.top), rectRight: () => px(window.innerWidth - rect.right), rectBottom: () => px(window.innerHeight - rect.bottom),
       pathCount: () => `${el.querySelectorAll("path").length}`,
+      attrX: () => el.getAttribute("x"), attrY: () => el.getAttribute("y"), attrW: () => el.getAttribute("width"), attrH: () => el.getAttribute("height"), attrD: () => el.getAttribute("d"), attrAnchor: () => el.getAttribute("text-anchor"),
+      // Where the page lays two pages out differently, a position is read inside its own figure; a width off by a layout unit (1/64px) is read to the pixel; a paint server's id is its own.
+      relTop: () => px(rect.top - el.closest("dl, .basalt-meter, .meter").getBoundingClientRect().top), roundWidth: () => `${Math.round(rect.width)}px`, roundMarginLeft: () => `${Math.round(parseFloat(style.marginLeft))}px`,
+      paint: () => (/^url\(/.test(style.fill) ? "url(#pattern)" : style.fill),
+      childCount: () => `${el.querySelectorAll("*").length}`, words: () => [...el.querySelectorAll("text")].map((t) => `${t.getAttribute("x")},${Math.round(+t.getAttribute("y") * 100) / 100}:${t.textContent}`).join(" | "),
       gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
@@ -448,6 +453,161 @@ const OVERLAYS = [
   },
 ];
 
+
+// ---- Figures and charts (skill-parity-5): the description list, the meter, the stat's source line, the terminal and the time chart ----
+const FIG_TEXT = [...TYPE, "color"];
+const CHART_DAYS = ["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10"];
+const BAR = { values: [48, 52, null, 61, 33, 70, 0, 45, 58, 34], reasons: [null, null, "not worn", null, null, null, null, null, null, null] };
+const RING = { values: [440, 450, 420, null, null, 470, 480, 430, 455, 460], reasons: [null, null, null, "ring charging", "ring charging", null, null, null, null, null] };
+const WATCH = { values: [430, 445, 410, 400, 415, 460, 470, 425, null, null], reasons: [null, null, null, null, null, null, null, null, "not worn, travel", "not worn, travel"] };
+const BAND = CHART_DAYS.map((_, i) => (i < 6 ? [420, 540] : [450, 540]));
+const DAYS_JSON = JSON.stringify(CHART_DAYS);
+const reactChart = (extra) => `<div style={{ width: 640 }}><TimeChart now={Date.UTC(2026, 10, 10, 12)} ${extra} /></div>`;
+const barChartReact = reactChart(`title="Training" source="Watch" kind="bar" days={${DAYS_JSON}} series={[{ id: "t", name: "Training", values: ${JSON.stringify(BAR.values)}, reasons: ${JSON.stringify(BAR.reasons)} }]} plan={{ kind: "value", label: "Goal", values: [45, 45, 45, 45, 45, 45, 45, 45, 45, 45] }} partial={9} unit="min" format={(v) => Math.round(v) + " min"} spoken={(v) => Math.round(v) + " minutes"} summary="Training averaged 54 min a day."`);
+const lineChartReact = reactChart(`title="Sleep" source="Ring and watch" kind="line" days={${DAYS_JSON}} series={[{ id: "ring", name: "Ring", values: ${JSON.stringify(RING.values)}, reasons: ${JSON.stringify(RING.reasons)} }, { id: "watch", name: "Watch", values: ${JSON.stringify(WATCH.values)}, reasons: ${JSON.stringify(WATCH.reasons)} }]} plan={{ kind: "band", values: ${JSON.stringify(BAND)} }} step={60} unit="h" formatTick={(v) => String(v / 60)} format={(m) => { const h = Math.floor(m / 60); const r = Math.round(m - h * 60); return r ? h + " h " + r + " m" : h + " h"; }} spoken={(m) => { const h = Math.floor(m / 60); const r = Math.round(m - h * 60); return h + (h === 1 ? " hour" : " hours") + (r ? " " + r + (r === 1 ? " minute" : " minutes") : ""); }} summary="Ring averaged 7 h 20 m."`);
+const skillChart = (data) => `<div style="width: 640px"><figure class="chart"><script type="application/json" data-chart>${JSON.stringify({ now: "2026-11-10", days: CHART_DAYS, ...data })}</script></figure></div>`;
+const barChartSkill = skillChart({ title: "Training", source: "Watch", kind: "bar", unit: "min", summary: "Training averaged 54 min a day.", partial: 9, series: [{ id: "t", name: "Training", ...BAR }], plan: { kind: "value", label: "Goal", values: BAR.values.map(() => 45) }, format: { suffix: " min", spoken: " minutes", maximumFractionDigits: 0 } });
+const lineChartSkill = skillChart({ title: "Sleep", source: "Ring and watch", kind: "line", unit: "h", tickDivisor: 60, step: 60, summary: "Ring averaged 7 h 20 m.", series: [{ id: "ring", name: "Ring", ...RING }, { id: "watch", name: "Watch", ...WATCH }], plan: { kind: "band", values: BAND }, format: { duration: "minutes" } });
+const chartPairs = (kind) => [
+  ["figure", ".basalt-chart", ".chart", ["boxWidth", "boxHeight", "display", "flexDirection", "gap", "fontFamily"]],
+  ["title", ".basalt-chart-title", ".chart-title", [...FIG_TEXT, "boxHeight", "marginTop"]],
+  ["source", ".basalt-chart-source", ".chart-source", [...FIG_TEXT, "boxHeight", "fontVariantNumeric"]],
+  ["date", ".basalt-chart-date", ".chart-date", [...FIG_TEXT, "boxWidth", "boxHeight", "whiteSpace"]],
+  ["legend", ".basalt-chart-legend", ".chart-legend", ["display", "flexWrap", "rowGap", "columnGap", "boxHeight", "paddingLeft", "listStyleType"]],
+  ["entry", ".basalt-chart-entry", ".chart-entry", ["display", "gap", "boxWidth", "boxHeight", "whiteSpace"]],
+  ["swatch", ".basalt-chart-swatch", ".chart-swatch", ["boxWidth", "boxHeight", "overflowX", "childCount"]],
+  ["name", ".basalt-chart-name", ".chart-name", [...FIG_TEXT, "boxWidth"]],
+  ["value", ".basalt-chart-value", ".chart-value", [...FIG_TEXT, "boxWidth", "boxHeight", "display"]],
+  ["plot", ".basalt-chart-plot", ".chart-plot", ["boxWidth", "boxHeight", "minHeight", "touchAction", "userSelect"]],
+  ["svg", ".basalt-chart-svg", ".chart-svg", ["boxWidth", "boxHeight", "display", "childCount"]],
+  ["svg words", ".basalt-chart-svg", ".chart-svg", ["words"]],
+  ["grid", ".basalt-chart-grid", ".chart-grid", ["stroke", "strokeWidth", "attrX", "attrY"]],
+  ["axis", ".basalt-chart-axis", ".chart-axis", ["fill", ...TYPE, "fontVariantNumeric", "attrX", "attrY", "attrAnchor", "dominantBaseline"]],
+  ["lane", ".basalt-chart-lane", ".chart-lane", ["fill", ...TYPE, "attrX", "attrY"]],
+  ["hatch", ".basalt-chart-hatch", ".chart-hatch", ["attrX", "attrY", "attrW", "attrH", "paint"]],
+  ["hatch line", "pattern .basalt-chart-hatch-line", "pattern .chart-hatch-line", ["stroke", "strokeWidth"]],
+  ["hatch tile", "pattern", "pattern", ["attrW", "attrH"]],
+  ["day", ".basalt-chart-day", ".chart-day", ["boxWidth", "boxHeight", "borderTopLeftRadius", "position", "outlineStyle"]],
+  ["days", ".basalt-chart-days", ".chart-days", ["position", "pointerEvents", "boxHeight"]],
+  ["hint", ".basalt-chart-hint", ".chart-hint", [...FIG_TEXT, "display", "gap", "boxHeight"]],
+  ["foot", ".basalt-chart-foot", ".chart-foot", ["display", "boxHeight", "order"]],
+  ["table button", ".basalt-chart-toggle", ".chart-toggle", [...GEOMETRY, ...TYPE, ...COLOUR]],
+  ["summary", ".basalt-chart-summary", ".chart-summary", [...FIG_TEXT, "boxWidth", "boxHeight", "maxWidth", "order"]],
+  ["table region", ".basalt-chart-table", ".chart-table", ["order", "display"]],
+  ["day focus ring", ".basalt-chart-day[tabindex='0']", ".chart-day[tabindex='0']", [...OUTLINE, "boxWidth", "boxHeight"], { focus: true }],
+  ["table button focus ring", ".basalt-chart-toggle", ".chart-toggle", OUTLINE, { focus: true }],
+  ...(kind === "bar" ? [
+    ["bar", ".basalt-chart-bar:not([data-so-far])", ".chart-bar:not([data-so-far])", ["fill", "attrX", "attrY", "attrW", "attrH"]],
+    ["so-far bar", "svg .basalt-chart-bar[data-so-far]", "svg .chart-bar[data-so-far]", ["fill", "stroke", "strokeWidth", "attrX", "attrY", "attrW", "attrH"]],
+    ["plan", ".basalt-chart-plan:not(.basalt-chart-swatch *)", ".chart-plan:not(.chart-swatch *)", ["stroke", "strokeWidth", "strokeLinecap", "attrX", "attrY"]],
+    ["cut", ".basalt-chart-cut", ".chart-cut", ["fill", "attrX", "attrY", "attrW", "attrH"]],
+    ["baseline", ".basalt-chart-baseline", ".chart-baseline", ["stroke", "strokeWidth", "attrX", "attrY"]],
+    ["legend bar swatch", ".basalt-chart-swatch .basalt-chart-bar", ".chart-swatch .chart-bar", ["fill", "attrX", "attrY", "attrW", "attrH"]],
+  ] : [
+    ["line", ".basalt-chart-series .basalt-chart-line", ".chart-series .chart-line", ["fill", "stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin", "strokeDasharray", "attrD"]],
+    ["dashed line", ".basalt-chart-series[data-series=watch] .basalt-chart-line", ".chart-series[data-series=watch] .chart-line", ["stroke", "strokeDasharray", "strokeLinecap", "attrD"]],
+    ["mark", ".basalt-chart-mark", ".chart-mark", ["fill", "attrX", "attrY", "attrW", "attrH"]],
+    ["ring", ".basalt-chart-ring", ".chart-ring", ["fill"]],
+    ["band", ".basalt-chart-band", ".chart-band", ["fill", "attrX", "attrY", "attrW", "attrH"]],
+    ["band edge", ".basalt-chart-band-edge", ".chart-band-edge", ["stroke", "strokeWidth", "attrX", "attrY"]],
+    ["direct label", ".basalt-chart-direct", ".chart-direct", ["fill", ...TYPE, "attrX", "attrY"]],
+  ]),
+];
+
+// A replay starts idle with no lines, so the pairs that read a line are for the static transcript only (the replay's own lines are read in parity-5.test.mjs).
+const LINE_PAIRS = new Set(["lines", "command line", "prompt gutter", "command text", "output line", "done mark", "warning mark", "error mark", "error text"]);
+const FIGURES = [
+  {
+    id: "description list",
+    react: `<div style={{ width: 640 }}><DescriptionList data-testid="list"><DescriptionItem term="ID" mono>sb_7f3a91c2e0</DescriptionItem><DescriptionItem term="Region">Ashburn (us-east)</DescriptionItem><DescriptionItem term="Allowed hosts" mono values={["api.example.test", "cdn.example.test"]} /><DescriptionItem term="Last seen" missing /></DescriptionList></div><div style={{ width: 360 }}><DescriptionList data-testid="narrow"><DescriptionItem term="Region">Ashburn (us-east)</DescriptionItem></DescriptionList></div>`,
+    skill: `<div style="width: 640px"><dl class="dlist"><div><dt>ID</dt><dd data-mono>sb_7f3a91c2e0</dd></div><div><dt>Region</dt><dd>Ashburn (us-east)</dd></div><div><dt>Allowed hosts</dt><dd data-mono>api.example.test</dd><dd data-mono>cdn.example.test</dd></div><div><dt>Last seen</dt><dd data-missing>Not observed</dd></div></dl></div><div style="width: 360px"><dl class="dlist" data-narrow><div><dt>Region</dt><dd>Ashburn (us-east)</dd></div></dl></div>`,
+    pairs: [
+      ["list", "[data-testid=list]", ".dlist:not([data-narrow])", ["boxWidth", "boxHeight", "display", "fontFamily", "marginTop", "paddingTop", "containerType"]],
+      ["row", ".basalt-description-item:nth-child(2)", ".dlist > div:nth-child(2)", ["boxHeight", "display", "gridTemplateColumns", "columnGap", "paddingTop", "paddingBottom", "boxShadow", "alignItems"]],
+      ["first row", ".basalt-description-item:first-child", ".dlist > div:first-child", ["boxHeight", "paddingTop", "paddingBottom", "boxShadow"]],
+      ["last row", ".basalt-description-item:last-child", ".dlist > div:last-child", ["boxHeight", "paddingTop", "paddingBottom", "boxShadow"]],
+      ["term", ".basalt-description-item:nth-child(2) .basalt-description-term", ".dlist > div:nth-child(2) dt", [...FIG_TEXT, "boxWidth", "boxHeight", "marginTop"]],
+      ["value", ".basalt-description-item:nth-child(2) .basalt-description-details", ".dlist > div:nth-child(2) dd", [...FIG_TEXT, "boxWidth", "boxHeight", "fontVariantNumeric", "marginTop", "fontFamily"]],
+      ["mono value", ".basalt-description-details[data-mono]", ".dlist dd[data-mono]", [...FIG_TEXT, "fontFamily", "boxHeight"]],
+      ["second value", ".basalt-description-item:nth-child(3) .basalt-description-details:nth-of-type(2)", ".dlist > div:nth-child(3) dd:nth-of-type(2)", ["gridColumnStart", "marginTop", "rectLeft"]],
+      ["missing value", ".basalt-description-details[data-missing]", ".dlist dd[data-missing]", [...FIG_TEXT, "boxHeight"]],
+      ["stacked row", "[data-testid=narrow] .basalt-description-item", ".dlist[data-narrow] > div", ["boxHeight", "gridTemplateColumns", "rowGap"]],
+      ["stacked value", "[data-testid=narrow] .basalt-description-details", ".dlist[data-narrow] dd", ["relTop", "marginTop"]],
+    ],
+  },
+  {
+    id: "meter",
+    react: `<div style={{ width: 640 }}><Meter label="Build minutes" value={2240} max={3000} target={2500} unit="min" /></div><div style={{ width: 640 }}><Meter data-over="" label="Bandwidth" value={124000} max={100000} unit="GB" /></div>`,
+    skill: `<div style="width: 640px"><div class="meter" role="meter" aria-labelledby="m1" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="2240" aria-valuetext="x" style="--value: 74.6667%; --target: 83.3333%"><div class="meter-head"><span class="meter-label" id="m1">Build minutes</span><span class="meter-reading"><span class="meter-value">2,240</span> of 3,000 min</span></div><div class="meter-track"><span class="meter-fill"></span><span class="meter-tick"></span></div><div class="meter-foot"><span class="meter-left">760 min left</span><span class="meter-target">Target 2,500 min</span></div></div></div><div style="width: 640px"><div class="meter" data-over role="meter" aria-labelledby="m2" aria-valuemin="0" aria-valuemax="100000" aria-valuenow="100000" aria-valuetext="x" style="--value: 124%"><div class="meter-head"><span class="meter-label" id="m2">Bandwidth</span><span class="meter-reading"><span class="meter-value">124,000</span> of 100,000 GB</span></div><div class="meter-track"><span class="meter-fill"></span></div><div class="meter-foot"><span class="meter-left" data-over>24,000 over</span></div></div></div>`,
+    pairs: [
+      ["meter", ".basalt-meter:not([data-over])", ".meter:not([data-over])", ["boxWidth", "boxHeight", "display", "gap", "fontSize", "fontWeight", "lineHeight", "fontFamily", "color"]],
+      ["head", ".basalt-meter:not([data-over]) .basalt-meter-head", ".meter:not([data-over]) .meter-head", ["display", "justifyContent", "alignItems", "gap", "boxHeight"]],
+      ["label", ".basalt-meter:not([data-over]) .basalt-meter-label", ".meter:not([data-over]) .meter-label", [...FIG_TEXT, "boxWidth", "boxHeight"]],
+      ["reading", ".basalt-meter:not([data-over]) .basalt-meter-now", ".meter:not([data-over]) .meter-reading", [...FIG_TEXT, "roundWidth", "boxHeight", "fontVariantNumeric", "whiteSpace"]],
+      ["reading value", ".basalt-meter:not([data-over]) .basalt-meter-now .basalt-meter-value", ".meter:not([data-over]) .meter-value", [...FIG_TEXT, "boxWidth"]],
+      ["slot", ".basalt-meter:not([data-over]) .basalt-meter-track", ".meter:not([data-over]) .meter-track", ["boxWidth", "boxHeight", "paddingTop", "marginTop", "marginBottom", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "backgroundColor", "boxSizing"]],
+      ["fill", ".basalt-meter:not([data-over]) .basalt-meter-fill", ".meter:not([data-over]) .meter-fill", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "position", "rectLeft", "relTop", "transitionProperty", "transitionDuration", "transitionTimingFunction"]],
+      ["tick", ".basalt-meter:not([data-over]) .basalt-meter-tick", ".meter:not([data-over]) .meter-tick", ["boxWidth", "boxHeight", "backgroundColor", "backgroundClip", "borderLeftWidth", "borderLeftColor", "borderRightColor", "rectLeft", "relTop", "marginLeft"]],
+      ["foot", ".basalt-meter:not([data-over]) .basalt-meter-foot", ".meter:not([data-over]) .meter-foot", [...FIG_TEXT, "display", "boxHeight", "minHeight", "alignItems", "fontVariantNumeric"]],
+      ["left", ".basalt-meter:not([data-over]) .basalt-meter-left", ".meter:not([data-over]) .meter-left", [...FIG_TEXT, "boxWidth"]],
+      ["target", ".basalt-meter:not([data-over]) .basalt-meter-target", ".meter:not([data-over]) .meter-target", [...FIG_TEXT, "roundWidth", "boxHeight", "display", "gap", "whiteSpace", "roundMarginLeft"]],
+      ["target mark", ".basalt-meter:not([data-over]) .basalt-meter-target", ".meter:not([data-over]) .meter-target", ["boxWidth", "boxHeight", "backgroundColor"], { pseudo: "::before" }],
+      ["over fill", ".basalt-meter[data-over] .basalt-meter-fill", ".meter[data-over] .meter-fill", ["boxWidth", "backgroundColor"]],
+      ["over words", ".basalt-meter-left[data-over]", ".meter-left[data-over]", [...FIG_TEXT, "boxWidth"]],
+    ],
+  },
+  {
+    id: "stat",
+    react: `<div style={{ width: 640 }}><Stats><Stat label="Weight" value="78.4 kg" note="−0.6 kg this week" source="Scale" time={Date.UTC(2026, 10, 10, 4, 41)} timeZone="UTC" now={Date.UTC(2026, 10, 10, 12)} /><Stat label="Sleep" value="7 h 20 m" source="Ring" /></Stats></div>`,
+    skill: `<div style="width: 640px"><dl class="stats"><div class="stat"><dt class="stat-label">Weight</dt><dd class="stat-value">78.4 kg</dd><dd class="stat-note">−0.6 kg this week</dd><dd class="stat-source"><time datetime="2026-11-10T04:41">04:41</time> <span aria-hidden="true">·</span><span class="visually-hidden">, </span> Scale</dd></div><div class="stat"><dt class="stat-label">Sleep</dt><dd class="stat-value">7 h 20 m</dd><dd class="stat-source">Ring</dd></div></dl></div>`,
+    pairs: [
+      ["stats", ".basalt-stats", ".stats", ["boxWidth", "boxHeight", "display", "gridTemplateColumns", "gap", "marginTop", "paddingTop", "fontFamily"]],
+      ["stat", ".basalt-stat:first-child", ".stat:first-child", ["boxWidth", "boxHeight", "display", "flexDirection", "gap", "marginTop", "paddingTop"]],
+      ["label", ".basalt-stat-label", ".stat-label", [...FIG_TEXT, "boxHeight", "marginTop"]],
+      ["value", ".basalt-stat-value", ".stat-value", [...FIG_TEXT, "boxHeight", "fontVariantNumeric", "marginTop"]],
+      ["note", ".basalt-stat-note", ".stat-note", [...FIG_TEXT, "boxHeight", "marginTop"]],
+      ["source", ".basalt-stat:first-child .basalt-stat-source", ".stat:first-child .stat-source", [...FIG_TEXT, "boxHeight", "relTop", "fontVariantNumeric", "marginTop"]],
+      ["source, no note", ".basalt-stat:last-child .basalt-stat-source", ".stat:last-child .stat-source", ["relTop", "boxHeight", "marginTop"]],
+    ],
+  },
+  ...[["terminal", ""], ["terminal replay", " replay"]].map(([id, replay]) => ({
+    id,
+    react: `<div style={{ width: 640 }}><Terminal title="Deploy preview"${replay} lines={[{ kind: "command", text: "npm run build" }, { kind: "output", text: "vite building" }, { kind: "done", text: "Built in 4.2 s" }, { kind: "warning", text: "Chunk is large" }, { kind: "error", text: "Failed to push" }]} /></div><div style={{ width: 400 }}><Terminal title="Narrow"${replay} lines={[{ kind: "command", text: "ls" }]} /></div>`,
+    skill: `<div style="width: 640px"><figure class="code terminal"${replay ? " data-replay" : ""}><figcaption>Deploy preview</figcaption><pre class="code-body" tabindex="0"><code><span data-kind="command">npm run build</span><span data-kind="output">vite building</span><span data-kind="done">Built in 4.2 s</span><span data-kind="warning">Chunk is large</span><span data-kind="error">Failed to push</span></code></pre></figure></div><div style="width: 400px"><figure class="code terminal" data-narrow${replay ? " data-replay" : ""}><figcaption>Narrow</figcaption><pre class="code-body" tabindex="0"><code><span data-kind="command">ls</span></code></pre></figure></div>`,
+    pairs: [
+      ["well", ".basalt-terminal", ".terminal", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "borderLeftColor", "borderBottomColor", "color", "boxShadow", "position"]],
+      ["head", ".basalt-code-title", ".terminal .code-head", ["boxHeight", ...FIG_TEXT, "display", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "boxShadow", "borderBottomWidth", "justifyContent", "alignItems"]],
+      ["title", ".basalt-terminal-title", ".terminal-title", [...FIG_TEXT, "boxWidth", "boxHeight"]],
+      ["body", ".basalt-code-pre", ".terminal .code-body", ["boxHeight", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "fontFamily", "fontSize", "lineHeight", "overflowX", "outlineStyle", "whiteSpace", ...(replay ? ["blockSize"] : [])]],
+      ["body focus ring", ".basalt-code-pre", ".terminal .code-body", OUTLINE, { focus: true }],
+      ["lines", ".basalt-code-lines", ".terminal-lines", ["display", "gridTemplateColumns", "boxWidth", "boxHeight"]],
+      ["command line", ".basalt-code-line[data-kind=command]", ".terminal-line[data-kind=command]", [...FIG_TEXT, "boxHeight", "minHeight", "display"]],
+      ["prompt gutter", ".basalt-code-line[data-kind=command] .basalt-code-gutter", ".terminal-line[data-kind=command] .terminal-gutter", [...FIG_TEXT, "boxWidth", "paddingRight", "userSelect"]],
+      ["command text", ".basalt-code-line[data-kind=command] .basalt-code-text", ".terminal-line[data-kind=command] .terminal-text", [...FIG_TEXT, "boxWidth", "rectLeft"]],
+      ["output line", ".basalt-code-line[data-kind=output]", ".terminal-line[data-kind=output]", [...FIG_TEXT, "boxHeight"]],
+      ["done mark", ".basalt-code-line[data-kind=done] .basalt-terminal-mark", ".terminal-line[data-kind=done] .terminal-mark", ["color", "boxWidth", "boxHeight", "display", "marginTop", "marginBottom", "rectLeft"]],
+      ["warning mark", ".basalt-code-line[data-kind=warning] .basalt-terminal-mark", ".terminal-line[data-kind=warning] .terminal-mark", ["color", "boxWidth", "boxHeight"]],
+      ["error mark", ".basalt-code-line[data-kind=error] .basalt-terminal-mark", ".terminal-line[data-kind=error] .terminal-mark", ["color", "boxWidth", "boxHeight"]],
+      ["error text", ".basalt-code-line[data-kind=error] .basalt-code-text", ".terminal-line[data-kind=error] .terminal-text", ["color"]],
+      ["copy button", ".basalt-terminal:not(.x) .basalt-terminal-copy", ".terminal:not([data-narrow]) .terminal-copy", [...GEOMETRY, ...TYPE, ...COLOUR, "boxWidth", "display", "marginRight"]],
+      ["compact copy, wide", ".basalt-terminal-copy-compact", ".terminal-copy-compact", ["display"]],
+      ["actions", ".basalt-terminal-actions", ".terminal-actions", ["display", "boxHeight", "justifyContent", "gap", "marginLeft", "marginRight"]],
+      // At 400px of its own width the wide copy button gives way to the icon alone (the container query, 480px).
+      ["narrow wide copy", "div:nth-child(2) .basalt-terminal-copy", "div:nth-child(2) .terminal-copy", ["display"]],
+      ["narrow compact copy", "div:nth-child(2) .basalt-terminal-copy-compact", "div:nth-child(2) .terminal-copy-compact", [...GEOMETRY, ...COLOUR, "display", "boxWidth", "boxHeight"]],
+      ...(replay ? [
+        ["state", ".basalt-terminal-state", ".terminal-state", [...FIG_TEXT, "boxWidth", "boxHeight", "display"]],
+        ["control", ".basalt-terminal-actions > .basalt-button:not(.basalt-terminal-copy)", ".terminal-control", [...GEOMETRY, ...TYPE, ...COLOUR, "boxWidth"]],
+        ["hint", ".basalt-terminal-hint", ".terminal-hint", [...FIG_TEXT, "marginLeft", "boxHeight", "gridColumnStart"]],
+      ] : []),
+    ].filter(([label]) => !replay || !LINE_PAIRS.has(label)),
+  })),
+  { id: "chart, bars", react: barChartReact, skill: barChartSkill, pairs: chartPairs("bar") },
+  { id: "chart, lines", react: lineChartReact, skill: lineChartSkill, pairs: chartPairs("line") },
+];
+CASES.push(...FIGURES);
+
+const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
 before(async () => {
@@ -484,17 +644,17 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
 describe("each skill component renders as its React counterpart does, but for the differences listed", () => {
   for (const theme of THEMES) {
     test(`the components (${theme})`, async () => {
-      const reactJsx = CASES.map((c) => `<section id="r-${c.id}" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", margin: 16 }}>${c.react}</section>`).join("");
+      const reactJsx = CASES.map((c) => `<section id="r-${slug(c.id)}" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", margin: 16 }}>${c.react}</section>`).join("");
       const { page: reactPage, errors } = await fixturePage(reactBrowser, `
-        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock } = B;
+        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock, DescriptionList, DescriptionItem, Meter, Stats, Stat, Terminal, TimeChart } = B;
         flushSync(() => createRoot(document.getElementById("root")).render(<>${reactJsx}</>));`, { theme });
       await reactPage.addStyleTag({ content: APP_BODY });
       await settle(reactPage);
-      const body = CASES.map((c) => `<section id="s-${c.id}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin: 16px">${c.skill}</section>`).join("\n");
+      const body = CASES.map((c) => `<section id="s-${slug(c.id)}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin: 16px">${c.skill}</section>`).join("\n");
       const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>\n${body}`, { fonts: false }).html, { scheme: theme });
       // Loops are read at their first frame (a spinner's opacity at an arbitrary moment is not a difference), the same on both pages.
       for (const p of [reactPage, skillPage]) await p.evaluate(() => document.getAnimations().forEach((animation) => { animation.pause(); animation.currentTime = 0; }));
-      for (const c of CASES) await compare(theme, c.id, reactPage, skillPage, c.pairs, { react: `#r-${c.id}`, skill: `#s-${c.id}` });
+      for (const c of CASES) await compare(theme, c.id, reactPage, skillPage, c.pairs, { react: `#r-${slug(c.id)}`, skill: `#s-${slug(c.id)}` });
       assert.deepEqual([errors, skillErrors], [[], []]);
       await reactPage.close();
       await context.close();

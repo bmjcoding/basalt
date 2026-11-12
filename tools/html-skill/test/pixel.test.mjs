@@ -7,6 +7,8 @@
 // Re-recorded so far: the first parity PR (the number field, the textarea's height, native chrome, braille, the ring, code radius).
 // The second parity PR (popup rows and levels, the glide, the bar's removal, the segment's pill): the palette (open), the kitchen sink's rows,
 // segment and selected table row; the two example pages at rest did not move.
+// The fifth parity PR (the figures): the kitchen sink gains a section of the description list, the meter, a stat's source line, the terminal and the chart, after its overlays;
+// every region above it, and the two example pages, did not move (the two examples' recorded files are as they were).
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 

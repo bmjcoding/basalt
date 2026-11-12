@@ -209,6 +209,60 @@
     <dialog class="panel float modal sheet" id="ks-sheet" data-side="right"><h2 class="dialog-title">Details</h2><p class="dialog-description">A side panel.</p><div class="dialog-actions"><button class="btn" data-dialog-close>Close</button></div></dialog>
   </section>
 
+  <section class="section" id="figures">
+    <div class="section-head"><h2>Figures, transcripts and charts</h2></div>
+    <dl class="dlist">
+      <div><dt>ID</dt><dd data-mono>sb_7f3a91c2e0</dd></div>
+      <div><dt>Allowed hosts</dt><dd data-mono>api.example.test</dd><dd data-mono>cdn.example.test</dd></div>
+      <div><dt>Last seen</dt><dd data-missing>Not observed</dd></div>
+    </dl>
+    <div class="meter" role="meter" aria-labelledby="ks-m1" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="2240" aria-valuetext="2,240 of 3,000 min, Target 2,500 min, 760 min left" style="--value: 74.6667%; --target: 83.3333%; margin-top: var(--basalt-space-6)">
+      <div class="meter-head"><span class="meter-label" id="ks-m1">Build minutes</span><span class="meter-reading"><span class="meter-value">2,240</span> of 3,000 min</span></div>
+      <div class="meter-track"><span class="meter-fill"></span><span class="meter-tick"></span></div>
+      <div class="meter-foot"><span class="meter-left">760 min left</span><span class="meter-target">Target 2,500 min</span></div>
+    </div>
+    <dl class="stats" style="margin-top: var(--basalt-space-6)">
+      <div class="stat"><dt class="stat-label">Weight</dt><dd class="stat-value">78.4 kg</dd><dd class="stat-note">−0.6 kg this week</dd><dd class="stat-source"><time datetime="2026-11-10T04:41">04:41</time> <span aria-hidden="true">·</span><span class="visually-hidden">, </span> Scale</dd></div>
+      <div class="stat"><dt class="stat-label">Sleep</dt><dd class="stat-value">7 h 20 m</dd><dd class="stat-source">Ring</dd></div>
+    </dl>
+    <figure class="code terminal" style="margin-top: var(--basalt-space-6)">
+      <figcaption>Deploy preview</figcaption>
+      <pre class="code-body" tabindex="0"><code>
+<span data-kind="command">npm run build</span>
+<span data-kind="output">vite building for production</span>
+<span data-kind="done">Built in 4.2 s</span>
+<span data-kind="warning">Chunk is large</span>
+<span data-kind="error">Rejected</span></code></pre>
+    </figure>
+    <figure class="code terminal" data-replay style="margin-top: var(--basalt-space-4)">
+      <figcaption>Replay</figcaption>
+      <pre class="code-body" tabindex="0"><code>
+<span data-kind="command">npm test</span>
+<span data-kind="done">1 passed</span></code></pre>
+    </figure>
+    <div class="chart-group" style="margin-top: var(--basalt-space-6)">
+      <figure class="chart">
+        <script type="application/json" data-chart>
+        { "title": "Training", "source": "Watch", "kind": "bar", "unit": "min", "summary": "Training averaged 54 min a day.", "now": "2026-11-12",
+          "days": ["2026-11-01","2026-11-02","2026-11-03","2026-11-04","2026-11-05","2026-11-06","2026-11-07","2026-11-08","2026-11-09","2026-11-10"], "partial": 9,
+          "series": [{ "id": "train", "name": "Training", "values": [48, 52, null, 61, 33, 70, 0, 45, 58, 34], "reasons": [null, null, "not worn", null, null, null, null, null, null, null] }],
+          "plan": { "kind": "value", "label": "Goal", "values": [45,45,45,45,45,45,45,45,45,45] },
+          "format": { "suffix": " min", "spoken": " minutes", "maximumFractionDigits": 0 } }
+        </script>
+      </figure>
+      <figure class="chart">
+        <script type="application/json" data-chart>
+        { "title": "Sleep", "source": "Ring and watch", "kind": "line", "unit": "h", "tickDivisor": 60, "step": 60, "summary": "Ring averaged 7 h 20 m.", "now": "2026-11-12",
+          "days": ["2026-11-01","2026-11-02","2026-11-03","2026-11-04","2026-11-05","2026-11-06","2026-11-07","2026-11-08","2026-11-09","2026-11-10"],
+          "series": [{ "id": "ring", "name": "Ring", "values": [440,450,420,null,null,470,480,430,455,460], "reasons": [null,null,null,"ring charging","ring charging",null,null,null,null,null] },
+                     { "id": "watch", "name": "Watch", "values": [430,445,410,400,415,460,470,425,null,null], "reasons": [null,null,null,null,null,null,null,null,"not worn, travel","not worn, travel"] }],
+          "plan": { "kind": "band", "values": [[420,540],[420,540],[420,540],[420,540],[420,540],[420,540],[450,540],[450,540],[450,540],[450,540]] },
+          "format": { "duration": "minutes" } }
+        </script>
+      </figure>
+    </div>
+  </section>
+
   <footer class="footer">Footer · <a href="#top">Top</a></footer>
 </main>
 <script type="application/json" data-palette>{ "groups": [{ "label": "Go", "items": [{ "label": "Home", "icon": "ArrowRight", "keys": ["⌥", "H"], "href": "#top" }, { "label": "Delete", "icon": "Trash", "danger": true }] }] }</script>

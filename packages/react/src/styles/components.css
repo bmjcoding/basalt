@@ -2727,6 +2727,11 @@
   /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
   .basalt-description-details[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
   .basalt-description-details[data-missing] { color: var(--basalt-text-tertiary); }
+  /* On touch a link in a value is a 44 by 44 box (the skill's coarse-pointer rule for a standalone link). The negative block margin
+     makes its margin box one line tall, so a linked value sits exactly like an unlinked one and the row stays 40px: only the hit box grows. */
+  @media (pointer: coarse) {
+    .basalt-description-details a { display: inline-flex; align-items: center; min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2)); }
+  }
   /* size-breakpoint-container (480px): a container query cannot read a token */
   @container (width < 480px) {
     .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
