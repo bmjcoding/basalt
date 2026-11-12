@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
 
-import { compose, detect } from "../../../.agent/skills/basalt-html/compose.mjs";
+import { compose, detect, indexLines, usageText } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { EXAMPLES, read, skillDir } from "./support.mjs";
 
 const manifest = JSON.parse(read(skillDir, "parts", "manifest.json"));
@@ -15,6 +15,10 @@ const modules = Object.keys(manifest.modules);
 const part = (name, ext) => (fs.existsSync(path.join(skillDir, "parts", `${name}.${ext}`)) ? read(skillDir, "parts", `${name}.${ext}`) : "");
 const size = (name) => Buffer.byteLength(part(name, "css")) + Buffer.byteLength(part(name, "js"));
 const skill = read(skillDir, "SKILL.md");
+// SKILL.md's index of modules, and each usage text (the core's and every module's): what the old cheat sheet became.
+const indexSection = skill.slice(skill.indexOf("## Modules"), skill.indexOf("## Rules"));
+const usageNames = ["core", ...modules];
+const usageOf = (name) => read(skillDir, "parts", "usage", `${name}.md`);
 const used = (body, options) => compose(body, { fonts: false, ...options }).modules;
 
 describe("what a body gets", () => {
@@ -161,11 +165,108 @@ describe("the command line", () => {
       for (const args of [[], ["--bogus", "page.html"], ["a.html", "b.html"], ["page.html", "--out"]]) {
         const r = run(args, dir);
         assert.equal(r.status, 2, args.join(" "));
-        assert.match(r.stderr, /usage: node compose\.mjs/);
+        assert.match(r.stderr, /usage: node \.agent\/skills\/basalt-html\/compose\.mjs /);
       }
       const missing = run(["nope.body.html"], dir);
       assert.equal(missing.status, 1);
       assert.match(missing.stderr, /compose\.mjs: /);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("prints one warning line for each module it added, from SKILL.md's index, after the line that says what it built", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-compose-"));
+    try {
+      fs.writeFileSync(path.join(dir, "p.body.html"), '<h1>P</h1><div class="callout"><p>x</p></div><button class="btn" data-copy-text="x">Copy</button>');
+      const r = run(["p.body.html", "--no-fonts"], dir);
+      assert.equal(r.status, 0, r.stderr);
+      const lines = r.stdout.trim().split("\n");
+      assert.match(lines[0], /^p\.html: [\d.]+ KB, core \+ callout, copy; icons: Check, X$/);
+      const wanted = ["callout", "copy"].map((n) => `  ${n}: ${indexLines(skill).find((l) => l.name === n).warning}`);
+      assert.deepEqual(lines.slice(2), wanted, "one line for each module, in the page's order");
+      assert.deepEqual(run(["p.body.html", "--no-fonts"], dir).stdout, r.stdout, "the same input gives the same output");
+      // a palette brings rows and kbd that its script builds: they say so instead of warning; a rows the body uses itself still warns
+      fs.writeFileSync(path.join(dir, "r.body.html"), "<h1>R</h1><button class=\"btn\" data-open-palette>Commands</button>");
+      const built = run(["r.body.html", "--no-fonts"], dir).stdout;
+      assert.match(built, /^  kbd: built by the palette; nothing to check\.$/m);
+      assert.match(built, /^  rows: built by the palette; nothing to check\.$/m);
+      assert.ok(built.includes(`  palette: ${indexLines(skill).find((l) => l.name === "palette").warning}`), "the palette itself still warns");
+      fs.writeFileSync(path.join(dir, "s.body.html"), "<h1>S</h1><button class=\"btn\" data-open-palette>Commands</button><div class=\"rows\"><div class=\"row\">x</div></div>");
+      const own = run(["s.body.html", "--no-fonts"], dir).stdout;
+      assert.ok(own.includes(`  rows: ${indexLines(skill).find((l) => l.name === "rows").warning}`), "a rows the body uses itself keeps its warning");
+      assert.match(own, /^  kbd: built by the palette; nothing to check\.$/m);
+      fs.writeFileSync(path.join(dir, "q.body.html"), "<h1>Q</h1>");
+      assert.doesNotMatch(run(["q.body.html", "--no-fonts"], dir).stdout, /Check before/, "no module added, no warning");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("--usage NAME prints the module's usage, the usage of each module it requires, and its classes, attributes and tags from the manifest; it writes no page", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-compose-"));
+    try {
+      const r = run(["--usage", "palette"], dir);
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.stderr, "");
+      assert.equal(r.stdout.trim(), usageText(["palette"], { parts: path.join(skillDir, "parts") }).trim());
+      // the palette alone: it builds its own rows and key chips, so their usage is not printed, only a line that says so
+      const heads = [...r.stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]);
+      assert.deepEqual(heads, ["palette"]);
+      assert.ok(r.stdout.includes(usageOf("palette").trim()), "the palette's usage is printed whole");
+      assert.match(r.stdout, /Its script builds the markup of kbd and rows: nothing to add\. If your page uses one itself, print its usage by name\./);
+      for (const name of ["kbd", "rows"]) assert.ok(!r.stdout.includes(usageOf(name).trim()), `${name}'s usage is not printed with the palette`);
+      assert.match(r.stdout, /^Brought in by: /m);
+      assert.doesNotMatch(r.stdout, /\\s|\(\?:/, "no regular expression is printed");
+      assert.match(r.stdout, /the body has a call to Basalt\.openPalette or Basalt\.closePalette; or palette: inside a Basalt\.init call/);
+      for (const cls of manifest.modules.palette.classes) assert.ok(r.stdout.includes(`.${cls}`), `.${cls} is listed`);
+      for (const attr of manifest.modules.palette.attrs) assert.ok(r.stdout.includes(attr), `${attr} is listed`);
+      // a module that needs another whose markup the agent writes (number sits on forms) prints it whole
+      const number = run(["--usage", "number"], dir);
+      assert.deepEqual([...number.stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]), ["number", "forms"]);
+      assert.match(number.stdout, /^Required by number\. Brought in by: classes \.field /m);
+      assert.ok(number.stdout.includes(usageOf("forms").trim()));
+      // named, the built modules print too, each with what brings it in
+      const named = run(["--usage", "palette", "kbd", "rows"], dir);
+      assert.deepEqual([...named.stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]), ["palette", "kbd", "rows"]);
+      for (const name of ["kbd", "rows"]) {
+        for (const cls of manifest.modules[name].classes ?? []) assert.ok(named.stdout.includes(`.${cls}`), `${name}: .${cls} is listed`);
+        for (const attr of manifest.modules[name].attrs ?? []) assert.ok(named.stdout.includes(attr), `${name}: ${attr} is listed`);
+        for (const tag of manifest.modules[name].tags ?? []) assert.ok(named.stdout.includes(`<${tag}>`), `${name}: <${tag}> is listed`);
+      }
+      // the core's classes come from the manifest too, and several names are fine
+      const both = run(["--usage", "core", "table"], dir);
+      assert.equal(both.status, 0, both.stderr);
+      assert.match(both.stdout, /^# core/m);
+      assert.match(both.stdout, /^# table/m);
+      assert.match(both.stdout, /Always in\. Core classes \.display \.text-5xl /);
+      // a module that needs nothing prints alone, and a name given twice prints once
+      assert.deepEqual([...run(["--usage", "callout", "callout"], dir).stdout.matchAll(/^# (\w+)/gm)].map((m) => m[1]), ["callout"]);
+      assert.deepEqual(fs.readdirSync(dir), [], "no page, and no other file, is written");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("--usage alone prints the index, one line for the core and each module; an unknown name fails with the index and a non-zero exit", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-compose-"));
+    try {
+      const r = run(["--usage"], dir);
+      assert.equal(r.status, 0, r.stderr);
+      const listed = r.stdout.split("\n").filter((l) => l.startsWith("- **")).map((l) => l.match(/^- \*\*([\w-]+)\*\*/)[1]);
+      assert.deepEqual(listed, usageNames, "the core, then the modules in the manifest's order");
+      assert.ok(r.stdout.includes(indexLines(skill).map((l) => `- ${l.line}`).join("\n")), "the lines are SKILL.md's own");
+      const bad = run(["--usage", "nope"], dir);
+      assert.equal(bad.status, 1);
+      assert.equal(bad.stdout, "", "nothing on stdout for a name that is not a module");
+      assert.match(bad.stderr, /compose\.mjs: "nope" is not a module \(core or: topbar, /);
+      assert.ok(bad.stderr.includes(indexLines(skill).map((l) => `- ${l.line}`).join("\n")), "the index is printed with the failure");
+      const mixed = run(["--usage", "table", "nope"], dir);
+      assert.equal(mixed.status, 1);
+      assert.equal(mixed.stdout, "", "a good name beside a bad one prints nothing");
+      assert.equal(run(["--usage", "table", "--out", "x.html"], dir).status, 2, "--usage is not mixed with a page's options");
+      assert.equal(run(["--usage", "table", "--no-fonts"], dir).status, 0, "--usage ignores a page option and still reads no body");
+      assert.deepEqual(fs.readdirSync(dir), [], "no page is written");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -178,16 +279,19 @@ describe("the command line", () => {
   });
 });
 
-describe("modules map to the cheat sheet", () => {
-  const sheet = skill.slice(skill.indexOf("## Cheat sheet"));
+describe("modules map to the index and the usage texts", () => {
+  // What the old cheat sheet was: now SKILL.md's index of modules and the usage text of the core and each module. A class or attribute in
+  // any of them is held to the same rules the cheat sheet was, so a fact that moved out of SKILL.md is still checked.
+  const sheet = [indexSection, ...usageNames.map(usageOf)].join("\n");
   const owner = (cls) => (manifest.core.classes.includes(cls) ? "core" : modules.find((m) => (manifest.modules[m].classes ?? []).includes(cls)));
   const cssOf = (name) => part(name, "css");
-  // classes and attributes in code spans of the cheat sheet
-  const classes = [...new Set([...sheet.matchAll(/`([^`]+)`/g)].flatMap((m) => [...m[1].matchAll(/(?<![\w\d.-])\.([a-z][\w-]*)/g)].map((c) => c[1])))];
+  // classes and attributes in code spans
+  const classesOf = (text) => [...new Set([...text.matchAll(/`([^`]+)`/g)].flatMap((m) => [...m[1].matchAll(/(?<![\w\d.-])\.([a-z][\w-]*)/g)].map((c) => c[1])))];
+  const classes = classesOf(sheet);
   const attrs = [...new Set([...sheet.matchAll(/(?<![\w-])(data-[a-z-]+)/g)].map((m) => m[1]))];
 
-  test("every class in the cheat sheet belongs to the core or to exactly one module, and that part's CSS styles it", () => {
-    assert.ok(classes.length > 60, `found ${classes.length} classes in the cheat sheet`);
+  test("every class in the index and the usage texts belongs to the core or to exactly one module, and that part's CSS styles it", () => {
+    assert.ok(classes.length > 60, `found ${classes.length} classes in the index and the usage texts`);
     for (const cls of classes) {
       const owners = [...(manifest.core.classes.includes(cls) ? ["core"] : []), ...modules.filter((m) => (manifest.modules[m].classes ?? []).includes(cls))];
       assert.equal(owners.length, 1, `.${cls} is claimed by ${owners.join(", ") || "nothing"}`);
@@ -195,7 +299,7 @@ describe("modules map to the cheat sheet", () => {
     }
   });
 
-  test("a page using any cheat-sheet class gets its module", () => {
+  test("a page using any class the index or a usage text names gets its module", () => {
     for (const cls of classes) {
       const own = owner(cls);
       const got = used(`<div class="${cls}">x</div>`);
@@ -216,11 +320,75 @@ describe("modules map to the cheat sheet", () => {
     for (const cls of manifest.core.classes) assert.ok(!seen.has(cls), `.${cls} is in the core and in ${seen.get(cls)}`);
   });
 
-  test("every behaviour attribute in the cheat sheet brings the module that wires it", () => {
+  test("every behaviour attribute in the index and the usage texts brings the module that wires it", () => {
     const wires = { "data-tabs": "tabs", "data-disclosure": "disclosure", "data-copy": "copy", "data-copy-text": "copy", "data-open-palette": "palette", "data-theme-toggle": "theme", "data-kbd": "kbd", "data-kbd-hint": "kbd", "data-palette": "palette", "data-doc": "kbd" };
     const behaviour = attrs.filter((a) => a in wires);
     assert.ok(behaviour.length >= 6);
     for (const attr of behaviour) assert.ok(used(`<div ${attr}></div>`).includes(wires[attr]), `${attr} should bring ${wires[attr]}`);
+  });
+
+  test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
+    // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
+    const mentions = { core: ["hint"], braille: ["status"] };
+    const needed = (name) => {
+      const set = new Set([name]);
+      for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
+      return set;
+    };
+    for (const name of usageNames) {
+      const text = usageOf(name);
+      const named = new Set([...classesOf(text), ...[...text.matchAll(/\bclass="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/).filter(Boolean))]);
+      for (const cls of named) {
+        const own = owner(cls);
+        assert.ok(own, `${name}'s usage names .${cls}, which no module or the core owns`);
+        assert.ok(own === "core" || needed(name).has(own) || (mentions[name] ?? []).includes(cls), `${name}'s usage names .${cls}, which belongs to ${own}, a module ${name} does not need`);
+        if (own !== "core") assert.ok(used(`<div class="${cls}">x</div>`).includes(own), `.${cls} in ${name}'s usage should bring ${own}`);
+      }
+      for (const cls of mentions[name] ?? []) assert.ok(named.has(cls), `${name}'s listed mention .${cls} is no longer in its usage`);
+    }
+  });
+
+  test("SKILL.md's index has a line for the core and for each module, in the manifest's order, and each line's first trigger brings that module", () => {
+    const lines = indexLines(skill);
+    assert.deepEqual(lines.map((l) => l.name), usageNames);
+    for (const { name, trigger, warning } of lines) {
+      assert.match(trigger, /^`/, `${name}: the line names what brings the module, in code`);
+      assert.ok(warning.length > 20 && warning.length < 160, `${name}: one short warning (${warning.length} bytes)`);
+      assert.ok(Buffer.byteLength(`- **${name}** ${trigger}: ${warning}`) <= 130, `${name}'s index line is over 130 bytes`);
+      if (name === "core") continue;
+      for (const [, span] of trigger.matchAll(/`([^`]+)`/g)) {
+        let markup = null;
+        if (/^\.[a-z][\w-]*$/.test(span)) markup = `<div class="${span.slice(1)}">x</div>`;
+        else if (/^data-[a-z-]+$/.test(span)) markup = `<div ${span}>x</div>`;
+        else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x`;
+        else if (/^type="range"$/.test(span)) markup = `<input ${span}>`;
+        else if (/^role="tablist"$/.test(span)) markup = `<div ${span}>x</div>`;
+        if (markup) assert.ok(used(markup).includes(name), `${name}'s trigger ${span} should bring it in`);
+      }
+    }
+  });
+
+  test("the usage texts: one for the core and each module, a heading that names it, within its own cap, and the folder holds nothing else", () => {
+    const files = fs.readdirSync(path.join(skillDir, "parts", "usage")).sort();
+    assert.deepEqual(files, usageNames.map((n) => `${n}.md`).sort());
+    for (const name of usageNames) {
+      const text = usageOf(name);
+      assert.match(text, new RegExp(`^# ${name}\\b`), `${name}.md starts with its own heading`);
+      const cap = name === "core" ? manifest.core.usage : manifest.modules[name].usage;
+      assert.ok(Number.isInteger(cap) && cap > 0, `${name} has a usage cap in modules.json`);
+      assert.ok(Buffer.byteLength(text) <= cap, `${name}'s usage is ${Buffer.byteLength(text)} bytes of ${cap}`);
+    }
+  });
+
+  test("each text pattern has its words for --usage, and a module that builds another only names modules it requires", () => {
+    for (const [name, m] of Object.entries(manifest.modules)) {
+      assert.equal((m.textWords ?? []).length, (m.text ?? []).length, `${name}: one textWords entry for each text pattern`);
+      for (const built of m.builds ?? []) assert.ok((m.requires ?? []).includes(built), `${name} builds ${built}, which it does not require`);
+    }
+  });
+
+  test("the skill folder holds exactly SKILL.md, compose.mjs, parts/ and examples/", () => {
+    assert.deepEqual(fs.readdirSync(skillDir).sort(), ["SKILL.md", "compose.mjs", "examples", "parts"]);
   });
 
   test("every module has CSS or script of its own, and a script module registers a step or an API", () => {
@@ -236,11 +404,16 @@ describe("the docs say how it works", () => {
     assert.match(skill, /Write the \*\*body\*\*/);
     assert.match(skill, /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/);
     assert.match(skill, /Open the page in both themes at 1440 and 390 wide/);
+    assert.match(skill, /print their usage in one call, always with core: `node \.agent\/skills\/basalt-html\/compose\.mjs --usage core table status callout`/);
+    assert.match(skill, /one warning line for each module added/);
     const agents = read(skillDir, "..", "..", "..", "AGENTS.md");
     assert.match(agents, /compose\.mjs <body\.html>/);
+    assert.match(agents, /compose\.mjs --usage core NAME/);
+    assert.doesNotMatch(agents, /and only that/);
     assert.doesNotMatch(agents, /copy a template|inline\s+`basalt-html\.css`/);
     assert.ok(fs.existsSync(path.join(skillDir, "..", "..", "..", "tools", "html-skill", "README.md")));
     assert.match(read(skillDir, "..", "..", "..", "tools", "html-skill", "README.md"), /## Add a module/);
+    assert.match(read(skillDir, "..", "..", "..", "tools", "html-skill", "README.md"), /src\/usage\/<name>\.md/);
   });
 });
 
