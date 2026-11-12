@@ -59,6 +59,8 @@ await esbuild.build({
   entryPoints: [
     ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx").map((f) => path.join(here, "src", f)),
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
+    // Development tooling (the headroom check): its own entry under dist/testing, imported by no component and not exported from the root.
+    ...fs.readdirSync(path.join(here, "src", "testing")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "testing", f)),
   ],
   plugins: [{ name: "lazy-panel", setup(build) { build.onResolve({ filter: /^\.\/command-panel$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./command-panel.js", external: true } : undefined)); } }],
   outdir: dist,

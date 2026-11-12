@@ -86,11 +86,11 @@ import { ROUND_17 } from "./round17";
 import { ROUND_18 } from "./round18";
 import { ROUND_19 } from "./round19";
 import { ROUND_20 } from "./round20";
-import { ROUND_22 } from "./round22";
-
 import { ROUND_21 } from "./round21";
+import { ROUND_22 } from "./round22";
 import { ROUND_23 } from "./round23";
 import { ROUND_24 } from "./round24";
+import { ROUND_25 } from "./round25";
 
 export interface Step {
   id: string;
@@ -616,3 +616,4 @@ export const ROUNDS: Round[] = [ROUND_1, ROUND_2, ROUND_3, ROUND_4, ROUND_5, ROU
 ROUNDS.push(ROUND_21);
 ROUNDS.push(ROUND_23);
 ROUNDS.push(ROUND_24);
+ROUNDS.push(ROUND_25);

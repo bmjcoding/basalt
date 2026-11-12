@@ -34,8 +34,8 @@ a:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-bor
 .wt-hint { display: inline-flex; gap: var(--basalt-space-1); align-items: center; font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
 
 .wt-shot { padding: var(--basalt-space-8); }
-/* Round 19 shows whole pages (a bar, a shell), edge to edge, as an app has them. */
-.wt-shot:is([data-step="site-header"], [data-step="app-shell"], [data-step="tab-bar"]) { padding: 0; }
+/* Rounds 19 and 25 show whole pages (a bar, a shell), edge to edge, as an app has them. */
+.wt-shot:is([data-step="site-header"], [data-step="app-shell"], [data-step="tab-bar"], [data-step="stage-paired"], [data-step="stage-night"], [data-step="stage-busy"], [data-step="stage-menu"]) { padding: 0; }
 
 @media (max-width: 820px) {
   .wt { padding: var(--basalt-space-6) var(--basalt-space-4) var(--basalt-space-12); }

@@ -35,6 +35,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: a dot beside its word; never one without a word.
 - **accent** `data-accent="cobalt"`: the one accent, on `<html>` or a section; `none` turns it off.
+- **art** `var(--basalt-art-tone-2)`: tokens only (art tones, chart roles, aspects); greys only, never an accent.
 - **stats** `.stats`: never a row of boxed tiles; up to 3 figures.
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.

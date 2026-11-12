@@ -73,7 +73,8 @@
   .basalt-tooltip,
   .basalt-toast,
   .basalt-command-page,
-  .basalt-command-pane {
+  .basalt-command-pane,
+  .basalt-framed-frame {
     border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
     border-top-color: var(--basalt-border-rim-top);
   }
@@ -3047,7 +3048,8 @@
   .basalt-chrome .basalt-chart-not-observed,
   .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-table-hint,
-  .basalt-chrome .basalt-preview-kicker { color: var(--basalt-text-secondary); }
+  .basalt-chrome .basalt-preview-kicker,
+  .basalt-chrome .basalt-framed-credit { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -3313,7 +3315,7 @@
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
     .basalt-segment[data-pressed], .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
-    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane { border-color: CanvasText; }
+    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
@@ -3372,6 +3374,134 @@
     .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: GrayText; }
     .basalt-table-hint { color: CanvasText; }
   }
+
+  /* ---- Art: the clear bar, the stage, paired art and framed art (decision 104) ----
+     The bar is clear only over a stage that declares its headroom passed, only at the very top of the page. SiteHeader reports
+     where the page is (data-top, from one IntersectionObserver on a sentinel at the document's top); this decides what that
+     means. Clear is no fill, no blur and a transparent line: the 56px bar never grows, the ink never changes. From the first
+     pixel of scroll the fill and the line fade in over duration-base on ease-out, and back at 0.75 on ease-in; the blur switches
+     at once. A departure first reported past the headroom's slack, and the page opening at the top (data-jump), switch all of it at once:
+     art past the headroom is already under the bar, and a page that opens clear does not fade from smoked. Smoked is the default and the fallback: no stage, an undeclared stage, no script, reduced transparency, forced colours
+     and print all keep it (opaque where the smoked bar is). Clear uses no filter, so without backdrop-filter it still works at
+     the top, and the scrolled state is the opaque surface-page fallback above. */
+  :root { --basalt-stage-headroom: calc(var(--basalt-size-stage-headroom) + var(--_inset-top)); }
+
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid]) {
+    transition: background-color var(--basalt-duration-base) var(--basalt-ease-out), border-bottom-color var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] {
+    background-color: transparent;
+    border-bottom-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transition-duration: calc(var(--basalt-duration-base) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+  }
+  :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-jump] { transition-duration: var(--basalt-duration-instant); }
+  @media (prefers-reduced-transparency: reduce) {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: var(--basalt-surface-page); border-bottom-color: var(--basalt-border-hairline); }
+  }
+  @media print {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: var(--basalt-surface-page); border-bottom-color: var(--basalt-border-hairline); }
+  }
+  @media (forced-colors: active) {
+    :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid])[data-top] { background-color: Canvas; border-bottom-color: CanvasText; }
+  }
+
+  /* The stage: level 0, the page painted with art. It starts at y = 0 under the bar (pulled up by the bar and the top safe area)
+     and its content starts below the headroom. No rim, radius, shadow, line or fade is added; while the art loads it is the
+     page colour, which meets the headroom by definition. */
+  .basalt-stage {
+    position: relative;
+    box-sizing: border-box;
+    margin-top: calc(-1 * var(--basalt-sticky-offset));
+    padding-top: var(--basalt-stage-headroom);
+    background-color: var(--basalt-art-field);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .basalt-stage-art > :is(svg, canvas, picture, img, video) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .basalt-stage-headroom { position: absolute; inset: 0 0 auto 0; height: var(--basalt-stage-headroom); pointer-events: none; }
+  .basalt-stage-content { position: relative; }
+
+  /* Paired art shows the picture for the page's theme, the toggle's as well as the system's: the theme roots set which one,
+     the way tokens.css sets the colours, so a nested theme root has its own. Never filtered. */
+  :root, [data-theme="light"], .light { --_art-dark: none; --_art-light: block; }
+  [data-theme="dark"], .dark { --_art-dark: block; --_art-light: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) { --_art-dark: block; --_art-light: none; }
+  }
+  .basalt-paired-art { object-fit: cover; }
+  .basalt-paired-art[data-art="dark"] { display: var(--_art-dark); }
+  .basalt-paired-art[data-art="light"] { display: var(--_art-light); }
+  @media (forced-colors: active) {
+    /* Decorative art is not drawn, and the stage is Canvas: a picture behind system colours would undo the mode. */
+    .basalt-stage { background-color: Canvas; }
+    .basalt-stage-art { display: none; }
+  }
+  @media print {
+    /* Decorative stage art does not print, and the bar is not over it, so the stage takes its place in the flow. */
+    .basalt-stage { margin-top: 0; padding-top: 0; background: none; }
+    .basalt-stage-art { display: none; }
+  }
+
+  /* Framed art: a distinct object, so a panel's geometry. The rim is a real border outside the art; the frame reserves its box from
+     its aspect ratio before the art loads, shows the placeholder while it loads and if it fails, and the art fades in once decoded. */
+  .basalt-framed { --_aspect: var(--basalt-aspect-photo); display: block; margin: 0; max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  .basalt-framed[data-aspect="square"] { --_aspect: var(--basalt-aspect-square); }
+  .basalt-framed[data-aspect="photo"] { --_aspect: var(--basalt-aspect-photo); }
+  .basalt-framed[data-aspect="screen"] { --_aspect: var(--basalt-aspect-screen); }
+  .basalt-framed[data-aspect="wide"] { --_aspect: var(--basalt-aspect-wide); }
+  .basalt-card-content { --_panel-pad: var(--basalt-space-4); }
+  .basalt-framed-frame {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    aspect-ratio: var(--_aspect);
+    overflow: hidden;
+    /* 12 on the page; inside a panel the outer radius less the padding (a card's 12 less its 16 is square). */
+    border-radius: max(var(--basalt-space-0), calc(var(--basalt-radius-lg) - var(--_panel-pad, var(--basalt-space-0))));
+    background-color: var(--basalt-surface-placeholder);
+  }
+  .basalt-framed-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  .basalt-framed-frame[data-phase="loading"] > .basalt-framed-img { opacity: 0; }
+  .basalt-framed-frame[data-phase="failed"] > .basalt-framed-img { display: none; }
+  .basalt-framed-alt {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--basalt-space-4);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+    text-align: center;
+  }
+  .basalt-framed-caption {
+    box-sizing: border-box;
+    max-width: var(--basalt-size-prose-width);
+    margin: var(--basalt-space-2) 0 0;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+    text-align: start;
+  }
+  .basalt-framed-text { display: block; }
+  .basalt-framed-credit {
+    display: block;
+    color: var(--basalt-text-tertiary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-xs-tracking);
+  }
+  @media print { .basalt-framed { break-inside: avoid; } }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 

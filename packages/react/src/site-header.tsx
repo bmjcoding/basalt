@@ -3,6 +3,7 @@ import * as React from "react";
 
 import { CloseGlyph } from "./glyphs/close";
 import { MenuGlyph } from "./glyphs/menu";
+import { useAtTop } from "./at-top";
 import { MorphIcon } from "./morph-icon";
 import { Nav, NavItem } from "./nav";
 import { GlidePlate } from "./plate";
@@ -14,6 +15,11 @@ import { join } from "./utils";
 // then the actions. Under 720 the links and the primary action leave the bar and a Menu button opens a top sheet that redraws
 // the bar in its first row and unrolls the links beneath it. The layout lengths are tokens (size-header, size-page-width,
 // size-gutter and the breakpoints; decision 101).
+//
+// Over a `Stage` that declares its headroom passed, and only at the very top of the page, the bar is clear (decision 104): no fill, no blur
+// and a transparent line, on the art, with the theme's own ink. From the first pixel of scroll it is the smoked bar again. The component
+// only reports where the page is (`data-top`); the stylesheet decides whether that means clear, so a page with no stage, an undeclared
+// stage, no script, no `backdrop-filter`, reduced transparency, forced colours or print keeps the smoked bar.
 
 /** One link in the bar and in the narrow menu. */
 export interface SiteHeaderLink {
@@ -46,7 +52,7 @@ export interface SiteHeaderProps extends Omit<React.ComponentProps<"header">, "c
   menuLabel?: string;
   /** The close button's name in the narrow menu. Default "Close menu". */
   closeLabel?: string;
-  /** The opaque form: the same bar on `surface-page`, with no blur. For a site whose content does not scroll under the bar. */
+  /** The opaque form: the same bar on `surface-page`, with no blur. For a site whose content does not scroll under the bar. It is never clear. */
   solid?: boolean;
 }
 
@@ -73,6 +79,7 @@ export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], them
   const trigger = React.useRef<HTMLButtonElement>(null);
   const close = React.useRef<HTMLButtonElement>(null);
   const bar = React.useRef<HTMLElement>(null);
+  const { top, jump } = useAtTop(!solid);
   const wideNow = React.useRef(wide);
   wideNow.current = wide;
   // The link in the bar that focus goes back to when the menu closes because the window widened: the current one.
@@ -84,7 +91,7 @@ export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], them
   }, [wide, open]);
 
   return (
-    <header {...props} data-solid={solid ? "" : undefined} className={join("basalt-chrome basalt-site-header", className)}>
+    <header {...props} data-solid={solid ? "" : undefined} data-top={top ? "" : undefined} data-jump={jump ? "" : undefined} className={join("basalt-chrome basalt-site-header", className)}>
       <div className="basalt-site-bar">
         <Brand href={homeHref} label={brandLabel}>{brand}</Brand>
         {links.length ? (
