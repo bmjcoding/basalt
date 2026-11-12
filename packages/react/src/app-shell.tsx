@@ -1,3 +1,4 @@
+import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import * as React from "react";
 
 import { TooltipProvider } from "./display";
@@ -6,8 +7,8 @@ import { useMediaQuery } from "./use-media";
 import { join } from "./utils";
 
 // The app shell (decisions 96): a sidebar at 1024 and up, the rail from 720 to 1023, the phone tab bar under 720, and one
-// header over the content column. The document is the scroller, never an inner pane. Layout lengths are written in
-// components.css from today's tokens, each in one place, until batch 4 makes them tokens.
+// header over the content column. The document is the scroller, never an inner pane. The layout lengths are tokens
+// (size-sidebar-width, size-rail-width, size-header, size-tab-bar and the breakpoints; decision 101).
 
 export interface AppShellProps extends Omit<React.ComponentProps<"div">, "children"> {
   /** The brand in the sidebar's 56px band: the lockup (mark and word). It links home and draws no line of its own. */
@@ -42,7 +43,7 @@ export interface AppShellProps extends Omit<React.ComponentProps<"div">, "childr
  * does for the document it is in), and give the viewport meta `viewport-fit=cover` so the safe-area insets work.
  */
 export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar, account, header, tabBar, mainProps, className, children, ...props }: AppShellProps) {
-  const rail = useMediaQuery("(width < 1024px)");
+  const rail = useMediaQuery(`(width < ${breakpoint.lg}px)`);
   return (
     <div {...props} data-tabbar={tabBar ? "" : undefined} className={join("basalt-app-shell", className)}>
       <aside className="basalt-app-sidebar">

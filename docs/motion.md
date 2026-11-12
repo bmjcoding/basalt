@@ -101,6 +101,19 @@ The `Meter`'s fill glides over `duration-slow` on `ease-out` when its value chan
 
 A live `Terminal` (decision 94) is `role="log"` only while lines arrive, never while idle, paused or finished. A line appears when it arrives: it has no entry animation, so reduced motion changes nothing. The log has a fixed height that scrolls inside, so arriving lines never move the page, and it follows the end only while the reader is at it; scrolling up stops it, and scrolling back to the end resumes it. Pressing Play or Replay makes the region a `log` first and shows the first line one frame later (so a screen reader hears it), so a replay's box is never blank for an interval. A replay has a pause control (WCAG 2.2.2), and every word that changes in place in the head ("Not started", "Running", "Paused", "Done", "Failed, exit 1"; "Play", "Pause", "Resume", "Replay"; "Copy commands", "Copied") stands in one cell with the others hidden, so the head never moves. Braille beside "Running" holds its first frame under reduced motion.
 
+## Charts
+
+A chart (decision 101) is drawn at rest on its first paint: no draw-on animation, and nothing loops.
+
+| Moment | What moves |
+|---|---|
+| A value changes in place (a late sync, a correction) | The marks, the scale, its gridlines and its labels glide together over `duration-slow` on `ease-out`, as `Sparkline` does. |
+| A new peak | The scale widens at once, so nothing clips; it eases back when it shrinks (`Sparkline`'s rule). |
+| A value with no previous place | It appears where it belongs while its hatch fades, on the same clock: one update is one clock. A value removed goes at once while its hatch fades in. |
+| A new range (7, 28, 90 days) | A new domain, so nothing travels: the marks fade in over `duration-fast`. The frame, the legend and the controls do not move. |
+| Picking a day (hover, a tap, a key) | Instant. The plate does not glide: chart days are dense, and a gliding plate trails the pointer. |
+| Reduced motion | Values and the scale snap; a new range is a 100ms fade. |
+
 ## Spinners
 
 | Variant | Use it |

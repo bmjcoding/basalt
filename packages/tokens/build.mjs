@@ -5,7 +5,9 @@
 //                         preference when the page sets neither
 //   dist/css/accents.css  the accent classes: one [data-accent] rule per class, in @layer basalt
 //   dist/css/shadcn.css   the shadcn/ui variable names, mapped onto Basalt's
+//   dist/css/breakpoints.css  the breakpoints as @custom-media rules, for apps that build with PostCSS
 //   dist/js/tokens.js     resolved values per theme, and the accent classes, for TypeScript and charts
+//   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024 and 480 of the media and container queries)
 //   dist/json/tokens.json resolved values with sRGB hex and OKLCH, for native generators
 //
 // Style Dictionary parses the DTCG files and resolves references; the transforms and the
@@ -208,13 +210,35 @@ const write = (rel, text) => {
 };
 write("css/tokens.css", css);
 write("css/shadcn.css", shadcn);
+
+// The breakpoints. A media query cannot read a custom property, so CSS writes the number (range syntax, with a lint exception that
+// names the token); apps that build with PostCSS can use these named queries from the same source instead, and a script reads the numbers.
+const BREAKPOINTS = ["md", "lg", "container"];
+const breakpointPx = Object.fromEntries(BREAKPOINTS.map((name) => {
+  const token = primitives.find((t) => t.path.join(".") === `size.breakpoint-${name}`);
+  if (!token || token.$value.unit !== "px") throw new Error(`size-breakpoint-${name} must be a px token`);
+  return [name, token.$value.value];
+}));
+const breakpointsCss = [
+  header,
+  "/* Named media queries for apps that build with PostCSS (postcss-custom-media). Basalt's own CSS writes range syntax directly. */",
+  `@custom-media --${PREFIX}-phone (width < ${breakpointPx.md}px);`,
+  `@custom-media --${PREFIX}-md (width >= ${breakpointPx.md}px);`,
+  `@custom-media --${PREFIX}-lg (width >= ${breakpointPx.lg}px);`,
+  `@custom-media --${PREFIX}-rail (${breakpointPx.md}px <= width < ${breakpointPx.lg}px);`,
+  "",
+].join("\n");
+write("css/breakpoints.css", breakpointsCss);
 write("css/accents.css", accents);
 write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 const accentsJson = Object.fromEntries(accentClasses.map((c) => [c.name, { light: entry({ $type: "color", $value: c.light }), dark: entry({ $type: "color", $value: c.dark }) }]));
-write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\nexport default tokens;\n`);
+write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\n/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\nexport default tokens;\n`);
+// The breakpoints alone, so a component or a page script can import them without the whole token table.
+write("js/breakpoints.js", `${header}/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\n`);
+write("js/breakpoints.d.ts", `${header}export declare const breakpoint: { ${BREAKPOINTS.map((n) => `readonly ${n}: ${breakpointPx[n]}`).join("; ")} };\n`);
 write(
   "js/tokens.d.ts",
-  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport type AccentClass = ${accentClasses.map((c) => JSON.stringify(c.name)).join(" | ")};\nexport interface AccentColors { light: ColorToken; dark: ColorToken }\nexport declare const accents: Record<AccentClass, AccentColors>;\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
+  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport type AccentClass = ${accentClasses.map((c) => JSON.stringify(c.name)).join(" | ")};\nexport interface AccentColors { light: ColorToken; dark: ColorToken }\nexport declare const accents: Record<AccentClass, AccentColors>;\nexport declare const breakpoint: { ${BREAKPOINTS.map((n) => `readonly ${n}: ${breakpointPx[n]}`).join("; ")} };\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
 );
 // ---- Swift: the tokens for the Apple apps, committed so SwiftPM can consume the repository.
 
@@ -227,11 +251,15 @@ const swiftRGBA = (value) => {
   const c = rgb(toColor(value));
   return `RGBA(red: ${num(c.r)}, green: ${num(c.g)}, blue: ${num(c.b)}, alpha: ${num(c.alpha ?? 1)})`;
 };
+/** A length in Swift points. A rem is resolved at 16 points to the rem, the same 16px the web's root size starts from. */
+const REM = 16;
+const isRem = (token) => token.$value.unit === "rem";
+const px = (token) => (isRem(token) ? token.$value.value * REM : token.$value.value);
 const doc = (token, indent) => {
   const d = token.original.$description;
-  return d ? `${indent}/// ${d}\n` : "";
+  const rem = isRem(token) ? `Written ${token.$value.value}rem; resolved here at ${REM} points to the rem (${px(token)}).` : "";
+  return d || rem ? `${indent}/// ${[d, rem].filter(Boolean).join(" ")}\n` : "";
 };
-const px = (token) => token.$value.value;
 const byPrefix = (prefix) => primitives.filter((t) => t.path[0] === prefix);
 const swiftColors = themed("light")
   .filter((t) => t.$type === "color")

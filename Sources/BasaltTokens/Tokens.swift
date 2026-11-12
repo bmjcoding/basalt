@@ -269,6 +269,48 @@ extension Basalt {
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
     )
 
+    /// Every observed series in a chart: lines, markers, bars and the outline of a day that is not yet final.
+    public static let chartObserved = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+    )
+
+    /// A chart's plan: the stroke, and the edges of a band. Never a series.
+    public static let chartPlan = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+    )
+
+    /// A plan band's fill between its two edges. Decorative; the edges carry it.
+    public static let chartBand = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.04),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06)
+    )
+
+    /// The hatch that marks missing data in a chart.
+    public static let chartMissing = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A chart's horizontal gridlines. Decorative.
+    public static let chartGrid = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06)
+    )
+
+    /// A chart's zero line, drawn only where the scale reaches zero.
+    public static let chartBaseline = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A chart's axis labels and the words for a gap.
+    public static let chartAxis = ThemedColor(
+      light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
+      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+    )
+
     /// Behind modal dialogs and sheets.
     public static let scrim = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.4),
@@ -396,6 +438,46 @@ extension Basalt {
     public static let selectMin: Double = 160
     /// Maximum height of a scrolling popup list, such as the command list.
     public static let popupMaxHeight: Double = 360
+    /// The sticky bar: its border box, with its hairline inside. The top safe area is padding above it, added by the layout CSS.
+    public static let header: Double = 56
+    /// The phone tab bar, its hairline inside, before the bottom safe area.
+    public static let tabBar: Double = 56
+    /// The app sidebar from the large breakpoint; also a page's own aside, so one side-column width serves both.
+    public static let sidebarWidth: Double = 256
+    /// The rail, from the medium breakpoint to the large.
+    public static let railWidth: Double = 72
+    /// The inner row, gutters inside: the header's row and a data page. Written 72rem; resolved here at 16 points to the rem (1152).
+    public static let pageWidth: Double = 1152
+    /// A prose page's text column, on the row's start edge and never centred: about 72 characters of Geist at 16/24. Written 34rem; resolved here at 16 points to the rem (544).
+    public static let proseWidth: Double = 544
+    /// The row's inline padding. Apps use the derived --basalt-gutter, which steps to size-gutter-narrow under the medium breakpoint.
+    public static let gutter: Double = 24
+    /// The row's inline padding under the medium breakpoint.
+    public static let gutterNarrow: Double = 16
+    /// Below it: the phone (the tab bar, the menu sheet, the narrow gutter). A media query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointMd: Double = 720
+    /// From it, the sidebar; below it, down to the medium breakpoint, the rail.
+    public static let breakpointLg: Double = 1024
+    /// A component's own width, in a container query: a description list stacks and a chart goes narrow below it.
+    public static let breakpointContainer: Double = 480
+    /// An observed line and the plan stroke in a chart.
+    public static let chartLine: Double = 2
+    /// A chart marker's diameter, or its side; the diamond has the same area.
+    public static let chartMark: Double = 8
+    /// The surface-coloured cut between a mark in front and what it crosses: a chart's marker ring and the plan's cut out of a bar, and the meter's tick.
+    public static let cut: Double = 2
+    /// The pitch of the hatch that marks missing data: 1px lines at 45 degrees, this far apart.
+    public static let hatchPitch: Double = 4
+    /// The widest a chart bar is; a bar is 60% of its day.
+    public static let chartBarMax: Double = 24
+    /// The narrowest a chart bar is.
+    public static let chartBarMin: Double = 2
+    /// The dash of a chart's second series (6 on, size-chart-dash-gap off), and the pitch of the third series' round dots.
+    public static let chartDash: Double = 6
+    /// The gap in a chart's dashed second series.
+    public static let chartDashGap: Double = 4
+    /// A chart plot's height at every width.
+    public static let chartPlot: Double = 240
   }
 
   /// A step of the type scale: size and line height in points, tracking in em.

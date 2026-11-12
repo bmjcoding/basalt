@@ -711,8 +711,8 @@ labels, and `aria-current="page"` on the current link.
 The site header, its narrow menu, the app shell and the phone tab bar (decision 96; the council voted 8.5, 8.5 and 8, a three-member
 round; the owner's ordering of the build is in DECISIONS 93). The components are `SiteHeader`, `AppShell`, `AppHeader`, `TabBar`,
 `TabBarItem` and `TabBarMore`, with `Sheet side="top"` and a `NavItem` without a glyph as the two additions to what shipped. The layout
-lengths below are written once in `components.css` from existing tokens (`calc` on `space-*`) until batch 4 makes each a token; the
-two breakpoints are written raw in media queries, which cannot read a custom property, each with a lint exception that says why.
+lengths are tokens (see [Layout](#layout)), and the two breakpoints are written as numbers in range-syntax media queries, which cannot
+read a custom property, each with a lint exception that names its token.
 
 **Status:** decided by the council (DECISIONS 96); the implementation has not been reviewed.
 
@@ -802,6 +802,195 @@ is in).
 Basalt allows a short list of vertical lines. Each is structure, and none is a selection, sort, active or status mark (the owner's
 ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
 the app sidebar's 1px edge, and a meter's labelled target tick.
+
+## Charts
+
+A series over time, as lines or as bars (decision 101; the council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93). The
+components are `TimeChart` and `ChartGroup` (the name `Chart` stays unexported: it was renamed `Sparkline`, and a test guards it). This page holds every rule the build follows; the colours and lengths are tokens.
+
+**Status:** decided by the council (DECISIONS 101); the implementation has not been reviewed.
+
+**The idea: ink is the kind of value, and shape is which series.** Primary ink means something was observed. Secondary ink means it
+was planned. The input-boundary hatch means it is missing. Divider ink is structure and tertiary ink is a label. So no series ever
+takes a colour, a lighter ink or the accent: series are told apart by dash, marker and name.
+
+### Text and size
+
+- **Text** is `text-xs` (12/16) everywhere in the chart: the axes, the lane's words, the direct labels and the legend. Axis labels are
+  tertiary and every number is tabular. Nothing is under 12px at any width.
+- **The chart is laid out in real CSS pixels** at its measured width (a `ResizeObserver`), and never scales text through a `viewBox`.
+  It is narrow by its **own** width (under `size-breakpoint-container`, 480px), whatever the viewport.
+- **The plot is 240px tall at every width** (`size-chart-plot`). Nothing scrolls sideways.
+
+### Axes
+
+- A line's scale needn't start at zero. A bar chart always does. The 1px `chart-baseline` (`border-input`) is drawn only where the
+  scale reaches zero, after the hatch.
+- **3 to 6 gridlines** on round steps (1, 2, 2.5, 5 times a power of ten), horizontal only, 1px `chart-grid` (`border-divider`). They
+  are decorative: they drop in forced colours, so the plan's `GrayText` is never mistaken for one. There are no vertical gridlines.
+- **The unit is written once, on the top tick.** There are no x tick marks.
+- **The y gutter** is as wide as the widest label plus `space-2`. Charts stacked in one figure (`ChartGroup`) share one gutter and one
+  right margin, so their plots start and end at one x.
+- **X labels** are at least 56px apart: every day when there is room (the weekday too when a day is 80px or wider), every k days back
+  from the latest for two weeks or less, otherwise Mondays, weekly or every few weeks. The picked day's label lifts to primary and a
+  neighbour it would touch steps aside.
+- **Two lanes are always reserved, so the plot never moves:** above the plot, the gap's words (one 16px line, two when narrow), and
+  below it, the axis.
+
+### Marks
+
+- **A line** is 2px (`size-chart-line`), `chart-observed`, round joins and caps, joined straight, with no area fill.
+- **Markers** are 8px (`size-chart-mark`): a disc, a square and a diamond **of equal area**, each ringed 2px (`size-cut`) in the
+  panel's own colour, so the ring cuts the marker out of the plan, the grid, the hatch and the other series behind it, but never out
+  of its own line. They show when a day is at least 16px wide (two markers); otherwise only the active day, the latest day, the days
+  beside a gap and an isolated point keep theirs.
+- **A bar** is 60% of its day, from 2 to 24px (`size-chart-bar-min`, `-max`), square at both ends (the end is the value, and a rounded
+  end would move where it seems to be). **One series per bar chart:** a second becomes a line over the bars, or a second chart.
+- **A day that isn't final** is the same mark, hollow: a 2px outline in observed ink on the surface, with "Today so far" in the legend
+  and values written "34 min so far". Hollow means "not final" here as the pending badge's ring does.
+- **Zero is a value.** A rest day's 0 draws no bar and reads "0 min". Missing is never drawn as zero.
+
+### Ink and series
+
+- **Every observed series is primary.** Secondary is the plan's alone. Missing is the hatch.
+- **Series are told apart by dash, marker and name:** series 1 solid with a disc; series 2 dashed 6 on 4 off (`size-chart-dash`, `-gap`)
+  with butt caps and a square; series 3 a round dot every 6px and a diamond. Three observed series at most; past that, small multiples
+  on one scale.
+- **Direct labels:** each line's name (and the plan's) at its last observed point, in a reserved right margin, 12/16 secondary, only
+  when the chart is at least 480px wide and has two or more series. The legend names every series, so they drop when narrow.
+- **The accent** paints only the product's one labelled role (DECISIONS 37), with a word, never a series, a bar or a line.
+
+### The plan
+
+The plan is secondary ink, never a series, and never carries a marker: a marker means a measurement happened.
+
+- **A value plan** is a 2px `chart-plan` stroke across each day's whole slot (the meter's tick laid across a day). Equal neighbours
+  join. There are no risers: a change is a gap in the line, so a daily plan reads as targets and not as a second skyline.
+- **On bars** the stroke is in front of the bar and cut 2px out of it in the surface colour (the meter's tick and its cut, one
+  `size-cut`). A cut never hides where a bar ends: above the plan it is drawn only if at least 2px of bar stays above it; below the
+  plan, only if the bar reaches through the line.
+- **Behind an observed line.** A line hides nothing, and a cut in an observed line would read as a break, which only missing data
+  may draw.
+- **A band** is two 1px `chart-plan` edges that step with no risers, with the `chart-band` (hover wash) fill between: the fill is
+  decorative, the edges carry it. In forced colours the fill drops and the edges stay.
+- **Order of drawing:** gridlines, the picked day's plate, the band, the hatch, the baseline, bars, cuts, the plan, the lines (last
+  series first), the lane's words, the axes, the direct labels.
+
+### Missing data
+
+- **The hatch** is 1px lines at 45 degrees on a 4px pitch (`size-hatch-pitch`) in `chart-missing` (`border-input`), over the plot's
+  full height. In a bar chart it fills the whole missing slot and no bar is drawn.
+- **A line breaks** and never joins a gap. No zero is plotted. A known plan still shows across the gap.
+- **When one series of several is missing,** the hatch still marks the days, its words name the series ("Watch not observed"), and the
+  observed series draws over it, its markers ringed.
+- **The reason in words** goes in the reserved lane above the plot, 12/16 tertiary, from where the gap starts: the full words if they
+  fit ("Watch not observed · not worn, travel"), then "Watch not observed", then "Not observed". Only the last gap may step back to
+  fit, and never over an earlier one. The reason is always also in the summary, the readout and the table.
+- **The table** says "Not observed" in tertiary with no mark (DECISIONS 95), and the reason in its Note column.
+
+### The legend is the readout
+
+- It sits above the plot, under the title and the source line: a date line, then each key. A key is a 16px swatch (`size-icon-sm`)
+  drawn like its mark, the name, and its value for the picked day.
+- **Nothing moves.** Every value reserves the widest of its forms ("10 h 59 m", "Not observed", "140 min so far") and so does the date
+  line: picking a day changes words, never positions.
+- **It returns to the latest day** when the pointer leaves, but **never while keyboard focus is inside the chart**: then the focused
+  day is the one shown, whatever the pointer does.
+- **The picked day** is a full-height `state-selected` plate behind the marks, its axis date lifting from tertiary to primary, and its
+  markers showing even where density hid them. Keyboard focus adds the control ring round the day at +2.
+- **Hover, a tap and a key** all pick a day. A tap holds until a tap outside; a sideways drag scrubs; `touch-action: pan-y` keeps
+  vertical scrolling. There is no tooltip: a floating box would be a level-3 surface with a shadow over the data it describes.
+
+### Keyboard and screen readers
+
+- **The plot is one tab stop:** a `role="group"` with `aria-roledescription="chart"`, named by the title and described by the summary
+  and a sentence about the keys. Inside it each day is a focusable `role="img"` with a roving `tabindex`, named by its full sentence:
+  the day, each series' value or "not observed" and its reason, the plan, and where the value sits against it.
+- **Keys:** ← → a day, Page Up and Page Down a week (Page Up is earlier), Home and End the ends. Tab leaves; nothing is trapped.
+- **No live region.** Moving focus is the announcement, so a hover never talks and nothing is read twice. The SVG is `aria-hidden`.
+- **The key hint** is a legend with `data-kbd-hint`: hidden on touch until a hardware key is pressed.
+- **The table** is disclosed in the same figure ("View as table", `aria-expanded`): a still table (fixed layout, the date a pinned row
+  header, newest first, numbers end-aligned) with a scroll hint when it overflows.
+- **The summary** is a required `figcaption` the app writes: the direction, the extremes, the plan, and each gap with its reason.
+
+### Motion
+
+See [motion](motion.md#charts). A value that changes in place glides with the marks, the scale, its gridlines and labels over
+`duration-slow` on `ease-out`; a new peak widens the scale at once and it eases back when it shrinks. The first paint is at rest.
+
+### Forced colours
+
+Observed is `CanvasText`. The plan, the band's edges and the hatch are `GrayText`. The band fill and the plate drop. Cuts and rings are
+`Canvas`. The baseline is `CanvasText`. The active day is a 2px `Highlight` outline. Line paths keep `fill: none`.
+
+### Chart tokens
+
+| Token | Value | Use |
+|---|---|---|
+| `chart-observed` | `text-primary` | Lines, markers, bars, the "so far" outline |
+| `chart-plan` | `text-secondary` | The plan stroke and the band's edges |
+| `chart-band` | `state-hover` | The band's fill (decorative) |
+| `chart-missing` | `border-input` | The hatch |
+| `chart-grid` | `border-divider` | Gridlines (decorative) |
+| `chart-baseline` | `border-input` | The zero line, only at zero |
+| `chart-axis` | `text-tertiary` | Axis labels and the gap's words |
+| `size-chart-line` | 2px | Observed lines and the plan stroke |
+| `size-chart-mark` | 8px | A marker's diameter (the square and diamond have the same area) |
+| `size-cut` | 2px | The surface cut: a marker's ring, the plan's cut out of a bar, and the meter's tick |
+| `size-hatch-pitch` | 4px | The hatch's pitch (the line is `size-hairline`, the angle 45 degrees) |
+| `size-chart-bar-max`, `-min` | 24px, 2px | A bar is 60% of its day, between these |
+| `size-chart-dash`, `-dash-gap` | 6px, 4px | Series 2's dash; series 3's dot pitch; series 2's gap |
+| `size-chart-plot` | 240px | The plot's height at every width |
+
+**Not tokens, by choice:** the plate (`state-selected`), the legend swatch (`size-icon-sm`), the focus ring, the lane heights (the text
+line plus `space-1`), the 60% bar share and the 56px label spacing are rules, not lengths.
+
+The colour roles are aliases, so they cost no new colour, but each joins the contrast tests on every level, on the band and on the
+plate, in both themes. The tightest pair is the hatch on the light plate, at 3.27:1.
+
+## Layout
+
+The layout lengths and breakpoints (decision 101). Each is a token under `size`, emitted to CSS, JavaScript and Swift.
+
+**Status:** decided by the council (DECISIONS 101); the implementation has not been reviewed. The names were counted one by one,
+because no whole set had two of three votes; the owner is asked to look at them as a close call.
+
+| Token | Value | What it is |
+|---|---|---|
+| `size-header` | 56px | The sticky bar: its border box, its hairline inside. The top safe area is padding above it |
+| `size-tab-bar` | 56px | The phone tab bar, its hairline inside, before the bottom safe area |
+| `size-sidebar-width` | 256px | The app sidebar from the large breakpoint; also a page's own aside |
+| `size-rail-width` | 72px | The rail, from the medium breakpoint to the large |
+| `size-page-width` | 72rem | The inner row, gutters inside: the header's row and a data page |
+| `size-prose-width` | 34rem | A prose page's text column |
+| `size-gutter` | `space-6` (24px) | The row's inline padding |
+| `size-gutter-narrow` | `space-4` (16px) | The same, under the medium breakpoint |
+| `size-breakpoint-md` | 720px | Below it: the phone (tab bar, the menu sheet, the narrow gutter) |
+| `size-breakpoint-lg` | 1024px | From it, the sidebar; below it, down to md, the rail |
+| `size-breakpoint-container` | 480px | A component's own width: a description list stacks and a chart goes narrow |
+| `size-description-label` | 160px | The description list's label column |
+
+- **A rem token** stays a rem in CSS and JavaScript, so the measure follows the reader's text size. In Swift the generator resolves it
+  to points at 16 to the rem (72rem is 1152, 34rem is 544), and the generated doc comment says so.
+- **Derived properties** are set by Basalt's layout CSS and are not tokens, because each adds what only the device knows:
+  - `--basalt-gutter`: `size-gutter`, or `size-gutter-narrow` under 720. Apps use this one.
+  - `--basalt-sticky-offset`: `size-header` plus `env(safe-area-inset-top)`. It is the `top` of anything sticky under the bar; with
+    `space-4` added it is the page's `scroll-padding-top`, so an anchor lands below the bar.
+  - `--basalt-bottom-offset`: `size-tab-bar` plus `env(safe-area-inset-bottom)` under 720 in an app with a tab bar, else 0. It is the
+    page's bottom padding and where the toast stack sits.
+- **Breakpoints in CSS** are range syntax with the number written and a lint exception that names the token, because a media or
+  container query cannot read a custom property: `@media (width < 720px)`, `@container (width < 480px)`. Range syntax means there is no
+  719/719.98 pair to keep in step and no gap on a fractional viewport. Components answer their **own** width (`@container`); pages
+  answer the viewport.
+- **For apps with PostCSS,** the tokens package generates `breakpoints.css` (`@custom-media --basalt-phone (width < 720px)`, `-md`,
+  `-lg`, `-rail`). **In script,** `@srasyndicate/basalt-tokens/breakpoints` exports `breakpoint.md`, `.lg` and `.container`, so
+  ``matchMedia(`(width >= ${breakpoint.md}px)`)`` never carries the number.
+- **A prose page** (`Prose`) has a column of `size-prose-width` on the row's **start edge**, never centred: its first letter lines up
+  with the brand above it and with every chart and table. A data page fills the row.
+- **On Apple platforms** the sidebar width is `navigationSplitViewColumnWidth(Basalt.Size.sidebarWidth)`, the system's bars stay native,
+  the compact size class is the phone, and measures are `@ScaledMetric` so a prose column grows with Dynamic Type.
+- **The HTML skill's build** will substitute these values instead of hand-writing 720 (DECISIONS 91, batch 7); until then its sources
+  keep their literals.
 
 ## Motion
 
@@ -917,6 +1106,8 @@ Forms retain native labels, grouped legends and validation. Select is for a shor
 list; Combobox searches a single known choice. NumberField enters an exact value in one bordered control sized to its content, steppers inside; Slider
 adjusts a scalar or range, with distinct names for range thumbs. Confirmations use
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side, bottom or top panel, including safe-area padding and motion preferences.
+
+TimeChart draws a series over time (see [Charts](#charts)), ChartGroup stacks charts on one gutter, and Prose sets a text column's measure (see [Layout](#layout)).
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page

@@ -539,3 +539,51 @@ for (const theme of THEMES) {
     atLeast(theme, "text-secondary", 4.5, wells);
   });
 }
+
+// ---- Charts (council item 101): every colour role on every level, on the band and on the plate ----
+//
+// A chart's colours are aliases of colours that already exist, so they cost no new colour, but each is design and each joins this proof.
+// "Band" is chart-band over the level; "plate" is state-selected over the level (the picked day, behind the marks). Levels are surface-0 to 3.
+
+const CHART_ROLES = { "chart-observed": "text-primary", "chart-plan": "text-secondary", "chart-band": "state-hover", "chart-missing": "border-input", "chart-grid": "border-divider", "chart-baseline": "border-input", "chart-axis": "text-tertiary" };
+
+for (const theme of THEMES) {
+  test(`${theme}: each chart colour role is its alias, colour for colour`, () => {
+    for (const [role, alias] of Object.entries(CHART_ROLES)) assert.deepEqual(color(theme, role), color(theme, alias), `${role} is not ${alias}`);
+  });
+
+  test(`${theme}: observed, plan and the hatch hold 3:1 on every level, on the band and on the plate; the baseline on the level and the plate`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      const band = over(color(theme, "chart-band"), under);
+      const plate = over(color(theme, "state-selected"), under);
+      const cases = [
+        ["chart-observed", [["level", under], ["band", band], ["plate", plate]]],
+        ["chart-plan", [["level", under], ["band", band], ["plate", plate]]],
+        ["chart-missing", [["level", under], ["band", band], ["plate", plate]]],
+        ["chart-baseline", [["level", under], ["plate", plate]]],
+        ["border-focus", [["level", under], ["plate", plate]]],
+      ];
+      for (const [role, grounds] of cases) for (const [name, bg] of grounds) {
+        const r = ratio(over(color(theme, role), bg), bg);
+        assert.ok(r >= 3, `${theme}: ${role} on the ${name} at ${level} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: axis labels (tertiary) hold 4.5:1 on every level, and the legend's names (secondary) and values (primary) hold 4.5:1`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      for (const role of ["chart-axis", "text-secondary", "text-primary"]) {
+        const r = ratio(over(color(theme, role), under), under);
+        assert.ok(r >= 4.5, `${theme}: ${role} on ${level} is ${fmt(r)}:1, needs 4.5:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the plan's secondary ink also reads as a step from the observed primary (the stroke the two share is told apart by ink)`, () => {
+    const under = color(theme, "surface-1");
+    const step = ratio(color(theme, "chart-observed"), under) / ratio(color(theme, "chart-plan"), under);
+    assert.ok(step >= 1.5, `${theme}: observed against plan is ${step.toFixed(2)}x`);
+  });
+}

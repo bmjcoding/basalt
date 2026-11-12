@@ -9,7 +9,12 @@
     "./tokens.css": "./dist/css/tokens.css",
     "./accents.css": "./dist/css/accents.css",
     "./shadcn.css": "./dist/css/shadcn.css",
+    "./breakpoints.css": "./dist/css/breakpoints.css",
     "./tokens.json": "./dist/json/tokens.json",
+    "./breakpoints": {
+      "types": "./dist/js/breakpoints.d.ts",
+      "default": "./dist/js/breakpoints.js"
+    },
     ".": {
       "types": "./dist/js/tokens.d.ts",
       "default": "./dist/js/tokens.js"

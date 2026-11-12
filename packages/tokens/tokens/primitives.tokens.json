@@ -809,6 +809,160 @@
         "unit": "px"
       },
       "$description": "Maximum height of a scrolling popup list, such as the command list."
+    },
+    "header": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The sticky bar: its border box, with its hairline inside. The top safe area is padding above it, added by the layout CSS."
+    },
+    "tab-bar": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The phone tab bar, its hairline inside, before the bottom safe area."
+    },
+    "sidebar-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 256,
+        "unit": "px"
+      },
+      "$description": "The app sidebar from the large breakpoint; also a page's own aside, so one side-column width serves both."
+    },
+    "rail-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 72,
+        "unit": "px"
+      },
+      "$description": "The rail, from the medium breakpoint to the large."
+    },
+    "page-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 72,
+        "unit": "rem"
+      },
+      "$description": "The inner row, gutters inside: the header's row and a data page."
+    },
+    "prose-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 34,
+        "unit": "rem"
+      },
+      "$description": "A prose page's text column, on the row's start edge and never centred: about 72 characters of Geist at 16/24."
+    },
+    "gutter": {
+      "$type": "dimension",
+      "$value": "{space.6}",
+      "$description": "The row's inline padding. Apps use the derived --basalt-gutter, which steps to size-gutter-narrow under the medium breakpoint."
+    },
+    "gutter-narrow": {
+      "$type": "dimension",
+      "$value": "{space.4}",
+      "$description": "The row's inline padding under the medium breakpoint."
+    },
+    "breakpoint-md": {
+      "$type": "dimension",
+      "$value": {
+        "value": 720,
+        "unit": "px"
+      },
+      "$description": "Below it: the phone (the tab bar, the menu sheet, the narrow gutter). A media query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
+    "breakpoint-lg": {
+      "$type": "dimension",
+      "$value": {
+        "value": 1024,
+        "unit": "px"
+      },
+      "$description": "From it, the sidebar; below it, down to the medium breakpoint, the rail."
+    },
+    "breakpoint-container": {
+      "$type": "dimension",
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "A component's own width, in a container query: a description list stacks and a chart goes narrow below it."
+    },
+    "chart-line": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "An observed line and the plan stroke in a chart."
+    },
+    "chart-mark": {
+      "$type": "dimension",
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      },
+      "$description": "A chart marker's diameter, or its side; the diamond has the same area."
+    },
+    "cut": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The surface-coloured cut between a mark in front and what it crosses: a chart's marker ring and the plan's cut out of a bar, and the meter's tick."
+    },
+    "hatch-pitch": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      },
+      "$description": "The pitch of the hatch that marks missing data: 1px lines at 45 degrees, this far apart."
+    },
+    "chart-bar-max": {
+      "$type": "dimension",
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "The widest a chart bar is; a bar is 60% of its day."
+    },
+    "chart-bar-min": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The narrowest a chart bar is."
+    },
+    "chart-dash": {
+      "$type": "dimension",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      },
+      "$description": "The dash of a chart's second series (6 on, size-chart-dash-gap off), and the pitch of the third series' round dots."
+    },
+    "chart-dash-gap": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      },
+      "$description": "The gap in a chart's dashed second series."
+    },
+    "chart-plot": {
+      "$type": "dimension",
+      "$value": {
+        "value": 240,
+        "unit": "px"
+      },
+      "$description": "A chart plot's height at every width."
     }
   },
   "font": {

@@ -235,12 +235,12 @@ for (const id of rounds) {
       for (const [width, tag] of widths) {
        for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch"), ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
@@ -288,6 +288,35 @@ for (const id of rounds) {
           if (/^(tab-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
             await page.locator("[data-wt-hover]").first().hover();
             await page.waitForTimeout(250);
+          }
+          // Charts (round 23): "chart-hover" puts a real pointer on a day of the chart that marks itself `data-wt-chart`, "chart-gap" on a day
+          // with a missing series, "chart-touch" taps a day with a finger, "chart-keys" tabs into the plot and moves focus three days back
+          // (so the control ring shows), and "chart-table" opens the table.
+          if (state.startsWith("chart-")) {
+            const kind = state.replace(/^chart-/, "").replace(/-(reduced-motion|forced-colours)$/, "");
+            // Size the viewport to the page first: a full-page capture resizes it, and a resize ends a pointer's hover.
+            await page.setViewportSize({ width, height: Math.min(await page.evaluate(() => document.documentElement.scrollHeight), 6000) });
+            await page.waitForTimeout(150);
+            const days = page.locator("[data-wt-chart] .basalt-chart-day");
+            const count = await days.count();
+            const gap = async () => { const names = await days.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))); const i = names.findIndex((t) => /not observed/.test(t)); return i < 0 ? Math.floor(count / 2) : i; };
+            if (kind === "hover" || kind === "gap" || kind === "touch") {
+              const target = days.nth(kind === "gap" ? await gap() : Math.max(0, count - 9));
+              await target.scrollIntoViewIfNeeded();
+              const b = await target.boundingBox();
+              if (kind === "touch") await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+              else await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+              await page.waitForTimeout(200);
+            }
+            if (kind === "keys") {
+              await days.nth(count - 1).focus();
+              for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowLeft");
+              await page.waitForTimeout(200);
+            }
+            if (kind === "table") {
+              await page.locator("[data-wt-chart] .basalt-chart-toggle").click();
+              await page.waitForTimeout(250);
+            }
           }
           // Navigation: "nav-hover" hovers the sidebar's second item, "nav-rail-hover" the rail's second (and its tooltip opens),
           // "nav-current-hover" the current one; "nav-focus" tabs to the first item (the glide hides, the ring shows);

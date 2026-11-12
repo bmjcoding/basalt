@@ -1,3 +1,4 @@
+import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import * as React from "react";
 
 import { CloseGlyph } from "./glyphs/close";
@@ -11,8 +12,8 @@ import { join } from "./utils";
 
 // The site header: the one smoked bar of a marketing or docs site (decisions 96). The brand, the links beside it, a spacer,
 // then the actions. Under 720 the links and the primary action leave the bar and a Menu button opens a top sheet that redraws
-// the bar in its first row and unrolls the links beneath it. Layout lengths are written in components.css from today's
-// tokens, each in one place, until batch 4 makes them tokens.
+// the bar in its first row and unrolls the links beneath it. The layout lengths are tokens (size-header, size-page-width,
+// size-gutter and the breakpoints; decision 101).
 
 /** One link in the bar and in the narrow menu. */
 export interface SiteHeaderLink {
@@ -68,7 +69,7 @@ function Brand({ href, label, children }: { href: string; label: string; childre
  */
 export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], themeToggle, action, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu", solid = false, className, ...props }: SiteHeaderProps) {
   const [open, setOpen] = React.useState(false);
-  const wide = useMediaQuery("(width >= 720px)");
+  const wide = useMediaQuery(`(width >= ${breakpoint.md}px)`);
   const trigger = React.useRef<HTMLButtonElement>(null);
   const close = React.useRef<HTMLButtonElement>(null);
   const bar = React.useRef<HTMLElement>(null);

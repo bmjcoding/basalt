@@ -187,6 +187,36 @@
         "$description": "A warning or in-progress dot, always beside a word."
       }
     },
+    "chart": {
+      "observed": {
+        "$value": "{color.text.primary}",
+        "$description": "Every observed series in a chart: lines, markers, bars and the outline of a day that is not yet final."
+      },
+      "plan": {
+        "$value": "{color.text.secondary}",
+        "$description": "A chart's plan: the stroke, and the edges of a band. Never a series."
+      },
+      "band": {
+        "$value": "{color.state.hover}",
+        "$description": "A plan band's fill between its two edges. Decorative; the edges carry it."
+      },
+      "missing": {
+        "$value": "{color.border.input}",
+        "$description": "The hatch that marks missing data in a chart."
+      },
+      "grid": {
+        "$value": "{color.border.divider}",
+        "$description": "A chart's horizontal gridlines. Decorative."
+      },
+      "baseline": {
+        "$value": "{color.border.input}",
+        "$description": "A chart's zero line, drawn only where the scale reaches zero."
+      },
+      "axis": {
+        "$value": "{color.text.tertiary}",
+        "$description": "A chart's axis labels and the words for a gap."
+      }
+    },
     "scrim": {
       "$value": "{color.black.40}",
       "$description": "Behind modal dialogs and sheets."
