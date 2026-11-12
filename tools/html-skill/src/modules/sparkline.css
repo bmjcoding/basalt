@@ -1,0 +1,32 @@
+@layer basalt {
+
+  /* ---- Sparkline (React's Sparkline) ----
+     A monochrome line with its latest value: a head (the label at 500, the value at the end), the line in secondary ink at a hairline, and an axis from 0
+     to the peak in tertiary 12px. No fill, gradient or glow, and nothing else a chart has. The value is React's number ticker at rest: the words for a screen
+     reader, and for the eye a box for each character (tabular, kerning off, a digit's 1em tall with its line height 1), sitting on the head's last line. While loading the line is flat and breathes
+     (a slow fade, no movement); the hold on every loop (loops.css, React's useLoops) stills it, and under reduced motion it fades in once. */
+
+  .sparkline { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
+  .sparkline-head, .sparkline-axis { display: flex; justify-content: space-between; gap: var(--basalt-space-2); }
+  .sparkline-label { font-weight: var(--basalt-font-weight-medium); }
+  .sparkline-value { display: inline-flex; align-items: flex-end; font-variant-numeric: tabular-nums; font-kerning: none; }
+  .sparkline-value > [aria-hidden] { display: inline-flex; align-items: flex-end; }
+  .sparkline-value [data-d] { display: inline-block; height: 1em; overflow: hidden; line-height: 1; }
+  .sparkline-value [aria-hidden] > span { line-height: 1; }
+  .sparkline svg { width: 100%; height: var(--basalt-space-16); color: var(--basalt-text-secondary); }
+  .sparkline-line { fill: none; stroke: currentColor; stroke-width: var(--basalt-size-hairline); stroke-linecap: round; stroke-linejoin: round; }
+  .sparkline[data-loading] .sparkline-line { animation: bh-breathe var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
+  .sparkline-empty { margin: 0; color: var(--basalt-text-secondary); }
+  .sparkline-axis { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); font-variant-numeric: tabular-nums; }
+  /* Only primary and secondary ink may sit on the smoked bar: the axis is promoted to secondary there. */
+  :is(.topbar, .app-header) .sparkline-axis { color: var(--basalt-text-secondary); }
+
+  @keyframes bh-breathe { from { opacity: 0.35; } to { opacity: 1; } }
+  @keyframes bh-sparkline-in { from { opacity: 0; } }
+
+  :root[data-loops="held"] .sparkline[data-loading] .sparkline-line { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .sparkline[data-loading] .sparkline-line { animation: bh-sparkline-in var(--basalt-duration-fast) var(--basalt-ease-out); }
+    :root[data-loops="held"] .sparkline[data-loading] .sparkline-line { animation: none; }
+  }
+}

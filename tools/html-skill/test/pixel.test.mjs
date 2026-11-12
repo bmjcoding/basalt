@@ -8,6 +8,7 @@
 // The second parity PR (popup rows and levels, the glide, the bar's removal, the segment's pill): the palette (open), the kitchen sink's rows,
 // segment and selected table row; the two example pages at rest did not move.
 // The ninth parity PR (commands): the kitchen sink names the new module with a basalt:use comment (a list of its own is a new baseline below); every existing baseline's pixels are as they were.
+// The eleventh parity PR (the rest of the overlays): the kitchen sink names the combobox and the sparkline with a basalt:use comment (a page of their own is a new baseline below); every existing baseline's pixels are as they were.
 // The fifth parity PR (the figures): the kitchen sink gains a section of the description list, the meter, a stat's source line, the terminal and the chart, after its overlays;
 // every region above it, and the two example pages, did not move (the two examples' recorded files are as they were).
 import assert from "node:assert/strict";
@@ -217,6 +218,32 @@ describe("the art page matches its recorded baseline, pixel for pixel", () => {
           assert.deepEqual(errors, [], `${which} logged errors`);
           // Every frame has settled (loaded or failed), and its fade has run, before the page is read.
           await page.waitForFunction(() => [...document.querySelectorAll(".framed-frame")].every((f) => ["loaded", "failed"].includes(f.dataset.phase)));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The eleventh parity PR (the rest of the overlays): the combobox (empty, chosen, off) and the sparkline (data, a decimal, empty, loading) at rest. The existing baselines above did not
+// move in a pixel; this one is new.
+describe("the combobox and sparkline page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "rest.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("rest") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          // The loading line breathes: both renders are held at its first frame.
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
           pictures[which] = await shot(page, width);
           await context.close();
         }

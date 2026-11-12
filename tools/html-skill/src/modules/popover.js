@@ -1,7 +1,7 @@
 /* Basalt HTML script, popover module: positions a native popup beside its opener and looks after its focus. The popup is a
    <div class="panel float popover" popover id="x"> and the opener a <button popovertarget="x">; the browser opens, light-dismisses and closes
    it on Esc. This adds what it does not: the position (below and at the start, flipped and kept inside the window), focus into the popup,
-   focus back to the opener, and closing when focus leaves. The menu, the notification centre and the tooltip use _.place and _.tabbables.
+   focus back to the opener, and closing when focus leaves. The menu, the combobox, the notification centre and the tooltip use _.place and _.tabbables (a menu and a combobox popup keep focus where it is).
    Source: tools/html-skill/src/modules/popover.js (do not edit the copy in the skill folder). */
 (function (B) {
   'use strict';
@@ -89,7 +89,7 @@
         if (to && !pop.contains(to) && to !== pop.__anchor && !(to.closest && to.closest('[popover]:popover-open')) && pop.matches(':popover-open')) pop.hidePopover();
       });
     }
-    if (!pop.matches('[role="menu"]')) {
+    if (!pop.matches('[role="menu"], .combobox-popup')) {
       var first = _.tabbables(pop)[0];
       if (!first) pop.setAttribute('tabindex', '-1');
       (first || pop).focus({ preventScroll: true });
