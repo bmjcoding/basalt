@@ -3,10 +3,9 @@
   /* Braille is for a status: work that runs beside a word that says so. Never in a button, never without its word (the ring is for a wait).
      It is Basalt's own six-dot cell, as React's Spinner draws it: 6 by 10 with 2px dots on whole pixels, unlit dots not drawn, ten frames
      in one 800ms cycle stepped hard (step-end), in its word's colour. It takes the status dot's seat (6px) and gap, so in a .status the
-     dot is not drawn and the word starts at the same x. */
+     dot is not drawn (status.css) and the word starts at the same x. */
   braille-spinner { display: inline-block; flex: none; width: var(--basalt-size-dot); height: var(--basalt-space-2-5); line-height: 0; color: inherit; }
   braille-spinner > svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  .status:has(> braille-spinner)::before { content: none; }
   .braille-dot { fill: currentColor; opacity: 0; animation: var(--basalt-duration-loop-braille) step-end infinite; }
   .braille-dot[data-hold] { opacity: 1; }
   .braille-dot[data-dot="1"] { animation-name: bh-b1; }

@@ -285,11 +285,11 @@ test("no script or highlighter names the accent: the Shiki theme and every compo
   }
 });
 
-test("the Badge accent dot is the ink dot where the variable is missing, and CanvasText with its own colour adjustment in forced colours", () => {
+test("the Badge accent dot is the ink dot where the variable is missing, and in forced colours a border disc that names no system colour (DECISIONS 106)", () => {
   const css = stripComments(SHEETS["components.css"]);
   assert.ok(css.includes('.basalt-badge[data-status="accent"] .basalt-badge-dot { background: var(--basalt-accent-ink, var(--basalt-text-primary)); }'));
   const forced = css.slice(css.indexOf("@media (forced-colors: active)"));
-  assert.ok(forced.includes('.basalt-badge[data-status="accent"] .basalt-badge-dot { forced-color-adjust: none; background: CanvasText; }'));
-  // forced-color-adjust is on the dot alone.
-  assert.equal([...css.matchAll(/([^{}]+)\{[^{}]*forced-color-adjust: none[^{}]*background: CanvasText/g)].filter((m) => /badge/.test(m[1])).length, 1);
+  // The accent dot's CanvasText fill and its colour adjustment are gone: every settled status dot is the same border disc, drawn with forced colours left on.
+  assert.equal([...css.matchAll(/([^{}]+)\{[^{}]*forced-color-adjust: none[^{}]*background: CanvasText/g)].filter((m) => /badge/.test(m[1])).length, 0);
+  assert.ok(forced.includes('.basalt-badge:not([data-status="pending"]) > .basalt-badge-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }'));
 });

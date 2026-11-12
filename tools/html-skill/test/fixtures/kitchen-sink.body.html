@@ -139,6 +139,49 @@
     <div class="prose" style="margin-top: var(--basalt-space-4)"><h3>Prose</h3><p>Paragraph with a <a href="#main">link</a>.</p><ul><li>A</li><li>B</li></ul><blockquote>Quote</blockquote></div>
   </section>
 
+  <section class="section">
+    <div class="section-head"><h2>Status and links</h2></div>
+    <div class="cluster">
+      <span class="badge">3 open</span>
+      <span class="badge" data-status="neutral">Idle</span>
+      <span class="badge" data-status="success">Ready</span>
+      <span class="badge" data-status="warning">Watching</span>
+      <span class="badge" data-status="danger">Failing</span>
+      <span class="badge" data-status="pending">In review</span>
+    </div>
+    <div class="cluster" style="margin-top: var(--basalt-space-3)">
+      <span class="status">3 open</span>
+      <span class="status" data-status="neutral">Idle</span>
+      <span class="status" data-status="success">Ready</span>
+      <span class="status" data-status="warning">Watching</span>
+      <span class="status" data-status="danger">Failing</span>
+      <span class="status" data-status="pending">Queued</span>
+      <span class="status"><braille-spinner></braille-spinner>Running</span>
+    </div>
+    <ul class="links" aria-label="Elsewhere, footer row" style="margin-top: var(--basalt-space-4)">
+      <li><a href="#top"><i data-icon="GithubLogo"></i>GitHub</a></li>
+      <li><a href="#top" target="_blank"><i data-icon="XLogo"></i>X</a></li>
+      <li><a href="#top"><i data-icon="LinkedinLogo"></i>LinkedIn</a></li>
+      <li><a href="#top"><i data-icon="InstagramLogo"></i>Instagram</a></li>
+      <li><a href="#top"><i data-icon="YoutubeLogo"></i>YouTube</a></li>
+      <li><a href="mailto:name@example.test"><i data-icon="EnvelopeSimple"></i>Email</a></li>
+      <li><a href="#top">Substack</a></li>
+      <li><a href="#top" target="_blank">Bluesky</a></li>
+    </ul>
+    <ul class="links" data-icon-only aria-label="Elsewhere, marks only" style="margin-top: var(--basalt-space-4)">
+      <li><a class="btn" data-variant="ghost" data-icon-only href="#top" aria-label="GitHub"><i data-icon="GithubLogo"></i></a></li>
+      <li><a class="btn" data-variant="ghost" data-icon-only href="#top" target="_blank" aria-label="X"><i data-icon="XLogo"></i></a></li>
+      <li><a class="btn" data-variant="ghost" data-icon-only href="#top" aria-label="LinkedIn"><i data-icon="LinkedinLogo"></i></a></li>
+    </ul>
+    <div class="panel" style="margin-top: var(--basalt-space-4)"><div class="rows profile-links" aria-label="Profiles">
+      <a class="row" href="#top"><i data-icon="GithubLogo"></i><span class="row-label">GitHub</span><span class="row-hint">@placeholder</span></a>
+      <a class="row" href="#top" target="_blank"><i data-icon="XLogo"></i><span class="row-label">X</span><span class="row-hint">@placeholder</span></a>
+      <a class="row" href="#top"><i data-icon="EnvelopeSimple"></i><span class="row-label">Email</span><span class="row-hint">name@example.test</span></a>
+      <a class="row" href="#top"><span class="row-label">Substack</span><span class="row-hint">placeholder.substack.com</span></a>
+      <a class="row" href="#top"><span class="row-label">Bluesky</span><span class="row-hint">@placeholder.bsky.social</span></a>
+    </div></div>
+  </section>
+
   <footer class="footer">Footer · <a href="#top">Top</a></footer>
 </main>
 <script type="application/json" data-palette>{ "groups": [{ "label": "Go", "items": [{ "label": "Home", "icon": "ArrowRight", "keys": ["⌥", "H"], "href": "#top" }, { "label": "Delete", "icon": "Trash", "danger": true }] }] }</script>
