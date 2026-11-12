@@ -15,6 +15,8 @@
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
     --_basalt-menu-row: var(--basalt-size-control-md);
     --_basalt-nav-row: var(--basalt-size-control-xl);
+    --_basalt-desc-font: var(--basalt-text-xs-size);
+    --_basalt-desc-line: var(--basalt-text-xs-line-height);
   }
 
   :where([data-density="default"]) {
@@ -28,6 +30,8 @@
     --_basalt-control-lg-radius: initial;
     --_basalt-menu-row: initial;
     --_basalt-nav-row: initial;
+    --_basalt-desc-font: initial;
+    --_basalt-desc-line: initial;
   }
 
   /* ---- depth: surface levels and the rim ---- */
@@ -67,7 +71,9 @@
   .basalt-popover,
   .basalt-dialog,
   .basalt-tooltip,
-  .basalt-toast {
+  .basalt-toast,
+  .basalt-command-page,
+  .basalt-command-pane {
     border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
     border-top-color: var(--basalt-border-rim-top);
   }
@@ -320,12 +326,13 @@
   .basalt-menu-item {
     --_plate-height: var(--_basalt-menu-row, var(--basalt-size-menu-row));
     --_plate-inset: var(--basalt-space-0-5);
+    --_gap: var(--basalt-space-2-5);
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
     display: flex;
     align-items: center;
-    gap: var(--basalt-space-2-5);
+    gap: var(--_gap);
     height: calc(var(--_plate-height) + 2 * var(--_plate-inset));
     /* 12 here and 4 in the panel: the glyph and the text start 16px from the rim */
     padding: 0 var(--basalt-space-3);
@@ -408,6 +415,62 @@
   /* cmdk writes data-disabled="false" on a live row, so a bare [data-disabled] would grey every command. */
   .basalt-menu-item[data-disabled]:not([data-disabled="false"]),
   .basalt-menu-item[aria-disabled="true"] { color: var(--basalt-text-disabled); }
+
+  /* ---- Two-line rows ----
+     A row is padding, a title line, an optional description line, then padding. The padding is the one-line row's, so a
+     two-line plate is the one-line plate plus the description's line: 54 in a 58 row in a menu, 58 in a 62 row in the command
+     menu and the command list (52/56 and 48/52 when compact, the description 12/16 over a 13/18 title). The 20 and 18 line
+     boxes touch, with no gap. The glyph, a check seat, a key chip and the push's chevron sit on the title line, centred on it
+     (the title track is exactly the line height, so a 20px chip on an 18px line never grows the row); the description runs
+     from the text's edge to the row's end, under the chip's column too. Both lines are cut with an ellipsis and never wrap, so
+     a row's height is known. A row without a description is one line, and the two share a list, each its own height: the
+     shared plate changes height as it glides. The columns are glyph, title, chip, chevron; a column with nothing in it is
+     0 wide and spacing is margin, so a missing glyph leaves no gap. */
+  .basalt-menu-item[data-described] {
+    --_line: var(--_basalt-control-line, var(--basalt-text-base-line-height));
+    --_desc-line: var(--_basalt-desc-line, var(--basalt-text-sm-line-height));
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: var(--_line) var(--_desc-line);
+    align-items: center;
+    align-content: center;
+    gap: 0;
+    height: auto;
+    min-height: calc(var(--_plate-height) + var(--_desc-line) + 2 * var(--_plate-inset));
+    padding-block: calc(var(--_plate-inset) + (var(--_plate-height) - var(--_line)) / 2);
+  }
+  .basalt-menu-item[data-described] > :is(.basalt-icon, .basalt-menu-check):not(.basalt-menu-item-chevron) { grid-column: 1; grid-row: 1; margin-inline-end: var(--_gap); }
+  .basalt-menu-item[data-described] > .basalt-menu-item-label { grid-column: 2; grid-row: 1; }
+  .basalt-menu-item[data-described] > .basalt-menu-item-description { grid-column: 2 / -1; grid-row: 2; }
+  .basalt-menu-item[data-described] > .basalt-kbd { grid-column: 3; grid-row: 1; }
+  .basalt-menu-item[data-described] > .basalt-menu-item-chevron { grid-column: 4; grid-row: 1; }
+  .basalt-menu-item[data-described] > .basalt-menu-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-menu-item-description {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--_basalt-desc-font, var(--basalt-text-sm-size));
+    line-height: var(--_desc-line, var(--basalt-text-sm-line-height));
+    /* A hint is tertiary at rest and lifts to secondary on the plate, which tertiary would fail (4.5:1). It keeps its own ink on a danger row. */
+    color: var(--basalt-text-tertiary);
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-menu-item[data-highlighted] .basalt-menu-item-description,
+  .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-menu-item[data-disabled]:not([data-disabled="false"]) .basalt-menu-item-description,
+  .basalt-menu-item[aria-disabled="true"] .basalt-menu-item-description { color: var(--basalt-text-disabled); }
+  /* The push's arrow, drawn only while a list with a preview is narrower than its split. */
+  .basalt-menu-item-chevron { display: none; flex: none; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  .basalt-menu-item-chevron:dir(rtl) { transform: scaleX(-1); }
+  @media (pointer: coarse) {
+    .basalt-menu-item[data-described] { min-height: max(calc(var(--_plate-height) + var(--_desc-line) + 2 * var(--_plate-inset)), var(--basalt-size-menu-row-touch)); }
+  }
+  /* A menu with a described row is as wide as its content, up to the popover maximum; the descriptions are cut beyond it. */
+  .basalt-menu:has(.basalt-menu-item[data-described]) {
+    width: max-content;
+    max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4)));
+  }
 
   /* A separator runs rim to rim and sits 2px from the rows, so it is 4px from a plate. */
   .basalt-menu-separator {
@@ -1607,8 +1670,14 @@
   .basalt-filter-head { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-sm); }
   .basalt-filter-label { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
   .basalt-filter-count { font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; }
-  /* Clear is always mounted and always at the same place, with the same label: at zero it is only dimmed. */
-  .basalt-filter-clear { margin-inline-start: auto; }
+  /* Clear is always mounted, with the same label: at zero it is only dimmed. In the chips' head it sits right after the count, and the
+     count reserves the width of its widest form ("Any" and "N of N" share one grid cell, tabular figures), so Clear never moves. */
+  .basalt-filter-count[data-reserved] { display: inline-grid; }
+  .basalt-filter-count[data-reserved] > .basalt-filter-count-value { grid-area: 1 / 1; }
+  .basalt-filter-count[data-reserved]::before,
+  .basalt-filter-count[data-reserved]::after { grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
+  .basalt-filter-count[data-reserved]::before { content: attr(data-any); }
+  .basalt-filter-count[data-reserved]::after { content: attr(data-widest); }
   .basalt-filter-chips { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
 
   /* The chip: 32px (36 on touch, inside a 44px target), radius 6 (8 at 36), 13/18 at 500. Off is a hairline and a tertiary
@@ -1672,6 +1741,38 @@
   .basalt-filter-row[data-disabled] { color: var(--basalt-text-disabled); }
   .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   .basalt-filter-foot .basalt-filter-clear { margin-inline-start: 0; }
+  /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
+  .basalt-filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }
+  /* The search band, from ten values: the command band's recipe at a popup row's size. 40px, the next level's fill, a divider below,
+     the −2 inset ring (the popup has other stops), 14/20 text (16 on touch, so a phone doesn't zoom). */
+  .basalt-filter-band {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-2-5);
+    height: var(--basalt-size-control-xl);
+    margin: calc(-1 * var(--basalt-space-0-5)) calc(-1 * var(--basalt-space-1)) var(--basalt-space-0-5);
+    padding: 0 var(--basalt-space-3);
+    background: var(--_surface, var(--basalt-surface-2));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    color: var(--basalt-text-tertiary);
+  }
+  .basalt-filter-band:has(.basalt-filter-band-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-filter-band-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    outline: none;
+  }
+  .basalt-filter-band-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  @media (pointer: coarse) { .basalt-filter-band-input { font-size: var(--basalt-text-md-size); } }
+  .basalt-filter-none { margin: 0; padding: var(--basalt-space-3); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
 
   /* The result line: shown at once, spoken once (the live copy is visually hidden). */
   .basalt-filter-result { margin: 0; font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
@@ -1959,13 +2060,11 @@
   }
   .basalt-notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
+  .basalt-notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
   .basalt-notifications-list {
-    flex: 1;
-    min-height: 0;
     margin: 0;
     padding: var(--basalt-space-1-5);
     list-style: none;
-    overflow-y: auto;
   }
 
   /* An entry is a link or a button, not an option. It has popup-row geometry: a plate inset 2px above and below, radius 8,
@@ -2006,6 +2105,13 @@
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .basalt-notification:hover::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  /* The hover glide, navigation's rules: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it
+     and the resting hover, so only the ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced
+     colours, where each entry paints its own. */
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
+    .basalt-notifications-scroll[data-glide] .basalt-notification::before { background-color: transparent; }
+  }
+  .basalt-notifications-scroll[data-keys] .basalt-notification:hover::before { background-color: transparent; }
   /* A focusable row takes the control ring at +2, measured from the plate: the row's own box already holds the plate's 2px inset. */
   .basalt-notification:focus-visible {
     outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
@@ -2111,7 +2217,113 @@
   /* Rows are Menu rows with a taller plate: 40 (36 when compact), a 44px hit area, and 12px between the glyph and
      the label. Rest ink, the plate and the lift are shared with Menu, above. cmdk keeps the plate when the pointer
      leaves a row, as it does everywhere. */
-  .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); gap: var(--basalt-space-3); cursor: pointer; }
+  .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_gap: var(--basalt-space-3); cursor: pointer; }
+
+  /* ---- The command list in the page, and list plus preview ----
+     CommandMenu's panel set in the page: a level-1 panel in the flow with its rim and no scrim or shadow. The band, the rows and
+     the plate are the modal's. What differs: the field is one stop among many, so it shows the flush-field ring (inset, −2);
+     the plate shows only while the list is in use; the list holds its unfiltered height; and a foot counts what is shown. */
+  .basalt-command-host { display: block; min-width: 0; }
+  .basalt-command-host[data-pane] { container-type: inline-size; }
+  .basalt-command-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-4); align-items: stretch; min-width: 0; }
+  .basalt-command-page,
+  .basalt-command-pane {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: clip;
+    border-radius: var(--basalt-radius-lg);
+    background: var(--_surface, var(--basalt-surface-raised));
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-command-page:focus { outline: none; }
+  .basalt-command-page .basalt-command-search:has(.basalt-command-input:focus-visible) {
+    outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
+    outline-offset: calc(-1 * var(--basalt-size-focus-width));
+  }
+  /* The list holds its unfiltered height (written by script as --_held), up to the popup cap, and scrolls inside. */
+  .basalt-command-page .basalt-command-body { position: relative; flex: none; height: var(--_held, auto); max-height: var(--basalt-size-popup-max-height); }
+  .basalt-command-page .basalt-command-list { box-sizing: border-box; height: 100%; max-height: var(--basalt-size-popup-max-height); overscroll-behavior: contain; }
+  /* No match: one centred sentence and a ghost button, in the held area and outside the listbox. */
+  .basalt-command-none {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-3);
+    padding: var(--basalt-space-6) var(--basalt-space-4);
+    text-align: center;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-secondary);
+  }
+  .basalt-command-none p { margin: 0; overflow-wrap: anywhere; }
+  .basalt-command-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--basalt-space-2) var(--basalt-space-4);
+    flex: none;
+    padding: var(--basalt-space-2) var(--basalt-space-4);
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    color: var(--basalt-text-secondary);
+  }
+  .basalt-command-foot .basalt-command-count { font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-command-hints { display: inline-flex; flex-wrap: wrap; gap: var(--basalt-space-4); margin-inline-start: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-command-hints > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-command-keys { display: inline-flex; gap: var(--basalt-space-0-5); }
+
+  /* Not in use, the list shows no plate and no lit row: a page at rest with one row lit reads as a selection that isn't there,
+     and ↵ would do nothing. The shared plate fades; each row's own plate (touch, reduced motion, forced colours) is cleared here. */
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-fast); }
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-danger][data-selected="true"] { color: var(--basalt-status-danger); }
+
+  /* List plus preview: two level-1 panels space-4 apart, the list a fixed size-list-width and the pane the rest, equal in height,
+     with no line between them. It answers its own width, not the viewport's: side by side from the list, the gap and one container
+     breakpoint, so the pane is never narrow beside the list; under that, a push. */
+  /* 816px is size-list-width (320) + space-4 (16) + size-breakpoint-container (480): a container query cannot read a token */
+  @container (width >= 816px) {
+    .basalt-command-split { grid-template-columns: var(--basalt-size-list-width) minmax(0, 1fr); }
+    .basalt-command-split .basalt-command-pane { contain: size; overflow: auto; }
+  }
+  /* 816px is size-list-width + space-4 + size-breakpoint-container, as above */
+  @container (width < 816px) {
+    .basalt-command-split:not([data-mode]) > .basalt-command-pane { display: none; }
+    .basalt-command-split:not([data-mode]) .basalt-menu-item-chevron { display: block; }
+  }
+  .basalt-command-split[data-mode="push"] .basalt-menu-item-chevron { display: block; }
+  .basalt-command-split[data-mode="push"][data-view="list"] > .basalt-command-pane,
+  .basalt-command-split[data-mode="push"][data-view="detail"] > .basalt-command-page { display: none; }
+  .basalt-command-pane-body { flex: 1; min-height: 0; padding: var(--basalt-space-6); }
+  .basalt-command-split[data-mode="push"] .basalt-command-pane-body { padding: var(--basalt-space-4); }
+  /* The heading is where a push lands focus for a screen reader (tabindex −1, not a stop): nothing operates it, so no ring. */
+  .basalt-command-pane-body :is(h1, h2, h3, h4, h5, h6):focus { outline: none; }
+  .basalt-command-pane-empty { margin: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
+  .basalt-command-back { display: none; flex: none; align-items: center; padding: var(--basalt-space-1-5); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-command-split[data-mode="push"] .basalt-command-back { display: flex; }
+  /* Hover lifts a row's ink only: the plate marks what the pane shows, and moves by the arrows or a press. */
+  @media (hover: hover) {
+    .basalt-command-split[data-mode="split"] .basalt-menu-item:not([data-selected="true"]):hover { color: var(--basalt-text-primary); }
+    .basalt-command-split[data-mode="split"] .basalt-menu-item:not([data-selected="true"]):hover .basalt-menu-item-description { color: var(--basalt-text-secondary); }
+  }
+
+  /* The push: the detail enters 8px along the reading direction with a fade, as a tab panel does (duration-slow, ease-out), and the
+     list returns the other way. A fade alone under reduced motion. */
+  .basalt-command-split { --_push: 1; }
+  .basalt-command-split:dir(rtl) { --_push: -1; }
+  @keyframes basalt-push-in { from { opacity: 0; transform: translateX(calc(var(--_push) * var(--basalt-space-2))); } }
+  @keyframes basalt-push-out { from { opacity: 0; transform: translateX(calc(var(--_push) * -1 * var(--basalt-space-2))); } }
+  @keyframes basalt-push-fade { from { opacity: 0; } }
+  .basalt-command-split[data-mode="push"][data-enter="next"] > .basalt-command-pane { animation: basalt-push-in var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-command-split[data-mode="push"][data-enter="prev"] > .basalt-command-page { animation: basalt-push-out var(--basalt-duration-slow) var(--basalt-ease-out); }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-command-split[data-mode="push"][data-enter="next"] > .basalt-command-pane { animation-name: basalt-push-fade; }
+    .basalt-command-split[data-mode="push"][data-enter="prev"] > .basalt-command-page { animation-name: basalt-push-fade; }
+  }
 
   /* The drain is drawn on top of the bottom rim's straight part: it starts where the corner curve ends. The
      toast itself is never clipped (its ::after bridges the gap to the toast behind it). */
@@ -3073,8 +3285,14 @@
     .basalt-command .basalt-menu-item[data-selected="true"] { forced-color-adjust: none; color: HighlightText; }
     .basalt-menu-item[data-highlighted]::before,
     .basalt-command .basalt-menu-item[data-selected="true"]::before { background-color: Highlight; }
-    .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text),
-    .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text) { color: HighlightText; }
+    .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text),
+    .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text) { color: HighlightText; }
+    /* The command list in the page, not in use, has no lit row: it is rest ink on Canvas, as every other row. */
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { forced-color-adjust: auto; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-icon, .basalt-text) { color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Canvas; border-color: GrayText; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd { color: CanvasText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd-key,
     .basalt-command .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Highlight; border-color: HighlightText; color: HighlightText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd,
@@ -3095,7 +3313,7 @@
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
     .basalt-segment[data-pressed], .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
-    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast { border-color: CanvasText; }
+    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }

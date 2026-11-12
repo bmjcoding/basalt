@@ -810,6 +810,14 @@
       },
       "$description": "Maximum height of a scrolling popup list, such as the command list."
     },
+    "list-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 320,
+        "unit": "px"
+      },
+      "$description": "The list column of a list with a preview pane, fixed: a two-line row fits beside a 16px glyph. The pane takes the rest, space-4 away; below this plus that gap plus size-breakpoint-container the pane is pushed instead."
+    },
     "header": {
       "$type": "dimension",
       "$value": {

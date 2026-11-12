@@ -272,8 +272,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 
 // Toast is in the default bundle (an app mounts the provider once, near its root), so it is kept lean. Base UI's toast is 77,043 bytes
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
-// announcer) and the running state bring it to about 91,000. The limits sit just above what is measured.
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 140_000]]) {
+// announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
+// before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
+// so its limit is 146,000.
+for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 146_000]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);

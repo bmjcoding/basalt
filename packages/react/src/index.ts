@@ -39,8 +39,10 @@ export {
   TooltipProvider,
 } from "./display";
 export type { BadgePairProps, BadgeProps, BadgeStatus, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
-export { FilterResult, MultiSelect } from "./filter";
-export type { FilterResultProps, MultiSelectOption, MultiSelectProps } from "./filter";
+export { MultiSelect } from "./filter";
+export type { MultiSelectOption, MultiSelectProps } from "./filter";
+export { FilterResult } from "./filter-result";
+export type { FilterResultProps } from "./filter-result";
 export { Kbd } from "./kbd";
 export type { KbdProps } from "./kbd";
 export { Checkbox, Radio, RadioGroup, Select, Switch } from "./choice";
@@ -49,8 +51,8 @@ export { ToastProvider, useToast } from "./toast";
 export type { ToastAction, ToastApi, ToastHome, ToastOptions, ToastPromiseOptions, ToastStatus, ToastUpdate } from "./toast";
 export { NotificationCentre } from "./notifications";
 export type { NotificationCentreProps, NotificationEntry } from "./notifications";
-export { CommandMenu } from "./command";
-export type { Command, CommandGroup, CommandMenuProps } from "./command";
+export { CommandList, CommandMenu } from "./command";
+export type { Command, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
 export { Sparkline } from "./sparkline";
 export type { SparklineProps } from "./sparkline";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Textarea } from "./feedback";

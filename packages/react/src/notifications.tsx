@@ -5,6 +5,7 @@ import { Button, IconButton } from "./button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
 import { NotificationsGlyph } from "./glyphs/notifications";
 import { Icon } from "./icon";
+import { GlidePlate } from "./plate";
 import type { ToastStatus } from "./toast";
 import type { Align, IconComponent, OpenChangeDetails, PopupActions, Side } from "./types";
 
@@ -81,13 +82,17 @@ export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll
         {entries.length === 0 ? (
           <p className="basalt-notifications-empty">Nothing yet.</p>
         ) : (
-          <ul className="basalt-notifications-list">
-            {entries.map((entry) => (
-              <li key={entry.id}>
-                <NotificationRow entry={entry} onChoose={() => { onSelect?.(entry); leave(); }} />
-              </li>
-            ))}
-          </ul>
+          // The scroller is the glide's host: the shared plate follows the pointer between entries (40 or 58 tall), behind them.
+          <div className="basalt-notifications-scroll">
+            <GlidePlate notifications />
+            <ul className="basalt-notifications-list">
+              {entries.map((entry) => (
+                <li key={entry.id}>
+                  <NotificationRow entry={entry} onChoose={() => { onSelect?.(entry); leave(); }} />
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <div className="basalt-notifications-foot">
           {viewAllHref ? (

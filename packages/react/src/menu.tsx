@@ -84,6 +84,12 @@ export interface MenuRowProps extends PartProps<"div"> {
 }
 
 export interface MenuItemProps extends MenuRowProps {
+  /**
+   * A second line under the label: 13/18, tertiary at rest, one line, cut with an ellipsis. Use it only when the label alone can't tell
+   * the choices apart (a visibility, a role, a plan); never to explain an obvious action. It is part of the row's name, after the label.
+   * A menu with a described row is as wide as its content, up to `size-popover-max`.
+   */
+  description?: string;
   icon?: IconComponent;
   /**
    * A real keyboard shortcut shown at the end of the row, e.g. "⌘D": one per row, and only if the app
@@ -94,7 +100,7 @@ export interface MenuItemProps extends MenuRowProps {
   danger?: boolean;
 }
 
-export function MenuItem({ icon, shortcut, danger, className, children, label, "aria-describedby": describedBy, ...props }: MenuItemProps) {
+export function MenuItem({ icon, shortcut, danger, description, className, children, label, "aria-describedby": describedBy, ...props }: MenuItemProps) {
   const spoken = React.useId();
   const keys = shortcut ? shortcutKeys(shortcut) : [];
   return (
@@ -104,10 +110,13 @@ export function MenuItem({ icon, shortcut, danger, className, children, label, "
       aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
       aria-describedby={keys.length ? join(describedBy, spoken) : describedBy}
       data-danger={danger ? "" : undefined}
+      data-described={description ? "" : undefined}
+      data-lead={icon ? "" : undefined}
       className={withClass("basalt-menu-item", className)}
     >
       {icon ? <Icon icon={icon} size={16} /> : null}
       <span className="basalt-menu-item-label">{children}</span>
+      {description ? <span className="basalt-menu-item-description">{description}</span> : null}
       {shortcut ? (
         <>
           <Kbd shortcut aria-hidden="true" className="basalt-menu-item-shortcut">{shortcut}</Kbd>
@@ -135,16 +144,23 @@ export function MenuGroupLabel({ className, ...props }: PartProps<"div">) {
 }
 
 export interface MenuCheckboxItemProps extends MenuRowProps {
+  /**
+   * A second line under the label: 13/18, tertiary at rest, one line, cut with an ellipsis. Use it only when the label alone can't tell
+   * the choices apart (a visibility, a role, a plan); never to explain an obvious action. It is part of the row's name, after the label.
+   * A menu with a described row is as wide as its content, up to `size-popover-max`.
+   */
+  description?: string;
   checked?: boolean;
   defaultChecked?: boolean;
   onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
 }
 
-export function MenuCheckboxItem({ className, children, ...props }: MenuCheckboxItemProps) {
+export function MenuCheckboxItem({ className, children, description, ...props }: MenuCheckboxItemProps) {
   return (
-    <BaseMenu.CheckboxItem {...props} className={withClass("basalt-menu-item", className)}>
+    <BaseMenu.CheckboxItem {...props} data-described={description ? "" : undefined} data-lead="" className={withClass("basalt-menu-item", className)}>
       <span className="basalt-menu-check"><BaseMenu.CheckboxItemIndicator><Icon icon={CheckIcon} /></BaseMenu.CheckboxItemIndicator></span>
       <span className="basalt-menu-item-label">{children}</span>
+      {description ? <span className="basalt-menu-item-description">{description}</span> : null}
     </BaseMenu.CheckboxItem>
   );
 }
@@ -161,14 +177,21 @@ export function MenuRadioGroup<Value extends ChoiceValue = string>(props: MenuRa
 }
 
 export interface MenuRadioItemProps extends MenuRowProps {
+  /**
+   * A second line under the label: 13/18, tertiary at rest, one line, cut with an ellipsis. Use it only when the label alone can't tell
+   * the choices apart (a visibility, a role, a plan); never to explain an obvious action. It is part of the row's name, after the label.
+   * A menu with a described row is as wide as its content, up to `size-popover-max`.
+   */
+  description?: string;
   value: ChoiceValue;
 }
 
-export function MenuRadioItem({ className, children, ...props }: MenuRadioItemProps) {
+export function MenuRadioItem({ className, children, description, ...props }: MenuRadioItemProps) {
   return (
-    <BaseMenu.RadioItem {...props} className={withClass("basalt-menu-item", className)}>
+    <BaseMenu.RadioItem {...props} data-described={description ? "" : undefined} data-lead="" className={withClass("basalt-menu-item", className)}>
       <span className="basalt-menu-check"><BaseMenu.RadioItemIndicator><span className="basalt-menu-radio-dot" /></BaseMenu.RadioItemIndicator></span>
       <span className="basalt-menu-item-label">{children}</span>
+      {description ? <span className="basalt-menu-item-description">{description}</span> : null}
     </BaseMenu.RadioItem>
   );
 }

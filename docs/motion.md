@@ -69,10 +69,18 @@ Menu, Select, Combobox and CommandMenu draw one plate per popup, and navigation 
 | The pointer reaches a row after the fade | Appears in place |
 | An arrow key, Home or End | Moves at once, with no travel: in a popup the plate is the keyboard position |
 | The pointer leaves the command menu | Nothing: cmdk keeps its selected row, so the plate stays |
+| The command list in the page is not in use (no focus in the field, the pointer elsewhere) | The plate fades in place over `duration-fast` on `ease-in`; it returns, in place, when the field takes focus or the pointer enters |
+| The plate crosses a one-line row and a two-line row (40 and 58 tall, 36 and 54 in a menu) | It changes height as it travels, on the same `duration-base` |
 
 The plate is off on touch (`(hover: none)`, a coarse pointer, or a touch `pointerType`), where the row under the finger shows its own plate on press; under reduced motion, where each row lights on its own, in at once and out with a 100ms fade, with no travel; and in forced colours, where each row is `Highlight` with `HighlightText`. It is pointer-inert and hidden from assistive technology. As with the pill, the plate position is CSS variables written from the DOM and the browser eases them, so there is no render per frame.
 
 **In navigation** (`Nav`) the same plumbing (`plate.tsx`) marks the item under the pointer `data-hovered` (an attribute, not state) and the pill hugs that item's own pill, not its row, changing width as it goes: a 48px round pill at the selected wash, or the 48px circle in the rail. The rows are the same table with two differences. The first key hides the glide at once (not faded) and the focus ring shows, the control ring at +2 around the hugging pill; the pointer resting on an item hides its hover too while the keyboard is in use, and the next pointer move brings the glide back in place. The pill never touches the column's width. Off on touch, under reduced motion and in forced colours, where the hovered item is `Highlight` with `HighlightText` with no backplate; each item paints its own pill, in at once and out over `duration-fast`, and with no script that is the whole story.
+
+**The notification centre** joins the glide as a third kind in `plate.tsx`, with no new mechanism: the pointer glides one plate between entries (40 or 58 tall), the first key hides it and the resting hover, so only the shipped rounded control ring at +2 shows, and the next pointer move brings the plate back. Off on touch, under reduced motion and in forced colours, where each entry paints its own.
+
+## The push
+
+A list with a preview, narrower than its split (816px of its container), shows the list alone and pushes the detail. The detail enters from 8px along the reading direction with a fade over `duration-slow` on `ease-out`; Back returns the list from the other way, the same. Under reduced motion it is a fade alone, and under `:dir(rtl)` the travel flips. Nothing is measured per frame: it is one CSS animation, started when the pane is shown. Status: decided by the council (DECISIONS 103); the implementation has not been reviewed.
 
 ## The narrow menu
 

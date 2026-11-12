@@ -3,21 +3,29 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import { Button } from "./button";
+import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
 import { Icon } from "./icon";
-import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
+import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer, usePanelLevel } from "./layers";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
+import { join } from "./utils";
 
 export interface CommandItem {
   id: string;
   label: string;
   icon?: IconComponent;
   shortcut?: string;
+  /**
+   * A second line under the label: 13/18, tertiary, one line, cut with an ellipsis. It is searched too, below a match in the label,
+   * and is part of the row's name after it. A row without one is one line; the two may share a list.
+   */
+  description?: string;
   /** Extra words that should find this command, e.g. ["remove"] for "Delete sandbox". */
   keywords?: string[];
   /** A destructive command: shown in the danger colour, as in `Menu`. */
   danger?: boolean;
-  onSelect: () => void;
+  /** Runs when the command is chosen. In a `CommandList` with a `detail` pane there is nothing to run: the pane has the actions. */
+  onSelect?: () => void;
 }
 
 export interface CommandGroup {
@@ -61,7 +69,7 @@ function LoadingRing() {
   return late ? <Spinner size={16} /> : null;
 }
 
-export type PanelState = { status: "loading" } | { status: "error"; failures: number } | { status: "ready"; Panel: PanelModule["CommandPanel"] };
+export type PanelState = { status: "loading" } | { status: "error"; failures: number } | { status: "ready"; Panel: PanelModule["CommandPanel"]; ListPanel: PanelModule["CommandListPanel"] };
 const LOADING: PanelState = { status: "loading" };
 
 /** The panel once it has loaded; `loading` or `error` until then. Opening again, or `retry`, asks for the chunk again after a failure. */
@@ -80,7 +88,7 @@ function usePanel(open: boolean) {
       (module) => {
         if (!live) return;
         failures.current = 0;
-        setState({ status: "ready", Panel: module.CommandPanel });
+        setState({ status: "ready", Panel: module.CommandPanel, ListPanel: module.CommandListPanel });
       },
       () => {
         if (!live) return;
@@ -168,6 +176,125 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
         </BaseDialog.Portal>
       </BaseDialog.Root>
     </ModalDepth.Provider>
+  );
+}
+
+// ---- CommandList: the command surface set in the page ----
+
+export interface CommandListProps {
+  groups: CommandGroup[];
+  /** Names the list: its region, its listbox and the Back button of a pushed detail ("Console"). */
+  label: string;
+  /** The search field's placeholder and name. "Search commands" by default. */
+  placeholder?: string;
+  /** What the foot counts, singular: "9 commands", "3 of 9". "command" by default. */
+  noun?: string;
+  /** A command was chosen (↵ or a press); its own `onSelect` has already run. Not called when there is a `detail` pane. */
+  onSelect?: (command: CommandItem) => void;
+  /**
+   * The pane for the active command, which makes this a list with a preview: two panels side by side from the width of the list,
+   * a gap and one container breakpoint, and a push (the list alone, then the detail with a Back band) below it. The pane is a
+   * region named by its first heading; ↵ runs its first button. The pane's own panels sit one level inside it.
+   */
+  detail?: (command: CommandItem) => React.ReactNode;
+  /**
+   * Bind ⌘K (Ctrl K elsewhere) to this list: focus the field, select its text, scroll it into view. One command surface owns ⌘K
+   * on a page. A page whose surface is this list sets it, and has no `CommandMenu`; a page with a modal gives ⌘K to the modal.
+   */
+  bindShortcut?: boolean;
+  className?: string;
+}
+
+/**
+ * The command panel set in the page: a level-1 panel in the flow with no scrim or shadow, a search field that keeps focus while
+ * the arrows move through the rows, and a foot that counts what is shown. Filtering never changes its height. Until cmdk
+ * arrives (the first mount, as `CommandMenu`'s first opening), the rows are drawn as they will be and what is typed is kept.
+ */
+export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", onSelect, detail, bindShortcut = false, className }: CommandListProps) {
+  const level = usePanelLevel();
+  const bandLevel = Math.min(level + 1, 3);
+  const { state, retry } = usePanel(true);
+  const [early, setEarly] = React.useState("");
+  const host = React.useRef<HTMLDivElement>(null);
+  const loadingId = React.useId();
+  React.useEffect(() => {
+    if (!bindShortcut) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+      const field = host.current?.querySelector<HTMLInputElement>(".basalt-command-input");
+      if (!field) return;
+      event.preventDefault();
+      field.focus({ preventScroll: true });
+      field.select();
+      field.scrollIntoView({ block: "nearest", inline: "nearest" });
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [bindShortcut]);
+  // The pane's content is the app's, so it is handed the panel's level here, where the package's own context lives.
+  const paneOf = detail ? (command: CommandItem) => inLevel(level, detail(command)) : undefined;
+  const total = groups.reduce((sum, group) => sum + group.commands.length, 0);
+  if (state.status === "ready") {
+    const ListPanel = state.ListPanel;
+    return (
+      <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined}>
+        <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} />
+      </div>
+    );
+  }
+  return (
+    <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined}>
+      <div className={join("basalt-command-split", className)}>
+        <div className="basalt-command basalt-command-page" data-level={level} role="region" aria-label={label} aria-busy={state.status === "loading" || undefined}>
+          <div className="basalt-command-search" data-level={bandLevel}>
+            <Icon icon={MagnifyingGlassIcon} size={16} />
+            <input
+              className="basalt-command-input"
+              placeholder={placeholder}
+              aria-label={placeholder}
+              aria-describedby={state.status === "loading" ? loadingId : undefined}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={early}
+              onChange={(event) => setEarly(event.target.value)}
+            />
+            <span className="basalt-command-slot" aria-hidden="true">{state.status === "loading" ? <LoadingRing /> : null}</span>
+            <span id={loadingId} className="basalt-visually-hidden">Loading commands</span>
+          </div>
+          <div className="basalt-command-body">
+            {state.status === "error" ? (
+              <div className="basalt-command-error">
+                <p className="basalt-command-empty" role="alert">{state.failures > 1 ? "Still couldn't load commands. Reloading the page usually fixes this." : "Couldn't load commands."}</p>
+                <div className="basalt-command-error-actions">
+                  {state.failures > 1 ? <Button size="sm" onClick={() => window.location.reload()}>Reload page</Button> : null}
+                  <Button size="sm" onClick={retry}>Retry</Button>
+                </div>
+              </div>
+            ) : (
+              // The rows as they will be, so nothing jumps when cmdk arrives. They are not yet filtered, and not yet selectable.
+              <div className="basalt-command-list" role="listbox" aria-label={label}>
+                {groups.map((group) => (
+                  <div key={group.label} className="basalt-command-group" role="group" aria-label={group.label}>
+                    <div cmdk-group-heading="" aria-hidden="true">{group.label}</div>
+                    {group.commands.map((command) => (
+                      <div key={command.id} role="option" aria-selected="false" className="basalt-menu-item" {...commandRowShape(command)} data-value={commandValue(command)}>
+                        <CommandRowContent command={command} spokenId={`${loadingId}-${command.id}`} chevron={Boolean(detail)} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="basalt-command-foot">
+            <p className="basalt-filter-result basalt-command-count">{total} {total === 1 ? noun : `${noun}s`}</p>
+            <CommandHints preview={Boolean(detail)} />
+          </div>
+        </div>
+        {detail ? <div className="basalt-command-pane" data-level={level} aria-hidden="true" /> : null}
+      </div>
+    </div>
   );
 }
 
