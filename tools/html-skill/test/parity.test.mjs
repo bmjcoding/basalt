@@ -11,6 +11,7 @@ import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { fixturePage, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
 import { DIFFERENCES } from "./parity-differences.mjs";
 import { openHtml } from "./support.mjs";
+import { BROKEN, DAY, NIGHT, PHOTO } from "./support-art.mjs";
 
 const THEMES = ["dark", "light"];
 const GEOMETRY = ["boxHeight", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "borderTopLeftRadius"];
@@ -20,6 +21,9 @@ const BOX = [...GEOMETRY, ...TYPE, ...COLOUR];
 // Every status a Badge can say, and what a status dot is drawn as (React's .basalt-badge-dot, the skill's ::before).
 const STATUSES = ["neutral", "success", "warning", "danger", "accent", "pending"];
 const DOT = ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "borderTopWidth", "borderTopStyle", "borderTopColor", "boxSizing", "marginLeft", "marginRight"];
+// The four sides of a border: its colour, width and style (a status callout's rim is one colour on every side).
+const RIM = ["borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth", "borderTopStyle"];
+const CALLOUTS = ["info", "success", "warning", "danger"].map((s, i) => `<div class="callout" data-status="${s}"><svg class="icon" width="16" height="16" viewBox="0 0 256 256"></svg><div><div class="callout-title">${["Note", "Done", "Slow", "Failed"][i]}</div><div class="callout-body">Body text</div></div></div>`).join("");
 const OUTLINE = ["outlineStyle", "outlineWidth", "outlineColor", "outlineOffset"];
 
 /**
@@ -135,9 +139,11 @@ const CASES = [
     ],
   },
   {
+    // Every status at the page's level, in a card (level 2) and in a card in a card (level 3): the status rim is the status colour at 45% mixed in sRGB over the callout's own
+    // level, one solid colour on every side (DECISIONS 82); info keeps the neutral rim. The border colours are compared on every side.
     id: "callout",
-    react: `<><Callout status="info" title="Note">Body text</Callout><Callout status="danger" title="Failed">Body text</Callout></>`,
-    skill: `<div class="callout" data-status="info"><svg class="icon" width="16" height="16" viewBox="0 0 256 256"></svg><div><div class="callout-title">Note</div><div class="callout-body">Body text</div></div></div><div class="callout" data-status="danger"><svg class="icon" width="16" height="16" viewBox="0 0 256 256"></svg><div><div class="callout-title">Failed</div><div class="callout-body">Body text</div></div></div>`,
+    react: `<><div id="lv1"><Callout status="info" title="Note">Body text</Callout><Callout status="success" title="Done">Body text</Callout><Callout status="warning" title="Slow">Body text</Callout><Callout status="danger" title="Failed">Body text</Callout></div><div id="lv2"><Card><CardContent><Callout status="info" title="Note">Body text</Callout><Callout status="success" title="Done">Body text</Callout><Callout status="warning" title="Slow">Body text</Callout><Callout status="danger" title="Failed">Body text</Callout></CardContent></Card></div><div id="lv3"><Card><CardContent><Card><CardContent><Callout status="info" title="Note">Body text</Callout><Callout status="success" title="Done">Body text</Callout><Callout status="warning" title="Slow">Body text</Callout><Callout status="danger" title="Failed">Body text</Callout></CardContent></Card></CardContent></Card></div></>`,
+    skill: `<div id="lv1">${CALLOUTS}</div><div id="lv2"><div class="card">${CALLOUTS}</div></div><div id="lv3"><div class="card"><div class="card">${CALLOUTS}</div></div></div>`,
     pairs: [
       ["panel", ".basalt-callout[data-status=info]", ".callout[data-status=info]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "borderTopColor", "borderTopWidth", "gap", "boxShadow"]],
       ["info icon", ".basalt-callout[data-status=info] > svg", ".callout[data-status=info] > svg", ["color", "boxWidth", "marginTop"]],
@@ -145,6 +151,10 @@ const CASES = [
       ["danger title", ".basalt-callout[data-status=danger] .basalt-callout-title", ".callout[data-status=danger] .callout-title", ["color", "fontWeight"]],
       ["title", ".basalt-callout[data-status=info] .basalt-callout-title", ".callout[data-status=info] .callout-title", ["color", "fontWeight", "fontSize"]],
       ["body text", ".basalt-callout[data-status=info] .basalt-callout-text", ".callout[data-status=info] .callout-body", ["color", "fontSize", "fontWeight", "marginTop"]],
+      ...["lv1", "lv2", "lv3"].flatMap((level) => ["info", "success", "warning", "danger"].flatMap((status) => [
+        [`${level} ${status} rim`, `#${level} .basalt-callout[data-status=${status}]`, `#${level} .callout[data-status=${status}]`, [...RIM, "backgroundColor"]],
+        [`${level} ${status} icon`, `#${level} .basalt-callout[data-status=${status}] > svg`, `#${level} .callout[data-status=${status}] > svg`, ["color"]],
+      ])),
     ],
   },
   {
@@ -261,7 +271,7 @@ async function read(page, selector, props, { pseudo = null } = {}) {
       inLeft: () => px(rect.left - el.parentElement.getBoundingClientRect().left), inTop: () => px(rect.top - el.parentElement.getBoundingClientRect().top),
       gapBelow: () => px(rect.top - trigger.bottom), gapAbove: () => px(trigger.top - rect.bottom), startOffset: () => px(rect.left - trigger.left), endOffset: () => px(rect.right - trigger.right),
       tabIndex: () => el.getAttribute("tabindex"), ariaLabel: () => el.getAttribute("aria-label"), role: () => el.getAttribute("role"), labelledByText: () => document.getElementById(el.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, isActive: () => String(document.activeElement === el),
-      ariaSort: () => el.getAttribute("aria-sort"), ariaHidden: () => el.getAttribute("aria-hidden"), ariaLive: () => el.getAttribute("aria-live"), ariaAtomic: () => el.getAttribute("aria-atomic"),
+      dataPhase: () => el.getAttribute("data-phase"), ariaSort: () => el.getAttribute("aria-sort"), ariaHidden: () => el.getAttribute("aria-hidden"), ariaLive: () => el.getAttribute("aria-live"), ariaAtomic: () => el.getAttribute("aria-atomic"),
       text: () => el.textContent.trim(), ownText: () => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim(), scrollHeight: () => px(el.scrollHeight),
       firstTransitionDuration: () => style.transitionDuration.split(",")[0].trim(), firstTransitionTimingFunction: () => style.transitionTimingFunction.split(",")[0].trim(),
     };
@@ -1453,6 +1463,92 @@ const COMMANDS = [
   },
 ];
 
+// ---- Art (step 8 of batch 7): the stage and paired art, and framed art ----
+// The stage under the site header (the bar stays smoked: React's clears only over a stage that declared its headroom, which a page can't prove), paired art, and a frame in
+// every aspect, with a caption and a credit, bare, in a card, failed and in its loading state. A frame's phase is read from data-phase; the loading state is forced on
+// both pages (the behaviour tests hold a real load), because computed style is all this file reads.
+const ART_IMPORTS = `const { SiteHeader, Stage, PairedArt, FramedArt, Card, CardContent } = B;`;
+const ART_BAR = `<SiteHeader brand={<>${NAV_MARK}<span>Acme</span></>} brandLabel="Acme home" />`;
+const ART_BAR_SKILL = `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Acme home">${NAV_MARK}<span>Acme</span></a><span class="spacer"></span></div></header>`;
+const stageReact = `<div>${ART_BAR}<Stage art={<PairedArt dark={"${NIGHT}"} light={"${DAY}"} loading="eager" width={1600} height={800} position="30% 50%" />}><div style={{ height: 360, padding: "0 24px" }}><h1 style={{ margin: 0 }}>A synthetic headline</h1></div></Stage><main style={{ height: 900 }} /></div>`;
+const stageSkill = `${ART_BAR_SKILL}<section class="stage"><div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"></div><div class="stage-content"><div style="height: 360px; padding: 0 24px"><h1 style="margin: 0">A synthetic headline</h1></div></div></section><main style="height: 900px"></main>`;
+const STAGE_PAIRS = [
+  ["stage", ".basalt-stage", ".stage", [...BOXRECT, "paddingTop", "paddingBottom", "marginTop", "backgroundColor", "backgroundImage", "color", "position", "boxSizing", "fontFamily", "borderTopWidth", "borderTopLeftRadius", "boxShadow", "overflow", "fontSize", "lineHeight"]],
+  ["art layer", ".basalt-stage-art", ".stage-art", [...BOXRECT, "position", "overflow", "pointerEvents", "ariaHidden"]],
+  ["dark picture", ".basalt-paired-art[data-art=dark]", ".paired-art[data-art=dark]", [...BOXRECT, "display", "position", "objectFit", "objectPosition", "filter", "mixBlendMode", "opacity"]],
+  ["light picture", ".basalt-paired-art[data-art=light]", ".paired-art[data-art=light]", [...BOXRECT, "display", "position", "objectFit", "objectPosition", "filter", "mixBlendMode", "opacity"]],
+  ["content", ".basalt-stage-content", ".stage-content", [...BOXRECT, "position"]],
+  ["the bar over it", ".basalt-site-header", ".topbar", [...HEADER_BAR, "rectTop", "borderBottomColor"]],
+];
+const FRAME = [...BOXRECT, "aspectRatio", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor", "borderTopStyle", "borderTopLeftRadius", "borderTopRightRadius", "borderBottomLeftRadius", "borderBottomRightRadius", "backgroundColor", "overflow", "boxShadow", "position", "boxSizing", "outlineStyle", "dataPhase"];
+const FRAME_IMG = [...BOXRECT, "display", "objectFit", "opacity", "firstTransitionDuration", "firstTransitionTimingFunction", "boxShadow", "borderTopWidth"];
+const FRAME_CAPTION = [...BOXRECT, "marginTop", "maxWidth", "textAlign", ...TYPE, "color", "fontFamily", "display", "boxSizing"];
+const FRAME_CREDIT = [...BOXRECT, "display", ...TYPE, "color"];
+const FRAME_ALT = [...BOXRECT, "position", "display", "alignItems", "justifyContent", ...PAD, ...TYPE, "color", "textAlign", "text"];
+const framedReact = (id, aspect, { src = PHOTO, alt = "A synthetic dune", caption = "Dunes at the end of the day.", credit = "Synthetic art", width = 320 } = {}) => `<FramedArt id="${id}" ${aspect ? `aspect="${aspect}" ` : ""}src={"${src}"} alt={${JSON.stringify(alt)}} ${caption ? `caption={${JSON.stringify(caption)}} ` : ""}${credit ? `credit={${JSON.stringify(credit)}} ` : ""}loading="eager" style={{ width: ${width} }} />`;
+const framedSkill = (id, aspect, { src = PHOTO, alt = "A synthetic dune", caption = "Dunes at the end of the day.", credit = "Synthetic art", width = 320 } = {}) => `<figure class="framed" id="${id}"${aspect ? ` data-aspect="${aspect}"` : ""} style="width: ${width}px"><div class="framed-frame"><img src="${src}" alt="${alt}" loading="eager" decoding="async"></div>${caption || credit ? `<figcaption>${caption ?? ""}${credit ? `<span class="framed-credit">${credit}</span>` : ""}</figcaption>` : ""}</figure>`;
+const framedPairs = (id, { caption = true, credit = true, alt = true } = {}) => [
+  [`${id} frame`, `#${id} .basalt-framed-frame`, `#${id} .framed-frame`, FRAME],
+  [`${id} figure`, `#${id}`, `#${id}`, [...BOXRECT, "display", "maxWidth", "marginTop", "marginBottom", "marginLeft", "fontFamily"]],
+  [`${id} picture`, `#${id} .basalt-framed-img`, `#${id} .framed-frame > img`, FRAME_IMG],
+  ...(caption ? [[`${id} caption`, `#${id} figcaption`, `#${id} figcaption`, FRAME_CAPTION]] : []),
+  ...(credit ? [[`${id} credit`, `#${id} .basalt-framed-credit`, `#${id} .framed-credit`, FRAME_CREDIT]] : []),
+  ...(alt ? [[`${id} alt`, `#${id} .basalt-framed-alt`, `#${id} .framed-alt`, FRAME_ALT]] : []),
+];
+const phase = (name) => ({ react: `.basalt-framed-frame[data-phase=${name}]`, skill: `.framed-frame[data-phase=${name}]` });
+const framedWrap = (inner) => `<div style={{ display: "grid", gap: 24, padding: 24, width: 640, justifyItems: "start" }}>${inner}</div>`;
+const framedWrapSkill = (inner) => `<div style="display: grid; gap: 24px; padding: 24px; width: 640px; justify-items: start">${inner}</div>`;
+const ART = [
+  { id: "the stage, at 1440", width: 1440, react: stageReact, skill: stageSkill, ready: { react: ".basalt-stage", skill: ".stage" }, pairs: STAGE_PAIRS },
+  { id: "the stage, at 390", width: 390, touch: true, react: stageReact, skill: stageSkill, ready: { react: ".basalt-stage", skill: ".stage" }, pairs: STAGE_PAIRS },
+  {
+    id: "framed art in every aspect",
+    width: 1440,
+    react: framedWrap(`${framedReact("f-photo", undefined, { width: 480 })}${framedReact("f-square", "square", { width: 200, credit: "" })}${framedReact("f-screen", "screen", { caption: "" })}${framedReact("f-wide", "wide", { alt: "", caption: "", credit: "" })}`),
+    skill: framedWrapSkill(`${framedSkill("f-photo", undefined, { width: 480 })}${framedSkill("f-square", "square", { width: 200, credit: "" })}${framedSkill("f-screen", "screen", { caption: "" })}${framedSkill("f-wide", "wide", { alt: "", caption: "", credit: "" })}`),
+    ready: phase("loaded"),
+    pairs: [
+      ...framedPairs("f-photo", { alt: false }),
+      ...framedPairs("f-square", { credit: false, alt: false }),
+      ...framedPairs("f-screen", { caption: false, alt: false }),
+      ...framedPairs("f-wide", { caption: false, credit: false, alt: false }),
+    ],
+  },
+  {
+    id: "framed art in a card",
+    width: 1440,
+    react: `<div style={{ width: 400, padding: 24 }}><Card><CardContent>${framedReact("f-card", undefined, { width: 340 })}</CardContent></Card></div>`,
+    skill: `<div style="box-sizing: content-box; width: 400px; padding: 24px"><div class="card">${framedSkill("f-card", undefined, { width: 340 })}</div></div>`,
+    ready: phase("loaded"),
+    pairs: [["card", ".basalt-card", ".card", [...BOXRECT, "borderTopLeftRadius"]], ["card's padding", ".basalt-card-content", ".card", PAD], ...framedPairs("f-card", { alt: false })],
+  },
+  {
+    id: "framed art that failed",
+    width: 1440,
+    react: framedWrap(`${framedReact("f-fail", "wide", { src: BROKEN, alt: "A picture that did not load", width: 400 })}${framedReact("f-decor", "wide", { src: BROKEN, alt: "", caption: "", credit: "", width: 400 })}`),
+    skill: framedWrapSkill(`${framedSkill("f-fail", "wide", { src: BROKEN, alt: "A picture that did not load", width: 400 })}${framedSkill("f-decor", "wide", { src: BROKEN, alt: "", caption: "", credit: "", width: 400 })}`),
+    ready: phase("failed"),
+    pairs: [
+      ...framedPairs("f-fail"),
+      ["f-fail frame's parts", "#f-fail .basalt-framed-frame", "#f-fail .framed-frame", ["childCount"]],
+      ...framedPairs("f-decor", { caption: false, credit: false, alt: false }),
+      ["f-decor frame's parts", "#f-decor .basalt-framed-frame", "#f-decor .framed-frame", ["childCount", "text"]],
+    ],
+  },
+  {
+    id: "framed art while it loads",
+    width: 1440,
+    react: framedWrap(framedReact("f-load", undefined, { width: 480 })),
+    skill: framedWrapSkill(framedSkill("f-load", undefined, { width: 480 })),
+    ready: phase("loaded"),
+    open: {
+      react: (p) => p.evaluate(() => document.querySelector(".basalt-framed-frame").setAttribute("data-phase", "loading")),
+      skill: (p) => p.evaluate(() => document.querySelector(".framed-frame").setAttribute("data-phase", "loading")),
+    },
+    pairs: [["frame", "#f-load .basalt-framed-frame", "#f-load .framed-frame", FRAME], ["picture", "#f-load .basalt-framed-img", "#f-load .framed-frame > img", FRAME_IMG]],
+  },
+];
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -1517,7 +1613,7 @@ describe("each skill component renders as its React counterpart does, but for th
     test(`the components (${theme})`, async () => {
       const reactJsx = CASES.map((c) => `<section id="r-${slug(c.id)}" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", margin: 16 }}>${c.react}</section>`).join("");
       const { page: reactPage, errors } = await fixturePage(reactBrowser, `
-        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock, DescriptionList, DescriptionItem, Meter, Stats, Stat, Terminal, TimeChart, Checkbox, Radio, RadioGroup, Switch, Select, ChoiceCard, ChoiceCardGroup } = B;
+        const { Button, Field, Input, Textarea, Badge, Table, TableContainer, TableHeader, TableBody, TableRow, TableHead, TableCell, Tabs, TabsList, Tab, TabsPanel, SegmentedControl, Segment, Kbd, Callout, Spinner, Progress, NumberField, CodeBlock, DescriptionList, DescriptionItem, Meter, Stats, Stat, Terminal, TimeChart, Checkbox, Radio, RadioGroup, Switch, Select, ChoiceCard, ChoiceCardGroup, Card, CardContent } = B;
         flushSync(() => createRoot(document.getElementById("root")).render(<>${reactJsx}</>));`, { theme });
       await reactPage.addStyleTag({ content: APP_BODY });
       await settle(reactPage);
@@ -1614,6 +1710,25 @@ describe("each skill component renders as its React counterpart does, but for th
         if (command.open) { await command.open.react(reactPage); await command.open.skill(skillPage); for (const p of [reactPage, skillPage]) await settle(p); }
         await compare(theme, command.id, reactPage, skillPage, command.pairs, null);
         assert.deepEqual([errors, skillErrors], [[], []]);
+        await reactPage.close();
+        await context.close();
+      });
+    }
+
+    for (const art of ART) {
+      test(`${art.id} (${theme})`, async () => {
+        const touch = art.touch ? { isMobile: true, hasTouch: true } : {};
+        const { page: reactPage, errors } = await fixturePage(reactBrowser, `${ART_IMPORTS}\ndocument.body.style.margin = "0";\nflushSync(() => createRoot(document.getElementById("root")).render(<>${art.react}</>));`, { theme, viewport: { width: art.width, height: art.width === 390 ? 844 : 900 }, ...touch });
+        await reactPage.addStyleTag({ content: APP_BODY });
+        if (art.touch) await reactPage.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.appendChild(meta); });
+        const { page: skillPage, context, errors: skillErrors } = await openHtml(skillBrowser, compose(`<title>Parity</title>${art.skill}`, { fonts: false }).html, { scheme: theme, width: art.width, touch: Boolean(art.touch) });
+        await skillPage.waitForSelector(art.ready.skill, { state: "attached" });
+        await reactPage.waitForSelector(art.ready.react, { state: "attached" });
+        for (const p of [reactPage, skillPage]) await settle(p);
+        if (art.open) { await art.open.react(reactPage); await art.open.skill(skillPage); for (const p of [reactPage, skillPage]) await settle(p); }
+        await compare(theme, art.id, reactPage, skillPage, art.pairs, null);
+        // A failed or broken data URI logs a console error; only a script error is a fault here.
+        assert.deepEqual([errors.filter((e) => !/Failed to load resource|ERR_/.test(e)), skillErrors.filter((e) => !/Failed to load resource|ERR_/.test(e))], [[], []]);
         await reactPage.close();
         await context.close();
       });
