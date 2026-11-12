@@ -3,7 +3,7 @@
 // (test/types.test.mjs). Each `@ts-expect-error` is something that must stay refused.
 import * as React from "react";
 import {
-  Accordion, AlertDialog, Checkbox, Combobox, Dialog, DialogContent, Field, Form, HomeGlyph, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
+  Accordion, AlertDialog, Badge, BadgePair, Button, Checkbox, ChoiceCard, ChoiceCardGroup, IconButton, Link, Combobox, Dialog, DialogContent, Field, Form, HomeGlyph, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
   MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
   TabsList, TabsPanel,
 } from "@srasyndicate/basalt";
@@ -112,5 +112,22 @@ export const navigation = (
     </Nav>
     {/* @ts-expect-error a navigation landmark needs a name */}
     <Nav />
+  </>
+);
+
+// The display states: a toggle is secondary or ghost; a link or Button that opens a new tab needs no prop for its arrow.
+export const displayStates = (
+  <>
+    <Button pressed>Mute</Button>
+    <Button variant="ghost" pressed={false}>Pin</Button>
+    <IconButton icon={HomeGlyph} label="Home" variant="secondary" pressed />
+    {/* @ts-expect-error a latched primary would read as the primary action */}
+    <Button variant="primary" pressed>Deploy</Button>
+    {/* @ts-expect-error a latched danger would read as an error */}
+    <IconButton icon={HomeGlyph} label="Delete" variant="danger" pressed />
+    <Link href="https://example.test" target="_blank" newTabLabel="(opens in a new tab)">Docs</Link>
+    <Badge status="pending">In review</Badge>
+    <BadgePair name="billing-worker" status={<Badge status="pending">In review</Badge>} fact={<Badge>Demo</Badge>} />
+    <ChoiceCardGroup aria-label="Plan"><ChoiceCard name="plan" value="a" title="Starter" onCheckedChange={(checked) => checked} /></ChoiceCardGroup>
   </>
 );
