@@ -1,6 +1,6 @@
 # core: layout, type, panels, buttons
 
-**Layout:** `.page` (`.narrow`), `.stack` and `.cluster` (`style="--gap: var(--basalt-space-3)"`), `.grid` (`--min: 220px`), `.split` (`.aside`: a 20rem sidebar), `.section` > `.section-head` (a section brings 48px of space above itself: put sections straight in `.page`, not in a gapped `.stack`), `.spacer`, `.hide-narrow`, `.divider`, `.divide-y`, `.footer`, `.tap`, `.skip-link`, `.visually-hidden`.
+**Layout:** `.page` (`.narrow`), `.stack` and `.cluster` (`style="--gap: var(--basalt-space-3)"`), `.grid` (`--min: 220px`), `.split` (`.aside`: a 320px sidebar), `.section` > `.section-head` (a section brings 48px of space above itself: put sections straight in `.page`, not in a gapped `.stack`), `.spacer`, `.hide-narrow`, `.divider`, `.divide-y`, `.footer`, `.tap`, `.skip-link`, `.visually-hidden`.
 **Type:** `h1`–`h4`, `.display`, `.text-5xl` (56/60; give it room at 390), `.lead`, `.eyebrow`, `.muted`, `.faint`, `.small`, `.mono`, `.num`, `.prose`, inline `code`. `h2` is 24/30. `.lead` and `.prose` are 34rem on the row's start edge; `.page` is the 72rem row.
 **Panels:** `.panel`, `.card`, `.panel-pad`, `.panel-head`, `.float` (+ `.modal`). `.float` is only for what leaves the flow; never to promote a panel. `.card.lg` and `.panel-pad.lg` take wider padding from 720px up.
 **Buttons:** `.btn[data-variant=primary|ghost|danger]` (default secondary), `data-size=sm|lg`, `data-icon-only`, `aria-busy`.

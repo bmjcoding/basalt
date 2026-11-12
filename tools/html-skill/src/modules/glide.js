@@ -14,6 +14,7 @@
    *   kind.active   the selector of the lit row inside host (the primitive is the authority on which row is lit)
    *   kind.item     for a host with no highlight of its own (the notification centre, the navigation): the row under the pointer is marked data-hovered,
    *                 and the first key hides the plate (the ring shows) until the pointer moves again
+   *   host[data-idle] counts as no lit row (the in-page command list, lit only while it is in use)
    *   kind.shape    the box inside the row that the plate hugs (the navigation's pill), if not the row's own plate (its ::before)
    */
   _.glide = function (host, plate, kind) {
@@ -25,6 +26,8 @@
     var snapNext = false;
     var leaving;
 
+    // The lit row, or none while the host says it is idle (the in-page command list when it is not in use): the plate fades where it is, and comes back with use.
+    function lit_() { return host.hasAttribute('data-idle') ? null : host.querySelector(ACTIVE); }
     function on() { return !OFF.matches && (kind.item ? modality === 'pointer' : modality !== 'touch'); }
     function lit() { return plate.dataset.state === 'on'; }
     // The row's own plate (its ::before) is the shape to follow, so the shared one matches the fallback to the pixel.
@@ -86,8 +89,8 @@
         target = '';
         return;
       }
-      var row = host.querySelector(ACTIVE);
-      if (!row) { leaving = setTimeout(function () { if (!host.querySelector(ACTIVE)) leave(); }, 0); return; }
+      var row = lit_();
+      if (!row) { leaving = setTimeout(function () { if (!lit_()) leave(); }, 0); return; }
       var g = geometry(row);
       var key = g.x + ' ' + g.y + ' ' + g.w + ' ' + g.h;
       if (row === last && lit() && key === target) return; // nothing changed: leave a move in flight alone
@@ -122,7 +125,7 @@
 
     plate.dataset.state = 'off';
     var changes = new MutationObserver(settle);
-    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: [kind.item ? 'data-hovered' : kind.attr] });
+    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: [kind.item ? 'data-hovered' : kind.attr, 'data-idle'] });
     // A row that moved under a still highlight (a filter, a font, a resize) is re-placed in place.
     var resizes = new ResizeObserver(function () { snapNext = true; target = ''; settle(); });
     resizes.observe(host);

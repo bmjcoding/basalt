@@ -53,6 +53,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
+- **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word; a long wait needs `loops`.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
 - **loops** `data-loops-toggle`: a page that spins past five seconds needs it; the control's name stays fixed.

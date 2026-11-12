@@ -7,6 +7,7 @@
 // Re-recorded so far: the first parity PR (the number field, the textarea's height, native chrome, braille, the ring, code radius).
 // The second parity PR (popup rows and levels, the glide, the bar's removal, the segment's pill): the palette (open), the kitchen sink's rows,
 // segment and selected table row; the two example pages at rest did not move.
+// The ninth parity PR (commands): the kitchen sink names the new module with a basalt:use comment (a list of its own is a new baseline below); every existing baseline's pixels are as they were.
 // The fifth parity PR (the figures): the kitchen sink gains a section of the description list, the meter, a stat's source line, the terminal and the chart, after its overlays;
 // every region above it, and the two example pages, did not move (the two examples' recorded files are as they were).
 import assert from "node:assert/strict";
@@ -162,6 +163,31 @@ describe("the tables and filters page matches its recorded baseline, pixel for p
       test(`${scheme}, ${width}px, at rest`, async () => {
         const pictures = {};
         for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("tables") })) {
+          const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
+          assert.deepEqual(errors, [], `${which} logged errors`);
+          await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));
+          pictures[which] = await shot(page, width);
+          await context.close();
+        }
+        const result = await differing(scratch, pictures.composed, pictures.baseline);
+        assert.equal(result.count, 0, `${result.count} pixels differ (${result.size.join("x")})`);
+      });
+    }
+  }
+});
+
+// The ninth parity PR (commands): the command list in the page at rest (idle, the first row lit but not shown) and a list with a preview (side by side at 1440, the list alone at
+// 390 where it pushes). The existing baselines above did not move; this one is new.
+describe("the commands page matches its recorded baseline, pixel for pixel", () => {
+  let scratch;
+  before(async () => { scratch = await browser.newPage(); });
+  after(async () => { await scratch?.close(); });
+  const body = read(here, "fixtures", "commands.body.html");
+  for (const scheme of ["dark", "light"]) {
+    for (const width of [1440, 390]) {
+      test(`${scheme}, ${width}px, at rest`, async () => {
+        const pictures = {};
+        for (const [which, html] of Object.entries({ composed: compose(body).html, baseline: baseline("commands") })) {
           const { page, context, errors } = await openHtml(browser, html, { scheme, width, touch: width === 390 });
           assert.deepEqual(errors, [], `${which} logged errors`);
           await page.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 0; }));

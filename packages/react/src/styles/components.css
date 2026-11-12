@@ -3369,6 +3369,9 @@
     .basalt-command .basalt-menu-item[data-selected="true"]::before { background-color: Highlight; }
     .basalt-menu-item[data-highlighted] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text, .basalt-badge),
     .basalt-command .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text, .basalt-badge) { color: HighlightText; }
+    /* A lit command row's description is lifted to secondary ink while the list is in use (above), which outranks the rule just above and left it dim on Highlight:
+       every part of a lit row is HighlightText in forced colours. */
+    .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-menu-item-description { color: HighlightText; }
     /* The command list in the page, not in use, has no lit row: it is rest ink on Canvas, as every other row. */
     .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { forced-color-adjust: auto; color: CanvasText; }
     .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
