@@ -46,6 +46,16 @@
   [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
   [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
+  /* --_plate-solid is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle) rather than
+     laying over a panel: one opaque colour, so nothing shows through it. In dark it is --_plate; in light it is the 7% selected
+     wash (black at state-selected's own alpha) mixed over the level's own white. */
+  /* The page (no data-level ancestor) has its own: in dark the next level plus the wash, as level 0 would be; in light the 7% wash over
+     surface-page, one opaque colour (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it. */
+  :root { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); }
+  [data-level="1"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2))); }
+  [data-level="2"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+  [data-level="3"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
      control, chip or badge. A border (not a shadow) so forced colours keep it. */
   .basalt-card,
@@ -189,8 +199,30 @@
   /* An icon placed inside the label (a MorphIcon beside the words) sits on the same line, 6px away. */
   .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
-  .basalt-button[data-loading] > .basalt-icon { opacity: 0; }
+  .basalt-button[data-loading] > .basalt-icon,
+  .basalt-button[data-loading] > .basalt-button-check { opacity: 0; }
   .basalt-button-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+  /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
+     level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
+     surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
+     hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
+     label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
+     does not morph. An icon toggle has no check: the plate, the ink step and the glyph's selected form say it. The doubled class lifts
+     these over hover and the momentary press, which keep their own steps on an unpressed button; the .98 scale stays Button's. */
+  .basalt-button-check { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
+  .basalt-button-check > .basalt-icon { opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
+  .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
+  .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
+    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+  }
+  .basalt-button[aria-pressed="true"][data-variant="secondary"]:not([data-disabled]):not([data-loading]),
+  .basalt-button[aria-pressed="true"][data-variant="ghost"]:not([data-disabled]):not([data-loading]) {
+    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    color: var(--basalt-text-primary);
+  }
+  .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"] { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
 
   /* Disabled keeps its variant's shape, so it reads as the same control, unavailable. */
   .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
@@ -1249,13 +1281,37 @@
 
   .basalt-badge[data-variant="plain"] { height: auto; padding: 0; box-shadow: none; font-weight: var(--basalt-font-weight-regular); font-size: inherit; line-height: inherit; }
 
-  .basalt-badge-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-badge-dot { flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
+
+  /* A plain badge's size is its mark's seat: the braille cell's width at that size (6, 9 or 12, which is size-dot times 1, 1.5
+     or 2) with a gap as wide, so the word starts at 12, 18 or 24 whichever mark sits in the seat. Size 16 is the 6 and 6 that
+     shipped, so it changes no pixel. The 6px dot keeps its size and centres in the seat on whole pixels (1 + 6 + 2 at 20,
+     3 + 6 + 3 at 24): the start side takes the rounded-down half. A braille Spinner inside takes the same size. */
+  .basalt-badge[data-variant="plain"] { --_seat: var(--basalt-size-dot); gap: var(--_seat); }
+  .basalt-badge[data-variant="plain"][data-size="20"] { --_seat: calc(var(--basalt-size-dot) * 1.5); }
+  .basalt-badge[data-variant="plain"][data-size="24"] { --_seat: calc(var(--basalt-size-dot) * 2); }
+  .basalt-badge[data-variant="plain"] > .basalt-badge-dot {
+    margin-inline-start: round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline));
+    margin-inline-end: calc(var(--_seat) - var(--basalt-size-dot) - round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline)));
+  }
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
   .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
   .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
   /* The one place --basalt-accent-ink is read. The accent classes (accents.css) define it only where light-dark() works, and not
      for none or an unknown class, so everywhere else this is the ink dot. The word keeps its own colour. */
   .basalt-badge[data-status="accent"] .basalt-badge-dot { background: var(--basalt-accent-ink, var(--basalt-text-primary)); }
+
+  /* Pending (waiting, in review, queued) is a hollow 6px ring in the word's own ink, in the dot's seat: a real 1px border, so
+     forced colours keep it. It is aria-hidden; the app's word is what is spoken. It does not depend on any filled dot. */
+  .basalt-badge[data-status="pending"] .basalt-badge-dot { box-sizing: border-box; background: transparent; border: var(--basalt-size-hairline) solid currentColor; }
+
+  /* A name with at most two badges (status, then one neutral fact), space-2 apart and space-2 after the name. When the name and
+     the pair don't fit on one line the pair moves under the name as a unit: the name keeps its line (it truncates only when it
+     alone is wider than the row), and a badge never shrinks or truncates. */
+  .basalt-badge-pair { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-2); row-gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-badge-pair-name { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-badge-pair-badges { display: inline-flex; flex: none; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-badge-pair .basalt-badge { flex: none; }
 
   /* ---- Card ---- */
 
@@ -1288,6 +1344,70 @@
     line-height: var(--basalt-text-sm-line-height);
     color: var(--basalt-text-secondary);
   }
+
+  /* ---- Choice card: a native radio or checkbox wearing a card ----
+     The whole card is the label; the input is visually hidden (it covers the card, invisible, so it stays focusable) and a real
+     choice box sits in a seat on the header line, reserved on every choice card, so choosing moves no title. Selected is the
+     selected wash as one solid fill at the card's own level (--_plate-solid, the active-row recipe made opaque), with the rim and the level
+     unchanged and the title still primary. Hover on an unselected card is the hover wash alone; a selected card takes no further
+     step. No press scale. Focus is the control ring at +2, outside the card. State changes crossfade over duration-fast. */
+  .basalt-choice-card {
+    position: relative;
+    isolation: isolate;
+    display: block;
+    padding-bottom: var(--basalt-space-4);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-choice-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline));
+    background: var(--basalt-state-hover);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  @media (hover: hover) {
+    .basalt-choice-card:hover:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled))::before { opacity: 1; }
+  }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--_plate-solid); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  .basalt-choice-card-input { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
+  .basalt-choice-card-head { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
+  .basalt-choice-card-title { flex: 1 1 auto; min-width: 0; }
+  .basalt-choice-card-description { display: block; padding-inline: var(--basalt-space-4); }
+  .basalt-choice-card-body { display: block; padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
+  .basalt-choice-card-box {
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--basalt-size-choice);
+    height: var(--basalt-size-choice);
+    margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-choice)) / 2);
+    background: var(--basalt-surface-raised);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-action-primary-text);
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-choice-card[data-type="checkbox"] .basalt-choice-card-box { border-radius: var(--basalt-radius-xs); }
+  .basalt-choice-card[data-type="radio"] .basalt-choice-card-box { border-radius: var(--basalt-radius-full); }
+  .basalt-choice-card-mark { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-choice-card-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-action-primary-text); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box { background: var(--basalt-action-primary); box-shadow: none; }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) :is(.basalt-choice-card-mark, .basalt-choice-card-dot) { opacity: 1; }
+  .basalt-choice-card:has(> .basalt-choice-card-input:disabled) .basalt-choice-card-box { opacity: 0.5; }
+  /* The grid keeps space-4 between cards, which holds each +2 focus ring clear of its neighbours; the app keeps at least space-1-5 to any clipping edge. */
+  .basalt-choice-card-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--basalt-space-4); }
 
   /* ---- Table ---- */
 
@@ -1322,13 +1442,36 @@
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
 
-  .basalt-table-container[data-row-density="compact"] .basalt-table td { height: var(--basalt-size-control-md); }
-  .basalt-table-container[data-row-density="comfortable"] .basalt-table td { height: var(--basalt-size-tap-min); }
+  .basalt-table-container[data-row-density="compact"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-control-md); }
+  .basalt-table-container[data-row-density="comfortable"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
   /* A touch row is 44px whatever the density: this matches the density rules' specificity and comes after them. */
   @media (pointer: coarse) {
     .basalt-table td,
-    .basalt-table-container[data-row-density] .basalt-table td { height: var(--basalt-size-tap-min); }
+    .basalt-table tbody th[scope="row"],
+    .basalt-table-container[data-row-density] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
   }
+
+  /* A row header (th scope="row" in the body) is the row's name in the row's own type: the cell's height, padding and divider,
+     13/18 at 500 in primary, start-aligned, on the row's own fill (no band, so the washes run through it). Data cells stay 400. */
+  .basalt-table tbody th[scope="row"] {
+    height: var(--basalt-size-table-row);
+    background-color: transparent;
+    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
+    font-size: inherit;
+    font-weight: var(--basalt-font-weight-medium);
+    color: var(--basalt-text-primary);
+    text-align: start;
+    vertical-align: middle;
+  }
+  /* "Not observed" is tertiary, lifting to secondary on the hover and selected washes (tertiary alone fails on them); the words end on the numbers' edge. */
+  .basalt-table td[data-not-observed] { color: var(--basalt-text-tertiary); }
+  .basalt-table tr[data-selected] > td[data-not-observed] { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    .basalt-table tbody tr:hover > td[data-not-observed] { color: var(--basalt-text-secondary); }
+  }
+  /* The one line under a table that is wider than its box. Shown only while it overflows; never changed while scrolling. */
+  .basalt-table-hint { margin: var(--basalt-space-2) 0 0; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
+  .basalt-table-hint[hidden] { display: none; }
 
   .basalt-table [data-numeric] { text-align: right; font-variant-numeric: tabular-nums; }
   .basalt-table [data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
@@ -1352,7 +1495,7 @@
   .basalt-table[data-fixed] :is(th, td) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
   .basalt-table[data-fixed] :is(th, td):has(> :is(.basalt-button, .basalt-checkbox, .basalt-choice, .basalt-menu-trigger, [role="checkbox"])) { overflow: visible; }
-  .basalt-table[data-fixed] th { height: var(--_head-h); }
+  .basalt-table[data-fixed] thead th { height: var(--_head-h); }
   /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
   .basalt-table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (pointer: coarse) {
@@ -1431,14 +1574,14 @@
     inset-inline-start: 0;
     z-index: 1;
   }
-  .basalt-table[data-pinned] tr:not([data-empty]) > td { background-color: var(--_surface, var(--basalt-surface-raised)); }
+  .basalt-table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: var(--_surface, var(--basalt-surface-raised)); }
   .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
   @media (hover: hover) {
-    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > td { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
   }
-  .basalt-table[data-pinned] tbody tr[data-selected] > td { background-image: linear-gradient(var(--basalt-state-selected), var(--basalt-state-selected)); }
+  .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-selected), var(--basalt-state-selected)); }
   /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is
      actually scrolled, and never a selection, sort or status mark. */
   .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
@@ -2112,6 +2255,9 @@
   /* Braille takes its word's colour, and the seat of the 6px status dot (the same width), so the words start at
      one x. It has no square box: the svg is 6 by 10, 9 by 15 or 12 by 20 CSS pixels. */
   .basalt-spinner[data-variant="braille"] { color: inherit; }
+  /* The 9 by 15 cell at 20 would sit on a half pixel in any even line (every Basalt line height is even), so its box takes one
+     hairline below, 9 by 16, and the cell stays at the top of it: the box centres on whole pixels. */
+  .basalt-spinner[data-variant="braille"][data-size="20"] { align-items: flex-start; height: calc(var(--basalt-size-dot) * 2.5 + var(--basalt-size-hairline)); }
 
   /* Ten frames, one cycle on duration-loop-braille (80ms a frame), stepped. A dot is drawn (1) or not (0); the
      first frame is the base look, so a spinner that holds still (reduced motion) shows ⠋. */
@@ -2136,6 +2282,24 @@
   @keyframes basalt-braille-4 { 0% { opacity: 1; } 50% { opacity: 0; } 90% { opacity: 1; } }
   @keyframes basalt-braille-5 { 0% { opacity: 0; } 10% { opacity: 1; } 60% { opacity: 0; } }
   @keyframes basalt-braille-6 { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 0; } }
+
+  /* ---- The hold ---- */
+
+  /* `<html data-loops="held">` (useLoops) holds every loop Basalt draws, portals included, because the attribute is on the root.
+     It outranks reduced motion by specificity, so held is one look whatever the OS says, and it stops the ring's reduced-motion
+     fade too. Braille holds its first frame (the base look, ⠋); the ring stands still at its drawing, at full opacity. Skeleton and
+     Sparkline's loading line hold at their reduced-motion look (the skeleton still, the line drawn after its 100ms fade-in, which
+     is not a loop). The indeterminate Progress bar holds as the empty track (below). The toast's drain is a
+     countdown, not a loop, so it is not here. */
+  :root[data-loops="held"] .basalt-spinner[data-variant="ring"] svg,
+  :root[data-loops="held"] .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot],
+  :root[data-loops="held"] .basalt-sparkline[data-loading] .basalt-sparkline-line,
+  :root[data-loops="held"] .basalt-skeleton { animation: none; }
+  /* The indeterminate bar, held: the track only. The indicator is hidden, not just stopped, because a still bar reads as a value
+     (30% done, or under reduced motion a full-width bar that reads as done). The label still says the work is running, and the
+     bar keeps its indeterminate semantics (no aria-valuenow). This sets the indicator's whole look, so it also overrides the
+     reduced-motion full-width pulse above. */
+  :root[data-loops="held"] .basalt-progress-indicator[data-indeterminate] { animation: none; visibility: hidden; }
 
   @keyframes basalt-drain {
     from { transform: scaleX(1); }
@@ -2670,6 +2834,7 @@
   .basalt-chrome .basalt-chart-value [data-missing],
   .basalt-chrome .basalt-chart-not-observed,
   .basalt-chrome .basalt-description-details[data-missing],
+  .basalt-chrome .basalt-table-hint,
   .basalt-chrome .basalt-preview-kicker { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
@@ -2822,6 +2987,23 @@
   .basalt-link { color: var(--basalt-text-primary); text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); font-family: inherit; transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-link:hover { text-decoration-color: currentColor; }
   .basalt-link:focus-visible, .basalt-page-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
+  /* The new-tab cue (target="_blank"): the core external glyph after the label, never underlined (an inline-block is not
+     decorated). It adds no space of its own: the glyph's side bearing is the gap, a word joiner in front and nowrap keep it with
+     the last word. Secondary at rest, lifting to the link's own ink with the underline; a Button's own ink; through currentColor
+     it is LinkText or ButtonText in forced colours. The drop sits the arrow's ink on the capitals; the negative margin keeps it
+     from growing the line. */
+  .basalt-external { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-external > .basalt-icon { display: inline-block; vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
+  .basalt-link:is(:hover, :focus-visible) > .basalt-external { color: inherit; }
+  /* Beside text of 20px and up the arrow is 20px: Text and Heading at xl or larger set --_external-size for what they hold. It is
+     read by links only; a Button's arrow follows the Button's own size. */
+  .basalt-link > .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
+  .basalt-button > .basalt-external { display: inline-flex; align-items: center; color: inherit; }
+  .basalt-button > .basalt-external > .basalt-icon { vertical-align: baseline; margin-block: 0; }
+  /* In a still-table cell the label truncates and the arrow stays whole. */
+  .basalt-table[data-fixed] td > a[data-new-tab] { display: flex; align-items: center; }
+  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-external { flex: none; }
   .basalt-breadcrumbs { font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
   .basalt-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); margin: 0; padding: 0; list-style: none; }
   .basalt-breadcrumbs li { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }
@@ -2884,6 +3066,9 @@
        Highlight, the label, glyph, hint and kbd chip text are HighlightText, the chip keeps a HighlightText border,
        and danger (a row that says so in words as well as colour) keeps its own pairing. */
     .basalt-menu-item[aria-disabled="true"], .basalt-menu-item[data-disabled]:not([data-disabled="false"]) { color: GrayText; }
+    /* A Select's placeholder is the browser's own placeholder colour, GrayText, as Input's and the Combobox's are, so it never looks
+       like a chosen value; the chosen value keeps its system foreground. */
+    .basalt-select-value[data-placeholder] { color: GrayText; }
     .basalt-menu-item[data-highlighted],
     .basalt-command .basalt-menu-item[data-selected="true"] { forced-color-adjust: none; color: HighlightText; }
     .basalt-menu-item[data-highlighted]::before,
@@ -2941,7 +3126,7 @@
     .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
     .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
     .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { forced-color-adjust: none; background: CanvasText; }
-    .basalt-table[data-pinned] tr:not([data-empty]) > td { background-color: Canvas; background-image: none; }
+    .basalt-table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: Canvas; background-image: none; }
     .basalt-sort-seat { color: ButtonText; }
     .basalt-filter-count, .basalt-filter-result { color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
@@ -2952,6 +3137,22 @@
        text, HighlightText on Highlight), and the dots follow. forced-color-adjust: none here would keep an authored colour that can vanish. */
     /* The accent dot is a fill, which forced colours would drop: it keeps a real fill, the system text colour, on this dot only. */
     .basalt-badge[data-status="accent"] .basalt-badge-dot { forced-color-adjust: none; background: CanvasText; }
+    /* The pending ring is a real border, so it survives; it takes the system text colour. */
+    .basalt-badge[data-status="pending"] .basalt-badge-dot { border-color: CanvasText; }
+    /* A pressed toggle is Highlight with HighlightText for the fill, the label and the check, at rest, hovered, pressed and focused. */
+    .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
+    .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] { forced-color-adjust: none; background: Highlight; border-color: Highlight; box-shadow: none; color: HighlightText; }
+    .basalt-button[aria-pressed="true"][data-variant="secondary"]:not([data-disabled]):not([data-loading]),
+    .basalt-button[aria-pressed="true"][data-variant="ghost"]:not([data-disabled]):not([data-loading]) { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .basalt-button[aria-pressed="true"] :is(.basalt-button-label, .basalt-button-check, .basalt-icon) { color: HighlightText; }
+    /* A choice card keeps Canvas with a CanvasText edge (its panel border above): the wash drops. Its box is ButtonText off and
+       Highlight with HighlightText on, as the checked control is. */
+    .basalt-choice-card::before { display: none; }
+    .basalt-choice-card-box { background: Canvas; border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
+    .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-dot { forced-color-adjust: none; background: HighlightText; }
+    .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: GrayText; }
+    .basalt-table-hint { color: CanvasText; }
   }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */

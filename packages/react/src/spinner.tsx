@@ -1,11 +1,16 @@
 import * as React from "react";
 
+import { StatusSizeContext } from "./status-size";
 import { join } from "./utils";
 
 export type SpinnerVariant = "ring" | "braille";
 
 export interface SpinnerProps {
-  /** The ring is a square of this many pixels. Braille is a 6 by 10 cell at 16, 9 by 15 at 20 and 12 by 20 at 24, always on whole pixels. */
+  /**
+   * The ring is a square of this many pixels. Braille is a 6 by 10 cell at 16, 9 by 15 at 20 and 12 by 20 at 24, always on whole
+   * pixels, and its size follows its word's cap height: 16 beside text of 12 to 16px, 20 beside 18 to 24px, 24 beside 30px and up.
+   * Inside a plain `Badge` braille takes the badge's `size` instead, so the two cannot disagree.
+   */
   size?: 16 | 20 | 24;
   /** What is loading, announced to screen readers. Omit when a visible label beside it already says so. */
   label?: string;
@@ -46,7 +51,9 @@ function useSharedClock(ref: React.RefObject<HTMLElement | null>) {
 }
 
 /** Work in progress with no measurable end. Prefer `Progress` when you know how far along it is. */
-export function Spinner({ size = 16, label, className, variant = "ring" }: SpinnerProps) {
+export function Spinner({ size: sizeProp = 16, label, className, variant = "ring" }: SpinnerProps) {
+  const inBadge = React.useContext(StatusSizeContext);
+  const size = variant === "braille" ? inBadge ?? sizeProp : sizeProp;
   const ref = React.useRef<HTMLSpanElement>(null);
   useSharedClock(ref);
   const status = label ? ({ role: "status" as const, "aria-label": label }) : ({ "aria-hidden": true as const });

@@ -11,7 +11,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -138,6 +138,17 @@ describe("Callout: the status rim", () => {
 const probe = `function Probe(){const t=B.useToast();React.useEffect(()=>{window.t=t},[t]);return null}`;
 const provider = (children = "<Probe/>", props = "") => render(`<B.ToastProvider${props}>${children}</B.ToastProvider>`, probe);
 // Functions do not cross into the page: an action is given as data, and gets its handler there.
+/**
+ * On a frozen clock (freezeAnimations) a toast mounts on a frame: run frames until `locator` is visible (the check
+ * `waitFor()` makes: attached, with a box, not hidden), and fail loudly if it never is.
+ */
+const appears = async (page, clock, locator) => {
+  for (let tries = 0; tries < 100; tries += 1) {
+    if (await locator.isVisible()) return;
+    await clock.advance(16);
+  }
+  assert.fail(`${locator} never became visible`);
+};
 const show = (page, options) => page.evaluate((o) => { if (o.action) o.action.onClick = () => { window.undone = (window.undone ?? 0) + 1; }; return window.t.show(o); }, options);
 
 describe("Toast: the surface", () => {
@@ -271,15 +282,18 @@ describe("Toast: running work", () => {
 
   test("it stays while it runs, and its clock starts at the result", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
+    const clock = await freezeAnimations(page);
     const id = await show(page, { title: "Publishing", running: true, home: "centre", timeout: 600 });
-    await page.waitForTimeout(1200);
+    await appears(page, clock, toasts(page));
+    await clock.advance(1200);
     assert.equal(await toasts(page).count(), 1, "running work never times out");
     assert.equal(await page.locator(".basalt-toast-drain").count(), 0, "and has no line");
     await page.evaluate((id) => window.t.update(id, { title: "Published", status: "success" }), id);
-    await page.locator(".basalt-toast-drain").waitFor();
-    await page.waitForTimeout(300);
+    await appears(page, clock, page.locator(".basalt-toast-drain"));
+    await clock.advance(300);
     assert.equal(await toasts(page).count(), 1, "the clock has not run out yet: it started at the result");
-    await toasts(page).first().waitFor({ state: "detached", timeout: 2500 });
+    await clock.advance(1000);
+    assert.equal(await toasts(page).count(), 0, "and it went when its time was up");
     await page.close();
   });
 
@@ -604,18 +618,21 @@ describe("Toast: the drain and its clock", () => {
 
   test("the line and the clock pause together on a hidden tab, and resume together", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
+    // the toast's 900ms clock and its line run on the test's clock, so 150ms means 150ms however busy the machine is
+    const clock = await freezeAnimations(page);
     await show(page, { title: "Saved", home: "page", timeout: 900 });
-    await page.locator(".basalt-toast-drain").waitFor();
-    await page.waitForTimeout(150);
+    await appears(page, clock, page.locator(".basalt-toast-drain"));
+    await clock.advance(150);
     await hide(page, true);
-    await page.waitForTimeout(150);
+    await clock.advance(150);
     assert.equal(await state(page), "paused");
-    await page.waitForTimeout(1500);
+    await clock.advance(1500);
     assert.equal(await toasts(page).count(), 1, "still there: the clock held while nobody could see it");
     await hide(page, false);
-    await page.waitForTimeout(150);
+    await clock.advance(150);
     assert.equal(await state(page), "running");
-    await toasts(page).first().waitFor({ state: "detached", timeout: 3000 });
+    await clock.advance(1000);
+    assert.equal(await toasts(page).count(), 0, "and it went when its time was up");
     await page.close();
   });
 
@@ -632,14 +649,17 @@ describe("Toast: the drain and its clock", () => {
 
   test("hover and focus hold the clock too, for every toast, and releasing lets them go on", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
+    const clock = await freezeAnimations(page);
     await show(page, { title: "A", home: "page", timeout: 900 });
     await show(page, { title: "B", home: "page", timeout: 900 });
-    await page.waitForTimeout(200);
+    await appears(page, clock, toasts(page).nth(1));
+    await clock.advance(200);
     await page.locator(".basalt-toast", { hasText: "B" }).hover();
-    await page.waitForTimeout(1400);
+    await clock.advance(1400);
     assert.equal(await toasts(page).count(), 2, "both held while one is hovered");
     await page.mouse.move(2, 2);
-    await page.waitForFunction(() => document.querySelectorAll(".basalt-toast").length === 0, null, { timeout: 4000 });
+    await clock.advance(1500);
+    assert.equal(await toasts(page).count(), 0, "released, they go on and run out");
     await page.close();
   });
 });

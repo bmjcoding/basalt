@@ -3,14 +3,20 @@
 `.agent/skills/basalt-html/` is what an agent uses to write a standalone page. It is **built** from this folder; never edit the
 files there by hand (a test fails if they drift from the build). The agent reads only `SKILL.md`, writes a body fragment, and runs
 `compose.mjs`, which assembles the page. The skill stays cheap to read because the stylesheet and script are never in front of the
-agent.
+agent, and because `SKILL.md` holds only the rules every page needs and one line per module: a module's full usage is printed on
+demand by `compose.mjs --usage core NAME …` (each module, then the modules it requires, then the classes, attributes and tags that
+bring each in, read from the manifest; a module whose script builds a required module's markup, like the palette's rows, lists it in
+`builds` and prints one line in place of that usage). `--usage` alone prints the index; an unknown name fails with it. After a page is composed,
+compose prints the one-line warning of each module it added, which is that module's line in `SKILL.md`.
 
 ```
 src/
   core.css, core.js        what every page gets (tokens come before core.css, from packages/tokens)
   modules/<name>.css|js    what a page gets only when its markup uses it (the accent module has no file here: build.mjs makes it from
                            packages/tokens/dist/css/accents.css, and a page gets it only when its markup sets data-accent)
-  modules.json             the manifest: each module's classes, attributes, tags, text patterns, requirements, icons and byte budget
+  modules.json             the manifest: each module's classes, attributes, tags, text patterns, requirements, icons, byte budget and usage cap
+  usage/<name>.md          the module's usage, in prose, printed by `compose.mjs --usage <name>` (core.md is layout, type, panels, buttons);
+                           build.mjs copies them into the skill's parts/usage/
   icons.json               the Phosphor names a page can draw (Bold and Regular paths are read from @phosphor-icons/react)
   compose.mjs              the tool an agent runs; copied into the skill folder as it is
   examples/*.body.html     two example bodies, copied into the skill folder
@@ -31,10 +37,16 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
    `B._` has `esc`, `icon`, `announce`, `getTheme`, `setTheme`, `step` (an init step; the order says where it runs) and, once the kbd
    module is in, `_.kbd`. Add a public method with `B.name = …`. No work at load time beyond defining things.
 3. Add it to `src/modules.json`, in the order its CSS should come in the cascade (later wins a tie): `classes` (every class its CSS
-   styles), `attrs`, `tags`, `text` (regular expressions on the body, for an API call), `requires` (other modules), `icons` (names its
+   styles), `attrs`, `tags`, `text` (regular expressions on the body, for an API call, each with its words in `textWords`, which `--usage` prints), `requires` (other modules), `icons` (names its
    script draws), and `budget` (bytes of minified CSS plus script).
-4. Say it in `SKILL.md` (the cheat sheet and the module list there), keeping `SKILL.md` within its byte budget. The test checks that
-   every class in the cheat sheet belongs to the core or to one module, and that using it brings the module.
+4. Write `src/usage/<name>.md`: prose that starts with `# <name>`, with the markup an agent writes, the classes, attributes and tags it
+   needs, and every rule that belongs to this module alone (a rule that is true of every page stays in `SKILL.md`). Give it a `usage` cap
+   in `modules.json`, a little above its size; the build fails for a module with no usage file or a usage file with no module. Then add
+   one line to `SKILL.md`'s "Modules" index, in the manifest's order: `- **name** \`trigger\`: the one mistake an agent would make.`
+   (the trigger is the class, attribute or tag that brings the module; the part after it is the warning compose prints after a page
+   that uses the module). Keep each line short and `SKILL.md` within its byte budget. The test checks that every class in the index and
+   in the usage texts belongs to the core or to one module, that a usage names only its own module's classes (or the modules it
+   requires, or a mention listed in the test), and that using one brings its module.
    A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI.
 5. `npm run build`, then `npm run test:html-skill`. Rendered output must match React: add the component to `test/parity.test.mjs`.
 
@@ -58,4 +70,4 @@ region that differs. It does not delete or loosen the test. (Fonts stay out of t
 ## Budgets
 
 In `src/modules.json`: `skillMd` (the context an agent pays, never above what it was), `core`, `everything` (core, every module and
-every icon), and a `budget` per module. They are tested. Raising one needs the owner's approval, as the old 80 KiB cap did.
+every icon), a `budget` per module, and a `usage` cap per usage text (the context an agent pays for one module, on demand). They are tested. Raising one needs the owner's approval, as the old 80 KiB cap did.
