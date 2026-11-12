@@ -1281,7 +1281,19 @@
 
   .basalt-badge[data-variant="plain"] { height: auto; padding: 0; box-shadow: none; font-weight: var(--basalt-font-weight-regular); font-size: inherit; line-height: inherit; }
 
-  .basalt-badge-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
+  .basalt-badge-dot { flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
+
+  /* A plain badge's size is its mark's seat: the braille cell's width at that size (6, 9 or 12, which is size-dot times 1, 1.5
+     or 2) with a gap as wide, so the word starts at 12, 18 or 24 whichever mark sits in the seat. Size 16 is the 6 and 6 that
+     shipped, so it changes no pixel. The 6px dot keeps its size and centres in the seat on whole pixels (1 + 6 + 2 at 20,
+     3 + 6 + 3 at 24): the start side takes the rounded-down half. A braille Spinner inside takes the same size. */
+  .basalt-badge[data-variant="plain"] { --_seat: var(--basalt-size-dot); gap: var(--_seat); }
+  .basalt-badge[data-variant="plain"][data-size="20"] { --_seat: calc(var(--basalt-size-dot) * 1.5); }
+  .basalt-badge[data-variant="plain"][data-size="24"] { --_seat: calc(var(--basalt-size-dot) * 2); }
+  .basalt-badge[data-variant="plain"] > .basalt-badge-dot {
+    margin-inline-start: round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline));
+    margin-inline-end: calc(var(--_seat) - var(--basalt-size-dot) - round(down, calc((var(--_seat) - var(--basalt-size-dot)) / 2), var(--basalt-size-hairline)));
+  }
   .basalt-badge[data-status="success"] .basalt-badge-dot { background: var(--basalt-status-success); }
   .basalt-badge[data-status="warning"] .basalt-badge-dot { background: var(--basalt-status-warning); }
   .basalt-badge[data-status="danger"] .basalt-badge-dot { background: var(--basalt-status-danger); }
@@ -2243,6 +2255,9 @@
   /* Braille takes its word's colour, and the seat of the 6px status dot (the same width), so the words start at
      one x. It has no square box: the svg is 6 by 10, 9 by 15 or 12 by 20 CSS pixels. */
   .basalt-spinner[data-variant="braille"] { color: inherit; }
+  /* The 9 by 15 cell at 20 would sit on a half pixel in any even line (every Basalt line height is even), so its box takes one
+     hairline below, 9 by 16, and the cell stays at the top of it: the box centres on whole pixels. */
+  .basalt-spinner[data-variant="braille"][data-size="20"] { align-items: flex-start; height: calc(var(--basalt-size-dot) * 2.5 + var(--basalt-size-hairline)); }
 
   /* Ten frames, one cycle on duration-loop-braille (80ms a frame), stepped. A dot is drawn (1) or not (0); the
      first frame is the base look, so a spinner that holds still (reduced motion) shows ⠋. */
@@ -2267,6 +2282,24 @@
   @keyframes basalt-braille-4 { 0% { opacity: 1; } 50% { opacity: 0; } 90% { opacity: 1; } }
   @keyframes basalt-braille-5 { 0% { opacity: 0; } 10% { opacity: 1; } 60% { opacity: 0; } }
   @keyframes basalt-braille-6 { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 0; } }
+
+  /* ---- The hold ---- */
+
+  /* `<html data-loops="held">` (useLoops) holds every loop Basalt draws, portals included, because the attribute is on the root.
+     It outranks reduced motion by specificity, so held is one look whatever the OS says, and it stops the ring's reduced-motion
+     fade too. Braille holds its first frame (the base look, ⠋); the ring stands still at its drawing, at full opacity. Skeleton and
+     Sparkline's loading line hold at their reduced-motion look (the skeleton still, the line drawn after its 100ms fade-in, which
+     is not a loop). The indeterminate Progress bar holds as the empty track (below). The toast's drain is a
+     countdown, not a loop, so it is not here. */
+  :root[data-loops="held"] .basalt-spinner[data-variant="ring"] svg,
+  :root[data-loops="held"] .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot],
+  :root[data-loops="held"] .basalt-sparkline[data-loading] .basalt-sparkline-line,
+  :root[data-loops="held"] .basalt-skeleton { animation: none; }
+  /* The indeterminate bar, held: the track only. The indicator is hidden, not just stopped, because a still bar reads as a value
+     (30% done, or under reduced motion a full-width bar that reads as done). The label still says the work is running, and the
+     bar keeps its indeterminate semantics (no aria-valuenow). This sets the indicator's whole look, so it also overrides the
+     reduced-motion full-width pulse above. */
+  :root[data-loops="held"] .basalt-progress-indicator[data-indeterminate] { animation: none; visibility: hidden; }
 
   @keyframes basalt-drain {
     from { transform: scaleX(1); }
@@ -2902,6 +2935,9 @@
        Highlight, the label, glyph, hint and kbd chip text are HighlightText, the chip keeps a HighlightText border,
        and danger (a row that says so in words as well as colour) keeps its own pairing. */
     .basalt-menu-item[aria-disabled="true"], .basalt-menu-item[data-disabled]:not([data-disabled="false"]) { color: GrayText; }
+    /* A Select's placeholder is the browser's own placeholder colour, GrayText, as Input's and the Combobox's are, so it never looks
+       like a chosen value; the chosen value keeps its system foreground. */
+    .basalt-select-value[data-placeholder] { color: GrayText; }
     .basalt-menu-item[data-highlighted],
     .basalt-command .basalt-menu-item[data-selected="true"] { forced-color-adjust: none; color: HighlightText; }
     .basalt-menu-item[data-highlighted]::before,

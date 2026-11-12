@@ -421,6 +421,48 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
   Under reduced motion the ring fades and braille holds its first frame.
+  **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
+  portals included: braille, the ring, a busy Button's ring, the indeterminate Progress bar,
+  Sparkline's loading line and Skeleton's pulse. There is no per-spinner prop, and the attribute
+  can't be set on a subtree. Braille holds its first frame and the ring stands still at its
+  drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
+  words still say the work is running. Skeleton and the loading line hold at their reduced-motion
+  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, with or
+  without reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
+  done), so none is drawn. Its label still says the work is running and it keeps its indeterminate
+  semantics (no `aria-valuenow`). Held is one look whatever the OS says: it outranks
+  reduced motion and stops the ring's fade too, and reduced motion never turns it on. Releasing
+  jumps to now: every loop rejoins the shared clock, and nothing resumes from where it stopped.
+  `useLoops()` keeps the state (lazy, no module-scope side effects), stored in `localStorage`
+  (`basalt-loops`) for this app's origin in this browser and carried across the app's tabs by the
+  `storage` event; the server renders "running". `loopsBootstrap` is a line for the head, beside the
+  theme's, so a stored hold applies before the first frame. This is the mechanism WCAG 2.2.2
+  (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
+  reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
+  **The control is the app's part, built from shipped parts, with no new component:** a
+  pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work,
+  labelled "Pause animations" with a fixed name and `aria-pressed`; the same words as a settings
+  row (the label, the description "Spinners hold still and timers show when work started. Your work
+  keeps running.", and a `Switch` at its end); and a command, "Pause animations", reading "Resume
+  animations" while held. Nothing is announced when the hold changes: the control speaks its own
+  state. **The app's own text is its part too:** while held, an elapsed time shows when the work
+  started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
+  hides while the status word stays; on release the current text is written. A result lands as
+  usual: the word turns to Passed or Failed and a toast speaks once. A column that holds an
+  elapsed time is wide enough for the held form. A step line under a name (a two-line cell) hides
+  with `visibility: hidden` while held, which keeps its box and takes it out of the accessibility
+  tree; on release the current text is written into the same box, so neither the hold nor its
+  release moves a row. (A step line in a column of its own just empties.) A Select's placeholder
+  is `GrayText` in forced colours, as Input's and the Combobox's are, so it never looks like a
+  chosen value. **Braille's size follows its word's cap height:**
+  16 beside 12 to 16px text, 20 beside 18 to 24px, 24 beside 30px and up. In a status the seat is
+  the braille cell's width and the gap equals it (6, 9 and 12px, `size-dot` times 1, 1.5 and 2), so
+  words start at 12, 18 and 24 whichever mark is in the seat; the 6px dot stays 6px and centres in
+  the wider seat on whole pixels (1 + 6 + 2 at 20, 3 + 6 + 3 at 24). The 20 cell (9 by 15) sits in a
+  9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
+  takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
+  size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
+  implementation hasn't been reviewed.
 
 ### Accent classes
 
