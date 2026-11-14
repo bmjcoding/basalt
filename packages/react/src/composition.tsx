@@ -94,3 +94,16 @@ export function Heading({ level = 2, size = "2xl", className, style, ...props }:
 export function InlineCode({ className, ...props }: React.ComponentProps<"code">) {
   return <code {...props} className={join("basalt-inline-code", className)} />;
 }
+
+export interface VisuallyHiddenProps extends React.ComponentProps<"span"> {
+  as?: "span" | "div" | "p";
+}
+
+/**
+ * Text for assistive technology only: it is in the accessibility tree and takes no room on screen (the `.basalt-visually-hidden`
+ * class, which an element can also carry itself). Use it for what the eye gets from layout, such as the word "to" between two
+ * times; never for the only copy of a control's label that sighted people also need.
+ */
+export function VisuallyHidden({ as = "span", className, ...props }: VisuallyHiddenProps) {
+  return React.createElement(as, { ...props, className: join("basalt-visually-hidden", className) });
+}

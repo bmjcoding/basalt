@@ -77,6 +77,20 @@ test("the hold's hook adds nothing to a bundle that does not import it, and is s
   assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), []);
 });
 
+// The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured: useTheme 1,520 bytes,
+// themeBootstrap 296, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above).
+test("the theme's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
+  for (const name of ["Spinner", "Badge", "Button", "Popover", "Menu", "FilterResult", "CommandMenu", "ToastProvider", "useLoops"]) {
+    const { inputs } = await graph(name);
+    assert.deepEqual(inputs.filter((f) => /\/dist\/theme\.js$/.test(f)), [], `${name} loads the theme's state`);
+  }
+  for (const [name, limit] of [["useTheme", 2_000], ["themeBootstrap", 600], ["StatusLine", 1_000], ["VisuallyHidden", 600], ["useMediaQuery", 600]]) {
+    const { bytes, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name} alone: ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), [], `${name} loads more than it is`);
+  }
+});
+
 test("Button alone stays small and pulls in neither Shiki nor other Base UI parts", async () => {
   const { bytes, inputs } = await bundle("Button");
   assert.ok(bytes < 30_000, `Button bundle is ${bytes} bytes`);

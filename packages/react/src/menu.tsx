@@ -6,7 +6,7 @@ import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
-import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PopupActions, Side } from "./types";
+import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 
@@ -52,22 +52,23 @@ export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
   return <BaseMenu.Trigger {...props} className={withClass("basalt-menu-trigger", className)} />;
 }
 
-export interface MenuContentProps extends PartProps<"div"> {
+export interface MenuContentProps extends PartProps<"div">, PlacementProps {
   side?: Side;
   align?: Align;
-  sideOffset?: number;
+  /** Distance from the anchor, in pixels, or a function of the placement. 6 by default. */
+  sideOffset?: PlacementOffset;
   /** Where focus goes on close. By default, back to the trigger. */
   finalFocus?: FocusTarget;
 }
 
 /** The floating panel: portalled, positioned against the trigger, and dismissed on Esc or outside click. */
-export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, className, children, ...props }: MenuContentProps) {
+export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: MenuContentProps) {
   const layer = useFloatingLayer();
   // One level above whatever opened it (floor 1, cap 3); its own submenus go one deeper.
   const level = usePopupLevel();
   return (
     <BaseMenu.Portal>
-      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} style={layer} className="basalt-positioner">
+      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BaseMenu.Popup {...props} data-level={level} className={withClass("basalt-menu", className)}><GlidePlate />{inLevel(level, children)}</BaseMenu.Popup>
       </BaseMenu.Positioner>
     </BaseMenu.Portal>

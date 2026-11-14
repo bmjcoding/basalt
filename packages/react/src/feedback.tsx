@@ -10,7 +10,7 @@ import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
-import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PopupActions, Side } from "./types";
+import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 
 // ---- Textarea ----
@@ -41,7 +41,7 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
 
 // ---- Popover ----
 
-export interface PopoverProps {
+export interface PopoverProps<Payload = unknown> {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
@@ -54,15 +54,34 @@ export interface PopoverProps {
   defaultTriggerId?: string | null;
   /** `true` locks scroll and makes the page inert; `"trap-focus"` traps focus only. Off by default. */
   modal?: boolean | "trap-focus";
-  children?: React.ReactNode;
+  /**
+   * One popover for many triggers: a handle from `createPopoverHandle()`, also given to each `PopoverTrigger`, which may then
+   * sit anywhere, outside this `Popover` too.
+   */
+  handle?: PopoverHandle<Payload>;
+  /** Content, or a function of the open trigger's `payload` (`undefined` while no trigger has opened it). */
+  children?: React.ReactNode | ((arg: { payload: Payload | undefined }) => React.ReactNode);
 }
 
 /** Rich content anchored to a trigger: a short form, details, a confirmation. Esc or an outside click closes it. */
-export function Popover(props: PopoverProps) {
-  return <BasePopover.Root {...props} />;
+export function Popover<Payload = unknown>({ handle, ...props }: PopoverProps<Payload>) {
+  // Our handle is Base UI's, declared with our own type so no declaration of theirs reaches an app.
+  return <BasePopover.Root<Payload> {...props} handle={handle as unknown as BasePopover.Handle<Payload> | undefined} />;
 }
 
-export interface PopoverTriggerProps extends PartProps<"button"> {
+/**
+ * A handle that joins one `Popover` to any number of `PopoverTrigger`s, each with its own `payload`. Make it once, outside
+ * render or in a `useRef`/`useState` initialiser, and pass it as `handle` to the `Popover` and to each trigger.
+ */
+export function createPopoverHandle<Payload = unknown>(): PopoverHandle<Payload> {
+  return BasePopover.createHandle<Payload>() as unknown as PopoverHandle<Payload>;
+}
+
+export interface PopoverTriggerProps<Payload = unknown> extends PartProps<"button"> {
+  /** The popover this trigger opens, when the trigger is not inside it. */
+  handle?: PopoverHandle<Payload>;
+  /** What the popover's content function receives while this trigger has it open. */
+  payload?: Payload;
   nativeButton?: boolean;
   /** Open when hovered, as well as when pressed. */
   openOnHover?: boolean;
@@ -70,26 +89,27 @@ export interface PopoverTriggerProps extends PartProps<"button"> {
   closeDelay?: number;
 }
 
-export function PopoverTrigger({ className, ...props }: PopoverTriggerProps) {
-  return <BasePopover.Trigger {...props} className={withClass("basalt-popover-trigger", className)} />;
+export function PopoverTrigger<Payload = unknown>({ className, handle, ...props }: PopoverTriggerProps<Payload>) {
+  return <BasePopover.Trigger<Payload> {...props} handle={handle as unknown as BasePopover.Handle<Payload> | undefined} className={withClass("basalt-popover-trigger", className)} />;
 }
 
-export interface PopoverContentProps extends PartProps<"div"> {
+export interface PopoverContentProps extends PartProps<"div">, PlacementProps {
   side?: Side;
   align?: Align;
-  sideOffset?: number;
+  /** Distance from the anchor, in pixels, or a function of the placement. 6 by default. */
+  sideOffset?: PlacementOffset;
   /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
   initialFocus?: FocusTarget;
   finalFocus?: FocusTarget;
 }
 
-export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, className, children, ...props }: PopoverContentProps) {
+export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
   // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
     <BasePopover.Portal>
-      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} style={layer} className="basalt-positioner">
+      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{inLevel(level, children)}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>

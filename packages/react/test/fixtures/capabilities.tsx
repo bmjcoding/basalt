@@ -5,8 +5,9 @@ import * as React from "react";
 import {
   Accordion, AlertDialog, Badge, BadgePair, Button, Checkbox, ChoiceCard, ChoiceCardGroup, IconButton, Link, Combobox, Dialog, DialogContent, Field, Form, HomeGlyph, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
   MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
-  TabsList, TabsPanel,
+  TabsList, TabsPanel, GlidePlate, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
 } from "@srasyndicate/basalt";
+import type { CollisionAvoidance, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
 
 const focus = React.createRef<HTMLButtonElement>();
 const popupActions = React.createRef<{ unmount(): void; close(): void }>();
@@ -131,3 +132,52 @@ export const displayStates = (
     <ChoiceCardGroup aria-label="Plan"><ChoiceCard name="plan" value="a" title="Starter" onCheckedChange={(checked) => checked} /></ChoiceCardGroup>
   </>
 );
+
+// Placement: an element, a ref, a virtual anchor or a function; offsets as numbers or functions; collision rules in Base UI's own shapes. Only Basalt's types name them.
+const anchorRef = React.createRef<HTMLDivElement>();
+const virtual: PlacementAnchor = { getBoundingClientRect: () => ({ x: 0, y: 0, width: 10, height: 10, top: 0, right: 10, bottom: 10, left: 0 }) };
+const offset = (data: PlacementData) => (data.side === "top" || data.side === "bottom" ? data.anchor.height : data.anchor.width) + data.positioner.width;
+const avoid: CollisionAvoidance = { side: "shift", align: "shift", fallbackAxisSide: "none" };
+export const placement = (
+  <>
+    <PopoverContent anchor={anchorRef} alignOffset={offset} sideOffset={({ side }) => (side === "top" ? 4 : 8)} collisionAvoidance={avoid} collisionBoundary={{ x: 0, y: 0, width: 100, height: 100 }} collisionPadding={{ top: 8, left: 4 }} sticky />
+    <PopoverContent anchor={virtual} alignOffset={3} collisionBoundary="clipping-ancestors" collisionPadding={12} />
+    <PopoverContent anchor={() => document.body} collisionAvoidance={{ side: "flip", align: "flip" }} />
+    <MenuContent anchor={anchorRef} alignOffset={-4} sideOffset={offset} collisionAvoidance={{ side: "none", align: "none" }} />
+    {/* @ts-expect-error shifting the side axis cannot also flip the alignment axis */}
+    <PopoverContent collisionAvoidance={{ side: "shift", align: "flip" }} />
+  </>
+);
+
+// One popover for many triggers: a handle made by Basalt, a payload on each trigger, content as a function of it.
+const handle: PopoverHandle<{ name: string }> = createPopoverHandle<{ name: string }>();
+export const detached = (
+  <>
+    <PopoverTrigger handle={handle} payload={{ name: "a" }} id="a">A</PopoverTrigger>
+    <Popover handle={handle}>{({ payload }) => <PopoverContent>{payload?.name.toUpperCase()}</PopoverContent>}</Popover>
+    {/* @ts-expect-error the payload is the handle's */}
+    <PopoverTrigger handle={handle} payload={{ title: "b" }}>B</PopoverTrigger>
+    <MenuTrigger>Menu</MenuTrigger>
+  </>
+);
+
+// Small parts: hidden text, the polite status line, the glide's plate, the media hook and the theme.
+export const small = (
+  <>
+    <VisuallyHidden>to</VisuallyHidden>
+    <VisuallyHidden as="div" id="x" />
+    <StatusLine delay={100} sendId={2}>Saved</StatusLine>
+    {/* @ts-expect-error a live region says words */}
+    <StatusLine>{3}</StatusLine>
+    <GlidePlate navigation />
+  </>
+);
+export function Small() {
+  const wide: boolean = useMediaQuery("(min-width: 40rem)");
+  const { theme, choice, setChoice, ready } = useTheme();
+  const next: ThemeChoice = choice === "system" ? "dark" : "system";
+  setChoice(next);
+  // @ts-expect-error a choice is light, dark or system
+  setChoice("auto");
+  return <span data-wide={wide} data-ready={ready} data-script={themeBootstrap.length}>{theme}</span>;
+}

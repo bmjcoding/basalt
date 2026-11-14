@@ -89,3 +89,79 @@ export interface IconGlyphProps {
   "aria-hidden"?: boolean | "true" | "false";
   "aria-label"?: string;
 }
+
+// ---- Placement: what a popup's positioner takes beyond `side` and `align` ----
+
+/** A rectangle in viewport coordinates, as `getBoundingClientRect()` returns it. */
+export interface PlacementRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+/** Something that is not an element but has a place: a popup can be positioned against it. `contextElement` is the element whose scrolling ancestors it follows. */
+export interface VirtualAnchor {
+  getBoundingClientRect(): PlacementRect;
+  getClientRects?: (() => PlacementRect[]) | undefined;
+  contextElement?: Element | undefined;
+}
+
+/** What a popup is positioned against, in place of its trigger: an element, a ref to one, a virtual anchor, or a function that returns one. */
+export type PlacementAnchor = Element | null | VirtualAnchor | React.RefObject<Element | null> | (() => Element | VirtualAnchor | null);
+
+/** What an offset function learns: where the popup is, and the sizes of the anchor and of the popup. */
+export interface PlacementData {
+  readonly side: Side;
+  readonly align: Align;
+  readonly anchor: { readonly width: number; readonly height: number };
+  readonly positioner: { readonly width: number; readonly height: number };
+}
+
+/** A distance in pixels, or a function of the placement that returns one. */
+export type PlacementOffset = number | ((data: PlacementData) => number);
+
+/** What to do about the popup running out of room. `side` is the axis it was asked to sit on; `align` is along it. */
+export type CollisionAvoidance =
+  | { side?: "flip" | "none" | undefined; align?: "flip" | "shift" | "none" | undefined; fallbackAxisSide?: "start" | "end" | "none" | undefined }
+  | { side?: "shift" | "none" | undefined; align?: "shift" | "none" | undefined; fallbackAxisSide?: "start" | "end" | "none" | undefined };
+
+/** The area a popup is kept inside: its clipping ancestors (the default), an element, several elements, or a rectangle. */
+export type CollisionBoundary = "clipping-ancestors" | Element | Element[] | { x: number; y: number; width: number; height: number };
+
+/** Space kept from the boundary's edge: one number, or one per side. */
+export type CollisionPadding = number | { top?: number | undefined; right?: number | undefined; bottom?: number | undefined; left?: number | undefined };
+
+/** Where a popup sits, beyond `side`, `align` and `sideOffset`. Each is optional; left out, the popup is placed as it was. */
+export interface PlacementProps {
+  /** Position against this instead of the trigger. */
+  anchor?: PlacementAnchor;
+  /** Distance along the alignment axis, in pixels, or a function of the placement. */
+  alignOffset?: PlacementOffset;
+  collisionAvoidance?: CollisionAvoidance;
+  collisionBoundary?: CollisionBoundary;
+  /** Space kept from the boundary's edge. Base UI's default is 5. */
+  collisionPadding?: CollisionPadding;
+  /** Keep the popup in view after its anchor has scrolled out of it. */
+  sticky?: boolean;
+}
+
+// ---- Popover handle ----
+
+/**
+ * What `createPopoverHandle()` returns: it joins one `Popover` to triggers rendered anywhere, each with its own `payload`.
+ * Opaque: pass it as `handle` to the `Popover` and to every `PopoverTrigger`. `Payload` is what a trigger carries.
+ */
+export interface PopoverHandle<Payload = unknown> {
+  /** Opens the popover from the trigger with this `id`. Call it from an event handler or an effect, once a `Popover` using this handle is mounted. */
+  open(triggerId: string): void;
+  close(): void;
+  /** False while no `Popover` is mounted with this handle. */
+  readonly isOpen: boolean;
+  /** Type only: what the triggers carry. Never set. */
+  readonly "~payload"?: Payload;
+}

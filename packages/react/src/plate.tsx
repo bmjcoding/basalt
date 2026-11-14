@@ -234,12 +234,19 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   };
 }
 
+export interface GlidePlateProps {
+  /** Lay the glide on a navigation list (`.basalt-nav`, `.basalt-site-links`): it follows the item under the pointer and hides on the first key. */
+  navigation?: boolean;
+  /** Lay the glide on the notification centre's list (`.basalt-notifications-scroll`). */
+  notifications?: boolean;
+}
+
 /**
  * The shared plate of a popup's rows. Render it inside the popup (Menu, Select, Combobox) or the command list, before
  * the rows; with `navigation`, render it as the first child of a navigation list; with `notifications`, in the notification centre's list. It is decoration: hidden from
  * assistive technology, never hit by the pointer, and drawn only when the stylesheet and the input allow it.
  */
-export function GlidePlate({ navigation = false, notifications = false }: { navigation?: boolean; notifications?: boolean }) {
+export function GlidePlate({ navigation = false, notifications = false }: GlidePlateProps) {
   const plate = React.useRef<HTMLSpanElement>(null);
   React.useLayoutEffect(() => (plate.current ? attachPlate(plate.current, navigation ? NAVIGATION : notifications ? NOTIFICATIONS : POPUP) : undefined), [navigation, notifications]);
   return <span ref={plate} aria-hidden="true" className="basalt-plate" data-state="off" />;

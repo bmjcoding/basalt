@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
@@ -727,7 +728,7 @@ describe("compose: what brings the command list, and what --usage prints for it"
   });
 
   test("--usage command-list prints its usage whole and a line for what its script builds", () => {
-    const dir = fs.mkdtempSync(path.join(skillDir, "..", "..", "..", ".review", "skill-parity-9-usage-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "skill-parity-9-usage-"));
     try {
       const r = spawnSync(process.execPath, [path.join(skillDir, "compose.mjs"), "--usage", "core", "command-list"], { cwd: dir, encoding: "utf8" });
       assert.equal(r.status, 0, r.stderr);

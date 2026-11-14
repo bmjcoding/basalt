@@ -27,6 +27,13 @@ const { chromium } = require("playwright");
 const args = process.argv.slice(2);
 const outAt = args.indexOf("--out");
 const out = path.resolve(outAt >= 0 ? args[outAt + 1] : path.join(repo, ".review"));
+// --still: shoot with every transition and animation at zero length and every loop held, so two builds of the same code give the same pixels
+// (tools/review/pixel-proof.mjs compares them). It changes only the tooling's own clock: a shot of a mid-motion state is the end of that motion.
+const still = args.includes("--still");
+const holdStill = async (page) => {
+  await page.addStyleTag({ content: "*, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }" });
+  await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+};
 const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1));
 fs.mkdirSync(out, { recursive: true });
 
@@ -210,6 +217,7 @@ for (const id of rounds) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(url({ theme }));
+    if (still) await holdStill(page);
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(dir, `00-walkthrough-${theme}.png`), fullPage: true });
@@ -255,6 +263,8 @@ for (const id of rounds) {
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
           page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
+          // The states that hold a motion part-way are timed by what they show: they are left running (and say so in the proof).
+          if (still && !/-glide$|-fade$|-opening|^centre-travel|^nav-|^film$|^ghost$/.test(state)) await holdStill(page);
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
           // "forced" is Windows forced-colours mode; a state ending in "-lit" (or "forced") hovers the second row of the first
