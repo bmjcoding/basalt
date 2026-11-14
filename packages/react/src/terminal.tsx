@@ -5,6 +5,7 @@ import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
 import { Icon } from "./icon";
 import { usePanelLevel } from "./layers";
+import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
 
@@ -52,14 +53,8 @@ const MARKS = {
 const REPLAY_WORDS = ["Play", "Pause", "Resume", "Replay"] as const;
 const STREAM_WORDS = ["Pause", "Resume"] as const;
 
-/** Words that change in place stand in one grid cell, so the cell is as wide as the widest and nothing beside it moves. */
-function Reserve({ show, children }: { show: string; children: Record<string, React.ReactNode> }) {
-  return (
-    <span className="basalt-terminal-swap">
-      {Object.entries(children).map(([key, node]) => <span key={key} data-on={key === show ? "" : undefined}>{node}</span>)}
-    </span>
-  );
-}
+/** Words that change in place, in the head's and the buttons' one cell (see `Reserve`). */
+const swap = (show: string, alternatives: Record<string, React.ReactNode>) => <Reserve className="basalt-terminal-swap" show={show} alternatives={alternatives} />;
 
 /**
  * A transcript of a terminal session, a sibling of `CodeBlock` on the same frame (well, level, radius 8, title row and copy
@@ -135,17 +130,15 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     : null;
 
   const failedWord = exitCode === undefined ? "Failed" : `Failed, exit ${exitCode}`;
-  // Every state's words stand in one cell (see Reserve), so the head is as wide as its widest and never moves.
+  // Every state's words stand in one cell (see `Reserve`), so the head is as wide as its widest and never moves.
   const words = state === undefined ? null : (
-    <Reserve show={state}>
-      {{
-        idle: "Not started",
-        running: <><Spinner variant="braille" /><span>Running</span></>,
-        paused: "Paused",
-        done: <><Icon icon={CheckCircleIcon} size={16} className="basalt-terminal-done" /><span>Done</span></>,
-        failed: <><Icon icon={XCircleIcon} size={16} className="basalt-terminal-failed" /><span data-error="">{failedWord}</span></>,
-      }}
-    </Reserve>
+    swap(state, {
+      idle: "Not started",
+      running: <><Spinner variant="braille" /><span>Running</span></>,
+      paused: "Paused",
+      done: <><Icon icon={CheckCircleIcon} size={16} className="basalt-terminal-done" /><span>Done</span></>,
+      failed: <><Icon icon={XCircleIcon} size={16} className="basalt-terminal-failed" /><span data-error="">{failedWord}</span></>,
+    })
   );
 
   return (
@@ -156,14 +149,14 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
           {words ? <span className="basalt-terminal-state" data-state={state}>{words}</span> : null}
           {control ? (
             <Button variant="ghost" size="sm" onClick={control.onClick} disabled={control.disabled}>
-              <Reserve show={control.show}>{Object.fromEntries(control.words.map((word) => [word, word]))}</Reserve>
+              {swap(control.show, Object.fromEntries(control.words.map((word) => [word, word])))}
             </Button>
           ) : null}
           {copyable ? (
             <>
               {/* Wide: the words. Narrow (the terminal's own width, under 30rem): the icon alone, with the same name. */}
               <Button className="basalt-terminal-copy" variant="ghost" size="sm" icon={CopyIcon} onClick={copy} disabled={!commands}>
-                <Reserve show={copied ? "Copied" : "Copy commands"}>{{ "Copy commands": "Copy commands", Copied: "Copied" }}</Reserve>
+                {swap(copied ? "Copied" : "Copy commands", { "Copy commands": "Copy commands", Copied: "Copied" })}
               </Button>
               <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy commands"} onClick={copy} disabled={!commands} />
               <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>

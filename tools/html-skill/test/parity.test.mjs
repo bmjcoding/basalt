@@ -1554,7 +1554,7 @@ const ART = [
 // The combobox is read closed (the field, its placeholder and caret), chosen (a value in it), in focus, open (the popup, the rows, the check, the two-line row, the lit row, the shared
 // plate, the disabled row) and with no match (the empty sentence). The popup's place is read against the field, marked on both pages (the group has no props of its own in React). The
 // sparkline is read with data, with one sample, empty and loading.
-const REST_IMPORTS = `const { Combobox, Sparkline } = B;`;
+const REST_IMPORTS = `const { Combobox, Sparkline, SkipLink } = B;`;
 const CB_OPTIONS = `[{ value: "eu", label: "Frankfurt", description: "eu-central, lowest latency" }, { value: "us", label: "Ashburn" }, { value: "ap", label: "Singapore" }, { value: "gone", label: "Sydney", disabled: true }]`;
 const cbSkill = (inner = "", { chosen = true, attrs = "" } = {}) => `<div class="combobox" data-empty="No options match."><input class="input" aria-label="Region" placeholder="Search regions…"${attrs}><ul><li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li><li data-value="us"${chosen ? ' aria-selected="true"' : ""}>Ashburn</li><li data-value="ap">Singapore</li><li data-value="gone" aria-disabled="true">Sydney</li></ul></div>${inner}`;
 const cbFrame = (inner) => `<div style={{ padding: 16, width: 320 }}>${inner}</div>`;
@@ -1612,7 +1612,39 @@ const SPARK_PAIRS = [
   ["axis's peak", ".basalt-sparkline-axis > :last-child", ".sparkline-axis > :last-child", [...BOXRECT]],
   ["axis's peak, as spoken", ".basalt-sparkline-axis .basalt-visually-hidden", ".sparkline-axis > :last-child", ["plainText"]],
 ];
+const SKIP = [...BOXRECT, "position", "transform", "left", "top", "zIndex", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "borderTopLeftRadius", "backgroundColor", "color", "display", "alignItems", "minHeight",
+  "textDecorationLine", "textDecorationColor", "textUnderlineOffset", "boxSizing", ...TYPE, "fontFamily"];
+const SKIP_REACT = `<><SkipLink target="main" /><main id="main" tabIndex={-1} style={{ height: 120, padding: 16 }}>Synthetic page.</main></>`;
+const SKIP_SKILL = `<a class="skip-link" href="#main">Skip to content</a><main id="main" tabindex="-1" style="height: 120px; padding: 16px">Synthetic page.</main>`;
 const REST = [
+  {
+    id: "skip link, unseen",
+    width: 1440,
+    react: SKIP_REACT,
+    skill: SKIP_SKILL,
+    ready: { react: ".basalt-skip-link", skill: ".skip-link" },
+    pairs: [["the link at rest, above the page", ".basalt-skip-link", ".skip-link", SKIP]],
+  },
+  {
+    id: "skip link, focused",
+    width: 1440,
+    react: SKIP_REACT,
+    skill: SKIP_SKILL,
+    ready: { react: ".basalt-skip-link", skill: ".skip-link" },
+    pairs: [
+      ["the link in focus, at the page's top start", ".basalt-skip-link", ".skip-link", SKIP, { focus: true }],
+      ["its focus ring", ".basalt-skip-link", ".skip-link", [...OUTLINE, "boxShadow"], { focus: true }],
+    ],
+  },
+  {
+    id: "skip link, touch",
+    width: 390,
+    touch: true,
+    react: SKIP_REACT,
+    skill: SKIP_SKILL,
+    ready: { react: ".basalt-skip-link", skill: ".skip-link" },
+    pairs: [["the link in focus on a coarse pointer: 44px tall", ".basalt-skip-link", ".skip-link", SKIP, { focus: true }]],
+  },
   {
     id: "combobox, closed",
     width: 1440,

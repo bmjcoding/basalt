@@ -61,6 +61,8 @@ export type { DescriptionItemProps, DescriptionListProps } from "./description-l
 export { Prose } from "./prose";
 export { ChartGroup, TimeChart } from "./chart";
 export type { ChartGroupProps, ChartKind, ChartPlan, ChartSeries, TimeChartProps } from "./chart";
+export { Reserve } from "./reserve";
+export type { ReserveProps } from "./reserve";
 export { Meter } from "./meter";
 export type { MeterProps } from "./meter";
 export { Stat, Stats, formatStatTime } from "./stat";
@@ -90,6 +92,8 @@ export { Breadcrumbs, Link, Pagination } from "./navigation";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export { Nav, NavGroup, NavItem } from "./nav";
 export type { NavGroupProps, NavItemProps, NavProps } from "./nav";
+export { SkipLink } from "./skip-link";
+export type { SkipLinkProps } from "./skip-link";
 export { SiteHeader } from "./site-header";
 export type { SiteHeaderLink, SiteHeaderProps } from "./site-header";
 export { AppHeader, AppShell } from "./app-shell";

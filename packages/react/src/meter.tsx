@@ -1,6 +1,7 @@
 import { Meter as BaseMeter } from "@base-ui/react/meter";
 import * as React from "react";
 
+import { Reserve } from "./reserve";
 import { join } from "./utils";
 
 export interface MeterProps extends Omit<React.ComponentProps<"div">, "children" | "role"> {
@@ -73,10 +74,16 @@ export function Meter({ label, value, max, min = 0, target, targetLabel = "Targe
       <div className="basalt-meter-head">
         <BaseMeter.Label className="basalt-meter-label">{label}</BaseMeter.Label>
         {/* The reading holds the width of the cap written as the value, so a new value never reflows the label. */}
-        <span className="basalt-meter-reading">
-          <span className="basalt-meter-reserve" aria-hidden="true"><span className="basalt-meter-value">{write(max)}</span> of {cap}</span>
-          <span className="basalt-meter-now"><span className="basalt-meter-value">{write(value)}</span> of {cap}</span>
-        </span>
+        <Reserve
+          className="basalt-meter-reading"
+         
+          show="now"
+          alternativeClassNames={{ reserve: "basalt-meter-reserve", now: "basalt-meter-now" }}
+          alternatives={{
+            reserve: <><span className="basalt-meter-value">{write(max)}</span> of {cap}</>,
+            now: <><span className="basalt-meter-value">{write(value)}</span> of {cap}</>,
+          }}
+        />
       </div>
       <BaseMeter.Track className="basalt-meter-track">
         <BaseMeter.Indicator className="basalt-meter-fill" />

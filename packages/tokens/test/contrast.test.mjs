@@ -426,6 +426,19 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- The skip link (X1): surface-3 under text-primary, over whatever the page draws at its top start ----
+// It sits on the toast layer, over the sticky bar (smoked: the page colour or a little lighter) and over page content on any surface. Its
+// words are primary ink on surface-3, and its ring (the focus colour, 2px at +2) is drawn outside its box, on what is under it and beside it.
+for (const theme of THEMES) {
+  test(`${theme}: the skip link's words hold 4.5:1 on its surface-3 fill, and its ring 3:1 on that fill and on every surface it can lie over`, () => {
+    const fill = color(theme, "surface-3");
+    assert.ok(ratio(over(color(theme, "text-primary"), fill), fill) >= 4.5, `${theme}: primary on surface-3 is ${fmt(ratio(over(color(theme, "text-primary"), fill), fill))}:1`);
+    assert.ok(ratio(over(color(theme, "border-focus"), fill), fill) >= 3, `${theme}: the ring on the link's own fill`);
+    atLeast(theme, "border-focus", 3);
+    // Its underline is the input border colour, a decoration and not the only mark of a link, so it needs no pair of its own: the words are the link.
+  });
+}
+
 test("a toast at level 1 is the same near-black as a level-1 menu, and the same white in light: the rim and the shadow separate them", () => {
   assert.deepEqual(color("dark", "surface-1"), color("dark", "surface-raised"));
   assert.ok(Math.abs(color("dark", "surface-1").r - 10 / 255) < 0.002, "#0a0a0a");
