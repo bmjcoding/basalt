@@ -29,6 +29,30 @@ export function commandFilter(value: string, search: string, keywords?: string[]
 
 const keywordsOf = (command: CommandItem) => (command.description ? [...(command.keywords ?? []), command.description] : command.keywords);
 
+/**
+ * The field names the active option with aria-activedescendant. cmdk sets it once a key has moved the selection, not for the row
+ * it selects on its own first, and after a search it can name a row that has gone, so it is kept in step here: the row that is
+ * lit is the row the field names, at every moment (open, typing, arrowing then typing, clearing). Used by both panels.
+ */
+function useActiveDescendant(list: React.RefObject<HTMLElement | null>, field: React.RefObject<HTMLInputElement | null>) {
+  React.useLayoutEffect(() => {
+    const host = list.current;
+    const input = field.current;
+    if (!host || !input) return undefined;
+    const sync = () => {
+      const id = host.querySelector<HTMLElement>("[cmdk-item][data-selected='true']")?.id;
+      if (!id) input.removeAttribute("aria-activedescendant");
+      else if (input.getAttribute("aria-activedescendant") !== id) input.setAttribute("aria-activedescendant", id);
+    };
+    sync();
+    const changes = new MutationObserver(sync);
+    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
+    // cmdk writes the attribute itself from its own state, a render after the selection moved: put the lit row back if it did.
+    changes.observe(input, { attributes: true, attributeFilter: ["aria-activedescendant"] });
+    return () => changes.disconnect();
+  }, [list, field]);
+}
+
 export interface CommandPanelProps {
   groups: CommandGroup[];
   placeholder: string;
@@ -41,16 +65,19 @@ export interface CommandPanelProps {
 export function CommandPanel({ groups, placeholder, hints, onOpenChange, initialSearch = "" }: CommandPanelProps) {
   const hintId = React.useId();
   const [search, setSearch] = React.useState(initialSearch);
+  const list = React.useRef<HTMLDivElement>(null);
+  const input = React.useRef<HTMLInputElement>(null);
+  useActiveDescendant(list, input);
   // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
   const chipsShow = useShortcutsVisible();
   return (
     <Command label="Command menu" loop filter={commandFilter}>
       <div className="basalt-command-search" data-level={BAND_LEVEL}>
         <Icon icon={MagnifyingGlassIcon} size={16} />
-        <Command.Input className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
+        <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
-      <Command.List className="basalt-command-list" label="Commands">
+      <Command.List ref={list} className="basalt-command-list" label="Commands">
         <GlidePlate />
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
         {groups.map((group) => (
@@ -105,6 +132,11 @@ export interface CommandListPanelProps {
   className?: string;
   /** What was typed into the placeholder search row while this panel loaded. */
   initialSearch?: string;
+  /**
+   * Set (to true) by the placeholder search row as it is replaced if it held keyboard focus. The field takes the focus over, and
+   * clears it, so typing and the arrows go on where they were. Left alone when focus was somewhere else.
+   */
+  focusHandoff?: React.MutableRefObject<boolean>;
 }
 
 type InputKind = "key" | "touch" | "pointer";
@@ -130,7 +162,7 @@ const tokenPx = (el: HTMLElement, name: string, fallback: number) => {
   return Number.isFinite(value) ? value : fallback;
 };
 
-export function CommandListPanel({ groups, label, placeholder, noun, level, bandLevel, onSelect, detail, className, initialSearch = "" }: CommandListPanelProps) {
+export function CommandListPanel({ groups, label, placeholder, noun, level, bandLevel, onSelect, detail, className, initialSearch = "", focusHandoff }: CommandListPanelProps) {
   const ids = { hint: React.useId(), pane: React.useId(), heading: React.useId(), list: React.useId() };
   const [search, setSearch] = React.useState("");
   const [focused, setFocused] = React.useState(false);
@@ -186,22 +218,14 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
     return () => resizes.disconnect();
   }, [groups]);
 
-  // The field names the active option with aria-activedescendant. cmdk sets it once a key has moved the selection, not for the row it
-  // selects on its own first, so it is kept in step here: the row that is lit is the row the field names.
+  useActiveDescendant(list, input);
+
+  // The placeholder row that was typed into is gone, and with it the focus: the field takes it over, but only if the placeholder had it.
   React.useLayoutEffect(() => {
-    const host = list.current;
-    const field = input.current;
-    if (!host || !field) return undefined;
-    const sync = () => {
-      const id = host.querySelector<HTMLElement>("[cmdk-item][data-selected='true']")?.id;
-      if (!id) field.removeAttribute("aria-activedescendant");
-      else if (field.getAttribute("aria-activedescendant") !== id) field.setAttribute("aria-activedescendant", id);
-    };
-    sync();
-    const changes = new MutationObserver(sync);
-    changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
-    return () => changes.disconnect();
-  }, []);
+    if (!focusHandoff?.current) return;
+    focusHandoff.current = false;
+    input.current?.focus({ preventScroll: true });
+  }, [focusHandoff]);
 
   // A list with a preview answers its own width: side by side from the list, the gap and one container breakpoint.
   React.useLayoutEffect(() => {

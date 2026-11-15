@@ -91,6 +91,43 @@ export function useEased(target: number, { growth = "ease", paused = false }: Ea
 }
 
 /**
+ * The same glide for a list of samples (Sparkline's line): each sample that had a place travels to its new value; one with no previous
+ * place is simply there. `paused` holds what is drawn, and resuming continues from it. `snap` lands the new samples at once, for a
+ * change something else is already easing (the line rising out of its loading state). Equivalent samples in a fresh array change
+ * nothing, so a parent that rebuilds its data while the line travels does not restart or stall it. Reduced motion snaps.
+ */
+export function useEasedSamples(target: readonly number[], { paused = false, snap = false }: { paused?: boolean; snap?: boolean } = {}) {
+  const reduced = useReducedMotion();
+  const key = target.join(",");
+  const [value, setValue] = React.useState<readonly number[]>(target);
+  const shown = React.useRef<readonly number[]>(target);
+  const latest = React.useRef({ target, snap });
+  latest.current = { target, snap };
+  React.useEffect(() => {
+    const goal = latest.current.target;
+    const land = () => { shown.current = goal; setValue(goal); };
+    if (shown.current.join(",") === key) return undefined;
+    if (paused) return undefined;
+    if (reduced || latest.current.snap) { land(); return undefined; }
+    const from = shown.current;
+    const { duration, curve } = glideTiming();
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      if (t >= 1) { land(); return; }
+      const eased = bezier(curve, t);
+      shown.current = goal.map((v, i) => (from[i] === undefined ? v : from[i] + (v - from[i]) * eased));
+      setValue(shown.current);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [key, paused, reduced]);
+  return reduced ? target : value;
+}
+
+/**
  * Eases toward `target` over `slow` on `ease-out`, the same motion as everything else that answers a
  * change. Reduced motion snaps. Give screen readers `target`, not this in-between value.
  */

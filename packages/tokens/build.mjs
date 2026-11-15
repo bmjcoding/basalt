@@ -170,7 +170,9 @@ const SHADCN = {
 for (const target of Object.values(SHADCN)) {
   if (!lightNames.includes(`--${PREFIX}-${target}`) && !primitives.some((t) => varName(t.path) === `--${PREFIX}-${target}`)) throw new Error(`shadcn alias target --${PREFIX}-${target} does not exist`);
 }
-const shadcn = [header, "/* Load after tokens.css. */", ":root {", ...Object.entries(SHADCN).map(([k, v]) => `  --${k}: var(--${PREFIX}-${v});`), "}", ""].join("\n");
+// A var() is substituted where it is declared, so the aliases are declared again on every selector that sets a theme: a theme nested
+// below the root then resolves them against its own tokens. At the root the output is the same as before.
+const shadcn = [header, "/* Load after tokens.css. */", ':root, [data-theme="light"], [data-theme="dark"], .light, .dark {', ...Object.entries(SHADCN).map(([k, v]) => `  --${k}: var(--${PREFIX}-${v});`), "}", ""].join("\n");
 
 // The accent classes. A product sets one with data-accent on its root, or none; the rule writes --basalt-accent-ink as a light-dark()
 // pair, so each element picks its own theme's value and a nested theme root needs no restating. Behind @supports, a browser without

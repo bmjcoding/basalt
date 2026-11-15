@@ -2,9 +2,10 @@ import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
-import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./dialog";
+import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogModal, DialogTitle, DialogTrigger } from "./dialog";
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
 import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
+import { useModalOutside } from "./modal-outside";
 import type { PartProps } from "./types";
 import { withClass, withStyle } from "./utils";
 
@@ -32,11 +33,12 @@ export function AlertDialogCancel(props: DialogCloseProps) {
 export function AlertDialogContent({ className, initialFocus, ref, style, children, ...props }: DialogContentProps) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
-  const mergedRef = React.useCallback((node: HTMLDivElement | null) => {
+  const keepRef = React.useCallback((node: HTMLDivElement | null) => {
     popup.current = node;
     if (typeof ref === "function") return ref(node);
     if (ref) ref.current = node;
   }, [ref]);
+  const mergedRef = useModalOutside<HTMLDivElement>(keepRef);
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseAlertDialog.Portal>
@@ -60,13 +62,14 @@ export interface SheetContentProps extends DialogContentProps {
 export { Dialog as Sheet, DialogTrigger as SheetTrigger, DialogTitle as SheetTitle, DialogDescription as SheetDescription, DialogClose as SheetClose, DialogActions as SheetActions };
 
 /** A modal side panel for a task or detail, with native dialog focus and dismissal behaviour. */
-export function SheetContent({ side = "right", className, style, children, ...props }: SheetContentProps) {
+export function SheetContent({ side = "right", className, style, children, ref, ...props }: SheetContentProps) {
   const layer = useModalLayer();
+  const popupRef = useModalOutside<HTMLDivElement>(ref, React.useContext(DialogModal));
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

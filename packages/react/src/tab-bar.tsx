@@ -26,11 +26,19 @@ export interface TabBarProps extends Omit<React.ComponentProps<"nav">, "aria-lab
  * insets in landscape. Not shown from 720 up or in print. Content pads past it by the bar, the inset and `space-6`, and
  * toasts sit above it, when it is a child of `AppShell` (`tabBar`).
  */
-export function TabBar({ "aria-label": label = "Primary", className, children, ...props }: TabBarProps) {
-  const ref = React.useRef<HTMLElement>(null);
-  useKeysMark(ref);
+export function TabBar({ "aria-label": label = "Primary", className, children, ref, ...props }: TabBarProps) {
+  const node = React.useRef<HTMLElement | null>(null);
+  useKeysMark(node);
+  const setRef = React.useCallback(
+    (element: HTMLElement | null) => {
+      node.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = element;
+    },
+    [ref],
+  );
   return (
-    <nav {...props} ref={ref} aria-label={label} className={join("basalt-tabbar", className)}>
+    <nav {...props} ref={setRef} aria-label={label} className={join("basalt-tabbar", className)}>
       <ul className="basalt-tabbar-list">{children}</ul>
     </nav>
   );

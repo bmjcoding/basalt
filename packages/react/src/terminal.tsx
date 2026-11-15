@@ -166,7 +166,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
       </figcaption>
       {/* A scrollable region is reachable by keyboard. It is a log only while lines arrive: never idle, paused or finished. Before the
           first line it is a named group, because a named element with no role and no text is not valid ARIA. */}
-      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" tabIndex={0} role={state === "running" ? "log" : visible.length === 0 ? "group" : undefined} aria-label={`${title}, transcript`}>
+      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" tabIndex={0} role={state === "running" ? "log" : visible.length === 0 ? "group" : "region"} aria-label={`${title}, transcript`}>
         <code className="basalt-code-lines">
           {replay && mode === "idle" && visible.length === 0 ? <span className="basalt-terminal-hint">Press Play to start</span> : null}
           {visible.map((line, i) => {

@@ -630,13 +630,13 @@ const stubClipboard = (page) => page.evaluate(() => { window.copied = []; Object
 const selectAll = (page, selector) => page.evaluate((selector) => { const el = document.querySelector(selector); const range = document.createRange(); range.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(range); return s.toString(); }, selector);
 
 describe("Terminal", () => {
-  test("static by default: a figure with a named pre (tabindex 0), no live region, no role", async () => {
+  test("static by default: a figure with a named pre (tabindex 0), no live region, a region and not a log", async () => {
     const { page } = await fixturePage(browser, STATIC, { theme: "dark" });
     assert.equal(await page.locator("figure.basalt-terminal").count(), 1);
     const pre = page.locator("figure pre");
     assert.equal(await pre.getAttribute("tabindex"), "0");
     assert.equal(await pre.getAttribute("aria-label"), "Deploy and test, transcript");
-    assert.equal(await pre.getAttribute("role"), null);
+    assert.equal(await pre.getAttribute("role"), "region", "a focusable named element has a role (A3-08); it is never a log here");
     assert.equal(await page.locator("[role=log], [aria-live]").count(), 0);
     await page.close();
   });
@@ -839,12 +839,12 @@ describe("Terminal: live", () => {
     await advance(page, 1100);
     assert.equal(await page.locator(".basalt-code-line").count(), 3);
     await page.getByRole("button", { name: "Pause" }).click();
-    assert.equal(await roles(), null, "paused");
+    assert.equal(await roles(), "region", "paused: a named region, not a log");
     await page.getByRole("button", { name: "Resume" }).click();
     assert.equal(await roles(), "log", "resumed");
     await advance(page, 10_000);
     assert.equal(await page.locator(".basalt-code-line").count(), 6);
-    assert.equal(await roles(), null, "finished");
+    assert.equal(await roles(), "region", "finished: a named region, not a log");
     assert.equal(await page.locator("[role=log]").count(), 0);
     assert.ok(await page.getByRole("button", { name: "Replay" }).count());
     await page.close();
@@ -938,13 +938,13 @@ describe("Terminal: live", () => {
     const pre = page.locator("figure pre");
     assert.equal(await pre.getAttribute("role"), "log");
     await page.getByRole("button", { name: "Pause" }).click();
-    assert.equal(await pre.getAttribute("role"), null);
+    assert.equal(await pre.getAttribute("role"), "region");
     await page.getByRole("button", { name: "Resume" }).click();
     assert.equal(await pre.getAttribute("role"), "log");
     assert.deepEqual(await page.evaluate(() => window.app.log), ["pause", "resume"]);
     await page.evaluate(() => { window.app.setN(4); window.app.setStatus("done"); });
     await page.waitForFunction(() => document.querySelector("figure pre").getAttribute("role") !== "log", null, { polling: 20 });
-    assert.equal(await pre.getAttribute("role"), null, "finished");
+    assert.equal(await pre.getAttribute("role"), "region", "finished");
     assert.equal(await page.getByRole("button", { name: "Pause" }).isDisabled(), true, "nothing to pause once done");
     await stubClipboard(page);
     await page.getByRole("button", { name: "Copy commands" }).click();

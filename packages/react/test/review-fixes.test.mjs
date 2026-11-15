@@ -447,16 +447,20 @@ describe("Toast drain and timer", () => {
     return { title: el.querySelector(".basalt-toast-title").textContent, state: getComputedStyle(drain).animationPlayState };
   }));
 
-  test("the first toast after a window blur runs its drain, because its timer runs", async () => {
+  test("the first toast after a window blur holds its drain and its timer together, and both run once the window is active", async () => {
     const { page } = await fixturePage(browser, toasts);
     await page.evaluate(() => window.show("toast"));
-    // While no toast is on screen Base UI is not listening, so this blur never reaches a timer.
+    // The blur comes while no toast is on screen. Basalt's stack watches the window for as long as it is mounted, so the toast that
+    // arrives next starts held: the line and the clock are paused together (A2-07, foundations: "in a blurred window and in a hidden tab").
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
     await page.evaluate(() => window.toast({ title: "First", home: "page", timeout: 700 }));
     const first = page.locator(".basalt-toast-title", { hasText: "First" });
     await first.waitFor();
-    assert.deepEqual(await read(page), [{ title: "First", state: "running" }]);
-    await first.waitFor({ state: "detached", timeout: 3000 });
+    assert.deepEqual(await read(page), [{ title: "First", state: "paused" }]);
+    await page.waitForTimeout(1100);
+    assert.deepEqual(await read(page), [{ title: "First", state: "paused" }], "still on screen after its time, line held");
+    await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+    await first.waitFor({ state: "detached", timeout: 10000 });
     await page.close();
   });
 
