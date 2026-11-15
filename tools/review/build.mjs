@@ -248,7 +248,7 @@ for (const id of rounds) {
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch"), ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch", ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
           if (id === "25") {

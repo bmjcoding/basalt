@@ -70,15 +70,42 @@ export interface TabsListProps extends PartProps<"div"> {
   activateOnFocus?: boolean;
 }
 
-export function TabsList({ className, children, ...props }: TabsListProps) {
+export function TabsList({ className, children, ref, ...props }: TabsListProps) {
   const orientation = React.useContext(TabsOrientation);
+  const list = React.useRef<HTMLDivElement | null>(null);
+  const setRef = React.useCallback(
+    (element: HTMLDivElement | null) => {
+      list.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+    },
+    [ref],
+  );
+  // The underline is placed from a measure of the selected tab, taken when the list or a tab changes size or the tab changes. A
+  // page that flips between left-to-right and right-to-left (a `dir` change) mirrors the tabs without resizing any of them, so
+  // the measure would stay where the tab was: when the direction changes the indicator is mounted again and measures again.
+  const [flips, setFlips] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const element = list.current;
+    if (!element || orientation === "vertical") return undefined;
+    let last = getComputedStyle(element).direction;
+    const read = () => {
+      const now = getComputedStyle(element).direction;
+      if (now === last) return;
+      last = now;
+      setFlips((count) => count + 1);
+    };
+    const observer = new MutationObserver(read);
+    observer.observe(element.ownerDocument, { attributes: true, attributeFilter: ["dir"], subtree: true });
+    return () => observer.disconnect();
+  }, [orientation]);
   return (
-    <BaseTabs.List {...props} className={withClass("basalt-tabs-list", className)}>
+    <BaseTabs.List {...props} ref={setRef} className={withClass("basalt-tabs-list", className)}>
       {/* A vertical list is a column of pills in a track: one pill slides to the chosen tab, as the segmented control's does.
           The horizontal bar's mark is the underline, which slides on its own. */}
       {orientation === "vertical" ? <Pill /> : null}
       {children}
-      {orientation === "vertical" ? null : <BaseTabs.Indicator className="basalt-tabs-indicator" />}
+      {orientation === "vertical" ? null : <BaseTabs.Indicator key={flips} className="basalt-tabs-indicator" />}
     </BaseTabs.List>
   );
 }
