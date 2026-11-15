@@ -6,6 +6,7 @@ import { Button } from "./button";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
 import { Icon } from "./icon";
 import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer, usePanelLevel } from "./layers";
+import { useModalOutside } from "./modal-outside";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
@@ -120,6 +121,7 @@ export function CommandMenu(props: CommandMenuProps) {
 export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", hints = false, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
+  const popupRef = useModalOutside<HTMLDivElement>(popup);
   const loadingId = React.useId();
   // What is typed while the panel loads is kept, and becomes the panel's first search.
   const [early, setEarly] = React.useState("");
@@ -130,7 +132,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
       <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
-          <BaseDialog.Popup ref={popup} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label="Command menu">
+          <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label="Command menu">
             {inLevel(
               MODAL_LEVEL,
               Panel ? (
@@ -217,6 +219,13 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
   const [early, setEarly] = React.useState("");
   const host = React.useRef<HTMLDivElement>(null);
   const loadingId = React.useId();
+  // The placeholder row is replaced when cmdk arrives. If it held focus as it went (React detaches its ref before the node leaves
+  // the document, so activeElement still names it), the panel's field takes focus over; if not, focus is left where it is.
+  const handoff = React.useRef(false);
+  const holdFocus = React.useCallback((element: HTMLInputElement | null) => {
+    if (!element) return undefined;
+    return () => { if (element.ownerDocument.activeElement === element) handoff.current = true; };
+  }, []);
   React.useEffect(() => {
     if (!bindShortcut) return undefined;
     const onKey = (event: KeyboardEvent) => {
@@ -238,7 +247,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
     const ListPanel = state.ListPanel;
     return (
       <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined}>
-        <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} />
+        <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} focusHandoff={handoff} />
       </div>
     );
   }
@@ -249,6 +258,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
           <div className="basalt-command-search" data-level={bandLevel}>
             <Icon icon={MagnifyingGlassIcon} size={16} />
             <input
+              ref={holdFocus}
               className="basalt-command-input"
               placeholder={placeholder}
               aria-label={placeholder}

@@ -310,7 +310,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
         </figcaption>
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
-      <pre className="basalt-code-pre" tabIndex={0} aria-label={title ? `${title} code` : "Code"}>
+      <pre className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
         {lines ? (
           <code data-language={language} className="basalt-code-lines">
             {lines.map((line, i) => (

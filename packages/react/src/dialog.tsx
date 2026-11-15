@@ -2,6 +2,7 @@ import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
 import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
+import { useModalOutside } from "./modal-outside";
 import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { withClass, withStyle } from "./utils";
 
@@ -31,8 +32,15 @@ export interface DialogProps {
  * trigger when it closes; Esc closes it.
  */
 export function Dialog(props: DialogProps) {
-  return <BaseDialog.Root {...props} />;
+  return (
+    <DialogModal.Provider value={props.modal === undefined || props.modal === true}>
+      <BaseDialog.Root {...props} />
+    </DialogModal.Provider>
+  );
 }
+
+/** Whether the dialog above is modal (the default): its content makes what is outside inert only then. */
+export const DialogModal = React.createContext(true);
 
 export interface DialogTriggerProps extends PartProps<"button"> {
   nativeButton?: boolean;
@@ -49,13 +57,14 @@ export interface DialogContentProps extends PartProps<"div"> {
   finalFocus?: FocusTarget;
 }
 
-export function DialogContent({ className, style, children, ...props }: DialogContentProps) {
+export function DialogContent({ className, style, children, ref, ...props }: DialogContentProps) {
   const layer = useModalLayer();
+  const popupRef = useModalOutside<HTMLDivElement>(ref, React.useContext(DialogModal));
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );
