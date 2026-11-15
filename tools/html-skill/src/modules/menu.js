@@ -36,7 +36,7 @@
       it.setAttribute('tabindex', '-1');
       var role = it.getAttribute('role');
       if (role !== 'menuitem' && !it.querySelector('.menu-check')) {
-        it.insertAdjacentHTML('afterbegin', '<span class="menu-check" aria-hidden="true">' + (role === 'menuitemradio' ? '<span class="menu-radio-dot"></span>' : _.icon('Check')) + '</span>');
+        it.insertAdjacentHTML('afterbegin', '<span class="menu-check" aria-hidden="true">' + (role === 'menuitemradio' ? '<span class="menu-radio-dot"></span>' : '%glyph-svg:check%') + '</span>');
       }
     });
     var buffer = '';

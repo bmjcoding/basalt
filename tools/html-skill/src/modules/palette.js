@@ -4,6 +4,8 @@
   var _ = B._;
   var esc = _.esc;
   var icon = _.icon;
+  // The core `search` glyph, drawn once for the palette and the command list (which needs the palette).
+  var SEARCH = _.searchSvg = '%glyph-svg:search%';
   var kbdGroup = _.kbd.kbdGroup;
   var keyshortcuts = _.kbd.keyshortcuts;
   var keywords = _.kbd.keywords;
@@ -149,7 +151,7 @@
     scrim.className = 'scrim palette-scrim';
     scrim.innerHTML =
       '<div class="panel float modal palette" role="dialog" aria-modal="true" aria-label="' + esc(label) + '">' +
-        '<div class="input-row">' + icon('MagnifyingGlass') +
+        '<div class="input-row">' + SEARCH +
           '<input type="text" role="combobox" aria-expanded="true" aria-controls="' + id + '-list" aria-autocomplete="list" aria-label="' + esc(label) +
           '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(o.placeholder || 'Type a command or search') + '">' +
         '</div>' +

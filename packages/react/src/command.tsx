@@ -1,7 +1,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
 import { Icon } from "./icon";
@@ -157,7 +157,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                 // The ring is for a wait that runs long: it sits in a slot at the row's end that the ready row also keeps
                 // (empty), so the input is the same width before and after and nothing moves when loading ends.
                 <div className="basalt-command-search" data-level={BAND_LEVEL}>
-                  <Icon icon={MagnifyingGlassIcon} size={16} />
+                  <Icon icon={SearchGlyph} size={16} />
                   <input
                     className="basalt-command-input"
                     placeholder={placeholder}
@@ -256,7 +256,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
       <div className={join("basalt-command-split", className)}>
         <div className="basalt-command basalt-command-page" data-level={level} role="region" aria-label={label} aria-busy={state.status === "loading" || undefined}>
           <div className="basalt-command-search" data-level={bandLevel}>
-            <Icon icon={MagnifyingGlassIcon} size={16} />
+            <Icon icon={SearchGlyph} size={16} />
             <input
               ref={holdFocus}
               className="basalt-command-input"

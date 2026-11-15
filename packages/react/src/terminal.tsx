@@ -1,6 +1,8 @@
-import { CheckCircleIcon, CheckIcon, CopyIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { CopyGlyph } from "./glyphs/copy";
 import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
 import { Icon } from "./icon";
@@ -155,10 +157,10 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
           {copyable ? (
             <>
               {/* Wide: the words. Narrow (the terminal's own width, under 30rem): the icon alone, with the same name. */}
-              <Button className="basalt-terminal-copy" variant="ghost" size="sm" icon={CopyIcon} onClick={copy} disabled={!commands}>
+              <Button className="basalt-terminal-copy" variant="ghost" size="sm" icon={CopyGlyph} onClick={copy} disabled={!commands}>
                 {swap(copied ? "Copied" : "Copy commands", { "Copy commands": "Copy commands", Copied: "Copied" })}
               </Button>
-              <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy commands"} onClick={copy} disabled={!commands} />
+              <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckGlyph : CopyGlyph} label={copied ? "Copied" : "Copy commands"} onClick={copy} disabled={!commands} />
               <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
             </>
           ) : null}

@@ -3,9 +3,12 @@ import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
 import { Form as BaseForm } from "@base-ui/react/form";
 import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import { Slider as BaseSlider } from "@base-ui/react/slider";
-import { CaretUpDownIcon, CheckIcon, MinusIcon, PlusIcon } from "@phosphor-icons/react";
+import { CaretUpDownIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { MinusGlyph } from "./glyphs/minus";
+import { PlusGlyph } from "./glyphs/plus";
 import { IconButton, type ControlSize } from "./button";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
@@ -127,7 +130,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
             <BaseCombobox.List>
               {(value: string) => (
                 <BaseCombobox.Item key={value} value={value} disabled={byValue.get(value)?.disabled} data-described={byValue.get(value)?.description ? "" : undefined} data-lead="" className="basalt-menu-item">
-                  <span className="basalt-menu-check"><BaseCombobox.ItemIndicator className="basalt-select-check"><Icon icon={CheckIcon} size={16} /></BaseCombobox.ItemIndicator></span>
+                  <span className="basalt-menu-check"><BaseCombobox.ItemIndicator className="basalt-select-check"><Icon icon={CheckGlyph} size={16} /></BaseCombobox.ItemIndicator></span>
                   <span className="basalt-menu-item-label">{byValue.get(value)?.label ?? value}</span>
                   {byValue.get(value)?.description ? <span className="basalt-menu-item-description">{byValue.get(value)?.description}</span> : null}
                 </BaseCombobox.Item>
@@ -177,9 +180,9 @@ export function NumberField({ controlSize = "md", className, inputProps, "aria-l
   return (
     <BaseNumberField.Root {...props} className={withClass("basalt-number", className)}>
       <BaseNumberField.Group className="basalt-number-group">
-        <BaseNumberField.Decrement aria-label={decrementLabel} render={<IconButton icon={MinusIcon} label={decrementLabel} size={controlSize} />} />
+        <BaseNumberField.Decrement aria-label={decrementLabel} render={<IconButton icon={MinusGlyph} label={decrementLabel} size={controlSize} />} />
         <BaseNumberField.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} className="basalt-input basalt-number-input" data-size={controlSize} />
-        <BaseNumberField.Increment aria-label={incrementLabel} render={<IconButton icon={PlusIcon} label={incrementLabel} size={controlSize} />} />
+        <BaseNumberField.Increment aria-label={incrementLabel} render={<IconButton icon={PlusGlyph} label={incrementLabel} size={controlSize} />} />
       </BaseNumberField.Group>
     </BaseNumberField.Root>
   );

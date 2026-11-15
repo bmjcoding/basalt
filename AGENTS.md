@@ -87,16 +87,26 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   side of a numeric column); the whole header cell is the sort button (−2 inset focus, hover lifts the label and shows the
   caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
   `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
-  is never covered. Pages set `scrollbar-gutter: stable`.
+  is never covered. Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
+  it is cut it is a focus stop, and on hover or focus its whole value opens in place on a level-3 plate (WCAG 1.4.13: Esc, hoverable,
+  persistent; never past the viewport); after Esc the cell shows its own −2 ring. A column of one fixed form (a date, a time, a status)
+  is sized for its longest form under WCAG 1.4.12 spacing, and so is a header's label for its column (a sortable header is its own
+  button and opens no plate).
 - **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade), checkboxes
   in a labelled group; seven or more values, or a toolbar, are a trigger and a checklist, by count and never viewport.
   Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
+- **The skip link and the required mark:** a focused skip link hangs under a sticky bar, `space-2` below its line, on the brand's start
+  edge, floating (level 3, the rim, `shadow-overlay`, radius 8). A required field shows "Required" directly after its label in tertiary
+  at `text-xs`, hidden from assistive technology; "Optional" only where an author marks it; never an asterisk.
+- **A `NumberTicker`** draws its digits and never selects them; the number is in the sentence's flow under them, transparent, and is
+  what a selection paints and copies, once, on the sentence's line. Under reduced motion and in forced colours the digits do not roll: the number is plain text.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
   hairline, a check, or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows, choice cards and pressed toggle buttons). **There is no vertical bar and no inset outline
   anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
-  flush-field −2 inset (so does a phone tab bar cell, which is itself a link), and these structural vertical lines, each
+  flush-field −2 inset (so does a phone tab bar cell, which is itself a link, and so does a cut cell of a still table, which is a
+  focus stop and shows its own ring after Esc has closed its plate), and these structural vertical lines, each
   named and never a selection, sort, active or status mark: the 1px divider at a pinned table column's edge while the table
   is scrolled, the app sidebar's 1px edge, and a meter's labelled target tick. The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
@@ -123,7 +133,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
   reduced motion and in forced colours. Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density. Text entry is 16px on touch.
+  targets stay at least 44px whatever the density. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  touch, and a `Link` on a line of its own has a 44px hit box with no change to layout; a link in a sentence keeps its line.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
   light.
 - **Styling comes from tokens.** No raw colours in component CSS. Lengths come from
@@ -134,7 +145,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Icons:** the core set on the web (`@srasyndicate/basalt`, one module per glyph: 2.25 units
   on 24 at every size, an opening at rest that selected closes and fills, morphs only between rest
   and selected, within a rotation group, and the four drawn pairs), and Phosphor Bold at 16, 20
-  and 24 for the long tail; Fill only on a selected glyph marked `fillSafe`. Danger is XCircle.
+  and 24 for what the core set does not draw (a component never draws Phosphor's version of a core glyph: check, close, the
+  chevrons, copy, plus, minus and search are the core's; the key glyphs ⌘ ⌥ ⌃ stay Phosphor's); Fill only on a selected glyph
+  marked `fillSafe`. Danger is XCircle.
   Navigation glyphs in a sidebar or rail are primary at rest; every other icon is secondary at
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts

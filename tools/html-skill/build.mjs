@@ -193,7 +193,15 @@ function glyphData() {
   }
   return out;
 }
-const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
+/**
+ * `%glyph-svg:name%` in a module's script is the whole SVG of a core glyph at rest, 16px: exactly what the glyph module's `Basalt._.glyph(name)` returns, written in at
+ * build time from the drawn set. A module that draws a core glyph itself (the menu's check, the copy button's copy) uses it, so the page carries that one drawing and not the glyph module.
+ */
+const glyphSvg = (name) => {
+  if (!GLYPHS[name] || GLYPHS[name].board) throw new Error(`html-skill: "${name}" is not a core glyph the page can draw`);
+  return `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" focusable="false">${glyphMarkup(name, false)}</svg>`;
+};
+const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {

@@ -17,3 +17,4 @@ The page's one blurred (smoked) surface; it falls back to opaque on its own.
 - Only primary and secondary text goes on it; no danger button.
 - Don't restyle it, and don't put a second blurred layer on the page.
 - `data-solid` is its opaque form.
+- The skip link finds the first `.topbar` or `.app-header` when it takes focus, and again on scroll, and sits 8px under its real bottom edge (a notice above the bar is cleared).

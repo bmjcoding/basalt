@@ -47,6 +47,13 @@ for (const theme of THEMES) {
     for (const t of ["text-primary", "text-secondary", "text-tertiary", "status-danger"]) atLeast(theme, t, 4.5);
   });
 
+  // DECISIONS 138 and 139: a required field's "Required" and "Optional" are tertiary text-xs on the level a field sits on (0 to 3), and a cut cell's
+  // plate and the focused skip link are level 3 with primary ink.
+  test(`${theme}: the necessity word (tertiary) holds 4.5:1 on levels 0 to 3, and the cell plate and skip link's primary ink holds on level 3`, () => {
+    atLeast(theme, "text-tertiary", 4.5, LEVELS.map((s) => [s, color(theme, s)]));
+    atLeast(theme, "text-primary", 4.5, [["surface-3", color(theme, "surface-3")]]);
+  });
+
   test(`${theme}: every syntax colour, including comments, meets 4.5:1 on every surface`, () => {
     for (const t of ["keyword", "string", "constant", "function", "comment"]) atLeast(theme, `syntax-${t}`, 4.5);
   });

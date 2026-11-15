@@ -81,8 +81,31 @@ public struct BasaltCallout<Actions: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .padding(Basalt.Space.s4)
-    .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.lg))
-    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderHairline.color))
+    // Radius 8, as the web callout and foundations have it. Success, warning and danger draw their rim in the status colour at 45%
+    // mixed in sRGB over the callout's own level (surfaceRaised), one solid colour on every side; info keeps the neutral hairline.
+    .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.md))
+    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.md).strokeBorder(rim))
+  }
+
+  private var rim: Color {
+    guard let rim = status.rim else { return Basalt.Colors.borderHairline.color }
+    return rim.color
+  }
+}
+
+extension BasaltStatus {
+  /// The callout's rim: the status colour at 45% mixed in sRGB over the callout's own level, in each appearance. Info has none (it
+  /// keeps the neutral rim), and a toast takes neither.
+  var rim: Basalt.ThemedColor? {
+    let base = Basalt.Colors.surfaceRaised
+    let status: Basalt.ThemedColor
+    switch self {
+    case .info: return nil
+    case .success: status = Basalt.Colors.statusSuccess
+    case .warning: status = Basalt.Colors.statusWarning
+    case .danger: status = Basalt.Colors.statusDanger
+    }
+    return status.mixed(over: base, amount: 0.45)
   }
 }
 

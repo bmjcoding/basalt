@@ -41,9 +41,12 @@ function TickerBody({ value, shown, format, className, glide }: NumberTickerProp
   const spoken = show(value);
   return (
     <span className={join("basalt-ticker", className)} data-glide={glide ? "" : undefined}>
-      {/* The real number, always in the text: read aloud, copied, found. Hidden while the strip is drawn;
-          under reduced motion it is what shows, in place of the strip. */}
-      <span className="basalt-ticker-text basalt-visually-hidden">{spoken}</span>
+      {/* The real number, once, first in the flow of the sentence: transparent and selectable, in a box with no width that its text overflows, under the
+          strips that follow. A selection paints the sentence's own band through it and copies the number once, on the sentence's line, by every route
+          that reads a selection (Copy, drag, Services, assistive technology, `Selection.toString()`). Read aloud, and found. Under reduced motion the
+          strips go and it is the visible text. */}
+      <span className="basalt-ticker-text">{spoken}</span>
+      {/* The digits are drawn, never selected: the strips are unselectable. */}
       <span aria-hidden="true" className="basalt-ticker-visual">
         {Array.from(text).map((character, index) =>
           TICKER_DIGITS.includes(character) ? (

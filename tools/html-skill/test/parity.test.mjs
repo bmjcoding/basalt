@@ -1603,7 +1603,7 @@ const SPARK_PAIRS = [
   ["head", ".basalt-sparkline-head", ".sparkline-head", [...BOXRECT, "display", "justifyContent", "columnGap"]],
   ["label", ".basalt-sparkline-label", ".sparkline-label", [...BOXRECT, ...TYPE, "color", "fontFamily"]],
   ["value", ".basalt-ticker", ".sparkline-value", [...BOXRECT, "display", "alignItems", ...TYPE, "color", "fontVariantNumeric", "fontKerning"]],
-  ["value, as spoken", ".basalt-ticker-text", ".sparkline-value > .visually-hidden", ["plainText", "position", "boxWidth", "boxHeight"]],
+  ["value, as spoken", ".basalt-ticker-text", ".sparkline-value > .sparkline-text", ["plainText", "position", "boxWidth", "boxHeight"]],
   ["value's digits", ".basalt-ticker-digit", ".sparkline-value [data-d]", ["rectLeft", "rectTop", "boxHeight", "display", "overflowX", "lineHeight"]],
   ["image", ".basalt-sparkline svg", ".sparkline svg", [...BOXRECT, "color", "ariaLabel", "role", "attrViewBox"]],
   ["line", ".basalt-sparkline-line", ".sparkline-line", ["attrPoints", "fill", "stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin"]],

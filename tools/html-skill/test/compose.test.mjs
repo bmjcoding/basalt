@@ -95,7 +95,8 @@ describe("what a body gets", () => {
     assert.deepEqual(used("<p>A sortable table, a still table, a filter, a chip and a result line are words here.</p>"), []);
     const filter = compose('<div class="filter" data-label="Status"></div>', { fonts: false });
     for (const name of ["plus", "check"]) assert.ok(filter.glyphs.includes(name), `a filter draws the ${name} glyph, so the page carries it`);
-    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(filter.icons.includes(name), `and the ${name} icon`);
+    // DECISIONS 138 and 139 (E2): the trigger's chevron and the band's search are the core glyphs, written into the module; the Phosphor icons are not on the page.
+    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(!filter.icons.includes(name), `the ${name} icon is not carried: the core glyph draws it`);
     const still = compose("<table data-fixed><tr><td>x</td></tr></table>", { fonts: false });
     for (const name of ["arrow-up", "arrow-down"]) assert.ok(still.glyphs.includes(name), `a still table draws the ${name} glyph`);
     assert.ok(still.icons.includes("CaretUpDown"));
@@ -299,7 +300,7 @@ describe("the command line", () => {
       const r = run(["p.body.html", "--no-fonts"], dir);
       assert.equal(r.status, 0, r.stderr);
       const lines = r.stdout.trim().split("\n");
-      assert.match(lines[0], /^p\.html: [\d.]+ KB, core \+ callout, copy; icons: Check, X$/);
+      assert.match(lines[0], /^p\.html: [\d.]+ KB, core \+ callout, copy; icons: none$/);
       const wanted = ["callout", "copy"].map((n) => `  ${n}: ${indexLines(skill).find((l) => l.name === n).warning}`);
       assert.deepEqual(lines.slice(2), wanted, "one line for each module, in the page's order");
       assert.deepEqual(run(["p.body.html", "--no-fonts"], dir).stdout, r.stdout, "the same input gives the same output");

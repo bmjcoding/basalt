@@ -5,6 +5,7 @@
   var _ = B._;
   var esc = _.esc;
   var icon = _.icon;
+  var COPY = '%glyph-svg:copy%';
 
   var MARKS = { done: ['CheckCircle', 'Done'], warning: ['Warning', 'Warning'], error: ['XCircle', 'Error'] };
 
@@ -50,8 +51,8 @@
       actions += '<button type="button" class="btn terminal-control" data-variant="ghost" data-size="sm">' + swap('Play', words(['Play', 'Pause', 'Resume', 'Replay'])) + '</button>';
     }
     var copyDisabled = commands ? '' : ' disabled';
-    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm"' + copyDisabled + '>' + icon('Copy') + swap('Copy commands', words(['Copy commands', 'Copied'])) + '</button>' +
-      '<button type="button" class="btn terminal-copy-compact" data-variant="ghost" data-size="sm" data-icon-only aria-label="Copy commands"' + copyDisabled + '>' + icon('Copy') + '</button>' +
+    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm"' + copyDisabled + '>' + COPY + swap('Copy commands', words(['Copy commands', 'Copied'])) + '</button>' +
+      '<button type="button" class="btn terminal-copy-compact" data-variant="ghost" data-size="sm" data-icon-only aria-label="Copy commands"' + copyDisabled + '>' + COPY + '</button>' +
       '<span class="visually-hidden" role="status"></span>';
     head.classList.add('code-head');
     head.innerHTML = '<span class="terminal-title">' + esc(title) + '</span><span class="terminal-actions">' + actions + '</span>';
@@ -114,11 +115,11 @@
       B.copyText(commands).then(function (ok) {
         if (!ok) return;
         show(copyEl, 'Copied', ['Copy commands', 'Copied']);
-        compact.innerHTML = icon('Check');
+        compact.innerHTML = '%glyph-svg:check%';
         compact.setAttribute('aria-label', 'Copied');
         live.textContent = 'Copied';
         clearTimeout(reset);
-        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = icon('Copy'); compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, 1500);
+        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, 1500);
       });
     }
     root.querySelector('.terminal-copy').addEventListener('click', copy);

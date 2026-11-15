@@ -29,7 +29,7 @@ describe("NumberTicker", () => {
     const seen = await page.evaluate(() => window.seen);
     assert.ok(seen.some((v) => !Number.isInteger(v) && v > 0 && v < 1.25), `the formatter only saw ${seen.slice(0, 6)}`);
     const digits = await page.locator(".basalt-ticker").evaluate((el) => ({
-      spoken: el.querySelector(".basalt-visually-hidden").textContent,
+      spoken: el.querySelector(".basalt-ticker-text").textContent,
       selected: [...el.querySelectorAll(".basalt-ticker-digit")].map((d) => d.style.getPropertyValue("--_d")),
     }));
     assert.deepEqual(digits, { spoken: "1.25", selected: ["1", "2", "5"] });
@@ -41,7 +41,7 @@ describe("NumberTicker", () => {
     await page.evaluate(() => window.show("decimals", { value: 0 }));
     await page.evaluate(() => window.show("decimals", { value: 1234.5 }));
     await page.waitForTimeout(1500);
-    assert.equal(await page.locator(".basalt-ticker .basalt-visually-hidden").textContent(), "1,234.5");
+    assert.equal(await page.locator(".basalt-ticker .basalt-ticker-text").textContent(), "1,234.5");
     const shown = await page.locator(".basalt-ticker-visual").evaluate((el) => [...el.children].map((c) => c.classList.contains("basalt-ticker-char") ? c.textContent : c.querySelector(".basalt-ticker-strip").parentElement.style.getPropertyValue("--_d")).join(""));
     assert.equal(shown, "1,2345".replace("1,2345", "1,234.5"));
     await page.close();

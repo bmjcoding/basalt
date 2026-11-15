@@ -1,7 +1,8 @@
 import { Toast as BaseToast } from "@base-ui/react/toast";
-import { CheckCircleIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CloseGlyph } from "./glyphs/close";
 import { Icon } from "./icon";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
@@ -457,7 +458,7 @@ function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManag
         </div>
         {toast.actionProps ? <BaseToast.Action className="basalt-button basalt-toast-action" data-variant="secondary" data-size="xs" /> : null}
         <BaseToast.Close className="basalt-button basalt-toast-close" data-variant="ghost" data-size="xs" data-icon-only="" aria-label="Dismiss">
-          <Icon icon={XIcon} size={16} />
+          <Icon icon={CloseGlyph} size={16} />
         </BaseToast.Close>
       </BaseToast.Content>
     </BaseToast.Root>

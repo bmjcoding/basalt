@@ -65,23 +65,29 @@ describe("SkipLink", () => {
   const where = (page) => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.className || document.activeElement.tagName));
 
   for (const theme of THEMES) {
-    test(`the first tab stop: unseen at rest, then at the page's top start in the skill's own fill and ink (${theme})`, async () => {
+    // DECISIONS 138 and 139 (B3): with a sticky bar the focused skip link hangs under the bar, space-2 below its line, on the brand's start edge,
+    // floating with the rim, shadow-overlay and radius 8. It was at the page's top start, over the bar, with radius 6 and no rim or shadow.
+    test(`the first tab stop: unseen at rest, then under the bar on the brand's start edge in the skill's own fill and ink (${theme})`, async () => {
       const page = await open(site(SKIP), { theme });
       const link = page.locator(".basalt-skip-link");
-      // At rest it is above the page, wholly: nothing of it is on screen, and it is a link by name.
-      assert.ok((await box(page, ".basalt-skip-link")).bottom <= 0, "unseen: it sits above the top of the page");
-      assert.equal(await css(page, ".basalt-skip-link", "position"), "absolute", "out of the flow");
+      // At rest it is clipped away: nothing of it is seen, and it is a link by name.
+      assert.notEqual(await css(page, ".basalt-skip-link", "clipPath"), "none", "unseen: it is clipped until it has focus");
+      assert.equal(await css(page, ".basalt-skip-link", "position"), "fixed", "out of the flow, fixed under the bar");
       assert.equal(await page.getByRole("link", { name: "Skip to content" }).count(), 1, "named, and found by its role");
       const mainTop = (await box(page, "#main")).y;
       await page.keyboard.press("Tab");
       assert.equal(await where(page), "basalt-skip-link", "the first Tab lands on it, before the bar's brand");
       const shown = await box(page, ".basalt-skip-link");
-      near(shown.x, 8, "space-2 from the start");
-      near(shown.y, 8, "space-2 from the top");
+      const bar = await box(page, ".basalt-site-header");
+      const brandMark = await box(page, ".basalt-site-brand-mark");
+      near(shown.x, brandMark.x, "on the brand's start edge");
+      near(shown.y, bar.bottom + 8, "space-2 below the bar's line");
       assert.equal(await css(page, ".basalt-skip-link", "transform"), "none");
       assert.equal(await css(page, ".basalt-skip-link", "backgroundColor"), await resolve(page, "var(--basalt-surface-3)"), "the fill is surface-3");
       assert.equal(await css(page, ".basalt-skip-link", "color"), await resolve(page, "var(--basalt-text-primary)", "color"), "the ink is primary");
-      assert.equal(await css(page, ".basalt-skip-link", "borderTopLeftRadius"), await resolve(page, "var(--basalt-radius-sm)", "borderTopLeftRadius"), "radius sm");
+      assert.equal(await css(page, ".basalt-skip-link", "borderTopLeftRadius"), await resolve(page, "var(--basalt-radius-md)", "borderTopLeftRadius"), "radius 8");
+      assert.notEqual(await css(page, ".basalt-skip-link", "boxShadow"), "none", "shadow-overlay: it floats");
+      assert.equal(await css(page, ".basalt-skip-link", "borderTopWidth"), "1px", "the rim");
       assert.equal(await css(page, ".basalt-skip-link", "zIndex"), (await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--basalt-layer-toast"))).trim(), "the layer of a toast, over the bar");
       assert.equal(await css(page, ".basalt-skip-link", "outlineStyle"), "solid", "keyboard focus draws the ring");
       assert.equal(await css(page, ".basalt-skip-link", "outlineWidth"), "2px");
@@ -89,7 +95,7 @@ describe("SkipLink", () => {
       near((await box(page, "#main")).y, mainTop, "showing it moves nothing", 0.01);
       await page.keyboard.press("Shift+Tab");
       await page.evaluate(() => document.activeElement?.blur());
-      assert.ok((await box(page, ".basalt-skip-link")).bottom <= 0, "unseen again when focus leaves");
+      assert.notEqual(await css(page, ".basalt-skip-link", "clipPath"), "none", "unseen again when focus leaves");
       assert.deepEqual(page.errors, []);
       await page.close();
     });
@@ -165,7 +171,7 @@ describe("SkipLink", () => {
       const page = await open(site(SKIP), { theme, forcedColors: "active" });
       await page.keyboard.press("Tab");
       const shown = await box(page, ".basalt-skip-link");
-      near(shown.x, 8, "still at the top start");
+      near(shown.x, (await box(page, ".basalt-site-brand-mark")).x, "still on the brand's start edge");
       const fill = await css(page, ".basalt-skip-link", "backgroundColor");
       const ink = await css(page, ".basalt-skip-link", "color");
       assert.notEqual(fill, "rgba(0, 0, 0, 0)", "it keeps a fill, so the bar's words never run into it");
@@ -183,17 +189,15 @@ describe("SkipLink", () => {
     await page.close();
   });
 
-  // In focus, over the bar, it covers part of the bar's brand link (the skill's decided place: the top start, over everything). axe's
-  // target-size rule (WCAG 2.5.8) reads that overlap as a fault at 390, where the brand starts at the gutter under the link. So the bar's
-  // page is checked in full at rest and in focus without that one rule, and the link itself in full in focus on a page with no bar under it.
-  // The overlap is reported to the council; the test does not hide it: it is measured below.
+  // In focus it hangs under the bar (DECISIONS 138 and 139, B3), so it covers nothing in the bar and axe's target-size rule (WCAG 2.5.8) has
+  // nothing to report at 390: the page is checked in full at rest and in focus, and the link itself on a page with no bar.
   for (const [width, label] of [[1440, "1440"], [390, "390"]]) {
     for (const theme of THEMES) {
       test(`axe: clean at rest, and in focus (${theme}, ${label})`, async () => {
         const page = await open(site(SKIP), { theme, width, height: 800 });
         assert.deepEqual(await axe(page), []);
         await page.keyboard.press("Tab");
-        assert.deepEqual((await axe(page)).filter((v) => !v.startsWith("target-size: .basalt-site-brand")), []);
+        assert.deepEqual(await axe(page), []);
         await page.close();
         const bare = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div>${SKIP}<main id="main" tabIndex={-1}><h1>Synthetic page</h1><p>Words.</p></main></div>);`, { theme, width, height: 800 });
         await bare.keyboard.press("Tab");
@@ -203,12 +207,13 @@ describe("SkipLink", () => {
     }
   }
 
-  test("in focus at 390 it lies over the start of the bar's brand link (the overlap axe's target-size rule reports)", async () => {
+  test("in focus at 390 it lies under the bar and overlaps nothing in it (it overlapped the brand link by 3,175px² before B3)", async () => {
     const page = await open(site(SKIP), { width: 390, height: 844 });
     await page.keyboard.press("Tab");
     const skip = await box(page, ".basalt-skip-link");
     const brand = await box(page, ".basalt-site-brand");
-    assert.ok(skip.x < brand.right && skip.right > brand.x && skip.y < brand.bottom && skip.bottom > brand.y, "the boxes overlap");
+    assert.ok(!(skip.x < brand.right && skip.right > brand.x && skip.y < brand.bottom && skip.bottom > brand.y), "the boxes do not overlap");
+    near(skip.x, 16, "on the brand's start edge, the 16px gutter at 390");
     await page.close();
   });
 });

@@ -111,7 +111,7 @@
     } else {
       root.setAttribute('data-popup', '');
       var searchable = opts.length >= SEARCH_FROM;
-      shell.trigger = el('button', 'btn filter-trigger', { type: 'button', popovertarget: id.pop }, '<span class="filter-trigger-label-wrap"><span class="filter-trigger-label"></span> <span class="filter-trigger-value"></span></span>' + _.icon('CaretDown'));
+      shell.trigger = el('button', 'btn filter-trigger', { type: 'button', popovertarget: id.pop }, '<span class="filter-trigger-label-wrap"><span class="filter-trigger-label"></span> <span class="filter-trigger-value"></span></span>' + '%glyph-svg:chevron-down%');
       shell.trigger.querySelector('.filter-trigger-label').textContent = label;
       shell.value = shell.trigger.querySelector('.filter-trigger-value');
       var pop = el('div', 'panel float filter-popup', { popover: '', id: id.pop, role: 'dialog', 'aria-labelledby': id.label, tabindex: '-1' });
@@ -120,7 +120,7 @@
       pop.appendChild(el('span', 'visually-hidden', { id: id.label })).textContent = label;
       var band = null;
       if (searchable) {
-        var strip = el('div', 'filter-band', null, _.icon('MagnifyingGlass'));
+        var strip = el('div', 'filter-band', null, '%glyph-svg:search%');
         band = strip.appendChild(el('input', 'filter-band-input', { type: 'text', role: 'searchbox', 'aria-label': 'Search ' + noun, 'aria-controls': id.rows, placeholder: 'Search ' + noun, autocomplete: 'off', autocorrect: 'off', spellcheck: 'false' }));
         pop.appendChild(strip);
       }
