@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { useEased } from "./motion";
+import { useEased, useEasedSamples, useReducedMotion } from "./motion";
 import { NumberTicker } from "./number-ticker";
 import { join } from "./utils";
 
@@ -43,8 +43,15 @@ export function Sparkline({ data, loading = false, paused = false, label, empty 
   const ceiling = useEased(peak, { growth: "snap", paused });
   const progress = useEased(loading ? 0 : 1, { paused });
   const latest = data.at(-1) ?? 0;
+  // The headline is part of the morph: while paused it keeps the value it had, so it never says a number the held line does not reach.
+  // Reduced motion snaps everything, so it follows the data.
+  const held = React.useRef(latest);
+  const reduced = useReducedMotion();
+  if (!paused || reduced) held.current = latest;
   const quiet = !loading && data.length === 0;
-  const samples = data.length ? data : [0, 0];
+  // The line's samples glide with the scale, and hold with it while paused. While the line is rising out of its loading state the
+  // `progress` ease is already carrying that move, so the new samples land at once instead of easing twice.
+  const samples = useEasedSamples(data.length ? data : [0, 0], { paused, snap: loading || progress < 1 });
   const points = samples
     .map((value, index) => {
       const x = samples.length === 1 ? WIDTH / 2 : (index / (samples.length - 1)) * WIDTH;
@@ -57,7 +64,7 @@ export function Sparkline({ data, loading = false, paused = false, label, empty 
     <div className={join("basalt-sparkline", className)} data-loading={loading ? "" : undefined} data-empty={quiet ? "" : undefined}>
       <div className="basalt-sparkline-head">
         <span className="basalt-sparkline-label">{label}</span>
-        {data.length ? <NumberTicker glide value={latest} /> : null}
+        {data.length ? <NumberTicker glide value={paused ? held.current : latest} /> : null}
       </div>
       {quiet ? (
         <p className="basalt-sparkline-empty">{empty}</p>

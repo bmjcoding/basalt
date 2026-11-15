@@ -300,7 +300,12 @@ export function TimeChart({
     plan?.values.forEach((p) => { if (p == null) return; if (typeof p === "number") numbers.push(p); else numbers.push(p[0], p[1]); });
     return scaleOf(numbers, bar, fromZero, step);
   }, [series, plan, bar, fromZero, step]);
-  const targetSnap = React.useMemo(() => snapshotOf(series, plan, target, n), [series, plan, target, n]);
+  const nextSnap = React.useMemo(() => snapshotOf(series, plan, target, n), [series, plan, target, n]);
+  // A render that supplies the same numbers in fresh arrays keeps the snapshot it already had, so the glide's effect is not torn
+  // down (and its frame cancelled) by a parent that rebuilds its props while the marks travel.
+  const heldSnap = React.useRef(nextSnap);
+  if (heldSnap.current !== nextSnap && !sameSnapshot(heldSnap.current, nextSnap)) heldSnap.current = nextSnap;
+  const targetSnap = heldSnap.current;
 
   // ---- The glide: a value that changes in place travels with the scale; a new range fades in ----
   const [motion, setMotion] = React.useState<{ from: Snapshot; progress: number } | null>(null);
@@ -828,11 +833,14 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
       const v = main[i];
       if (v == null) continue;
       const bx = Math.round(L.cx(i) - bw / 2);
-      const topY = Math.round(L.y(v));
+      // A bar runs from the zero baseline to its value: up for a positive one, down for a negative one, square at both ends.
+      const endY = Math.round(L.y(v));
+      const topY = Math.min(endY, base);
+      const run = Math.abs(base - endY);
       if (i === partial) {
         const inset = m.line / 2;
-        push(<rect key={`bar${i}`} className="basalt-chart-bar" data-so-far="" x={bx + inset} y={topY + inset} width={Math.max(bw - 2 * inset, 0)} height={Math.max(base - topY - 2 * inset, 0)} />);
-      } else if (base - topY > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" x={bx} y={topY} width={bw} height={base - topY} />);
+        push(<rect key={`bar${i}`} className="basalt-chart-bar" data-so-far="" x={bx + inset} y={topY + inset} width={Math.max(bw - 2 * inset, 0)} height={Math.max(run - 2 * inset, 0)} />);
+      } else if (run > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" x={bx} y={topY} width={bw} height={run} />);
     }
     // The cut is drawn only where the bar runs on past it, so a bar's end is never hidden.
     for (let i = 0; i < n; i++) {
@@ -840,11 +848,13 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
       const v = main[i];
       if (pl == null || v == null) continue;
       const P = Math.round(L.y(pl));
-      const T = Math.round(L.y(v));
+      const end = Math.round(L.y(v));
+      const T = Math.min(end, base);
+      const B = Math.max(end, base);
       const half = m.line / 2;
       const bx = Math.round(L.cx(i) - bw / 2);
-      if (T <= P - half - m.cut - 2) push(<rect key={`cu${i}`} className="basalt-chart-cut" x={bx} y={P - half - m.cut} width={bw} height={m.cut} />);
-      if (T <= P - half && base > P + half + m.cut) push(<rect key={`cd${i}`} className="basalt-chart-cut" x={bx} y={P + half} width={bw} height={m.cut} />);
+      if (T <= P - half - m.cut - 2 && B >= P - half) push(<rect key={`cu${i}`} className="basalt-chart-cut" x={bx} y={P - half - m.cut} width={bw} height={m.cut} />);
+      if (T <= P - half && B > P + half + m.cut) push(<rect key={`cd${i}`} className="basalt-chart-cut" x={bx} y={P + half} width={bw} height={m.cut} />);
     }
   }
   if (plan?.kind === "value") {
