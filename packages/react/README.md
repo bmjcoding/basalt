@@ -66,7 +66,7 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `CommandMenu` | ⌘K: `groups` of `{ id, label, icon?, description?, shortcut?, keywords?, onSelect }`; you bind the shortcut. A `description` is a second line, and is searched below the label. |
 | `CommandList` | The same panel set in the page (no dialog): a level-1 panel whose field keeps focus, with a count in its foot. `label` names it; `detail={(command) => pane}` adds a preview beside the list (a push under 816px); `bindShortcut` gives it ⌘K. One command surface per page owns ⌘K. |
 | `Textarea` | Multi-line Field control; controlled or uncontrolled, with the field's label, validation and disabled state. |
-| `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverTitle`, `PopoverDescription`, `PopoverClose` | Anchored details or a short form; Esc returns focus. |
+| `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverTitle`, `PopoverDescription`, `PopoverClose` | Anchored details or a short form; Esc returns focus. `PopoverContent` and `MenuContent` take placement props, and one `Popover` can serve many triggers: see [Placement, one popover for many triggers and small parts](#placement-one-popover-for-many-triggers-and-small-parts). |
 | `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Success, warning and danger draw a 45% status rim over a neutral fill. Set `live` only when it appears in response to something. |
 | `Progress` | Required `label`; `value={null}` for an indeterminate task. |
 | `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default) and `braille`. `glide` eases a ticker toward its value over `slow`. Honour reduced motion. |
@@ -74,6 +74,33 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `CodeBlock` | `code`, optional `language`, `title`, `copyable`. Language-aware syntax; exact-text copying and keyboard scrolling. Each language loads on first use: plain text first, colour moments later. For highlighted server-rendered HTML, `await preloadCodeLanguages(["ts", "bash"])` before rendering. |
 | `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. |
 | `Icon`, `Kbd` | `Kbd` draws one chip per key from a string (`"⌘K"`), with ⌘ ⌥ ⌃ as Phosphor icons; show real shortcuts only. `Icon` draws a core glyph (`HomeGlyph`, one module each, 2.25 units on 24 at every size; `selected` closes its opening and fills) or a long-tail Phosphor icon in Bold at 16, 20 and 24 (Fill only when `selected` and `fillSafe`). Every `icon` prop takes any component that accepts `size` and `weight` (the core glyphs and Phosphor's do), and Basalt's declarations name no icon or primitive package. |
+
+## Placement, one popover for many triggers and small parts
+
+None of these changes how anything looks: each is an option Base UI already had, opened up, with Basalt's own types.
+
+**Placement props** on `PopoverContent` and `MenuContent`, each optional. Left out, a popup is placed as before: against its trigger, `side="bottom"`, `align="start"`, `sideOffset` 6, flipped and shifted to stay 5px inside the viewport.
+
+| Prop | What it does |
+|---|---|
+| `anchor` | Position against this instead of the trigger: an element, a ref (`{ current }`), a `VirtualAnchor` (`{ getBoundingClientRect, contextElement? }`) or a function that returns one. |
+| `sideOffset`, `alignOffset` | Pixels from the anchor, and along the alignment axis. A number, or a function of a `PlacementData` (`{ side, align, anchor: { width, height }, positioner: { width, height } }`) that returns one. `sideOffset` is still 6 when left out; `alignOffset` is 0 (a submenu keeps Base UI's own). |
+| `collisionAvoidance` | `{ side?: "flip" \| "shift" \| "none", align?: "flip" \| "shift" \| "none", fallbackAxisSide?: "start" \| "end" \| "none" }`. With `side: "shift"`, `align` is `"shift"` or `"none"`. |
+| `collisionBoundary` | The area the popup is kept in: `"clipping-ancestors"` (the default), an element, an array of elements, or `{ x, y, width, height }`. |
+| `collisionPadding` | Space kept from the boundary's edge: a number, or `{ top?, right?, bottom?, left? }`. 5 when left out. |
+| `sticky` | Keep the popup in view after its anchor has scrolled out of it. |
+
+**One popover, many triggers.** `createPopoverHandle<Payload>()` makes a `PopoverHandle<Payload>` (opaque: `open(triggerId)`, `close()` and `isOpen`). Give it as `handle` to the `Popover` and to each `PopoverTrigger`, which may then sit anywhere on the page. A trigger's `payload` is what the popover's children receive while that trigger has it open: `<Popover handle={handle}>{({ payload }) => <PopoverContent>…</PopoverContent>}</Popover>`; `payload` is `undefined` until a trigger has opened it. Make the handle once (outside render, or in a `useState` initialiser). `triggerId` and `defaultTriggerId` still work on a popover with triggers inside it.
+
+| Export | What it is |
+|---|---|
+| `VisuallyHidden` | Text for assistive technology only, in the class `.basalt-visually-hidden` (an element can carry the class itself). A `span`; `as="div"` or `"p"` for another. In the accessibility tree, no room on screen: use it for what layout says to the eye (the "to" between two times), never for the only copy of a label sighted people need. |
+| `StatusLine` | A polite status line that is heard and not seen: a visually hidden `role="status"`, `aria-live="polite"`, `aria-atomic="true"` region that says its text (`children`, a string) once it has held still for `delay` ms (400). Send the same text again by changing `sendId` (a counter): the line is emptied for the `delay`, then filled, so the DOM changes and a screen reader says it again. Text present when it mounts is not announced. `FilterResult` is the same line beside its visible text. |
+| `GlidePlate` | The one plate that glides between a popup's rows. Render it first inside a `.basalt-menu` or `.basalt-command-list`; `navigation` lays it on a `.basalt-nav` or `.basalt-site-links`, `notifications` on `.basalt-notifications-scroll`. It is decoration, and it draws only where the stylesheet and the input allow it. |
+| `useMediaQuery(query)` | Whether a media query matches, live. `false` for the server render and a hydrating page's first render. |
+| `useTheme()`, `themeBootstrap` | The page's theme, on the pattern of `useLoops` and `loopsBootstrap`. See below. |
+
+**The theme.** `useTheme()` returns `{ theme, choice, setChoice, ready }`: `theme` is `"light"` or `"dark"`, what the stylesheet is showing; `choice` is `"light"`, `"dark"` or `"system"` (no stored value); `setChoice(choice)` stores it and writes `data-theme` on `<html>`; `"system"` removes the stored value. While the choice is `system` the theme follows the device's colour scheme as it changes, and a change made in another tab arrives by the `storage` event. The key is `basalt-theme` with the values `light` and `dark`: the same as the HTML skill's, so a React app and a skill page on one origin agree (anything else stored counts as `system`, as it does there). **Before the client knows the theme** (a server render, and the first render of a hydrating page) it returns `{ theme: "light", choice: "system", ready: false }`, the stylesheet's own default with no `data-theme`, so the first render is the same on both; the real values follow at once with `ready: true`. Hold back a control that would flash the wrong choice until `ready`. With storage blocked, the choice lasts for the page. Nothing runs at import: the listeners are installed by the first `useTheme()` and removed with the last. Put the head script in the document so the theme applies before the first frame, the way `loopsBootstrap` does: `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`. It applies the stored choice, else the system's, exactly as the skill's head snippet does for the theme (the skill's goes on to restore the keyboard hint; this one does not). Basalt draws no toggle: the control is the app's.
 
 ## Forms and tasks
 
