@@ -166,6 +166,11 @@ const MAX_MORPH_LENGTH = 200;
 export interface TextMorphProps {
   /** The full string. Shared letters stay; only the changed glyphs animate. */
   text: string;
+  /**
+   * What assistive technology reads when `text` changes, once, if that should say more than the glyphs show ("Step 2 of 3:
+   * Details" for "Details"). It is spoken from the live region only, so nothing extra is drawn. `text` is read when omitted.
+   */
+  label?: string;
   className?: string;
 }
 
@@ -176,7 +181,7 @@ export interface TextMorphProps {
  * The visual glyphs are hidden from assistive technology. One polite live
  * region carries the whole string, once.
  */
-export function TextMorph({ text, className }: TextMorphProps) {
+export function TextMorph({ text, label, className }: TextMorphProps) {
   const reduced = useReducedMotion();
   const host = React.useRef<HTMLSpanElement>(null);
   const shown = React.useRef(text);
@@ -278,7 +283,7 @@ export function TextMorph({ text, className }: TextMorphProps) {
           : text}
       </span>
       <span className="basalt-visually-hidden" aria-live="polite">
-        {text}
+        {label ?? text}
       </span>
     </span>
   );

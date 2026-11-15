@@ -55,13 +55,13 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Text`, `Heading`, `InlineCode` | Token type scale; Heading's semantic `level` is independent of visual `size`. |
 | `Avatar`, `Separator`, `EmptyState` | Named image/initials, semantic division and next-step guidance for empty views. |
 | `Badge` | Neutral pill; `status` adds a dot (success, warning, danger, accent, pending, or `"neutral"` by name). No `status` is the word alone; a running badge (a braille `Spinner` first) draws no dot. The label says the status in words. In forced colours every dot is a disc in the system colour of where it sits. |
-| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | `CardTitle` is an `h3`; give it `level` (2 to 6) to put the card in the page's outline where it belongs. The size and weight stay the same at every level. |
 | `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals, end-aligned with their header; `mono` cells for IDs and hashes. Give `TableContainer` a `label` ("Runs table"): while the table is wider than its box the container is a keyboard stop with that name as a `region`, so the hidden columns can be scrolled to without a pointer (an `aria-label` or `aria-labelledby` works too; with neither it is still a stop but has no role). On touch a lone checkbox or link in a cell has a 44px hit box. |
 | `Tooltip`, `TooltipProvider` | Supplements a name with a linked accessible description; never replaces a label. |
 | `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
 | `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. |
-| `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, home?, group?, running? })`, then `update(id, patch)`, `close(id)` or `promise(work, { running, success, error })`. A toast stays until dismissed unless it names a `home` for what it says (`"centre"`, `"row"`, `"key"` or `"page"`; an action needs one that is not the page), and then it closes after 5s. Level 1, three deep, danger announced assertively. |
+| `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, home?, group?, running? })`, then `update(id, patch)`, `close(id)` or `promise(work, { running, success, error })`. A toast stays until dismissed unless it names a `home` for what it says (`"centre"`, `"row"`, `"key"` or `"page"`; an action needs one that is not the page), and then it closes after 5s. Level 1, three deep, danger announced assertively. A toast with an `action` is announced with one more sentence: "Undo is available. Press F6 to reach it." (F6 moves to the stack's named region, where the action is a stop.) Pass `actionWords={(label) => string}` to `ToastProvider` to say it in another language or other words; a toast with no action says nothing extra. Nothing extra is drawn, and it is said once. |
 | `NotificationCentre` | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, status?, unread?, href? }`), "Mark all as read" and "View all". Presentational: you own the entries, their read state and the page. |
 | `CommandMenu` | ⌘K: `groups` of `{ id, label, icon?, description?, shortcut?, keywords?, onSelect }`; you bind the shortcut. A `description` is a second line, and is searched below the label. |
 | `CommandList` | The same panel set in the page (no dialog): a level-1 panel whose field keeps focus, with a count in its foot. `label` names it; `detail={(command) => pane}` adds a preview beside the list (a push under 816px); `bindShortcut` gives it ⌘K. One command surface per page owns ⌘K. |
@@ -70,10 +70,41 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Callout` | Persistent inline information; `status`, `title`, optional `actions`. Success, warning and danger draw a 45% status rim over a neutral fill. Set `live` only when it appears in response to something. |
 | `Progress` | Required `label`; `value={null}` for an indeterminate task. |
 | `Spinner`, `Skeleton`, `NumberTicker` | Loading and rolling tabular digits. Spinner variants: `ring` (default) and `braille`. `glide` eases a ticker toward its value over `slow`. Honour reduced motion. |
-| `MorphIcon`, `TextMorph`, `Sparkline`, `Stepper`, `LivePreview`, `TravelSpinner` | Motion primitives. `Sparkline` is a line and its latest value, not a charting component. See [docs/motion.md](../../docs/motion.md). |
+| `MorphIcon`, `TextMorph`, `Sparkline`, `Stepper`, `LivePreview`, `TravelSpinner` | Motion primitives. `Sparkline` is a line and its latest value, not a charting component. See [docs/motion.md](../../docs/motion.md). `TextMorph`'s `label` is what a screen reader hears when `text` changes, if that should say more than the glyphs show; nothing extra is drawn. `Stepper` is a `group` named "Steps" (`label` sets the name), and the step's name is read with where the user is: "Step 2 of 3: Review", once, when it changes. `positionLabel={(step, total) => string}` sets those words for another language. |
 | `CodeBlock` | `code`, optional `language`, `title`, `copyable`. Language-aware syntax; exact-text copying and keyboard scrolling. Each language loads on first use: plain text first, colour moments later. For highlighted server-rendered HTML, `await preloadCodeLanguages(["ts", "bash"])` before rendering. |
-| `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. |
+| `Accordion`, `AccordionItem` | Secondary detail; keyboard operated, with coordinated panel and caret motion. An item's header is an `h3`; `headingLevel` (2 to 6) sets its level in the page's outline, and it draws the same at every level. |
+| `Toolbar`, `ToolbarButton`, `ToolbarIconButton`, `ToolbarLink`, `ToolbarInput`, `ToolbarGroup`, `ToolbarSeparator` | One tab stop for a row (or column) of controls, as the WAI-ARIA toolbar pattern describes: the arrow keys along its `orientation` move between the controls and wrap (`loopFocus={false}` stops at the ends), Home and End go to the first and last, and in a right-to-left page the arrows follow the page. See [Toolbar](#toolbar). |
 | `Icon`, `Kbd` | `Kbd` draws one chip per key from a string (`"⌘K"`), with ⌘ ⌥ ⌃ as Phosphor icons; show real shortcuts only. `Icon` draws a core glyph (`HomeGlyph`, one module each, 2.25 units on 24 at every size; `selected` closes its opening and fills) or a long-tail Phosphor icon in Bold at 16, 20 and 24 (Fill only when `selected` and `fillSafe`). Every `icon` prop takes any component that accepts `size` and `weight` (the core glyphs and Phosphor's do), and Basalt's declarations name no icon or primitive package. |
+
+## Toolbar
+
+A toolbar draws nothing. It has no class that styles anything: no gap, no separator look, no padding. Lay it out with your own class, as you would a plain `div`. `ToolbarButton`, `ToolbarIconButton`, `ToolbarLink` and `ToolbarInput` are Basalt's `Button`, `IconButton`, `Link` and `Input` with the same props and the same look, plus a place in the toolbar's arrow keys; a `Button` in a toolbar is the `Button` outside one.
+
+```tsx
+<Toolbar aria-label="Formatting" className="my-row">
+  <ToolbarButton variant="ghost" icon={TextBIcon}>Bold</ToolbarButton>
+  <ToolbarIconButton icon={LinkIcon} label="Link" />
+  <ToolbarGroup aria-label="Alignment">…</ToolbarGroup>
+  <ToolbarSeparator />
+  <Menu>
+    <MenuTrigger render={<ToolbarButton iconEnd={CaretDownIcon}>Format</ToolbarButton>} />
+    <MenuContent>…</MenuContent>
+  </Menu>
+  <Popover>
+    <PopoverTrigger render={<ToolbarIconButton icon={InfoIcon} label="Details" />} />
+    <PopoverContent>…</PopoverContent>
+  </Popover>
+</Toolbar>
+```
+
+- **Name it.** Give `Toolbar` an `aria-label` (or `aria-labelledby`); a group inside it is named the same way when it is more than layout.
+- **Orientation is what is drawn.** `orientation` is `"horizontal"` (the default: Left and Right) or `"vertical"` (Up and Down), and it must be true of the layout. A toolbar whose controls wrap into a grid is not one orientation: the arrow keys cannot follow rows and columns, so keep a toolbar to one row or one column, or make each row its own toolbar.
+- **Only controls.** Put controls in a toolbar and nothing a user cannot focus: a line of help text or a status belongs outside it, or in a `ToolbarGroup`'s label.
+- **Disabled.** A disabled control stays in the arrow order, can take focus and says it is disabled (`aria-disabled`), so a keyboard user finds it and can read why. `focusableWhenDisabled={false}` takes it out of the order. `disabled` on `Toolbar` or `ToolbarGroup` disables the buttons and inputs inside. It does not disable a `ToolbarLink`: Base UI's links have no disabled state, so a link in a disabled toolbar still navigates (leave it out, or render it as text, while the toolbar is disabled).
+- **A menu or popover** opened from a control keeps the arrow keys, Home and End to itself while it is open, and focus returns to the control when it closes. Make the trigger the toolbar control: `<MenuTrigger render={<ToolbarButton>…</ToolbarButton>} />`. In a vertical toolbar a menu button of that toolbar does not open on Up or Down (those walk past it); Enter, Space and a click open it.
+- **A text field** keeps Home, End and the arrows for its caret; the arrow leaves it only at the edge of its text.
+- **`ToolbarSeparator`** is a separator for assistive technology and draws nothing. Give it your own class to draw one: how a separator looks is not decided in Basalt.
+- Direction is read from the page (`dir`) at every key, so a right-to-left toolbar walks the way it is drawn, even if the page's direction changes while focus is inside. A toolbar nested in another keeps its own keys.
 
 ## Placement, one popover for many triggers and small parts
 

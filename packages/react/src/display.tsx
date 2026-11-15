@@ -101,8 +101,13 @@ export function CardHeader({ className, ...props }: React.ComponentProps<"div">)
   return <div {...props} className={join("basalt-card-header", className)} />;
 }
 
-export function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
-  return <h3 {...props} className={join("basalt-card-title", className)} />;
+export interface CardTitleProps extends React.ComponentProps<"h3"> {
+  /** The title's heading level in the page outline, 3 by default; its size stays the same at every level. */
+  level?: 2 | 3 | 4 | 5 | 6;
+}
+
+export function CardTitle({ level = 3, className, ...props }: CardTitleProps) {
+  return React.createElement(`h${level}`, { ...props, className: join("basalt-card-title", className) });
 }
 
 export function CardDescription({ className, ...props }: React.ComponentProps<"p">) {

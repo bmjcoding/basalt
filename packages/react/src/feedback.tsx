@@ -359,13 +359,15 @@ export interface AccordionItemProps extends Omit<PartProps<"div", "title">, "chi
   onOpenChange?: (open: boolean, details: ChangeDetails) => void;
   /** The always-visible header. */
   title: React.ReactNode;
+  /** The header's heading level in the page outline, 3 by default; its size stays the same at every level. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   children: React.ReactNode;
 }
 
-export function AccordionItem({ title, children, className, ...props }: AccordionItemProps) {
+export function AccordionItem({ title, headingLevel = 3, children, className, ...props }: AccordionItemProps) {
   return (
     <BaseAccordion.Item {...props} className={withClass("basalt-accordion-item", className)}>
-      <BaseAccordion.Header className="basalt-accordion-header">
+      <BaseAccordion.Header className="basalt-accordion-header" render={headingLevel === 3 ? undefined : React.createElement(`h${headingLevel}`)}>
         <BaseAccordion.Trigger className="basalt-accordion-trigger">
           <span>{title}</span>
           <Icon icon={CaretDownIcon} size={16} className="basalt-accordion-caret" />

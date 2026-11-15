@@ -38,7 +38,7 @@ export {
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgePairProps, BadgeProps, BadgeStatus, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
 export { MultiSelect } from "./filter";
 export type { MultiSelectOption, MultiSelectProps } from "./filter";
 export { FilterResult, StatusLine } from "./filter-result";
@@ -48,7 +48,7 @@ export type { KbdProps } from "./kbd";
 export { Checkbox, Radio, RadioGroup, Select, Switch } from "./choice";
 export type { CheckboxProps, RadioGroupProps, RadioProps, SelectOption, SelectProps, SwitchProps } from "./choice";
 export { ToastProvider, useToast } from "./toast";
-export type { ToastAction, ToastApi, ToastHome, ToastOptions, ToastPromiseOptions, ToastStatus, ToastUpdate } from "./toast";
+export type { ToastAction, ToastApi, ToastHome, ToastProviderProps, ToastOptions, ToastPromiseOptions, ToastStatus, ToastUpdate } from "./toast";
 export { NotificationCentre } from "./notifications";
 export type { NotificationCentreProps, NotificationEntry } from "./notifications";
 export { CommandList, CommandMenu } from "./command";
@@ -116,3 +116,5 @@ export { Stage, PairedArt } from "./stage";
 export type { PairedArtProps, StageProps } from "./stage";
 export { FramedArt } from "./framed-art";
 export type { FramedArtAspect, FramedArtProps } from "./framed-art";
+export { Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "./toolbar";
+export type { ToolbarButtonProps, ToolbarGroupProps, ToolbarIconButtonProps, ToolbarInputProps, ToolbarProps, ToolbarSeparatorProps } from "./toolbar";
