@@ -5,7 +5,7 @@ import * as React from "react";
 import {
   Accordion, AlertDialog, Badge, BadgePair, Button, Checkbox, ChoiceCard, ChoiceCardGroup, IconButton, Link, Combobox, Dialog, DialogContent, Field, Form, HomeGlyph, Menu, MenuContent, MenuRadioGroup, MenuRadioItem,
   MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
-  TabsList, TabsPanel, GlidePlate, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
+  TabsList, TabsPanel, GlidePlate, Reserve, SkipLink, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
 } from "@srasyndicate/basalt";
 import type { CollisionAvoidance, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
 
@@ -181,3 +181,22 @@ export function Small() {
   setChoice("auto");
   return <span data-wide={wide} data-ready={ready} data-script={themeBootstrap.length}>{theme}</span>;
 }
+
+// A skip link and reserved room: the target is required; the words, anchor props and the reserved wordings are the app's.
+export const skipAndReserve = (
+  <>
+    <SkipLink target="main" />
+    <SkipLink target="#main" className="mine" data-x="1" onClick={(event) => event.currentTarget.href}>Passer au contenu</SkipLink>
+    {/* @ts-expect-error the target is required */}
+    <SkipLink />
+    {/* href is the target's: it is built from it */}
+    {/* @ts-expect-error */}
+    <SkipLink target="main" href="#other" />
+    <Reserve show="a" alternatives={{ a: "Save", b: <b>Saved</b> }} />
+    <Reserve show="a" alternativeClassNames={{ a: "x" }} className="y" id="z" alternatives={{ a: 1, b: null }} />
+    {/* @ts-expect-error the alternatives are listed by the caller */}
+    <Reserve show="a" />
+    {/* @ts-expect-error show names a wording: a string */}
+    <Reserve show={1} alternatives={{ a: "x" }} />
+  </>
+);

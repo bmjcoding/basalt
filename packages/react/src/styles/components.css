@@ -106,6 +106,13 @@
     display: block;
   }
 
+  /* Reserve: every wording a piece of text can take stands in one grid cell, so the cell is as large as the largest and nothing beside
+     it moves. The ones not shown are unseen: the component also marks them aria-hidden and inert, and visibility: hidden keeps them out
+     of a selection and of find-in-page. */
+  .basalt-reserve { display: inline-grid; }
+  .basalt-reserve > * { grid-area: 1 / 1; }
+  .basalt-reserve > :not([data-on]) { visibility: hidden; }
+
   .basalt-button,
   .basalt-input,
   .basalt-menu-item,
@@ -899,10 +906,46 @@
     :root:has(.basalt-tabbar) { scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
   /* A page with a bar keeps its scrollbar's room (a filter that shortens the page must not widen it) and scrolls anchors
-     and focus clear of the sticky bar. */
-  :root:has(.basalt-site-header, .basalt-app-header) {
+     and focus clear of the sticky bar. A page that draws its own bar marks it `.basalt-sticky-bar` and gets the same: the offset is
+     --basalt-sticky-offset (the bar's height plus the top safe area; a bar that is not 56 high sets that one property on the root)
+     and the step is space-4. */
+  :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) {
     scrollbar-gutter: stable;
     scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+  }
+  /* What sits in the bar sits inside that scroll padding, so focusing it (a Tab into the bar from a scrolled page) would scroll the page
+     until it cleared the padding. A scroll margin as negative as the padding is deep keeps what is in the bar where it is; an anchor
+     still lands at the padding, because only the things in the bar take the margin. The app sidebar is not in this rule: it scrolls
+     its own list, and a margin this deep could hide a row that scroll should have brought into view. */
+  :is(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) * {
+    scroll-margin-top: calc(-1 * (var(--basalt-sticky-offset) + var(--basalt-space-4)));
+  }
+
+  /* The skip link: the first element of the page, unseen until it has focus, then at the page's top start over everything (the layer of a
+     toast). 44px tall under a coarse pointer, and not drawn in print. The look of the HTML skill's `.skip-link`, link underline included. */
+  .basalt-skip-link {
+    box-sizing: border-box;
+    position: absolute;
+    inset-inline-start: var(--basalt-space-2);
+    top: var(--basalt-space-2);
+    transform: translateY(-200%);
+    padding: var(--basalt-space-2) var(--basalt-space-3);
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-3);
+    color: var(--basalt-text-primary);
+    z-index: var(--basalt-layer-toast);
+    text-decoration: underline;
+    text-decoration-color: var(--basalt-border-input);
+    text-underline-offset: var(--basalt-size-underline-offset);
+  }
+  .basalt-skip-link:hover { text-decoration-color: currentColor; }
+  .basalt-skip-link:focus { transform: none; }
+  .basalt-skip-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse) {
+    .basalt-skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
+  }
+  @media print {
+    .basalt-skip-link { display: none; }
   }
 
   /* The opaque form of the bar: the same bar without the layer, for a product whose content does not scroll under it. */
@@ -2802,9 +2845,7 @@
   .basalt-meter-head, .basalt-meter-foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); min-width: 0; }
   .basalt-meter-label { min-width: 0; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   /* The reading holds the width of the cap written as the value, so a new value never reflows the label. */
-  .basalt-meter-reading { flex: none; display: inline-grid; justify-items: end; color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .basalt-meter-reading > * { grid-area: 1 / 1; }
-  .basalt-meter-reserve { visibility: hidden; }
+  .basalt-meter-reading { flex: none; justify-items: end; color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .basalt-meter-value { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   /* The slot is 8px with its border: 6px inside, so the fill (which inherits the track's height) sits inside the border. The
      tick reaches 4px past the slot, which the 4px margin above and below keeps clear. */
@@ -2896,10 +2937,9 @@
   .basalt-terminal-actions:has(.basalt-button) { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   .basalt-terminal-state { display: inline-flex; font-weight: var(--basalt-font-weight-regular); }
   .basalt-terminal-state [data-error] { color: var(--basalt-status-danger); }
-  /* A word that changes in place stands in one grid cell with all its forms, the others hidden, so the cell is as wide as the widest. */
-  .basalt-terminal-swap { display: inline-grid; }
-  .basalt-terminal-swap > * { grid-area: 1 / 1; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
-  .basalt-terminal-swap > :not([data-on]) { visibility: hidden; }
+  /* A word that changes in place is a Reserve (every form in one grid cell, the others unseen), so the cell is as wide as the widest. */
+  .basalt-terminal-swap { justify-items: end; }
+  .basalt-terminal-swap > * { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
   /* A transcript whose lines arrive has a fixed height that scrolls inside, so arriving lines never move the page. */
   .basalt-terminal[data-live] .basalt-code-pre { box-sizing: border-box; block-size: calc(var(--basalt-size-code-line-height) * 9 + var(--basalt-space-3) * 2); overflow-y: auto; scrollbar-gutter: stable; }
   @media (forced-colors: active) {
