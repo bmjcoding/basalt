@@ -93,7 +93,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
-  the current page) is its label at 600 (from 400), its width reserved so nothing moves whatever the label is, an icon in it taking its selected form, on the raised pill, the underline or
+  the current page) is its label at 600 (from 400), its width reserved so nothing moves (a label holding a component is reserved too; only words Basalt never sees, or a label that holds a frame, media or a control, keep their weight and move nothing), an icon in it taking its selected form, on the raised pill, the underline or
   the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows, choice cards and pressed toggle buttons). The pill's edge is its hairline and casts no
   shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
@@ -107,7 +107,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
-  pseudo-element layer. Horizontal tabs keep their underline: it is horizontal. In a segmented
+  pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring

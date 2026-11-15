@@ -3,10 +3,12 @@
 // chip and the touch controls; it has no vertical tabs and no pagination. packages/react/test/audit-design-a.test.mjs proves the same for React,
 // and parity.test.mjs compares the two. Every test here fails on origin/main.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { launch, openHtml } from "./support.mjs";
+import { launch, openHtml, skillDir } from "./support.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -28,7 +30,7 @@ for (const scheme of ["dark", "light"]) {
     test("segment: the pressed button is 600 and the rest 400, the text carries a copy of itself, and choosing each moves every button 0px", async () => {
       const { page, context } = await open(SEGMENT, { scheme });
       await frames(page);
-      const read = () => page.evaluate(() => [...document.querySelectorAll("#g button")].map((b) => ({ on: b.getAttribute("aria-pressed") === "true", weight: getComputedStyle(b).fontWeight, label: b.querySelector("[data-label]")?.getAttribute("data-label"), text: b.textContent })));
+      const read = () => page.evaluate(() => [...document.querySelectorAll("#g button")].map((b) => ({ on: b.getAttribute("aria-pressed") === "true", weight: getComputedStyle(b.querySelector("[data-label]") ?? b).fontWeight, label: b.querySelector("[data-label]")?.getAttribute("data-label"), text: b.textContent })));
       for (const b of await read()) { assert.equal(b.weight, b.on ? "600" : "400"); assert.equal(b.label, b.text, "the label is in a span carrying its own copy"); }
       const before = await boxes(page, "#g button");
       for (let i = 0; i < 5; i += 1) {
@@ -46,7 +48,7 @@ for (const scheme of ["dark", "light"]) {
     test("tabs: the selected tab is 600 with its underline, the rest 400, and choosing each moves every tab 0px", async () => {
       const { page, context } = await open(TABS, { scheme });
       await frames(page);
-      const weights = () => page.evaluate(() => [...document.querySelectorAll(".tab")].map((t) => [t.getAttribute("aria-selected") === "true", getComputedStyle(t).fontWeight, t.querySelector("[data-label]")?.getAttribute("data-label") === t.textContent]));
+      const weights = () => page.evaluate(() => [...document.querySelectorAll(".tab")].map((t) => [t.getAttribute("aria-selected") === "true", getComputedStyle(t.querySelector("[data-label]") ?? t).fontWeight, t.querySelector("[data-label]")?.getAttribute("data-label") === t.textContent]));
       for (const [on, weight, copy] of await weights()) { assert.equal(weight, on ? "600" : "400"); assert.ok(copy); }
       const before = await boxes(page, ".tab");
       for (let i = 0; i < 3; i += 1) {
@@ -82,9 +84,9 @@ for (const scheme of ["dark", "light"]) {
       const { page, context } = await open(SEGMENT + TABS, { scheme });
       await page.emulateMedia({ forcedColors: "active" });
       await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
-      const seg = await page.locator("#g button[aria-pressed=true]").evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.color, c.outlineStyle, c.boxShadow, c.fontWeight]; });
+      const seg = await page.locator("#g button[aria-pressed=true]").evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.color, c.outlineStyle, c.boxShadow, getComputedStyle(el.querySelector("[data-label]") ?? el).fontWeight]; });
       assert.deepEqual(seg, [await resolve(page, "Highlight"), await resolve(page, "HighlightText", "color"), "none", "none", "600"]);
-      const tab = await page.locator('.tab[aria-selected="true"]').evaluate((el) => [getComputedStyle(el, "::after").backgroundColor, getComputedStyle(el).outlineStyle, getComputedStyle(el).fontWeight]);
+      const tab = await page.locator('.tab[aria-selected="true"]').evaluate((el) => [getComputedStyle(el, "::after").backgroundColor, getComputedStyle(el).outlineStyle, getComputedStyle(el.querySelector("[data-label]") ?? el).fontWeight]);
       assert.deepEqual(tab, [await resolve(page, "Highlight"), "none", "600"]);
       await context.close();
     });
@@ -266,29 +268,6 @@ describe("B: in forced colours the chosen segment's focus ring is the ordinary r
   }
 });
 
-describe("C: the wash is kept to the pinned columns, as the layer it replaced was", () => {
-  const TABLE = '<div style="width: 358px; margin: 16px"><div class="panel table-wrap"><table data-fixed data-pinned="1" style="min-width: 640px"><colgroup><col style="width: 160px"><col style="width: 140px"><col></colgroup><thead><tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Commit</th></tr></thead><tbody><tr id="r1"><th scope="row">build-0141</th><td>Passed</td><td>a1b2c3</td></tr><tr id="r2" aria-selected="true"><th scope="row">build-0140</th><td>Failed</td><td>d4e5f6</td></tr></tbody></table></div></div>';
-  for (const scheme of ["dark", "light"]) {
-    test(`an unpinned cell of a hovered or selected row keeps the fill it had; the pinned one is washed (${scheme})`, async () => {
-      const { page, context } = await open(TABLE, { scheme });
-      await frames(page);
-      const fill = (selector) => page.locator(selector).evaluate((el) => getComputedStyle(el).backgroundColor);
-      await page.mouse.move(0, 0);
-      await frames(page, 3);
-      const rest = { pinned: await fill("#r1 th"), unpinned: await fill("#r1 td:nth-child(2)"), last: await fill("#r1 td:nth-child(3)") };
-      assert.equal(await fill("#r2 td:nth-child(2)"), rest.unpinned, "a selected row's unpinned cell");
-      assert.equal(await fill("#r2 td:nth-child(3)"), rest.last);
-      assert.notEqual(await fill("#r2 th"), rest.pinned, "a selected row's pinned cell wears the wash");
-      await page.locator("#r1").hover({ position: { x: 40, y: 10 } });
-      await frames(page, 3);
-      assert.equal(await fill("#r1 td:nth-child(2)"), rest.unpinned, "a hovered row's unpinned cell");
-      assert.equal(await fill("#r1 td:nth-child(3)"), rest.last);
-      assert.notEqual(await fill("#r1 th"), rest.pinned, "a hovered row's pinned cell wears the wash");
-      await context.close();
-    });
-  }
-});
-
 describe("D: under more contrast a hovered edge is secondary ink in the skill", () => {
   for (const scheme of ["dark", "light"]) {
     test(`a secondary button: rest is the input boundary, hover is secondary ink (${scheme})`, async () => {
@@ -306,4 +285,207 @@ describe("D: under more contrast a hovered edge is secondary ink in the skill", 
       await context.close();
     });
   }
+});
+
+// ---- Decision 149 ----
+
+const WEIGHT = '(el) => getComputedStyle(el.querySelector("[data-label], [data-reserve] > :first-child") ?? el).fontWeight';
+const SKILL_CENTRE = `(el) => {
+  const pair = [...el.querySelectorAll("[data-pair], svg")].find((p) => !p.closest("[data-wide]"));
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let node = null;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest("[data-wide], svg")) { node = n; break; }
+  const range = document.createRange(); range.selectNodeContents(node);
+  const text = [...range.getClientRects()].find((r) => r.width > 0);
+  const icon = pair.getBoundingClientRect(); const box = el.getBoundingClientRect();
+  return { iconMid: icon.top + icon.height / 2, textMid: text.top + text.height / 2, itemMid: box.top + box.height / 2, gap: text.left - icon.right };
+}`;
+const MODES = [["1440 with a fine pointer", { width: 1440 }], ["390 with a coarse pointer", { width: 390, touch: true }]];
+
+describe("A: an icon and its words share one centre line, 6px apart, whatever holds the words, and a resting segment's words do not move (items 6 and 7)", () => {
+  const SEG = (inner) => `<div class="segment" role="group" aria-label="V" id="g"><button type="button" aria-pressed="true">${inner("Home")}</button><button type="button" aria-pressed="false">${inner("Other")}</button></div>`;
+  const TAB = (inner) => `<div data-tabs><div class="tabs" role="tablist" aria-label="V"><button class="tab" role="tab" id="t0" aria-controls="p0" aria-selected="true">${inner("Home")}</button><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="false">${inner("Other")}</button></div><div class="tabpanel" id="p0" role="tabpanel" aria-labelledby="t0">a</div><div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1" hidden>b</div></div>`;
+  const SHAPES = {
+    "a core glyph beside plain words": (l) => `<span data-glyph="home"></span>${l}`,
+    "a Phosphor icon beside words in a span": (l) => `<i data-icon="Copy"></i><span>${l}</span>`,
+    "an icon inside the span that holds the words": (l) => `<span><i data-icon="Copy"></i>${l}</span>`,
+    "a core glyph beside words in a span": (l) => `<span data-glyph="home"></span><span>${l}</span>`,
+  };
+  for (const [where, options] of MODES) {
+    for (const [control, make, item, choose] of [["segment", SEG, "#g button", press], ["tab", TAB, ".tab", pick]]) {
+      for (const [shape, inner] of Object.entries(SHAPES)) {
+        test(`${control}, ${shape}, ${where}: one centre line, a 6px gap, and no word moves when chosen`, async () => {
+          const { page, context } = await open(make(inner), { scheme: "dark", ...options });
+          await frames(page);
+          const line = async () => {
+            const out = [];
+            for (const which of [0, 1]) out.push(await page.locator(item).nth(which).evaluate(new Function("return " + SKILL_CENTRE)()));
+            return out;
+          };
+          const before = await line();
+          for (const out of before) {
+            assert.ok(Math.abs(out.iconMid - out.textMid) <= 1, `${shape}: icon ${out.iconMid}, words ${out.textMid}`);
+            assert.ok(Math.abs(out.gap - 6) <= 1.5, `${shape}: gap ${out.gap}`);
+            assert.ok(Math.abs(out.textMid - out.itemMid) <= 1.5, `${shape}: words ${out.textMid - out.itemMid}px off the item's centre`);
+          }
+          const boxesBefore = await boxes(page, item);
+          await choose(page, 1);
+          await frames(page, 3);
+          const after = await line();
+          // the words and the icon of each item sit where they sat: the box, the gap and the words' left edge
+          assert.deepEqual((await boxes(page, item)).map((b) => b.map((v) => Math.round(v * 100) / 100)), boxesBefore.map((b) => b.map((v) => Math.round(v * 100) / 100)));
+          after.forEach((out, k) => { assert.ok(Math.abs(out.gap - before[k].gap) < 0.01, `item ${k}: the gap moved from ${before[k].gap} to ${out.gap}`); });
+          await context.close();
+        });
+      }
+    }
+  }
+
+  test("a resting segment's gap is 6px and its words do not move when it is chosen (item 7)", async () => {
+    const { page, context } = await open(SEG((l) => `<span data-glyph="home"></span>${l}`), { scheme: "dark" });
+    await frames(page);
+    const left = () => page.evaluate(() => [...document.querySelectorAll("#g button")].map((b) => { const r = document.createRange(); r.selectNodeContents(b.querySelector("[data-label]").firstChild); return r.getBoundingClientRect().left; }));
+    const gaps = await page.evaluate(() => [...document.querySelectorAll("#g button")].map((b) => { const r = document.createRange(); r.selectNodeContents(b.querySelector("[data-label]").firstChild); return r.getBoundingClientRect().left - b.querySelector("[data-pair]").getBoundingClientRect().right; }));
+    for (const g of gaps) assert.ok(Math.abs(g - 6) < 0.6, `the gap is ${g}`);
+    const was = await left();
+    await press(page, 1);
+    await frames(page, 3);
+    const now = await left();
+    // button 1 is chosen now: its words start where its resting words did, and button 0's where its chosen ones did
+    assert.ok(Math.abs(now[0] - was[0]) < 0.01 && Math.abs(now[1] - was[1]) < 0.01, `${was} then ${now}`);
+    await context.close();
+  });
+});
+
+describe("A: the second copy of a label holds nothing an id, a name or a reference can resolve to (item 4)", () => {
+  const PROBE = '<span id="dup-span">Alpha</span><svg width="12" height="12" aria-hidden="true"><defs><mask id="dup-mask"><rect width="12" height="12" fill="white"/></mask></defs><rect width="12" height="12" mask="url(#dup-mask)"/></svg><input type="hidden" name="probe" value="kept">';
+  const FORM = `<form id="f"><input id="own" name="own" value="mine"><div class="segment" role="group" aria-label="V" id="g"><button type="button" aria-pressed="true">${PROBE}</button><button type="button" aria-pressed="false"><span>Other</span></button></div></form>`;
+  test("each id once, FormData holds the value once, and the copy holds no id, name, reference or hidden input", async () => {
+    const { page, context } = await open(FORM, { scheme: "dark" });
+    await frames(page);
+    const read = await page.evaluate(() => ({
+      ids: ["dup-span", "dup-mask", "own"].map((id) => document.querySelectorAll(`[id="${id}"]`).length),
+      probe: new FormData(document.getElementById("f")).getAll("probe"),
+      inputs: document.getElementById("f").querySelectorAll("input").length,
+      inCopy: [...document.querySelectorAll("[data-wide] *")].filter((n) => n.hasAttribute("id") || n.hasAttribute("name") || n.hasAttribute("for") || [...n.attributes].some((a) => a.value.includes("url(#"))).length,
+      copies: document.querySelectorAll("[data-wide]").length,
+    }));
+    assert.deepEqual(read.ids, [1, 1, 1]);
+    assert.deepEqual(read.probe, ["kept"]);
+    assert.equal(read.inputs, 2);
+    assert.equal(read.inCopy, 0);
+    assert.equal(read.copies, 2, "both buttons still reserve");
+    await context.close();
+  });
+
+  test("a button that holds a frame or media is not copied, and its weight does not change when chosen", async () => {
+    const { page, context } = await open('<div class="segment" role="group" aria-label="V" id="g"><button type="button" aria-pressed="true"><span>Alpha</span><video></video></button><button type="button" aria-pressed="false">Plain</button></div>', { scheme: "dark" });
+    await frames(page);
+    assert.equal(await page.locator("#g button").first().evaluate((el) => el.querySelectorAll("[data-wide], [data-reserve]").length), 0);
+    const base = await boxes(page, "#g button");
+    await press(page, 1);
+    await frames(page, 3);
+    assert.deepEqual(await boxes(page, "#g button"), base, "the plain one reserves its width and the other keeps its weight: nothing moves");
+    assert.equal(await page.locator("#g button").first().evaluate((el) => getComputedStyle(el).fontWeight), "400");
+    await context.close();
+  });
+});
+
+describe("A: the segment's usage no longer asks for data-selected on a glyph (item 8)", () => {
+  test("usage/segment.md says a glyph follows the choice by itself", () => {
+    const text = fs.readFileSync(path.join(skillDir, "parts", "usage", "segment.md"), "utf8");
+    assert.ok(!text.includes("data-selected"), "the line that made a glyph static is gone");
+    assert.match(text, /follows the choice by itself/);
+  });
+});
+
+describe("C: a hovered or selected row's wash is on every cell of the row, pinned or not, in one colour (decision 149)", () => {
+  const TABLE = (wrap) => `${wrap[0]}<table data-fixed data-pinned="1" style="min-width: 640px"><colgroup><col style="width: 160px"><col style="width: 140px"><col></colgroup><thead><tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Commit</th></tr></thead><tbody><tr id="r1"><th scope="row">build-0141</th><td>Passed</td><td>a1b2c3</td></tr><tr id="r2" aria-selected="true"><th scope="row">build-0140</th><td>Failed</td><td>d4e5f6</td></tr><tr id="r3"><th scope="row">build-0139</th><td>Passed</td><td>0f0f0f</td></tr></tbody></table>${wrap[1]}`;
+  const SHAPES = { "in a panel": ['<div style="width: 358px; margin: 16px"><div class="panel table-wrap">', "</div></div>"], "on the page": ['<div style="width: 358px; margin: 16px"><div class="table-wrap">', "</div></div>"] };
+  for (const [where, wrap] of Object.entries(SHAPES)) {
+    for (const scheme of ["dark", "light"]) {
+      test(`${where}, ${scheme}: every cell of a hovered row and of a selected row is the one mixed colour; a pinned cell is opaque; nothing moves`, async () => {
+        const { page, context } = await open(TABLE(wrap), { scheme });
+        await frames(page);
+        const read = (selector) => page.locator(selector).evaluate((el) => {
+          const k = document.createElement("canvas"); k.width = k.height = 1; const x = k.getContext("2d", { willReadFrequently: true });
+          x.fillStyle = getComputedStyle(el).backgroundColor; x.fillRect(0, 0, 1, 1);
+          return { bg: [...x.getImageData(0, 0, 1, 1).data], image: getComputedStyle(el).backgroundImage, before: getComputedStyle(el, "::before").content };
+        });
+        const geometry = () => page.evaluate(() => [...document.querySelectorAll("th, td, tr")].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map((v) => Math.round(v * 100) / 100); }));
+        await page.mouse.move(0, 0);
+        await frames(page, 3);
+        const still = await geometry();
+        const rest = { name: await read("#r3 th"), status: await read("#r3 td:nth-child(2)"), commit: await read("#r3 td:nth-child(3)") };
+        for (const c of Object.values(rest)) assert.equal(c.bg[3], 255, "a cell is opaque at rest");
+        const dark = scheme === "dark";
+        const mix = (base, a) => base.slice(0, 3).map((v) => Math.round(v * (1 - a) + (dark ? 255 : 0) * a));
+        const close = (got, want, what) => want.forEach((v, i) => assert.ok(Math.abs(got.bg[i] - v) <= 1, `${what}: ${got.bg} vs ${want}`));
+        // selected: all three cells are the selected mix, and the pinned one is opaque
+        for (const [cell, selector] of [["name", "#r2 th"], ["status", "#r2 td:nth-child(2)"], ["commit", "#r2 td:nth-child(3)"]]) {
+          const got = await read(selector);
+          assert.equal(got.image, "none", `${cell}: no gradient or image`);
+          assert.ok(["none", "normal"].includes(got.before), `${cell}: no ::before layer`);
+          assert.equal(got.bg[3], 255, `${cell}: opaque`);
+          close(got, mix(rest[cell].bg, dark ? 0.09 : 0.07), `selected ${cell}`);
+        }
+        // hovered: all three cells are the hover mix
+        await page.locator("#r1").hover({ position: { x: 40, y: 10 } });
+        await frames(page, 3);
+        for (const [cell, selector] of [["name", "#r1 th"], ["status", "#r1 td:nth-child(2)"], ["commit", "#r1 td:nth-child(3)"]]) {
+          const got = await read(selector);
+          assert.equal(got.image, "none", `${cell}: no gradient or image`);
+          assert.equal(got.bg[3], 255);
+          close(got, mix(rest[cell].bg, dark ? 0.06 : 0.04), `hovered ${cell}`);
+        }
+        assert.deepEqual(await geometry(), still, "no column, header or row moved");
+        await context.close();
+      });
+    }
+  }
+});
+
+// ---- Return 3: the chosen item is 600 before the script has run, and the script changes nothing it can see ----
+
+describe("A: a chosen segment and tab are 600 with the script off, and the script changes neither weight nor width (decision 138, A)", () => {
+  const SEG = '<div class="segment" role="group" aria-label="Range" id="g"><button type="button" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button><button type="button" aria-pressed="false">Month</button></div>';
+  const TAB = '<div data-tabs><div class="tabs" role="tablist" aria-label="Views"><button class="tab" role="tab" id="t0" aria-controls="p0" aria-selected="false">Inbox</button><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true">Drafts</button></div><div class="tabpanel" id="p0" role="tabpanel" aria-labelledby="t0" hidden>a</div><div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1">b</div></div>';
+  const open = async (body, scheme, scripts) => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, javaScriptEnabled: scripts });
+    const page = await context.newPage();
+    await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: html(body) }));
+    await page.goto("https://basalt.test/");
+    if (scripts) await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    return { page, context };
+  };
+  const chosen = (page, selector) => page.locator(selector).evaluate((el) => { const r = el.getBoundingClientRect(); return { item: getComputedStyle(el).fontWeight, label: getComputedStyle(el.querySelector("[data-label]") ?? el).fontWeight, size: [r.width, r.height], reserved: el.hasAttribute("data-reserved") }; });
+  for (const scheme of ["dark", "light"]) {
+    for (const [name, body, selector] of [["segment", SEG, '#g button[aria-pressed="true"]'], ["tab", TAB, '.tab[aria-selected="true"]']]) {
+      test(`${name} (${scheme}): 600 with the script off; with it, the item's own box is the same and its label is 600`, async () => {
+        const off = await open(body, scheme, false);
+        const before = await chosen(off.page, selector);
+        assert.equal(before.item, "600", "a chosen item is 600 with no script");
+        assert.equal(before.reserved, false);
+        await off.context.close();
+        const on = await open(body, scheme, true);
+        const after = await chosen(on.page, selector);
+        assert.equal(after.reserved, true, "the script has reserved it");
+        assert.equal(after.label, "600", "its label is 600");
+        assert.equal(after.item, "400", "the 600 now sits on the label");
+        assert.ok(Math.abs(after.size[0] - before.size[0]) < 0.01 && Math.abs(after.size[1] - before.size[1]) < 0.01, `its box ${before.size} became ${after.size}`);
+        await on.context.close();
+      });
+    }
+  }
+
+  test("a button the script declines to copy is marked and stays 400 when chosen, and moves nothing", async () => {
+    const { page, context } = await open('<div class="segment" role="group" aria-label="V" id="g"><button type="button" aria-pressed="true"><span>Alpha</span><video></video></button><button type="button" aria-pressed="false">Plain</button></div>', "dark", true);
+    assert.equal(await page.locator("#g button").first().getAttribute("data-bare"), "");
+    assert.equal(await page.locator("#g button").first().evaluate((el) => getComputedStyle(el).fontWeight), "400");
+    const base = await boxes(page, "#g button");
+    await press(page, 1);
+    await frames(page, 3);
+    assert.deepEqual(await boxes(page, "#g button"), base);
+    await context.close();
+  });
 });

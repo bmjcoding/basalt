@@ -126,7 +126,8 @@ export function Tab({ className, value, children, ...props }: TabProps) {
     if (motion.previous.current == null) motion.previous.current = id;
   }, [motion, value]);
   // The label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice (see ChosenLabel).
-  // The children are wrapped before the primitive sees them, so a tab an app draws as an element of its own (`render`) is no exception.
+  // The children are wrapped before the primitive sees them, so a tab an app draws as an element of its own (`render`) reserves too, when its children are its
+  // words. Words an app's `render` supplies itself are never seen: the 600 is on the label, so they keep their weight and move nothing.
   return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)}><ChosenLabel>{children}</ChosenLabel></BaseTabs.Tab>;
 }
 

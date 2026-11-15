@@ -15,6 +15,11 @@ import * as React from "react";
 import { Button, Card, HomeGlyph, Icon, Pagination, Segment, SegmentedControl, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow, TableRowHead, Tabs, TabsList, TabsPanel, Text } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
+declare const __ROUND34_SKILL_TABLE__: string;
+declare const __ROUND34_SKILL_SEGMENT__: string;
+
+import { PlusIcon } from "@phosphor-icons/react";
+
 const col: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 16 };
 const wrap: React.CSSProperties = { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" };
 const caption = (text: string) => <Text size="sm" tone="secondary">{text}</Text>;
@@ -87,6 +92,7 @@ function useMovement(root: React.RefObject<HTMLElement | null>) {
     const run = async () => {
       await new Promise((r) => window.setTimeout(r, 350));
       const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      // One control at a time (a readout that grows would move the controls under it while another is being measured); the build waits for every readout.
       for (const holder of Array.from(root.current?.querySelectorAll<HTMLElement>("[data-wt-measure]") ?? [])) {
         const items = () => Array.from(holder.querySelectorAll<HTMLElement>(holder.getAttribute("data-wt-measure") ?? ""));
         const boxes = () => items().map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
@@ -170,6 +176,42 @@ function ExtraSpecimens() {
           <TabsPanel value="home" hidden />
         </Tabs>
       </div>
+      {caption("An icon with a label, and the words in an element: the icon and the words share one centre line, 6px apart, in a segment and in a tab, chosen and at rest. The page prints the name a screen reader is given (the page's own reading of aria-label and text; the tests read Chromium's accessibility tree).")}
+      <LabelledIcons />
+      {caption("A Phosphor icon beside words, in a tab and in a segment, chosen and at rest: the label is reserved and 600 when chosen, so nothing moves (the second copy holds no id, name or control).")}
+      <div style={col} data-wt-measure=".basalt-tab">
+        <Tabs defaultValue="a">
+          <TabsList aria-label="Phosphor tabs">
+            <Tab value="a"><PlusIcon size={16} aria-hidden="true" /> Notifications</Tab>
+            <Tab value="b"><PlusIcon size={16} aria-hidden="true" /> Billing</Tab>
+            <Tab value="c"><PlusIcon size={16} aria-hidden="true" /> Access keys</Tab>
+          </TabsList>
+          <TabsPanel value="a" hidden />
+        </Tabs>
+        <p style={readout} data-wt-movement>measuring</p>
+      </div>
+      <div style={col} data-wt-measure=".basalt-segment">
+        <SegmentedControl aria-label="Phosphor segments" defaultValue="a">
+          <Segment value="a"><PlusIcon size={16} aria-hidden="true" /> Notifications</Segment>
+          <Segment value="b"><PlusIcon size={16} aria-hidden="true" /> Billing</Segment>
+          <Segment value="c"><PlusIcon size={16} aria-hidden="true" /> Access keys</Segment>
+        </SegmentedControl>
+        <p style={readout} data-wt-movement>measuring</p>
+      </div>
+      {caption("The HTML skill's chosen segment and tab with the script off (a frame that may not run scripts): the chosen one is 600 and nothing has been reserved yet, as on origin/main.")}
+      <SkillScriptsOff />
+      {caption("A tab whose render supplies its own words, chosen and at rest: Basalt cannot see them, so they keep their weight, nothing moves, and the underline and the ink say which tab is chosen.")}
+      <div style={col} data-wt-measure=".basalt-tab">
+        <Tabs defaultValue="b">
+          <TabsList aria-label="Own words">
+            <Tab value="a" nativeButton={false} render={(props) => <a {...props} href="#inbox" style={{ textDecoration: "none" }}><span>Inbox</span></a>} />
+            <Tab value="b" nativeButton={false} render={(props) => <a {...props} href="#notifications" style={{ textDecoration: "none" }}><span>Notifications</span></a>} />
+            <Tab value="c" nativeButton={false} render={<a href="#archived" style={{ textDecoration: "none" }}>Archived</a>} />
+          </TabsList>
+          <TabsPanel value="b" hidden />
+        </Tabs>
+        <p style={readout} data-wt-movement>measuring</p>
+      </div>
       {caption("A label inside an element reserves its 600 width the same way (three segments, the middle one chosen).")}
       <div style={col} data-wt-measure=".basalt-segment">
         <SegmentedControl aria-label="Spans" defaultValue="notifications">
@@ -184,6 +226,62 @@ function ExtraSpecimens() {
         <Button data-wt-force="hover">Hovered</Button>
         <Button>At rest</Button>
       </div>
+    </div>
+  );
+}
+
+/** The HTML skill's chosen segment and tab with the script off: a frame with no `allow-scripts`, so the page is as it is before (or without) its script. */
+function SkillScriptsOff() {
+  const ref = React.useRef<HTMLIFrameElement>(null);
+  const sync = () => { const d = ref.current?.contentDocument; const theme = document.documentElement.getAttribute("data-theme") ?? "dark"; if (d?.documentElement) { d.documentElement.setAttribute("data-theme", theme); d.documentElement.style.colorScheme = theme; } };
+  React.useEffect(() => {
+    const watch = new MutationObserver(sync);
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => watch.disconnect();
+  }, []);
+  return <iframe ref={ref} title="The HTML skill's chosen segment and tab, scripts off" sandbox="allow-same-origin" srcDoc={__ROUND34_SKILL_SEGMENT__} onLoad={sync} style={{ display: "block", width: 360, height: 130, border: 0 }} />;
+}
+
+/** The name an assistive technology is given for an item, read from the page's own DOM: aria-label and text, skipping what is hidden. */
+function nameOf(node: Node): string {
+  if (node.nodeType === 3) return node.nodeValue ?? "";
+  if (!(node instanceof HTMLElement || node instanceof SVGElement)) return "";
+  if (node.getAttribute("aria-hidden") === "true" || node.hasAttribute("inert") || node.hasAttribute("data-wide")) return "";
+  const label = node.getAttribute("aria-label");
+  if (label) return ` ${label} `;
+  return Array.from(node.childNodes).map(nameOf).join("");
+}
+
+function LabelledIcons() {
+  const root = React.useRef<HTMLDivElement>(null);
+  const [names, setNames] = React.useState("reading");
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const items = Array.from(root.current?.querySelectorAll<HTMLElement>("[data-wt-name]") ?? []);
+      setNames(items.map((el) => `${el.getAttribute("data-wt-name")}: “${nameOf(el).replace(/\s+/g, " ").trim()}”`).join("\n"));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <div ref={root} style={col}>
+      <div style={wrap}>
+        <SegmentedControl aria-label="Icon only" defaultValue="home">
+          <Segment value="home" data-wt-name="icon-only segment"><Icon icon={HomeGlyph} label="Home" /></Segment>
+          <Segment value="other" data-wt-name="icon-only segment, at rest"><Icon icon={HomeGlyph} label="Other" /></Segment>
+        </SegmentedControl>
+        <SegmentedControl aria-label="Icon and words" defaultValue="a">
+          <Segment value="a" data-wt-name="icon and words in a span"><Icon icon={HomeGlyph} label="Home" /><span>Find</span></Segment>
+          <Segment value="b" data-wt-name="icon inside the span"><span><Icon icon={HomeGlyph} />Other</span></Segment>
+        </SegmentedControl>
+        <Tabs defaultValue="a">
+          <TabsList aria-label="Icon tabs">
+            <Tab value="a" data-wt-name="tab, icon and words in a span"><Icon icon={HomeGlyph} label="Home" /><span>Find</span></Tab>
+            <Tab value="b" data-wt-name="tab, icon inside the span"><span><Icon icon={HomeGlyph} />Other</span></Tab>
+          </TabsList>
+          <TabsPanel value="a" hidden />
+        </Tabs>
+      </div>
+      <p style={readout}>{names}</p>
     </div>
   );
 }
@@ -237,6 +335,21 @@ function PagesWeakDemo({ state }: { state: string }) {
 
 // ---- 3. A pinned table cell, hovered and selected ----
 
+/** The HTML skill's pinned table, composed by the build and drawn in a frame that follows the walkthrough's theme. */
+function SkillTable() {
+  const ref = React.useRef<HTMLIFrameElement>(null);
+  const [theme, setTheme] = React.useState(() => document.documentElement.getAttribute("data-theme") ?? "dark");
+  React.useEffect(() => {
+    const watch = new MutationObserver(() => setTheme(document.documentElement.getAttribute("data-theme") ?? "dark"));
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => watch.disconnect();
+  }, []);
+  // The skill's own bootstrap chooses a theme as its page loads, so the walkthrough's is written again once it has.
+  React.useEffect(() => { const d = ref.current?.contentDocument; if (d?.documentElement) { d.documentElement.setAttribute("data-theme", theme); d.documentElement.style.colorScheme = theme; } }, [theme]);
+  const doc = __ROUND34_SKILL_TABLE__;
+  return <iframe ref={ref} title="The HTML skill's pinned table" srcDoc={doc} onLoad={() => { const d = ref.current?.contentDocument; if (!d) return; d.documentElement.setAttribute("data-theme", theme); d.documentElement.style.colorScheme = theme; const frame = d.getElementById("frame"); if (frame) frame.scrollLeft = 120; }} style={{ display: "block", width: 390, height: 230, border: 0 }} />;
+}
+
 function PinnedDemo({ state }: { state: string }) {
   const root = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -244,18 +357,24 @@ function PinnedDemo({ state }: { state: string }) {
     window.setTimeout(() => { if (frame) frame.scrollLeft = 120; root.current?.querySelector("#hovered-row")?.setAttribute("data-wt-force", "hover"); }, 150);
   }, [state]);
   return (
-    <div ref={root} style={{ ...col, maxWidth: 358 }}>
-      {caption("Pinned at 390: the name sticks and is opaque in every state. The second row is hovered (the row, as a pointer would), the third is selected. The wash is mixed into the cell's one background colour: the colours are the ones the gradient painted.")}
-      <TableContainer label="Runs">
-        <Table columns={[{ width: 130 }, { width: 120 }, { width: 120 }, {}]} minWidth={560} pinned={1}>
-          <TableHeader><TableRow><TableHead>Run</TableHead><TableHead>Status</TableHead><TableHead>Region</TableHead><TableHead>Duration</TableHead></TableRow></TableHeader>
-          <TableBody>
-            <TableRow><TableRowHead>run-0142</TableRowHead><TableCell>Ready</TableCell><TableCell>Frankfurt</TableCell><TableCell>4m 12s</TableCell></TableRow>
-            <TableRow id="hovered-row"><TableRowHead>run-0141</TableRowHead><TableCell>Building</TableCell><TableCell>Ashburn</TableCell><TableCell>2m 50s</TableCell></TableRow>
-            <TableRow selected><TableRowHead>run-0140</TableRowHead><TableCell>Error</TableCell><TableCell>Sydney</TableCell><TableCell>11m 03s</TableCell></TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+    <div ref={root} style={wrap}>
+      <div style={{ ...col, width: 358 }}>
+        {caption("React, pinned at 390: the name sticks and is opaque in every state. The second row is hovered (the row, as a pointer would), the third is selected. The wash is on every cell of the row, each cell one colour mixed with color-mix, never a gradient.")}
+        <TableContainer label="Runs">
+          <Table columns={[{ width: 130 }, { width: 120 }, { width: 120 }, {}]} minWidth={560} pinned={1}>
+            <TableHeader><TableRow><TableHead>Run</TableHead><TableHead>Status</TableHead><TableHead>Region</TableHead><TableHead>Duration</TableHead></TableRow></TableHeader>
+            <TableBody>
+              <TableRow><TableRowHead>run-0142</TableRowHead><TableCell>Ready</TableCell><TableCell>Frankfurt</TableCell><TableCell>4m 12s</TableCell></TableRow>
+              <TableRow id="hovered-row"><TableRowHead>run-0141</TableRowHead><TableCell>Building</TableCell><TableCell>Ashburn</TableCell><TableCell>2m 50s</TableCell></TableRow>
+              <TableRow selected><TableRowHead>run-0140</TableRowHead><TableCell>Error</TableCell><TableCell>Sydney</TableCell><TableCell>11m 03s</TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </div>
+      <div style={{ ...col, width: 390 }}>
+        {caption("The HTML skill's pinned table, beside it: the same rows, the same washes on every cell (the skill used to wash the pinned name only).")}
+        <SkillTable />
+      </div>
     </div>
   );
 }
@@ -278,6 +397,8 @@ export const ROUND_34: Round = {
         "Decided by the council (DECISIONS 138, A, 3 to 0) and approved by the owner (139). Weight is the cue; the pill, the underline and the ink step are support. An item with no label uses its glyph's selected form.",
         "Every label reserves its 600 width: its text carries a copy of itself in data-label, laid out at 600 and unseen, as navigation's label does. The movement readouts print 0.000px.",
         "The component keeps every existing touch size: 44px on a coarse pointer.",
+        "Decided by the council (DECISIONS 149, 3 to 0): a segment that holds an icon and a label is one line, the icon before the label with a 6px gap, as a tab's is, in React and the skill, wherever the words sit (beside the icon, in a span, or with the icon inside the span).",
+        "The 600 is on the label, not on the item: words Basalt reserves go to 600 when chosen; words it cannot see (an app's own render that supplies them, a component other than Icon) keep their weight and move nothing, and the item still reads as chosen by its pill or underline and its primary ink.",
       ],
       tryIt: ["Choose each item of a control in turn: nothing beside it moves.", "Tab to the chosen item: the ring is the ordinary +2 ring."],
       states: ["forced-colours", "more-contrast", "reduced-motion", "touch"],
@@ -297,12 +418,12 @@ export const ROUND_34: Round = {
     },
     {
       id: "pinned-cell",
-      name: "A pinned cell, hovered and selected, in one colour",
-      intro: "The wash over the pinned cell's opaque fill is one background colour from color-mix, in React and in the HTML skill, painting the colours the gradient and the ::before painted.",
+      name: "A pinned table, hovered and selected, the wash on every cell in one colour",
+      intro: "A hovered or selected row's wash is on every cell of the row, one background colour from color-mix, in React and in the HTML skill (which painted the pinned name only until DECISIONS 149).",
       widths: [390, 1440],
       scales: [1, 2],
-      height: 360,
-      decisions: ["Decided by the council (DECISIONS 138, C11, 3 to 0) and approved by the owner (139). The pixel proof against the base lists any difference."],
+      height: 520,
+      decisions: ["Decided by the council (DECISIONS 138, C11, 3 to 0) and approved by the owner (139). The pixel proof against the base lists any difference.", "Decided by the council (DECISIONS 149, 3 to 0): a hovered or selected row's wash is on every cell of the row in both builds, so the skill's pinned table changes: it washed the pinned cells only. A pinned cell stays opaque in every state and nothing moves."],
       tryIt: ["Scroll the table sideways: the name stays opaque under the hover and the selected wash."],
       states: ["forced-colours", "reduced-motion"],
       demo: ({ state }) => <PinnedDemo state={state} />,

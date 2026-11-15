@@ -206,6 +206,9 @@ public struct BasaltTextEditor: View {
   @Environment(\.colorSchemeContrast) private var contrast
   @FocusState private var focused: Bool
 
+  /// The editor is at least 100 tall, a box of 36 and up, so its fill, boundary and ring are radius 8 on every platform (decision 149).
+  static let radius = Basalt.Radius.md
+
   public init(_ title: String, text: Binding<String>) { self.title = title; self._text = text }
 
   public var body: some View {
@@ -219,9 +222,9 @@ public struct BasaltTextEditor: View {
         .scrollContentBackground(.hidden)
         .padding(Basalt.Space.s2)
         .frame(minHeight: 100)
-        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: BasaltControlSize.md.radius))
-        .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-        .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
+        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Self.radius))
+        .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
+        .basaltFocusRing(focused, radius: Self.radius)
         .accessibilityLabel(Text(title))
     }
   }

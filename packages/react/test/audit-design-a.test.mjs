@@ -50,6 +50,8 @@ window.__fill = (el) => {
   return out;
 };
 window.__ink = (el) => window.__over(window.__px(getComputedStyle(el).color), window.__fill(el));
+// The 600 is on the label, not on the item (decision 149): the weight a reader sees is the label's.
+window.__weight = (el) => getComputedStyle(el.querySelector("[data-label], .basalt-chosen-label > :first-child") ?? el).fontWeight;
 window.__box = (el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; };
 `;
 
@@ -92,7 +94,7 @@ describe("A: chosen is the label at 600 in primary ink against 400 in secondary,
       test(`${name} (${theme}): the chosen label is 600 and the rest are 400, at every level`, async () => {
         const { page, errors } = await open(fixture(spec), { theme });
         for (const level of LEVELS) {
-          const weights = await page.evaluate(({ items, chosen, level }) => [...document.querySelectorAll(`#l${level} ${items}`)].map((el) => ({ chosen: el.matches(chosen), weight: getComputedStyle(el).fontWeight, label: getComputedStyle(el.querySelector("[data-label]") ?? el).fontWeight })), { items: spec.items, chosen: spec.chosen, level });
+          const weights = await page.evaluate(({ items, chosen, level }) => [...document.querySelectorAll(`#l${level} ${items}`)].map((el) => ({ chosen: el.matches(chosen), weight: window.__weight(el), label: getComputedStyle(el.querySelector("[data-label]") ?? el).fontWeight })), { items: spec.items, chosen: spec.chosen, level });
           assert.equal(weights.filter((w) => w.chosen).length, 1, `${name} level ${level}: one chosen item`);
           for (const w of weights) {
             assert.equal(w.weight, w.chosen ? "600" : "400", `${name} level ${level}: ${JSON.stringify(w)}`);
@@ -248,9 +250,9 @@ describe("A: a label that is not plain text reserves its 600 width too, so choos
     "an icon beside plain words": [`<B.SegmentedControl aria-label="Range" defaultValue="b"><B.Segment value="a"><B.Icon icon={B.HomeGlyph} />Billing</B.Segment><B.Segment value="b"><B.Icon icon={B.HomeGlyph} />Notifications</B.Segment><B.Segment value="c"><B.Icon icon={B.HomeGlyph} />Keys</B.Segment></B.SegmentedControl>`, ".basalt-segment"],
   };
   for (const [name, [jsx, items]] of Object.entries(SPANS)) {
-    for (const theme of THEMES) {
-      test(`${name} (${theme}): choosing each item in turn moves every item's box 0px, the chosen one is 600, and a hidden copy is out of the tree`, async () => {
-        const { page } = await open(render(jsx), { theme });
+    for (const [theme, where, options] of [["dark", "1440 with a fine pointer", DESKTOP], ["light", "1440 with a fine pointer", DESKTOP], ["dark", "390 with a coarse pointer", PHONE], ["light", "390 with a coarse pointer", PHONE]]) {
+      test(`${name} (${theme}, ${where}): choosing each item in turn moves every item's box 0px, the chosen one is 600, and a hidden copy is out of the tree`, async () => {
+        const { page } = await open(render(jsx), { theme, ...options });
         const read = () => page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }), items);
         const base = await read();
         for (let i = 0; i < base.length; i += 1) {
@@ -258,7 +260,7 @@ describe("A: a label that is not plain text reserves its 600 width too, so choos
           await settle(page);
           const after = await read();
           base.forEach((b, k) => b.forEach((v, m) => assert.ok(Math.abs(v - after[k][m]) < 0.01, `${name}: choosing ${i} moved item ${k} by ${(after[k][m] - v).toFixed(3)}px (${["x", "y", "width", "height"][m]})`)));
-          const weights = await page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => getComputedStyle(el).fontWeight), items);
+          const weights = await page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => window.__weight(el)), items);
           assert.deepEqual(weights, weights.map((_, k) => (k === i ? "600" : "400")));
         }
         const hidden = await page.evaluate((items) => [...document.querySelectorAll(`${items} [data-wide]`)].map((el) => [el.getAttribute("aria-hidden"), el.hasAttribute("inert"), getComputedStyle(el).visibility]), items);
@@ -284,7 +286,7 @@ describe("A: in forced colours the chosen item is Highlight with HighlightText, 
         const spec = CONTROLS[name];
         const page = await FORCED(spec, theme);
         const want = await system(page, "background: Highlight; color: HighlightText");
-        const read = await page.locator(`#l0 ${spec.items}${spec.chosen}`).evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, color: s.color, outline: s.outlineStyle, outlineWidth: s.outlineWidth, shadow: s.boxShadow, weight: s.fontWeight, border: s.borderTopColor }; });
+        const read = await page.locator(`#l0 ${spec.items}${spec.chosen}`).evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, color: s.color, outline: s.outlineStyle, outlineWidth: s.outlineWidth, shadow: s.boxShadow, weight: window.__weight(el), border: s.borderTopColor }; });
         assert.equal(read.bg, want.bg, "Highlight");
         assert.equal(read.color, want.color, "HighlightText");
         assert.equal(read.outline, "none", "no outline marks the state");
@@ -317,7 +319,7 @@ describe("A: in forced colours the chosen item is Highlight with HighlightText, 
       const spec = CONTROLS["horizontal tabs"];
       const page = await FORCED(spec, theme);
       const want = await system(page, "background: Highlight");
-      const read = await page.evaluate(() => { const i = document.querySelector("#l0 .basalt-tabs-indicator"); const t = document.querySelector("#l0 .basalt-tab[data-active]"); return { bg: getComputedStyle(i).backgroundColor, height: getComputedStyle(i).height, outline: getComputedStyle(t).outlineStyle, weight: getComputedStyle(t).fontWeight }; });
+      const read = await page.evaluate(() => { const i = document.querySelector("#l0 .basalt-tabs-indicator"); const t = document.querySelector("#l0 .basalt-tab[data-active]"); return { bg: getComputedStyle(i).backgroundColor, height: getComputedStyle(i).height, outline: getComputedStyle(t).outlineStyle, weight: window.__weight(t) }; });
       assert.equal(read.bg, want.bg);
       assert.equal(read.height, "2px");
       assert.equal(read.outline, "none");
@@ -576,6 +578,279 @@ describe("C11: a wash over an opaque pinned cell is one colour, never a gradient
     for (const row of ["r1", "r2"]) assert.equal(await page.locator(`#${row} th`).evaluate((el) => getComputedStyle(el).backgroundColor), canvas, row);
     await page.close();
   });
+});
+
+// ---- Decision 149: faults in the fixes ----
+
+const PHONE_AND_DESKTOP = [["1440 with a fine pointer", DESKTOP], ["390 with a coarse pointer", PHONE]];
+/** The icon's centre, the first visible words' centre and the gap between them, in the item's visible content (the hidden copy is skipped). */
+const CENTRE_LINE = `(el) => {
+  const pair = [...el.querySelectorAll(".basalt-glyph-pair")].find((p) => !p.closest("[data-wide]"));
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let node = null;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest("[data-wide], svg")) { node = n; break; }
+  const range = document.createRange(); range.selectNodeContents(node);
+  const text = [...range.getClientRects()].find((r) => r.width > 0);
+  const icon = pair.getBoundingClientRect(); const box = el.getBoundingClientRect();
+  return { iconMid: icon.top + icon.height / 2, textMid: text.top + text.height / 2, itemMid: box.top + box.height / 2, gap: text.left - icon.right, height: box.height };
+}`;
+
+describe("A: an icon and its words share one centre line, 6px apart, whatever holds the words (item 6)", () => {
+  const SEG = (inner) => `<B.SegmentedControl aria-label="View" defaultValue="a"><B.Segment value="a">${inner("Home")}</B.Segment><B.Segment value="b">${inner("Other")}</B.Segment></B.SegmentedControl>`;
+  const TAB = (inner) => `<B.Tabs defaultValue="a"><B.TabsList aria-label="Views"><B.Tab value="a">${inner("Home")}</B.Tab><B.Tab value="b">${inner("Other")}</B.Tab></B.TabsList><B.TabsPanel value="a">a</B.TabsPanel><B.TabsPanel value="b">b</B.TabsPanel></B.Tabs>`;
+  const SHAPES = {
+    "an icon beside plain words": (l) => `<B.Icon icon={B.HomeGlyph} />${l}`,
+    "an icon beside words in a span": (l) => `<B.Icon icon={B.HomeGlyph} /><span>${l}</span>`,
+    "an icon inside the span that holds the words": (l) => `<span><B.Icon icon={B.HomeGlyph} />${l}</span>`,
+  };
+  for (const [where, options] of PHONE_AND_DESKTOP) {
+    for (const [control, make, item] of [["segment", SEG, ".basalt-segment"], ["tab", TAB, ".basalt-tab"]]) {
+      for (const [shape, inner] of Object.entries(SHAPES)) {
+        test(`${control}, ${shape}, ${where}: one centre line and a 6px gap, chosen and at rest`, async () => {
+          const { page } = await open(render(make(inner)), { theme: "dark", ...options });
+          await settle(page);
+          for (const which of [0, 1]) {
+            const out = await page.locator(item).nth(which).evaluate(new Function("return " + CENTRE_LINE)());
+            assert.ok(Math.abs(out.iconMid - out.textMid) <= 1, `${shape}: the icon's centre is ${out.iconMid} and the words' ${out.textMid} (the item's ${out.itemMid}, ${out.height} tall)`);
+            assert.ok(Math.abs(out.gap - 6) <= 1.5, `${shape}: the gap is ${out.gap}`);
+            assert.ok(Math.abs(out.textMid - out.itemMid) <= 1.5, `${shape}: the words are ${out.textMid - out.itemMid}px off the item's centre`);
+          }
+          await page.close();
+        });
+      }
+    }
+  }
+});
+
+describe("A: an icon with a label names its item once (item 3)", () => {
+  const CASES = {
+    "an icon-only segment": [`<B.SegmentedControl aria-label="View" defaultValue="a"><B.Segment value="a"><B.Icon icon={B.HomeGlyph} label="Home" /></B.Segment><B.Segment value="b"><B.Icon icon={B.HomeGlyph} label="Other" /></B.Segment></B.SegmentedControl>`, ".basalt-segment", ["Home", "Other"]],
+    "an icon beside words in a segment": [`<B.SegmentedControl aria-label="View" defaultValue="a"><B.Segment value="a"><B.Icon icon={B.SearchGlyph} label="Search" />Find</B.Segment><B.Segment value="b"><B.Icon icon={B.SearchGlyph} label="Filter" />Sort</B.Segment></B.SegmentedControl>`, ".basalt-segment", ["Search Find", "Filter Sort"]],
+    "a tab with a labelled icon": [`<B.Tabs defaultValue="a"><B.TabsList aria-label="Views"><B.Tab value="a"><B.Icon icon={B.HomeGlyph} label="Home" /></B.Tab><B.Tab value="b"><B.Icon icon={B.HomeGlyph} label="Other" /></B.Tab></B.TabsList><B.TabsPanel value="a">a</B.TabsPanel><B.TabsPanel value="b">b</B.TabsPanel></B.Tabs>`, ".basalt-tab", ["Home", "Other"]],
+    "a tab with a labelled icon and words in a span": [`<B.Tabs defaultValue="a"><B.TabsList aria-label="Views"><B.Tab value="a"><B.Icon icon={B.SearchGlyph} label="Search" /><span>Find</span></B.Tab><B.Tab value="b"><B.Icon icon={B.SearchGlyph} label="Filter" /><span>Sort</span></B.Tab></B.TabsList><B.TabsPanel value="a">a</B.TabsPanel><B.TabsPanel value="b">b</B.TabsPanel></B.Tabs>`, ".basalt-tab", ["Search Find", "Filter Sort"]],
+  };
+  for (const [name, [jsx, items, names]] of Object.entries(CASES)) {
+    test(`${name}: Chromium's accessibility tree names each item once, chosen and at rest`, async () => {
+      const { page } = await open(render(jsx), { theme: "dark" });
+      const client = await page.context().newCDPSession(page);
+      const read = async () => {
+        const { nodes } = await client.send("Accessibility.getFullAXTree");
+        return [...(await page.locator(items).evaluateAll((els) => els.map((el) => el.getAttribute("id") ?? "")))].map((_, i) => i).map(() => 0) && nodes
+          .filter((n) => ["button", "tab"].includes(n.role?.value) && !n.ignored)
+          .map((n) => n.name?.value);
+      };
+      assert.deepEqual(await read(), names, "chosen first");
+      await page.locator(items).nth(1).click();
+      await settle(page);
+      assert.deepEqual(await read(), names, "and after choosing the other");
+      // exactly one form of each icon carries the name; the other is hidden from assistive technology
+      const forms = await page.evaluate(() => [...document.querySelectorAll(".basalt-glyph-pair")].filter((pair) => !pair.closest("[data-wide]")).map((pair) => [...pair.children].map((svg) => [svg.getAttribute("aria-label"), svg.getAttribute("aria-hidden")])));
+      for (const [rest, chosen] of forms) {
+        assert.ok(rest[0] && rest[1] === null, `the rest form keeps the name: ${rest}`);
+        assert.deepEqual(chosen, [null, "true"], "the selected form is hidden and unnamed");
+      }
+      await page.close();
+    });
+  }
+});
+
+describe("A: the second copy of a label holds nothing an id, a name or a reference can resolve to (item 4)", () => {
+  const PROBE = `<span id="dup-span">Alpha</span><svg width="12" height="12" aria-hidden="true"><defs><mask id="dup-mask"><rect width="12" height="12" fill="white" /></mask></defs><rect width="12" height="12" mask="url(#dup-mask)" /></svg><input type="hidden" name="probe" value="kept" /><label htmlFor="dup-input">x</label>`;
+  test("each id once in the document, FormData holds the value once, and the copy holds no id, name or reference", async () => {
+    const jsx = `<form id="f"><input id="dup-input" name="own" defaultValue="mine" /><B.SegmentedControl aria-label="View" defaultValue="a"><B.Segment value="a">${PROBE}</B.Segment><B.Segment value="b"><span>Other</span></B.Segment></B.SegmentedControl></form>`;
+    const { page } = await open(render(jsx), { theme: "dark" });
+    const read = await page.evaluate(() => ({
+      ids: ["dup-span", "dup-mask", "dup-input"].map((id) => document.querySelectorAll(`[id="${id}"]`).length),
+      probe: new FormData(document.getElementById("f")).getAll("probe"),
+      controls: document.getElementById("f").querySelectorAll("input").length,
+      inCopy: [...document.querySelectorAll("[data-wide] *")].filter((n) => n.hasAttribute("id") || n.hasAttribute("name") || n.hasAttribute("for") || [...n.attributes].some((a) => a.value.includes("url(#"))).length,
+      hiddenInCopy: document.querySelectorAll("[data-wide] input").length,
+      copies: document.querySelectorAll("[data-wide]").length,
+    }));
+    assert.deepEqual(read.ids, [1, 1, 1]);
+    assert.deepEqual(read.probe, ["kept"]);
+    assert.equal(read.controls, 2, "the form's inputs: the app's own and the hidden one, and nothing from the copy");
+    assert.equal(read.inCopy, 0);
+    assert.equal(read.hiddenInCopy, 0);
+    assert.ok(read.copies >= 2, "both segments still reserve");
+    await page.close();
+  });
+
+  test("a label that holds a frame is not copied and does not change weight when chosen; one that holds a component is reserved", async () => {
+    const jsx = `function Word({ children }) { return <b>{children}</b>; }\n${render(`<B.SegmentedControl aria-label="View" defaultValue="a"><B.Segment value="a"><span>Alpha</span><iframe title="x" /></B.Segment><B.Segment value="b"><Word>Beta words</Word></B.Segment><B.Segment value="c">Plain</B.Segment></B.SegmentedControl>`)}`;
+    const { page } = await open(jsx, { theme: "dark" });
+    // A component is reserved since return 3 (decision 138, A); the label that holds a frame is not copied.
+    assert.equal(await page.locator(".basalt-segment").first().locator("[data-wide]").count(), 0, "nothing is copied for the label that holds a frame");
+    assert.equal(await page.locator(".basalt-segment").nth(1).locator("[data-wide]").count(), 1, "the component's label is reserved");
+    const read = () => page.evaluate(() => [...document.querySelectorAll(".basalt-segment")].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }));
+    const base = await read();
+    for (const i of [1, 2, 0]) {
+      await page.locator(".basalt-segment").nth(i).click();
+      await settle(page);
+      // only the items Basalt reserves move: the plain one reserves its width, the other two keep their weight
+      const after = await read();
+      base.forEach((b, k) => b.forEach((v, m) => assert.ok(Math.abs(v - after[k][m]) < 0.01, `choosing ${i} moved item ${k} by ${(after[k][m] - v).toFixed(3)}px`)));
+    }
+    assert.equal(await page.locator(".basalt-segment").first().evaluate((el) => getComputedStyle(el).fontWeight), "400");
+    await page.close();
+  });
+});
+
+describe("A: words Basalt cannot see keep their weight, move nothing, and the item still reads as chosen (item 5)", () => {
+  const TABS3 = (tabs, orientation = "") => `<B.Tabs ${orientation} defaultValue="b"><B.TabsList aria-label="Views">${tabs}</B.TabsList><B.TabsPanel value="a">a</B.TabsPanel><B.TabsPanel value="b">b</B.TabsPanel><B.TabsPanel value="c">c</B.TabsPanel></B.Tabs>`;
+  const OWN = {
+    "a tab whose render callback supplies its own span": [TABS3(["Inbox", "Notifications", "Archived"].map((l, i) => `<B.Tab value="${"abc"[i]}" nativeButton={false} render={(props) => <a {...props} href="#${l}"><span>${l}</span></a>} />`).join("")), ".basalt-tab"],
+    "a tab whose render element carries its own words": [TABS3(["Inbox", "Notifications", "Archived"].map((l, i) => `<B.Tab value="${"abc"[i]}" nativeButton={false} render={<a href="#${l}">${l}</a>} />`).join("")), ".basalt-tab"],
+    "a vertical tab whose render callback supplies its own span": [TABS3(["Account", "Notifications", "Access keys"].map((l, i) => `<B.Tab value="${"abc"[i]}" nativeButton={false} render={(props) => <a {...props} href="#${l}"><span>${l}</span></a>} />`).join(""), 'orientation="vertical"'), ".basalt-tab"],
+    "a segment whose render callback supplies its own span": [`<B.SegmentedControl aria-label="Range" defaultValue="b">${["Billing", "Notifications", "Access keys"].map((l, i) => `<B.Segment value="${"abc"[i]}" render={(props) => <button {...props}><span>${l}</span></button>} />`).join("")}</B.SegmentedControl>`, ".basalt-segment"],
+  };
+  for (const [where, options] of PHONE_AND_DESKTOP) {
+    for (const [name, [jsx, items]] of Object.entries(OWN)) {
+      test(`${name}, ${where}: choosing each item moves every box 0px, its words stay 400 and its ink is primary`, async () => {
+        const { page } = await open(render(jsx), { theme: "dark", ...options });
+        const read = () => page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }), items);
+        const base = await read();
+        for (let i = 0; i < base.length; i += 1) {
+          await page.locator(items).nth(i).click();
+          await settle(page);
+          const after = await read();
+          base.forEach((b, k) => b.forEach((v, m) => assert.ok(Math.abs(v - after[k][m]) < 0.01, `${name}: choosing ${i} moved item ${k} by ${(after[k][m] - v).toFixed(3)}px`)));
+          const state = await page.locator(items).nth(i).evaluate((el) => ({ weight: getComputedStyle(el.querySelector("span") ?? el).fontWeight, ink: getComputedStyle(el).color, chosen: el.hasAttribute("data-active") || el.hasAttribute("data-pressed") }));
+          assert.equal(state.weight, "400", "words Basalt cannot reserve keep their weight");
+          assert.ok(state.chosen, "the item is the chosen one");
+          const primary = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--basalt-text-primary)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
+          assert.equal(state.ink, primary, "and still reads as chosen by its ink, with its pill or underline");
+        }
+        await page.close();
+      });
+    }
+  }
+});
+
+// ---- Return 3: a label that holds a component is reserved and bold (decision 138, A), and never duplicated ----
+
+describe("A: a label that holds a component is 600 when chosen and moves nothing, with no duplicate id, name or control", () => {
+  const PRELUDE = `import { PlusIcon } from "@phosphor-icons/react";
+function Word({ id, children }) { return <span id={id}>{children}</span>; }
+function Own({ children }) { const id = React.useId(); return <span><span id={id}>{children}</span><label htmlFor={id} hidden>x</label></span>; }
+function Hidden({ children }) { return <span>{children}<input type="hidden" name="probe" value="kept" /></span>; }
+function Masked({ children }) { const m = React.useId().replace(/:/g, ""); return <span>{children}<svg width="8" height="8" aria-hidden="true"><defs><mask id={m}><rect width="8" height="8" fill="white" /></mask></defs><rect width="8" height="8" mask={"url(#" + m + ")"} /></svg></span>; }
+`;
+  const SEG = (inner) => `<form id="f"><input name="own" defaultValue="mine" /><B.SegmentedControl aria-label="Range" defaultValue="b">${["Billing", "Notifications", "Keys"].map((l, i) => `<B.Segment value="${"abc"[i]}">${inner(l, i)}</B.Segment>`).join("")}</B.SegmentedControl></form>`;
+  const TAB = (inner) => `<form id="f"><input name="own" defaultValue="mine" /><B.Tabs defaultValue="b"><B.TabsList aria-label="Views">${["Inbox", "Drafts", "Archived"].map((l, i) => `<B.Tab value="${"abc"[i]}">${inner(l, i)}</B.Tab>`).join("")}</B.TabsList><B.TabsPanel value="a">a</B.TabsPanel><B.TabsPanel value="b">b</B.TabsPanel><B.TabsPanel value="c">c</B.TabsPanel></B.Tabs></form>`;
+  const SHAPES = {
+    "a Phosphor icon beside words": (l) => `<PlusIcon size={16} aria-hidden="true" /> ${l}`,
+    "an app's own component that renders a span with an id": (l, i) => `<Word id={"word-" + ${i}}>${l}</Word>`,
+    "a component that makes its own id": (l) => `<Own>${l}</Own>`,
+    "a component that draws an svg with a mask": (l) => `<Masked>${l}</Masked>`,
+  };
+  const READ = (items) => page_read(items);
+  const page_read = (items) => (page) => page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }), items);
+
+  for (const [where, options] of PHONE_AND_DESKTOP) {
+    for (const [control, make, items] of [["segment", SEG, ".basalt-segment"], ["tab", TAB, ".basalt-tab"]]) {
+      for (const [shape, inner] of Object.entries(SHAPES)) {
+        test(`${control}, ${shape}, ${where}: 600 when chosen, 0px moved, every id once, FormData unchanged, after mount and after an update`, async () => {
+          const { page } = await open(`${PRELUDE}${render(make(inner))}`, { theme: "dark", ...options });
+          const read = READ(items);
+          const base = await read(page);
+          const check = async (what) => {
+            const found = await page.evaluate(() => {
+              const ids = [...document.querySelectorAll("[id]")].map((el) => el.id);
+              const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
+              const inCopy = [...document.querySelectorAll("[data-wide] *")].filter((n) => n.hasAttribute("id") || n.hasAttribute("name") || n.hasAttribute("for") || [...n.attributes].some((a) => a.value.includes("url(#"))).length;
+              return { duplicates, inCopy, form: [...new FormData(document.getElementById("f")).entries()].map(([k, v]) => `${k}=${v}`), copies: document.querySelectorAll("[data-wide]").length };
+            });
+            assert.deepEqual(found.duplicates, [], `${what}: duplicate ids`);
+            assert.equal(found.inCopy, 0, `${what}: the copy holds an id, name or reference`);
+            assert.deepEqual(found.form, ["own=mine"], `${what}: FormData`);
+            assert.equal(found.copies, 3, `${what}: every item reserves`);
+          };
+          await check("after mount");
+          for (let i = 0; i < base.length; i += 1) {
+            await page.locator(items).nth(i).click();
+            await settle(page);
+            const after = await read(page);
+            base.forEach((b, k) => b.forEach((v, m) => assert.ok(Math.abs(v - after[k][m]) < 0.01, `choosing ${i} moved item ${k} by ${(after[k][m] - v).toFixed(3)}px`)));
+            const weights = await page.evaluate((items) => [...document.querySelectorAll(items)].map((el) => window.__weight(el)), items);
+            assert.deepEqual(weights, weights.map((_, k) => (k === i ? "600" : "400")), "the chosen label is 600");
+          }
+          await check("after an update");
+          await page.close();
+        });
+      }
+    }
+  }
+
+  test("an id a component sets on its own after mount is removed from the copy too", async () => {
+    const jsx = `${PRELUDE}function Late({ children }) { const [id, setId] = React.useState(undefined); React.useEffect(() => { (window.lates ??= []).push(() => setId("late-id")); }, []); return <span id={id}>{children}</span>; }
+${render(`<B.SegmentedControl aria-label="Range" defaultValue="a"><B.Segment value="a"><Late>Alpha</Late></B.Segment><B.Segment value="b">Beta</B.Segment></B.SegmentedControl>`)}`;
+    const { page } = await open(jsx, { theme: "dark" });
+    await page.evaluate(() => window.lates.forEach((set) => set()));
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.querySelectorAll('[id="late-id"]').length), 1, "the id is on the visible label only, once the component re-rendered by itself");
+    await page.close();
+  });
+
+  test("a component that renders a hidden input is not reserved, stays 400 when chosen and moves nothing; FormData holds the value once", async () => {
+    const jsx = `${PRELUDE}${render(`<form id="f"><B.SegmentedControl aria-label="Range" defaultValue="a"><B.Segment value="a"><Hidden>Alpha</Hidden></B.Segment><B.Segment value="b">Beta</B.Segment></B.SegmentedControl></form>`)}`;
+    for (const [where, options] of PHONE_AND_DESKTOP) {
+      const { page } = await open(jsx, { theme: "dark", ...options });
+      assert.equal(await page.locator(".basalt-segment").first().locator("[data-wide]").count(), 0, `${where}: no copy of the label that holds a control`);
+      assert.deepEqual(await page.evaluate(() => new FormData(document.getElementById("f")).getAll("probe")), ["kept"], `${where}: submitted once`);
+      const read = () => page.evaluate(() => [...document.querySelectorAll(".basalt-segment")].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }));
+      const base = await read();
+      for (const i of [1, 0]) {
+        await page.locator(".basalt-segment").nth(i).click();
+        await settle(page);
+        const after = await read();
+        // the second segment reserves its width; the first keeps its weight: nothing moves
+        base.forEach((b, k) => b.forEach((v, m) => assert.ok(Math.abs(v - after[k][m]) < 0.01, `${where}: choosing ${i} moved item ${k}`)));
+      }
+      assert.equal(await page.locator(".basalt-segment").first().evaluate((el) => getComputedStyle(el.querySelector("span")).fontWeight), "400");
+      await page.close();
+    }
+  });
+});
+
+describe("C: React's hovered or selected row's wash is on every cell of the row, pinned or not, in one colour (decision 149)", () => {
+  const TABLE = (level) => `<div ${level ? `data-level="${level}"` : ""} style={{ width: 358, padding: 16, background: "var(--_surface, var(--basalt-surface-page))" }}><B.TableContainer id="frame"><B.Table columns={[{ width: 140 }, { width: 132 }, {}]} minWidth={560} pinned={1}><B.TableHeader><B.TableRow><B.TableHead>Region</B.TableHead><B.TableHead>Status</B.TableHead><B.TableHead>Note</B.TableHead></B.TableRow></B.TableHeader><B.TableBody><B.TableRow id="r1"><B.TableRowHead>Frankfurt</B.TableRowHead><B.TableCell>Ready</B.TableCell><B.TableCell>Steady</B.TableCell></B.TableRow><B.TableRow id="r2" selected><B.TableRowHead>Tokyo</B.TableRowHead><B.TableCell>Error</B.TableCell><B.TableCell>Steady</B.TableCell></B.TableRow><B.TableRow id="r3"><B.TableRowHead>Sydney</B.TableRowHead><B.TableCell>Ready</B.TableCell><B.TableCell>Steady</B.TableCell></B.TableRow></B.TableBody></B.Table></B.TableContainer></div>`;
+  for (const theme of THEMES) {
+    for (const level of [0, 1]) {
+      test(`${theme}, level ${level}: every cell of a hovered row and of a selected row is the one mixed colour; the pinned cell is opaque; nothing moves`, async () => {
+        const { page } = await open(render(TABLE(level)), { theme });
+        const read = (selector) => page.locator(selector).evaluate((el) => { const s = getComputedStyle(el); return { bg: window.__px(s.backgroundColor), image: s.backgroundImage, before: getComputedStyle(el, "::before").content }; });
+        const geometry = () => page.evaluate(() => [...document.querySelectorAll("th, td, tr")].map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map((v) => Math.round(v * 100) / 100); }));
+        await page.mouse.move(0, 0);
+        await settle(page);
+        const still = await geometry();
+        const cells = { name: "th", status: "td:nth-child(2)", note: "td:nth-child(3)" };
+        const rest = {};
+        for (const [cell, sel] of Object.entries(cells)) rest[cell] = await read(`#r3 ${sel}`);
+        const dark = theme === "dark";
+        const mix = (base, a) => base.slice(0, 3).map((v) => Math.round(v * (1 - a) + (dark ? 255 : 0) * a));
+        for (const [row, alpha] of [["r2", dark ? 0.09 : 0.07]]) {
+          for (const [cell, sel] of Object.entries(cells)) {
+            const got = await read(`#${row} ${sel}`);
+            assert.equal(got.image, "none", `${row} ${cell}: no gradient or image`);
+            assert.ok(["none", "normal"].includes(got.before), `${row} ${cell}: no ::before layer`);
+            assert.equal(got.bg[3], 255, `${row} ${cell}: opaque`);
+            mix(rest[cell].bg, alpha).forEach((v, i) => assert.ok(Math.abs(got.bg[i] - v) <= 1, `selected ${cell}: ${got.bg} vs ${mix(rest[cell].bg, alpha)}`));
+          }
+        }
+        await page.locator("#r1").hover({ position: { x: 40, y: 10 } });
+        await settle(page);
+        for (const [cell, sel] of Object.entries(cells)) {
+          const got = await read(`#r1 ${sel}`);
+          assert.equal(got.image, "none", `hovered ${cell}: no gradient or image`);
+          assert.equal(got.bg[3], 255, `hovered ${cell}: opaque`);
+          mix(rest[cell].bg, dark ? 0.06 : 0.04).forEach((v, i) => assert.ok(Math.abs(got.bg[i] - v) <= 1, `hovered ${cell}: ${got.bg} vs ${mix(rest[cell].bg, dark ? 0.06 : 0.04)}`));
+        }
+        assert.deepEqual(await geometry(), still, "no column, header or row moved");
+        await page.close();
+      });
+    }
+  }
 });
 
 describe("axe finds no WCAG 2.2 AA violation in the four controls on four surfaces, in both themes at 1440 and at 390, in forced colours and under reduced motion", () => {

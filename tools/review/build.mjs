@@ -16,6 +16,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { inlineScript } from "../inline-script.mjs";
+import { compose } from "../../.agent/skills/basalt-html/compose.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
@@ -47,7 +48,8 @@ const bundle = await esbuild.build({
   jsx: "automatic",
   target: "es2020",
   write: false,
-  define: { "process.env.NODE_ENV": '"production"' },
+  // Round 34 shows the HTML skill's pinned table beside React's: the skill page is composed here and drawn in a frame.
+  define: { "process.env.NODE_ENV": '"production"', __ROUND34_SKILL_SEGMENT__: JSON.stringify(compose('<title>Skill segment</title><div style="margin: 16px; display: flex; flex-direction: column; gap: 12px"><div class="segment" role="group" aria-label="Range"><button type="button" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button><button type="button" aria-pressed="false">Month</button></div><div data-tabs><div class="tabs" role="tablist" aria-label="Views"><button class="tab" role="tab" id="t0" aria-controls="p0" aria-selected="false">Inbox</button><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true">Drafts</button></div><div class="tabpanel" id="p0" role="tabpanel" aria-labelledby="t0" hidden></div><div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1"></div></div></div>', { fonts: true }).html), __ROUND34_SKILL_TABLE__: JSON.stringify(compose(`<title>Skill table</title><div style="width: 358px; margin: 16px"><div class="panel table-wrap" id="frame"><table data-fixed data-pinned="1" style="min-width: 560px"><colgroup><col style="width: 130px"><col style="width: 120px"><col style="width: 120px"><col></colgroup><thead><tr><th scope="col">Run</th><th scope="col">Status</th><th scope="col">Region</th><th scope="col">Duration</th></tr></thead><tbody><tr><th scope="row">run-0142</th><td>Ready</td><td>Frankfurt</td><td>4m 12s</td></tr><tr id="hovered-row" data-wt-force="hover"><th scope="row">run-0141</th><td>Building</td><td>Ashburn</td><td>2m 50s</td></tr><tr aria-selected="true"><th scope="row">run-0140</th><td>Error</td><td>Sydney</td><td>11m 03s</td></tr></tbody></table></div></div>`, { fonts: true }).html) },
   nodePaths: [path.join(repo, "node_modules")],
   loader: { ".png": "dataurl" },
   logLevel: "warning",
@@ -260,8 +262,10 @@ for (const id of rounds) {
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
           const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34") && /^Unsafe attempt to load URL file:/.test(text);
+          // Round 34 draws the skill's page with the script off, in a frame that may not run scripts: the browser says so, once for each script it blocked.
+          const scriptsOff = (text) => id === "34" && /^Blocked script execution in 'about:srcdoc'/.test(text);
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
-          page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
+          page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !scriptsOff(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           // The states that hold a motion part-way are timed by what they show: they are left running (and say so in the proof).
           if (still && !/-glide$|-fade$|-opening|^centre-travel|^nav-|^film$|^ghost$/.test(state)) await holdStill(page);
@@ -306,14 +310,22 @@ for (const id of rounds) {
           // pseudo-classes (no pointer or key is needed), so one page can show many parts hovered and focused at once.
           if (id === "34") {
             await page.waitForTimeout(700);
+            // The movement readouts click each control through in turn: the shot waits until every one has written its answer.
+            await page.waitForFunction(() => ![...document.querySelectorAll("[data-wt-movement]")].some((el) => el.textContent === "measuring"), undefined, { timeout: 60000 });
             const client = await page.context().newCDPSession(page);
             await client.send("DOM.enable");
             await client.send("CSS.enable");
-            const { root } = await client.send("DOM.getDocument", { depth: 0 });
-            for (const kind of ["hover", "focus"]) {
-              const { nodeIds } = await client.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: `[data-wt-force="${kind}"]` });
-              for (const nodeId of nodeIds) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : ["focus", "focus-visible"] });
-            }
+            // The walk goes into frames (the skill's table is drawn in one), so a part marks itself in either document.
+            const { root } = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+            const marked = { hover: [], focus: [] };
+            const walk = (node) => {
+              const attrs = node.attributes ?? [];
+              const at = attrs.indexOf("data-wt-force");
+              if (at >= 0 && marked[attrs[at + 1]]) marked[attrs[at + 1]].push(node.nodeId);
+              for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? []), ...(node.contentDocument ? [node.contentDocument] : [])]) walk(child);
+            };
+            walk(root);
+            for (const kind of ["hover", "focus"]) for (const nodeId of marked[kind]) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : ["focus", "focus-visible"] });
             await page.waitForTimeout(300);
           }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).

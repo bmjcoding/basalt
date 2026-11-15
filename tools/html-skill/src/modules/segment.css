@@ -8,9 +8,14 @@
   .segment button { position: relative; height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], :disabled) { color: var(--basalt-text-primary); } }
   .segment { --pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
-  .segment button[aria-pressed="true"] { background: var(--pill-fill); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); box-shadow: var(--pill-edge); }
+  .segment button[aria-pressed="true"] { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--pill-edge); }
+  /* The 600 is on the label, not on the button (decision 149): words the script did not reserve keep their weight and move nothing. */
+  .segment button[aria-pressed="true"] :is([data-label], [data-reserve] > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
+  /* Before the script has reserved a button (and with the script off) the chosen one is 600 itself; a button the script declined to copy (data-bare) keeps 400. */
+  .segment button[aria-pressed="true"]:not([data-reserved], [data-bare]) { font-weight: var(--basalt-font-weight-semibold); }
   /* The label reserves its 600 width, as the navigation's does: the script draws a button's text in a span that carries its own copy, drawn at 600, unseen and 0 tall. */
   .segment [data-label] { display: inline-flex; flex-direction: column; align-items: center; }
+  .segment [data-label]:not(:only-child) { align-items: flex-start; }
   .segment [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   /* A label that is not plain text is drawn twice in one box, the second copy at 600, unseen (aria-hidden, inert): the box is the content's width at 600. */
   .segment [data-reserve] { display: inline-grid; justify-items: center; }
@@ -19,7 +24,8 @@
   /* An icon draws both its forms in one box and shows the one that matches the item, crossfading over duration-fast (decision 145): the box is the same either way. */
   .segment [data-pair] { display: inline-grid; flex: none; }
   /* A button that holds an icon beside its text sets them on one centre line, 6px apart, as a tab does. */
-  .segment button:has(> svg, > [data-pair]) { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
+  .segment button:has(> svg, > [data-pair], > [data-reserve]) { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
+  .segment :is(span, a, b, i, em, strong, small, mark, code, abbr):has(> svg, > [data-pair]) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .segment [data-pair] > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .segment [data-pair] > :last-child { opacity: 0; }
   .segment [aria-pressed="true"] [data-pair] > :first-child { opacity: 0; }

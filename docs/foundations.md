@@ -159,8 +159,15 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   against its track) and the ink step (2.1 to 2.2:1) support it without carrying it. The information that must reach
   3:1 (1.4.11) is the label, which is text and holds 4.5:1 on its fill at every level. An icon in a chosen
   item draws its selected form (closed and filled), with a label beside it or without one, in the same box, so it moves nothing
-  (decision 145). A label that is not plain text (an element, words in a span, a tab an app draws as a link) reserves its 600
-  width as plain text does. The pill is `surface-top`; in dark it is
+  (decision 145), one centre line with the words, 6px apart, wherever the words sit (beside them, in a span, or with the icon inside
+  that span). The 600 is on the label, not on the item (decision 149), and every label Basalt can draw twice reserves its width and is 600 when chosen: plain text,
+  text with plain elements, icons and components (a Phosphor icon beside words, an app's own small component, words in a span, a tab an
+  app draws as a link whose children are its words). The second copy of such a label is there for its width only: it holds no `id`, no
+  `name`, no reference and no submitting control, in the committed DOM after mount and after every update. The narrow case that is not
+  reserved keeps its weight and moves nothing, and still reads as chosen by its pill, underline or plate and its primary ink: words
+  Basalt never sees (an app's own `render` that supplies them), and a label that holds a frame, media or a control (an `input`, a
+  `button`, a form, including one a component renders), which cannot be drawn twice without a duplicate. In the HTML skill a chosen
+  segment or tab is 600 itself until the script has drawn its label (and with the script off), then the weight sits on the label. The pill is `surface-top`; in dark it is
   `surface-top` plus the selected wash, as one solid fill (`#2c2c2c` on a `#111111` track), so a 36px pill in a vertical
   track reads as a pill and not as a wash; in light it is white on the track. **The pill's edge is its hairline and
   nothing else** (`border-hairline`, 1px, no offset and no blur): it sits in the flow, so it casts no shadow. Pagination
@@ -169,9 +176,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   current page are `Highlight` with `HighlightText`, the horizontal tab keeps its `Highlight` underline, and each keeps
   its 600; none draws an outline, so the focus ring shows on the chosen item as on any other, and the current page's box
   shadow is cleared. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
-- **A wash over an opaque fill** (a pinned table cell's hover and selected washes) is one colour: the wash's colour at its
+- **A wash over an opaque fill** (a pinned table's hover and selected washes) is one colour: the wash's colour at its
   own alpha mixed over the fill with `color-mix`, in sRGB, as a browser composites it. It is never a gradient, an image or
-  a pseudo-element layer; the cell paints the colours it always did. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+  a pseudo-element layer. In a still table a hovered or selected row's wash is on every cell of the row, pinned or not, in React
+  and in the skill alike (decision 149): each cell is that one colour, a pinned cell stays opaque in every state, and no column,
+  header or row height moves. Status: decided by the council and approved by the owner (DECISIONS 138, 139 and 149); the implementation hasn't been reviewed.
 - **The active row** (the row a keyboard or pointer is on, in Menu, Select, Combobox and CommandMenu) is a
   plate and a lift. The plate is a rounded rectangle (radius 8) in the selected wash, painted as one solid
   `background-color` per level and never a layered image (forced colours turns an image into a backplate):
@@ -213,7 +222,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   a destructive action is red text on a red hairline, quieter than the primary action, with
   focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
-- **Selected rows** (a table) are the selected wash as a band, edge to edge, with no bar and no edge mark, in
+- **Selected rows** (a table) are the selected wash as a band, edge to edge (on every cell of the row, pinned columns included), with no bar and no edge mark, in
   forced colours too. The state is carried by the row's checked box and by a count in words, not by the wash
   (about 1.2:1): the first column is a checkbox column (a `Checkbox` per row, labelled "Select {name}", and a header
   box that is mixed while some rows are selected), and the count ("3 of 12 selected") is written in a polite live
