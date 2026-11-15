@@ -56,7 +56,7 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Avatar`, `Separator`, `EmptyState` | Named image/initials, semantic division and next-step guidance for empty views. |
 | `Badge` | Neutral pill; `status` adds a dot (success, warning, danger, accent, pending, or `"neutral"` by name). No `status` is the word alone; a running badge (a braille `Spinner` first) draws no dot. The label says the status in words. In forced colours every dot is a disc in the system colour of where it sits. |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
-| `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals, end-aligned with their header; `mono` cells for IDs and hashes. Give `TableContainer` a `label` ("Runs table"): while the table is wider than its box the container is a keyboard stop with that name as a `region`, so the hidden columns can be scrolled to without a pointer (an `aria-label` or `aria-labelledby` works too; with neither it is still a stop but has no role). On touch a lone checkbox or link in a cell has a 44px hit box. |
+| `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals, end-aligned with their header; `mono` cells for IDs and hashes. Give `TableContainer` a `label` ("Runs table"): while the table is wider than its box the container is a keyboard stop with that name as a `region`, so the hidden columns can be scrolled to without a pointer (an `aria-label` or `aria-labelledby` works too; with neither it is still a stop but has no role). On touch a lone checkbox or link in a cell has a 44px hit box. A `Table` renders every row it is given (see [Long lists](#long-lists)): page one that can pass a few hundred rows with `Pagination`. |
 | `Tooltip`, `TooltipProvider` | Supplements a name with a linked accessible description; never replaces a label. |
 | `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
@@ -190,11 +190,34 @@ initial empty view as an error. Avatar requires a person's name and falls back t
 Shiki's editor grammars support shell (`bash`, `sh`, `shell`), CSS, HTML, JavaScript (`js`),
 JSON, JSX, Python (`py`), SQL, Swift, TSX, TypeScript (`ts`) and YAML (`yml`). Set `language`
 explicitly: the title is a label. Without one, or with an unsupported language, code stays
-plain. Logs over 100,000 UTF-16 code units also stay plain to keep long logs responsive.
+plain. Logs over 100,000 UTF-16 code units also stay plain to keep long logs responsive. In a browser's own render, code over 10,000 code units is coloured once its plain text has painted, not inside the render that
+mounts it. Shorter code is coloured in the render, as is any block up to the cap in server rendering and static markup whose language
+was preloaded (`preloadCodeLanguages`); a page that hydrates that markup keeps those colours from its first frame.
 
 Colours come from the `syntax-*` tokens and follow the theme, including nested overrides.
 Every syntax colour meets AA on the code surface in both themes. Source text is never
 interpreted as HTML. Server rendering and offline walkthroughs use the same grammars.
+
+## Long lists
+
+A `Table` renders every row it is given, and `Select`, `Combobox`, `CommandMenu` and a `MultiSelect` checklist mount every item
+when they open. None of them draws only what is in view: find-in-page and a screen reader meet every row and item, as they should.
+So the length of the list is the app's to bound. Measured in Chrome on an Apple M3 Max with the CPU slowed four times (the usual
+stand-in for a mid-range phone), against the 200 ms that Core Web Vitals calls a good response:
+
+- **A table of runs** (seven columns, a checkbox in each row, sortable headings, a filter field). Ticking a row, filtering, sorting and
+  selecting all each take time that grows with the row count; no figures are given here yet. When the app keeps each row's props and children the same between renders (`TableRow`,
+  `TableRowHead` and `TableCell` are memoised, so an unchanged row is not rendered again) a tick or a filter renders only the rows
+  that changed. Page a table that can grow past a few hundred rows with `Pagination`, and keep each page's rows stable.
+- **`Select`, `Combobox` and `CommandMenu`** open in 85 to 110 ms with 30 items and 270 to 310 ms with 1,000, a cost that grows with
+  the count (measured at 30 and 1,000 items; between them it is close to a straight line, which puts 200 ms at about 500 items).
+  Open comfortably up to a few hundred items. Past that, search on the server and send the first matches (and say how many more
+  there are), or show a shorter list.
+- **A `MultiSelect` checklist** opens in 640 ms with 1,000 options and a tick takes 470 ms. The highlight following the pointer is
+  cheap at any length; opening and ticking are not. A few hundred options is the comfortable limit.
+
+These are the numbers on the day they were measured (the 1-minute load was 3 to 6), not a promise; they tell an app where to start
+paging. `docs/foundations.md` states no list-length budget.
 
 ## Test
 

@@ -1,4 +1,6 @@
-import { CaretLeftIcon, CaretRightIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import * as React from "react";
 
 import { Button } from "./button";

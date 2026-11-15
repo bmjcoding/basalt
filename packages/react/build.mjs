@@ -35,7 +35,7 @@ const packageDir = (name) => {
 // every file that entry shares with an ordinary import (utils, icon, kbd, Phosphor's icon base) is merged into one chunk
 // that the ordinary import then loads, whatever it needs: Spinner paid 12.7 KB for a 1 KB component, Skeleton 12 KB.
 // The panel is loaded on demand, so a second copy of those few files costs nothing until a menu opens.
-const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"];
+const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"];
 // The notice (without its comment marks) that the panel's banner carries and that the opt-in Phosphor plugin (src/tooling/phosphor.ts) puts
 // in front of the icons it trims. It is one string, so the two comments are identical and a bundler that holds both keeps one copy.
 const phosphorNotice = `Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}`;

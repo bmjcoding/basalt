@@ -3,7 +3,10 @@ import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
 import { Form as BaseForm } from "@base-ui/react/form";
 import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import { Slider as BaseSlider } from "@base-ui/react/slider";
-import { CaretUpDownIcon, CheckIcon, MinusIcon, PlusIcon } from "@phosphor-icons/react";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { MinusIcon } from "@phosphor-icons/react/dist/csr/Minus";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import * as React from "react";
 
 import { IconButton, type ControlSize } from "./button";

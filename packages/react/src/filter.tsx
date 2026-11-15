@@ -1,7 +1,8 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { CheckboxGroup as BaseCheckboxGroup } from "@base-ui/react/checkbox-group";
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import { CaretDownIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import * as React from "react";
 
 import { Button } from "./button";
@@ -59,9 +60,12 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
   // The order is the options', whatever order the values were chosen in.
   const ordered = options.filter((o) => chosen.includes(o.value)).map((o) => o.value);
   const set = (next: string[], details: ChangeDetails) => {
+    // A disabled filter cannot be changed by any path (a row, Clear, a checklist that was open when `disabled` turned on).
+    if (disabled) return;
     const sorted = options.filter((o) => next.includes(o.value)).map((o) => o.value);
-    setInner(sorted);
+    // The consumer is told first, and the filter keeps its own choice only if the change was not vetoed (as Tabs does).
     onValueChange?.(sorted, details);
+    if (!details.isCanceled) setInner(sorted);
   };
   const ids = { label: React.useId(), count: React.useId() };
   const count = ordered.length === 0 ? "Any" : `${ordered.length} of ${options.length}`;
@@ -76,9 +80,14 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       size="sm"
       className="basalt-filter-clear"
       // Not `disabled`: a disabled button drops keyboard focus. At zero it is aria-disabled, activation is suppressed, and focus stays.
-      disabled={ordered.length === 0}
+      // A disabled filter's Clear is aria-disabled the same way, so it cannot clear what the filter will not change.
+      disabled={ordered.length === 0 || disabled}
       focusableWhenDisabled
-      onClick={(event) => set([], { reason: "clear", event: event.nativeEvent, isCanceled: false, trigger: event.currentTarget, cancel() {}, allowPropagation() {} })}
+      onClick={(event) => {
+        // A real veto, as the rows have: `cancel()` leaves the choice as it was.
+        let canceled = false;
+        set([], { reason: "clear", event: event.nativeEvent, get isCanceled() { return canceled; }, trigger: event.currentTarget, cancel() { canceled = true; }, allowPropagation() {} });
+      }}
     >
       Clear
     </Button>
@@ -109,6 +118,43 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
   );
 }
 
+interface ChecklistRowProps {
+  option: MultiSelectOption;
+  checked: boolean;
+  lit: boolean;
+  setLit: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+/**
+ * One row of the checklist. It is memoised on what it draws (its option, whether it is chosen and whether it is lit), so the
+ * highlight following the pointer renders the two rows that change, not every row of a long list.
+ */
+const ChecklistRow = /* @__PURE__ */ React.memo(function ChecklistRow({ option: o, checked, lit, setLit }: ChecklistRowProps) {
+  return (
+    <BaseCheckbox.Root
+      value={o.value}
+      disabled={o.disabled}
+      render={<div />}
+      nativeButton={false}
+      data-highlighted={lit ? "" : undefined}
+      onPointerMove={() => setLit(o.value)}
+      onPointerLeave={() => setLit((now) => (now === o.value ? null : now))}
+      onFocus={() => setLit(o.value)}
+      onBlur={() => setLit((now) => (now === o.value ? null : now))}
+      className="basalt-menu-item basalt-filter-row"
+    >
+      <span className="basalt-menu-check">
+        <span className="basalt-checkbox" data-checked={checked ? "" : undefined} aria-hidden="true">
+          <span className="basalt-checkbox-indicator" data-unchecked={checked ? undefined : ""}>
+            <Icon icon={CheckGlyph} />
+          </span>
+        </span>
+      </span>
+      <span className="basalt-menu-item-label">{o.label}</span>
+    </BaseCheckbox.Root>
+  );
+});
+
 interface ChecklistProps {
   label: string;
   options: MultiSelectOption[];
@@ -132,7 +178,8 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
   const ids = { label: React.useId(), count: React.useId(), rows: React.useId() };
   const [lit, setLit] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
-  const names = options.filter((o) => ordered.includes(o.value)).map((o) => o.label);
+  const chosen = React.useMemo(() => new Set(ordered), [ordered]);
+  const names = options.filter((o) => chosen.has(o.value)).map((o) => o.label);
   const summary = names.length === 0 ? "Any" : names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
   const rows = React.useRef<HTMLDivElement>(null);
   const band = React.useRef<HTMLInputElement>(null);
@@ -226,30 +273,9 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
                       />
                     </div>
                   ) : null}
-                  <BaseCheckboxGroup id={ids.rows} value={ordered} onValueChange={set} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rows}>
+                  <BaseCheckboxGroup id={ids.rows} value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rows}>
                     {shown.map((o) => (
-                      <BaseCheckbox.Root
-                        key={o.value}
-                        value={o.value}
-                        disabled={o.disabled}
-                        render={<div />}
-                        nativeButton={false}
-                        data-highlighted={lit === o.value ? "" : undefined}
-                        onPointerMove={() => setLit(o.value)}
-                        onPointerLeave={() => setLit((now) => (now === o.value ? null : now))}
-                        onFocus={() => setLit(o.value)}
-                        onBlur={() => setLit((now) => (now === o.value ? null : now))}
-                        className="basalt-menu-item basalt-filter-row"
-                      >
-                        <span className="basalt-menu-check">
-                          <span className="basalt-checkbox" data-checked={ordered.includes(o.value) ? "" : undefined} aria-hidden="true">
-                            <span className="basalt-checkbox-indicator" data-unchecked={ordered.includes(o.value) ? undefined : ""}>
-                              <Icon icon={CheckGlyph} />
-                            </span>
-                          </span>
-                        </span>
-                        <span className="basalt-menu-item-label">{o.label}</span>
-                      </BaseCheckbox.Root>
+                      <ChecklistRow key={o.value} option={o} checked={chosen.has(o.value)} lit={lit === o.value} setLit={setLit} />
                     ))}
                     {shown.length === 0 ? <p className="basalt-filter-none">No {noun} matches.</p> : null}
                   </BaseCheckboxGroup>

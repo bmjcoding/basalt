@@ -1,6 +1,6 @@
 // The cmdk-backed bodies of CommandMenu (the modal) and CommandList (the one in the page). A module of its own, so both can
 // import it when they first show and an app that never opens one never downloads cmdk (and the Radix code under it).
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { Command, defaultFilter, useCommandState } from "cmdk";
 import * as React from "react";
 

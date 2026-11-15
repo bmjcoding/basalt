@@ -1,5 +1,5 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { CaretUpDownIcon } from "@phosphor-icons/react";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
 import * as React from "react";
 
 import { ArrowDownGlyph } from "./glyphs/arrow-down";
@@ -342,9 +342,16 @@ export function TableBody(props: React.ComponentProps<"tbody">) {
   return <tbody {...props} />;
 }
 
-export function TableRow({ selected, ...props }: React.ComponentProps<"tr"> & { selected?: boolean }) {
+type TableRowProps = React.ComponentProps<"tr"> & { selected?: boolean };
+
+/**
+ * A body or header row. It is memoised, so an app that keeps a row's props and children the same between renders re-renders only
+ * the row that changed (one tick in a table of a thousand rows renders one row, not a thousand). Props that are new objects every
+ * render (an inline `style`, a new `children` element) defeat it, as for any memoised component.
+ */
+export const TableRow: React.NamedExoticComponent<TableRowProps> = /* @__PURE__ */ React.memo(function TableRow({ selected, ...props }: TableRowProps) {
   return <tr {...props} aria-selected={selected} data-selected={selected ? "" : undefined} />;
-}
+});
 
 export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClick"> {
   numeric?: boolean;
@@ -384,9 +391,9 @@ export function TableHead({ numeric, sort, onSortChange, firstSort, className, c
  * row's own fill, so the washes run through it. It has no band and never sorts. When the table pins a column, the row
  * header is the pinned name column.
  */
-export function TableRowHead({ className, ...props }: React.ComponentProps<"th">) {
+export const TableRowHead: React.NamedExoticComponent<React.ComponentProps<"th">> = /* @__PURE__ */ React.memo(function TableRowHead({ className, ...props }: React.ComponentProps<"th">) {
   return <th scope="row" {...props} className={className} />;
-}
+});
 
 export interface TableCellProps extends React.ComponentProps<"td"> {
   numeric?: boolean;
@@ -399,13 +406,14 @@ export interface TableCellProps extends React.ComponentProps<"td"> {
   notObserved?: boolean;
 }
 
-export function TableCell({ numeric, mono, notObserved, className, children, ...props }: TableCellProps) {
+/** A cell. It is memoised like `TableRow`: a cell whose props and children are the same as last time does not render again. */
+export const TableCell: React.NamedExoticComponent<TableCellProps> = /* @__PURE__ */ React.memo(function TableCell({ numeric, mono, notObserved, className, children, ...props }: TableCellProps) {
   return (
     <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
       {notObserved && children === undefined ? "Not observed" : children}
     </td>
   );
-}
+});
 
 export interface TableScrollHintProps extends Omit<React.ComponentProps<"p">, "children"> {
   /** The line, from the table's column count. Default "Scroll sideways to see all 6 columns". */

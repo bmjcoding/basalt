@@ -138,7 +138,12 @@ function place(glyphs: TextMorphGlyph[], at: "from" | "to"): PlacedGlyph[] {
   }));
 }
 
-function measure(host: HTMLElement, value: string) {
+/**
+ * The width of every character of every value in `values`, and the line height of each, read in one layout. Each character sits in its
+ * own inline-block, so it is shaped alone (no kerning or ligature with its neighbour), exactly as a probe holding that character alone
+ * would be; the boxes are all written first and read together, so the browser lays the page out once and not once per character.
+ */
+function measureAll(host: HTMLElement, values: string[]) {
   const probe = document.createElement("span");
   const style = getComputedStyle(host);
   probe.style.position = "absolute";
@@ -149,14 +154,26 @@ function measure(host: HTMLElement, value: string) {
   probe.style.fontWeight = style.fontWeight;
   probe.style.letterSpacing = style.letterSpacing;
   probe.style.fontFeatureSettings = style.fontFeatureSettings;
+  const cells = values.map((value) =>
+    [...value].map((character) => {
+      const cell = document.createElement("span");
+      cell.style.display = "inline-block";
+      cell.textContent = character;
+      probe.appendChild(cell);
+      return cell;
+    }),
+  );
   host.appendChild(probe);
-  const widths = [...value].map((character) => {
-    probe.textContent = character;
-    return probe.getBoundingClientRect().width;
-  });
-  const height = probe.getBoundingClientRect().height || parseFloat(style.lineHeight) || parseFloat(style.fontSize);
+  const measured = cells.map((row) => ({
+    widths: row.map((cell) => cell.getBoundingClientRect().width),
+    height: row.at(-1)?.getBoundingClientRect().height || probe.getBoundingClientRect().height || parseFloat(style.lineHeight) || parseFloat(style.fontSize),
+  }));
   probe.remove();
-  return { widths, height };
+  return measured;
+}
+
+function measure(host: HTMLElement, value: string) {
+  return measureAll(host, [value])[0] ?? { widths: [], height: 0 };
 }
 
 // A label or counter, not a paragraph: past this many characters, in the old text or the new, the text
@@ -215,7 +232,9 @@ export function TextMorph({ text, className }: TextMorphProps) {
       shown.current = text;
       return;
     }
-    const next = measure(element, text);
+    // Both strings are measured in one pass: a change lays the page out once, not once per character.
+    const morphs = !(reduced || shown.current === text || shown.current.length > MAX_MORPH_LENGTH);
+    const [next = { widths: [], height: 0 }, prev] = measureAll(element, morphs ? [text, shown.current] : [text]);
     const settle = () => {
       const plan = planTextMorph(text, text, { previous: next.widths, next: next.widths });
       setMotion(false);
@@ -224,12 +243,11 @@ export function TextMorph({ text, className }: TextMorphProps) {
       shown.current = text;
     };
     // A long previous value is never measured or mounted glyph by glyph, going on to a short one included.
-    if (reduced || shown.current === text || shown.current.length > MAX_MORPH_LENGTH) {
+    if (!morphs || !prev) {
       settle();
       return;
     }
     const previous = shown.current;
-    const prev = measure(element, previous);
     const plan = planTextMorph(previous, text, { previous: prev.widths, next: next.widths });
     setMotion(false);
     setBox({ width: plan.fromWidth, height: next.height });

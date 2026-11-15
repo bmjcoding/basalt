@@ -1,5 +1,8 @@
 import { Toast as BaseToast } from "@base-ui/react/toast";
-import { CheckCircleIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import * as React from "react";
 
 import { Icon } from "./icon";
