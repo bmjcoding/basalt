@@ -259,7 +259,7 @@ export const ROUND_37: Round = {
       name: "A card title and an accordion header take a heading level",
       intro: "CardTitle's level and AccordionItem's headingLevel, 2 to 6, h3 when not given. The level is the element only.",
       widths: [1440, 390],
-      scales: [1],
+      scales: [1, 2],
       height: 900,
       decisions: [
         "Engineering, no vote (WCAG 1.3.1, the audit's A3-12): a prop shaped and named as Heading's and EmptyState's are, with no pixel changed. The \"before\" state is the page as it was.",
@@ -274,7 +274,7 @@ export const ROUND_37: Round = {
       name: "The Stepper says where the user is",
       intro: "A group named \"Steps\", and \"Step 2 of 3: Review\" in the step name's live region. Nothing new is drawn.",
       widths: [1440, 390],
-      scales: [1],
+      scales: [1, 2],
       height: 520,
       decisions: [
         "Engineering, no vote (the audit's A3-13). The words are props, so an app can translate them: label for the group (\"Steps\") and positionLabel for the position (\"Step 2 of 3\").",
@@ -289,7 +289,7 @@ export const ROUND_37: Round = {
       name: "A toast with an action says it has one",
       intro: "\"Undo is available. Press F6 to reach it.\" ends the announcement of a toast with an action, and only of one.",
       widths: [1440, 390],
-      scales: [1],
+      scales: [1, 2],
       height: 640,
       decisions: [
         "Engineering, no vote (the audit's A3-13). Foundations already gives the stack its F6 route; this says so to someone who cannot see the button. ToastProvider's actionWords prop sets the sentence for translation.",
@@ -304,7 +304,7 @@ export const ROUND_37: Round = {
       name: "A toolbar of Basalt's own controls",
       intro: "One tab stop. Left and Right (or Up and Down) between the controls, Home and End to the ends. A menu or popover opened from a control keeps the arrow keys.",
       widths: [1440, 390],
-      scales: [1],
+      scales: [1, 2],
       height: 640,
       decisions: [
         "Engineering, no vote: the council ruled the Toolbar an unstyled wrapper on Base UI's (DECISIONS 135, 2 to 1). It has no class that draws anything: the gap, the row and the scroll in the shots are this review page's own layout.",
