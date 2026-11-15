@@ -218,19 +218,19 @@ describe("a social link in the skill", () => {
       const rest = await read("#li");
       const primary = await resolve(page, "var(--basalt-text-primary)");
       await page.locator("#li").hover();
-      await page.waitForTimeout(200);
+      await settle(page);
       const hover = await read("#li");
       assert.deepEqual([hover.ink, hover.svgInk, hover.line], [primary, primary, primary], "hover: glyph and name primary, the underline brightens");
       assert.deepEqual([hover.weight, hover.bg, hover.w], [rest.weight, rest.bg, rest.w], "no weight change, wash or shift");
       await page.mouse.down();
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal((await read("#li")).transform, "none", "no press scale on a link");
       await page.mouse.up();
       await page.mouse.move(0, 0);
       await page.locator("#gh").focus();
       await page.keyboard.press("Tab");
       await page.waitForFunction(() => document.activeElement?.id === "x");
-      await page.waitForTimeout(200);
+      await settle(page);
       const focused = await read("#x");
       assert.deepEqual([focused.ink, focused.svgInk], [primary, primary], "focus lifts the ink as well as showing the ring");
       assert.deepEqual(focused.outline, ["solid", "2px", "2px", await resolve(page, "var(--basalt-border-focus)")], "the control ring at +2");
@@ -330,9 +330,10 @@ describe("icon only, in the skill: a row made entirely of marks", () => {
     const b = await page.locator("#m1").boundingBox();
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.equal(await page.locator("#m1").evaluate((el) => getComputedStyle(el).transform), "matrix(0.98, 0, 0, 0.98, 0, 0)", "the button's .98 press");
     await page.mouse.up();
+    await settle(page);
     assert.deepEqual(errors, []);
     assert.deepEqual(await axeViolations(page), []);
     await context.close();
@@ -346,7 +347,7 @@ describe("icon only, in the skill: a row made entirely of marks", () => {
 });
 
 describe("the long form in the skill: a profile list", () => {
-  const LONG = (extra = "") => `<div class="panel" style="width:420px;margin:16px"><div class="rows profile-links" id="list" aria-label="Profiles">
+  const LONG = (extra = "") => `<div class="panel" style="width:420px;margin:16px"><div class="rows profile-links" id="list" role="group" aria-label="Profiles">
     <a class="row" id="r-gh" href="https://example.test/gh"><i data-icon="GithubLogo"></i><span class="row-label">GitHub</span><span class="row-hint">@placeholder</span></a>
     <a class="row" id="r-x" href="https://example.test/x" target="_blank"><i data-icon="XLogo"></i><span class="row-label">X</span><span class="row-hint">@placeholder</span></a>
     <a class="row" id="r-mail" href="mailto:name@example.test"><i data-icon="EnvelopeSimple"></i><span class="row-label">Email</span><span class="row-hint">name@example.test</span></a>${extra}</div></div>`;

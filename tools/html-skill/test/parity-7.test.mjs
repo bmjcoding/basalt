@@ -320,6 +320,7 @@ for (const scheme of THEMES) {
         const { page: p, context } = await open(SITE(), { scheme, width, touch });
         assert.deepEqual(await axeViolations(p), [], `${width}`);
         await p.emulateMedia({ forcedColors: "active" });
+        await settle(p);
         assert.deepEqual(await axeViolations(p), [], `${width}, forced colours`);
         await context.close();
       }
@@ -486,6 +487,7 @@ for (const scheme of THEMES) {
         const { page: p, context } = await open(APP, { scheme, width, touch });
         assert.deepEqual(await axeViolations(p), [], `${width}`);
         await p.emulateMedia({ forcedColors: "active" });
+        await settle(p);
         assert.deepEqual(await axeViolations(p), [], `${width}, forced colours`);
         await context.close();
       }

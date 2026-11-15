@@ -79,6 +79,24 @@ two templates, byte for byte. A PR that changes a pixel on purpose re-records th
 `node tools/html-skill/test/record-baseline.mjs`. The diff of the fixtures then shows what moved, and the PR shows a before and after of every
 region that differs. It does not delete or loosen the test. (Fonts stay out of the fixtures: each has a `<!-- basalt:fonts -->` placeholder.)
 
+## What a composed page needs from a Content-Security-Policy
+
+A page is one file with no network, so a policy can allow almost nothing. Measured on the two examples and the Blacksand page (no `on*=""` handler, no `eval` or `new Function`, no URL that leaves the file), the least policy that gives no violation is:
+
+```
+default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data:
+```
+
+`img-src data:` is needed wherever the page draws a `data:` URL as an image, a CSS background or an icon: a form control's marks, a framed image, a stage's picture, a `<link rel="icon">`; leave it out for a page with none. With `'unsafe-inline'` replaced by a hash (`'sha256-…'`) for each inline `<script>` and `<style>` block, every script still runs and the only thing blocked is the `style=""` attribute that many components carry, so `style-src-attr 'unsafe-inline'` is the one thing a strict policy cannot drop. The scripts write their styles through the CSSOM, which a policy allows. With scripts off a page follows the system theme and its text is readable, but its icons are not drawn (an icon-only button such as the theme toggle is an empty box), the tabs' other panels stay `hidden`, and a disclosure's content stays closed. `test/audit-fixes-c2.test.mjs` composes the two examples and loads them under both policies.
+
+## The head
+
+A body may carry `<meta name="description" content>`, `<meta property="og:…" content>`, `<meta name="twitter:…" content>`, `<link rel="icon" href="data:…">`, `<link rel="apple-touch-icon" href="data:…">` and `<link rel="canonical" href>`; `compose.mjs` lifts them into the head after the title, in the order written, and refuses any other `meta` or `link` with that list (it owns the charset, viewport and colour scheme, and an icon is a `data:` URL because a page makes no request). Inside an `svg`, a `template`, a script, a style or a comment a tag is left as written.
+
+## Fonts
+
+`compose.mjs` inlines both Geist faces on every page. It does not drop the mono face, because whether a page draws it cannot be decided from its text.
+
 ## Budgets
 
 In `src/modules.json`: `skillMd` (the context an agent pays, never above what it was), `core`, `everything` (core, every module and

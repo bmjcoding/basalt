@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { freezeAnimations } from "../../../packages/react/test/support.mjs";
+import { freezeAnimations, settle } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -509,6 +509,7 @@ describe("accessibility", () => {
     test(`axe finds nothing, with a chart's table open (${theme}, ${width})`, async () => {
       const { page, context } = await open({ scheme: theme, width });
       await page.locator("#bars .chart-toggle").click();
+      await settle(page);
       assert.deepEqual(await axeViolations(page), []);
       await context.close();
     });
@@ -517,6 +518,7 @@ describe("accessibility", () => {
   test("axe finds nothing in forced colours", async () => {
     const { page, context } = await open();
     await page.emulateMedia({ forcedColors: "active" });
+    await settle(page);
     assert.deepEqual(await axeViolations(page), []);
     await context.close();
   });

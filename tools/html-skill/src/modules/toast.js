@@ -18,6 +18,8 @@
   var focus = false;
   var blurred = false;
   var hidden = false;
+  var NOSCROLL = { preventScroll: true };
+  var from = null; // where focus was when F6 took it to the region
 
   function status(o) { return o.status || 'neutral'; }
   function homes(o) { return o.home === undefined ? [] : typeof o.home === 'string' ? [o.home] : o.home; }
@@ -48,6 +50,16 @@
     viewport.setAttribute('role', 'region');
     viewport.setAttribute('aria-label', 'Notifications');
     viewport.setAttribute('aria-live', 'off');
+    // F6 reaches the region, as Base UI's viewport does in React: focus goes to it (not in the tab order), and Shift+Tab or Escape from it goes back to where it came from.
+    viewport.tabIndex = -1;
+    viewport.addEventListener('keydown', function (e) {
+      if ((e.target !== viewport && e.target !== viewport.firstElementChild) || (e.key !== 'Escape' && !(e.key === 'Tab' && e.shiftKey))) return; // from the region, or from the first toast (what Shift+Tab would leave the stack for)
+      e.preventDefault();
+      e.stopPropagation(); // inside a dialog the focus trap would read the element just focused and wrap backwards
+      var back = from;
+      from = null;
+      if (back && back.isConnected) back.focus(NOSCROLL);
+    });
     document.body.appendChild(viewport);
     viewport.addEventListener('pointerenter', function () { hover = true; sync(); });
     viewport.addEventListener('pointerleave', function () { hover = false; sync(); });
@@ -57,7 +69,8 @@
     window.addEventListener('focus', function (e) { if (e.target === window) { blurred = false; sync(); } }, true);
     document.addEventListener('visibilitychange', function () { hidden = document.visibilityState === 'hidden'; sync(); });
     hidden = document.visibilityState === 'hidden';
-    new MutationObserver(rehome).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    // A modal opening or closing, or the palette making the page inert, moves focus: the region is placed from where focus is.
+    new MutationObserver(function () { viewport.removeAttribute('inert'); place(); }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open', 'inert'] });
   }
 
   function ensureRegion() {
@@ -69,13 +82,16 @@
   }
 
   /**
-   * Toasts stay interactive over a modal, as React's do (their portal is not inside the page the dialog makes inert): while a modal is open the viewport lives
-   * inside it, which the browser leaves live, and goes back to the body when it closes. Level and place do not change (it is fixed, in the top layer).
+   * Toasts stay interactive over a modal, as React's do (their portal is not inside the page the dialog makes inert): the region lives inside the modal that holds focus (a
+   * dialog or a sheet; focus cannot be in an inert one, so that one is the top-most, in whatever order they opened and closed), which the browser leaves live, and in the
+   * body when focus is in none (the palette's backdrop is not in the top layer, and the region is). It is placed from focus when a toast is raised, at F6, and when a modal
+   * opens or closes. Level and place do not change (it is fixed, in the top layer).
    */
-  function rehome() {
+  function place() {
     if (!viewport) return;
-    var modals = document.querySelectorAll('dialog.modal[open]');
-    var to = modals.length ? modals[modals.length - 1] : document.body;
+    var a = document.activeElement;
+    var m = a && a.closest ? a.closest('dialog.modal[open]') : null;
+    var to = m || document.body;
     if (viewport.parentNode === to) return;
     var was = viewport.matches(':popover-open');
     to.appendChild(viewport);
@@ -211,18 +227,22 @@
     t.el.appendChild(t.content);
     fill(t);
     t.el.setAttribute('data-starting-style', '');
-    // It lives in the open modal, if there is one, and is raised above what has been opened since.
-    var modals = document.querySelectorAll('dialog.modal[open]');
-    var to = modals.length ? modals[modals.length - 1] : document.body;
+    // It lives in the modal that holds focus, if there is one, and is raised above what has been opened since.
+    place();
     var above = document.querySelector('[popover]:popover-open:not(.toast-viewport)');
-    if (viewport.parentNode !== to) to.appendChild(viewport);
-    else if (viewport.matches(':popover-open') && above) viewport.hidePopover();
+    if (viewport.matches(':popover-open') && above) viewport.hidePopover();
     if (!viewport.matches(':popover-open')) viewport.showPopover();
     viewport.insertBefore(t.el, viewport.firstChild);
     sync();
     void t.el.offsetWidth;
     t.el.removeAttribute('data-starting-style');
-    t.el.addEventListener('keydown', function (e) { if (e.key === 'Escape') dismiss(t.id); });
+    t.el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var back = from;
+      from = null;
+      dismiss(t.id);
+      if (back && back.isConnected) back.focus(NOSCROLL);
+    });
     swipe(t);
     // Running work is not announced, step by step or at all: only its result is.
     if (!t.o.running) announce(t.o, t.count > 1 ? ', ' + t.count + ' times' : '');
@@ -315,5 +335,16 @@
   show.close = close;
   show.promise = promise;
   // The announcer exists, empty, before the first toast, so the first result is spoken.
-  _.step(140, 'wireToast', function () { ensureRegion(); });
+  _.step(140, 'wireToast', function () {
+    ensureRegion();
+    // F6 takes focus to the region. This listener is the first on the document in capture, so a key pressed in the stack is marked as a composition's (a key the palette's handler leaves alone, as it does a composition's).
+    document.addEventListener('keydown', function (e) {
+      if (viewport && viewport.contains(document.activeElement)) Object.defineProperty(e, 'isComposing', { value: true });
+      if (e.key !== 'F6' || !items.length || e.target === viewport) return;
+      e.preventDefault();
+      from = document.activeElement;
+      place();
+      viewport.focus(NOSCROLL);
+    }, true);
+  });
 })(window.Basalt);

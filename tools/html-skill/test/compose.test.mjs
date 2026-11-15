@@ -478,7 +478,7 @@ describe("modules map to the index and the usage texts", () => {
         let markup = null;
         if (/^\.[a-z][\w-]*$/.test(span)) markup = `<div class="${span.slice(1)}">x</div>`;
         else if (/^data-[a-z-]+$/.test(span)) markup = `<div ${span}>x</div>`;
-        else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x`;
+        else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x${/^<(?:textarea|title|style|script)>$/.test(span) ? span.replace("<", "</") : ""}`; // a text element is closed: one that is never closed is refused (A5-09)
         else if (/^type="range"$/.test(span)) markup = `<input ${span}>`;
         else if (/^role="tablist"$/.test(span)) markup = `<div ${span}>x</div>`;
         else if (/^popovertarget$/.test(span)) markup = `<button ${span}="p">x</button>`;

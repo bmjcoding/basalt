@@ -57,7 +57,7 @@
       list.innerHTML = entries.map(function (e, i) {
         var st = e.status || 'neutral';
         var tag = e.href ? 'a' : 'button';
-        return '<li><' + tag + (e.href ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + i + '"' + (e.unread ? ' data-unread' : '') + ' data-status="' + st + '">' +
+        return '<li><' + tag + (e.href ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + i + '"' + (e.unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '">' +
           '<span class="notification-dot" aria-hidden="true"></span><span class="notification-mark" aria-hidden="true">' + (MARK[st] ? _.icon(MARK[st]) : '') + '</span>' +
           '<span class="notification-text"><span class="notification-title">' + (e.unread ? '<span class="visually-hidden">Unread: </span>' : '') + _.esc(e.title) + '</span>' +
           (e.description ? '<span class="notification-line">' + _.esc(e.description) + '</span>' : '') + '</span>' +

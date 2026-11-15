@@ -12,7 +12,6 @@ export const BROKEN = "data:image/png;base64,AAAA";
 export const stagePage = ({ headroomNote = "", extra = "" } = {}) => `<title>Art</title>
 <header class="topbar"><div class="topbar-inner"><a class="brand" href="#top" aria-label="Orbit home">Orbit</a><span class="spacer"></span><button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button></div></header>
 <section class="stage" id="top">
-  <div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async"></div>
   <div class="stage-content">
     <div class="page" style="min-height: 360px; padding-block-end: var(--basalt-space-8)">
       <h1 data-quiet="headline" style="max-width: 18ch">A synthetic headline${headroomNote}</h1>
@@ -20,6 +19,7 @@ export const stagePage = ({ headroomNote = "", extra = "" } = {}) => `<title>Art
       <div class="panel panel-pad" style="max-width: 24rem; margin-top: var(--basalt-space-6)"><strong>A panel on the art</strong><p class="muted small">Solid, level 1, with its rim.</p></div>
     </div>
   </div>
+  <div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async"></div>
 </section>
 <main class="page stack" id="main">
   <h2>Framed art</h2>

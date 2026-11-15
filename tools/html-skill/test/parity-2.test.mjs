@@ -8,6 +8,7 @@ import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
+import { settle } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml, skillDir, read } from "./support.mjs";
 
 let browser;
@@ -148,7 +149,7 @@ describe("a focusable row", () => {
     const ring = await page.locator("#r1").evaluate((el) => { const c = getComputedStyle(el); return [c.outlineStyle, c.outlineWidth, c.outlineOffset, getComputedStyle(el.parentElement).paddingLeft]; });
     assert.deepEqual(ring, ["solid", "2px", "2px", "6px"]);
     await page.locator("#r2").hover();
-    await page.waitForTimeout(150);
+    await settle(page); // the ink lift is a transition: read it once it has ended, not after a fixed wait
     const hover = await page.locator("#r2").evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el, "::before").backgroundColor]);
     assert.deepEqual(hover, [await resolve(page, "var(--basalt-text-primary)", "color"), "rgba(0, 0, 0, 0)"]);
     await context.close();
@@ -319,7 +320,7 @@ describe("the segment's pill", () => {
 
     const { page, context } = await open(SEG);
     await page.emulateMedia({ forcedColors: "active" });
-    await page.waitForTimeout(250); // the pressed button's fill and ink are colour transitions: let them finish
+    await settle(page); // the pressed button's fill and ink are colour transitions: let them finish
     assert.equal((await pillOf(page)).display, "none");
     const forced = await page.locator("#b1").evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.color, c.forcedColorAdjust, c.boxShadow, c.outlineStyle]; });
     assert.deepEqual(forced, [await resolve(page, "Highlight"), await resolve(page, "HighlightText", "color"), "none", "none", "none"], "a fill, no inset outline");

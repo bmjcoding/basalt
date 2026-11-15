@@ -14,6 +14,7 @@
 
   .basalt-stage {
     position: relative;
+    isolation: isolate;
     box-sizing: border-box;
     margin-top: calc(-1 * var(--basalt-sticky-offset));
     padding-top: var(--basalt-stage-headroom);
@@ -21,7 +22,9 @@
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
   }
-  .basalt-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  /* The art comes after the content in the markup (so on a slow link the words arrive first and the stage is not painted short and grown), and sits behind it by
+     z-index inside a stacking context of its own: paint order is what it was when the art came first. */
+  .basalt-stage-art { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; }
   .basalt-stage-art > :is(svg, canvas, picture, img, video) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .basalt-stage-headroom { position: absolute; inset: 0 0 auto 0; height: var(--basalt-stage-headroom); pointer-events: none; }
   .basalt-stage-content { position: relative; }

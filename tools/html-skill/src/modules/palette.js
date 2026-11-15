@@ -247,7 +247,7 @@
     function onKey(e) {
       if (!scrim.isConnected) return;
       syncHints();
-      if (composing(e)) return; // finishing or cancelling a composition is not a command
+      if (composing(e)) return; // finishing or cancelling a composition is not a command (and a key in the toast stack, which F6 reached, is marked as one: it is the stack's)
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
       if (e.key === 'ArrowDown') { e.preventDefault(); if (flat.length) setActive((index + 1) % flat.length); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); if (flat.length) setActive((index - 1 + flat.length) % flat.length); return; }
@@ -278,12 +278,14 @@
     syncHints();
     try {
       // Everything outside the dialog is inert while it is open.
-      Array.prototype.forEach.call(document.body.children, function (el) {
+      // Over an open modal it sits inside it (a modal blocks everything outside it, focus included) and the rest of that modal is inert.
+      var host = document.activeElement.closest('dialog[open]') || document.body;
+      [].forEach.call(host.children, function (el) {
         if (el.tagName === 'SCRIPT' || el.id === 'basalt-live') return;
         inerted.push([el, el.hasAttribute('inert')]);
         el.setAttribute('inert', '');
       });
-      document.body.appendChild(scrim);
+      host.appendChild(scrim);
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
       unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
