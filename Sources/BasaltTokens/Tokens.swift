@@ -392,6 +392,7 @@ extension Basalt {
     public static let s12: Double = 48
     public static let s16: Double = 64
     public static let s24: Double = 96
+    public static let s32: Double = 128
     public static let s0_5: Double = 2
     public static let s1_5: Double = 6
     public static let s2_5: Double = 10
@@ -498,6 +499,14 @@ extension Basalt {
     public static let gutter: Double = 24
     /// The row's inline padding under the medium breakpoint.
     public static let gutterNarrow: Double = 16
+    /// The space between a page's sections from the large breakpoint (1024). Apps use the derived --basalt-section-gap, which steps to size-section-gap-md from 720 to 1023 and size-section-gap-narrow under 720.
+    public static let sectionGap: Double = 128
+    /// The space between a page's sections from the medium breakpoint (720) to the large.
+    public static let sectionGapMd: Double = 96
+    /// The space between a page's sections under the medium breakpoint.
+    public static let sectionGapNarrow: Double = 64
+    /// The widest line of display type, in the headline's own em: about 28 characters of Geist at 600, so a headline is a block and never a strip across the row. In Swift it is the number of ems (13), for a frame's maximum width.
+    public static let displayMeasure: Double = 13
     /// Below it: the phone (the tab bar, the menu sheet, the narrow gutter). A media query cannot read a token, so CSS writes this number beside a lint exception that names the token.
     public static let breakpointMd: Double = 720
     /// From it, the sidebar; below it, down to the medium breakpoint, the rail.
@@ -556,6 +565,10 @@ extension Basalt {
     public static let xl3 = TypeStyle(size: 30, lineHeight: 36, tracking: -0.025)
     public static let xl4 = TypeStyle(size: 40, lineHeight: 44, tracking: -0.03)
     public static let xl5 = TypeStyle(size: 56, lineHeight: 60, tracking: -0.035)
+    public static let xl6 = TypeStyle(size: 72, lineHeight: 76, tracking: -0.04)
+    public static let xl7 = TypeStyle(size: 96, lineHeight: 96, tracking: -0.045)
+    public static let heroNarrow = TypeStyle(size: 44, lineHeight: 48, tracking: -0.03)
+    public static let displayNarrow = TypeStyle(size: 36, lineHeight: 40, tracking: -0.025)
   }
 
   /// Geist's three weights. In-between weights render differently on native, so Basalt uses whole steps.

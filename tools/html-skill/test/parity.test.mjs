@@ -1554,7 +1554,7 @@ const ART = [
 // The combobox is read closed (the field, its placeholder and caret), chosen (a value in it), in focus, open (the popup, the rows, the check, the two-line row, the lit row, the shared
 // plate, the disabled row) and with no match (the empty sentence). The popup's place is read against the field, marked on both pages (the group has no props of its own in React). The
 // sparkline is read with data, with one sample, empty and loading.
-const REST_IMPORTS = `const { Combobox, Sparkline, SkipLink } = B;`;
+const REST_IMPORTS = `const { Combobox, Sparkline, SkipLink, Text, Heading, Lead, PageRow, PageSections, PageSection, SectionIntro, SectionActions, Columns, ColumnsItem, Button } = B;`;
 const CB_OPTIONS = `[{ value: "eu", label: "Frankfurt", description: "eu-central, lowest latency" }, { value: "us", label: "Ashburn" }, { value: "ap", label: "Singapore" }, { value: "gone", label: "Sydney", disabled: true }]`;
 const cbSkill = (inner = "", { chosen = true, attrs = "" } = {}) => `<div class="combobox" data-empty="No options match."><input class="input" aria-label="Region" placeholder="Search regions…"${attrs}><ul><li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li><li data-value="us"${chosen ? ' aria-selected="true"' : ""}>Ashburn</li><li data-value="ap">Singapore</li><li data-value="gone" aria-disabled="true">Sydney</li></ul></div>${inner}`;
 const cbFrame = (inner) => `<div style={{ padding: 16, width: 320 }}>${inner}</div>`;
@@ -1745,6 +1745,40 @@ const REST = [
     pairs: [...SPARK_PAIRS.filter(([label]) => ["sparkline", "head", "image", "line"].includes(label)), ["no axis", ".basalt-sparkline", ".sparkline", ["childCount"]]],
   },
 ];
+
+// Display type, the lead, the row, the sections and the columns (DECISIONS 137): React's parts and the skill's classes, read at the three shapes a page has (1440, 800 and 390).
+const TL_TYPE = [...TYPE, "color", "fontFamily", "maxWidth", "textWrapStyle", "overflowWrap", "hyphens", "boxWidth", "boxHeight", "rectLeft", "rectTop"];
+const TL_REACT = (layout = "3") => `<><PageSections><PageSection aria-labelledby="h"><SectionIntro><Heading id="h" level={1} size="hero">Every field note in one plain book.</Heading><Lead>Fieldbook keeps notes, tables and sketches side by side.</Lead><SectionActions><Button variant="primary" size="lg">Start a book</Button><Button size="lg">Read the guide</Button></SectionActions></SectionIntro></PageSection><PageSection aria-labelledby="k"><SectionIntro><Heading id="k" level={2} size="display"><span className="basalt-text-line">Three kinds of page.</span><span className="basalt-text-line">One book.</span></Heading></SectionIntro><Columns layout="${layout}"><div style={{ height: 40 }}>One</div><div style={{ height: 40 }}>Two</div><div style={{ height: 40 }}>Three</div><ColumnsItem span={12}>Own</ColumnsItem></Columns></PageSection><PageSection><Text as="div" size="6xl" id="t6">Plain</Text><Text as="div" size="7xl" id="t7">Plain</Text></PageSection></PageSections><PageRow as="footer">Footer</PageRow></>`;
+const TL_SKILL = (layout = "3") => `<main class="page-sections"><section class="page-section" aria-labelledby="h"><div class="section-intro"><h1 class="text-hero" id="h">Every field note in one plain book.</h1><p class="text-lead">Fieldbook keeps notes, tables and sketches side by side.</p><div class="section-actions"><button class="btn" data-variant="primary" data-size="lg">Start a book</button><button class="btn" data-size="lg">Read the guide</button></div></div></section><section class="page-section" aria-labelledby="k"><div class="section-intro"><h2 class="text-display" id="k"><span class="text-line">Three kinds of page.</span><span class="text-line">One book.</span></h2></div><div class="columns" data-layout="${layout}"><div style="height: 40px">One</div><div style="height: 40px">Two</div><div style="height: 40px">Three</div><div style="--span: 12">Own</div></div></section><section class="page-section"><div class="text-6xl" id="t6">Plain</div><div class="text-7xl" id="t7">Plain</div></section></main><footer class="page-row">Footer</footer>`;
+const TL_PAIRS = [
+  ["sections", ".basalt-page-sections", ".page-sections", ["display", "paddingBottom", "boxWidth", "boxHeight"]],
+  ["first section", ".basalt-page-section", ".page-section", ["paddingTop", "paddingLeft", "paddingRight", "maxWidth", "boxWidth", "marginLeft", "rectLeft", "rectTop"]],
+  ["second section", ".basalt-page-section:nth-child(2)", ".page-section:nth-child(2)", ["paddingTop", "boxHeight", "rectTop"]],
+  ["head", ".basalt-section-intro", ".section-intro", ["marginBottom", "boxHeight"]],
+  ["hero", "#h", "#h", TL_TYPE],
+  ["lead", ".basalt-lead", ".text-lead", [...TL_TYPE, "marginTop"]],
+  ["actions", ".basalt-section-actions", ".section-actions", ["display", "flexWrap", "gap", "marginTop", "boxHeight"]],
+  ["display", "#k", "#k", TL_TYPE],
+  ["a line of a display", "#k .basalt-text-line", "#k .text-line", ["display", "boxHeight"]],
+  ["columns", ".basalt-columns", ".columns", ["display", "gridTemplateColumns", "columnGap", "rowGap", "alignItems", "boxHeight"]],
+  ["column one", ".basalt-columns > :nth-child(1)", ".columns > :nth-child(1)", ["boxWidth", "rectLeft", "rectTop", "minWidth"]],
+  ["column three", ".basalt-columns > :nth-child(3)", ".columns > :nth-child(3)", ["boxWidth", "rectLeft", "rectTop"]],
+  ["column with its own span", ".basalt-columns > :nth-child(4)", ".columns > :nth-child(4)", ["boxWidth", "rectLeft", "rectTop"]],
+  ["fixed step 6xl (weight 600 through Text as through the class)", "#t6", "#t6", TL_TYPE],
+  ["fixed step 7xl (weight 600 through Text as through the class)", "#t7", "#t7", TL_TYPE],
+  ["footer row", ".basalt-page-row", ".page-row", ["paddingLeft", "paddingRight", "maxWidth", "boxWidth", "marginLeft", "rectLeft"]],
+];
+REST.push(
+  ...[[1440, "3"], [800, "4"], [390, "7-5"]].map(([width, layout]) => ({
+    id: `type and layout at ${width}, layout ${layout}`,
+    width,
+    react: TL_REACT(layout),
+    skill: TL_SKILL(layout),
+    touch: width === 390,
+    ready: { react: ".basalt-page-sections", skill: ".page-sections" },
+    pairs: TL_PAIRS,
+  })),
+);
 
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;

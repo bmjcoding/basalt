@@ -67,6 +67,8 @@ const font = (file) => fs.readFileSync(path.join(reactPkg, "dist", "fonts", file
 const css = [
   `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
   `@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900;font-display:swap}`,
+  // The Geist Fallback faces, read from the package's own fonts.css, so the fallback the tokens name is the one the package ships.
+  ...fs.readFileSync(path.join(reactPkg, "dist", "fonts.css"), "utf8").split("\n").filter((line) => line.startsWith('@font-face { font-family: "Geist Fallback"')),
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/tokens.css"), "utf8"),
   // The page's own layout sits in a layer below `basalt`, so a rule here can never override a component:
   // an unlayered rule would beat @layer basalt, and once made correct breadcrumbs look broken. `review-options`

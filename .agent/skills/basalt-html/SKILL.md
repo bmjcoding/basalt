@@ -48,6 +48,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **art** `var(--basalt-art-tone-2)`: tokens only (art tones, chart roles, aspects); greys only, never an accent.
 - **stage** `.stage`: first content after the bar, outside `.page`; art in `.stage-art`, never filtered; the bar stays smoked.
 - **framed-art** `.framed`: a `figure` for a one-version picture; `data-aspect` sets the box; always write `alt`.
+- **type-layout** `.text-hero`, `.page-sections`, `.columns`: a site page's roles; no `.text-7xl` on a phone, no `<br>`.
 - **stats** `.stats`: never a row of boxed tiles; up to 3 figures.
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
 - **meter** `.meter`: not `.progress`; `--value` and `--target` are percentages; write `aria-valuetext`.

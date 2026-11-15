@@ -84,3 +84,58 @@ test("the four aspect ratios are numbers in CSS, JS and Swift", () => {
   }
   assert.match(swift, /public enum Aspect \{/);
 });
+
+// ---- Display type, the section gap and the display measure (DECISIONS 137, approved in 139): in CSS, JS and Swift ----
+
+const DISPLAY_STEPS = {
+  "6xl": [72, 76, -0.04, "xl6"], "7xl": [96, 96, -0.045, "xl7"],
+  "hero-narrow": [44, 48, -0.03, "heroNarrow"], "display-narrow": [36, 40, -0.025, "displayNarrow"],
+};
+const SHIPPED_STEPS = { xs: [12, 16, 0.01], sm: [13, 18, 0], base: [14, 20, 0], md: [16, 24, -0.005], lg: [18, 26, -0.01], xl: [20, 28, -0.015], "2xl": [24, 30, -0.02], "3xl": [30, 36, -0.025], "4xl": [40, 44, -0.03], "5xl": [56, 60, -0.035] };
+
+test("text-6xl 72/76 at -0.04em and text-7xl 96/96 at -0.045em, and the two phone values 44/48 and 36/40, are px and em in CSS, JS and Swift", () => {
+  for (const [step, [size, line, tracking, id]] of Object.entries(DISPLAY_STEPS)) {
+    assert.match(css, new RegExp(`--basalt-text-${step}-size: ${size}px;`), step);
+    assert.match(css, new RegExp(`--basalt-text-${step}-line-height: ${line}px;`), step);
+    assert.match(css, new RegExp(`--basalt-text-${step}-tracking: ${String(tracking).replace(".", "\\.")}em;`), step);
+    assert.equal(json.primitives[`text-${step}-size`].css, `${size}px`);
+    assert.match(swift, new RegExp(`public static let ${id} = TypeStyle\\(size: ${size}, lineHeight: ${line}, tracking: ${String(tracking).replace(".", "\\.")}\\)`), `${step} in Swift`);
+  }
+});
+
+test("the ten shipped steps do not change", () => {
+  for (const [step, [size, line, tracking]] of Object.entries(SHIPPED_STEPS)) {
+    assert.equal(json.primitives[`text-${step}-size`].css, `${size}px`, step);
+    assert.equal(json.primitives[`text-${step}-line-height`].css, `${line}px`, step);
+    assert.equal(Number.parseFloat(json.primitives[`text-${step}-tracking`].css), tracking, step);
+  }
+});
+
+test("space-32 is 128px and the three section gaps are aliases of space-32, space-24 and space-16, so they cannot drift from the scale", () => {
+  assert.match(css, /--basalt-space-32: 128px;/);
+  assert.match(swift, /public static let s32: Double = 128\n/);
+  assert.equal(json.primitives["size-section-gap"].css, json.primitives["space-32"].css);
+  assert.equal(json.primitives["size-section-gap-md"].css, json.primitives["space-24"].css);
+  assert.equal(json.primitives["size-section-gap-narrow"].css, json.primitives["space-16"].css);
+  for (const [name, points, id] of [["size-section-gap", 128, "sectionGap"], ["size-section-gap-md", 96, "sectionGapMd"], ["size-section-gap-narrow", 64, "sectionGapNarrow"]]) {
+    assert.match(css, new RegExp(`--basalt-${name}: var\\(--basalt-space-\\d+\\);`), name);
+    assert.match(swift, new RegExp(`public static let ${id}: Double = ${points}\\n`), id);
+  }
+});
+
+test("size-display-measure is 13em in CSS and JS, and the number 13 in Swift with a doc comment that says it is ems", () => {
+  assert.match(css, /--basalt-size-display-measure: 13em;/);
+  assert.equal(json.primitives["size-display-measure"].css, "13em");
+  assert.match(swift, /\/\/\/ [^\n]*number of ems \(13\)[^\n]*\n\s*public static let displayMeasure: Double = 13\n/);
+});
+
+test("font-family-sans is Geist, then Geist Fallback, then the system chain; the mono family is unchanged", () => {
+  assert.match(css, /--basalt-font-family-sans: Geist, "Geist Fallback", ui-sans-serif, system-ui, sans-serif;/);
+  assert.match(css, /--basalt-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;/);
+});
+
+test("the breakpoints are still 720, 1024 and 480: no 900 and no 1280 token", async () => {
+  const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
+  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480 });
+  assert.doesNotMatch(css, /breakpoint-(?:900|1280)|--basalt-size-breakpoint-xl/);
+});

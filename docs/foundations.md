@@ -582,12 +582,14 @@ steps, so they'd render differently on native.
 
 | Token | Size / line | Tracking | Use |
 |---|---|---|---|
-| `text-5xl` | 56 / 60 | −0.035em | Display |
-| `text-4xl` | 40 / 44 | −0.03em | Page hero |
+| `text-7xl` | 96 / 96 | −0.045em | The hero, from 1024 |
+| `text-6xl` | 72 / 76 | −0.04em | Display from 1024; the hero from 720 to 1023 |
+| `text-5xl` | 56 / 60 | −0.035em | The display role from 720 to 1023, and the most a display headline takes in a column narrower than 7 of 12 |
+| `text-4xl` | 40 / 44 | −0.03em | A large title in an app; not a site's hero (that is the hero role) |
 | `text-3xl` | 30 / 36 | −0.025em | Page title |
 | `text-2xl` | 24 / 30 | −0.02em | Section |
-| `text-xl` | 20 / 28 | −0.015em | Card title |
-| `text-lg` | 18 / 26 | −0.01em | Lead |
+| `text-xl` | 20 / 28 | −0.015em | Card title; the lead from 720 |
+| `text-lg` | 18 / 26 | −0.01em | The lead under 720, and an app's lead |
 | `text-md` | 16 / 24 | −0.005em | Body in docs and marketing |
 | `text-base` | 14 / 20 | 0 | Body and controls in apps; the rows of every popup (13 / 18 in compact) |
 | `text-sm` | 13 / 18 | 0 | Tables, sidebars, and popup rows in compact density |
@@ -595,10 +597,65 @@ steps, so they'd render differently on native.
 
 Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
 
+`text-6xl` and `text-7xl` are px, as the ten steps before them are, and the ten do not change; whether the whole scale moves to rem
+so a reader's text-size setting reaches the type is a round of its own (the council split 2 to 1, and sol would have rem for every
+new display value). Under the type the sans family is `Geist, "Geist Fallback", ui-sans-serif, system-ui, sans-serif`:
+
+- **Geist Fallback** is a local face that stands in for Geist until it arrives, so the swap moves a page as little as it can.
+  `fonts.css` keeps `font-display: swap` and adds one face per weight (400, 500 and 600), each from the local Arial (the 600 from Arial
+  Bold), because Arial has a regular and a bold and Geist's three weights differ in width. Each has the `size-adjust` that is Geist's width
+  over that Arial's, measured on the Geist file Basalt ships (102.4%, 104.7% and 99.5%, on 3,100 characters of English), and an
+  `ascent-override` and `descent-override` that are Geist's own ascent (1.005em) and descent (0.295em) divided by it, with the line gap 0, so
+  a baseline sits where Geist's will. Line heights are explicit in every step, so the swap never changes a line box's height.
+- **It reduces the shift and does not promise the same wrap at every width.** A line within a percent of Geist's width can still break
+  elsewhere: at 376 and 380 wide the sample hero is two lines in Geist and three in the fallback. Where Arial is not installed
+  (a `local()` face matches a font's own name, not a system's alias for it) the next family answers. Apps preload the one Geist file
+  (`<link rel="preload" as="font" type="font/woff2" crossorigin>`); it covers all three weights. The HTML skill inlines Geist, so its pages
+  show the fallback only if the font fails.
+
+### Display type
+
+A page's large headlines and its lead (the council voted DECISIONS 137; the owner approved it in DECISIONS 139).
+
+**Status:** decided by the council and approved by the owner (DECISIONS 137 and 139); the implementation has not been reviewed.
+
+Two roles, hero and display, set a page's large headlines. Each is one name with three sizes, and it takes the one for the band the window
+is in. A role steps at the breakpoints, on the viewport, and never with the window's width: no `clamp`, no viewport or container units in
+type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles are for headings, and `Text size` takes the fixed steps.
+
+| Role | 1024 and up | 720 to 1023 | Under 720 |
+|---|---|---|---|
+| Hero | `text-7xl` 96 / 96, −0.045em | `text-6xl` 72 / 76, −0.04em | `text-hero-narrow` 44 / 48, −0.03em |
+| Display | `text-6xl` 72 / 76, −0.04em | `text-5xl` 56 / 60, −0.035em | `text-display-narrow` 36 / 40, −0.025em |
+| Lead | `text-xl` 20 / 28 | `text-xl` 20 / 28 | `text-lg` 18 / 26 |
+
+- **The hero** is a page's one `h1` when its first screen is type. A first screen that shares the window with art or a figure sets its
+  `h1` at display. One hero per page. **Display** is a section's headline on a page set at display size, and an inner page's `h1`.
+- **All display type** is 600 in primary ink, `text-wrap: balance`, at most `size-display-measure` (13em, about 28 characters of Geist at
+  600) wide, in the full row or a span of seven columns or more; anything narrower takes `text-5xl` at most.
+- **Breaks:** never a `<br>`. A break that is right at 1440 is wrong at 390. Two sentences meant as two lines are two block spans
+  (`.basalt-text-line`), each balanced on its own.
+- **The phone size is a row width.** The narrow sizes are for the 288px row at 320 (WCAG 1.4.10): at 44px and −0.03em most words fit it
+  (Geist 600 sets "Responsibility" in 279px), and a word that does not fit breaks. `overflow-wrap: break-word` is the net, never the plan:
+  a headline that needs it has a word too long for its size, and a page's own check lists the words it broke, since an overflow check
+  cannot see them. Docs and examples show the roles on a phone and never a fixed `6xl` or `7xl` there: a fixed 96px breaks "Plain" at
+  320 under text spacing.
+- **Line height 1.0 at 96.** Geist's accented capitals are 0.952em tall and its descenders 0.162em: at 96/96 only an accented capital over
+  a descender can touch, as in any display setting near 1. Lines under 1 were not adopted.
+- **The lead** is the paragraph under a display headline: weight 400, secondary ink, `size-prose-width` on the row's start edge,
+  `text-wrap: pretty`, `space-6` under the headline (`space-4` under 720), with the actions `space-8` below it (`space-6`). The part is
+  `Lead`. The HTML skill's `.lead` (16/24, under a report's `h1`) stays as it is; its `.text-lead` is this one.
+- **Why steps:** a viewport term takes back part of a reader's zoom, wraps a headline differently at every width, and has no equivalent
+  on native. Steps keep one stated size, three shapes to review, and the same values in Swift. At 200% page zoom the window moves down a
+  band: a 1440 window's hero is 72 CSS px, 144 device px.
+- **On Apple platforms** a role takes its large values in a regular width and its narrow values in a compact one, scaled with Dynamic Type
+  relative to `.largeTitle`; `size-display-measure` is generated as a number of ems (13).
+- A site's own display weight and case (the personal site's 300, Castle's 800 capitals) and its own grid are the site's and not Basalt's.
+
 ## Space, size, radius
 
 - **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px), plus the half
-  steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing.
+  steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing, and `space-32` (128px), the large section gap.
 - **Component sizes are tokens too:** the tab underline (2), tracks (4), dots (6), choice boxes,
   the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
   popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
@@ -1110,6 +1167,10 @@ because no whole set had two of three votes; the owner is asked to look at them 
 | `size-prose-width` | 34rem | A prose page's text column |
 | `size-gutter` | `space-6` (24px) | The row's inline padding |
 | `size-gutter-narrow` | `space-4` (16px) | The same, under the medium breakpoint |
+| `size-section-gap` | `space-32` (128px) | The space between a page's sections, from the large breakpoint |
+| `size-section-gap-md` | `space-24` (96px) | The same, from the medium breakpoint to the large |
+| `size-section-gap-narrow` | `space-16` (64px) | The same, under the medium breakpoint |
+| `size-display-measure` | 13em | The widest line of display type, in the headline's own em |
 | `size-breakpoint-md` | 720px | Below it: the phone (tab bar, the menu sheet, the narrow gutter) |
 | `size-breakpoint-lg` | 1024px | From it, the sidebar; below it, down to md, the rail |
 | `size-breakpoint-container` | 480px | A component's own width: a description list stacks and a chart goes narrow |
@@ -1120,6 +1181,9 @@ because no whole set had two of three votes; the owner is asked to look at them 
   to points at 16 to the rem (72rem is 1152, 34rem is 544), and the generated doc comment says so.
 - **Derived properties** are set by Basalt's layout CSS and are not tokens, because each adds what only the device knows:
   - `--basalt-gutter`: `size-gutter`, or `size-gutter-narrow` under 720. Apps use this one.
+  - `--basalt-section-gap`: `size-section-gap`, `size-section-gap-md` from 720 to 1023, or `size-section-gap-narrow` under 720.
+  - `--basalt-hero-size`, `-line-height` and `-tracking`, and the same for `--basalt-display-*` and `--basalt-lead-*`: what a role resolves to in the
+    window's band (see [Display type](#display-type)).
   - `--basalt-sticky-offset`: `size-header` plus `env(safe-area-inset-top)`. It is the `top` of anything sticky under the bar; with
     `space-4` added it is the page's `scroll-padding-top`, so an anchor lands below the bar.
   - `--basalt-bottom-offset`: `size-tab-bar` plus `env(safe-area-inset-bottom)` under 720 in an app with a tab bar, else 0. It is the
@@ -1137,6 +1201,33 @@ because no whole set had two of three votes; the owner is asked to look at them 
   the compact size class is the phone, and measures are `@ScaledMetric` so a prose column grows with Dynamic Type.
 - **The HTML skill's build** substitutes these values instead of hand-writing 720 (DECISIONS 91, batch 7): its sources write `%bp-md%`,
   `%bp-lg%` and `%bp-container%` in range syntax, and the build reads them from the generated tokens.
+
+### The page: the row, the sections and the columns
+
+**Status:** decided by the council and approved by the owner (DECISIONS 137 and 139); the implementation has not been reviewed.
+
+- **The page row** (`PageRow`) is `size-page-width` with `--basalt-gutter` inside, the site header's row exactly, so every headline, lead, table
+  and chart starts under the brand. It is the row of the first screen too: art that wants more is full-bleed in a `Stage`, never a wider
+  row. The side safe area replaces the gutter where it is larger, as the header's padding does.
+- **Sections** (`PageSections` holds `PageSection`s, each with a `SectionIntro` for its headline, lead and `SectionActions`) are one section
+  gap apart (`--basalt-section-gap`: 128, 96, 64). A page's first section starts half a gap below the bar; a section's head is half a gap
+  above its body; the page ends one gap above its footer.
+- **No screens of empty page.** The widest empty band on a page is one section gap, art excepted. A first screen is as tall as what it holds:
+  no section is sized from the viewport (`vh`, `svh`), and none is made tall to be scrolled through. A page is also tested, not only
+  styled: the first line of the next section's headline shows on the first screen at 1440×900, 1280×720 and 390×844. That test yields when a
+  reader enlarges text or spacing, and it is never met by shrinking type, clipping, or fixing a height.
+- **Columns** (`Columns`, with `ColumnsItem span` for an item's own) are twelve tracks on the row, the gutter as the column gap and
+  `space-8` as the row gap: layouts `2`, `3`, `4`, `7-5`, `5-7`, `8-4` and `4-8`, or an item's own span. From 720 to 1023 `2` and `3` hold,
+  `4` becomes two rows of two and everything else stacks; under 720 every item takes the full row, in source order. **An item's own span holds
+  from 1024 only** (DECISIONS 144): from 720 to 1023 the layout's rule decides, so an unnamed layout's items, and an item that sets its own span,
+  are a full row there, and a hand-written 7 + 5 cannot escape the stacking of a named `7-5`. A display headline never sits in a span under 7:
+  `ColumnsItem` warns in development when it holds a display or hero heading in a `span` under 7, and `Columns` does the same for the items a named
+  layout makes under 7 tracks from 1024 (every item of `2`, `3` and `4`, the 5 of `7-5` and `5-7`, the 4 of `8-4` and `4-8`); the heading is drawn as written
+  and the warning costs a production build nothing. Columns are a page's: a component lays out its own items by its own width (the auto-fit grid).
+- **Layout changes at 720 and 1024 only,** on the viewport, and a component at 480 on its own width. The display roles, the lead, the section
+  gap and the columns change at those two widths, so a page has three shapes to check. **No new breakpoint:** 900 and 1280 are not adopted
+  (the row is already 672 to 975 wide at 900, and past 1152 nothing has room to change at 1280). A site's art may answer its own measures as a
+  container query on the art.
 
 ## Art
 
@@ -1420,6 +1511,10 @@ deciding; Muse out). Their implementation has not been reviewed.
 Display states (the new-tab cue on links and Buttons, row headers, "Not observed", the scroll hint, the choice card, the
 pressed toggle, the pending ring and two badges) were decided by the council in a three-member round the owner ordered
 (DECISIONS 95; two of three deciding). The implementation has not been reviewed.
+
+Display type, the lead, the page row, the section rhythm, the columns and the fallback face were decided by the council in a three-member
+vote (DECISIONS 137: opus, sol and grok, 2 of 3 deciding; the scale and the sections' gap were each 2 to 1) and approved by the owner
+(DECISIONS 139). Their implementation has not been reviewed by the panel.
 
 The press scale and the smoked header were decided by the owner (7 Nov 2026) after two council rounds
 between the design reviewers; the owner's decisions are in this page's Motion and Chrome sections. Their

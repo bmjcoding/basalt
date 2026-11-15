@@ -43,7 +43,7 @@
       "btn",
       "icon"
     ],
-    "usage": 2100
+    "usage": 2300
   },
   "modules": {
     "glyph": {
@@ -417,6 +417,30 @@
       ],
       "budget": 3000,
       "usage": 1250
+    },
+    "type-layout": {
+      "classes": [
+        "text-6xl",
+        "text-7xl",
+        "text-hero",
+        "text-display",
+        "text-lead",
+        "text-line",
+        "page-row",
+        "page-sections",
+        "page-section",
+        "section-intro",
+        "section-actions",
+        "columns"
+      ],
+      "text": [
+        "--basalt-(?:text-(?:6xl|7xl|hero-narrow|display-narrow)-|space-32|size-section-gap|size-display-measure|hero-|display-|lead-|section-gap)"
+      ],
+      "textWords": [
+        "a --basalt-text-6xl-, --basalt-text-7xl-, --basalt-text-hero-narrow-, --basalt-text-display-narrow-, --basalt-hero-, --basalt-display-, --basalt-lead- or --basalt-section-gap token, --basalt-space-32, --basalt-size-section-gap or --basalt-size-display-measure (a var() in its own style counts)"
+      ],
+      "budget": 6000,
+      "usage": 4000
     },
     "stats": {
       "classes": [

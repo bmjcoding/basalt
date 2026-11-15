@@ -125,7 +125,7 @@ const radius = dim("radius-").map(([name, value]) => ({ name, value, usage: RADI
 const SIZE_USE = { "control-xs": "24px controls, for dense toolbars.", "control-sm": "28px controls; segmented segments.", "control-md": "32px: the app default control height; table header; compact table rows.", "control-lg": "36px controls; tabs.", "control-xl": "40px controls, for marketing and touch-first forms.", "menu-row": "The plate of a Menu, Select or Combobox row (the row is 4px taller: a 40px hit area).", "menu-row-touch": "The least hit area of a row on touch.", "tap-min": "The smallest touch target; table rows on touch.", "icon-sm": "16px icons: Phosphor Bold, in controls and beside 13–14px text.", "icon-md": "20px icons: Phosphor Regular, in navigation and 40px controls.", "icon-lg": "24px icons: tab bars and empty states.", "focus-width": "The focus outline's width.", "focus-offset": "The gap between a control and its focus outline.", hairline: "Line width for borders and dividers." };
 const size = dim("size-").map(([name, value]) => ({ name, value, usage: SIZE_USE[name.slice(12)] ?? primDesc(name) }));
 const text = dim("text-").map(([name, value]) => {
-  const [, step, part] = name.match(/^basalt-text-(\w+)-(size|line-height|tracking)$/);
+  const [, step, part] = name.match(/^basalt-text-([\w-]+?)-(size|line-height|tracking)$/);
   return { name, value, usage: `The ${step} step's ${part.replace("-", " ")}; see the type scale.` };
 });
 const weight = dim("font-weight-").map(([name, value]) => ({ name, value, usage: { regular: "Body text and descriptions.", medium: "Labels, buttons, tabs, table headers.", semibold: "Headings, titles and numbers that lead." }[name.slice(19)] }));

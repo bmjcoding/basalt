@@ -139,7 +139,19 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts
   (info, warning, error, success). Status icons pair with words.
-- **Type:** Geist and Geist Mono at 400, 500 and 600 only.
+- **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
+  arrives; it does not promise the same wrap at every width.
+- **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed
+  steps `text-6xl` and `text-7xl` and a phone value each. They step at 720 and 1024 on the viewport and never fluidly: no `clamp`, no viewport or container
+  unit in type. A display headline is 600, `text-wrap: balance`, at most `size-display-measure` (13em), never a `<br>` (two sentences meant as two lines are
+  two block spans), in the full row or a span of seven columns or more (`Columns` and `ColumnsItem` warn in development, and draw it as written); `overflow-wrap: break-word` is the net, never the plan. Docs and examples show the
+  roles on a phone and never a fixed `6xl` or `7xl` there. The lead is `text-xl` from 720 and `text-lg` under it, 400 in secondary ink, `text-wrap: pretty`.
+- **The page:** one row (`size-page-width`, the gutter inside, the header's), for a first screen too; sections one `--basalt-section-gap` apart (128 from
+  1024, 96 from 720, 64 under it), the first half a gap below the bar, a head half a gap above its body, a gap above the footer; no section is given the
+  window's height. The first line of the next section's headline shows on the first screen; that test yields when a reader enlarges text or spacing and is
+  never met by shrinking type, clipping or fixing a height. `Columns` are twelve tracks (`2`, `3`, `4`, `7-5`, `5-7`, `8-4`, `4-8`, or an item's own span):
+  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component at 480 on
+  its own width); 900 and 1280 are not adopted.
 
 ## Engineering rules
 
