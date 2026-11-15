@@ -181,15 +181,29 @@ export type TableDensity = "compact" | "default" | "comfortable";
 /** The direction a sorted column runs. A column is either sorted one way or the other, or it is not the sorted one. */
 export type SortDirection = "ascending" | "descending";
 
+export interface TableContainerProps extends React.ComponentProps<"div"> {
+  density?: TableDensity;
+  /**
+   * The name of the table's scroll region ("Runs table"): what a screen reader says when the container takes focus. While
+   * the table is wider than its box the container is a keyboard stop (`tabindex="0"`) with `role="region"` and this name,
+   * and shows the focus ring, so someone with no pointer can scroll it sideways. An `aria-label` or `aria-labelledby` of
+   * your own works the same way. With no name the container is still a stop (the scroll must be reachable) but gets no
+   * role, because a region with no name is not a landmark; give every table a name. A table that fits is none of this.
+   */
+  label?: string;
+}
+
 /**
  * A data table's frame: rounded, bordered, scrolling sideways when it must. `density` sets
  * the row height: 32px for logs, 40px by default, 44px for touch. While the table is scrolled sideways it marks itself
- * (`data-scrolled`), which is what shows the divider beside a pinned column.
+ * (`data-scrolled`), which is what shows the divider beside a pinned column. While the table overflows, the frame is a
+ * named keyboard stop (see `label`).
  */
-export function TableContainer({ density = "default", className, children, ref, ...props }: React.ComponentProps<"div"> & { density?: TableDensity }) {
+export function TableContainer({ density = "default", label, className, children, ref, ...props }: TableContainerProps) {
   // Its own attribute: `data-density` would also reset the size of every control in the table.
   const level = usePanelLevel();
   const node = React.useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = React.useState(false);
   React.useEffect(() => {
     const frame = node.current;
     if (!frame) return undefined;
@@ -199,6 +213,19 @@ export function TableContainer({ density = "default", className, children, ref, 
     frame.addEventListener("scroll", mark, { passive: true });
     return () => frame.removeEventListener("scroll", mark);
   }, []);
+  React.useLayoutEffect(() => {
+    // A box that scrolls sideways must be reachable from the keyboard (WCAG 2.1.1): Safari adds no stop of its own, and
+    // Chromium's has no name and its own ring. Measured from the box and its table, so a resize or a new column counts.
+    const frame = node.current;
+    if (!frame) return undefined;
+    const measure = () => setOverflows(frame.scrollWidth > frame.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    const table = frame.querySelector("table");
+    if (table) observer.observe(table);
+    return () => observer.disconnect();
+  }, []);
   const setRef = React.useCallback(
     (element: HTMLDivElement | null) => {
       node.current = element;
@@ -207,7 +234,9 @@ export function TableContainer({ density = "default", className, children, ref, 
     },
     [ref],
   );
-  return <div {...props} ref={setRef} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
+  const named = Boolean(label || props["aria-label"] || props["aria-labelledby"]);
+  const region = overflows ? { tabIndex: 0, role: named ? "region" : undefined, "aria-label": label } : {};
+  return <div {...region} {...props} ref={setRef} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
 }
 
 /** One column of a still table. A width is a number of pixels or a CSS length; the one column without a width takes the rest. */
@@ -390,8 +419,16 @@ const defaultHint = (columns: number) => `Scroll sideways to see all ${columns} 
  * the container. It shows only while the table overflows, is `aria-hidden` (a screen reader reaches every cell), and never
  * changes while the table scrolls, so nothing in the table moves. The count is the table's.
  */
-export function TableScrollHint({ label = defaultHint, className, ...props }: TableScrollHintProps) {
+export function TableScrollHint({ label = defaultHint, className, ref, ...props }: TableScrollHintProps) {
   const node = React.useRef<HTMLParagraphElement | null>(null);
+  const setRef = React.useCallback(
+    (element: HTMLParagraphElement | null) => {
+      node.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLParagraphElement | null>).current = element;
+    },
+    [ref],
+  );
   const [columns, setColumns] = React.useState(0);
   React.useLayoutEffect(() => {
     const frame = node.current?.previousElementSibling;
@@ -408,7 +445,7 @@ export function TableScrollHint({ label = defaultHint, className, ...props }: Ta
     if (table) observer.observe(table);
     return () => observer.disconnect();
   }, []);
-  return <p {...props} ref={node} aria-hidden="true" hidden={columns === 0} className={join("basalt-table-hint", className)}>{columns ? label(columns) : null}</p>;
+  return <p {...props} ref={setRef} aria-hidden="true" hidden={columns === 0} className={join("basalt-table-hint", className)}>{columns ? label(columns) : null}</p>;
 }
 
 export interface TableEmptyProps extends Omit<React.ComponentProps<"td">, "colSpan"> {

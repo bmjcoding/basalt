@@ -15,7 +15,8 @@
     --basalt-bottom-offset: var(--basalt-space-0);
   }
   @media (width < %bp-md%) {
-    :root:has(.tab-bar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--bh-inset-bottom)); }
+    /* The bar is fixed over the page, so focus and anchors scroll clear of it, as they do of the sticky header (WCAG 2.4.11). */
+    :root:has(.tab-bar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--bh-inset-bottom)); scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
     /* Toasts sit above the tab bar. */
     :root:has(.tab-bar) .toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
@@ -83,7 +84,6 @@
     width: var(--basalt-size-control-md);
     height: var(--basalt-size-control-md);
     border-radius: var(--basalt-radius-full);
-    background-color: transparent;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .tab-bar-label {

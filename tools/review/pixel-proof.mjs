@@ -1,7 +1,8 @@
 // Proof that a change moved no pixel. Two commands:
 //
 //   node tools/review/pixel-proof.mjs demo <repo> <outDir>     serve <repo>/packages/react/.demo (npm run build first) and screenshot the
-//                                                              test demo page, full page, in dark and light at 1440 and 390 wide, at 1x, loops held
+//                                                              test demo page, full page, in dark and light at 1440 and 390 wide, at 1x, loops held,
+//                                                              at rest and in forced colours
 //   node tools/review/pixel-proof.mjs compare <dirA> <dirB>    compare every PNG of dirA with the PNG of the same name in dirB, pixel for pixel,
 //                                                              and print the count of differing pixels per image
 //
@@ -41,15 +42,18 @@ async function demo(repo, out) {
   const browser = await chromium.launch();
   for (const theme of ["dark", "light"]) {
     for (const width of [1440, 390]) {
-      const page = await browser.newPage({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
+     // The page at rest, and again in Windows forced colours (the page's own palette, so each theme is shot as the dark and light forced palettes).
+     for (const forced of [false, true]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: "reduce", ...(forced ? { forcedColors: "active", colorScheme: theme } : {}) });
       await page.goto(`${base}?theme=${theme}`);
       await page.getByRole("heading", { name: "Basalt components" }).waitFor();
       await page.evaluate(() => document.fonts.ready);
       // Hold every loop (the page's own `data-loops="held"`): a skeleton's pulse or a spinner would otherwise be caught at a different frame each time.
       await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
       await page.waitForTimeout(500);
-      await page.screenshot({ path: path.join(out, `demo-${theme}-${width}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(out, `demo-${theme}-${width}${forced ? "-forced" : ""}.png`), fullPage: true });
       await page.close();
+     }
     }
   }
   await browser.close();

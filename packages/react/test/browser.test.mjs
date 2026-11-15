@@ -778,6 +778,26 @@ for (const theme of ["light", "dark"]) {
       await page.close();
     });
 
+    // The package's tests ran axe at 1000px only, which is how a table that scrolls sideways with no keyboard stop (A3-01) went
+    // unseen: at phone width the demo's table overflows its box and axe reports scrollable-region-focusable.
+    test("no WCAG 2.2 AA violations at phone width (390px), at rest", async () => {
+      const { page, errors } = await open(theme, "", { width: 390, height: 844 });
+      assert.deepEqual(await axe(page), []);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    test("no WCAG 2.2 AA violations at phone width on a touch device, and the table scrolls from the keyboard", async () => {
+      const { page } = await open(theme, "&fixture=complete", { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+      assert.deepEqual(await axe(page), []);
+      const frame = page.getByRole("region", { name: "Recent runs table" });
+      assert.equal(await frame.count(), 1, "the overflowing table is a named region");
+      await frame.focus();
+      await page.keyboard.press("ArrowRight");
+      await page.waitForFunction(() => document.querySelector(".basalt-table-container").scrollLeft > 0);
+      await page.close();
+    });
+
     test("no horizontal page scroll at phone width", async () => {
       const { page } = await open(theme, "", { width: 390, height: 844 });
       const width = await page.evaluate(() => document.documentElement.scrollWidth);

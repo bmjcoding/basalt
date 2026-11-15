@@ -214,6 +214,14 @@ export type SliderProps<Value extends number | readonly number[] = number> = Par
   getValueText?: (formattedValue: string, value: number, index: number) => string;
 };
 
+/**
+ * The slider's printed value is `aria-hidden` (the thumb says its own value), and Base UI still marks its `output` `aria-live="off"`.
+ * An element holding any `aria-live` stays in the accessibility tree behind an open modal, so the attribute is dropped here.
+ */
+function withoutLive({ "aria-live": _live, ...props }: React.ComponentProps<"output">) {
+  return <output {...props} />;
+}
+
 /** A bounded scalar or range; arrow keys step, Home/End jump to bounds. */
 export function Slider<Value extends number | readonly number[]>({ label, showValue = true, thumbLabels, getValueText, className, ...props }: SliderProps<Value>) {
   const labelId = React.useId();
@@ -223,7 +231,7 @@ export function Slider<Value extends number | readonly number[]>({ label, showVa
     <BaseSlider.Root {...props} className={withClass("basalt-slider", className)}>
       <div className="basalt-progress-head">
         <span id={labelId} className="basalt-progress-label">{label}</span>
-        {showValue ? <BaseSlider.Value className="basalt-progress-value" aria-hidden="true" /> : null}
+        {showValue ? <BaseSlider.Value className="basalt-progress-value" aria-hidden="true" render={withoutLive} /> : null}
       </div>
       <BaseSlider.Control className="basalt-slider-control">
         <BaseSlider.Track className="basalt-slider-track">

@@ -56,7 +56,7 @@ no `children`, its consumer must provide the surrounding touch target and access
 | `Avatar`, `Separator`, `EmptyState` | Named image/initials, semantic division and next-step guidance for empty views. |
 | `Badge` | Neutral pill; `status` adds a dot (success, warning, danger, accent, pending, or `"neutral"` by name). No `status` is the word alone; a running badge (a braille `Spinner` first) draws no dot. The label says the status in words. In forced colours every dot is a disc in the system colour of where it sits. |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | |
-| `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals; `mono` cells for IDs and hashes. |
+| `TableContainer`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `numeric` cells use tabular numerals, end-aligned with their header; `mono` cells for IDs and hashes. Give `TableContainer` a `label` ("Runs table"): while the table is wider than its box the container is a keyboard stop with that name as a `region`, so the hidden columns can be scrolled to without a pointer (an `aria-label` or `aria-labelledby` works too; with neither it is still a stop but has no role). On touch a lone checkbox or link in a cell has a 44px hit box. |
 | `Tooltip`, `TooltipProvider` | Supplements a name with a linked accessible description; never replaces a label. |
 | `Checkbox`, `Switch` | The label is `children`. A switch takes effect immediately; a checkbox on submit. |
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |

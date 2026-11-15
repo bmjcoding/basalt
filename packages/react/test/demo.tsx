@@ -540,7 +540,7 @@ function App() {
             </Dialog>
           </div>
 
-          <TableContainer>
+          <TableContainer label="Recent runs table">
             <Table>
               <caption className="sr-only" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
                 Recent runs

@@ -60,6 +60,26 @@
   [data-level="2"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
   [data-level="3"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
+  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate, plate-solid
+     and pill variables above as an unknown function and paint nothing. There the same values are mixed instead of picked:
+     --_dkp is how much of the dark value a mix takes, 0% in a light theme and 100% in a dark one, set where the theme tokens set
+     the theme, so a nested theme root and the OS preference resolve as they do for the tokens. color-mix reaches every browser that
+     gets this far. A browser with light-dark() skips the block, so nothing it paints changes. */
+  @supports not (color: light-dark(white, black)) {
+    :root, [data-theme="light"], .light { --_dkp: 0%; }
+    [data-theme="dark"], .dark { --_dkp: 100%; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not(.light) { --_dkp: 100%; }
+    }
+    [data-level="1"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), var(--basalt-state-selected)); }
+    [data-level="2"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
+    [data-level="3"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
+    :root { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page))); }
+    [data-level="1"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1))); }
+    [data-level="2"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2))); }
+    [data-level="3"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3))); }
+  }
+
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
      control, chip or badge. A border (not a shadow) so forced colours keep it. */
   .basalt-card,
@@ -648,6 +668,11 @@
      track against a 1.35:1 step reads as a pill, not a wash). Light keeps surface-top, white on the track. */
   .basalt-segmented,
   .basalt-tabs-list { --_pill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); }
+  /* Without light-dark(): the mix of the two, by --_dkp (see the depth section). */
+  @supports not (color: light-dark(white, black)) {
+    .basalt-segmented,
+    .basalt-tabs-list { --_pill: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top)) var(--_dkp), var(--basalt-surface-top)); }
+  }
 
   .basalt-segmented {
     position: relative;
@@ -870,6 +895,8 @@
   @media (width < 720px) {
     :root { --basalt-gutter: var(--basalt-size-gutter-narrow); }
     :root:has(.basalt-tabbar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); }
+    /* The bar is fixed over the page: focus and anchors scroll clear of it, as they do of the sticky header (WCAG 2.4.11). */
+    :root:has(.basalt-tabbar) { scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
   /* A page with a bar keeps its scrollbar's room (a filter that shortens the page must not widen it) and scrolls anchors
      and focus clear of the sticky bar. */
@@ -1489,6 +1516,8 @@
     border-radius: var(--basalt-radius-lg);
     background: var(--_surface, var(--basalt-surface-raised));
   }
+  /* While the table overflows the container is a keyboard stop (a focusable region): the control ring, outside, as the code region has. */
+  .basalt-table-container:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   .basalt-table {
     width: 100%;
@@ -1507,6 +1536,8 @@
     text-align: left;
     white-space: nowrap;
   }
+  /* Headers start at the start edge: the right, in a right-to-left page. */
+  .basalt-table th:dir(rtl) { text-align: right; }
 
   .basalt-table td {
     height: var(--basalt-size-table-row);
@@ -1522,6 +1553,20 @@
     .basalt-table td,
     .basalt-table tbody th[scope="row"],
     .basalt-table-container[data-row-density] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
+    /* A lone checkbox or link in a cell has a 44px hit box that draws nothing. The checkbox takes it from a box around the 16px
+       glyph (a percentage on an offset reads the glyph's own width and height, so it grows only the missing amount); the cell
+       does not clip it (a fixed table's cell lets a checkbox overflow), the row is 44 and the box stays inside it. A link is
+       cut at its own edge in a fixed table, so it takes the box from padding that an equal negative margin gives back: the text
+       sits where it did, the row does not grow, and the focus ring's offset is pulled in by the same amount, so it hugs the text
+       as before. */
+    .basalt-table :is(td, th) .basalt-checkbox { position: relative; }
+    .basalt-table :is(td, th) .basalt-checkbox::before { content: ""; position: absolute; inset: min(var(--basalt-space-0), calc((100% - var(--basalt-size-tap-min)) / 2)); }
+    .basalt-table :is(td, th) a:not(.basalt-button) {
+      --_hit: max(var(--basalt-space-0), calc((var(--basalt-size-tap-min) - 1lh) / 2));
+      padding: var(--_hit);
+      margin: calc(-1 * var(--_hit));
+    }
+    .basalt-table :is(td, th) a:not(.basalt-button):focus-visible { outline-offset: calc(var(--basalt-size-focus-offset) - var(--_hit)); }
   }
 
   /* A row header (th scope="row" in the body) is the row's name in the row's own type: the cell's height, padding and divider,
@@ -1546,7 +1591,9 @@
   .basalt-table-hint { margin: var(--basalt-space-2) 0 0; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
   .basalt-table-hint[hidden] { display: none; }
 
+  /* Numbers end at the end edge: the right, or the left in a right-to-left page, where the header's label (the sort control's reverse row) follows. */
   .basalt-table [data-numeric] { text-align: right; font-variant-numeric: tabular-nums; }
+  .basalt-table [data-numeric]:dir(rtl) { text-align: left; }
   .basalt-table [data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
 
   @media (hover: hover) {
@@ -3080,6 +3127,8 @@
   }
   @media print {
     .basalt-chrome {
+      /* The bar prints as part of the page: static, a sticky bar would repeat or float over it. */
+      position: static;
       background: var(--basalt-surface-page);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
@@ -3397,7 +3446,8 @@
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
     /* The tab bar is a fill on a Canvas list: Highlight. */
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
-    .basalt-segment[data-pressed], .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active], .basalt-pagination [aria-current="page"] { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
+    /* Keyboard focus is not this mark: with focus the standard ring (2px, offset 2) draws, as it does on every other control. */
+    .basalt-segment[data-pressed]:not(:focus-visible), .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active]:not(:focus-visible), .basalt-pagination [aria-current="page"]:not(:focus-visible) { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
     .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the

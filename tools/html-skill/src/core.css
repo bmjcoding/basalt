@@ -151,6 +151,28 @@
   }
   %panel% %panel% { --panel-bg: var(--basalt-surface-2); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-2); }
   %panel% %panel% %panel% { --panel-bg: var(--basalt-surface-3); --panel-next: var(--basalt-surface-3); --panel-well: var(--basalt-surface-well-3); }
+  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) reads the lit row's plate, the segment pill, the selected
+     choice card, the pressed toggle and the select's lit option as an unknown function and paints nothing. There the same values are mixed instead of
+     picked, here, in one place: no module carries a copy. --_dkp is how much of the dark value a mix takes, 0% in a light theme and 100% in a dark one,
+     set where the theme tokens set the theme (so a nested theme root and the OS preference resolve as they do for the tokens). A browser with
+     light-dark() skips the block, so nothing it paints changes. */
+  @supports not (color: light-dark(white, black)) {
+    :root, [data-theme="light"], .light { --_dkp: 0%; }
+    [data-theme="dark"], .dark { --_dkp: 100%; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not(.light) { --_dkp: 100%; }
+    }
+    :root, %panel% {
+      --_dk: color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--panel-next, var(--basalt-surface-1)));
+      --_mx: color-mix(in srgb, var(--_dk) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--panel-bg, var(--basalt-surface-page))));
+      --panel-plate: color-mix(in srgb, var(--_dk) var(--_dkp), var(--basalt-state-selected));
+    }
+    /* A doubled class, so these outrank the modules' own declarations, which come later. */
+    .choice-card.choice-card { --_solid: var(--_mx); }
+    .btn.btn.btn[aria-pressed="true"]:not([data-variant="primary"], [data-variant="danger"]) { background: var(--_mx); }
+    .segment.segment { --pill-fill: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top)) var(--_dkp), var(--basalt-surface-top)); }
+    select.input.input { --_pop-plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_pop-next)) var(--_dkp), var(--basalt-state-selected)); }
+  }
   .panel-pad, .card { padding: var(--basalt-space-4); }
   @media (width >= %bp-md%) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
   .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
