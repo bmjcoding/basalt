@@ -325,8 +325,7 @@ function ToastAnnouncer({ controller }: { controller: Controller }) {
 const ExpandedContext = React.createContext(false);
 
 function ToastStack() {
-  const { toasts } = BaseToast.useToastManager();
-  const away = useAway(toasts.length > 0);
+  const away = useAway();
   return (
     <BaseToast.Viewport
       className="basalt-toast-viewport"
@@ -352,14 +351,14 @@ const AwayContext = React.createContext(false);
  * Whether nobody can be looking: the window is not focused, or the tab is hidden. Base UI holds its own clocks for a blurred
  * window; Basalt's clocks hold for both, so the drain line and the timer stay in step.
  *
- * It watches only while a toast is on screen (`watching`), and reads the tab's state afresh when it starts, so a first toast
- * shown after a blur has a paused line and a paused clock, never one without the other.
+ * It watches for as long as the stack is mounted, not only while a toast is on screen: a blur that came before the first toast
+ * is still a blur when it arrives, so that toast starts with a paused line and a paused clock, never one without the other. The
+ * tab's visibility is read afresh when the watch starts.
  */
-function useAway(watching: boolean) {
+function useAway() {
   const [blurred, setBlurred] = React.useState(false);
   const [hidden, setHidden] = React.useState(false);
   React.useEffect(() => {
-    if (!watching) return;
     let refocus = 0;
     const blur = (event: Event) => {
       if (event.target !== window) return;
@@ -377,12 +376,12 @@ function useAway(watching: boolean) {
     window.addEventListener("focus", focus, true);
     document.addEventListener("visibilitychange", visibility);
     return () => {
-      // A refocus already under way is left to finish, so the state is never stuck on blurred.
+      window.clearTimeout(refocus);
       window.removeEventListener("blur", blur, true);
       window.removeEventListener("focus", focus, true);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [watching]);
+  }, []);
   return blurred || hidden;
 }
 
