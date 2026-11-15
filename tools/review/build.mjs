@@ -39,6 +39,9 @@ fs.mkdirSync(out, { recursive: true });
 
 // ---- the page, once per round
 
+// Round 32 draws two pages composed by the HTML skill's own compose.mjs: composed here, only when that round is wanted, and handed to the bundle as a constant.
+const skillPages = !wanted.length || wanted.includes("32") ? (await import("./round32-skill.mjs")).skillPages() : {};
+
 const bundle = await esbuild.build({
   entryPoints: [path.join(here, "walkthrough.tsx")],
   bundle: true,
@@ -47,7 +50,7 @@ const bundle = await esbuild.build({
   jsx: "automatic",
   target: "es2020",
   write: false,
-  define: { "process.env.NODE_ENV": '"production"' },
+  define: { "process.env.NODE_ENV": '"production"', __SKILL_PAGES__: JSON.stringify(skillPages) },
   nodePaths: [path.join(repo, "node_modules")],
   loader: { ".png": "dataurl" },
   logLevel: "warning",
@@ -267,6 +270,8 @@ for (const id of rounds) {
           if (still && !/-glide$|-fade$|-opening|^centre-travel|^nav-|^film$|^ghost$/.test(state)) await holdStill(page);
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
+          // A step that measures (round 32's list) sets window.__BASALT_READY__ to a promise and the shot waits for it.
+          await page.evaluate(() => window.__BASALT_READY__ ?? null);
           // "forced" is Windows forced-colours mode; a state ending in "-lit" (or "forced") hovers the second row of the first
           // popup, because the plate and the lift are what a pointer holds and a screenshot cannot.
           if (state === "forced") await page.emulateMedia({ forcedColors: "active" });

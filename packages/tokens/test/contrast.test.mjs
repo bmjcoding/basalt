@@ -666,6 +666,20 @@ for (const theme of THEMES) {
     atLeast(theme, "text-primary", 4.5, ["state-selected", "state-hover"].map((wash) => [`${wash} over art-quiet-limit`, over(color(theme, wash), limit)]));
   });
 
+  // The ambient loop (DECISIONS 136 C): a looping mark is art-tone-4, opacity 1 down to 0.2, over the field or a quieter tone of the same art. Decorative (aria-hidden, no
+  // information), so no minimum applies; the pair is proved so the mark is always a step from what is behind it, at full opacity and at the floor, which is why the floor is
+  // 0.2 and not 0 (a mark dims and never blinks out). Tone 1 and tone 2 are the other grounds a mark can sit on.
+  test(`${theme}: an ambient mark (art-tone-4) is a step from every tone behind it, at full opacity and at its 0.2 floor`, () => {
+    const mark = color(theme, "art-tone-4");
+    for (const ground of ["art-field", "art-tone-1", "art-tone-2"]) {
+      const under = color(theme, ground);
+      const full = ratio(mark, under);
+      const floor = ratio(over({ ...mark, alpha: 0.2 }, under), under);
+      assert.ok(full >= 3, `${theme}: art-tone-4 on ${ground} is ${fmt(full)}:1 at full opacity`);
+      assert.ok(floor > 1.02 && floor < full, `${theme}: art-tone-4 at 0.2 on ${ground} is ${fmt(floor)}:1: it must stay drawn and stay below full`);
+    }
+  });
+
   test(`${theme}: one step further (tone 3) secondary text no longer holds, which is why the limit stops at tone 2`, () => {
     const tone3 = color(theme, "art-tone-3");
     assert.ok(ratio(color(theme, "text-secondary"), tone3) < 4.5, `${theme}: secondary holds on tone 3, so the limit could be higher`);

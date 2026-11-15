@@ -1281,7 +1281,7 @@
     }
   },
   "duration": {
-    "$description": "Exits run at 0.75 of their entry. Loops (the group at the end) are not entries and are not on this scale.",
+    "$description": "Exits run at 0.75 of their entry. Loops (the group at the end) are not entries and are not on this scale. figure and stagger belong to a figure (an entrance, a travel), not to a control.",
     "instant": {
       "$type": "duration",
       "$value": {
@@ -1317,6 +1317,22 @@
         "unit": "ms"
       }
     },
+    "figure": {
+      "$type": "duration",
+      "$value": {
+        "value": 600,
+        "unit": "ms"
+      },
+      "$description": "A figure's own motion: each mark of a page's one entrance, and the longest leg of a travel the eye follows. Never a control, popup, panel, page or block. Under reduced motion 100ms."
+    },
+    "stagger": {
+      "$type": "duration",
+      "$value": {
+        "value": 22,
+        "unit": "ms"
+      },
+      "$description": "The step between the marks of one figure entering, shrunk so every start falls within duration-slow of the first. Under reduced motion 0."
+    },
     "loop": {
       "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion a spinner fades instead of moving, and a loop is never cut to the 100ms floor, or it flickers.",
       "ring": {
@@ -1342,6 +1358,14 @@
           "unit": "ms"
         },
         "$description": "The reduced-motion fade that replaces a moving spinner, and the breathing line of a loading Sparkline."
+      },
+      "ambient": {
+        "$type": "duration",
+        "$value": {
+          "value": 6000,
+          "unit": "ms"
+        },
+        "$description": "The middle period of a page's one ambient loop (opacity only, in its art): each mark runs 0.6 to 1.4 times it, with its own phase. Not run under reduced motion, in forced colours or in print."
       }
     }
   },

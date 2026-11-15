@@ -1,5 +1,5 @@
 /* Basalt HTML script, loops module: the page-level hold on every loop (React's useLoops). `<html data-loops="held">` stops the ring, a busy button's
-   ring and braille (loops.css does the holding). This keeps the state: stored for this page's origin in this browser (`basalt-loops`,
+   ring and braille, and the page's one ambient loop (loops.css and ambient.css do the holding). This keeps the state: stored for this page's origin in this browser (`basalt-loops`,
    localStorage is per origin), carried across its tabs by the storage event, applied before first paint by a line in the head that compose.mjs
    writes (and here, once, if the page has none). Any [data-loops-toggle] is the control: a button syncs aria-pressed and a checkbox with
    role="switch" syncs checked; a press flips the hold. Releasing jumps to now: every loop rejoins the shared clock and nothing resumes from where
@@ -32,7 +32,12 @@
   function sync() {
     var held = isHeld();
     document.querySelectorAll('[data-loops-toggle]').forEach(function (el) {
-      if (el.type === 'checkbox') el.checked = held; else el.setAttribute('aria-pressed', String(held));
+      if (el.type === 'checkbox') { el.checked = held; return; }
+      el.setAttribute('aria-pressed', String(held));
+      // The icon form (data-icon-only) draws the core pause glyph, at rest or selected (closed and filled) when pressed.
+      var icon = el.hasAttribute('data-icon-only') && _.glyph && el.querySelector('svg.icon');
+      var drawn = icon && _.glyph('pause', { size: 16, selected: held });
+      if (drawn) icon.outerHTML = drawn;
     });
   }
 

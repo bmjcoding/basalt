@@ -572,6 +572,8 @@ extension Basalt {
     public static let base: Double = 0.15
     public static let slow: Double = 0.2
     public static let slower: Double = 0.3
+    public static let figure: Double = 0.6
+    public static let stagger: Double = 0.022
   }
 
   /// A cubic Bézier timing curve.

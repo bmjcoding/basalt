@@ -191,6 +191,8 @@
 
   function chart(figure, options) {
     if (!figure || !options) return null;
+    // A new data set while the old chart is mid-entrance hands the marks over: each glides from where it is drawn (below), and destroy() counts the visit as seen.
+    var carry = figure.__bhChart && figure.__bhChart.drawn ? figure.__bhChart.drawn() : null;
     if (figure.__bhChart) figure.__bhChart.destroy();
     var o = options;
     var bar = o.kind === 'bar';
@@ -550,12 +552,104 @@
     }
 
     var lastActive;
+    /* ---- The entrance (React's `entrance`; DECISIONS 136 A) ----
+       `"entrance": true` makes this chart its page's one: on a first visit, at load, its marks draw once, each over duration-figure on ease-out,
+       duration-stagger apart, every start within duration-slow of the first (a bar scales from its baseline, a solid line draws along its length, any other
+       mark fades in). The frame, the words and the controls are drawn at rest in the same frame. A page seen before (localStorage, `basalt-entrance:<path>`, written
+       when the entrance finishes or gives way), reduced motion, the hold, a hidden tab, a page opened below its first screen, a script that starts after a
+       second (from the page's start, or from the change `Basalt.pageChange()` reported) and print draw it at rest; the hold or printing arriving mid-entrance settles it
+       at once. The svg is redrawn on a hover or a key, so each redraw starts the marks again at the elapsed time. A new data set is a new call: when the old chart is
+       mid-entrance, every mark of the new one glides from where the old was drawn, over duration-slow (React's yield), and the visit counts as seen. Outside an entrance the
+       skill draws a new data set at once, as it always has. */
+    var MARKS = '.chart-bar, .chart-plan, .chart-band, .chart-band-edge, .chart-line, .chart-ring, .chart-mark';
+    var entrance = null;
+    var entranceChecked = !o.entrance || !!carry;
+    var entranceDone = false;
+    var seenKey = 'basalt-entrance:' + location.pathname;
+    function seen() { try { localStorage.setItem(seenKey, 'seen'); } catch (e) { /* storage blocked: the next visit plays it again */ } }
+    function cssMs(name, fallback) {
+      var v = /^\s*([\d.]+)(ms|s)\s*$/.exec(getComputedStyle(document.documentElement).getPropertyValue(name));
+      return v ? Number(v[1]) * (v[2] === 's' ? 1000 : 1) : fallback;
+    }
+    function entranceAllowed() {
+      var box = plot.getBoundingClientRect();
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches || matchMedia('print').matches || document.documentElement.getAttribute('data-loops') === 'held') return false;
+      if (document.visibilityState === 'hidden' || performance.now() - (B.pageChangedAt || 0) > 1000) return false;
+      try { if (localStorage.getItem(seenKey) === 'seen') return false; } catch (e) { /* none */ }
+      return box.bottom > 0 && box.top < innerHeight;
+    }
+    function endEntrance() {
+      if (!entrance) return;
+      clearTimeout(entrance.timer);
+      entrance = null;
+      seen();
+      draw(true);
+    }
+    function playEntrance() {
+      var marks = host.querySelectorAll(MARKS);
+      var from = entrance.from;
+      var slowMs = cssMs('--basalt-duration-slow', 200);
+      var figureMs = from ? slowMs : cssMs('--basalt-duration-figure', 600);
+      var step = !from && marks.length > 1 ? Math.min(cssMs('--basalt-duration-stagger', 22), slowMs / (marks.length - 1)) : 0;
+      var ease = getComputedStyle(document.documentElement).getPropertyValue('--basalt-ease-out').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+      var elapsed = performance.now() - entrance.t0;
+      Array.prototype.forEach.call(marks, function (el, i) {
+        var frames, st = el.style, was = from && from[i];
+        if (el.classList.contains('chart-bar')) {
+          st.transformBox = 'fill-box'; st.transformOrigin = '50% 100%';
+          // From where the old bar was drawn: its height times its scale, as a scale of this bar's own height (0 for a mark the old chart did not have).
+          var r = was && was.k === 'bar' && el.getBBox().height > 0 ? Math.min(was.h * was.s / el.getBBox().height, 4) : 0;
+          frames = [{ transform: 'scaleY(' + (from ? r : 0) + ')' }, { transform: 'scaleY(1)' }];
+        } else {
+          // A line and its markers glide from where they are drawn: the line along its old path (the dash progress, if it was being drawn, goes on), every other mark from
+          // its old centre. Paths interpolate only when they have the same commands; otherwise the line takes its new shape at the first frame.
+          var line = el.classList.contains('chart-line'), solid = line && el.getAttribute('data-dash') === 'solid' && el.getTotalLength && el.getTotalLength() > 0, f0, f1;
+          if (solid) {
+            var len = el.getTotalLength(), full = len + 2 * (parseFloat(getComputedStyle(el).strokeWidth) || 2);
+            st.strokeDasharray = len + ' ' + len * 2;
+            f0 = { strokeDashoffset: String(was && was.k === 'line' ? was.p * full : full) }; f1 = { strokeDashoffset: '0' };
+          } else { f0 = { opacity: was && was.o !== undefined ? was.o : 0 }; f1 = { opacity: 1 }; }
+          if (was && line && was.d && el.getAttribute('d') && was.d.replace(/[-\d.]+/g, '') === el.getAttribute('d').replace(/[-\d.]+/g, '')) {
+            f0.d = 'path("' + was.d + '")'; f1.d = 'path("' + el.getAttribute('d') + '")';
+          } else if (was && !line && was.cx !== undefined) {
+            var now = el.getBBox();
+            f0.transform = 'translate(' + (was.cx - (now.x + now.width / 2)) + 'px, ' + (was.cy - (now.y + now.height / 2)) + 'px)'; f1.transform = 'none';
+          }
+          frames = [f0, f1];
+        }
+        el.animate(frames, { duration: figureMs, delay: i * step, easing: ease, fill: 'backwards' }).currentTime = elapsed;
+      });
+      if (!entrance.timer) entrance.timer = setTimeout(endEntrance, Math.max(0, (marks.length - 1) * step + figureMs - elapsed) + 20);
+    }
+    /* Where every mark is drawn now, for the next chart to glide from; null when this one is not mid-entrance. */
+    function drawnNow() {
+      if (!entrance) return null;
+      return Array.prototype.map.call(host.querySelectorAll(MARKS), function (el) {
+        var cs = getComputedStyle(el);
+        if (el.classList.contains('chart-bar')) return { k: 'bar', s: !cs.transform || cs.transform === 'none' ? 1 : new DOMMatrixReadOnly(cs.transform).d, h: el.getBBox().height };
+        var box = el.getBBox(), at = { cx: box.x + box.width / 2, cy: box.y + box.height / 2, o: parseFloat(cs.opacity) };
+        if (el.classList.contains('chart-line')) at.d = el.getAttribute('d');
+        if (el.classList.contains('chart-line') && el.style.strokeDasharray) { at.k = 'line'; at.p = parseFloat(cs.strokeDashoffset) / (parseFloat(el.style.strokeDasharray) + 2 * (parseFloat(cs.strokeWidth) || 2)); } else at.k = 'fade';
+        return at;
+      });
+    }
+    function onHold(e) { if (e.detail && e.detail.held) endEntrance(); }
+    document.addEventListener('basalt:loops', onHold);
+    // Printing that begins mid-entrance settles it too: print never shows a partly drawn figure.
+    var printQuery = matchMedia('print');
+    function onPrint() { if (printQuery.matches) endEntrance(); }
+    if (printQuery.addEventListener) printQuery.addEventListener('change', onPrint);
+    // The browser's own print path fires `beforeprint` and no media change: settle on it as well.
+    function onBeforePrint() { endEntrance(); }
+    window.addEventListener('beforeprint', onBeforePrint);
+
     function draw(force) {
       if (!metrics || !n) return;
       var active = activeDay();
       L = layout();
       plot.style.height = L.height + 'px';
       host.innerHTML = svgString(active);
+      if (entrance) playEntrance();
       figure.toggleAttribute('data-narrow', L.narrow);
       var tabStop = stop();
       dayEls.forEach(function (el, i) {
@@ -571,6 +665,8 @@
     function measureNow() {
       width = plot.clientWidth;
       if (!metrics) metrics = readMetrics();
+      if (!entranceChecked) { entranceChecked = true; if (entranceAllowed()) entrance = { t0: performance.now(), timer: 0, from: null }; }
+      else if (carry && !entrance && !entranceDone) { entranceDone = true; entrance = { t0: performance.now(), timer: 0, from: carry }; }
       draw(true);
     }
 
@@ -684,8 +780,13 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (live) { widths = {}; draw(true); } });
 
     var api = {
+      drawn: drawnNow,
       destroy: function () {
         live = false;
+        if (entrance) { clearTimeout(entrance.timer); entrance = null; seen(); }
+        document.removeEventListener('basalt:loops', onHold);
+        if (printQuery.removeEventListener) printQuery.removeEventListener('change', onPrint);
+        window.removeEventListener('beforeprint', onBeforePrint);
         if (observer) observer.disconnect();
         if (tableObserver) tableObserver.disconnect();
         document.removeEventListener('pointerdown', outside);
@@ -709,6 +810,8 @@
     });
   }
 
+  // A router's page change without a reload counts as a load: the entrance's late gate then measures from the change (`at`, as performance.now() gave it, or now).
+  B.pageChange = function (at) { B.pageChangedAt = at === undefined ? performance.now() : at; };
   B.chart = chart;
   _.step(60, 'wireCharts', wireCharts);
 })(window.Basalt);

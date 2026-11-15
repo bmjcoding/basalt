@@ -1,0 +1,18 @@
+/* The page's one ambient loop (React's AmbientMark and ambient(); DECISIONS 136 C), the part of the hold that is art. Held by loops (`<html data-loops="held">`). */
+
+@layer basalt {
+
+  /* ---- A page's one ambient loop (React's AmbientMark and ambient(); DECISIONS 136 C) ----
+     A [data-ambient] mark inside a stage's art or a framed frame loops its opacity from 1 down to 0.2 and back on ease-in-out, and nothing else moves.
+     Its period is 0.6 to 1.4 times duration-loop-ambient (--_k) and its phase a negative delay (--_ph); loops.js sets both, in the order the marks are written,
+     and lets at most 24 loop. A looping mark is no wider than size-dot. The hold stops it at full opacity, and reduced motion, forced colours and print keep it still. */
+  .ambient-mark { position: absolute; display: block; width: var(--basalt-size-dot); height: var(--basalt-size-dot); background: var(--basalt-art-tone-4); pointer-events: none; }
+  @keyframes bh-ambient { 50% { opacity: 0.2; } }
+  :is(.stage-art, .framed-frame) [data-ambient] {
+    animation: bh-ambient calc(var(--basalt-duration-loop-ambient) * var(--_k, 1)) var(--basalt-ease-in-out) calc(var(--basalt-duration-loop-ambient) * var(--_k, 1) * var(--_ph, 0) * -1) infinite;
+  }
+  :root[data-loops="held"] [data-ambient] { animation: none; }
+  @media (prefers-reduced-motion: reduce) { :is(.stage-art, .framed-frame) [data-ambient] { animation: none; } }
+  @media (forced-colors: active) { :is(.stage-art, .framed-frame) [data-ambient] { animation: none; } .ambient-mark { background: CanvasText; forced-color-adjust: none; } }
+  @media print { :is(.stage-art, .framed-frame) [data-ambient] { animation: none; } }
+}

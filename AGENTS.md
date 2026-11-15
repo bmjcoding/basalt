@@ -121,7 +121,13 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the parts of a field or a disabled or loading button). In popup rows (Menu, Select, Combobox,
   command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
-  reduced motion and in forced colours. Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
+  reduced motion and in forced colours. Nothing overshoots. Two kinds of thing loop, and nothing else: a mark that says work is running
+  (the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
+  one ambient loop, opacity only, in its art; `data-loops="held"` stops both. One figure on a page's first screen may draw its marks once
+  at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
+  traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
+  filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
+  Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density. Text entry is 16px on touch.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and

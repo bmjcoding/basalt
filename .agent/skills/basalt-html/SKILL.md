@@ -60,6 +60,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word; a long wait needs `loops`.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
 - **loops** `data-loops-toggle`: a page that spins past five seconds needs it; the control's name stays fixed.
+- **ambient** `data-ambient`: one loop a page, in art only, opacity only; the page then needs the `loops` toggle.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
 - **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.

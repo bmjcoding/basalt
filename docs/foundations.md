@@ -445,7 +445,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   Under reduced motion the ring fades and braille holds its first frame.
   **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
   portals included: braille, the ring, a busy Button's ring, the indeterminate Progress bar,
-  Sparkline's loading line and Skeleton's pulse. There is no per-spinner prop, and the attribute
+  Sparkline's loading line and Skeleton's pulse, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
+  starts by itself: an entrance is drawn at rest and a demonstration does not send itself. There is no per-spinner prop, and the attribute
   can't be set on a subtree. Braille holds its first frame and the ring stands still at its
   drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
   words still say the work is running. Skeleton and the loading line hold at their reduced-motion
@@ -461,12 +462,12 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   theme's, so a stored hold applies before the first frame. This is the mechanism WCAG 2.2.2
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
   reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
-  **The control is the app's part, built from shipped parts, with no new component:** a
-  pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work,
-  labelled "Pause animations" with a fixed name and `aria-pressed`; the same words as a settings
-  row (the label, the description "Spinners hold still and timers show when work started. Your work
-  keeps running.", and a `Switch` at its end); and a command, "Pause animations", reading "Resume
-  animations" while held. Nothing is announced when the hold changes: the control speaks its own
+  **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
+  pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
+  site header's end cluster, before the theme toggle, on any page with an ambient loop or a loop that can run past five seconds;
+  in an app, a pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work, and a settings row (the
+  label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
+  animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
   state. **The app's own text is its part too:** while held, an elapsed time shows when the work
   started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
   hides while the status word stays; on release the current text is written. A result lands as
@@ -484,7 +485,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
   takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
   size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
-  implementation hasn't been reviewed.
+  implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
+  owner (DECISIONS 139); the implementation hasn't been reviewed.
 
 ### Accent classes
 
@@ -881,7 +883,7 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
 - **The current page** is primary ink at 600 with its 600 width reserved, no background, no underline, no bar, and
   `aria-current="page"`. **Focus** is the control ring, 2 at +2, round the pill. **Forced colours** are `Nav`'s rule: the current
   page keeps its 600, and hover is `Highlight` with `HighlightText`.
-- **The actions** are the theme toggle (a ghost `IconButton`, at every width) and at most one primary Button. Never a danger Button.
+- **The actions** are, in the end cluster, `LoopsToggle`'s icon form (only on a page with an ambient loop or a loop that can run past five seconds), the theme toggle (a ghost `IconButton`, at every width) and at most one primary Button. Never a danger Button. The loops toggle is before the theme toggle and stays in the bar at every width; the narrow menu has its own row for it (below).
 - **How many links:** they must fit at 720 beside the brand and the actions, five at most; the rest go in the footer. This is a rule
   for the site, not something the component measures.
 - **The opaque form** is the same bar on `surface-page` with no `backdrop-filter` (`solid`), for a product whose content does not
@@ -897,7 +899,11 @@ Under 720 the links and the primary action leave the bar; the brand, the theme t
   `aria-controls` and `aria-haspopup="dialog"`. It morphs to Close over `duration-slow` (the drawn pair).
 - **The menu** is `Sheet side="top"` on Base UI's Dialog, so it keeps the dialog contract: a real focus trap, an inert page, Escape,
   focus return. It has the scrim, level 1, `shadow-modal` and bottom corners of 16 (`radius-xl`). Its first row redraws the bar in
-  place: the brand, the toggle and Close on the Menu button's exact box, with a divider under it. The list unrolls beneath from the
+  place: the brand, the toggle and Close on the Menu button's exact box, with a divider under it. When the page has a loops toggle (the
+  site header's `loopsToggle`, passed once), the next row, below the band and before the links, is `LoopsToggle`'s Button form, the pressed
+  toggle "Pause animations" at the band's own gutter and 44 tall: the open menu covers the bar, so this is how the hold is reached while it is
+  open, and it is the same control, so it and the bar's icon always show one state. The icon is not added to the band. A page with no
+  loops toggle has no such row, and nothing else in the menu moves. The HTML skill's narrow menu has the same row (DECISIONS 148): when its bar has a `[data-loops-toggle]`, the first row after the band is the pressed-toggle button "Pause animations". (Decided by the council, DECISIONS 143, 2 to 1; the implementation hasn't been reviewed.) The list unrolls beneath from the
   band's edge. It is as tall as its content and scrolls inside at the viewport's height (`overscroll-behavior: contain`); the page
   under it does not scroll.
 - **Its rows** are `Nav` rows without a glyph (`NavItem` takes `icon` optionally): the 48px pill at 20/28, primary at rest, the
@@ -1061,7 +1067,8 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 ### Motion
 
 See [motion](motion.md#charts). A value that changes in place glides with the marks, the scale, its gridlines and labels over
-`duration-slow` on `ease-out`; a new peak widens the scale at once and it eases back when it shrinks. The first paint is at rest.
+`duration-slow` on `ease-out`; a new peak widens the scale at once and it eases back when it shrinks. The first paint is at rest, unless the
+chart is its page's one entrance (see [Motion](#motion)).
 
 ### Forced colours
 
@@ -1183,7 +1190,7 @@ A picture in the flow is a distinct object, so a panel's geometry.
   (`radius-lg`); inside a panel the nested-radius rule (a card's 12 less its 16 of padding is square). **No shadow:** it does not float.
 - **An aspect ratio is always set,** from the four tokens (`aspect-photo`, 3:2, is the default), so the frame reserves its box before the art
   loads and nothing shifts. The art fills it with `object-fit: cover`.
-- **While it loads,** and if it fails, the frame shows `surface-placeholder` and nothing else: no shimmer (nothing loops), no spinner, no
+- **While it loads,** and if it fails, the frame shows `surface-placeholder` and nothing else: no shimmer (a placeholder is not running work, so it does not loop), no spinner, no
   blurred preview (blur belongs to the chrome). Once decoded the art fades in over `duration-base` on `ease-out` (100ms, opacity only, under
   reduced motion). If it fails, meaningful art shows its alt text in secondary at 13/18, centred; decorative art shows nothing.
 - **Caption and credit** are a `figcaption` under the frame, `space-2` below it, start-aligned, at most `size-prose-width`: the caption is
@@ -1220,16 +1227,21 @@ A picture in the flow is a distinct object, so a panel's geometry.
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
 | `duration-base` | 150ms | Tooltips, menus, popovers, the hover glide in popup rows and in navigation |
 | `duration-slow` | 200ms | Dialogs, accordions, tab indicator and panel, the segmented and vertical-tab pill, a value glide (`useGlide`) |
-| `duration-slower` | 300ms | Sheets and drawers, a travelling spinner |
+| `duration-slower` | 300ms | Sheets and drawers, a travelling spinner, a travel's leg of up to 150px |
+| `duration-figure` | 600ms | A figure's own motion: each mark of a page's one entrance, and the longest leg of a travel the eye follows. Never a control, popup, panel, page or block |
+
+`duration-stagger` is 22ms: the step between the marks of one figure entering, shrunk so every start falls within `duration-slow`
+of the first. Under reduced motion `duration-figure` is 100ms and `duration-stagger` is 0.
 
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
-`duration-loop-braille` 800ms and `duration-loop-fade` 1200ms.
+`duration-loop-braille` 800ms, `duration-loop-fade` 1200ms and `duration-loop-ambient` 6000ms, the middle period of a page's
+one ambient loop (each mark runs 0.6 to 1.4 times it).
 
 | Curve | Value | For |
 |---|---|---|
 | `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and every move that answers input |
 | `ease-in` | `cubic-bezier(.4, 0, 1, 1)` | Exits, at three quarters of the entry |
-| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows (TravelSpinner only), and loop pulses |
+| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows: TravelSpinner, and a traveller crossing a figure (see Travel), and loop pulses |
 | `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinners |
 
 Nothing overshoots: Vercel's overlays overshoot by 10% (`cubic-bezier(.175, .885, .32, 1.1)`);
@@ -1239,8 +1251,9 @@ else (no row, card, menu item, command row or the parts of a field; there is no 
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
-`duration-slow` `ease-out`; the panel never remounts. Nothing loops except spinners and the line of a
-loading Sparkline.
+`duration-slow` `ease-out`; the panel never remounts. Two kinds of thing loop, and nothing else: a mark that says work is running
+(the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
+one ambient loop, opacity only, in its art; `data-loops="held"` stops both.
 
 **The sliding pill.** A one-of-many control, the segmented control and vertical tabs, holds one pill, and it slides to
 the chosen item by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`,
@@ -1279,12 +1292,62 @@ the glide only paints it.
 part that changed moves: shared letters stay put, and a change to a panel moves the panel, not the
 page.
 
+**What persists, stays** has one more line: a filtered or sorted list moves what stays to its place and never replaces it (see
+[Items that move to their places](#items-that-move-to-their-places) and [motion](motion.md)).
+
+**The entrance.** One figure on a page's first screen may draw its marks once, at load, on a first visit: each mark over
+`duration-figure` on `ease-out`, `duration-stagger` apart, the step shrunk so every start falls within `duration-slow` of the first.
+A bar scales from its baseline, a line draws along its length, a mark fades in; nothing translates, clips or blurs. An entrance draws
+one figure's marks inside a frame that is already there. Words, numbers, controls, cards, panels, images and sections never enter;
+they are at rest in the first frame, and nothing enters on scroll. A control used mid-entrance takes over: every mark glides from where
+it is drawn over `duration-slow`, and the visit counts as seen. The page's path is stored as seen in `localStorage`
+(`basalt-entrance:<path>`) when the entrance finishes or gives way, never before it plays. A second visit, reduced motion, the root
+hold, a hidden tab, a page opened below its first screen, a script that starts more than a second after navigation, print and no
+script all draw the figure at rest, and the hold or printing that arrives while it runs settles it at once, with no new animation (printing is the print media query changing, or the browser's own `beforeprint`, which a real print fires without a media change). A page
+change without a reload counts as a load (DECISIONS 143): the app tells the entrance when the change began (`markPageChange()`, the skill's
+`Basalt.pageChange()`), and the same gates apply from then: a first visit to that path, on its first screen, within a second of the change;
+with nothing reported, the document's own clock is used. A path reached that way is stored as seen when its entrance finishes or gives way.
+The skill's chart glides every mark from where it is drawn when a new data set arrives mid-entrance, as React's does. One a page, and only for a figure whose marks carry the page's point: a `Chart` with `entrance`.
+A brand mark's own entrance is the brand player's rule and is not counted here. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+**Travel.** A traveller that leaves a resting place and stops at another on screen, carrying something the reader follows, moves by
+transform on `ease-in-out`: a leg is `duration-slower` up to 150px, 2ms a pixel above that, and `duration-figure` from 300px (so a
+diagram puts a stop at least every 300px); it rests 200ms (`duration-slow`) at a stop while the stop takes its colour step, and a run
+ends inside five seconds. Each trigger is its own traveller: a second leaves from the start while the first keeps its course, and with
+two in flight a third lands the oldest at once, its outcome written. Under reduced motion the traveller appears at its destination
+with a 100ms fade and the outcome is written at once. The hold does not stop a travel the reader started, and nothing sends itself
+under it. The timing is `travelLeg`, `travelRun` and `createTravellers`, exported; a run ends inside five seconds for every plan it accepts (no leg is made shorter than 100ms, and a plan whose rests and shortest legs cannot fit, more than 17 legs, 16 stops, is refused with an error); `TravelSpinner` keeps its single `duration-slower`
+leg, because it answers an accept in an app. Anything that answers a pointer or key in place (the pill, the plate), an entry or exit,
+scroll and a loop is not a travel. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+**An ambient loop.** One a page, only in its art (a `Stage`'s art or a framed drawing), and never on text, a control, a data mark, a
+panel, a rim, a block or anything that carries information. Opacity only, from 1 to 0.2 and back on `ease-in-out`: no translate,
+scale, rotate, blur, glow or colour change. Each mark's period is 0.6 to 1.4 times `duration-loop-ambient` (6000ms), with its own
+phase, so no two are in step; a looping mark is no wider than `size-dot` (6px), and a page has at most 24. It joins the root hold
+(`data-loops="held"` holds every mark at full opacity, and releasing rejoins the shared clock), and it is still under reduced motion,
+in forced colours and in print. `ambient(index)` and `AmbientMark` are the React parts. A page with an ambient loop shows
+`LoopsToggle` in its header's end cluster (WCAG 2.2.2). Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+**Items that move to their places.** When a filter or a sort changes a list or a grid, each item that stays moves by transform from
+where it is drawn to its new place over `duration-slow` on `ease-out`, whatever the distance; an arrival fades in place over
+`duration-slow`; a leaver is the same element, out of the flow where it stood, inert and painted under the movers, fading over 0.75 of
+`duration-fast` on `ease-in`. A second change starts every item from where it is drawn, opacity included. If focus is in an item that
+leaves, it goes to the next item that stays in the order drawn, else the one before, else the result line (`tabindex="-1"`), without
+scrolling. The box's height glides on the same clock, clipped at its edge with a `space-1-5` margin so a +2 ring stays whole; nothing
+above or beside it moves, and what follows it moves once, with it. Only items on screen move, and past 48 that would move the change
+lands at once (a chosen limit, not a measured budget): an item that stays where it was is not one, so swapping two of 49 animates. Under reduced motion items and the box take their places at once, arrivals
+fade over 100ms and leavers go at once. No item is ever replaced. A table keeps the still-table rule and is not part of this.
+`Reflow` and `ReflowItem` are the React parts. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+**A number beside a figure** is its real value in the first frame, the entrance included, and never counts up. A later change in place
+glides with the marks over `duration-slow` (`NumberTicker glide`, with the readable text the target). Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
 Under `prefers-reduced-motion`: no transform, no size and no position animates (a press keeps its
 colour step and its scale is 1). `duration-base`,
-`duration-slow` and `duration-slower` are 100ms, so state changes become short fades; the toast
+`duration-slow`, `duration-slower` and `duration-figure` are 100ms and `duration-stagger` is 0, so state changes become short fades; the toast
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
 tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
-scale and labels; a travelling spinner appears at its destination with the same fade; a tab change is
+scale and labels; a travelling spinner appears at its destination with the same fade; an entrance is not played and a list's items take their places at once; an ambient loop is still; a tab change is
 a 100ms crossfade; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
 not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
 never cut to 100ms.
