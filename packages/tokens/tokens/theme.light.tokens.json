@@ -130,7 +130,7 @@
       },
       "hover": {
         "$value": "{color.black.16}",
-        "$description": "The hairline of a hovered control: one step brighter, never a colour."
+        "$description": "The hairline of a hovered control: one step brighter, never a colour. Under more contrast it is text-secondary, so a hovered edge is never fainter than the edge at rest."
       },
       "divider": {
         "$value": "{color.black.8}",
@@ -139,6 +139,10 @@
       "input": {
         "$value": "{color.black.45}",
         "$description": "Input boundaries: 3:1 or better on every surface (WCAG 1.4.11)."
+      },
+      "field": {
+        "$value": "{color.border.input}",
+        "$description": "A field's boundary (an input, a select, a number field, a choice box, a switch): the input boundary. Under more contrast it steps to text-secondary (field-contrast), so a field keeps the strongest line."
       },
       "focus": {
         "$value": "{color.neutral.30}",
@@ -247,6 +251,18 @@
         "$description": "In a quiet zone no pixel is lighter (dark) or darker (light) than this: the stage's headroom under the bar, and each data-quiet zone. Primary and secondary text and the focus ring hold their contrast on it."
       }
     },
+    "line-contrast": {
+      "$value": "{color.black.45}",
+      "$description": "More contrast, lines: a hairline, a divider, a rim and the pill's hairline are drawn in the input boundary's value (border-input), 3:1 or better on every surface. An alias, no new colour. Used only when a person asks for more contrast (prefers-contrast: more; colorSchemeContrast .increased)."
+    },
+    "ink-contrast": {
+      "$value": "{color.neutral.30}",
+      "$description": "More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour."
+    },
+    "field-contrast": {
+      "$value": "{color.neutral.30}",
+      "$description": "More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour."
+    },
     "scrim": {
       "$value": "{color.black.40}",
       "$description": "Behind modal dialogs and sheets."
@@ -296,50 +312,6 @@
         }
       ],
       "$description": "Secondary buttons, avatars and the current page: a translucent line backed by the page colour. Panels use the rim, not this.",
-      "$type": "shadow"
-    },
-    "pill": {
-      "$value": [
-        {
-          "color": "{color.black.8}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
-        },
-        {
-          "color": "{color.black.6}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 1,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 2,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 0,
-            "unit": "px"
-          }
-        }
-      ],
-      "$description": "A selected segment, raised from its track.",
       "$type": "shadow"
     },
     "overlay": {

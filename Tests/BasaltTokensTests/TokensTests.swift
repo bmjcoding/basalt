@@ -48,6 +48,17 @@ final class TokensTests: XCTestCase {
     check(Basalt.Colors.borderFocus, atLeast: 3, "border-focus")
   }
 
+  /// More contrast (decisions 138 and 139): three aliases and no new colour, each holding its contrast on every surface in both themes.
+  func testMoreContrastAliasesAreTheColoursTheyNameAndHold() {
+    XCTAssertEqual(Basalt.Colors.lineContrast, Basalt.Colors.borderInput)
+    XCTAssertEqual(Basalt.Colors.inkContrast, Basalt.Colors.textSecondary)
+    XCTAssertEqual(Basalt.Colors.fieldContrast, Basalt.Colors.textSecondary)
+    XCTAssertEqual(Basalt.Colors.borderField, Basalt.Colors.borderInput, "outside the mode a field's boundary is the input boundary")
+    check(Basalt.Colors.lineContrast, atLeast: 3, "line-contrast")
+    check(Basalt.Colors.fieldContrast, atLeast: 3, "field-contrast")
+    check(Basalt.Colors.inkContrast, atLeast: 4.5, "ink-contrast")
+  }
+
   func testSyntaxMeetsAA() {
     check(Basalt.Colors.syntaxKeyword, atLeast: 4.5, "syntax-keyword")
     check(Basalt.Colors.syntaxString, atLeast: 4.5, "syntax-string")

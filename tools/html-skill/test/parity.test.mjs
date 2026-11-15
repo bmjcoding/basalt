@@ -110,6 +110,9 @@ const CASES = [
       ["list", ".basalt-tabs-list", ".tabs", ["boxHeight", "gap", "boxShadow", "borderBottomWidth", "display"]],
       ["selected tab", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", BOX],
       ["other tab", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", BOX],
+      // The chosen label is 600 and a resting one 400, each reserving its 600 width (decisions 138 and 139): the two draw the same width.
+      ["selected tab width", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", ["boxWidth", "fontWeight"]],
+      ["other tab width", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", ["boxWidth", "fontWeight"]],
       ["panel", ".basalt-tabs-panel", ".tabpanel:not([hidden])", ["paddingTop", "paddingLeft"]],
       ["focus ring", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", OUTLINE, { focus: true }],
     ],
@@ -127,6 +130,8 @@ const CASES = [
       ["pressed fill", ".basalt-segmented[data-slide] > .basalt-pill", ".segment[data-slide] > .pill", ["backgroundColor", "boxShadow", "borderTopLeftRadius", "boxHeight", "boxWidth"]],
       ["pressed, with the shared pill", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["backgroundColor", "boxShadow"]],
       ["rest", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", BOX],
+      ["pressed width", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["boxWidth", "fontWeight"]],
+      ["rest width", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", ["boxWidth", "fontWeight"]],
       ["focus ring", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", OUTLINE, { focus: true }],
     ],
   },

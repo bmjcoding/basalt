@@ -113,6 +113,42 @@
   .basalt-reserve > * { grid-area: 1 / 1; }
   .basalt-reserve > :not([data-on]) { visibility: hidden; }
 
+  /* A chosen item's label (a segment, a tab, a page) is 400 at rest and 600 when chosen, and reserves the 600's width, as the navigation's label
+     does: the item's text is drawn in a span that carries its own copy in data-label, laid out at 600, unseen, one line tall and pulled back over the line, so the
+     span is as wide as the 600 and nothing beside it moves when the choice changes. The label sits centred in it; vertical tabs start it at the start edge. */
+  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button) [data-label] { display: inline-flex; flex-direction: column; align-items: center; white-space: nowrap; }
+  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button) [data-label]::after {
+    content: attr(data-label);
+    height: 1lh;
+    margin-block-end: -1lh;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  /* A label with an icon beside it, and a vertical tab's, start at the start edge: the slack of the reserved width goes at the end. */
+  :is(.basalt-segment, .basalt-tab) [data-label]:not(:only-child),
+  .basalt-tabs-list[data-orientation="vertical"] .basalt-tab [data-label] { align-items: flex-start; }
+
+  /* A label that is not plain text (an element, words in a span, a component) is drawn twice in one grid cell, the second copy at 600,
+     unseen (aria-hidden and inert), so the cell is the content's width at 600 whatever it holds. The label sits centred in it; a
+     vertical tab starts it at the start edge, as the plain label does. */
+  .basalt-chosen-label { display: inline-grid; justify-items: center; }
+  .basalt-chosen-label > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .basalt-chosen-label > [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .basalt-tabs-list[data-orientation="vertical"] .basalt-chosen-label { justify-items: start; }
+  .basalt-tabs-list[data-orientation="vertical"] .basalt-chosen-label > * { justify-content: flex-start; }
+
+  /* An icon in a segment or tab draws both of its forms in one box and shows the one that matches the item, crossfading over duration-fast
+     (decision 145): the box is the same either way, so choosing moves nothing. */
+  .basalt-glyph-pair { display: inline-grid; flex: none; }
+  /* A segment is not a flex box (its text is centred): one that holds an icon beside its text sets them on one centre line, 6px apart, as a tab does. */
+  .basalt-segment:has(> .basalt-glyph-pair, > .basalt-icon) { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
+  .basalt-glyph-pair > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-glyph-pair > :last-child,
+  :is([data-pressed], [data-active]) .basalt-glyph-pair > :first-child { opacity: 0; }
+  :is([data-pressed], [data-active]) .basalt-glyph-pair > :last-child { opacity: 1; }
+
   .basalt-button,
   .basalt-input,
   .basalt-menu-item,
@@ -305,7 +341,7 @@
     border: 0;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-text-primary);
     font-size: var(--_basalt-control-font, var(--basalt-text-base-size));
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -599,7 +635,7 @@
     background: transparent;
     color: var(--basalt-text-secondary);
     font-size: var(--basalt-text-sm-size);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--basalt-font-weight-regular);
     cursor: pointer;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
@@ -608,7 +644,9 @@
     .basalt-tab:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
   }
 
-  .basalt-tab[data-active] { color: var(--basalt-text-primary); }
+  /* The chosen tab is its label at 600 in primary ink; a resting one is 400 in secondary. Its width is the 600's at rest too
+     (ChosenLabel: the text carries a copy of itself laid out at 600), so choosing moves nothing. */
+  .basalt-tab[data-active] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
   .basalt-tab[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
 
   /* The active tab in a horizontal bar is marked by a 2px underline (shape, not only colour) that slides between tabs. */
@@ -666,7 +704,7 @@
   }
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] {
     background: var(--_pill);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
   }
 
   /* ---- Segmented control ---- */
@@ -675,6 +713,10 @@
      track against a 1.35:1 step reads as a pill, not a wash). Light keeps surface-top, white on the track. */
   .basalt-segmented,
   .basalt-tabs-list { --_pill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); }
+  /* The pill's edge is its hairline and nothing else: it sits in the flow, so it casts no shadow (a shadow is for what floats). The hairline is
+     the line token, so it steps to the input boundary under more contrast. */
+  .basalt-segmented,
+  .basalt-tabs-list { --_pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
   /* Without light-dark(): the mix of the two, by --_dkp (see the depth section). */
   @supports not (color: light-dark(white, black)) {
     .basalt-segmented,
@@ -700,7 +742,7 @@
     background: transparent;
     color: var(--basalt-text-secondary);
     font-size: var(--basalt-text-sm-size);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--basalt-font-weight-regular);
     cursor: pointer;
     transition-property: background-color, color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -711,11 +753,13 @@
     .basalt-segment:hover:not([data-pressed]):not([data-disabled]) { color: var(--basalt-text-primary); }
   }
 
-  /* Selected is a raised pill with a hairline, visible without colour (WCAG 1.4.11). */
+  /* Chosen is the label at 600 in primary ink (decisions 138 and 139), against 400 in secondary at rest: the weight is the cue, which does
+     not rest on colour (WCAG 1.4.1, technique G182). The raised pill with its hairline and the ink step support it. */
   .basalt-segment[data-pressed] {
     background: var(--_pill);
     color: var(--basalt-text-primary);
-    box-shadow: var(--basalt-shadow-pill);
+    font-weight: var(--basalt-font-weight-semibold);
+    box-shadow: var(--_pill-edge);
   }
 
   /* The sliding pill. SegmentedControl and a vertical TabsList hold one shared pill, which travels to the chosen
@@ -739,7 +783,7 @@
     transform: translate(var(--_pill-x), var(--_pill-y));
     border-radius: var(--basalt-radius-sm);
     background: var(--_pill);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
     pointer-events: none;
     transition-property: transform, width, height;
     transition-duration: var(--basalt-duration-slow);
@@ -1536,7 +1580,7 @@
     height: var(--basalt-size-choice);
     margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-choice)) / 2);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-action-primary-text);
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -1741,10 +1785,20 @@
   .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
+  /* A wash over an opaque fill is one colour, mixed here (decision 138, C11), never a gradient, an image or a layer of its own: the wash's
+     colour at its own alpha (white at 6% and 9% in dark, black at 4% and 7% in light, the tokens' values) over the cell's fill, in sRGB, as a
+     browser composites it, so the cell paints the colours it did. light-dark() picks by the colour scheme the theme sets. */
   @media (hover: hover) {
-    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised)))); }
   }
-  .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-selected), var(--basalt-state-selected)); }
+  .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised)))); }
+  /* A browser without light-dark(): the two mixed by --_dkp, as the plate is (see the depth section). */
+  @supports not (color: light-dark(white, black)) {
+    @media (hover: hover) {
+      .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised)))); }
+    }
+    .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised)))); }
+  }
   /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is
      actually scrolled, and never a selection, sort or status mark. */
   .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
@@ -1905,7 +1959,7 @@
     padding: 0;
     border: 0;
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-action-primary-text);
     cursor: inherit;
     transition-property: background-color, box-shadow;
@@ -1944,7 +1998,7 @@
     border: 0;
     border-radius: var(--basalt-radius-full);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     cursor: inherit;
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -1999,7 +2053,7 @@
     border: 0;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / 1 var(--basalt-font-family-sans);
     text-align: left;
@@ -3046,7 +3100,10 @@
   .basalt-chart-not-observed { color: var(--basalt-text-tertiary); }
   .basalt-chart-note { color: var(--basalt-text-secondary); }
   @media (hover: hover) {
-    .basalt-chart-table tbody tr:hover > th { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-chart-table tbody tr:hover > th { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised)))); }
+    @supports not (color: light-dark(white, black)) {
+      .basalt-chart-table tbody tr:hover > th { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised)))); }
+    }
     .basalt-chart-table tbody tr:hover .basalt-chart-not-observed { color: var(--basalt-text-secondary); }
   }
   @media (pointer: coarse) {
@@ -3193,6 +3250,14 @@
     .basalt-input[data-size],
     .basalt-input.basalt-textarea,
     .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
+    /* Radius follows the box as it is drawn (decision 138, E1): these are 44 here whatever size they were set at, so they are 8, as the narrow
+       bar's 44px buttons are. A segment keeps its 6: it is nested in a track that is 8 with 2 of padding. */
+    .basalt-button,
+    .basalt-button[data-size] { --_radius: var(--basalt-radius-md); }
+    .basalt-input,
+    .basalt-input[data-size],
+    .basalt-select-trigger,
+    .basalt-select-trigger[data-size] { border-radius: var(--basalt-radius-md); }
   }
 
   /* ---- Forms and editable choices ---- */
@@ -3216,8 +3281,11 @@
     max-width: 100%;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
   }
+  /* A group drawn at 36 or 40 is radius 8, as a control of that size is (decision 138, E1); its buttons already are. */
+  .basalt-number-group[data-size="lg"] { border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-number-group[data-size="xl"] { border-radius: var(--basalt-radius-md); }
   .basalt-number-group:has(.basalt-number-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-number-group[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .basalt-number-group[data-disabled] { background: var(--basalt-surface-sunken); }
@@ -3298,6 +3366,7 @@
     /* Two classes, as the 40px rule it replaces: a single class is outranked by it and never applied, leaving text under the 44px caret. */
     .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
     .basalt-number-group .basalt-button { min-width: var(--basalt-size-tap-min); }
+    .basalt-number-group { border-radius: var(--basalt-radius-md); }
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
 
@@ -3398,10 +3467,13 @@
 
   .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; }
   .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
-  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
-  /* The current page is the selected pill, whether the pages are links or buttons. */
-  .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
-  .basalt-page-link:hover { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
+  /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
+  .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
+  .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  .basalt-page-link[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  /* A page button's number is 400 at rest: the Button's own weight is 500. */
+  .basalt-pagination .basalt-button { font-weight: var(--basalt-font-weight-regular); }
   .basalt-pagination-gap { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-control-sm); color: var(--basalt-text-secondary); }
 
   .basalt-separator { flex: none; border: 0; background: var(--basalt-border-divider); }
@@ -3426,6 +3498,7 @@
 
   @media (pointer: coarse) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
+    .basalt-page-link { border-radius: var(--basalt-radius-md); }
     .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }
   }
 
@@ -3443,6 +3516,9 @@
     .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked] { background: Highlight; color: HighlightText; }
     .basalt-segment[data-pressed] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+    /* The current page is Highlight with HighlightText, as a chosen segment is, with no box shadow (the plate's hairline); a page that is
+       a link keeps its real border, now in Highlight. All three keep the 600, which forced colours never takes away. */
+    .basalt-pagination :is(.basalt-page-link, .basalt-button)[aria-current="page"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; }
     .basalt-checkbox-indicator, .basalt-radio-indicator, .basalt-switch-thumb { forced-color-adjust: none; }
     .basalt-checkbox-indicator { color: HighlightText; }
     /* The lit row. Chromium paints a Canvas backplate behind text it forces, so on a Highlight fill the label renders
@@ -3486,8 +3562,14 @@
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
     /* The tab bar is a fill on a Canvas list: Highlight. */
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
-    /* Keyboard focus is not this mark: with focus the standard ring (2px, offset 2) draws, as it does on every other control. */
-    .basalt-segment[data-pressed]:not(:focus-visible), .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active]:not(:focus-visible), .basalt-pagination [aria-current="page"]:not(:focus-visible) { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
+    /* The chosen item opts out of colour adjustment for its fill, which would leave its focus ring the theme's grey (2.5:1 where the theme and
+       the palette disagree): the ring is the system's, as an ordinary control's is (decision 145). */
+    .basalt-segment[data-pressed]:focus-visible,
+    .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active]:focus-visible,
+    .basalt-pagination :is(.basalt-page-link, .basalt-button)[aria-current="page"]:focus-visible { outline-color: Highlight; }
+    /* No state is marked by an outline here (decision 138): the chosen item is Highlight and HighlightText above, or the horizontal
+       tab's Highlight underline, and keeps its 600. Keyboard focus is the standard ring (2px, offset 2) on the chosen item as on every
+       other control, which an outline of its own on the chosen item used to hide. */
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
     .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
@@ -3727,8 +3809,7 @@
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
-    /* The chip's glyph swap has no crossfade: the plus and the check change at once. */
-    .basalt-chip-seat > .basalt-icon { transition: none; }
+    /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
     .basalt-travel { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); transform: translate(var(--_to-x), var(--_to-y)) translate(-50%, -50%); }
   }

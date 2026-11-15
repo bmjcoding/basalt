@@ -138,7 +138,7 @@ Tabs switch between panels of one view.
 
 **You provide** \`Tabs\` with a \`defaultValue\` or \`value\`, a \`TabsList\` (give it an \`aria-label\`) of \`Tab\`s, and one \`TabsPanel\` per tab with the same \`value\`.
 
-In a horizontal bar the active tab is marked by a 2px underline in \`basalt-text-primary\` that slides between tabs, not by colour alone. Vertical tabs are a column of 36px pills in a track, with no divider and no indicator. Arrow keys move between tabs.
+In a horizontal bar the active tab is marked by a 2px underline in \`basalt-text-primary\` that slides between tabs, and its label is 600 against 400 for the rest, not by colour alone. Vertical tabs are a column of 36px pills in a track, with no divider and no indicator. Arrow keys move between tabs.
 
 - Use \`SegmentedControl\` instead when the options filter one view rather than switch panels.
 `),
@@ -147,7 +147,7 @@ One choice among a few options that filter or change the current view: a time ra
 
 **You provide** \`aria-label\` (required), \`value\` and \`onValueChange\` (or \`defaultValue\`), and \`Segment\`s with a \`value\` each. Exactly one segment is always selected: pressing the selected one again keeps it.
 
-The selected segment is a raised pill (\`basalt-surface-top\` with \`shadow-pill\`) on a \`basalt-surface-sunken-strong\` track, so it is visible without colour.
+The chosen segment's label is 600 in primary ink against 400 in secondary at rest, each label reserving its 600 width so nothing moves; the raised pill (\`basalt-surface-top\` with a hairline and no drop shadow) on a \`basalt-surface-sunken-strong\` track supports it, so it is visible without colour.
 `),
   Badge: doc("Badge", `
 A small label, such as a deployment state.

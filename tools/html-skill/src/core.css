@@ -252,7 +252,8 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
   .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
   .btn svg { flex: none; }
-  @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
+  /* Radius follows the box as it is drawn (decision 138, E1): a button is at least 44 on touch, so it is radius 8, as every control that size is. */
+  @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
   /* A link on its own is a touch target (44px); a link inside running text is not, so a paragraph, list item, quote, caption,
      hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
      `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits

@@ -78,12 +78,28 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`${theme}: the selected pill differs from its track by more than colour alone`, () => {
-    // WCAG 1.4.11 for the selected state: the pill carries a hairline ring, and its text is
-    // primary while unselected text is secondary. Guard that the text step is real.
+  test(`${theme}: a chosen item's label meets 4.5:1 on its own fill, and a resting one on its, at every level (the state is 600 against 400, not the fill or the ink step)`, (t) => {
+    // WCAG 1.4.1 / 1.4.11, decisions 138 and 139: "chosen" is the label at 600 in primary ink against 400 in secondary, each label
+    // reserving its 600 width, so the information that must reach 3:1 is the label itself, which is text and holds 4.5:1 here. The
+    // weight, the width reserved and the 0px every item moves are proved on the components (packages/react/test/audit-design-a.test.mjs).
+    // The old guard asserted a ratio of two contrasts, which is not 1.4.11; it is gone. Neither the pill against its track (1.14:1 in
+    // light, 1.35:1 in dark) nor the ink step (about 2.1 to 2.2:1) is asserted as the pass: they are support, and they are reported below.
+    const pill = theme === "dark" ? over({ ...color(theme, "neutral-100"), alpha: 0.09 }, color(theme, "surface-top")) : color(theme, "surface-top");
     const track = color(theme, "surface-sunken-strong");
-    const gap = ratio(color(theme, "text-primary"), track) / ratio(color(theme, "text-secondary"), track);
-    assert.ok(gap >= 1.5, `${theme}: primary vs secondary text on the track differ by only ${gap.toFixed(2)}x`);
+    const fills = [["the pill", pill, "text-primary"], ["the track", track, "text-secondary"]];
+    for (const [name, fill, ink] of fills) {
+      const r = ratio(over(color(theme, ink), fill), fill);
+      assert.ok(r >= 4.5, `${theme}: ${ink} on ${name} is ${fmt(r)}:1`);
+    }
+    for (const level of LEVELS) {
+      const surface = color(theme, level);
+      for (const ink of ["text-primary", "text-secondary"]) assert.ok(ratio(over(color(theme, ink), surface), surface) >= 4.5, `${theme}: ${ink} on ${level}`);
+    }
+    // the current page's plate is surface-raised at every level
+    const plate = color(theme, "surface-raised");
+    assert.ok(ratio(color(theme, "text-primary"), plate) >= 4.5, `${theme}: the current page's number on its plate`);
+    // reported, not asserted as the pass
+    t.diagnostic(`${theme}: pill against track ${fmt(ratio(pill, track))}:1, primary ink against secondary on the track ${fmt(ratio(color(theme, "text-primary"), track) / ratio(color(theme, "text-secondary"), track))}x of the contrasts`);
   });
 }
 
@@ -669,5 +685,80 @@ for (const theme of THEMES) {
   test(`${theme}: one step further (tone 3) secondary text no longer holds, which is why the limit stops at tone 2`, () => {
     const tone3 = color(theme, "art-tone-3");
     assert.ok(ratio(color(theme, "text-secondary"), tone3) < 4.5, `${theme}: secondary holds on tone 3, so the limit could be higher`);
+  });
+}
+
+// ---- More contrast (decisions 138 and 139, part D): three aliases and no new colour ----
+
+// The mode, read from the generated CSS: which tokens it replaces, and by which alias.
+const tokensCss = fs.readFileSync(new URL("../dist/css/tokens.css", import.meta.url), "utf8");
+const moreBlock = tokensCss.match(/@media \(prefers-contrast: more\) \{\s*([^{]*)\{([^}]*)\}\s*\}/);
+const MORE = Object.fromEntries([...moreBlock[2].matchAll(/--basalt-([\w-]+): var\(--basalt-([\w-]+)\);/g)].map((m) => [m[1], m[2]]));
+/** A token as it reads under more contrast. */
+const more = (theme, name) => color(theme, MORE[name] ?? name);
+
+test("more contrast: lines step to border-input, tertiary ink to text-secondary and a field's boundary to text-secondary, and nothing else is replaced", () => {
+  assert.deepEqual(MORE, { "border-hairline": "line-contrast", "border-rim": "line-contrast", "border-rim-top": "line-contrast", "border-divider": "line-contrast", "text-tertiary": "ink-contrast", "border-field": "field-contrast", "border-hover": "text-secondary" });
+  // the block is declared on every selector that sets a theme, the system-dark rule's own selector included, so it wins in both themes
+  for (const selector of [":root", '[data-theme="light"]', '[data-theme="dark"]', ".light", ".dark", ':root:not([data-theme="light"]):not(.light)']) assert.ok(moreBlock[1].includes(selector), `the mode is not declared on ${selector}`);
+  assert.ok(tokensCss.indexOf("prefers-contrast: more") > tokensCss.indexOf("@media (prefers-color-scheme: dark)"), "the mode comes after the system-dark rule, which it must outrank");
+});
+
+for (const theme of THEMES) {
+  test(`${theme}: the three aliases are the colours they name, so more contrast adds no colour`, () => {
+    assert.deepEqual(color(theme, "line-contrast"), color(theme, "border-input"));
+    assert.deepEqual(color(theme, "ink-contrast"), color(theme, "text-secondary"));
+    assert.deepEqual(color(theme, "field-contrast"), color(theme, "text-secondary"));
+    assert.deepEqual(color(theme, "border-field"), color(theme, "border-input"), "outside the mode a field's boundary is the input boundary");
+  });
+
+  test(`${theme}: under more contrast every text pair still holds 4.5:1 on every surface and every level`, () => {
+    const onto = [...surfaces(theme), ...LEVELS.map((n) => [n, color(theme, n)])];
+    for (const name of ["text-primary", "text-secondary", "text-tertiary", "status-danger", "syntax-comment"]) {
+      for (const [bgName, bg] of onto) {
+        const r = ratio(over(more(theme, name), bg), bg);
+        assert.ok(r >= 4.5, `${theme}: ${name} on ${bgName} is ${fmt(r)}:1 under more contrast`);
+      }
+    }
+  });
+
+  test(`${theme}: under more contrast text still holds 4.5:1 on the hover and selected washes, and on the pill and its track`, () => {
+    const washed = [...rowSurfaces(theme), ...["surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)])].flatMap(([n, s]) => washes.map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
+    for (const name of ["text-primary", "text-secondary", "status-danger"]) for (const [bgName, bg] of washed) assert.ok(ratio(over(more(theme, name), bg), bg) >= 4.5, `${theme}: ${name} on ${bgName} under more contrast`);
+    // tertiary is promoted to secondary on a wash already, and in the mode it is secondary everywhere: it must hold wherever it can sit
+    for (const [bgName, bg] of washed) assert.ok(ratio(over(more(theme, "text-tertiary"), bg), bg) >= 4.5, `${theme}: tertiary ink on ${bgName} under more contrast`);
+    const pill = theme === "dark" ? over({ ...color(theme, "neutral-100"), alpha: 0.09 }, color(theme, "surface-top")) : color(theme, "surface-top");
+    assert.ok(ratio(more(theme, "text-primary"), pill) >= 4.5);
+    assert.ok(ratio(more(theme, "text-secondary"), color(theme, "surface-sunken-strong")) >= 4.5);
+  });
+
+  test(`${theme}: under more contrast every line and every field boundary holds 3:1 on every surface and every level (1.4.11)`, () => {
+    const onto = [...surfaces(theme), ...LEVELS.map((n) => [n, color(theme, n)]), ...["state-hover", "state-selected"].map((w) => [`${w} over surface-page`, over(color(theme, w), color(theme, "surface-page"))])];
+    for (const name of ["border-hairline", "border-rim", "border-rim-top", "border-divider", "border-field", "border-hover"]) {
+      for (const [bgName, bg] of onto) {
+        const r = ratio(over(more(theme, name), bg), bg);
+        assert.ok(r >= 3, `${theme}: ${name} on ${bgName} is ${fmt(r)}:1 under more contrast`);
+      }
+    }
+    // the pill's hairline over the pill's own track, which is the pair that matters for a chosen segment
+    const track = color(theme, "surface-sunken-strong");
+    assert.ok(ratio(over(more(theme, "border-hairline"), track), track) >= 3, `${theme}: the pill's hairline on its track`);
+  });
+
+  test(`${theme}: a field keeps the strongest line under more contrast: its boundary is stronger than a rim, a divider or a hairline`, () => {
+    for (const [bgName, bg] of surfaces(theme)) {
+      const field = ratio(over(more(theme, "border-field"), bg), bg);
+      for (const line of ["border-hairline", "border-rim", "border-divider"]) assert.ok(field > ratio(over(more(theme, line), bg), bg), `${theme}: on ${bgName} a ${line} is as strong as a field's boundary`);
+    }
+  });
+
+  test(`${theme}: under more contrast a hovered edge is never fainter than the edge at rest, on every surface and level (decision 145)`, () => {
+    const onto = [...surfaces(theme), ...LEVELS.map((n) => [n, color(theme, n)])];
+    for (const [bgName, bg] of onto) {
+      const hover = ratio(over(more(theme, "border-hover"), bg), bg);
+      const rest = ratio(over(more(theme, "border-hairline"), bg), bg);
+      assert.ok(hover >= rest, `${theme}: on ${bgName} the hover edge is ${fmt(hover)}:1 and the edge at rest ${fmt(rest)}:1`);
+      assert.ok(hover >= 3, `${theme}: the hover edge on ${bgName} is ${fmt(hover)}:1`);
+    }
   });
 }

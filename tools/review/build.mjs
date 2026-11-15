@@ -243,11 +243,11 @@ for (const id of rounds) {
       for (const [width, tag] of widths) {
        for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !state.startsWith("cmd-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !state.startsWith("cmd-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print", "more-contrast", "touch"].includes(state); // these are pages, not open overlays
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
-          const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : {};
+          const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : mode.endsWith("more-contrast") ? { contrast: "more" } : {};
           const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch", ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
@@ -259,7 +259,7 @@ for (const id of rounds) {
           if (state.endsWith("reduced-transparency")) await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
-          const inspectorNoise = (text) => (state === "film" || state === "ghost") && /^Unsafe attempt to load URL file:/.test(text);
+          const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34") && /^Unsafe attempt to load URL file:/.test(text);
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
           page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
@@ -301,6 +301,20 @@ for (const id of rounds) {
               await page.waitForTimeout(25);
               await page.evaluate(() => { for (const a of document.getAnimations()) { if (a.effect?.getComputedTiming().iterations === Infinity) continue; a.pause(); a.currentTime = 50; } });
             } else await page.waitForTimeout(700);
+          }
+          // Round 34: every element that marks itself `data-wt-force="hover"` or `"focus"` is held in that state with Chromium's forced
+          // pseudo-classes (no pointer or key is needed), so one page can show many parts hovered and focused at once.
+          if (id === "34") {
+            await page.waitForTimeout(700);
+            const client = await page.context().newCDPSession(page);
+            await client.send("DOM.enable");
+            await client.send("CSS.enable");
+            const { root } = await client.send("DOM.getDocument", { depth: 0 });
+            for (const kind of ["hover", "focus"]) {
+              const { nodeIds } = await client.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: `[data-wt-force="${kind}"]` });
+              for (const nodeId of nodeIds) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : ["focus", "focus-visible"] });
+            }
+            await page.waitForTimeout(300);
           }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
           if (/^(tab-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {

@@ -72,14 +72,19 @@ function pageItems(page: number, count: number): Array<number | "gap-before" | "
   return [1, ...(start > 2 ? ["gap-before" as const] : []), ...Array.from({ length: end - start + 1 }, (_, i) => start + i), ...(end < count - 1 ? ["gap-after" as const] : []), count];
 }
 
-/** Bounded pagination: a constant-sized page window even for a very large result set. */
+/** Bounded pagination: a constant-sized page window even for a very large result set. The current page is its number at 600 on a plate. */
 export function Pagination({ page, pageCount, onPageChange, hrefForPage, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   if (count <= 1) return null;
   const current = Math.max(1, Math.min(count, Math.floor(page) || 1));
   const control = (value: number, name: string, content: React.ReactNode, disabled = false) => {
     const selected = value === current && name.startsWith("Page ");
+    // A page's number is 400 at rest and 600 on the current page, and carries a copy of itself that the stylesheet lays out at 600, so it reserves
+    // the width (the same as ChosenLabel does for a segment or a tab).
+    if (typeof content === "number") content = <span data-label={content}>{content}</span>;
     if (hrefForPage && !disabled) return <Link href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link">{content}</Link>;
+    // A page that is not there (before the first, after the last) keeps a link's box: a Button's is 4px wider, so reaching the first or last page would move every page after it.
+    if (hrefForPage) return <a role="link" aria-disabled="true" aria-label={name} className="basalt-page-link">{content}</a>;
     return <Button size="sm" variant="ghost" aria-label={name} aria-current={selected ? "page" : undefined} disabled={disabled} onClick={() => onPageChange?.(value)}>{content}</Button>;
   };
   return (

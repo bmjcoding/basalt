@@ -46,7 +46,14 @@ public enum BasaltControlSize: Sendable, CaseIterable {
     #endif
   }
 
-  var radius: Double { self == .lg || self == .xl ? Basalt.Radius.md : Basalt.Radius.sm }
+  /// Radius follows the box as it is drawn (decision 138): on iOS and visionOS every control is drawn at least 44 tall, so it is 8.
+  var radius: Double {
+    #if os(iOS) || os(visionOS)
+    return Basalt.Radius.md
+    #else
+    return self == .lg || self == .xl ? Basalt.Radius.md : Basalt.Radius.sm
+    #endif
+  }
 }
 
 /// Style any native SwiftUI Button with Basalt's variants. Hover is a colour step. A press is a colour step
@@ -71,6 +78,7 @@ public struct BasaltButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Environment(\.isFocused) private var focused
+    @Environment(\.colorSchemeContrast) private var contrast
     @State private var hovered = false
 
     var text: Color {
@@ -97,7 +105,7 @@ public struct BasaltButtonStyle: ButtonStyle {
     var edge: Color {
       if variant == .primary || variant == .ghost { return .clear }
       if variant == .danger && enabled { return Basalt.Colors.statusDanger.color.opacity(hovered ? 0.7 : 0.45) }
-      return hovered && enabled ? Basalt.Colors.borderHover.color : Basalt.Colors.borderHairline.color
+      return hovered && enabled ? Basalt.Colors.borderHover.color(contrast, increased: Basalt.Colors.textSecondary) : Basalt.Colors.borderHairline.color(contrast, increased: Basalt.Colors.lineContrast)
     }
 
     var body: some View {
@@ -160,6 +168,7 @@ public struct BasaltTextField: View {
   private let error: String?
   private let prompt: String?
   @Environment(\.isEnabled) private var enabled
+  @Environment(\.colorSchemeContrast) private var contrast
   @FocusState private var focused: Bool
 
   public init(_ title: String, text: Binding<String>, prompt: String? = nil, help: String? = nil, error: String? = nil) {
@@ -178,9 +187,9 @@ public struct BasaltTextField: View {
         .padding(.horizontal, Basalt.Space.s3)
         .padding(.vertical, Basalt.Space.s1_5)
         .frame(minHeight: BasaltControlSize.md.minimumHeight)
-        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.sm))
-        .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm).strokeBorder(error == nil ? Basalt.Colors.borderInput.color : Basalt.Colors.statusDanger.color))
-        .basaltFocusRing(focused, radius: Basalt.Radius.sm)
+        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: BasaltControlSize.md.radius))
+        .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(error == nil ? Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast) : Basalt.Colors.statusDanger.color))
+        .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
         .accessibilityLabel(Text(title))
         .accessibilityHint(Text(error ?? help ?? ""))
       if let message = error ?? help {
@@ -194,6 +203,7 @@ public struct BasaltTextEditor: View {
   private let title: String
   @Binding private var text: String
   @Environment(\.isEnabled) private var enabled
+  @Environment(\.colorSchemeContrast) private var contrast
   @FocusState private var focused: Bool
 
   public init(_ title: String, text: Binding<String>) { self.title = title; self._text = text }
@@ -209,9 +219,9 @@ public struct BasaltTextEditor: View {
         .scrollContentBackground(.hidden)
         .padding(Basalt.Space.s2)
         .frame(minHeight: 100)
-        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.sm))
-        .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.sm).strokeBorder(Basalt.Colors.borderInput.color))
-        .basaltFocusRing(focused, radius: Basalt.Radius.sm)
+        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: BasaltControlSize.md.radius))
+        .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
+        .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
         .accessibilityLabel(Text(title))
     }
   }
@@ -225,6 +235,7 @@ public struct BasaltToggleStyle: ToggleStyle {
     let configuration: ToggleStyleConfiguration
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
+    @Environment(\.colorSchemeContrast) private var contrast
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -235,7 +246,7 @@ public struct BasaltToggleStyle: ToggleStyle {
           Capsule()
             .fill(configuration.isOn ? Basalt.Colors.actionPrimary.color : Basalt.Colors.surfaceRaised.color)
             .frame(width: 32, height: 18)
-            .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderInput.color))
+            .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
             .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color).frame(width: 14, height: 14).offset(x: configuration.isOn ? 7 : -7))
             .opacity(enabled ? 1 : 0.5)
         }
@@ -245,7 +256,7 @@ public struct BasaltToggleStyle: ToggleStyle {
       .buttonStyle(.plain)
       .focused($focused)
       .basaltFocusEffectDisabled()
-      .basaltFocusRing(focused, radius: Basalt.Radius.sm)
+      .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
       .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isOn)
       .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label }.toggleStyle(.switch) }
     }

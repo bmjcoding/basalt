@@ -209,7 +209,7 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.145)
     )
 
-    /// The hairline of a hovered control: one step brighter, never a colour.
+    /// The hairline of a hovered control: one step brighter, never a colour. Under more contrast it is text-secondary, so a hovered edge is never fainter than the edge at rest.
     public static let borderHover = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.16),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.24)
@@ -223,6 +223,12 @@ extension Basalt {
 
     /// Input boundaries: 3:1 or better on every surface (WCAG 1.4.11).
     public static let borderInput = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A field's boundary (an input, a select, a number field, a choice box, a switch): the input boundary. Under more contrast it steps to text-secondary (field-contrast), so a field keeps the strongest line.
+    public static let borderField = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
     )
@@ -351,6 +357,24 @@ extension Basalt {
     public static let artQuietLimit = ThemedColor(
       light: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1),
       dark: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1)
+    )
+
+    /// More contrast, lines: a hairline, a divider, a rim and the pill's hairline are drawn in the input boundary's value (border-input), 3:1 or better on every surface. An alias, no new colour. Used only when a person asks for more contrast (prefers-contrast: more; colorSchemeContrast .increased).
+    public static let lineContrast = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour.
+    public static let inkContrast = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+    )
+
+    /// More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour.
+    public static let fieldContrast = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
     )
 
     /// Behind modal dialogs and sheets.

@@ -579,8 +579,12 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderStyle), "solid");
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderWidth), "1px");
       const selected = page.getByRole("navigation", { name: "Pagination" }).locator('[aria-current="page"]');
-      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineStyle), "solid");
-      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineWidth), "2px");
+      // Decision 138 (A2, A3): the current page is Highlight on HighlightText, not an inset outline, and keeps its 600.
+      await settle(page); // the chosen item's fill and ink are colour transitions: let them finish
+      const highlight = await selected.evaluate((el) => { const probe = document.createElement("i"); probe.style.cssText = "forced-color-adjust: none; background: Highlight; color: HighlightText"; el.parentElement.append(probe); const s = getComputedStyle(probe); const out = [s.backgroundColor, s.color]; probe.remove(); return out; });
+      assert.deepEqual(await selected.evaluate((el) => { const s = getComputedStyle(el); return [s.backgroundColor, s.color]; }), highlight);
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineStyle), "none", "no outline marks the current page");
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).boxShadow), "none");
       await page.close();
     });
 

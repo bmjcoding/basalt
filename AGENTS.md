@@ -63,7 +63,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   inner glow or sheen, no blur, no animation, no outer frame, no light falloff on the page.
   Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
   at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
-  toast included, keeps the neutral rim.
+  toast included, keeps the neutral rim. Under more contrast every side is the input boundary's value.
 - **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`,
   `blur-chrome`, 12px, no saturate) is the only translucent, blurred surface. Dialogs, sheets,
   menus, popovers, toasts and the command menu stay solid. Use the class once per viewport;
@@ -88,33 +88,45 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
   `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
   is never covered. Pages set `scrollbar-gutter: stable`.
-- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade), checkboxes
+- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade, kept under reduced motion), checkboxes
   in a labelled group; seven or more values, or a toolbar, are a trigger and a checklist, by count and never viewport.
   Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
-- **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
-  hairline, a check, or a checked box. One state, one look, across components (tabs,
-  segments, pagination, table rows, choice cards and pressed toggle buttons). **There is no vertical bar and no inset outline
-  anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
-  flush-field −2 inset (so does a phone tab bar cell, which is itself a link), and these structural vertical lines, each
-  named and never a selection, sort, active or status mark: the 1px divider at a pinned table column's edge while the table
-  is scrolled, the app sidebar's 1px edge, and a meter's labelled target tick. The active row in a menu, select, combobox or command menu is a rounded plate
+- **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
+  the current page) is its label at 600 (from 400), its width reserved so nothing moves whatever the label is, an icon in it taking its selected form, on the raised pill, the underline or
+  the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
+  segments, pagination, table rows, choice cards and pressed toggle buttons). The pill's edge is its hairline and casts no
+  shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
+  horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
+  pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
+  inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of
+  tabs that scrolls, a sortable header cell (a header band that is itself a button) and a phone tab bar cell. These structural
+  vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
+  column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
+  `Separator` between groups of controls, and the edges between a `NumberField`'s value and its steppers. The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
-  weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
-  carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
+  weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
+  carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
+  pseudo-element layer. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
   full-bleed band holding its own control focuses that control; a band that is itself the link
   or button takes the flush-field −2 inset.
-- **Keyboard keys are chips:** a fill with no border, one per key, 2px apart; ⌘ ⌥ ⌃ are
-  Phosphor icons. Only real shortcuts, one per row, never on the primary fill; the chip is
+- **Keyboard keys are chips:** a fill with no border, 20px tall (`size-kbd`), one per key, 2px apart; ⌘ ⌥ ⌃ are
+  Phosphor icons at 12 inside the chip. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
-- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
-  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars, dots and the navigation hover pill). A nested
-  radius is the outer radius minus the padding.
+- **Radius by role,** by the size a box is drawn at (a 32px control drawn at 44 on touch is 8; a `NumberField` group drawn at
+  40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
+  dialogs), 16 (bottom sheets), full (avatars, dots, the navigation hover pill, the switch, the radio, the slider's track and
+  thumb, progress, meter, and the tab bar's circle). A nested radius is the outer radius minus the padding.
+- **More contrast** (`prefers-contrast: more`; Increase Contrast on Apple platforms): three aliases and no new colour. Lines
+  (the hairline, the divider, the rim, the pill's hairline) step to `border-input`, tertiary ink to `text-secondary`, a
+  hovered edge (`border-hover`) to `text-secondary`, and a field's boundary (`border-field`, equal to `border-input` outside the
+  mode) to `text-secondary`; the input boundary itself, and so a progress or slider track and a link's underline, does not step. It works in both themes and under a theme chosen with the toggle, and the contrast
+  tests prove every text pair at 4.5:1 and every boundary at 3:1 in the mode.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
   (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,
@@ -134,7 +146,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Icons:** the core set on the web (`@srasyndicate/basalt`, one module per glyph: 2.25 units
   on 24 at every size, an opening at rest that selected closes and fills, morphs only between rest
   and selected, within a rotation group, and the four drawn pairs), and Phosphor Bold at 16, 20
-  and 24 for the long tail; Fill only on a selected glyph marked `fillSafe`. Danger is XCircle.
+  and 24 for the long tail (glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check
+  or dash and a key chip's ⌘ ⌥ ⌃); Fill only on a selected glyph marked `fillSafe`. A glyph that swaps crossfades over
+  `duration-fast`, with or without reduced motion. Danger is XCircle.
   Navigation glyphs in a sidebar or rail are primary at rest; every other icon is secondary at
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts

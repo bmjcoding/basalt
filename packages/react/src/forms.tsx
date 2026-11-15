@@ -176,7 +176,7 @@ export interface NumberFieldProps extends PartProps<"div", "onChange" | "default
 export function NumberField({ controlSize = "md", className, inputProps, "aria-label": label, decrementLabel = "Decrease value", incrementLabel = "Increase value", ...props }: NumberFieldProps) {
   return (
     <BaseNumberField.Root {...props} className={withClass("basalt-number", className)}>
-      <BaseNumberField.Group className="basalt-number-group">
+      <BaseNumberField.Group className="basalt-number-group" data-size={controlSize}>
         <BaseNumberField.Decrement aria-label={decrementLabel} render={<IconButton icon={MinusIcon} label={decrementLabel} size={controlSize} />} />
         <BaseNumberField.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} className="basalt-input basalt-number-input" data-size={controlSize} />
         <BaseNumberField.Increment aria-label={incrementLabel} render={<IconButton icon={PlusIcon} label={incrementLabel} size={controlSize} />} />

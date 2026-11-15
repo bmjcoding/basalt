@@ -4,11 +4,25 @@
      label's centre line, 6px before it, as it does in a button. ---- */
 
   .tabs { display: flex; gap: var(--basalt-space-1); overflow-x: auto; box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider); }
-  .tab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .tab[aria-selected="true"] { color: var(--basalt-text-primary); }
+  .tab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* The selected tab is its label at 600 in primary ink (400 in secondary at rest), each reserving the 600's width (see segment), with the underline. */
+  .tab[aria-selected="true"] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  .tab [data-label] { display: inline-flex; flex-direction: column; align-items: center; }
+  .tab [data-label]:not(:only-child) { align-items: flex-start; }
+  .tab [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); }
   @media (hover: hover) { .tab:hover { color: var(--basalt-text-primary); } }
   @media (pointer: coarse) { .tab { height: var(--basalt-size-tap-min); } }
+  /* A label that is not plain text is drawn twice in one box, the second copy at 600, unseen (aria-hidden, inert): the box is the content's width at 600. */
+  .tab [data-reserve] { display: inline-grid; justify-items: center; }
+  .tab [data-reserve] > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .tab [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  /* An icon draws both its forms in one box and shows the one that matches the item, crossfading over duration-fast (decision 145): the box is the same either way. */
+  .tab [data-pair] { display: inline-grid; flex: none; }
+  .tab [data-pair] > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .tab [data-pair] > :last-child { opacity: 0; }
+  .tab[aria-selected="true"] [data-pair] > :first-child { opacity: 0; }
+  .tab[aria-selected="true"] [data-pair] > :last-child { opacity: 1; }
   /* A ring that sits inside a scrolling parent is drawn inset, so all four sides show. React's tab ring is +2 outside; the council split 2-2
      on this (DECISIONS 69) and kept both, because the skill's tab row scrolls and an outside ring would be clipped on three sides. */
   .tab:focus-visible, .code-body:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }

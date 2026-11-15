@@ -21,7 +21,7 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   glow or sheen, no blur, no animation, no outer frame, no light falloff on the page. Never
   on controls or chips. One panel draws its rim in a colour: a status callout, in its status colour at 45%, still one
   solid colour on every side (see [Callouts](#lines-states-and-actions)); every other panel, a toast included, keeps the
-  neutral rim. See [Elevation](#elevation).
+  neutral rim. Under more contrast every side is the input boundary's value, one solid colour (see [More contrast](#more-contrast)). See [Elevation](#elevation).
 - **No ornament that signals "generated":** no gradient borders, no glow, no bounce, and no
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
@@ -134,7 +134,10 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   A field flush with a clipping edge takes the focus outline inset (offset −2px) around its visible
   band. A modal palette whose input is its only focus stop shows none. Against the fills and rim
   composites it touches the inset ring is 6.0:1 or better in dark and 7.1:1 in light.
-  Outlines survive Windows forced-colours mode; box-shadow rings don't.
+  Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
+  selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
+  only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of tabs that
+  scrolls, a sortable header cell and a phone tab bar cell.
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
@@ -146,13 +149,29 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   itself a button; it keeps the ring it was built with
   and is open for the panel.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
-  surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`). A selected
-  tab or segment is a raised pill with a hairline, not a wash: a wash alone is about 1.2:1, and a state
-  that only a change of colour shows fails WCAG 1.4.1 (the change of a background inside a component is
-  outside 1.4.11's scope, which is why the cue has to be a shape or a step in ink). The pill is
-  `surface-top`; in dark it is `surface-top` plus the selected wash, as one solid fill (`#2c2c2c` on a
-  `#111111` track, 1.35:1), so a 36px pill in a vertical track reads as a pill and not as a wash. In light it
-  is white on the track. A hover wash is a row of a list, not a plate: it runs full bleed and never lifts ink.
+  surface. A hovered control's hairline steps up to 24% white or 16% black (`border-hover`; `text-secondary` under [more contrast](#more-contrast)). A hover wash is a row of a
+  list, not a plate: it runs full bleed and never lifts ink.
+- **Chosen, one of many** (a segment, a tab, the current page, a navigation item) is the label at 600 in primary ink,
+  against 400 in secondary at rest, on the furniture's own shape: a raised pill in a track, the underline under a
+  horizontal tab, the plate under the current page. Every label reserves its 600 width (as navigation's label does), so
+  choosing moves nothing: every other item's box is exactly where it was. The weight is the cue that does not rest on
+  colour (WCAG 1.4.1, technique G182): a wash alone is about 1.2:1, and the pill (1.14:1 in light, 1.35:1 in dark
+  against its track) and the ink step (2.1 to 2.2:1) support it without carrying it. The information that must reach
+  3:1 (1.4.11) is the label, which is text and holds 4.5:1 on its fill at every level. An icon in a chosen
+  item draws its selected form (closed and filled), with a label beside it or without one, in the same box, so it moves nothing
+  (decision 145). A label that is not plain text (an element, words in a span, a tab an app draws as a link) reserves its 600
+  width as plain text does. The pill is `surface-top`; in dark it is
+  `surface-top` plus the selected wash, as one solid fill (`#2c2c2c` on a `#111111` track), so a 36px pill in a vertical
+  track reads as a pill and not as a wash; in light it is white on the track. **The pill's edge is its hairline and
+  nothing else** (`border-hairline`, 1px, no offset and no blur): it sits in the flow, so it casts no shadow. Pagination
+  is the weak case of the cue: a numeral at 600 against 400, and in dark the hover wash (`#0f0f0f`) is lighter than the
+  current page's plate (`#0a0a0a` on `#000`). **In forced colours** the chosen segment, the chosen vertical tab and the
+  current page are `Highlight` with `HighlightText`, the horizontal tab keeps its `Highlight` underline, and each keeps
+  its 600; none draws an outline, so the focus ring shows on the chosen item as on any other, and the current page's box
+  shadow is cleared. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+- **A wash over an opaque fill** (a pinned table cell's hover and selected washes) is one colour: the wash's colour at its
+  own alpha mixed over the fill with `color-mix`, in sRGB, as a browser composites it. It is never a gradient, an image or
+  a pseudo-element layer; the cell paints the colours it always did. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The active row** (the row a keyboard or pointer is on, in Menu, Select, Combobox and CommandMenu) is a
   plate and a lift. The plate is a rounded rectangle (radius 8) in the selected wash, painted as one solid
   `background-color` per level and never a layered image (forced colours turns an image into a backplate):
@@ -161,8 +180,9 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   the 7% wash (`#ededed` on white, 1.17:1). The lift is the ink: a rest row's label and glyph are secondary
   (7.66:1 on level 1 in dark, 8.45:1 in light) and the active row's go to primary (12.86:1 and 15.33:1 on the
   plate). A hint (a host, a region, a count) lifts from tertiary to secondary on the plate, because tertiary
-  falls under 4.5:1 there; a shortcut chip lifts to primary. There is no weight change (a heavier label shifts
-  its width), no bar, no inset outline and no ↵ chip: the owner ruled the vertical bar and the outline AI
+  falls under 4.5:1 there; a shortcut chip lifts to primary. There is no weight change: the active row is where the
+  keyboard is, not a choice, and a weight that followed the arrow keys would flicker (a chosen item, whose 600 width is
+  reserved, is a different state and does take weight); the chosen value is the check. There is no bar, no inset outline and no ↵ chip: the owner ruled the vertical bar and the outline AI
   tells (9 Nov 2026), and the plate with the ink step is the cue that does not rest on colour (1.4.1) and says where
   focus is (2.4.7). A chosen value (a Select option, a checked item) is a check in primary ink at the row's start, in a
   16px slot every row reserves so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
@@ -176,7 +196,9 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   vertical line the owner ruled out. Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
   12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider. The
   chosen tab's pill slides as the segmented control's does (see [Motion](#motion)). The segmented control keeps its
-  horizontal size (28px segments in a track of padding 2 and radius 8) and takes the dark pill fill above.
+  horizontal size (28px segments in a track of padding 2 and radius 8) and takes the dark pill fill above. In all four
+  (and in pagination) the chosen label is 600 against 400, each reserving its 600 width, as above. On touch every
+  item stays at least 44px, and a segment keeps its radius of 6: it is nested in a track of 8 with 2 of padding.
 - **Settings and list rows** are full-bleed bands, not plates: each row spans the card edge to edge, dividers run edge to
   edge, and a row you can act on takes the hover wash (the card clips the corners). A choose-one list inside a card uses
   the menu plate. There is no settings-row component; this is the pattern for an app's own markup.
@@ -242,11 +264,11 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   count is the table's), `text-tertiary`, 12/16, `aria-hidden`, shown only while the table overflows its container and
   never changed while it scrolls, so nothing in the table moves; a column cut by the edge is not a cue when the next
   column is numeric, because an end-aligned column shows only its empty start.
-- **Selected is shown by shape or a step in ink, and a card and a toggle follow it** (council, DECISIONS 95; one state,
-  one look). Wherever Basalt says on, selected or chosen it paints one solid selected fill, steps the ink to primary and
-  adds a shape: a raised pill in a track (one of many), a check in a reserved seat or a filled choice box (any of many, and
-  on), a closed glyph. The silhouette follows the furniture the state sits in; the fill, the ink step and the shape do not
-  change, and the wash alone is never the cue.
+- **Selected is shown by shape or weight, never by colour alone** (council, DECISIONS 95 and 138; one state, one look).
+  Wherever Basalt says on, selected or chosen it adds a cue that is not colour: one of many is its label at 600 on its pill,
+  underline or plate; any of many, and on, is a check in a reserved seat or a filled choice box; a glyph closes and fills.
+  The ink steps to primary with it. The wash alone, and the ink step alone, are never the cue. The silhouette follows the
+  furniture the state sits in; the weight, the ink step and the shape do not change.
 - **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
   wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
   prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
@@ -311,7 +333,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
   tertiary plus in the chip's 16px seat; on is the selected wash, primary ink and the check in the same seat, so turning
   one on moves nothing, and it is never colour alone: the glyph changes shape. The swap is a 100ms crossfade
-  (`duration-fast`), not a morph, and none under reduced motion. Hover brightens the label and the line a step; a press is
+  (`duration-fast`), not a morph, with or without reduced motion: it is opacity only, which reduced motion keeps. Hover brightens the label and the line a step; a press is
   a colour step and never a scale (only Button and IconButton scale). The semantics are checkboxes in a labelled group:
   Tab reaches each chip and Space toggles it, and the visible "2 of 4" (or "Any") is the group's description, not live.
   **Seven or more values, or any use in a toolbar, are a trigger and a checklist**: a non-modal popup of popup rows, with
@@ -486,6 +508,24 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed.
 
+### More contrast
+
+When a person asks for more contrast (`prefers-contrast: more` on the web; Increase Contrast on Apple platforms, which SwiftUI reads
+as `colorSchemeContrast == .increased`), Basalt answers with three aliases and no new colour, and one role token that carries a
+field's. **Lines** (the hairline, the divider, the rim and its top edge, and the pill's hairline) are drawn as `border-input`
+(`line-contrast`): 3:1 or better on every surface, and on every side one solid colour. **Tertiary ink** is drawn as `text-secondary`
+(`ink-contrast`). **A field's boundary** (an input, a select, a number field, a choice box, a switch, a choice card's box) is
+`border-field`, which equals `border-input` outside the mode and is drawn as `text-secondary` (`field-contrast`) inside it, about 7:1,
+so a field keeps the strongest line; it is a role token of its own so that `border-input` itself does not step, and the progress and
+slider tracks, a link's underline and a chart's baseline stay on it (stepping it would take a progress indicator against its track from
+5.3:1 to 2.2:1). **A hovered edge** (`border-hover`) is drawn as `text-secondary`, so a hovered edge is never fainter than the edge at
+rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secondary ink, focus, actions, status, the hover and
+selected washes and the smoked header do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
+selected wash put it at 3.5:1). The aliases are declared on every selector that sets a theme, after all of them, so the mode works
+in both themes and under a theme chosen with `data-theme`; each alias reads the theme of the element it is on. The contrast tests
+prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. Status: decided by the council and approved by the owner
+(DECISIONS 138, 139 and 145); the implementation hasn't been reviewed.
+
 ### Accent classes
 
 A product adds colour through one of Basalt's accent classes, in its named roles, and nowhere else.
@@ -524,7 +564,7 @@ least 20 wide, 4px of padding either side, radius 4, in Geist Mono 400 at 12/16.
 key, 2px apart, so the keys of a shortcut read as one object. Text is `text-secondary` (5.59:1 or
 better in dark, 6.50:1 in light, on the chip over every surface), and `text-primary` on a hover or
 selected wash. ⌘ ⌥ ⌃ have no glyph in Geist, so they are Phosphor's Command, Option and Control,
-Bold at 12px in the text colour; "Esc" is the word; letters, ⇧ ↵ ⌫ ⇥ and the arrows stay in Geist
+Bold at 12px in the text colour (a mark inside the chip, which is 20px tall, `size-kbd`; the choice box's check and dash are the other 12px mark); "Esc" is the word; letters, ⇧ ↵ ⌫ ⇥ and the arrows stay in Geist
 Mono.
 
 Show a chip only for a real shortcut the app binds, at most one shortcut per row, at the row's end
@@ -612,9 +652,12 @@ Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code 
   touch regardless of density. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
-- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8
-  (controls 36px and up, code blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height side sheets are square), full (avatars, dots and the navigation hover pill). A
-  nested radius is the outer radius minus the padding.
+- **Radius by role,** by the size a box is drawn at (so a 32px control drawn at 44 on touch is 8, and a `NumberField`
+  group drawn at 40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8 (controls 36px and up, code
+  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height
+  side sheets are square), full (whatever is a circle or a capsule by meaning: avatars, dots, the navigation hover pill, the
+  switch, the radio, the slider's track and thumb, progress, meter, and the tab bar's circle). A nested radius is the outer
+  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 
 ## Elevation
 
@@ -946,7 +989,9 @@ is in).
 
 Basalt allows a short list of vertical lines. Each is structure, and none is a selection, sort, active or status mark (the owner's
 ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
-the app sidebar's 1px edge, and a meter's labelled target tick.
+the app sidebar's 1px edge, a meter's labelled target tick, the vertical `Separator` between groups of controls (1px
+`border-divider`, as tall as the controls), and the edges between a `NumberField`'s value and its steppers (part of the
+field's own boundary). Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 
 ## Charts
 
@@ -1285,7 +1330,7 @@ colour step and its scale is 1). `duration-base`,
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
 tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; a tab change is
-a 100ms crossfade; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
+a 100ms crossfade; a glyph that swaps (a plus to a check, an empty seat to a check) crossfades over `duration-fast` all the same, because it is opacity only; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
 not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
 never cut to 100ms.
 
@@ -1313,6 +1358,7 @@ A product's own logo is its own; the social marks are Phosphor's (below).
   request for where it is going does nothing, a request for where it came from runs it back, and a
   request for another member of its group turns on; anything else swaps at once. They run at
   `slow` on `ease-out`, and reduced motion swaps at once.
+- **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
   Danger is the XCircle, everywhere.

@@ -569,7 +569,8 @@ describe("a tab with an icon", () => {
         const icon = document.getElementById("tab-icon");
         const tab = icon.closest(".basalt-tab");
         const range = document.createRange();
-        const text = [...tab.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+        // The label's text is drawn in a span that carries its own copy, or the content is drawn twice in one box (decisions 138 and 145: every label reserves its 600 width).
+        const text = [...(tab.querySelector("[data-label]") ?? tab.querySelector(".basalt-chosen-label > :first-child") ?? tab).childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
         range.selectNodeContents(text);
         const t = [...range.getClientRects()].find((r) => r.width > 0);
         const i = icon.getBoundingClientRect();

@@ -38,6 +38,16 @@
     }
   }
 
+  extension Basalt.ThemedColor {
+    /// This colour, or `increased` when a person has asked for more contrast (Increase Contrast, which SwiftUI reads as
+    /// `colorSchemeContrast == .increased`). Three aliases and no new colour: lines step to `Basalt.Colors.lineContrast`, tertiary
+    /// ink to `inkContrast` and a field's boundary to `fieldContrast` (decisions 138 and 139; the web does the same under
+    /// `prefers-contrast: more`).
+    public func color(_ contrast: ColorSchemeContrast, increased: Basalt.ThemedColor) -> Color {
+      contrast == .increased ? increased.color : color
+    }
+  }
+
   extension Font {
     /// Geist at a Basalt type step. Scales with Dynamic Type relative to `textStyle`.
     /// Register the fonts first: `Basalt.Fonts.register()`.

@@ -138,10 +138,42 @@
     else run();
   }
 
+  /**
+   * Reserves the width of the 600 weight the chosen item takes (a segment, a tab), so nothing moves when the choice changes. Done once, by the module
+   * that owns the control. Plain text (with icons) is drawn in a span that carries its own copy in data-label; anything else (an element, words in a
+   * span) is drawn twice in one box, the second copy at 600, unseen, aria-hidden and inert.
+   */
+  function reserve(button) {
+    var kids = Array.prototype.slice.call(button.childNodes);
+    var plain = kids.every(function (n) { return n.nodeType === 3 || (n.nodeType === 1 && (n.tagName.toLowerCase() === 'svg' || n.hasAttribute('data-pair'))); });
+    if (!plain) {
+      var seen = document.createElement('span'), wide = document.createElement('span'), box = document.createElement('span');
+      kids.forEach(function (n) { seen.appendChild(n); });
+      wide.innerHTML = seen.innerHTML;
+      wide.querySelectorAll('[id]:not(svg *)').forEach(function (n) { n.removeAttribute('id'); });
+      wide.setAttribute('data-wide', '');
+      wide.setAttribute('aria-hidden', 'true');
+      wide.setAttribute('inert', '');
+      box.setAttribute('data-reserve', '');
+      box.appendChild(seen);
+      box.appendChild(wide);
+      button.appendChild(box);
+      return;
+    }
+    kids.forEach(function (node) {
+      var text = node.nodeType === 3 ? node.nodeValue.trim() : '';
+      if (!text) return;
+      var span = document.createElement('span');
+      span.setAttribute('data-label', text);
+      button.replaceChild(span, node);
+      span.appendChild(node);
+    });
+  }
+
   window.Basalt = {
     init: init, icon: icon, hydrateIcons: hydrateIcons, announce: announce,
     getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
     // For the modules and compose.mjs; not part of the page API.
-    _: { esc: esc, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
+    _: { esc: esc, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
   };
 })();

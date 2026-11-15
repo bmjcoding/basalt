@@ -360,7 +360,7 @@ test("A2-14 TabBar and TableScrollHint forward their refs (object and callback)"
 // ---- A4-01 (focus half): in forced colours the selected tab, pressed segment and current page show the focus ring ----
 
 for (const theme of THEMES) {
-  test(`A4-01 forced colours: keyboard focus on the selected tab, pressed segment and current page draws the standard ring (${theme})`, async () => {
+  test(`A4-01 forced colours: keyboard focus on the selected tab, pressed segment and current page draws the standard ring, and at rest none draws an outline (decision 138) (${theme})`, async () => {
     const { page } = await fixturePage(browser, render(`<><B.Tabs defaultValue="a"><B.TabsList aria-label="Sections"><B.Tab value="a">Alpha</B.Tab><B.Tab value="b">Beta</B.Tab></B.TabsList></B.Tabs><B.SegmentedControl aria-label="Range" defaultValue="day"><B.Segment value="day">Day</B.Segment><B.Segment value="week">Week</B.Segment></B.SegmentedControl><B.Pagination page={2} pageCount={5} onPageChange={() => {}} /></>`), { theme });
     await page.emulateMedia({ forcedColors: "active" });
     await settle(page);
@@ -368,8 +368,9 @@ for (const theme of THEMES) {
     const cases = [["tab", "[role=tab][aria-selected=true]"], ["segment", "[aria-pressed=true]:not(.basalt-button), .basalt-segment[data-pressed]"], ["page", ".basalt-pagination [aria-current=page]"]];
     for (const [name, selector] of cases) {
       const rest = await ring(selector);
-      assert.equal(rest.offset, "-2px", `${name} at rest keeps the inset selected mark`);
-      assert.equal(rest.width, "2px");
+      // Decision 138 (A2, with C6): no state is ever marked by an outline. The inset Highlight outline these items wore at rest is gone:
+      // the chosen item is Highlight on HighlightText (or the tab's underline), and focus alone draws the ring.
+      assert.equal(rest.style, "none", `${name} at rest draws no outline as a state mark`);
       await page.focus(selector);
       await page.keyboard.press("Shift+Tab"); await page.keyboard.press("Tab"); // make the focus keyboard-driven
       const focused = await ring(selector);

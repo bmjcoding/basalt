@@ -25,6 +25,7 @@ public enum BasaltStatus: Sendable, CaseIterable {
 
 public struct BasaltCard<Content: View>: View {
   private let content: Content
+  @Environment(\.colorSchemeContrast) private var contrast
   public init(@ViewBuilder content: () -> Content) { self.content = content() }
 
   public var body: some View {
@@ -32,15 +33,16 @@ public struct BasaltCard<Content: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(Basalt.Space.s4)
       .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.lg))
-      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderRim.color))
+      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderRim.color(contrast, increased: Basalt.Colors.lineContrast)))
       // The rim's top edge is one solid line a little lighter in dark, over the straight part only. No gradient.
       .overlay(alignment: .top) {
-        Rectangle().fill(Basalt.Colors.borderRimTop.color).frame(height: 1).padding(.horizontal, Basalt.Radius.lg)
+        Rectangle().fill(Basalt.Colors.borderRimTop.color(contrast, increased: Basalt.Colors.lineContrast)).frame(height: 1).padding(.horizontal, Basalt.Radius.lg)
       }
   }
 }
 
 public struct BasaltBadge: View {
+  @Environment(\.colorSchemeContrast) private var contrast
   private let title: String
   private let status: BasaltStatus?
   private let plain: Bool
@@ -55,7 +57,7 @@ public struct BasaltBadge: View {
     }
     .padding(.horizontal, plain ? 0 : Basalt.Space.s2)
     .padding(.vertical, plain ? 0 : Basalt.Space.s0_5)
-    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.xs).strokeBorder(plain ? .clear : Basalt.Colors.borderHairline.color))
+    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.xs).strokeBorder(plain ? .clear : Basalt.Colors.borderHairline.color(contrast, increased: Basalt.Colors.lineContrast)))
     .accessibilityElement(children: .combine)
   }
 }
@@ -159,7 +161,8 @@ extension BasaltEmptyState where Actions == EmptyView {
 }
 
 public struct BasaltDivider: View {
+  @Environment(\.colorSchemeContrast) private var contrast
   public init() {}
-  public var body: some View { Rectangle().fill(Basalt.Colors.borderDivider.color).frame(height: Basalt.Size.hairline).accessibilityHidden(true) }
+  public var body: some View { Rectangle().fill(Basalt.Colors.borderDivider.color(contrast, increased: Basalt.Colors.lineContrast)).frame(height: Basalt.Size.hairline).accessibilityHidden(true) }
 }
 #endif

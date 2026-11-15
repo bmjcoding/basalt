@@ -3,6 +3,7 @@ import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
+import { ChosenLabel } from "./chosen";
 import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { withClass } from "./utils";
@@ -116,7 +117,7 @@ export interface TabProps extends PartProps<"button", "value"> {
   disabled?: boolean;
 }
 
-export function Tab({ className, value, ...props }: TabProps) {
+export function Tab({ className, value, children, ...props }: TabProps) {
   const motion = React.useContext(TabsMotion);
   React.useLayoutEffect(() => {
     if (!motion || value == null) return;
@@ -124,7 +125,9 @@ export function Tab({ className, value, ...props }: TabProps) {
     if (!motion.order.current.includes(id)) motion.order.current.push(id);
     if (motion.previous.current == null) motion.previous.current = id;
   }, [motion, value]);
-  return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)} />;
+  // The label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice (see ChosenLabel).
+  // The children are wrapped before the primitive sees them, so a tab an app draws as an element of its own (`render`) is no exception.
+  return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)}><ChosenLabel>{children}</ChosenLabel></BaseTabs.Tab>;
 }
 
 export interface TabsPanelProps extends PartProps<"div", "value"> {
@@ -151,8 +154,9 @@ export interface SegmentedControlProps extends PartProps<"div", "defaultValue" |
 
 /**
  * A single choice among a few options that filter or change the current view (a time
- * range, a layout). Use `Tabs` when each option has its own panel. The selected segment
- * is a raised pill, not a colour change, so it's visible without colour (WCAG 1.4.11).
+ * range, a layout). Use `Tabs` when each option has its own panel. The chosen segment's label is 600 in primary ink against
+ * 400 in secondary at rest, each reserving the other's width so nothing moves; the raised pill and the ink step support it.
+ * A segment with no label (an icon alone) draws its glyph's selected form.
  */
 export function SegmentedControl({ value, defaultValue, onValueChange, className, children, ...props }: SegmentedControlProps) {
   // Always controlled underneath, so a segmented control can never end up with nothing
@@ -191,6 +195,7 @@ export interface SegmentProps extends PartProps<"button", "value"> {
   nativeButton?: boolean;
 }
 
-export function Segment({ className, ...props }: SegmentProps) {
-  return <Toggle {...props} className={withClass("basalt-segment", className)} />;
+export function Segment({ className, children, ...props }: SegmentProps) {
+  // As a Tab: the label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice.
+  return <Toggle {...props} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
 }
