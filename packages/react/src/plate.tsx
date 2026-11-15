@@ -120,7 +120,7 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   };
 
   const settle = () => {
-    window.clearTimeout(leaving);
+    clearTimeout(leaving);
     leaving = undefined;
     host.toggleAttribute("data-glide", on());
     if (!on()) {
@@ -135,7 +135,7 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
     if (!row) {
       // Base UI clears the highlight on one row just before it sets the next, so a clear only counts if it is still
       // clear a task later. cmdk never clears: its plate stays when the pointer leaves, as it always has.
-      leaving = window.setTimeout(() => {
+      leaving = setTimeout(() => {
         if (!activeRow()) leave();
       }, 0);
       return;
@@ -165,10 +165,12 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   const leave = () => {
     if (!lit()) return;
     // Freeze a move in progress where it has reached, then fade there. The plate's off state has no transform
-    // transition, so what is written here is what stays.
+    // transition, so what is written here is what stays. A row a filter removed leaves nothing to fade over: unplace it (A2-13).
     const style = getComputedStyle(plate);
     const m = new DOMMatrixReadOnly(style.transform);
-    write({ x: m.m41, y: m.m42, w: Number.parseFloat(style.width), h: Number.parseFloat(style.height) });
+    // (`last` is set whenever the plate is lit.)
+    if (!last!.isConnected) plate.removeAttribute("style");
+    else write({ x: m.m41, y: m.m42, w: Number.parseFloat(style.width), h: Number.parseFloat(style.height) });
     plate.dataset.state = "off";
     last = null;
     target = "";
@@ -219,7 +221,7 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   const doc = host.ownerDocument;
   for (const type of ["pointermove", "pointerdown", "keydown"]) doc.addEventListener(type, input, { capture: true, passive: true });
   return () => {
-    window.clearTimeout(leaving);
+    clearTimeout(leaving);
     changes.disconnect();
     resizes.disconnect();
     off.removeEventListener("change", settle);

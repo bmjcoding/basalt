@@ -315,7 +315,9 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
           <code data-language={language} className="basalt-code-lines">
             {lines.map((line, i) => (
               <CodeLine key={i} gutter={i > 0 && continues(lines[i - 1]) ? null : <CodePrompt>{prompt}</CodePrompt>}>
-                {line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
+                {/* A line that is one plain run is passed as a string. React hydrates a string child by its text alone, so a cold
+                    client (grammar not loaded yet) matches a server that sent coloured spans for the same line. */}
+                {line.length === 1 && line[0] && !line[0].color ? line[0].text : line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
               </CodeLine>
             ))}
           </code>

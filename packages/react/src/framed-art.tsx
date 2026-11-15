@@ -37,17 +37,20 @@ type Phase = "idle" | "loading" | "loaded" | "failed";
 export function FramedArt({ src, alt, aspect = "photo", caption, credit, loading = "lazy", srcSet, sizes, className, ...props }: FramedArtProps) {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const image = React.useRef<HTMLImageElement>(null);
+  // Which source a decode belongs to. A decode that finishes after the source changed (or after unmount) must not set the phase.
+  const generation = React.useRef(0);
   // What the document already knows: an image that finished before this ran shows at once and does not fade in.
   React.useLayoutEffect(() => {
     const element = image.current;
     if (!element) return undefined;
     setPhase(element.complete ? (element.naturalWidth > 0 ? "loaded" : "failed") : "loading");
-    return undefined;
+    return () => { generation.current += 1; };
   }, [src, srcSet]);
   const decorative = alt === "";
   const loaded = () => {
     const element = image.current;
-    const done = () => setPhase("loaded");
+    const mine = generation.current;
+    const done = () => { if (generation.current === mine) setPhase("loaded"); };
     // Decoded, then shown, so a fade never starts on a half-painted picture.
     if (element && typeof element.decode === "function") element.decode().then(done, done); else done();
   };
