@@ -1,4 +1,6 @@
-import { CommandIcon, ControlIcon, OptionIcon } from "@phosphor-icons/react";
+import { CommandIcon } from "@phosphor-icons/react/dist/csr/Command";
+import { ControlIcon } from "@phosphor-icons/react/dist/csr/Control";
+import { OptionIcon } from "@phosphor-icons/react/dist/csr/Option";
 import type * as React from "react";
 
 import { useShortcutsVisible } from "./keyboard";

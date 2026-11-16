@@ -36,17 +36,31 @@ const FIRST_FRAME = [1, 2, 4];
 // The cell scales on whole pixels: 6 by 10 with 2px dots, 9 by 15 with 3px dots, 12 by 20 with 4px dots.
 const BRAILLE_SCALE = { 16: 1, 20: 1.5, 24: 2 } as const;
 
+// The spinners mounted in the commit that is finishing, waiting to join the shared clock. Allocated by the first spinner, never at import.
+let joining: HTMLElement[] | undefined;
+
 /**
  * Spinners on a page share one clock: every animation starts at the document timeline's origin, so two spinners
- * mounted at different moments tick in phase, each variant on its own period. It is set once at mount, inside the
- * component (no module-scope state, no ticker, no re-render). A server-rendered first paint shows frame 0 and
- * corrects once, here, after hydration. Under reduced motion braille runs no animation, so there is nothing to sync.
+ * mounted at different moments tick in phase, each variant on its own period. The spinners of one commit join it
+ * together, in a microtask, before anything else runs and before the next paint: every spinner's animations are read
+ * first and then written, because asking settles style and a write dirties it (a hundred spinners, asked and written
+ * in turn, cost a hundred recalculations). Nothing is stored in React and no ticker runs. A server-rendered first
+ * paint shows frame 0 and corrects once, here, after hydration. Under reduced motion braille runs no animation, so
+ * there is nothing to sync.
  */
 function useSharedClock(ref: React.RefObject<HTMLElement | null>) {
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof el.getAnimations !== "function") return;
-    for (const animation of el.getAnimations({ subtree: true })) animation.startTime = 0;
+    if (!joining) {
+      joining = [];
+      queueMicrotask(() => {
+        const animations = joining?.flatMap((spinner) => spinner.getAnimations({ subtree: true }));
+        joining = undefined;
+        for (const animation of animations ?? []) animation.startTime = 0;
+      });
+    }
+    joining.push(el);
   }, [ref]);
 }
 

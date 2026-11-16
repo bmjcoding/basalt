@@ -3,7 +3,7 @@ import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
-import { CaretUpDownIcon } from "@phosphor-icons/react";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
 import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";

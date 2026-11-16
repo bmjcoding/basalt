@@ -42,7 +42,9 @@ const MIT = fs.readFileSync(path.join(phosphorDir, "LICENSE"), "utf8").trim();
 function usedIcons() {
   const names = new Set();
   for (const file of fs.readdirSync(src).filter((f) => /\.tsx?$/.test(f))) {
-    for (const match of fs.readFileSync(path.join(src, file), "utf8").matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"@phosphor-icons\/react"/g)) {
+    // Each icon is imported from its own module (`@phosphor-icons/react/dist/csr/<Name>`), so Node loads one file per icon and not all of
+    // Phosphor's barrel. It is the same module the barrel re-exports, so an app's own import of the icon still shares the one copy.
+    for (const match of fs.readFileSync(path.join(src, file), "utf8").matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"@phosphor-icons\/react\/dist\/csr\/(\w+)"/g)) {
       for (const part of match[1].split(",")) if (part.trim()) names.add(part.trim().split(/\s+as\s+/)[0].replace(/Icon$/, ""));
     }
   }
@@ -96,7 +98,7 @@ describe("the default build: Basalt's dist imports Phosphor as it did, and nothi
   test("dist holds no trimmed icon, and its components import the package's icons", () => {
     assert.deepEqual(fs.readdirSync(dist).filter((f) => /^phosphor-/.test(f)), []);
     const texts = fs.readdirSync(dist).filter((f) => f.endsWith(".js")).map((f) => fs.readFileSync(path.join(dist, f), "utf8"));
-    assert.ok(texts.filter((t) => /from "@phosphor-icons\/react"/.test(t)).length >= 10, "the package's icons are imported, not bundled");
+    assert.ok(texts.filter((t) => /from "@phosphor-icons\/react\/dist\/csr\/\w+"/.test(t)).length >= 10, "the package's icons are imported, not bundled");
     assert.equal(texts.filter((t) => /weight === "bold"/.test(t)).length, 0, "no trimmed table in dist");
   });
 
@@ -212,13 +214,18 @@ describe("the plugin's transform", () => {
 });
 
 describe("the bytes, with the plugin and without it", () => {
-  // [component, the most the bundle may be with the plugin, the least the plugin must save]. Measured (default → plugin): Kbd 9,169 → 6,700,
+  // [component, the most the bundle may be with the plugin, the least the plugin must save]. First measured (default → plugin): Kbd 9,169 → 6,700,
   // Terminal 31,742 → 26,236, Callout 11,776 → 6,702, Pagination 21,747 → 20,641, ToastProvider 89,556 → 84,701, NotificationCentre
   // 144,041 → 140,253. The limits sit just above what is measured; the Phosphor notice (about 1.1 KB, once) is in them.
   // E2 (DECISIONS 138 and 139) moved check, close, the chevrons and copy to the core set, so Terminal, Pagination and ToastProvider hold fewer Phosphor
   // icons for the plugin to trim, and the core glyph code now rides with Toast. Measured now (default → plugin): Terminal 28,779 → 25,060, Pagination
   // 19,284 → 19,619 (the plugin's notice is bigger than what its one icon saved), ToastProvider 90,503 → 86,723.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 25_300, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_000, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 140_500, 3_500]]) {
+  // Terminal and NotificationCentre were raised by 50 and 150 bytes in audit-fix-c1 (A1-05), and only because of the batched spinner. Measured
+  // with the plugin: Terminal 26,423 and NotificationCentre 140,498 with the spinner as it was, 26,506 and 140,581 with the batched one (83 bytes
+  // each; both pull in Button and so the Spinner). Importing each icon from its own module (also audit-fix-c1, A1-07) changes neither number.
+  // Combined in integration-nov15: the limits are E2's, plus audit-fix-c1's raises for the batched spinner (Terminal 25,300 to 25,350, NotificationCentre
+  // 140,500 to 140,650); the combined tree fits under them.
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 25_350, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_000, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 140_650, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));

@@ -1,4 +1,4 @@
-import { DotsThreeIcon } from "@phosphor-icons/react";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import * as React from "react";
 
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
