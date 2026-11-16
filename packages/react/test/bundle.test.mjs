@@ -321,3 +321,18 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
+
+// The page's parts (DECISIONS 137) are plain elements and class names: each one alone is a few hundred bytes and loads no Base UI, no icon, no keyboard
+// machinery. Measured with splitting, the whole static graph (bytes, before this change in brackets): Lead 347, PageRow 374, PageSections 380, PageSection 361,
+// SectionIntro 358, SectionActions 360, Columns 399 and ColumnsItem 391 in a production build (1,146 and 849 in development, which carry the warning); Heading 933 (805) and Text 1,056 (904), which gained the two display roles and two steps.
+test("Lead, PageRow, PageSections, PageSection, SectionIntro, SectionActions, Columns and ColumnsItem are each under 600 bytes alone and load nothing else; Heading and Text grew by under 200", async () => {
+  for (const name of ["Lead", "PageRow", "PageSections", "PageSection", "SectionIntro", "SectionActions", "Columns", "ColumnsItem"]) {
+    const { bytes, inputs } = await graph(name);
+    assert.ok(bytes < 600, `${name} alone: ${bytes} bytes`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|display|composition)\.js$/.test(f)), [], `${name} loads more than it is`);
+  }
+  for (const [name, before] of [["Heading", 805], ["Text", 904]]) {
+    const { bytes } = await graph(name);
+    assert.ok(bytes < before + 200, `${name} alone: ${bytes} bytes, was ${before}`);
+  }
+});

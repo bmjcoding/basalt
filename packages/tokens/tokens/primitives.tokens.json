@@ -429,6 +429,14 @@
         "unit": "px"
       }
     },
+    "32": {
+      "$type": "dimension",
+      "$value": {
+        "value": 128,
+        "unit": "px"
+      },
+      "$description": "The large section gap (size-section-gap)."
+    },
     "0-5": {
       "$type": "dimension",
       "$value": {
@@ -876,6 +884,29 @@
       "$value": "{space.4}",
       "$description": "The row's inline padding under the medium breakpoint."
     },
+    "section-gap": {
+      "$type": "dimension",
+      "$value": "{space.32}",
+      "$description": "The space between a page's sections from the large breakpoint (1024). Apps use the derived --basalt-section-gap, which steps to size-section-gap-md from 720 to 1023 and size-section-gap-narrow under 720."
+    },
+    "section-gap-md": {
+      "$type": "dimension",
+      "$value": "{space.24}",
+      "$description": "The space between a page's sections from the medium breakpoint (720) to the large."
+    },
+    "section-gap-narrow": {
+      "$type": "dimension",
+      "$value": "{space.16}",
+      "$description": "The space between a page's sections under the medium breakpoint."
+    },
+    "display-measure": {
+      "$type": "dimension",
+      "$value": {
+        "value": 13,
+        "unit": "em"
+      },
+      "$description": "The widest line of display type, in the headline's own em: about 28 characters of Geist at 600, so a headline is a block and never a strip across the row. In Swift it is the number of ems (13), for a frame's maximum width."
+    },
     "breakpoint-md": {
       "$type": "dimension",
       "$value": {
@@ -1006,6 +1037,7 @@
         "$type": "fontFamily",
         "$value": [
           "Geist",
+          "Geist Fallback",
           "ui-sans-serif",
           "system-ui",
           "sans-serif"
@@ -1264,6 +1296,102 @@
         "$type": "dimension",
         "$value": {
           "value": -0.035,
+          "unit": "em"
+        }
+      }
+    },
+    "6xl": {
+      "$description": "Display type from 1024, and the hero from 720 to 1023: the fixed step the display role is made of (docs/foundations.md, Display type).",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 72,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 76,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.04,
+          "unit": "em"
+        }
+      }
+    },
+    "7xl": {
+      "$description": "The hero from 1024: the fixed step the hero role is made of. A page writes the role, never this step, on a phone.",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 96,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 96,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.045,
+          "unit": "em"
+        }
+      }
+    },
+    "hero-narrow": {
+      "$description": "The hero under 720 (a role's phone value, not a step of the scale): sized so most words fit the 288px row at 44px; a word that does not fit breaks.",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.03,
+          "unit": "em"
+        }
+      }
+    },
+    "display-narrow": {
+      "$description": "The display role under 720 (a role's phone value, not a step of the scale).",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 36,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 40,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.025,
           "unit": "em"
         }
       }

@@ -140,6 +140,13 @@ first pixel of scroll.
 
 The frame has no shimmer, spinner or blurred preview while it loads, and stage art never animates.
 
+## Display type and the page
+
+DECISIONS 137 and 139. A role's size changes at 720 and at 1024 with no transition: the window's width is not animated, and nothing in a headline,
+a lead, a section or a column grid has an entrance, a fade-up, a count-up or a loop. Geist arriving over its fallback face (`font-display: swap`)
+is a swap with no fade: the fallback face (see [foundations](foundations.md#interface-type)) is metric-matched so the page moves as little as it
+can, and it does not promise the same wrap at every width. Under reduced motion the render is the same, because nothing here moves.
+
 ## Spinners
 
 | Variant | Use it |

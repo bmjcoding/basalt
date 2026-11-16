@@ -87,6 +87,18 @@ final class TokensTests: XCTestCase {
     XCTAssertEqual(Basalt.Easing.out.y1, 1, "entries settle without overshoot")
   }
 
+  /// The display steps, the roles' phone values and the section gaps (DECISIONS 137): the ten shipped steps do not change.
+  func testDisplayTypeAndPageRhythm() {
+    XCTAssertEqual(Basalt.TypeScale.xl5, .init(size: 56, lineHeight: 60, tracking: -0.035))
+    XCTAssertEqual(Basalt.TypeScale.xl6, .init(size: 72, lineHeight: 76, tracking: -0.04))
+    XCTAssertEqual(Basalt.TypeScale.xl7, .init(size: 96, lineHeight: 96, tracking: -0.045))
+    XCTAssertEqual(Basalt.TypeScale.heroNarrow, .init(size: 44, lineHeight: 48, tracking: -0.03))
+    XCTAssertEqual(Basalt.TypeScale.displayNarrow, .init(size: 36, lineHeight: 40, tracking: -0.025))
+    XCTAssertEqual(Basalt.Space.s32, 128)
+    XCTAssertEqual([Basalt.Size.sectionGap, Basalt.Size.sectionGapMd, Basalt.Size.sectionGapNarrow], [128, 96, 64])
+    XCTAssertEqual(Basalt.Size.displayMeasure, 13, "a number of ems")
+  }
+
   func testFontsAreBundled() {
     XCTAssertEqual(Basalt.Fonts.urls.count, 5)
   }

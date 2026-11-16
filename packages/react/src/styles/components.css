@@ -3424,6 +3424,126 @@
   [data-selected] .basalt-text[data-tone="tertiary"], [data-highlighted] .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-inline-code { padding: var(--basalt-space-0-5) var(--basalt-space-1); border-radius: var(--basalt-radius-xs); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); font-family: var(--basalt-font-family-mono); font-size: 0.9em; font-weight: var(--basalt-font-weight-regular); line-height: inherit; }
 
+  /* ---- Display type, the lead and the page (DECISIONS 137, approved in 139) ----
+     Two roles a page writes, hero and display, each one name with three values that step at the two breakpoints Basalt has and never with the
+     viewport's width: no clamp, no viewport or container unit in type. Under them are the fixed steps text-6xl and text-7xl, and a phone value
+     for each role. The derived properties below are what a role resolves to in this window's band, as --basalt-gutter is. */
+  :root {
+    --basalt-hero-size: var(--basalt-text-7xl-size);
+    --basalt-hero-line-height: var(--basalt-text-7xl-line-height);
+    --basalt-hero-tracking: var(--basalt-text-7xl-tracking);
+    --basalt-display-size: var(--basalt-text-6xl-size);
+    --basalt-display-line-height: var(--basalt-text-6xl-line-height);
+    --basalt-display-tracking: var(--basalt-text-6xl-tracking);
+    --basalt-lead-size: var(--basalt-text-xl-size);
+    --basalt-lead-line-height: var(--basalt-text-xl-line-height);
+    --basalt-lead-tracking: var(--basalt-text-xl-tracking);
+    --basalt-section-gap: var(--basalt-size-section-gap);
+    --basalt-intro-gap: var(--basalt-space-6);
+    --basalt-actions-gap: var(--basalt-space-8);
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; below it the hero takes text-6xl, display text-5xl and the sections the medium gap */
+  @media (width < 1024px) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-6xl-size);
+      --basalt-hero-line-height: var(--basalt-text-6xl-line-height);
+      --basalt-hero-tracking: var(--basalt-text-6xl-tracking);
+      --basalt-display-size: var(--basalt-text-5xl-size);
+      --basalt-display-line-height: var(--basalt-text-5xl-line-height);
+      --basalt-display-tracking: var(--basalt-text-5xl-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-md);
+    }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the roles take their phone values, the lead text-lg and the sections the narrow gap */
+  @media (width < 720px) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-hero-narrow-size);
+      --basalt-hero-line-height: var(--basalt-text-hero-narrow-line-height);
+      --basalt-hero-tracking: var(--basalt-text-hero-narrow-tracking);
+      --basalt-display-size: var(--basalt-text-display-narrow-size);
+      --basalt-display-line-height: var(--basalt-text-display-narrow-line-height);
+      --basalt-display-tracking: var(--basalt-text-display-narrow-tracking);
+      --basalt-lead-size: var(--basalt-text-lg-size);
+      --basalt-lead-line-height: var(--basalt-text-lg-line-height);
+      --basalt-lead-tracking: var(--basalt-text-lg-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-narrow);
+      --basalt-intro-gap: var(--basalt-space-4);
+      --basalt-actions-gap: var(--basalt-space-6);
+    }
+  }
+  /* How a display headline wraps: balanced, at most size-display-measure, and never a <br> (two sentences meant as two lines are two block
+     spans). overflow-wrap is the safety net, never the plan: a word longer than the row breaks instead of pushing the page sideways (WCAG 1.4.10). */
+  :is(.basalt-heading, .basalt-text)[data-display] { max-inline-size: var(--basalt-size-display-measure); text-wrap: balance; overflow-wrap: break-word; hyphens: manual; }
+  :is(.basalt-heading, .basalt-text)[data-display] > .basalt-text-line { display: block; }
+
+  /* The lead: the paragraph under a display headline. Existing steps only: text-xl from 720, text-lg under it. */
+  .basalt-lead {
+    margin: 0;
+    max-inline-size: var(--basalt-size-prose-width);
+    color: var(--basalt-text-secondary);
+    font-family: var(--basalt-font-family-sans);
+    font-size: var(--basalt-lead-size);
+    font-weight: var(--basalt-font-weight-regular);
+    line-height: var(--basalt-lead-line-height);
+    letter-spacing: var(--basalt-lead-tracking);
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  /* The page row: size-page-width with the gutter inside, the site header's row exactly (the side safe area replaces the gutter where it is larger). */
+  .basalt-page-row, .basalt-page-section {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--basalt-size-page-width);
+    margin-inline: auto;
+    padding-inline: var(--_pad-left) var(--_pad-right);
+  }
+  /* The rhythm: sections are one section gap apart, the first starts half a gap below the bar and the page ends a gap above its footer.
+     No section is given the window's height, so the widest empty band on a page is one gap. */
+  .basalt-page-sections { display: block; padding-block-end: var(--basalt-section-gap); }
+  .basalt-page-section { padding-block-start: var(--basalt-section-gap); }
+  .basalt-page-sections > .basalt-page-section:first-child { padding-block-start: calc(var(--basalt-section-gap) / 2); }
+  /* A section's head, then half a gap to its body. */
+  .basalt-section-intro { margin-block-end: calc(var(--basalt-section-gap) / 2); }
+  .basalt-section-intro:last-child, .basalt-columns > .basalt-section-intro { margin-block-end: 0; }
+  .basalt-section-intro > .basalt-lead { margin-block-start: var(--basalt-intro-gap); }
+  .basalt-section-intro > .basalt-section-actions { margin-block-start: var(--basalt-actions-gap); }
+  .basalt-section-actions { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3); }
+
+  /* Columns: twelve tracks on the row, the gutter between them and space-8 between rows. For pages only: a component answers its own width.
+     --_ls is the layout's span for an item in this band and an item's own --span (the style `ColumnsItem` writes) refines it from 1024 only: from 720 to
+     1023 the layout decides (2 and 3 hold, 4 is two rows of two, everything else, an unnamed layout included, is a full row). Each band's rules are in a
+     media query of their own, so no rule has to outrank another. Neither property may cross into a grid nested in an item (custom properties inherit),
+     so every item sets --_ls itself and resets --span, which an item's own inline style still overrides; @property with inherits: false would do it in one
+     line but is outside the floor of Firefox 125. */
+  .basalt-columns {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--basalt-gutter);
+    row-gap: var(--basalt-space-8);
+    align-items: start;
+  }
+  .basalt-columns > * { --_ls: 12; --span: initial; grid-column: span var(--_ls); min-width: 0; }
+  .basalt-columns[data-layout="2"] > * { --_ls: 6; }
+  .basalt-columns[data-layout="3"] > * { --_ls: 4; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it four columns are four, the uneven splits hold and an item's own span counts */
+  @media (width >= 1024px) {
+    .basalt-columns > * { grid-column: span var(--span, var(--_ls)); }
+    .basalt-columns[data-layout="4"] > * { --_ls: 3; }
+    .basalt-columns[data-layout="5-7"] > :nth-child(odd), .basalt-columns[data-layout="7-5"] > :nth-child(even) { --_ls: 5; }
+    .basalt-columns[data-layout="5-7"] > :nth-child(even), .basalt-columns[data-layout="7-5"] > :nth-child(odd) { --_ls: 7; }
+    .basalt-columns[data-layout="4-8"] > :nth-child(odd), .basalt-columns[data-layout="8-4"] > :nth-child(even) { --_ls: 4; }
+    .basalt-columns[data-layout="4-8"] > :nth-child(even), .basalt-columns[data-layout="8-4"] > :nth-child(odd) { --_ls: 8; }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 to 1023 four columns are two rows of two */
+  @media (width >= 720px) and (width < 1024px) {
+    .basalt-columns[data-layout="4"] > * { --_ls: 6; }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it every item takes the full row, in source order */
+  @media (width < 720px) {
+    .basalt-columns > * { grid-column: 1 / -1; }
+  }
+
   @media (pointer: coarse) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
     .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }

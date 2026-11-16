@@ -96,6 +96,7 @@ import { ROUND_27 } from "./round27";
 import { ROUND_28 } from "./round28";
 import { ROUND_29 } from "./round29";
 import { ROUND_30 } from "./round30";
+import { ROUND_33 } from "./round33";
 
 export interface Step {
   id: string;
@@ -114,6 +115,8 @@ export interface Step {
   scales?: number[];
   /** The viewport height. Default 400, or 640 for an open state. */
   height?: number;
+  /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
+  bleed?: boolean;
   demo: (props: { state: string }) => React.ReactNode;
 }
 
@@ -627,3 +630,4 @@ ROUNDS.push(ROUND_27);
 ROUNDS.push(ROUND_28);
 ROUNDS.push(ROUND_29);
 ROUNDS.push(ROUND_30);
+ROUNDS.push(ROUND_33);

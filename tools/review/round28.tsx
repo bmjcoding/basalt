@@ -136,7 +136,13 @@ function ReserveDemo({ state }: { state: string }) {
   const [moved, setMoved] = React.useState<{ withRoom: number[]; without: number[] } | null>(null);
   React.useLayoutEffect(() => {
     const xs = (list: Array<HTMLSpanElement | null>) => list.map((el) => Math.round((el?.getBoundingClientRect().left ?? 0) * 100) / 100);
-    setMoved({ withRoom: xs(withRoom.current), without: xs(without.current) });
+    let live = true;
+    // Measured once Geist has loaded (asked for by name: with no text yet set in it the file may not have started loading), so the numbers are Geist's whichever face paints first
+    // (before Geist arrives the page paints in Geist Fallback, whose widths are close to Geist's and not the same).
+    void Promise.all([document.fonts.load("400 14px Geist"), document.fonts.load("500 14px Geist")]).then(() => document.fonts.ready).then(() => {
+      if (live) setMoved({ withRoom: xs(withRoom.current), without: xs(without.current) });
+    });
+    return () => { live = false; };
   }, []);
   const spread = (xs: number[]) => Math.round((Math.max(...xs) - Math.min(...xs)) * 100) / 100;
   return (
