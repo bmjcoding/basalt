@@ -1,7 +1,7 @@
 import * as React from "react";
 
 // A page can hold every loop Basalt draws (braille, the ring, a busy Button's ring, the indeterminate Progress bar,
-// Sparkline's loading line and Skeleton's pulse) with one attribute on the root: `<html data-loops="held">`. The
+// Sparkline's loading line, Skeleton's pulse and the page's one ambient loop) with one attribute on the root: `<html data-loops="held">`. The
 // stylesheet does the holding (`animation: none`); this module keeps the state, the way keyboard.ts keeps the
 // keyboard's. The hold is stored for this app's origin in this browser (`localStorage` is per origin) and a `storage`
 // event carries it across the app's tabs. Nothing here runs at import: the listener is installed by the first
@@ -85,8 +85,8 @@ export interface LoopsState {
 
 /**
  * The hold on every Basalt loop. `held` is true while `<html data-loops="held">` is set, which the stylesheet turns into
- * `animation: none` on braille, the ring, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line
- * and Skeleton's pulse, portals included. It is independent of reduced motion, and it outranks it. The server renders
+ * `animation: none` on braille, the ring, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line,
+ * Skeleton's pulse and the ambient marks (held at full opacity), portals included. `LoopsToggle` is the control. It is independent of reduced motion, and it outranks it. The server renders
  * "running". Read `held` for text that rewrites itself (an elapsed time, a streaming count); nothing is announced when it
  * changes, because the control speaks its own state.
  */

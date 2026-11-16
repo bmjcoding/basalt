@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { entranceVerdict, markEntranceSeen, playEntrance } from "./entrance";
+import type { EntranceMark, EntranceRun } from "./entrance";
 import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, usePanelLevel } from "./layers";
@@ -72,6 +74,16 @@ export interface TimeChartProps extends Omit<React.ComponentProps<"figure">, "ch
    */
   now?: Date | number;
   locale?: string;
+  /**
+   * Makes this chart its page's one entrance (DECISIONS 136): on a first visit, at load, its marks draw once, each over `duration-figure`
+   * on `ease-out` and `duration-stagger` apart (a bar scales from its baseline, a solid line draws along its length, every other mark
+   * fades in). The title, the legend, the numbers, the axes, the table and every control are at rest in the first frame. A change of
+   * data mid-entrance takes over: every mark glides from where it is drawn over `duration-slow`, and the visit counts as seen.
+   * Drawn at rest on a second visit (stored for the page's path in `localStorage` when the entrance finishes or gives way), under
+   * reduced motion, under the root hold, in a hidden tab, on a page opened below its first screen, when the page's script started more
+   * than a second after navigation, and in print. One chart a page; nothing is armed by scrolling. Default false: a chart's first paint is at rest. `"replay"` plays the entrance whatever the page has seen and however late the script ran (a review page's Replay button; an app never needs it).
+   */
+  entrance?: boolean | "replay";
 }
 
 // ---- Small pure helpers ----
@@ -269,7 +281,7 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,
-  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", className, ...props
+  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", entrance = false, className, ...props
 }: TimeChartProps) {
   // The hint legend is hidden on touch until a hardware key is pressed; this asks for the same reveal the shortcut chips use.
   useShortcutsVisible();
@@ -309,6 +321,7 @@ export function TimeChart({
 
   // ---- The glide: a value that changes in place travels with the scale; a new range fades in ----
   const [motion, setMotion] = React.useState<{ from: Snapshot; progress: number } | null>(null);
+  const entranceRun = React.useRef<EntranceRun | null>(null);
   const drawnRef = React.useRef(targetSnap);
   const previousRef = React.useRef({ snap: targetSnap, dayKey });
   const [range, setRange] = React.useState({ key: dayKey, serial: 0 });
@@ -317,8 +330,11 @@ export function TimeChart({
     // Before paint, so the frame that has the new values already starts from what was on screen.
     const before = previousRef.current;
     previousRef.current = { snap: targetSnap, dayKey };
-    if (before.dayKey !== dayKey || reduced) { setMotion(null); drawnRef.current = targetSnap; return undefined; }
+    if (before.dayKey !== dayKey || reduced) { entranceRun.current?.rest(); setMotion(null); drawnRef.current = targetSnap; return undefined; }
     if (sameSnapshot(before.snap, targetSnap)) return undefined;
+    // Input wins: a change of data mid-entrance takes over, and every mark glides from where it is drawn (the entrance's own yield),
+    // while the values glide on the same clock.
+    entranceRun.current?.yield();
     const from = drawnRef.current;
     const { duration, curve } = glideTiming();
     const start = performance.now();
@@ -408,6 +424,39 @@ export function TimeChart({
   const layout = frame && natural && n > 0
     ? buildLayout({ frame, measure, series, plan, bar, n, scale: target, drawn, formatTick, unit, natural, shared: group?.shared })
     : null;
+  // ---- The entrance: this chart is its page's one, when it asks to be ----
+  const drawnOnce = layout !== null;
+  const entranceDecided = React.useRef(false);
+  React.useLayoutEffect(() => {
+    if (!entrance || !drawnOnce || entranceDecided.current) return undefined;
+    const plot = plotRef.current;
+    const svg = plot?.querySelector<SVGSVGElement>(".basalt-chart-svg");
+    if (!plot || !svg) return undefined;
+    entranceDecided.current = true;
+    if (entranceVerdict(plot, undefined, entrance === "replay") !== "play") return undefined;
+    const marks: EntranceMark[] = [];
+    svg.querySelectorAll<SVGElement>(".basalt-chart-bar, .basalt-chart-plan, .basalt-chart-band, .basalt-chart-band-edge, .basalt-chart-line, .basalt-chart-ring, .basalt-chart-mark").forEach((element) => {
+      if (element.matches(".basalt-chart-bar")) marks.push({ element, kind: "bar", below: element.hasAttribute("data-below") });
+      else if (element.matches(".basalt-chart-line:not([data-dash=\"dash\"]):not([data-dash=\"dot\"])")) marks.push({ element, kind: "line" });
+      else marks.push({ element, kind: "fade" });
+    });
+    if (!marks.length) { markEntranceSeen(); return undefined; }
+    const run = playEntrance(marks, () => markEntranceSeen());
+    entranceRun.current = run;
+    // The root hold arriving mid-entrance, or printing beginning, draws the figure at rest at once, with no new animation, and settles any glide a data change handed the marks to.
+    const watch = new MutationObserver(() => { if (document.documentElement.getAttribute("data-loops") === "held") run.rest(); });
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-loops"] });
+    // Two signals, because the two ways of printing give different ones: emulated or changed print media fires the media query's change, and the browser's own print
+    // path fires `beforeprint` and no change (it lays the page out for the printer without changing what `matchMedia` says). Either settles the figure at once.
+    const printing = window.matchMedia("print");
+    const onPrint = () => { if (printing.matches) run.rest(); };
+    const beforePrint = () => run.rest();
+    printing.addEventListener("change", onPrint);
+    window.addEventListener("beforeprint", beforePrint);
+    const stopWatching = () => { watch.disconnect(); printing.removeEventListener("change", onPrint); window.removeEventListener("beforeprint", beforePrint); };
+    run.settled.then(() => { stopWatching(); if (entranceRun.current === run) entranceRun.current = null; });
+    return () => { stopWatching(); run.cancel(); if (entranceRun.current === run) entranceRun.current = null; entranceDecided.current = false; };
+  }, [entrance, drawnOnce]);
   const dayLabel = (i: number) => formats.short.format(at(stamps, i));
   const gaps = React.useMemo(() => gapsOf(series, n, motion?.from, progress), [series, n, motion?.from, progress]);
 
@@ -840,7 +889,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
       if (i === partial) {
         const inset = m.line / 2;
         push(<rect key={`bar${i}`} className="basalt-chart-bar" data-so-far="" x={bx + inset} y={topY + inset} width={Math.max(bw - 2 * inset, 0)} height={Math.max(run - 2 * inset, 0)} />);
-      } else if (run > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" x={bx} y={topY} width={bw} height={run} />);
+      } else if (run > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" data-below={v < 0 ? "" : undefined} x={bx} y={topY} width={bw} height={run} />);
     }
     // The cut is drawn only where the bar runs on past it, so a bar's end is never hidden.
     for (let i = 0; i < n; i++) {

@@ -149,6 +149,8 @@ const css = [
   `    ${varName(["duration", "base"])}: 100ms;`,
   `    ${varName(["duration", "slow"])}: 100ms;`,
   `    ${varName(["duration", "slower"])}: 100ms;`,
+  `    ${varName(["duration", "figure"])}: 100ms;`,
+  `    ${varName(["duration", "stagger"])}: 0ms;`,
   "  }",
   "}",
   "",

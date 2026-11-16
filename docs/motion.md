@@ -19,17 +19,20 @@ The panel's rulings on all of this, and the options it left to the owner, are re
 | `duration-fast` | 100ms | Hover-out, toggles, colour changes |
 | `duration-base` | 150ms | Tooltips, menus, popovers, text morph, the hover glide (popup rows and navigation) |
 | `duration-slow` | 200ms | Dialogs, accordions, the tab indicator and panel, the segmented and vertical-tab pill, a digit roll, a value glide (`useGlide`), a morph |
-| `duration-slower` | 300ms | Sheets, a travelling spinner |
+| `duration-slower` | 300ms | Sheets, a travelling spinner, a travel's leg of up to 150px |
+| `duration-figure` | 600ms | A figure's own motion: each mark of a page's one entrance, and the longest leg of a travel the eye follows. Never a control, popup, panel, page or block |
 
-Under `prefers-reduced-motion`, `duration-base`, `duration-slow` and `duration-slower` are 100ms and nothing moves, grows or travels: state changes become short fades.
+`duration-stagger` is 22ms: the step between the marks of one figure entering, shrunk so every start falls within `duration-slow` of the first.
 
-Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms. A loop is never cut to 100ms, or it flickers.
+Under `prefers-reduced-motion`, `duration-base`, `duration-slow`, `duration-slower` and `duration-figure` are 100ms, `duration-stagger` is 0, and nothing moves, grows or travels: state changes become short fades.
+
+Loops are grouped apart, because they are not entries: `duration-loop-ring` 640ms, `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms, and `duration-loop-ambient` 6000ms, the middle period of an ambient loop (each mark runs 0.6 to 1.4 times it). A loop is never cut to 100ms, or it flickers.
 
 | Curve | Value | Use |
 |---|---|---|
 | `ease-out` | `cubic-bezier(.16, 1, .3, 1)` | Entries, and moves that answer input: popups, the tab indicator and panel, the sliding pill, the hover glide, a morph, a value glide |
 | `ease-in` | `cubic-bezier(.4, 0, 1, 1)` | Exits, at 0.75 of the entry |
-| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows (TravelSpinner only), and loop pulses |
+| `ease-in-out` | `cubic-bezier(.65, 0, .35, 1)` | A rest-to-rest travel the eye follows: TravelSpinner, and a traveller crossing a figure (see Travel), and loop pulses |
 | `ease-linear` | `cubic-bezier(0, 0, 1, 1)` | Spinner turns |
 
 ## Popups, press, copy
@@ -55,6 +58,22 @@ The sort indicator of a sortable table header (the caret and the two arrows) swa
 The component measures the chosen item into four CSS variables on the control, and nothing else: no animation frame is ever in React state. It re-measures when the control or the item resizes, when fonts finish loading, and when the screen turns; those re-placements are not moves. Its observers are removed with the control.
 
 The pill is an enhancement over each item painting its own pill, which is how the control looks with no script. The shared pill is drawn only once JS has measured the chosen item, and never under reduced motion or in forced colours. Under reduced motion each item paints its own pill and fades it over 100ms. In forced colours the chosen item is `Highlight` with `HighlightText` and no backplate box. Touch targets stay at least 44px, and a tap slides the pill too. A control where several items can be on has no single pill to move, and does not slide.
+
+## Items that move to their places
+
+When a filter or a sort changes a list or a grid, each item that stays moves by transform from where it is drawn to its new place, over `duration-slow` on `ease-out`, whatever the distance; an arrival fades in where it belongs on the same clock; a leaver is the same element, out of the flow where it stood, inert and under the movers, fading over 0.75 of `duration-fast` on `ease-in`. A second change starts every item from where it is drawn, opacity included. If focus is in an item that leaves, it goes to the next item that stays in the order drawn, else the one before, else the result line (`tabindex="-1"`), with `preventScroll`. The box's height glides on the same clock, clipped at its edge with a `space-1-5` margin while it moves; nothing above or beside it moves, and what follows it moves once, with it (that movement is measured and reported on the review page, and is not zero). Only items on screen move, and past 48 that would move the change lands at once (an item that stays where it was is not one). Under reduced motion items and the box take their places at once, and arrivals fade over 100ms. A table keeps the still-table rule and is not part of this. `Reflow` renders every item, always (an item that is not shown is `hidden`), so none is ever replaced. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+## The entrance
+
+One figure on a page's first screen may draw its marks once, at load, on a first visit: each mark over `duration-figure` on `ease-out`, `duration-stagger` apart, every start within `duration-slow` of the first. A bar scales from its baseline, a line draws along its length, a mark fades in; nothing translates, clips or blurs. An entrance draws one figure's marks inside a frame that is already there. Words, numbers, controls, cards, panels, images and sections never enter; they are at rest in the first frame, and nothing enters on scroll. A control used mid-entrance takes over: every mark glides from where it is drawn over `duration-slow`, and the visit counts as seen. The page's path is stored as seen when the entrance finishes or gives way, never before. A second visit, reduced motion, the hold, a hidden tab, a page opened below its first screen, print and no script all draw the figure at rest; the hold or printing that arrives mid-entrance settles it at once, with no new animation (printing is the print media query changing or the browser's own `beforeprint`; a real print fires only the event). A page change without a reload counts as a load: the app calls `markPageChange()` (the skill's `Basalt.pageChange()`) when the change begins, and the same gates apply from then (a first visit to that path, on its first screen, within a second); with nothing reported, the document's clock is used. The skill's chart glides every mark from where it is drawn when a new data set arrives mid-entrance, as React's does: a bar from its drawn height, a line along its drawn path and its markers from their drawn centres. A solid line draws by its stroke; a dashed or dotted line fades in, because a dash pattern cannot be drawn along its length. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+## Travel
+
+A traveller that leaves a resting place and stops at another, carrying something the reader follows, moves by transform on `ease-in-out`: a leg is `duration-slower` up to 150px, 2ms a pixel above, and `duration-figure` from 300px; it rests `duration-slow` at a stop while the stop takes its colour step, and a run ends inside five seconds. Each trigger is its own traveller: a second leaves from the start while the first keeps its course; a third lands the oldest at once. Under reduced motion the traveller appears at its destination with a 100ms fade and the outcome is written at once. The hold does not stop a travel the reader started, and nothing sends itself under it. `travelLeg`, `travelRun` and `createTravellers` are the timing and the rule (a run ends inside five seconds for every plan `travelRun` accepts; more than 17 legs, 16 stops, is refused with an error); `TravelSpinner` keeps its single `duration-slower` leg. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+
+## The ambient loop
+
+One a page, only in its art, opacity only, from 1 to 0.2 and back on `ease-in-out`; each mark runs 0.6 to 1.4 times `duration-loop-ambient` with its own phase; a looping mark is no wider than `size-dot` and a page has at most 24. It joins the hold, and is still under reduced motion, in forced colours and in print. `LoopsToggle` is the control. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
 
 ## The hover glide
 
@@ -111,7 +130,7 @@ A live `Terminal` (decision 94) is `role="log"` only while lines arrive, never w
 
 ## Charts
 
-A chart (decision 101) is drawn at rest on its first paint: no draw-on animation, and nothing loops.
+A chart (decision 101) is drawn at rest on its first paint, unless it is its page's one entrance (its marks draw once on a first visit, see foundations), and nothing in it loops.
 
 | Moment | What moves |
 |---|---|
@@ -121,6 +140,8 @@ A chart (decision 101) is drawn at rest on its first paint: no draw-on animation
 | A new range (7, 28, 90 days) | A new domain, so nothing travels: the marks fade in over `duration-fast`. The frame, the legend and the controls do not move. |
 | Picking a day (hover, a tap, a key) | Instant. The plate does not glide: chart days are dense, and a gliding plate trails the pointer. |
 | Reduced motion | Values and the scale snap; a new range is a 100ms fade. |
+| A number beside a chart | At its real value from the first frame, the entrance included; it never counts up. A value that changes in place glides with the marks over `duration-slow` (`NumberTicker glide`), the readable text the target. |
+| The entrance (`entrance` on a chart that is its page's one) | Each mark draws once on a first visit over `duration-figure`; a change of data mid-entrance takes over and glides every mark from where it is drawn. |
 
 ## The clear bar and framed art
 
@@ -138,7 +159,7 @@ first pixel of scroll.
 | No `backdrop-filter` | Clear at the top as usual; scrolled, the fill fades to the opaque `surface-page` fallback and the line arrives, the same fade. |
 | Framed art arrives | The art fades in over `duration-base` on `ease-out`, once decoded, opacity only. Art already loaded when the component mounts shows at once. Under reduced motion it is 100ms. |
 
-The frame has no shimmer, spinner or blurred preview while it loads, and stage art never animates.
+The frame has no shimmer, spinner or blurred preview while it loads, and stage art never moves; it may hold its page's one ambient loop, opacity only (see foundations, Motion).
 
 ## Display type and the page
 
@@ -156,7 +177,7 @@ can, and it does not promise the same wrap at every width. Under reduced motion 
 
 Spinners on a page share one clock: each animation starts at the document timeline's origin, so spinners mounted at different moments tick in phase, each variant on its own period.
 
-**The hold.** `<html data-loops="held">` (set by `useLoops()`) stops every Basalt loop, portals included: braille stays on ⠋ and the ring stands still at its drawing, at full opacity; a busy Button's ring, Sparkline's loading line and Skeleton's pulse stop with them, and the indeterminate Progress bar holds as the empty track, its indicator hidden (a still bar reads as a value). Nothing is hidden, swapped or announced. It outranks reduced motion by specificity, so held is one look whatever the OS says and the ring's fade stops too; reduced motion never turns it on. The state is stored for this app's origin in this browser (`basalt-loops`, `localStorage`) and follows across the app's tabs. Releasing jumps to now: every Basalt loop's `startTime` goes back to the timeline's origin, so spinners mounted at different moments tick in phase, and nothing resumes from the held frame. The toast's drain is a countdown, not a loop, so the hold does not stop it. An app reads `held` for its own rewriting text (an elapsed time shows when the work started; a streaming count hides). This is the WCAG 2.2.2 mechanism; the control (a pressed-toggle Button in the view's head, a settings row with a Switch, a command) is the app's part. See [foundations](foundations.md#motion).
+**The hold.** `<html data-loops="held">` (set by `useLoops()`) stops every Basalt loop, portals included: braille stays on ⠋ and the ring stands still at its drawing, at full opacity; a busy Button's ring, Sparkline's loading line and Skeleton's pulse stop with them, and the indeterminate Progress bar holds as the empty track, its indicator hidden (a still bar reads as a value). Nothing is hidden, swapped or announced. It outranks reduced motion by specificity, so held is one look whatever the OS says and the ring's fade stops too; reduced motion never turns it on. The state is stored for this app's origin in this browser (`basalt-loops`, `localStorage`) and follows across the app's tabs. Releasing jumps to now: every Basalt loop's `startTime` goes back to the timeline's origin, so spinners mounted at different moments tick in phase, and nothing resumes from the held frame. The toast's drain is a countdown, not a loop, so the hold does not stop it. An app reads `held` for its own rewriting text (an elapsed time shows when the work started; a streaming count hides). This is the WCAG 2.2.2 mechanism; the control is `LoopsToggle`, in the form the place needs (an icon toggle in a site header, a pressed-toggle Button in the view's head, a settings row with a Switch; a command is the app's part). The hold stops the page's ambient loop as well. See [foundations](foundations.md#motion).
 
 Beside a word, braille's size follows the word's cap height (16 beside 12 to 16px text, 20 beside 18 to 24px, 24 beside 30px and up), the seat is the cell's width and the gap equals it (6, 9 and 12px), so words start at 12, 18 and 24.
 
@@ -173,7 +194,9 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 | `Stepper` | Back stays a left chevron. Next becomes a check on the last step. | Instant swap |
 | `Sparkline` | A monochrome line and its latest value: not a charting component. A flat line breathes while loading (the one loop here, held by `data-loops="held"`), then eases into the samples. When the range changes the line, the scale and the labels move together over `slow` on `ease-out`; a new peak widens the scale at once. An empty list is a quiet sentence. | Everything snaps |
 | `NumberTicker` | Rolls tabular digits on `slow`. With `glide` the digits ease through the intermediate values, rounded to the display precision, over `slow` on `ease-out`. The readable text is always the target. | Plain tabular text at the same width and baseline |
-| `TravelSpinner` | Opt in. After you accept work, the spinner moves to where that work now lives, by transform on `slower` and `ease-in-out`: the one move between two resting places that the eye has to follow. | It appears at the destination with a 100ms fade |
+| `TravelSpinner` | Opt in. After you accept work, the spinner moves to where that work now lives, by transform on `slower` and `ease-in-out`: a move between two resting places that the eye has to follow (a longer traveller crossing a figure uses the travel timing). | It appears at the destination with a 100ms fade |
+| `Reflow` | A list or grid that is filtered or sorted: items move by transform to their places over `slow` on `ease-out`, arrivals fade, leavers fade at 0.75 of `fast` on `ease-in`, the box's height glides. | Items and the box take their places at once; arrivals fade over 100ms |
+| `LoopsToggle` | The hold on every loop, as an icon toggle (`LoopsToggleIcon`, named by its `title` alone), a pressed Button (also the narrow menu's first row) or a Switch, named "Pause animations". | No motion of its own |
 | Narrow menu (`SiteHeader`) | `Sheet side="top"`: the band is there at once and the list unrolls beneath it as a clip over `slower` on `ease-out`; leaves at 0.75 on `ease-in`; Menu morphs to Close over `slow`. | Opacity only, 100ms |
 | Clear bar (`SiteHeader` over a `Stage`) | Fill and line fade in over `duration-base` on `ease-out` and out at 0.75 on `ease-in`; the blur switches at once; a departure first reported past the headroom's slack, and the page opening at the top, switch all of it at once. | A 100ms fade |
 | `FramedArt` | The art fades in over `duration-base` on `ease-out` once decoded. | A 100ms fade |

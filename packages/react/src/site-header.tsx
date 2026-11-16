@@ -4,6 +4,7 @@ import * as React from "react";
 import { CloseGlyph } from "./glyphs/close";
 import { MenuGlyph } from "./glyphs/menu";
 import { useAtTop } from "./at-top";
+import { LoopsToggleButton } from "./loops-toggle-button";
 import { MorphIcon } from "./morph-icon";
 import { Nav, NavItem } from "./nav";
 import { GlidePlate } from "./plate";
@@ -42,6 +43,14 @@ export interface SiteHeaderProps extends Omit<React.ComponentProps<"header">, "c
    * rest go in the footer. This is a rule for the site, not something the component measures.
    */
   links?: SiteHeaderLink[];
+  /**
+   * The hold on loops: `<LoopsToggleIcon />` (`LoopsToggle`'s icon form), shown only on a page that has an ambient loop or a loop that can run
+   * past five seconds. It sits in the bar's end cluster, before the theme toggle, and stays in the bar at every width. Passing it once is
+   * all an app does: when the narrow menu is open the bar is covered, so the menu's first row, below its band and before its links, is the same
+   * control in its Button form ("Pause animations"), and the hold can be reached while the menu is open. Pass nothing on a page with no such
+   * loop: the menu then has no such row.
+   */
+  loopsToggle?: React.ReactNode;
   /** The theme toggle: a ghost `IconButton`. It stays in the bar at every width and is drawn again in the narrow menu's first row, so give it no `id`. */
   themeToggle?: React.ReactNode;
   /** At most one primary `Button`. It leaves the bar under 720 and sits at the foot of the narrow menu, full width. Never a danger Button. */
@@ -73,7 +82,7 @@ function Brand({ href, label, children }: { href: string; label: string; childre
  * inside a 44px target; hover is the pill at the selected wash with the ink to primary, one shared pill gliding as `Nav`'s
  * does; the current page is primary at 600 with no background. Under 720 it is brand, toggle and a Menu button.
  */
-export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], themeToggle, action, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu", solid = false, className, ...props }: SiteHeaderProps) {
+export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], loopsToggle, themeToggle, action, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu", solid = false, className, ...props }: SiteHeaderProps) {
   const [open, setOpen] = React.useState(false);
   const wide = useMediaQuery(`(width >= ${breakpoint.md}px)`);
   const trigger = React.useRef<HTMLButtonElement>(null);
@@ -112,6 +121,7 @@ export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], them
         ) : null}
         <span className="basalt-bar-spacer" />
         <div className="basalt-bar-actions">
+          {loopsToggle}
           {themeToggle}
           {action ? <span className="basalt-site-action">{action}</span> : null}
           {links.length || action ? (
@@ -134,6 +144,7 @@ export function SiteHeader({ brand, brandLabel, homeHref = "/", links = [], them
                     <MenuClose ref={close} label={closeLabel} open={open} />
                   </div>
                 </div>
+                {loopsToggle ? <div className="basalt-site-menu-loops"><LoopsToggleButton /></div> : null}
                 {links.length ? (
                   <Nav aria-label={navLabel} className="basalt-site-menu-nav" onClick={(event) => { if ((event.target as Element).closest("a")) setOpen(false); }}>
                     {links.map((link) => <NavItem key={link.href + link.label} href={link.href} current={link.current}>{link.label}</NavItem>)}

@@ -1132,6 +1132,14 @@
     padding-inline: var(--_pad-left) var(--_pad-right);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
+  /* The menu's first row when the page has a loops toggle: the same control in its Button form, at the band's own gutter, 44 on touch like the foot's button. */
+  .basalt-site-menu-loops {
+    padding: var(--basalt-space-2) var(--_pad-right) 0 var(--_pad-left);
+  }
+  .basalt-site-menu-loops .basalt-button {
+    --_h: var(--basalt-size-tap-min);
+    --_radius: var(--basalt-radius-md);
+  }
   .basalt-site-menu-nav {
     padding-block: var(--basalt-space-2);
     padding-inline: max(var(--basalt-space-1-5), var(--_inset-left)) max(var(--basalt-space-1-5), var(--_inset-right));
@@ -3803,6 +3811,35 @@
     letter-spacing: var(--basalt-text-xs-tracking);
   }
   @media print { .basalt-framed { break-inside: avoid; } }
+
+  /* ---- The ambient loop (DECISIONS 136 C): a page's one, opacity only, in its art ----
+     A mark that carries data-ambient (the props `ambient(index)` returns, or an `AmbientMark`) loops from 1 down to 0.2 and back on
+     ease-in-out, each on its own period (0.6 to 1.4 times duration-loop-ambient, --_k) and phase (--_ph, a negative delay), so no two are
+     in step. It runs only inside a stage's art or a framed frame, and is still under the hold, reduced motion, forced colours and print. */
+  .basalt-ambient-mark { position: absolute; display: block; width: var(--basalt-size-dot); height: var(--basalt-size-dot); background: var(--basalt-art-tone-4); pointer-events: none; }
+  @keyframes basalt-ambient { 50% { opacity: 0.2; } }
+  :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] {
+    animation: basalt-ambient calc(var(--basalt-duration-loop-ambient) * var(--_k, 1)) var(--basalt-ease-in-out) calc(var(--basalt-duration-loop-ambient) * var(--_k, 1) * var(--_ph, 0) * -1) infinite;
+  }
+  :root[data-loops="held"] [data-ambient] { animation: none; }
+  @media (prefers-reduced-motion: reduce) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
+  @media (forced-colors: active) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } .basalt-ambient-mark { background: CanvasText; forced-color-adjust: none; } }
+  @media print { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
+
+  /* ---- LoopsToggle's settings row ---- */
+  .basalt-loops-switch { display: grid; gap: var(--basalt-space-1); justify-items: start; }
+  .basalt-loops-description { margin: 0; padding-inline-start: calc(var(--basalt-size-switch-width) + var(--basalt-space-2)); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+
+  /* ---- Items that move to their places (DECISIONS 136 D) ----
+     The box is its own stacking context, so a leaving item (the same element, out of the flow where it stood, inert) paints under every
+     item that stays and under nothing outside the box. Reflow moves items by transform and fades them; this is only where they sit. While
+     the box's height glides it clips what is past its edge, with a space-1-5 margin so a +2 ring stays whole. A list's rows are opaque
+     while they move, in their container's own surface, so a row crossing another covers it instead of printing over it. */
+  .basalt-reflow { position: relative; isolation: isolate; }
+  .basalt-reflow > .basalt-reflow-item[data-leaving] { position: absolute; margin: 0; pointer-events: none; z-index: -1; }
+  .basalt-reflow[data-moving] { clip-path: inset(calc(-1 * var(--basalt-space-1-5))); }
+  .basalt-reflow[data-layout="list"][data-flowing] > .basalt-reflow-item { background-color: var(--_surface, var(--basalt-surface-page)); }
+  .basalt-filter-result:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 

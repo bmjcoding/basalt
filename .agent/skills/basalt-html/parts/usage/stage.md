@@ -18,3 +18,4 @@
 - Art you draw (`svg`, `canvas`) goes straight in `.stage-art` with `--basalt-art-tone-1` to `-4`; it swaps with the theme by itself. A photograph with one version is not a stage: put it in a frame (`--usage framed-art`).
 - Level 0: no rim, radius or shadow where it ends, and its height is the content's. The content starts below the headroom (`--basalt-stage-headroom`, 80px and the safe area). A panel on it is solid.
 - Ink goes only where the art is quiet, nothing past `--basalt-art-quiet-limit` there. The bar stays smoked over a stage, from the top, because the skill can't run the headroom check React's bar clears on.
+- The art may hold the page's one ambient loop: `.ambient-mark` with `data-ambient` (opacity only, `--usage loops`).

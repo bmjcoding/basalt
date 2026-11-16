@@ -19,3 +19,5 @@ A series over time (`"kind": "line"` or `"bar"`), drawn at its own measured widt
 - The last day's sentence says "today" only when it is today's UTC date; for a closed range set `"now": "2026-11-12"` or leave it to the clock.
 - Ink is the kind of value, shape is which series: no series takes a colour. Greys only.
 - `Basalt.chart(figure, options)` draws one from script; there, `format`, `spoken`, `formatTick` and `formatPlan` can be functions. It draws once: a new data set is a new call.
+- `"entrance": true` makes it the page's one entrance: on a first visit its marks draw once at load (bars from the baseline, a solid line along its length, other marks fade in); the title, legend, numbers and controls are at rest. Seen before, reduced motion, the hold, a hidden tab, a page opened below its first screen, print and a late script draw it at rest; the hold or printing mid-entrance settles it at once. A new data set (`Basalt.chart` again) mid-entrance glides every mark from where it is drawn. A page change without a reload: call `Basalt.pageChange()` first.
+- A number beside a chart is its real value in the first frame and never counts up.
