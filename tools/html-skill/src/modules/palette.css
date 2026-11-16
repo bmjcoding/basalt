@@ -6,6 +6,10 @@
   .palette-scrim { display: flex; align-items: flex-start; justify-content: center; padding: max(var(--basalt-space-4), 12vh) var(--basalt-space-4) var(--basalt-space-4); overflow: auto; }
   /* stylelint-disable-next-line unit-disallowed-list -- 480px is the palette's height cap; the nearest tokens (popup max-height plus the input band) would shift it */
   .palette { display: flex; flex-direction: column; width: min(var(--basalt-size-command-width), 100%); max-height: min(480px, calc(100dvh - 2 * var(--basalt-space-4))); }
+  /* Reset the popover's browser box; keep the original scrim and panel painting in one layer. */
+  .palette-scrim[popover] { margin: 0; border: 0; width: auto; height: auto; max-width: none; max-height: none; }
+  /* A modal resets its depth even while its top-layer scrim is logically inside another modal. */
+  .palette.float.modal { --panel-bg: var(--basalt-surface-1); --panel-next: var(--basalt-surface-2); --panel-well: var(--basalt-surface-sunken); }
   /* Padded 2 block and 4 inline as the command list is: each row carries 2px above and below its plate, so a plate sits 4px from the rim and the next plate. */
   .palette-list { position: relative; overflow-y: auto; min-height: 0; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .palette-empty { padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }

@@ -1,6 +1,6 @@
 // Round 36: the fourth audit fix batch of the components stream (DECISIONS 133, audit-fix-c2): the HTML skill and compose.mjs, and the load-sensitive tests the audit
 // proved. Every item restores behaviour the documents already state, or removes a cost without changing what is drawn, so there was no vote: AGENTS.md calls it
-// engineering. The design panel has not reviewed any of it, and nothing in it asks them to. This batch changes no settled pixel (the build's pixel comparison against
+// engineering. The design panel has not reviewed it. The palette's modal depth is restored to the documented level 1; otherwise settled pixels are preserved (the comparison against
 // the base is in the PR), so the round shows what was fixed, in the skill's own pages: they are composed by tools/review/round36-data.mjs into assets/round-36/data.json
 // (run it after `npm run build`) and shown in frames. The frames are the HTML skill's pages, not React's. Every word and number on them is synthetic.
 //
@@ -94,15 +94,26 @@ function BarDemo({ state }: { state: string }) {
 function ToastDemo({ state }: { state: string }) {
   const [readout, setReadout] = React.useState("loading");
   const ready = (win: Window & typeof globalThis, doc: Document) => {
-    (win as unknown as { Basalt: { toast: (o: object) => void } }).Basalt.toast({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } });
-    const go = () => {
+    const B = (win as unknown as { Basalt: { toast: (o: object) => void; openDialog: (s: string) => void; openPalette: (o: object) => void } }).Basalt;
+    const palette = () => B.openPalette({ groups: [{ label: "Synthetic", items: [{ label: "Alpha" }, { label: "Beta" }] }] });
+    (doc.getElementById("open") as HTMLElement).focus();
+    B.toast({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } });
+    if (state === "dialog" || state === "focus-lost") B.openDialog("#d");
+    if (state === "palette") palette();
+    if (state === "dialog-over-palette") { palette(); B.openDialog("#d"); }
+    if (state === "palette-over-sheet" || state === "host-close") { B.openDialog("#s"); palette(); }
+    if (state === "host-close") (doc.getElementById("s") as HTMLDialogElement).close();
+    if (state === "focus-lost") (doc.activeElement as HTMLElement).blur();
+    const go = async () => {
       if (!doc.querySelector(".toast")) { win.requestAnimationFrame(go); return; }
-      const open = doc.getElementById("open") as HTMLElement;
-      open.focus();
+      await Promise.all(doc.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})));
       const name = (el: Element | null) => (el ? `${el.getAttribute("role") ?? el.tagName.toLowerCase()} “${el.getAttribute("aria-label") ?? el.textContent?.trim()}”` : "none");
       const lines = [`focus starts on: ${name(doc.activeElement)}`];
       doc.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: "F6", bubbles: true, cancelable: true }));
       lines.push(`after F6: ${name(doc.activeElement)}, tabindex ${(doc.activeElement as HTMLElement).tabIndex}`);
+      const toast = doc.querySelector(".toast")!.getBoundingClientRect();
+      lines.push(`toast above the backdrop: ${!!doc.elementFromPoint(toast.left + toast.width / 2, toast.top + toast.height / 2)?.closest(".toast")}`);
+      lines.push(`palette open: ${!!doc.querySelector(".palette")}`);
       if (state === "tab") {
         (doc.querySelector(".toast") as HTMLElement).focus();
         lines.push(`after Tab: ${name(doc.activeElement)}`);
@@ -114,7 +125,7 @@ function ToastDemo({ state }: { state: string }) {
   return (
     <div style={col}>
       {caption("The toast stack is a named region, and F6 reaches it (foundations): focus goes to the region, which is out of the tab order, and the next Tab is the first toast. Shift+Tab from the region goes back to where focus was.")}
-      <Frame html={DATA.toast} title="A page with a toast" height={360} onReady={ready} />
+      <Frame html={state === "default" || state === "tab" ? DATA.toast : DATA.overlays} title="A page with a toast" height={500} onReady={ready} />
       <pre style={readoutStyle} data-wt-readout>{readout}</pre>
     </div>
   );
@@ -161,7 +172,7 @@ export const ROUND_36: Round = {
   id: "36",
   title: "The HTML skill, compose.mjs and the tests that failed under load: the fourth audit fix batch",
   summary:
-    "The fourth batch of fixes from the components stream's full audit (DECISIONS 133): a Tab into the skill's top bar no longer scrolls the page; the skill's toast has the F6 route foundations gives a toast region; compose.mjs reads svg titles, templates and the head properly, refuses an unclosed script, style or comment, and lets a body carry its description, icon and share card; the notification list escapes its status; the stage's art comes after its content, so on a slow link it no longer jumps; the profile list is a labelled group; the policy a page needs is written down; and the tests that failed when the machine was busy now read a frozen clock. No rendered pixel that exists today changes. The owner has not yet approved the council's tally that these are engineering, and the design panel has not reviewed any of it.",
+    "The fourth batch from the full audit (DECISIONS 133): the toast's F6 route works across dialogs, sheets and the palette, including lost document focus. The palette uses a top-layer scrim inside a modal, escapes a sheet's clipping, closes with its logical host, and resets to the documented level 1. The composer checks its regression bodies, explains conservative refusals and states its limits instead of promising to validate arbitrary HTML or JavaScript. Both Geist faces remain. The topbar focus, stage order, escaping, profile group and busy-machine test fixes are retained. The design panel has not reviewed this engineering batch.",
   reviewed: false,
   steps: [
     {
@@ -185,14 +196,29 @@ export const ROUND_36: Round = {
       intro: "The skill's toast stack is a named region (“Notifications”), and F6 now moves focus to it, as it does in React.",
       widths: [1440, 390],
       scales: [1],
-      height: 620,
+      height: 820,
       decisions: [
         "Engineering, no vote: foundations says the stack is “a named region that F6 reaches”, React's is, and the skill's was not. The region is out of the tab order (tabindex -1); the next Tab is the first toast; Shift+Tab from the region goes back to where focus was; with no toast, F6 is left to the browser. Focus in the stack holds the toasts' clocks, as hover does.",
+        "The viewport follows the focused modal and retains its last live host when focus is lost. A palette can open over a sheet or dialog, and a dialog can open over a palette. Palette keys are scoped to its own content; toast events keep their real isComposing value. Closing the logical host closes its palette and preserves the toast.",
+        "The skill keeps the palette open when Escape returns from the toast region or an action. The React reference currently closes its command menu on those Escape paths; that difference is tested and recorded in the README's Known limits.",
         "Found, for the panel: the region has no height, and the control ring on it draws as a thin bracket along the stack's bottom edge (the first state shows it). React's region shows the browser's own outline, which draws nothing at that height. The skill's ring is the global focus rule, which this batch did not touch; what should mark a focused region is a design question, so nothing was built for it.",
       ],
-      tryIt: ["Click in the frame, press F6: the region takes focus; press Tab: the toast's Undo."],
-      states: ["default", "tab"],
+      tryIt: ["Click the input in an overlay, press F6, Tab, Tab: region, toast, Undo. Shift+Tab twice returns to the input. Ordinary Tab from the palette input stays there.", "Compare the dialog-over-palette, palette-over-sheet, lost-focus and host-close states; the readout hit-tests the toast above the backdrop."],
+      states: ["default", "tab", "dialog", "palette", "dialog-over-palette", "palette-over-sheet", "focus-lost", "host-close"],
       demo: ({ state }) => <ToastDemo state={state} />,
+    },
+    {
+      id: "composer-contract",
+      name: "The composer contract and refusals",
+      intro: "Complete documented body fragments initialise once in the regression corpus. Acceptance is not validation of arbitrary malformed HTML or proof that arbitrary JavaScript executes.",
+      widths: [1440, 390], scales: [1], height: 900,
+      decisions: [
+        "Both Geist faces stay on every page. Twelve corpus bodies are byte-identical with the base parts under both composers, fonts on and off.",
+        "An open ordinary HTML element may contain the final script: it need not be a direct child of body. Refused cases name the element or comment and say how to write it. Known limits are in tools/html-skill/README.md.",
+        "Init detection ignores strings and regular expressions. Use a direct unconditional inline HTML call that executes once, or let the composer add it; dynamic or conditional JavaScript is the author's responsibility.",
+      ],
+      tryIt: ["Read each body and its actual refusal message; write HTML in an integration point and put executable scripts in HTML."],
+      demo: () => <div style={col}>{DATA.refusals.map((r) => <div key={r.name}><Text weight="medium">{r.name}</Text><pre style={preStyle}>{r.body}</pre><Text size="sm" tone="secondary">{r.message}</Text></div>)}</div>,
     },
     {
       id: "stage-order",

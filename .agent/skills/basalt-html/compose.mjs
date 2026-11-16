@@ -146,8 +146,10 @@ const JS_TYPE = /^(?:|module|application\/(?:x-)?(?:ecma|java)script|text\/(?:x-
 export function readBody(body, stats = {}) {
   const mark = unusedMark(body);
   const saved = [];
+  const scripts = []; // executable HTML locations, including integration points, excluding inert templates
   const n = body.length;
   const stack = []; // open svg, math and template elements, and what is inside them: { name, kind: "template" | "foreign" | "html", ns, text }
+  let templates = 0;
   stats.frameVisits = 0;
   let out = "";
   let at = 0;
@@ -170,6 +172,9 @@ export function readBody(body, stats = {}) {
   const tagAt = (i) => {
     const tag = readTag(body, i);
     if (!tag.terminated) throw cutOff(`a tag (\`${body.slice(i, i + 24).replace(/\s+/g, " ")}…\`)`);
+    if (!tag.close) for (const [name, value] of tag.attrs) {
+      if (/^on/.test(name) && /\bBasalt\s*\.\s*init\s*\(/.test(stripJsComments(value, true))) throw new Error(`\`<${tag.name}>\` calls Basalt.init() in \`${name}\`: write the init call in an inline HTML script, not an event handler`);
+    }
     return tag;
   };
   let i = 0;
@@ -177,7 +182,10 @@ export function readBody(body, stats = {}) {
     if (h1?.open && !stack.length) h1.text += body.slice(cursor, i);
     const next = body[i + 1];
     if (body.startsWith("<!--", i)) {
-      const e = body.indexOf("-->", i + 2);
+      // Recoverable comment errors have different token boundaries: refuse them rather than swallowing their tail.
+      const ending = /--!?>/.exec(body.slice(i + 4));
+      if (body[i + 4] === '>' || body.slice(i + 4, i + 6) === '->' || ending?.[0] === '--!>') throw new Error("a comment has a nonstandard ending: write <!-- text -->");
+      const e = ending ? i + 4 + ending.index : -1;
       if (e === -1) throw never("a comment");
       comments.push([i, e + 3]);
       if (!stack.length) hold("comment", i, e + 3);
@@ -202,7 +210,9 @@ export function readBody(body, stats = {}) {
         stats.frameVisits++;
         if (stack[k].name === tag.name) { hit = k; break; }
       }
+      if (foreign() && (hit === -1 || stack[hit].ns === "template")) throw new Error(`\`</${tag.name}>\` inside \`<${stack[stack.length - 1].ns}>\` may leave foreign content: close the foreign elements before this HTML end tag`);
       if (hit !== -1) {
+        for (let k = hit; k < stack.length; k++) if (stack[k].kind === "template") templates--;
         stack.length = hit;
         if (!stack.length) hold(fromName, from, tag.end);
       }
@@ -218,20 +228,20 @@ export function readBody(body, stats = {}) {
       if (foreign()) {
         const top = stack[stack.length - 1];
         if (breaksOut(name, tag.attrs)) throw breakout(name, top.ns);
-        const ns = name === "svg" || name === "math" ? name : top.ns;
+        // A spelling does not switch namespaces in foreign content. The dispatcher exception is svg in MathML annotation-xml.
+        const ns = top.ns === "math" && top.name === "annotation-xml" && name === "svg" ? "svg" : top.ns;
+        if (name === "script" && ns === "svg") throw new Error("`<script>` inside `<svg>` is refused: write executable scripts in HTML outside the svg");
         let html = false;
         let text = false;
-        if (name !== "svg" && name !== "math") {
-          if (ns === "svg") html = SVG_HTML_POINTS.has(name);
-          else if (ns === "math") {
-            text = MATH_TEXT_POINTS.has(name);
-            if (name === "annotation-xml") {
-              const encoding = tag.attrs.find((a) => a[0] === "encoding")?.[1] ?? "";
-              if (encoding.includes("&")) throw new Error("`<annotation-xml>` has an `encoding` with a character reference: write the encoding literally (encoding=\"text/html\"), because compose.mjs does not decode references to decide what an element holds");
-              html = /^(?:text\/html|application\/xhtml\+xml)$/i.test(encoding);
-            }
-            html = html || text;
+        if (ns === "svg") html = SVG_HTML_POINTS.has(name);
+        else if (ns === "math") {
+          text = MATH_TEXT_POINTS.has(name);
+          if (name === "annotation-xml") {
+            const encoding = tag.attrs.find((a) => a[0] === "encoding")?.[1] ?? "";
+            if (encoding.includes("&")) throw new Error("`<annotation-xml>` has an `encoding` with a character reference: write the encoding literally (encoding=\"text/html\"), because compose.mjs does not decode references to decide what an element holds");
+            html = /^(?:text\/html|application\/xhtml\+xml)$/i.test(encoding);
           }
+          html = html || text;
         }
         if (!tag.selfClosing) stack.push({ name, kind: html ? "html" : "foreign", ns, text });
         i = cursor = tag.end;
@@ -239,21 +249,25 @@ export function readBody(body, stats = {}) {
       }
       // HTML content: at the top of the body, or inside a template, or inside an integration point
       const top = stack[stack.length - 1];
-      if (top?.text && (name === "mglyph" || name === "malignmark")) throw new Error(`\`<${name}>\` inside \`<${top.name}>\` stays MathML, which compose.mjs does not follow: write it outside the MathML text element`);
+      if (top?.text && (name === "mglyph" || name === "malignmark")) throw new Error(`\`<${name}>\` inside \`<${top.name}>\` stays MathML, which compose.mjs does not follow: use a complete MathML fragment without this text-point exception, or put HTML in <annotation-xml encoding="text/html">`);
       if (name === "svg" || name === "math" || name === "template") {
         if (name === "template" || !tag.selfClosing) {
           if (!stack.length) { from = i; fromName = name; }
           stack.push({ name, kind: name === "template" ? "template" : "foreign", ns: name, text: false });
+          if (name === "template") templates++;
         }
         i = cursor = tag.end;
         continue;
       }
       if (name === "plaintext") throw new Error("`<plaintext>` is refused: it makes the rest of the page text, so compose.mjs's own script and closing tags would be shown as text");
       if (name === "script") {
+        if (tag.attrs.find((a) => a[0] === "type")?.[1].includes("&")) throw new Error('`<script>` has an encoded type: write the type literally (type="text/javascript")');
         const e = scriptEnd(body, tag.end);
         if (e === -1) throw never("`<script>`");
         const end = tagAt(e).end;
-        if (!stack.length) hold("script", i, end, body.slice(tag.end, e), tag.attrs);
+        const inner = body.slice(tag.end, e);
+        if (!templates) scripts.push({ inner, attrs: tag.attrs });
+        if (!stack.length) hold("script", i, end, inner, tag.attrs);
         i = cursor = end;
       } else if (RAW_TEXT.has(name) || RCDATA.has(name)) {
         const e = textEnd(body, name, tag.end);
@@ -277,7 +291,7 @@ export function readBody(body, stats = {}) {
   const placeholder = new RegExp(`${mark}(\\d+)${mark}(\\s*)`, "g");
   const blank = (item) => { let text = item.text; for (const [a, b] of [...item.comments].reverse()) text = text.slice(0, a) + " " + text.slice(b); return text; };
   return {
-    text: out, saved, placeholder, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
+    text: out, saved, scripts, placeholder, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
     // The text put back; with `bare`, as detection reads it: no comment (an HTML one, or one in a nested element, or in a script).
     restore: (s, bare = false) => s.replace(placeholder, (_, k, ws) => {
       const item = saved[Number(k)];
@@ -332,8 +346,10 @@ function classesIn(text) {
 /**
  * JavaScript with its comments taken out. Strings, template literals and regular expressions are copied whole, so a `//` in a URL or a quote in a
  * regular expression is not mistaken for a comment or a string. Each comment becomes one space (or the line's end), so two words never join.
+ * With maskLiterals, quoted text is replaced by a literal zero and spaces for lexical init detection. This is not a JavaScript parser (README: Known limits).
  */
-export function stripJsComments(code) {
+export function stripJsComments(code, maskLiterals = false) {
+  const literal = (text) => maskLiterals ? "0" + " ".repeat(Math.max(0, text.length - 1)) : text;
   let out = "";
   let i = 0;
   const n = code.length;
@@ -351,7 +367,7 @@ export function stripJsComments(code) {
     } else if (c === '"' || c === "'") {
       let j = i + 1;
       while (j < n && code[j] !== c && code[j] !== "\n") j += code[j] === "\\" ? 2 : 1;
-      out += code.slice(i, j + 1);
+      out += literal(code.slice(i, j + 1));
       i = j + 1;
     } else if (c === "`") {
       // A template literal, with `${ }` nested: copied whole, comments inside an expression included.
@@ -361,7 +377,7 @@ export function stripJsComments(code) {
         if (code[j] === "\\") j += 2;
         else if (code[j] === "$" && code[j + 1] === "{") { depth++; j += 2; } else if (code[j] === "}" && depth > 0) { depth--; j++; } else if (code[j] === "`" && depth > 0) { const end = code.indexOf("`", j + 1); j = end === -1 ? n : end + 1; } else j++;
       }
-      out += code.slice(i, j + 1);
+      out += literal(code.slice(i, j + 1));
       i = j + 1;
     } else if (c === "/") {
       const before = out.trimEnd();
@@ -374,7 +390,7 @@ export function stripJsComments(code) {
           else if (code[j] === "]") inClass = false;
           j++;
         }
-        out += code.slice(i, j + 1);
+        out += literal(code.slice(i, j + 1));
         i = j + 1;
       } else { out += c; i++; }
     } else { out += c; i++; }
@@ -470,7 +486,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   ].join("");
   // The body may make the init call itself (to pass palette items that run code); otherwise it is made at the end.
   // Only the page's own executable scripts (the tokenizer says which they are) can call it: text, an attribute or a script of another type that mentions the call does not.
-  const callsInit = held.saved.some((item) => item.kind === "script" && JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase()) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\.\s*init\s*\(/.test(stripJsComments(item.inner)));
+  const callsInit = held.scripts.some((item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase()) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\.\s*init\s*\(/.test(stripJsComments(item.inner, true)));
 
   const html = [
     "<!doctype html>",

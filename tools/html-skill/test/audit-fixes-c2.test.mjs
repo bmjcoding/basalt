@@ -1,5 +1,5 @@
 // The fourth audit fix batch's HTML-skill half (stream components-nov14): compose.mjs on the bodies it got wrong (A5-03, A5-09), the head a body can carry
-// (A5-07), Geist Mono only where a page can draw it (A1-06), the notification list's escaped status and every module's hostile fields (A5-10), the toast's F6
+// (A5-07), both Geist faces retained on every page, the notification list's escaped status and every module's hostile fields (A5-10), the toast's F6
 // route (A3-09), the labelled profile list (A3-13), a Tab into the top bar not scrolling the page (row 11), the stage's art after its content (A1-09) and what a
 // composed page needs from a Content-Security-Policy (A5-17). Each test fails on the commit before the fix. The React half is
 // packages/react/test/audit-fixes-c2.test.mjs. Synthetic data only.
@@ -13,8 +13,9 @@ import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { compose, headTag, readBody } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { fixturePage, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
+import { fixturePage, freezeAnimations, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
 import { hostileBody } from "./support-hostile.mjs";
+import { C2_ACCEPTED, C2_REFUSALS } from "./support-c2-cases.mjs";
 import { EXAMPLES, here, launch, openHtml, read, skillDir } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -34,6 +35,12 @@ const frames = (p, n = 3) => p.evaluate((count) => new Promise((resolve) => { le
 // ---- A5-03 and A5-09: compose.mjs on the audit's 15 bodies ----
 
 describe("compose.mjs on bodies it used to get wrong (A5-03, A5-09)", () => {
+  for (const [name, body, message] of C2_REFUSALS.slice(0, 8)) test(`Sol build: ${name} has an explicit refusal`, () => {
+    assert.throws(() => page(body), message);
+  });
+  test("Sol build: init in strings, templates and regular expressions does not suppress the suffix", () => {
+    for (const body of C2_ACCEPTED.slice(0, 4)) assert.match(page(body).html, /<script>Basalt\.init\(\);<\/script>\n<\/body>/, body);
+  });
   test("an inline svg's title names the picture, not the page; the page's title is the h1 (A5-03)", () => {
     const { html } = page(bad("svg-title"));
     assert.equal(titleOf(html), "Quarterly report");
@@ -401,6 +408,7 @@ describe("F6 reaches the notifications region (A3-09)", () => {
 
   test("with no toast F6 is left to the browser, and the timers are held while focus is in the stack", async () => {
     const { page: p, context } = await open();
+    const clock = await freezeAnimations(p);
     const f6 = () => p.evaluate(() => { const e = new KeyboardEvent("keydown", { key: "F6", bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; });
     assert.equal(await f6(), false, "no toast, nothing taken");
     await p.evaluate(() => { Basalt.toast({ title: "Echo", home: "page", timeout: 500 }); });
@@ -408,7 +416,7 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     assert.equal(await f6(), true, "with one, F6 is the page's");
     await p.locator("#open").focus();
     await p.keyboard.press("F6");
-    await p.waitForTimeout(900);
+    await clock.advance(900);
     assert.equal(await p.locator(".toast").count(), 1, "focus in the stack holds its clock, as hover does");
     await context.close();
   });
@@ -443,7 +451,7 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     assert.equal(react, skill, `React's Shift+Tab lands on ${react}`);
   });
 
-  // The toast region follows focus: it is in the modal that holds focus (a dialog or a sheet), or in the body for the palette, however the modals were opened and closed.
+  // The toast follows the live native modal, including the palette, and retains that host while document focus is lost.
   // Each sequence runs in the skill and in React, and both must reach the region with F6, go back with Shift+Tab, and paint the toast above the top modal's backdrop.
   const MODALS = `<dialog class="panel float modal dialog" id="d1" aria-label="One"><h2 class="dialog-title">One</h2><input class="input" id="i1" aria-label="One"></dialog><dialog class="panel float modal dialog" id="d2" aria-label="Two"><h2 class="dialog-title">Two</h2><input class="input" id="i2" aria-label="Two"></dialog>
     <dialog class="panel float modal dialog" id="d3" aria-label="Three"><h2 class="dialog-title">Three</h2><input class="input" id="i3" aria-label="Three"></dialog><dialog class="panel float modal sheet" id="s" data-side="right" aria-label="Sheet"><h2 class="dialog-title">Sheet</h2><input class="input" id="si" aria-label="Sheet"></dialog>`;
@@ -452,11 +460,12 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     d1: () => Basalt.openDialog("#d1"), d2: () => Basalt.openDialog("#d2"), d3: () => Basalt.openDialog("#d3"), s: () => Basalt.openDialog("#s"),
     p: () => Basalt.openPalette({ groups: [{ label: "G", items: [{ label: "Alpha" }, { label: "Beta" }] }] }),
     reopen1: () => { document.querySelector("#d1").close(); Basalt.openDialog("#d1"); },
+    blur: () => document.activeElement.blur(),
   };
   const REACT_APP = `function Overlays() {
     const [o1, s1] = React.useState(false), [o2, s2] = React.useState(false), [o3, s3] = React.useState(false), [os, ss] = React.useState(false), [op, sp] = React.useState(false);
     const t = B.useToast();
-    React.useEffect(() => { window.ops = { toast: () => t.show({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } }), d1: () => flushSync(() => s1(true)), d2: () => flushSync(() => s2(true)), d3: () => flushSync(() => s3(true)), s: () => flushSync(() => ss(true)), p: () => flushSync(() => sp(true)), reopen1: () => { flushSync(() => s1(false)); flushSync(() => s1(true)); } }; }, [t]);
+    React.useEffect(() => { window.ops = { toast: () => t.show({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } }), d1: () => flushSync(() => s1(true)), d2: () => flushSync(() => s2(true)), d3: () => flushSync(() => s3(true)), s: () => flushSync(() => ss(true)), p: () => flushSync(() => sp(true)), reopen1: () => { flushSync(() => s1(false)); flushSync(() => s1(true)); }, blur: () => document.activeElement.blur(), close1: () => flushSync(() => s1(false)), closeS: () => flushSync(() => ss(false)) }; }, [t]);
     const dialog = (open, set, id, name) => <B.Dialog open={open} onOpenChange={set}><B.DialogContent><B.DialogTitle>{name}</B.DialogTitle><B.DialogDescription>d</B.DialogDescription><B.Input id={id} aria-label={name} /></B.DialogContent></B.Dialog>;
     return <><B.CommandMenu open={op} onOpenChange={sp} groups={[{ label: "G", commands: [{ id: "a", label: "Alpha" }, { id: "b", label: "Beta" }] }]} />{dialog(o1, s1, "i1", "One")}{dialog(o2, s2, "i2", "Two")}{dialog(o3, s3, "i3", "Three")}
       <B.Sheet open={os} onOpenChange={ss}><B.SheetContent side="right"><B.SheetTitle>Sheet</B.SheetTitle><B.SheetDescription>d</B.SheetDescription><B.Input id="si" aria-label="Sheet" /></B.SheetContent></B.Sheet></>;
@@ -471,25 +480,35 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     "a palette over two dialogs": { ops: ["toast", "d1", "d2", "p"], target: ".palette input, .basalt-command-input" },
     "a palette over two dialogs, the toast raised after it": { ops: ["d1", "d2", "p", "toast"], target: ".palette input, .basalt-command-input" },
     "two siblings opened in the other order than they stand": { ops: ["toast", "d2", "d1"], target: "#i1" },
+    "Sol build: lost focus in a modal": { ops: ["d2", "d1", "blur", "toast"], target: "#i1", lost: true },
+    "Sol build: lost focus with a palette over dialogs and a sheet": { ops: ["d1", "d2", "s", "p", "blur", "toast"], target: ".palette input, .basalt-command-input", lost: true },
+    "Sol build: a sheet over a dialog over a palette": { ops: ["toast", "p", "d1", "s"], target: "#si" },
+    "Sol build: a dialog opened over an open palette": { ops: ["toast", "p", "d1"], target: "#i1" },
   };
   for (const [name, c] of Object.entries(SEQUENCES)) {
     test(`F6 reaches the toast, Shift+Tab goes back, and the toast is above the backdrop, with ${name}, as in React`, async () => {
       const BODY = `<title>Overlays</title><!-- basalt:use toast dialog sheet palette --><main class="page"><h1>Overlays</h1></main>${MODALS}<script>Basalt.init();</script>`;
       const { page: s, context } = await openHtml(browser, compose(BODY, { fonts: false }).html);
       for (const op of c.ops) { await s.evaluate(`(${SKILL_OPS[op]})()`); await frames(s, 2); }
-      await s.locator(c.target).first().focus();
+      await settle(s);
       const aboveS = await s.evaluate(() => { const r = document.querySelector(".toast").getBoundingClientRect(); return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest(".toast"); });
+      if (!c.lost) await s.locator(c.target).first().focus();
       await s.keyboard.press("F6");
       const skillRegion = await s.evaluate(() => document.activeElement.className);
       await s.keyboard.press("Shift+Tab");
       const skillBack = await s.evaluate((sel) => document.activeElement.matches(sel), c.target);
       await context.close();
       const { page: r } = await fixturePage(reactBrowser, `import { flushSync } from "react-dom";\n${REACT_APP}`, { theme: "dark" });
-      for (const op of c.ops) { await r.evaluate((o) => window.ops[o](), op); await r.waitForTimeout(120); }
+      for (const op of c.ops) { await r.evaluate((o) => window.ops[o](), op); await settle(r); }
       const reactTarget = c.reactTarget ?? c.target;
       await r.locator(reactTarget).first().waitFor();
-      await r.locator(reactTarget).first().focus();
       const aboveR = await r.evaluate(() => { const r = document.querySelector(".basalt-toast").getBoundingClientRect(); return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest(".basalt-toast"); });
+      if (c.lost) {
+        await r.keyboard.press("F6");
+        assert.equal(await r.evaluate(() => document.activeElement.className), "basalt-toast-viewport", "React reaches its region even after focus is lost");
+      }
+      // React remembers BODY after blur; the skill keeps its last modal control. Compare the ordinary return route from the control.
+      await r.locator(reactTarget).first().focus();
       await r.keyboard.press("F6");
       const reactRegion = await r.evaluate(() => document.activeElement.className);
       await r.keyboard.press("Shift+Tab");
@@ -504,7 +523,7 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     });
   }
 
-  test("with a palette open, F6 then Tab reaches the toast and its action, Shift+Tab or Escape returns to the palette's input, and an ordinary Tab from the input never leaves the palette, as in React", async () => {
+  test("with a palette open, F6, Tab and Shift+Tab agree with React; Escape returns to the skill input and records React's menu closure", async () => {
     const BODY = `<title>Palette</title><!-- basalt:use toast palette --><main class="page"><h1>Palette</h1><button class="btn" id="open">Open</button></main><script>Basalt.init();</script>`;
     const names = (page, viewportClass) => page.evaluate((vp) => { const a = document.activeElement; return a.className === vp ? "region" : a.classList.contains(vp.replace("viewport", "")) || /toast$/.test(a.className.split(" ")[0]) ? "toast" : a.tagName === "BUTTON" && /Undo/.test(a.textContent) ? "action" : a.tagName === "INPUT" ? "input" : `${a.tagName}.${a.className}`; }, viewportClass);
     const walk = async (page, vp, press) => {
@@ -530,14 +549,26 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     await s.keyboard.press("Escape");
     assert.equal(regionThenEscape, "toast-viewport");
     const skillEscape = await s.evaluate(() => [document.activeElement.tagName, !!document.querySelector(".palette")]);
+    await s.keyboard.press("F6"); await s.keyboard.press("Tab"); await s.keyboard.press("Tab");
+    await s.keyboard.press("Escape");
+    await s.locator(".toast").waitFor({ state: "detached" });
+    assert.deepEqual(await s.evaluate(() => [document.activeElement.tagName, !!document.querySelector(".palette")]), ["INPUT", true], "Escape from a toast action dismisses the toast and returns to the palette without closing the palette or its modal host");
     await context.close();
     const { page: r } = await fixturePage(reactBrowser, REACT_APP.replace("flushSync", "flushSync"), { theme: "dark" });
     await r.evaluate(() => window.ops.toast());
     await r.locator(".basalt-toast").first().waitFor();
     await r.evaluate(() => window.ops.p());
     await r.locator(".basalt-command-input").waitFor();
-    await r.waitForTimeout(200);
+    await settle(r);
     const react = await walk(r, "basalt-toast-viewport", (k) => r.keyboard.press(k));
+    await r.keyboard.press("F6"); await r.keyboard.press("Escape"); await settle(r);
+    await r.locator(".basalt-command").waitFor({ state: "detached" });
+    assert.equal(await r.locator(".basalt-command").count(), 0, "React currently closes its menu from the region's Escape: recorded in Known limits");
+    await r.evaluate(() => window.ops.p()); await settle(r);
+    await r.keyboard.press("F6"); await r.keyboard.press("Tab"); await r.keyboard.press("Tab");
+    await r.keyboard.press("Escape"); await settle(r);
+    await r.locator(".basalt-command").waitFor({ state: "detached" });
+    assert.equal(await r.locator(".basalt-command").count(), 0, "React currently closes its menu from an action's Escape: a recorded difference, not the region's return route");
     await r.close();
     assert.deepEqual(skill.slice(0, 3), ["region", "toast", "action"], "F6, Tab, Tab: the region, the toast, its action");
     assert.deepEqual(react.slice(0, 3), ["region", "toast", "action"], "React's: the same");
@@ -546,6 +577,110 @@ describe("F6 reaches the notifications region (A3-09)", () => {
     assert.deepEqual(skill.slice(5), ["input", "input"], "an ordinary Tab from the input never leaves the palette");
     assert.deepEqual(skillEscape, ["INPUT", true], "Escape from the region goes back to the input and the palette stays");
   });
+
+  test("Sol build: toast keys retain their real isComposing value for app listeners, as in React", async () => {
+    for (const react of [false, true]) {
+      const opened = react
+        ? await fixturePage(reactBrowser, `import { flushSync } from "react-dom";\n${REACT_APP}`, { theme: "dark" })
+        : await openHtml(browser, page(`<title>Events</title><!-- basalt:use toast palette --><button>Open</button>`).html);
+      const p = opened.page;
+      await p.evaluate((r) => { if (r) { window.ops.p(); window.ops.toast(); } else { Basalt.openPalette({ groups: [{ items: [{ label: "Alpha" }, { label: "Beta" }] }] }); Basalt.toast({ title: "Saved" }); } }, react);
+      await settle(p);
+      await p.keyboard.press("F6");
+      await p.evaluate(() => {
+        window.keys = [];
+        for (const capture of [true, false]) document.addEventListener("keydown", (e) => window.keys.push([capture, e.key, e.isComposing, Object.hasOwn(e, "isComposing")]), capture);
+      });
+      await p.keyboard.press("ArrowDown");
+      assert.deepEqual(await p.evaluate(() => window.keys), [[true, "ArrowDown", false, false], [false, "ArrowDown", false, false]], react ? "React" : "skill");
+      assert.equal(await p.evaluate(() => document.activeElement.getAttribute("role")), "region", "palette navigation does not steal a toast key");
+      if (opened.context) await opened.context.close(); else await p.close();
+    }
+  });
+
+  test("Sol build: a dialog above a palette owns its keys, and closing it resumes the palette, as in React", async () => {
+    for (const react of [false, true]) {
+      const opened = react
+        ? await fixturePage(reactBrowser, REACT_APP, { theme: "dark" })
+        : await openHtml(browser, page(`<title>Stack</title><!-- basalt:use palette dialog toast --><button>Open</button>${MODALS}`).html);
+      const p = opened.page;
+      await p.evaluate((r) => { if (r) window.ops.p(); else Basalt.openPalette({ groups: [{ items: [{ label: "Alpha" }, { label: "Beta" }] }] }); }, react);
+      const input = react ? ".basalt-command-input" : ".palette input";
+      await p.waitForFunction((sel) => document.querySelector(sel)?.hasAttribute("aria-activedescendant"), input, { timeout: 3000 });
+      await p.evaluate((r) => { if (r) window.ops.d1(); else Basalt.openDialog("#d1"); }, react);
+      await settle(p);
+      await p.waitForFunction(() => document.activeElement.id === "i1", null, { timeout: 3000 });
+      const selected = () => p.locator(input).getAttribute("aria-activedescendant");
+      const first = await selected();
+      await p.keyboard.press("ArrowDown");
+      assert.equal(await selected(), first, "a key in the dialog does not navigate the underlying palette");
+      await p.keyboard.press("Tab");
+      await p.waitForFunction(() => document.activeElement.id === "i1", null, { timeout: 3000 });
+      assert.equal(await p.evaluate(() => document.activeElement.id), "i1", "Tab stays in the dialog's only control");
+      await p.keyboard.press("Escape"); await settle(p);
+      assert.equal(await p.locator(input).evaluate((el) => el === document.activeElement), true, "closing the dialog restores the palette input");
+      await p.keyboard.press("ArrowDown");
+      assert.notEqual(await selected(), first, "the palette's navigation resumes");
+      await p.keyboard.press("Escape"); await settle(p);
+      assert.equal(await p.locator(input).count(), 0, "the palette then closes normally");
+      if (opened.context) await opened.context.close(); else await p.close();
+    }
+  });
+
+  for (const scheme of ["dark", "light"]) for (const width of [1440, 390]) for (const host of ["dialog", "sheet"]) {
+    test(`Sol build: a palette from a ${host} resets its depth, escapes clipping, and closes with its host (${scheme}, ${width}), beside React`, async () => {
+      const BODY = `<title>Hosted palette</title><!-- basalt:use palette toast dialog sheet --><button class="btn" id="open">Open</button><dialog class="panel float modal ${host}" data-side="right" id="host" aria-label="Host"><h2 class="dialog-title">Host</h2><input class="input" id="host-input" aria-label="Host input"></dialog>`;
+      const { page: s, context } = await openHtml(browser, page(BODY).html, { scheme, width, deviceScaleFactor: 2 });
+      s.setDefaultTimeout(5000);
+      const probe = (p, palette, band) => p.evaluate(([sel, child]) => {
+        const d = document.querySelector(sel), b = document.querySelector(child), r = d.getBoundingClientRect();
+        return { box: [r.x, r.y, r.width, r.height], panel: getComputedStyle(d).backgroundColor, band: getComputedStyle(b).backgroundColor,
+          hit: [r.left + 3, r.right - 3].every((x) => d.contains(document.elementFromPoint(x, r.top + 8))) };
+      }, [palette, band]);
+      const openPalette = () => s.evaluate(() => { window.p = Basalt.openPalette({ groups: [{ items: [{ label: "Alpha" }, { label: "Beta" }] }] }); });
+      await openPalette();
+      const standalone = await probe(s, ".palette", ".palette .input-row");
+      assert.ok(Math.abs(standalone.box[1] - Math.max(16, (width === 390 ? 844 : 900) * 0.12)) < 0.02, "the approved palette top is 12vh (at least 16px), even when dialog.css is loaded");
+      await s.evaluate(() => { window.p.close(); document.querySelector("#open").focus(); Basalt.openDialog("#host"); });
+      await settle(s);
+      await openPalette();
+      assert.deepEqual(await probe(s, ".palette", ".palette .input-row"), standalone, "hosting changes neither depth nor viewport position and does not clip the panel");
+      await s.screenshot({ path: path.join(here, "../../../.review/sol-c2", `palette-${host}-${scheme}-${width}.png`) });
+      await s.evaluate(() => { Basalt.toast({ title: "Saved" }); });
+      await s.keyboard.press("F6");
+      await s.evaluate(() => { document.querySelector("#host").close(); });
+      await s.locator(".palette").waitFor({ state: "detached" });
+      await s.waitForFunction(() => document.activeElement.id === "open");
+      assert.equal(await s.locator(".toast-viewport").evaluate((v) => v.matches(":popover-open") && v.parentElement === document.body), true, "the toast survives removal of its modal host");
+      await s.keyboard.press("Tab");
+      assert.equal(await s.locator(".palette").count(), 0, "the palette has no remaining focus trap");
+      await context.close();
+
+      const jsx = `function Hosted() {
+        const [host, setHost] = React.useState(false), [palette, setPalette] = React.useState(false); const t = B.useToast();
+        React.useEffect(() => { window.ops = { host: () => flushSync(() => setHost(true)), palette: () => flushSync(() => setPalette(true)), close: () => flushSync(() => { setHost(false); setPalette(false); }), toast: () => t.show({ title: "Saved" }) }; }, [t]);
+        const menu = <B.CommandMenu open={palette} onOpenChange={setPalette} groups={[{ commands: [{ id: "a", label: "Alpha" }, { id: "b", label: "Beta" }] }]} />;
+        return <><button id="open">Open</button>${host === "sheet"
+          ? '<B.Sheet open={host} onOpenChange={setHost}><B.SheetContent side="right"><B.SheetTitle>Host</B.SheetTitle><B.SheetDescription>d</B.SheetDescription><B.Input id="host-input" aria-label="Host input" />{host && menu}</B.SheetContent></B.Sheet>'
+          : '<B.Dialog open={host} onOpenChange={setHost}><B.DialogContent><B.DialogTitle>Host</B.DialogTitle><B.DialogDescription>d</B.DialogDescription><B.Input id="host-input" aria-label="Host input" />{host && menu}</B.DialogContent></B.Dialog>'}{!host && menu}</>;
+      } createRoot(document.getElementById("root")).render(<B.ToastProvider><Hosted /></B.ToastProvider>);`;
+      const { page: r } = await fixturePage(reactBrowser, `import { flushSync } from "react-dom";\n${jsx}`, { theme: scheme, viewport: { width, height: 900 } });
+      await r.evaluate(() => window.ops.palette()); await settle(r);
+      const base = await probe(r, ".basalt-command", ".basalt-command-search");
+      await r.keyboard.press("Escape"); await settle(r);
+      await r.locator("#open").focus();
+      await r.evaluate(() => window.ops.host()); await settle(r);
+      await r.evaluate(() => window.ops.palette()); await settle(r);
+      assert.deepEqual(await probe(r, ".basalt-command", ".basalt-command-search"), base, "React also resets depth and escapes its host's clipping");
+      await r.evaluate(() => window.ops.toast()); await settle(r);
+      await r.keyboard.press("F6");
+      await r.evaluate(() => window.ops.close()); await settle(r);
+      assert.equal(await r.locator(".basalt-command").count(), 0, "React's hosted menu unmounts with its host");
+      await r.keyboard.press("F6");
+      assert.equal(await r.evaluate(() => document.activeElement.className), "basalt-toast-viewport", "React's toast also survives the host closing");
+      await r.close();
+    });
+  }
 
   test("it is what React does: F6 on the region, and Shift+Tab back (a parity entry beside parity-4's overlay behaviour)", async () => {
     const { page: r } = await fixturePage(reactBrowser, `function Probe(){const t=B.useToast();React.useEffect(()=>{window.t=t},[t]);return null}
@@ -763,7 +898,7 @@ describe("a composed page runs under the policy the README gives, with no violat
         assert.equal(await p.evaluate(() => document.documentElement.getAttribute("data-theme")), "dark", "the theme bootstrap ran");
         await p.locator("[data-theme-toggle]").first().click();
         assert.equal(await p.evaluate(() => document.documentElement.getAttribute("data-theme")), "light", "and the toggle's script");
-        if (name === "interactive") { await p.keyboard.press("Control+k"); await p.waitForTimeout(300); await p.keyboard.press("Escape"); await p.getByRole("tab").nth(1).click(); }
+        if (name === "interactive") { await p.keyboard.press("Control+k"); await p.locator(".palette input").waitFor(); await p.keyboard.press("Escape"); await p.locator(".palette").waitFor({ state: "detached" }); await p.getByRole("tab").nth(1).click(); }
         assert.ok(await p.evaluate(() => document.querySelectorAll("svg.icon").length) > 0, "the script drew its icons");
       });
       assert.deepEqual([violations, seen], [[], []]);
@@ -790,9 +925,16 @@ describe("a composed page runs under the policy the README gives, with no violat
 });
 
 
-// ---- Whatever the composer accepts, the page's own script runs last ----
+// ---- The documented fragment contract: init runs once for the corpus; each refusal has a diagnostic ----
 
-describe("for every body the composer accepts, the composed page's last script is the composer's own, and the page's init ran (A5-09)", () => {
+describe("the documented composer contract over every regression body (A5-09)", () => {
+  test("Sol build: the known JavaScript limit leaves an author-owned conditional init to the author", async () => {
+    const html = page('<h1>Conditional</h1><script>Basalt._.step(999, "probe", () => window.inited = true); if (false) Basalt.init();</script>').html;
+    assert.ok(!/<script>Basalt\.init\(\);<\/script>/.test(html), "recognition does not prove that the author's call executes");
+    const { page: p, context } = await openHtml(browser, html);
+    assert.equal(await p.evaluate(() => window.inited ?? false), false, "this accepted but out-of-contract script did not initialise the page");
+    await context.close();
+  });
   const PROBES = [
     "", "<h1>x</h1>", '<h1>Report</h1><p data-example="<script>">Text</p>', "<title>Using <svg> in HTML</title><h1>Guide</h1>", "<h1>Guide</h1><textarea><script></textarea>",
     '<h1>Guide</h1><template><script>const example="</template>";</script><style>.inside{color:red}</style><title>Inside</title></template>', "<h1>Guide</h1><svg><![CDATA[</svg><style>.inside{fill:red}</style>]]></svg>",
@@ -802,9 +944,7 @@ describe("for every body the composer accepts, the composed page's last script i
     "<script>var a = 1;</script\t><style>.a{}</style\f><p>x</p>", "<xmp><script></xmp><iframe><style></iframe><noembed><!--</noembed>", '<meta name="description" content="x"><h1>x</h1>', "<h1>Report</h1><!-- note --><p>x</p>", "<svg/><template><p>x</p></template><p>y</p>",
     // Sol's second re-check: accepted (and the init runs once) or refused
     "<h1>How to call Basalt.init()</h1>", '<p title="Basalt.init()">Text</p>', '<script type="text/plain">Basalt.init()</script>', '<svg><foreignObject><p>x</p></foreignObject></svg>', '<math><annotation-xml encoding="text/html"><p>x</p></annotation-xml></math>', "<math><mi><b>x</b></mi></math>",
-    // refused: they never reach the page
-    "<h1>Before</h1><svg><p><script>const x=1;</svg>", '<math><annotation-xml encoding="text&#x2f;html"><script>x</annotation-xml></math>', "<math><mi><mglyph><style></math><script type=text/plain></style></mglyph></mi></math>", "<math><mi><mglyph><![CDATA[2 > 1; <script>]]></mglyph></mi></math>",
-    '<h1>Before</h1><p title="never', "<h1>Before</h1><script>window.__x=1</script ", "<h1>Before</h1><plaintext>text", "<h1>x</h1><script>var a = 1;</script >", "<h1>x</h1><noscript><p>x",
+    ...C2_ACCEPTED,
   ];
   const fixtures = fs.readdirSync(path.join(here, "fixtures")).filter((f) => f.endsWith(".body.html")).map((f) => fixture(f));
   const bad = fs.readdirSync(path.join(here, "fixtures", "compose-bad")).filter((f) => f.endsWith(".body.html")).map((f) => fs.readFileSync(path.join(here, "fixtures", "compose-bad", f), "utf8"));
@@ -812,9 +952,12 @@ describe("for every body the composer accepts, the composed page's last script i
   test("the two examples, every fixture, the audit's 15 bodies and every probe", async () => {
     let accepted = 0;
     let refused = 0;
-    for (const body of [EXAMPLES.static, EXAMPLES.interactive, ...fixtures, ...bad, ...PROBES]) {
-      let composed;
-      try { composed = compose(body, { fonts: false }); } catch { refused++; continue; }
+    const refusals = new Map(C2_REFUSALS.map(([, body, message]) => [body, message]));
+    for (const [name, message] of [["pre-doc", /whole page.*body fragment/], ["unclosed-script", /script.*never closed/], ["unclosed-style", /style.*never closed/], ["unclosed-comment", /comment.*never closed/]]) refusals.set(fs.readFileSync(path.join(here, "fixtures", "compose-bad", name + ".body.html"), "utf8"), message);
+    for (const body of [EXAMPLES.static, EXAMPLES.interactive, ...fixtures, ...bad, ...PROBES, ...C2_REFUSALS.map(([, body]) => body)]) {
+      const refusal = refusals.get(body);
+      if (refusal) { assert.throws(() => compose(body, { fonts: false }), refusal, body); refused++; continue; }
+      const composed = compose(body, { fonts: false });
       accepted++;
       const context = await browser.newContext({ viewport: { width: 1000, height: 700 } });
       const p = await context.newPage();
@@ -824,13 +967,12 @@ describe("for every body the composer accepts, the composed page's last script i
       });
       await context.route("https://basalt.test/", (route) => route.fulfill({ contentType: "text/html", body: composed.html }));
       await p.goto("https://basalt.test/");
-      await p.waitForTimeout(50);
       const seen = await p.evaluate(() => ({ inits: window.__inits ?? 0, last: document.scripts[document.scripts.length - 1]?.textContent, parent: document.scripts[document.scripts.length - 1]?.parentElement?.tagName }));
       const own = /<script>Basalt\.init\(\);<\/script>\n<\/body>/.test(composed.html);
-      assert.ok(own ? seen.inits === 1 : seen.inits >= 1, `${JSON.stringify(body.slice(0, 70))}: the page's init ran${own ? " once" : ""} (${seen.inits})`);
-      if (own) assert.deepEqual([seen.last, seen.parent], ["Basalt.init();", "BODY"], `${JSON.stringify(body.slice(0, 70))}: the last script is the composer's own`);
+      assert.equal(seen.inits, 1, `${JSON.stringify(body.slice(0, 70))}: the page's init ran once`);
+      if (own) assert.equal(seen.last, "Basalt.init();", `${JSON.stringify(body.slice(0, 70))}: the last script is the composer's own (its parent may be an open ordinary element)`);
       await context.close();
     }
-    assert.ok(accepted >= 40 && refused >= 5, `${accepted} accepted, ${refused} refused`);
+    assert.ok(accepted >= 40 && refused === 23, `${accepted} accepted, ${refused} refused`);
   });
 });

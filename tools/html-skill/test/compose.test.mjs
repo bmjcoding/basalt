@@ -1,14 +1,17 @@
 // compose.mjs and the module split: what a body gets, the budgets, and that the cheat sheet in SKILL.md maps to modules.
 // No browser here (the pixel and parity tests render pages); this file is about what is in the file.
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, test } from "node:test";
 
 import { compose, detect, indexLines, usageText } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { EXAMPLES, read, skillDir } from "./support.mjs";
+import { resolveIncludes } from "../../../sites/build.mjs";
+import { finishHeaders } from "../../../sites/header-markup.mjs";
 
 const manifest = JSON.parse(read(skillDir, "parts", "manifest.json"));
 const modules = Object.keys(manifest.modules);
@@ -20,6 +23,30 @@ const indexSection = skill.slice(skill.indexOf("## Modules"), skill.indexOf("## 
 const usageNames = ["core", ...modules];
 const usageOf = (name) => read(skillDir, "parts", "usage", `${name}.md`);
 const used = (body, options) => compose(body, { fonts: false, ...options }).modules;
+
+test("Sol build: both composers with the same base parts are byte-identical for all 12 corpus bodies, fonts on and off", async () => {
+  // git archive of 450d8c373542eed01bd731ac69fb57178fa5264a's skill. Kept here so shallow CI needs no history or outside archive.
+  const fixtureDir = path.resolve(skillDir, "../../../tools/html-skill/test/fixtures");
+  const root = path.resolve(skillDir, "../../..");
+  const review = path.join(root, ".review");
+  fs.mkdirSync(review, { recursive: true });
+  const dir = fs.mkdtempSync(path.join(review, "c2-identity-"));
+  try {
+    execFileSync("tar", ["-xzf", "-", "-C", dir], { input: fs.readFileSync(path.join(fixtureDir, "compose-main-450d8c3.tar.gz")), timeout: 30_000 });
+    const oldSkill = path.join(dir, ".agent/skills/basalt-html");
+    const old = await import(pathToFileURL(path.join(oldSkill, "compose.mjs")));
+    const bodies = [...Object.entries(EXAMPLES), ...fs.readdirSync(fixtureDir).filter((n) => n.endsWith(".body.html")).map((n) => [n, read(fixtureDir, n)])];
+    for (const file of ["sites/blacksand/index.body.html", ...["brand", "sample", "stage"].map((name) => `sites/test/fixtures/${name}/index.body.html`)]) {
+      const bodyFile = path.join(root, file);
+      bodies.push([file, resolveIncludes(finishHeaders(read(bodyFile), bodyFile), { bodyFile, siteDir: path.dirname(bodyFile), sharedDir: path.join(root, "sites/shared"), brandDir: path.join(root, "brand") }).body]);
+    }
+    assert.equal(bodies.length, 12, "two examples, six skill fixtures and four site bodies");
+    for (const fonts of [true, false]) for (const [name, body] of bodies) {
+      const options = { parts: path.join(oldSkill, "parts"), fonts };
+      assert.equal(compose(body, options).html, old.compose(body, options).html, `${name}, fonts ${fonts ? "on" : "off"}`);
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
 
 describe("what a body gets", () => {
   test("a body with no components gets the core alone, no icons, and the init call", () => {

@@ -219,7 +219,12 @@
       activate(item, o);
     }
 
+    // A native top-layer popover preserves the scrim's drawing and escapes its logical modal host's clipping.
+    var host = opener && opener.closest('dialog[open]');
     var inerted = [];
+    var overflow = document.documentElement.style.overflow;
+    var hostObserver;
+    function hostClosing(e) { if (e.newState === 'closed') close(); }
     var plate = document.createElement('span');
     plate.className = 'plate';
     plate.setAttribute('aria-hidden', 'true');
@@ -230,10 +235,14 @@
       clearTimeout(timer);
       if (unglide) unglide();
       document.removeEventListener('keydown', onKey, true);
+      if (hostObserver) hostObserver.disconnect();
+      if (host) host.removeEventListener('beforetoggle', hostClosing);
+      if (_.toast) _.toast.release(scrim);
+      if (scrim.matches(':popover-open')) scrim.hidePopover();
       scrim.remove();
       inerted.forEach(function (pair) { if (!pair[1]) pair[0].removeAttribute('inert'); });
       inerted = [];
-      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.overflow = overflow;
     }
 
     function close() {
@@ -245,9 +254,9 @@
     }
 
     function onKey(e) {
-      if (!scrim.isConnected) return;
+      if (!scrim.isConnected || !dialog.contains(e.target) || e.target.closest('.toast-viewport')) return;
       syncHints();
-      if (composing(e)) return; // finishing or cancelling a composition is not a command (and a key in the toast stack, which F6 reached, is marked as one: it is the stack's)
+      if (composing(e)) return; // finishing or cancelling a composition is not a command
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
       if (e.key === 'ArrowDown') { e.preventDefault(); if (flat.length) setActive((index + 1) % flat.length); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); if (flat.length) setActive((index - 1 + flat.length) % flat.length); return; }
@@ -270,6 +279,7 @@
       if (row) choose(Number(row.dataset.index));
     });
     scrim.addEventListener('pointerdown', function (e) { if (e.target === scrim) close(); });
+    scrim.addEventListener('toggle', function (e) { if (e.newState === 'closed') close(); });
     input.addEventListener('input', function () { index = 0; render(); });
 
     var api = { close: close, element: dialog };
@@ -277,15 +287,20 @@
     render();
     syncHints();
     try {
-      // Everything outside the dialog is inert while it is open.
-      // Over an open modal it sits inside it (a modal blocks everything outside it, focus included) and the rest of that modal is inert.
-      var host = document.activeElement.closest('dialog[open]') || document.body;
-      [].forEach.call(host.children, function (el) {
-        if (el.tagName === 'SCRIPT' || el.id === 'basalt-live') return;
+      // Preserve the page's explicit inert state, but let native dialogs enter the modal stack above us.
+      [].forEach.call((host || document.body).children, function (el) {
+        if (el.tagName === 'DIALOG' || el.tagName === 'SCRIPT' || el.id === 'basalt-live' || el.classList.contains('toast-viewport')) return;
         inerted.push([el, el.hasAttribute('inert')]);
         el.setAttribute('inert', '');
       });
-      host.appendChild(scrim);
+      (host || document.body).appendChild(scrim);
+      // A plain page keeps its original paint/compositing. Only a native modal host needs the top layer to escape clipping and transforms.
+      if (host) { scrim.setAttribute('popover', 'manual'); scrim.showPopover(); }
+      if (host) {
+        host.addEventListener('beforetoggle', hostClosing);
+        hostObserver = new MutationObserver(function () { if (!host.open || !host.isConnected) close(); });
+        hostObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
+      }
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
       unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });

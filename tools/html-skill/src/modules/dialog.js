@@ -30,7 +30,7 @@
     d.addEventListener('pointerdown', function (e) { down = e.target === d && outside(d, e); });
     d.addEventListener('click', function (e) { if (down && e.target === d && outside(d, e) && d.getAttribute('role') !== 'alertdialog') d.close(); down = false; });
     d.addEventListener('keydown', function (e) {
-      if (e.key !== 'Tab') return;
+      if (e.key !== 'Tab' || e.defaultPrevented) return;
       var t = tabbables(d);
       if (!t.length) { e.preventDefault(); d.focus(); return; }
       var first = t[0];

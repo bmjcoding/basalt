@@ -19,6 +19,8 @@
   var blurred = false;
   var hidden = false;
   var NOSCROLL = { preventScroll: true };
+  var modals = []; // focus history, retained when focus is lost to the browser or the document body
+  var prior = null;
   var from = null; // where focus was when F6 took it to the region
 
   function status(o) { return o.status || 'neutral'; }
@@ -69,8 +71,10 @@
     window.addEventListener('focus', function (e) { if (e.target === window) { blurred = false; sync(); } }, true);
     document.addEventListener('visibilitychange', function () { hidden = document.visibilityState === 'hidden'; sync(); });
     hidden = document.visibilityState === 'hidden';
-    // A modal opening or closing, or the palette making the page inert, moves focus: the region is placed from where focus is.
-    new MutationObserver(function () { viewport.removeAttribute('inert'); place(); }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open', 'inert'] });
+    document.addEventListener('focusin', place);
+    // Native focus can leave for browser chrome. Keep the last focused live modal until focus identifies another.
+    new MutationObserver(place).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
+    document.addEventListener('beforetoggle', function (e) { if (e.newState === 'closed') release(e.target); }, true);
   }
 
   function ensureRegion() {
@@ -81,22 +85,29 @@
     document.body.appendChild(alertRegion);
   }
 
-  /**
-   * Toasts stay interactive over a modal, as React's do (their portal is not inside the page the dialog makes inert): the region lives inside the modal that holds focus (a
-   * dialog or a sheet; focus cannot be in an inert one, so that one is the top-most, in whatever order they opened and closed), which the browser leaves live, and in the
-   * body when focus is in none (the palette's backdrop is not in the top layer, and the region is). It is placed from focus when a toast is raised, at F6, and when a modal
-   * opens or closes. Level and place do not change (it is fixed, in the top layer).
-   */
+  /** Focus identifies the live modal; its history supplies the same answer when the document loses focus. */
   function place() {
     if (!viewport) return;
+    modals = modals.filter(function (m) { return m.isConnected && m.matches('dialog:modal,.palette-scrim'); });
     var a = document.activeElement;
-    var m = a && a.closest ? a.closest('dialog.modal[open]') : null;
-    var to = m || document.body;
+    var m = a && a.closest ? a.closest('dialog:modal,.palette-scrim') : null;
+    if (m) { modals = modals.filter(function (x) { return x !== m; }); modals.push(m); }
+    if (a !== document.body && !viewport.contains(a)) prior = a;
+    move(modals[modals.length - 1] || document.body);
+  }
+  function move(to) {
     if (viewport.parentNode === to) return;
     var was = viewport.matches(':popover-open');
     to.appendChild(viewport);
     if (was || items.length) { viewport.showPopover(); resume(); }
   }
+  /** Move before a modal hides or removes its contents; its own focus restoration places us in the next modal. */
+  function release(m) {
+    if (m === viewport) return;
+    if (viewport && m.contains(viewport)) move(document.body);
+    modals = modals.filter(function (x) { return x !== m; });
+  }
+  _.toast = { release: release };
   /** A moved element restarts its animations: each drain line picks up where its clock is. */
   function resume() {
     items.forEach(function (t) {
@@ -238,6 +249,8 @@
     t.el.removeAttribute('data-starting-style');
     t.el.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
+      e.preventDefault(); // the containing native modal must stay open when Escape dismisses a toast action
+      e.stopPropagation();
       var back = from;
       from = null;
       dismiss(t.id);
@@ -337,13 +350,13 @@
   // The announcer exists, empty, before the first toast, so the first result is spoken.
   _.step(140, 'wireToast', function () {
     ensureRegion();
-    // F6 takes focus to the region. This listener is the first on the document in capture, so a key pressed in the stack is marked as a composition's (a key the palette's handler leaves alone, as it does a composition's).
+    ensure(); // observe focus before any modal opens, even if the first toast is raised after focus is lost
+    // Only this module handles keys in the toast stack; the palette checks its own event target.
     document.addEventListener('keydown', function (e) {
-      if (viewport && viewport.contains(document.activeElement)) Object.defineProperty(e, 'isComposing', { value: true });
       if (e.key !== 'F6' || !items.length || e.target === viewport) return;
       e.preventDefault();
-      from = document.activeElement;
       place();
+      if (!viewport.contains(document.activeElement)) from = document.activeElement === document.body && prior && prior.isConnected ? prior : document.activeElement;
       viewport.focus(NOSCROLL);
     }, true);
   });
