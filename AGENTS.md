@@ -93,7 +93,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
 - **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
-  the current page) is its label at 600 (from 400), its width reserved so nothing moves (a label holding a component is reserved too; only words Basalt never sees, or a label that holds a frame, media or a control, keep their weight and move nothing), an icon in it taking its selected form, on the raised pill, the underline or
+  the current page) is its label at 600 (from 400), its width reserved so nothing moves (the live words and icon keep their start edges in segments and tabs; a component is reserved too, but native or component labels holding a control, even a hidden input, a frame, media, canvas, script, style, dialog, template or slot, and words Basalt never sees, keep 400 and are not reserved), an icon in it taking its selected form, on the raised pill, the underline or
   the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
   segments, pagination, table rows, choice cards and pressed toggle buttons). The pill's edge is its hairline and casts no
   shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
@@ -110,6 +110,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
+- **Reservation limits:** native-element width copies are cleaned in props without an observer; opaque components need DOM cleanup and a second live instance, so server HTML can duplicate ids and controls until hydration (permanently without scripts), and an unsafe component can narrow when hydration declines it. The HTML skill still widens resting items once on initialization; build-time reservation and glyphs are a later batch (DECISIONS 150).
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
   full-bleed band holding its own control focuses that control; a band that is itself the link

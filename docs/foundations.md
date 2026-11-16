@@ -159,15 +159,14 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   against its track) and the ink step (2.1 to 2.2:1) support it without carrying it. The information that must reach
   3:1 (1.4.11) is the label, which is text and holds 4.5:1 on its fill at every level. An icon in a chosen
   item draws its selected form (closed and filled), with a label beside it or without one, in the same box, so it moves nothing
-  (decision 145), one centre line with the words, 6px apart, wherever the words sit (beside them, in a span, or with the icon inside
-  that span). The 600 is on the label, not on the item (decision 149), and every label Basalt can draw twice reserves its width and is 600 when chosen: plain text,
+  (decision 145), a 16 by 16 box at size 16, one centre line with the words, 6px apart, wherever the words sit (beside them, in a span, or with the icon inside
+  that span). In a segment or tab the live words and icon keep their start edges inside the reserved width, including a plain label; the spare width sits at the end, so the resting words are no longer recentered. The 600 is on the label, not on the item (decision 149), and every label Basalt can draw twice reserves its width and is 600 when chosen: plain text,
   text with plain elements, icons and components (a Phosphor icon beside words, an app's own small component, words in a span, a tab an
   app draws as a link whose children are its words). The second copy of such a label is there for its width only: it holds no `id`, no
-  `name`, no reference and no submitting control, in the committed DOM after mount and after every update. The narrow case that is not
+  `name`, no reference and no control, in the committed DOM after mount and after every update; native-element copies are cleaned in props and need no observer, while opaque component copies are checked and observed in the DOM. The narrow case that is not
   reserved keeps its weight and moves nothing, and still reads as chosen by its pill, underline or plate and its primary ink: words
-  Basalt never sees (an app's own `render` that supplies them), and a label that holds a frame, media or a control (an `input`, a
-  `button`, a form, including one a component renders), which cannot be drawn twice without a duplicate. In the HTML skill a chosen
-  segment or tab is 600 itself until the script has drawn its label (and with the script off), then the weight sits on the label. The pill is `surface-top`; in dark it is
+  Basalt never sees (an app's own `render` that supplies them), and a label that holds a control (an `input`, including a hidden one, `select`, `textarea`, `button` or form), a frame (`iframe`, `object` or `embed`), media (`video`, `audio` or `canvas`), a script, a style, a dialog, a template or a slot, including one a component renders, which cannot be drawn twice safely; React and the HTML skill share this decline set. In the HTML skill a chosen
+  segment or tab is 600 itself until the script has drawn its label (and with the script off), then the weight sits on the label; a declined label is marked `data-bare` and keeps 400. Its script still widens resting items once on initialization (possibly after a painted frame); the composer reserving labels and drawing glyphs before the first frame is a later batch (decision 150). The pill is `surface-top`; in dark it is
   `surface-top` plus the selected wash, as one solid fill (`#2c2c2c` on a `#111111` track), so a 36px pill in a vertical
   track reads as a pill and not as a wash; in light it is white on the track. **The pill's edge is its hairline and
   nothing else** (`border-hairline`, 1px, no offset and no blur): it sits in the flow, so it casts no shadow. Pagination
@@ -176,6 +175,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   current page are `Highlight` with `HighlightText`, the horizontal tab keeps its `Highlight` underline, and each keeps
   its 600; none draws an outline, so the focus ring shows on the chosen item as on any other, and the current page's box
   shadow is cleared. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+- **Server-rendered component labels (current limit):** opaque components render a second live instance for width, so hard-coded ids and controls can be duplicated in server HTML until hydration (permanently without scripts), and declining an unsafe component at hydration can change 600 to 400 and shift layout; a complete fix needs a larger server-safe reservation contract.
 - **A wash over an opaque fill** (a pinned table's hover and selected washes) is one colour: the wash's colour at its
   own alpha mixed over the fill with `color-mix`, in sRGB, as a browser composites it. It is never a gradient, an image or
   a pseudo-element layer. In a still table a hovered or selected row's wash is on every cell of the row, pinned or not, in React

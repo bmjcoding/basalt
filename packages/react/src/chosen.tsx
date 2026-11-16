@@ -27,8 +27,8 @@ function follow(children: React.ReactNode): React.ReactNode {
 
 // The second copy of a label is there for its width and for nothing else, so it may hold nothing that can be resolved to, found, or submitted.
 const REFERENCES = ["id", "name", "form", "htmlFor", "list", "ref", "aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "aria-activedescendant", "aria-details", "aria-errormessage"];
-// What cannot be copied for its width without loading, playing or submitting something twice.
-const notCopied = (tag: string) => ["iframe", "object", "embed", "script", "style", "video", "audio", "form", "dialog", "template", "slot"].includes(tag);
+// Twin of reserve()'s decline list in tools/html-skill/src/core.js; anything that takes input, submits, loads or plays cannot be copied.
+const UNSAFE = "input,select,textarea,button,form,iframe,object,embed,script,style,video,audio,canvas,dialog,template,slot";
 
 /** Whether the label's content can be copied for its width: text, `Icon`s, plain elements and components. What a component renders is its own, so its copy is checked once it is drawn (see `ReservedLabel`). */
 function copyable(children: React.ReactNode): boolean {
@@ -36,27 +36,32 @@ function copyable(children: React.ReactNode): boolean {
     if (!React.isValidElement<AnyProps>(node)) return true;
     if (isIcon(node)) return true;
     if (node.type === React.Fragment) return copyable(node.props.children);
-    if (typeof node.type === "string" && notCopied(node.type)) return false;
+    if (typeof node.type === "string" && UNSAFE.split(",").includes(node.type)) return false;
     return copyable(node.props.children);
   });
 }
 
-// What a component can render that must never be drawn twice: anything that submits, takes input, loads or plays.
-const UNSAFE = "input, select, textarea, button, form, iframe, object, embed, video, audio, canvas, dialog, template, slot";
 const ATTRIBUTES = ["id", "name", "form", "for", "list", "aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "aria-activedescendant", "aria-details", "aria-errormessage"];
+
+/** Native elements are cleaned in props already; only an opaque component needs the DOM observer. */
+function holdsComponent(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).some((node) => React.isValidElement<AnyProps>(node) && !isIcon(node) &&
+    ((typeof node.type !== "string" && node.type !== React.Fragment) || holdsComponent(node.props.children)));
+}
 
 /**
  * The label's content drawn twice in one grid cell, the second copy for its width. The copy of a plain element or an `Icon` is cleaned in
- * props (`stripped`). The copy of a component is cleaned in the DOM, in a layout effect (so before the first paint) and by an observer
+ * props (`stripped`). The copy of a component is cleaned in the DOM, in a layout effect (before a client mount paints, but after server HTML can paint) and by an observer
  * (so after every update, however the component re-renders): its ids, names and references are removed. A component that renders anything
- * in `UNSAFE` (a hidden input included) is not reserved at all, and that is decided before it is painted: its label keeps its weight.
+ * in `UNSAFE` (a hidden input included) is not reserved at all, and that is decided at client mount: its label keeps its weight.
  */
 function ReservedLabel({ children }: { children: React.ReactNode }) {
   const copy = React.useRef<HTMLSpanElement>(null);
   const [declined, setDeclined] = React.useState(false);
+  const observed = holdsComponent(children);
   React.useLayoutEffect(() => {
     const element = copy.current;
-    if (!element) return undefined;
+    if (!element || !observed) return undefined;
     const clean = () => {
       if (element.querySelector(UNSAFE)) { setDeclined(true); return; }
       for (const node of [element, ...Array.from(element.querySelectorAll("*"))]) {
@@ -68,7 +73,7 @@ function ReservedLabel({ children }: { children: React.ReactNode }) {
     const observer = new MutationObserver(clean);
     observer.observe(element, { subtree: true, childList: true, attributes: true });
     return () => observer.disconnect();
-  }, []);
+  }, [observed, declined]);
   if (declined) return <>{follow(children)}</>;
   return (
     <span className="basalt-chosen-label">
@@ -83,10 +88,13 @@ function stripped(children: React.ReactNode): React.ReactNode {
   return React.Children.map(children, (node) => {
     if (!React.isValidElement<AnyProps>(node)) return node;
     if (isIcon(node)) return React.cloneElement(node, { label: undefined });
-    if (node.type === "input" && node.props.type === "hidden") return null;
+    // Component props named id, name or a reference may be the words it displays. Only DOM attributes can be stripped here.
+    if (typeof node.type !== "string") return node.type === React.Fragment ? React.cloneElement(node, undefined, stripped(node.props.children)) : node;
     const overrides: AnyProps = {};
-    for (const [key, value] of Object.entries(node.props)) if (REFERENCES.includes(key) || (typeof value === "string" && value.includes("url(#"))) overrides[key] = undefined;
+    for (const [key, value] of Object.entries(node.props)) if (REFERENCES.includes(key) || (key !== "children" && typeof value === "string" && value.includes("url(#"))) overrides[key] = undefined;
     for (const key of REFERENCES) overrides[key] = undefined;
+    const style = node.props.style;
+    if (style && typeof style === "object" && Object.values(style).some((value) => typeof value === "string" && value.includes("url(#"))) overrides.style = undefined;
     return React.cloneElement(node, overrides, ...(node.props.children === undefined ? [] : [stripped(node.props.children)]));
   });
 }
@@ -101,7 +109,7 @@ function stripped(children: React.ReactNode): React.ReactNode {
  * - Text with plain elements and icons (words in a `span`): the content is drawn twice in one grid cell, the second copy at 600,
  *   unseen, `aria-hidden` and inert, and stripped of anything an id, a name or a reference could resolve to.
  * - A component (a Phosphor icon, an app's own small component) is copied too, and the copy is cleaned in the DOM (see `ReservedLabel`).
- * - A frame, a video, or a component that renders a control, a frame or media: it cannot be copied without risking a duplicate, so it
+ * - A control (a hidden input included), a frame, media, or a component that renders one: it cannot be copied without risking a duplicate, so it
  *   is not reserved and does not change weight when chosen. The same holds for words an app's own `render` supplies: Basalt never
  *   sees them.
  * - Icons alone: there is no weight to show; the icon follows the choice (see `follow`).

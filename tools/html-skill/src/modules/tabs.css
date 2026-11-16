@@ -11,16 +11,15 @@
   .tab[aria-selected="true"] :is([data-label], [data-reserve] > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
   /* Before the script has reserved a tab (and with the script off) the selected one is 600 itself; a tab the script declined to copy (data-bare) keeps 400. */
   .tab[aria-selected="true"]:not([data-reserved], [data-bare]) { font-weight: var(--basalt-font-weight-semibold); }
-  .tab :is(span, a, b, i, em, strong, small, mark, code, abbr):has(> svg, > [data-pair]) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
-  .tab [data-label] { display: inline-flex; flex-direction: column; align-items: center; }
-  .tab [data-label]:not(:only-child) { align-items: flex-start; }
+  .tab :is(span, a, b, i, em, strong, small, mark, code, abbr):not([data-pair]):has(> svg, > [data-pair]) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .tab [data-label] { display: inline-flex; flex-direction: column; align-items: flex-start; }
   .tab [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); }
   @media (hover: hover) { .tab:hover { color: var(--basalt-text-primary); } }
   @media (pointer: coarse) { .tab { height: var(--basalt-size-tap-min); } }
   /* A label that is not plain text is drawn twice in one box, the second copy at 600, unseen (aria-hidden, inert): the box is the content's width at 600. */
-  .tab [data-reserve] { display: inline-grid; justify-items: center; }
-  .tab [data-reserve] > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .tab [data-reserve] { display: inline-grid; justify-items: start; }
+  .tab [data-reserve] > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); white-space: nowrap; }
   .tab [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   /* An icon draws both its forms in one box and shows the one that matches the item, crossfading over duration-fast (decision 145): the box is the same either way. */
   .tab [data-pair] { display: inline-grid; flex: none; }

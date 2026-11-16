@@ -374,7 +374,7 @@ describe("A: the second copy of a label holds nothing an id, a name or a referen
     assert.deepEqual(read.probe, ["kept"]);
     assert.equal(read.inputs, 2);
     assert.equal(read.inCopy, 0);
-    assert.equal(read.copies, 2, "both buttons still reserve");
+    assert.equal(read.copies, 1, "the control label declines; the plain element label reserves");
     await context.close();
   });
 
@@ -488,4 +488,78 @@ describe("A: a chosen segment and tab are 600 with the script off, and the scrip
     assert.deepEqual(await boxes(page, "#g button"), base);
     await context.close();
   });
+});
+
+
+// DECISIONS 150: the pair and the live ink must hold, not just the button's reserved box.
+const R4_READ = (el) => {
+  const box = (n) => { const r = n.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; };
+  const pair = [...el.querySelectorAll('[data-pair]')].find((n) => !n.closest('[data-wide]'));
+  const icon = [...el.querySelectorAll('svg')].find((n) => !n.closest('[data-wide]') && getComputedStyle(n).opacity === '1');
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let word;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest('[data-wide], svg')) { const r = document.createRange(); r.selectNodeContents(n); word = r.getBoundingClientRect().left; break; }
+  return { item: box(el), pair: pair && box(pair), icon: icon && box(icon), word };
+};
+const R4_CONTROL = (kind, content) => kind === 'segment'
+  ? `<div class="segment" role="group" aria-label="r4"><button type="button" aria-pressed="true">${content}</button><button type="button" aria-pressed="false">Other</button></div>`
+  : `<div data-tabs><div class="tabs" role="tablist" aria-label="r4"><button class="tab" role="tab" id="r4a" aria-controls="r4pa" aria-selected="true">${content}</button><button class="tab" role="tab" id="r4b" aria-controls="r4pb" aria-selected="false">Other</button></div><div role="tabpanel" id="r4pa" aria-labelledby="r4a">a</div><div role="tabpanel" id="r4pb" aria-labelledby="r4b" hidden>b</div></div>`;
+const R4_SHAPES = {
+  plain: 'Notifications', element: '<span>Notifications</span>',
+  beside: '<span data-glyph="home"></span><span>Notifications</span>',
+  inside: '<span><span data-glyph="home"></span>Notifications</span>',
+};
+const r4Pick = async (page, selector, index) => {
+  await page.locator(selector).nth(index).evaluate((el) => {
+    if (el.matches('.tab')) el.click();
+    else [...el.parentElement.querySelectorAll('button')].forEach((n) => n.setAttribute('aria-pressed', String(n === el)));
+  });
+  await page.evaluate(async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))); });
+};
+for (const scheme of ['dark', 'light']) for (const [where, options] of MODES) for (const kind of ['segment', 'tab']) {
+  const selector = kind === 'segment' ? '.segment button' : '.tab';
+  test(`r4 regression: ${kind} glyph pair is 16 by 16 and the visible form moves 0px (${scheme}, ${where})`, async () => {
+    const { page, context } = await open(R4_CONTROL(kind, '<span data-glyph="home"></span>Notifications'), { scheme, ...options });
+    try {
+      const read = () => page.locator(selector).first().evaluate(R4_READ);
+      const chosen = await read(); await r4Pick(page, selector, 1); const rest = await read();
+      assert.deepEqual(chosen.pair.slice(2), [16, 16]);
+      assert.deepEqual(rest.pair.slice(2), [16, 16]);
+      assert.deepEqual(rest.icon, chosen.icon, 'the visible rest and selected forms occupy the same box');
+    } finally { await context.close(); }
+  });
+  test(`r4 regression: ${kind} live word and icon start edges hold in every label shape (${scheme}, ${where})`, async () => {
+    for (const [shape, content] of Object.entries(R4_SHAPES)) {
+      const { page, context } = await open(R4_CONTROL(kind, content), { scheme, ...options });
+      try {
+        const read = () => page.locator(selector).first().evaluate(R4_READ);
+        const chosen = await read(); await r4Pick(page, selector, 1); const rest = await read();
+        assert.deepEqual(rest.item, chosen.item, `${shape}: the item holds`);
+        assert.equal(rest.word, chosen.word, `${shape}: the word's start edge holds`);
+        assert.equal(rest.icon?.[0], chosen.icon?.[0], `${shape}: the icon's start edge holds`);
+        assert.equal(rest.item[3], options.touch ? 44 : kind === 'segment' ? 28 : 36);
+      } finally { await context.close(); }
+    }
+  });
+}
+test('r4 regression: reserve decline lists are twins and include every unsafe tag', () => {
+  const react = fs.readFileSync('packages/react/src/chosen.tsx', 'utf8').match(/const UNSAFE = "([^"]+)"/)[1].split(/\s*,\s*/).sort();
+  const skill = fs.readFileSync('tools/html-skill/src/core.js', 'utf8').match(/var no = '([^']+)'/)[1].split(/\s*,\s*/).sort();
+  assert.deepEqual(skill, react);
+  for (const tag of ['input', 'select', 'textarea', 'button', 'form', 'iframe', 'object', 'embed', 'script', 'style', 'video', 'audio', 'canvas', 'dialog', 'template', 'slot']) assert.ok(react.includes(tag), tag);
+});
+for (const kind of ['segment', 'tab']) test(`r4 regression: ${kind} declines form controls and canvas at 400 with no second control`, async () => {
+  for (const content of ['<input type="hidden" name="probe" value="kept">', '<input name="probe" value="kept">', '<select name="probe"><option>kept</option></select>', '<textarea name="probe">kept</textarea>', '<canvas></canvas>']) {
+    const selector = kind === 'segment' ? '.segment button' : '.tab';
+    const { page, context } = await open(`<form id="r4form">${R4_CONTROL(kind, '<span>Notifications</span>' + content)}</form>`);
+    try {
+      const target = page.locator(selector).first();
+      assert.equal(await target.getAttribute('data-bare'), '');
+      assert.equal(await target.locator('[data-wide], [data-reserve]').count(), 0);
+      assert.equal(await target.evaluate((el) => getComputedStyle(el).fontWeight), '400');
+      assert.deepEqual(await page.evaluate(() => new FormData(document.getElementById('r4form')).getAll('probe')), content.includes('canvas') ? [] : ['kept']);
+      const chosen = await target.evaluate(R4_READ); await r4Pick(page, selector, 1);
+      assert.deepEqual(await target.evaluate(R4_READ), chosen);
+    } finally { await context.close(); }
+  }
 });

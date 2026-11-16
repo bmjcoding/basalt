@@ -79,6 +79,8 @@ its tests on macOS, including the same contrast checks on the generated Swift va
 the packed npm archives in a separate temporary consumer. Run `npm ci` and install the
 pinned Playwright Chromium before a first check; CI does both.
 
+Opaque component labels render a second live instance for width, so hard-coded ids and controls can be duplicated in server HTML until hydration (permanently without scripts), and declining an unsafe component at hydration can change 600 to 400 and shift layout; a complete fix needs a larger server-safe reservation contract.
+
 ## Reference
 
 The browsable reference (tokens, type, components with live previews) is built from this

@@ -672,7 +672,7 @@ describe("A: the second copy of a label holds nothing an id, a name or a referen
     assert.equal(read.controls, 2, "the form's inputs: the app's own and the hidden one, and nothing from the copy");
     assert.equal(read.inCopy, 0);
     assert.equal(read.hiddenInCopy, 0);
-    assert.ok(read.copies >= 2, "both segments still reserve");
+    assert.equal(read.copies, 1, "the control label declines; the plain element label reserves");
     await page.close();
   });
 
@@ -869,4 +869,96 @@ describe("axe finds no WCAG 2.2 AA violation in the four controls on four surfac
       });
     }
   }
+});
+
+
+// DECISIONS 150: measure the live ink as well as the item's box. Never sample a transition by sleeping.
+const r4Open = async (body, options) => {
+  const fixture = await open(body, options);
+  if (options?.isMobile) {
+    await fixture.page.evaluate(() => { const meta = document.createElement('meta'); meta.name = 'viewport'; meta.content = 'width=device-width, initial-scale=1'; document.head.append(meta); });
+    await settle(fixture.page);
+    assert.equal(await fixture.page.evaluate(() => window.innerWidth), 390);
+  }
+  return fixture;
+};
+const R4_READ = (el) => {
+  const box = (n) => { const r = n.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; };
+  const pair = [...el.querySelectorAll('.basalt-glyph-pair')].find((n) => !n.closest('[data-wide]'));
+  const icon = [...el.querySelectorAll('.basalt-icon, [data-r4-icon]')].find((n) => !n.closest('[data-wide]') && getComputedStyle(n).opacity === '1');
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let word;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest('[data-wide], svg')) { const r = document.createRange(); r.selectNodeContents(n); word = r.getBoundingClientRect().left; break; }
+  return { item: box(el), pair: pair && box(pair), icon: icon && box(icon), word };
+};
+const R4_SHAPES = {
+  plain: 'Notifications',
+  element: '<span>Notifications</span>',
+  beside: '<B.Icon icon={B.HomeGlyph} /><span>Notifications</span>',
+  inside: '<span><B.Icon icon={B.HomeGlyph} />Notifications</span>',
+};
+const R4_CONTROL = (kind, content) => kind === 'segment'
+  ? `<B.SegmentedControl aria-label="r4" defaultValue="a"><B.Segment value="a">${content}</B.Segment><B.Segment value="b">Other</B.Segment></B.SegmentedControl>`
+  : `<B.Tabs defaultValue="a"><B.TabsList aria-label="r4"><B.Tab value="a">${content}</B.Tab><B.Tab value="b">Other</B.Tab></B.TabsList><B.TabsPanel value="a" hidden /></B.Tabs>`;
+for (const theme of THEMES) for (const [where, options] of [['28/36', DESKTOP], ['44', PHONE]]) for (const kind of ['segment', 'tab']) {
+  const selector = `.basalt-${kind}`;
+  test(`r4 regression: ${kind} glyph pair is 16 by 16 and the visible form moves 0px (${theme}, ${where})`, async () => {
+    const { page } = await r4Open(render(R4_CONTROL(kind, '<B.Icon icon={B.HomeGlyph} />Notifications')), { theme, ...options });
+    try {
+      const read = () => page.locator(selector).first().evaluate(R4_READ);
+      const chosen = await read();
+      await page.locator(selector).nth(1).click(); await settle(page);
+      const rest = await read();
+      assert.deepEqual(chosen.pair.slice(2), [16, 16]);
+      assert.deepEqual(rest.pair.slice(2), [16, 16]);
+      assert.deepEqual(rest.icon, chosen.icon, 'the visible rest and selected forms occupy the same box');
+    } finally { await page.close(); }
+  });
+  test(`r4 regression: ${kind} live word and icon start edges hold in every label shape (${theme}, ${where})`, async () => {
+    for (const [shape, content] of Object.entries(R4_SHAPES)) {
+      const { page } = await r4Open(render(R4_CONTROL(kind, content)), { theme, ...options });
+      try {
+        const read = () => page.locator(selector).first().evaluate(R4_READ);
+        const chosen = await read();
+        await page.locator(selector).nth(1).click(); await settle(page);
+        const rest = await read();
+        assert.deepEqual(rest.item, chosen.item, `${shape}: the item holds`);
+        assert.equal(rest.word, chosen.word, `${shape}: the word's start edge holds`);
+        assert.equal(rest.icon?.[0], chosen.icon?.[0], `${shape}: the icon's start edge holds`);
+        assert.equal(rest.item[3], where === '44' ? 44 : kind === 'segment' ? 28 : 36);
+      } finally { await page.close(); }
+    }
+  });
+}
+for (const kind of ['segment', 'tab']) for (const prop of ['name', 'id']) {
+  test(`r4 regression: a ${kind} component keeps an ordinary ${prop} prop in its width copy`, async () => {
+    const prelude = `function Named(props) { return <span>{props.${prop}}</span>; }`;
+    const { page } = await r4Open(prelude + render(R4_CONTROL(kind, `<Named ${prop}="Notifications" />`)));
+    try {
+      assert.equal(await page.locator('[data-wide]').first().textContent(), 'Notifications');
+      const selector = `.basalt-${kind}`;
+      const before = await page.locator(selector).evaluateAll((nodes) => nodes.map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.width]; }));
+      await page.locator(selector).nth(1).click(); await settle(page);
+      assert.deepEqual(await page.locator(selector).evaluateAll((nodes) => nodes.map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.width]; })), before);
+    } finally { await page.close(); }
+  });
+}
+
+test('r4 observer: native element labels are cleaned before rendering without a label observer', async () => {
+  const prelude = `window.labelObservers = 0; const NativeObserver = window.MutationObserver;
+window.MutationObserver = class extends NativeObserver { observe(node, options) { if (node.matches?.('[data-wide]')) window.labelObservers += 1; return super.observe(node, options); } };`;
+  const { page } = await r4Open(prelude + render(R4_CONTROL('segment', '<span id="native" style={{fill:"url(#native)"}}>Notifications</span>')));
+  try {
+    assert.equal(await page.evaluate(() => window.labelObservers), 0);
+    assert.equal(await page.locator('[data-wide] [id], [data-wide] [style]').count(), 0);
+    assert.equal(await page.locator('#native').count(), 1);
+  } finally { await page.close(); }
+});
+for (const kind of ['segment', 'tab']) test(`r4 regression: ${kind} declines native controls before copying too`, async () => {
+  const { page } = await r4Open(render(`<form id="native-form">${R4_CONTROL(kind, '<span>Notifications</span><input type="hidden" name="probe" value="kept" />')}</form>`));
+  try {
+    assert.equal(await page.locator('[data-wide]').count(), 0);
+    assert.deepEqual(await page.evaluate(() => new FormData(document.getElementById('native-form')).getAll('probe')), ['kept']);
+    assert.equal(await page.locator(`.basalt-${kind}`).first().evaluate((el) => getComputedStyle(el.querySelector('span')).fontWeight), '400');
+  } finally { await page.close(); }
 });

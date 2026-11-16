@@ -115,8 +115,8 @@
 
   /* A chosen item's label (a segment, a tab, a page) is 400 at rest and 600 when chosen, and reserves the 600's width, as the navigation's label
      does: the item's text is drawn in a span that carries its own copy in data-label, laid out at 600, unseen, one line tall and pulled back over the line, so the
-     span is as wide as the 600 and nothing beside it moves when the choice changes. The label sits centred in it; vertical tabs start it at the start edge. */
-  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button) [data-label] { display: inline-flex; flex-direction: column; align-items: center; white-space: nowrap; }
+     span is as wide as the 600 and nothing beside it moves when the choice changes. The label keeps its start edge in segments and tabs; pagination stays centred. */
+  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button) [data-label] { display: inline-flex; flex-direction: column; align-items: flex-start; white-space: nowrap; }
   :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button) [data-label]::after {
     content: attr(data-label);
     height: 1lh;
@@ -126,18 +126,15 @@
     user-select: none;
     pointer-events: none;
   }
-  /* A label with an icon beside it, and a vertical tab's, start at the start edge: the slack of the reserved width goes at the end. */
-  :is(.basalt-segment, .basalt-tab) [data-label]:not(:only-child),
-  .basalt-tabs-list[data-orientation="vertical"] .basalt-tab [data-label] { align-items: flex-start; }
+  /* Pagination keeps its centred numeral; a segment or tab puts the reserved slack at the end. */
+  :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-label] { align-items: center; }
 
   /* A label that is not plain text (an element, words in a span, a component) is drawn twice in one grid cell, the second copy at 600,
-     unseen (aria-hidden and inert), so the cell is the content's width at 600 whatever it holds. The label sits centred in it; a
-     vertical tab starts it at the start edge, as the plain label does. */
-  .basalt-chosen-label { display: inline-grid; justify-items: center; }
-  .basalt-chosen-label > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
+     unseen (aria-hidden and inert), so the cell is the content's width at 600 whatever it holds. Both copies keep their start edge,
+     as the plain label does: the live words and icon never recenter when their weight changes. */
+  .basalt-chosen-label { display: inline-grid; justify-items: start; }
+  .basalt-chosen-label > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); white-space: nowrap; }
   .basalt-chosen-label > [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
-  .basalt-tabs-list[data-orientation="vertical"] .basalt-chosen-label { justify-items: start; }
-  .basalt-tabs-list[data-orientation="vertical"] .basalt-chosen-label > * { justify-content: flex-start; }
 
   /* The 600 is on the label, not on the item (decision 149): a label Basalt reserves (the text above, or the first copy of a composed one) goes to 600 when its item is
      chosen, and words it cannot see (an app's own render, a component) keep their weight and move nothing: such an item still reads as chosen by its pill, underline or
@@ -150,7 +147,7 @@
   /* A segment is not a flex box (its text is centred): one that holds an icon or a composed label sets its content on one centre line, as a tab does, and an
      element that holds an icon beside words (a span round both) sets the two on one centre line, 6px apart. */
   .basalt-segment:has(> .basalt-glyph-pair, > .basalt-icon, > .basalt-chosen-label) { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
-  :is(.basalt-segment, .basalt-tab) :is(span, a, b, i, em, strong, small, mark, code, abbr):has(> .basalt-glyph-pair, > .basalt-icon) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  :is(.basalt-segment, .basalt-tab) :is(span, a, b, i, em, strong, small, mark, code, abbr):not(.basalt-glyph-pair):has(> .basalt-glyph-pair, > .basalt-icon) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-glyph-pair > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-glyph-pair > :last-child,
   :is([data-pressed], [data-active]) .basalt-glyph-pair > :first-child { opacity: 0; }

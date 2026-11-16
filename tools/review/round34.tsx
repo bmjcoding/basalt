@@ -166,16 +166,7 @@ function ExtraSpecimens() {
         </div>
       ))}
       {caption("A segment and a tab with an icon and a label, chosen and at rest: the icon is drawn in both forms in one box, so it takes its selected form while chosen and nothing moves.")}
-      <div style={wrap}>
-        <SegmentedControl aria-label="Icons" defaultValue="home">
-          <Segment value="home"><Icon icon={HomeGlyph} />Home</Segment>
-          <Segment value="other"><Icon icon={HomeGlyph} />Other</Segment>
-        </SegmentedControl>
-        <Tabs defaultValue="home">
-          <TabsList aria-label="Icon tabs"><Tab value="home"><Icon icon={HomeGlyph} />Home</Tab><Tab value="other"><Icon icon={HomeGlyph} />Other</Tab></TabsList>
-          <TabsPanel value="home" hidden />
-        </Tabs>
-      </div>
+      <InkGeometry />
       {caption("An icon with a label, and the words in an element: the icon and the words share one centre line, 6px apart, in a segment and in a tab, chosen and at rest. The page prints the name a screen reader is given (the page's own reading of aria-label and text; the tests read Chromium's accessibility tree).")}
       <LabelledIcons />
       {caption("A Phosphor icon beside words, in a tab and in a segment, chosen and at rest: the label is reserved and 600 when chosen, so nothing moves (the second copy holds no id, name or control).")}
@@ -240,6 +231,59 @@ function SkillScriptsOff() {
     return () => watch.disconnect();
   }, []);
   return <iframe ref={ref} title="The HTML skill's chosen segment and tab, scripts off" sandbox="allow-same-origin" srcDoc={__ROUND34_SKILL_SEGMENT__} onLoad={sync} style={{ display: "block", width: 360, height: 130, border: 0 }} />;
+}
+
+/** Compare the live glyph and word, not just the reserved item's box (DECISIONS 150). */
+function InkGeometry() {
+  const root = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    let live = true;
+    const settle = async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})));
+    };
+    const read = (item: HTMLElement) => {
+      const pair = Array.from(item.querySelectorAll<HTMLElement>(".basalt-glyph-pair")).find((n) => !n.closest("[data-wide]"))!;
+      const glyph = Array.from(pair.children).find((n) => getComputedStyle(n).opacity === "1")!.getBoundingClientRect();
+      const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+      let words = 0;
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!n.nodeValue?.trim() || n.parentElement?.closest("[data-wide], svg")) continue;
+        const range = document.createRange(); range.selectNodeContents(n); words = range.getBoundingClientRect().left; break;
+      }
+      const box = pair.getBoundingClientRect();
+      return { pair: `${box.width} × ${box.height}`, glyph: glyph.left, words };
+    };
+    const run = async () => {
+      await document.fonts.ready; await settle();
+      for (const holder of Array.from(root.current?.querySelectorAll<HTMLElement>("[data-wt-ink]") ?? [])) {
+        if (!live) return;
+        const items = Array.from(holder.querySelectorAll<HTMLElement>(".basalt-segment, .basalt-tab"));
+        const chosen = read(items[0]!);
+        items[1]?.click(); await settle();
+        const rest = read(items[0]!);
+        items[0]?.click(); await settle();
+        const out = holder.querySelector<HTMLElement>("[data-wt-ink-readout]");
+        if (live && out) out.textContent = `Pair chosen/rest: ${chosen.pair} / ${rest.pair}\nGlyph left chosen/rest: ${chosen.glyph.toFixed(3)} / ${rest.glyph.toFixed(3)}; move ${Math.abs(chosen.glyph - rest.glyph).toFixed(3)}px\nWord left chosen/rest: ${chosen.words.toFixed(3)} / ${rest.words.toFixed(3)}; move ${Math.abs(chosen.words - rest.words).toFixed(3)}px`;
+      }
+    };
+    void run();
+    return () => { live = false; };
+  }, []);
+  const label = (word: string, element: boolean) => <><Icon icon={HomeGlyph} />{element ? <span>{word}</span> : word}</>;
+  return <div ref={root} style={col}>
+    {[false, true].map((element) => <React.Fragment key={String(element)}>
+      {caption(element ? "Core glyph beside words in an element: left edges chosen and at rest." : "Core glyph beside plain words: pair box and visible glyph movement.")}
+      <div style={col} data-wt-ink="segment">
+        <SegmentedControl aria-label={`Measured glyph segments ${element}`} defaultValue="home"><Segment value="home">{label("Home", element)}</Segment><Segment value="other">{label("Other", element)}</Segment></SegmentedControl>
+        <p style={readout} data-wt-ink-readout>{"measuring pair\nmeasuring glyph\nmeasuring word"}</p>
+      </div>
+      <div style={col} data-wt-ink="tab">
+        <Tabs defaultValue="home"><TabsList aria-label={`Measured glyph tabs ${element}`}><Tab value="home">{label("Home", element)}</Tab><Tab value="other">{label("Other", element)}</Tab></TabsList><TabsPanel value="home" hidden /></Tabs>
+        <p style={readout} data-wt-ink-readout>{"measuring pair\nmeasuring glyph\nmeasuring word"}</p>
+      </div>
+    </React.Fragment>)}
+  </div>;
 }
 
 /** The name an assistive technology is given for an item, read from the page's own DOM: aria-label and text, skipping what is hidden. */
