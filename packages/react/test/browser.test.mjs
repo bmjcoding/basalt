@@ -656,10 +656,10 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await page.getByRole("status", { name: "Loading runs" }).count(), 1);
       assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
       assert.match(await page.locator(".basalt-spinner[data-variant=braille] [data-dot='1']").evaluate((el) => getComputedStyle(el).animationTimingFunction), /step/);
-      const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-visually-hidden");
+      const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-ticker-text");
       assert.equal(await ticker.textContent(), "1,284");
       await page.getByRole("button", { name: "Add a run" }).click();
-      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-visually-hidden")?.textContent === "1,285");
+      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-ticker-text")?.textContent === "1,285");
       const saving = page.getByRole("button", { name: "Saving" });
       assert.equal(await saving.getAttribute("aria-busy"), "true");
       const width = await saving.evaluate((el) => {

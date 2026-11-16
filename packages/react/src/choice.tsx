@@ -3,9 +3,11 @@ import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
-import { CaretUpDownIcon, CheckIcon, MinusIcon } from "@phosphor-icons/react";
+import { CaretUpDownIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { MinusGlyph } from "./glyphs/minus";
 import type { ControlSize } from "./button";
 import type { ChangeDetails, ChoiceValue, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { useFieldsetDisabled } from "./fieldset-context";
@@ -49,7 +51,7 @@ export function Checkbox({ children, className, disabled, ...props }: CheckboxPr
         className="basalt-checkbox-indicator"
         keepMounted
         render={(p, state) => (
-          <span {...p}>{state.indeterminate ? <Icon icon={MinusIcon} size={16} /> : <Icon icon={CheckIcon} size={16} />}</span>
+          <span {...p}>{state.indeterminate ? <Icon icon={MinusGlyph} size={16} /> : <Icon icon={CheckGlyph} size={16} />}</span>
         )}
       />
     </BaseCheckbox.Root>
@@ -213,7 +215,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
                   {/* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */}
                   <span className="basalt-menu-check">
                     <BaseSelect.ItemIndicator className="basalt-select-check">
-                      <Icon icon={CheckIcon} size={16} />
+                      <Icon icon={CheckGlyph} size={16} />
                     </BaseSelect.ItemIndicator>
                   </span>
                   <BaseSelect.ItemText className="basalt-menu-item-label">{o.label}</BaseSelect.ItemText>

@@ -2,7 +2,6 @@
 (function (B) {
   'use strict';
   var _ = B._;
-  var icon = _.icon;
   var announce = _.announce;
 
   function copyText(text) {
@@ -49,7 +48,7 @@
         var target = button.dataset.copy ? document.querySelector(button.dataset.copy) : null;
         var text = button.dataset.copyText != null ? button.dataset.copyText : (target ? target.textContent : '');
         copyText(text).then(function (ok) {
-          button.innerHTML = icon(ok ? 'Check' : 'X') + (iconOnly ? '' : '<span>' + (ok ? 'Copied' : 'Copy failed') + '</span>');
+          button.innerHTML = (ok ? '%glyph-svg:check%' : '%glyph-svg:close%') + (iconOnly ? '' : '<span>' + (ok ? 'Copied' : 'Copy failed') + '</span>');
           if (iconOnly) button.setAttribute('aria-label', ok ? 'Copied' : 'Copy failed');
           announce(ok ? 'Copied to clipboard' : 'Could not copy');
           clearTimeout(button.__bhTimer);

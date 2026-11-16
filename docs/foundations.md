@@ -202,7 +202,21 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   sort, filter, paging or loading). `Table` takes `columns` and is then `table-layout: fixed` from a `colgroup`: every
   column has a width except one, which takes the rest, and `minWidth` is where the container scrolls sideways instead of
   squeezing the columns. Widths are never measured from content. A cell truncates with an ellipsis, never a hard clip (a
-  link in a cell is a block that carries its own). **The sort control is the whole header cell** (decision 84): a
+  link in a cell is a block that carries its own), and **a cut cell can always be read**. While a cell is cut it is a focus stop (a cell
+  that is whole is not, and opens nothing), and on hover (after the tooltip's wait) or focus its whole value opens in place over it:
+  a level-3 plate with the rim and `shadow-overlay`, radius 8, its text starting exactly where the cell's does and wrapping at the
+  container's end edge, never past the viewport (a cell scrolled half out of view brings the plate in). Esc closes it without moving
+  the pointer or focus, the pointer can move onto it, and it stays until hover and focus have both left (WCAG 1.4.13); it is
+  `aria-hidden`, because the cell already holds the value. Opened by the keyboard, the control ring at +2 goes round the plate; after
+  Esc, and for any cut cell in focus, the cell shows its own ring, the flush-field −2 inset. The row stays 40px and no column moves.
+  Each cut cell is one added tab stop, and the count is measured in the review round. A column of one fixed form (a date, a time,
+  a status word) is sized for its longest form under WCAG 1.4.12 spacing, about 1.3 times its width at rest, so only free text is ever
+  cut. A header's label is sized to fit its column under WCAG 1.4.12 text spacing, as a fixed-form column is: a sortable header is
+  the whole cell as a button, and a plate over it would take its pointer and cover its indicator, so a cut sortable label opens no plate
+  (its accessible name already holds the whole label); a plain header keeps the plate (DECISIONS 142). The plate fades in over `duration-base` on `ease-out` and out at 0.75× on `ease-in`, and never scales, because a scale would
+  move the text; under reduced motion it still only fades. In forced colours it is `Canvas` with a `CanvasText` border.
+  **Status:** decided by the council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been
+  reviewed. **The sort control is the whole header cell** (decision 84): a
   press anywhere in it sorts, and the cell is the button, so it takes the flush-field −2 inset focus ring and has no wash.
   Every sortable header reserves a 16px seat for the indicator, after the label and, on a numeric (end-aligned) column,
   before it, so the label's edge stays on the numbers' edge and the indicator arriving moves nothing. Hover and focus lift
@@ -363,7 +377,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
   somewhere to go without moving every title. The app owns the entries,
   their read state, persistence and the "View all" page; the component is presentational. **The hover glide** is navigation's,
-  in the same plumbing: one plate follows the pointer between entries (40 or 58 tall); the first key hides it and the resting
+  in the same plumbing: one plate follows the pointer between entries (40 or 58 tall; 44 or 58 on touch); the first key hides it and the resting
   hover, so only the shipped rounded control ring at +2, outside the row, shows; the next pointer move brings the plate back.
   Off on touch, under reduced motion and in forced colours, where each entry paints its own.
 - **Callouts** keep a neutral fill at their own level, with no tint. Status is the icon and the words, and success,
@@ -668,7 +682,12 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   `data-density="default"` restores regular sizes. A popup row (Menu, Select, Combobox) is a 36px plate (`size-menu-row`, which is
   `size-control-lg`) in a 40px hit area, and a command menu row a 40px plate in a 44px hit area; compact steps the plates to 32
   and 36; on touch a hit area is at least 44px, and a combobox's text entry is 16px. All shared control targets stay at least 44px on
-  touch regardless of density. Choice labels provide their target without enlarging the
+  touch regardless of density. A notification entry is at least 44 tall on touch, its line centred (a one-line entry is 40 otherwise
+  and its plate stays 40; a two-line entry is 58 already). A `Link` on a line of its own has a 44px hit box on touch with no change
+  to layout and no change to its look (its block margin takes back what the box adds, the underline stays and no wash is drawn); a link in a
+  sentence (a paragraph, a list item, prose, a hint, an error, a callout's text) keeps its line, as WCAG 2.5.8 allows, because a taller
+  box would lie over the lines above and below it, and no two targets overlap. **Status:** decided by the council (DECISIONS 138) and
+  approved by the owner (DECISIONS 139); the implementation has not been reviewed. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
 - **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8
@@ -943,6 +962,11 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
 - **The actions** are, in the end cluster, `LoopsToggle`'s icon form (only on a page with an ambient loop or a loop that can run past five seconds), the theme toggle (a ghost `IconButton`, at every width) and at most one primary Button. Never a danger Button. The loops toggle is before the theme toggle and stays in the bar at every width; the narrow menu has its own row for it (below).
 - **How many links:** they must fit at 720 beside the brand and the actions, five at most; the rest go in the footer. This is a rule
   for the site, not something the component measures.
+- **The skip link** is the page's first stop, unseen until it has focus. With a sticky bar it then hangs under the bar, `space-2` below
+  the bar's line, on the brand's start edge at every width, so it covers nothing the bar holds and the bar never moves; without a bar it
+  sits at the page's top start. It reads the bar's real bottom edge from script when it takes focus, and again on scroll and resize while it holds focus, so a bar that is not at the top of the viewport (a notice above it) is still cleared; with no script or no bar it is where the stylesheet puts it (DECISIONS 142). It leaves the flow, so it floats as a tooltip does: level 3, the rim, `shadow-overlay`, radius 8, and its
+  ring (+2) stays under the bar's line. Otherwise it looks like a link: primary ink, the input-boundary underline brightening on hover.
+  **Status:** decided by the council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **The opaque form** is the same bar on `surface-page` with no `backdrop-filter` (`solid`), for a product whose content does not
   scroll under it (N1's chrome is solid, DECISIONS 1; whether that covers N1's sticky header is the owner's open question, so until
   he answers N1's header is solid).
@@ -1437,7 +1461,7 @@ Under `prefers-reduced-motion`: no transform, no size and no position animates (
 colour step and its scale is 1). `duration-base`,
 `duration-slow`, `duration-slower` and `duration-figure` are 100ms and `duration-stagger` is 0, so state changes become short fades; the toast
 stack sits at its final offsets and only fades; Progress width jumps; NumberTicker is plain
-tabular text at the same width and baseline; the toast drain is not drawn; Sparkline snaps its
+tabular text at the same width and baseline (in the sentence's own line, and the same in forced colours, where it does not roll); the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; an entrance is not played and a list's items take their places at once; an ambient loop is still; a tab change is
 a 100ms crossfade; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
 not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
@@ -1452,6 +1476,10 @@ core actions, navigation and Blacksand's product nouns. Each glyph is a module o
 `@srasyndicate/basalt` (`HomeGlyph`), and the long tail is Phosphor (MIT), Bold at 16, 20 and 24.
 A product's own logo is its own; the social marks are Phosphor's (below).
 
+- **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
+  set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the pagination gap's dots, the social
+  marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
+  council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
   agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
   unused slot is an invisible point. The stroke is a constant 2.25 units on 24 (1.5px at 16,
@@ -1507,7 +1535,12 @@ concepts (back, share, settings) use SF Symbols.
 Components build on Base UI (the default base in shadcn/ui since July 2026, from the team
 behind Radix), with shadcn/ui's variable names mapped onto Basalt's in `dist/css/shadcn.css`.
 
-Forms retain native labels, grouped legends and validation. Select is for a short known
+Forms retain native labels, grouped legends and validation. **A required field says so:** "Required" directly after the label
+(not at the far end of its row), in `text-tertiary` at `text-xs` and 400, hidden from assistive technology (the input's own
+`required` says it, so it is not said twice). "Optional" shows the same way, only where an author marks a field optional; a field
+marked neither shows nothing, so existing fields do not all grow a word. Never an asterisk, a colour or a glyph alone. On the smoked
+header the word lifts to secondary, as every tertiary caption does. **Status:** decided by the council (DECISIONS 138) and approved by
+the owner (DECISIONS 139); the implementation has not been reviewed. Select is for a short known
 list; Combobox searches a single known choice. NumberField enters an exact value in one bordered control sized to its content, steppers inside; Slider
 adjusts a scalar or range, with distinct names for range thumbs. Confirmations use
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side, bottom or top panel, including safe-area padding and motion preferences.

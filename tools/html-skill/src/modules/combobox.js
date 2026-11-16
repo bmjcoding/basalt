@@ -79,7 +79,7 @@
       selected = opt;
       opts.forEach(function (o) {
         o.node.setAttribute('aria-selected', o === opt ? 'true' : 'false');
-        o.node.firstChild.innerHTML = o === opt ? _.icon('Check') : '';
+        o.node.firstChild.innerHTML = o === opt ? '%glyph-svg:check%' : '';
       });
       if (hidden) hidden.value = opt ? opt.value : '';
       input.value = opt ? opt.label : '';

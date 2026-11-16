@@ -43,6 +43,8 @@
     cursor: pointer;
     user-select: none;
   }
+  /* On touch a one-line entry is at least 44 tall with its line centred (its plate stays 40); a two-line entry is 58 already. */
+  @media (pointer: coarse) { .notification { min-height: var(--basalt-size-tap-min); align-content: center; } }
   .notification::before { content: ""; position: absolute; inset: var(--_inset) 0; z-index: -1; border-radius: var(--basalt-radius-md); background-color: transparent; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .notification:hover::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .notifications-scroll[data-keys] .notification:hover::before { background-color: transparent; }

@@ -185,7 +185,7 @@
       (t.count > 1 ? '<span class="toast-count" aria-hidden="true">×' + t.count + '</span><span class="visually-hidden">, ' + t.count + ' times</span>' : '') + '</p>' +
       '<p class="toast-description" id="' + t.id + '-d">' + _.esc(o.description || '') + '</p></div>' +
       (o.action ? '<button type="button" class="btn toast-action" data-size="xs"' + (o.action.keys ? ' aria-keyshortcuts="' + _.esc(o.action.keys) + '"' : '') + '><span>' + _.esc(o.action.label) + '</span></button>' : '') +
-      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">' + _.icon('X') + '</button>';
+      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">' + '%glyph-svg:close%' + '</button>';
     var action = t.content.querySelector('.toast-action');
     if (action) action.addEventListener('click', function () { o.action.onClick(); });
     t.content.querySelector('.toast-close').addEventListener('click', function () { dismiss(t.id); });

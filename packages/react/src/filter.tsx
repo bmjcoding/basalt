@@ -1,9 +1,10 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { CheckboxGroup as BaseCheckboxGroup } from "@base-ui/react/checkbox-group";
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import { CaretDownIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { ChevronDownGlyph } from "./glyphs/chevron-down";
+import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
 import { CheckGlyph } from "./glyphs/check";
 import { PlusGlyph } from "./glyphs/plus";
@@ -190,7 +191,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
             <span className="basalt-filter-trigger-label">{label}</span>{" "}
             <span className="basalt-filter-trigger-value">{summary}</span>
           </span>
-          <Icon icon={CaretDownIcon} />
+          <Icon icon={ChevronDownGlyph} />
         </BasePopover.Trigger>
         <BasePopover.Portal>
           <BasePopover.Positioner side="bottom" align="start" sideOffset={6} style={layer} className="basalt-positioner">
@@ -208,7 +209,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
                 <>
                   {searchable ? (
                     <div className="basalt-filter-band" data-level={Math.min(level + 1, 3)}>
-                      <Icon icon={MagnifyingGlassIcon} size={16} />
+                      <Icon icon={SearchGlyph} size={16} />
                       <input
                         ref={band}
                         className="basalt-filter-band-input"

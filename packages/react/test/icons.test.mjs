@@ -80,14 +80,15 @@ async function bundle(contents, { plugin = false, resolveDir = pkg, weights = BA
 const own = (name, icons) => `import { ${name} } from "./dist/index.js"; import { ${icons.map((i) => `${i}Icon`).join(", ")} } from "@phosphor-icons/react"; console.log(${name.split(", ").join(", ")}, ${icons.map((i) => `${i}Icon`).join(", ")});`;
 const alone = (name) => `import { ${name} } from "./dist/index.js"; console.log(${name.split(", ").join(", ")});`;
 
-// What each component draws, so that an app can hold its own copy of the same icons.
+// What each component draws from Phosphor, so that an app can hold its own copy of the same icons. Since DECISIONS 138 and 139 (E2) the core set
+// draws check, close, the chevrons, copy, plus, minus and search, so Terminal, Pagination and ToastProvider no longer draw Phosphor's Check, Copy,
+// Caret or X, and Breadcrumbs draws no Phosphor icon at all.
 const CASES = [
   ["Kbd", ["Command", "Control", "Option"]],
-  ["Terminal", ["CheckCircle", "Check", "Copy", "Warning", "XCircle"]],
+  ["Terminal", ["CheckCircle", "Warning", "XCircle"]],
   ["Callout", ["Info", "CheckCircle", "Warning", "XCircle"]],
-  ["Breadcrumbs", ["CaretRight"]],
-  ["Pagination", ["CaretLeft", "CaretRight", "DotsThree"]],
-  ["ToastProvider", ["CheckCircle", "Warning", "XCircle", "X"]],
+  ["Pagination", ["DotsThree"]],
+  ["ToastProvider", ["CheckCircle", "Warning", "XCircle"]],
   ["NotificationCentre", ["CheckCircle", "Warning", "XCircle"]],
 ];
 
@@ -121,12 +122,12 @@ describe("the default build: Basalt's dist imports Phosphor as it did, and nothi
     }
   }
 
-  // The lazy command panel is built on its own and inlines MagnifyingGlass (build.mjs: it shares no file with the package). That copy is
-  // the one exception, it was there before, and it costs nothing until a menu opens.
-  test("CommandMenu: the lazy panel's own MagnifyingGlass is the only icon that comes twice", async () => {
+  // The lazy command panel is built on its own (build.mjs: it shares no file with the package). It used to inline Phosphor's MagnifyingGlass, the
+  // one icon that came twice; since DECISIONS 138 and 139 (E2) it draws the core set's `search`, so no Phosphor icon comes twice at all.
+  test("CommandMenu: the lazy panel draws the core search glyph, and no Phosphor icon comes twice", async () => {
     const mixed = await bundle(own("CommandMenu", ["MagnifyingGlass"]));
     const twice = mixed.icons.filter((icon, i) => mixed.icons.indexOf(icon) !== i);
-    assert.deepEqual(twice, ["MagnifyingGlassIcon"]);
+    assert.deepEqual(twice, []);
   });
 });
 
@@ -214,7 +215,10 @@ describe("the bytes, with the plugin and without it", () => {
   // [component, the most the bundle may be with the plugin, the least the plugin must save]. Measured (default → plugin): Kbd 9,169 → 6,700,
   // Terminal 31,742 → 26,236, Callout 11,776 → 6,702, Pagination 21,747 → 20,641, ToastProvider 89,556 → 84,701, NotificationCentre
   // 144,041 → 140,253. The limits sit just above what is measured; the Phosphor notice (about 1.1 KB, once) is in them.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_500, 5_000], ["Callout", 6_950, 4_500], ["Pagination", 20_900, 1_000], ["ToastProvider", 85_000, 4_500], ["NotificationCentre", 140_500, 3_500]]) {
+  // E2 (DECISIONS 138 and 139) moved check, close, the chevrons and copy to the core set, so Terminal, Pagination and ToastProvider hold fewer Phosphor
+  // icons for the plugin to trim, and the core glyph code now rides with Toast. Measured now (default → plugin): Terminal 28,779 → 25,060, Pagination
+  // 19,284 → 19,619 (the plugin's notice is bigger than what its one icon saved), ToastProvider 90,503 → 86,723.
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 25_300, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_000, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 140_500, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));
@@ -235,10 +239,10 @@ describe("the bytes, with the plugin and without it", () => {
   });
 
   // A component that draws one small icon can cost a little more with the plugin: the notice (about 1.1 KB) is bigger than what its few
-  // weights saved. The cost is bounded by the notice.
-  test("Breadcrumbs, which draws one caret, costs at most the notice more with the plugin", async () => {
-    const plain = await bundle(alone("Breadcrumbs"));
-    const trimmed = await bundle(alone("Breadcrumbs"), { plugin: true });
+  // weights saved. The cost is bounded by the notice. Pagination draws one Phosphor icon (the gap's DotsThree) since DECISIONS 138 and 139 (E2).
+  test("Pagination, which draws one Phosphor icon, costs at most the notice more with the plugin", async () => {
+    const plain = await bundle(alone("Pagination"));
+    const trimmed = await bundle(alone("Pagination"), { plugin: true });
     assert.ok(trimmed.bytes - plain.bytes < 600, `${plain.bytes} → ${trimmed.bytes}`);
   });
 });

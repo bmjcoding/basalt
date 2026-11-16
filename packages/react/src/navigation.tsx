@@ -1,6 +1,8 @@
-import { CaretLeftIcon, CaretRightIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { DotsThreeIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { ChevronLeftGlyph } from "./glyphs/chevron-left";
+import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Button } from "./button";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
@@ -48,7 +50,7 @@ export function Breadcrumbs({ items, className, "aria-label": label = "Breadcrum
       <ol>
         {items.map((item, index) => (
           <li key={index}>
-            {index ? <Icon icon={CaretRightIcon} size={16} /> : null}
+            {index ? <Icon icon={ChevronRightGlyph} size={16} /> : null}
             {item.href ? <Link href={item.href} aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</Link> : <span aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</span>}
           </li>
         ))}
@@ -84,9 +86,9 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, classNa
   };
   return (
     <nav {...props} aria-label={label} className={join("basalt-pagination", className)}>
-      {control(current - 1, "Previous page", <Icon icon={CaretLeftIcon} />, current === 1)}
+      {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current === 1)}
       {pageItems(current, count).map((item) => <React.Fragment key={item}>{typeof item === "number" ? control(item, `Page ${item}`, item) : <span className="basalt-pagination-gap" aria-hidden="true"><Icon icon={DotsThreeIcon} /></span>}</React.Fragment>)}
-      {control(current + 1, "Next page", <Icon icon={CaretRightIcon} />, current === count)}
+      {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current === count)}
     </nav>
   );
 }

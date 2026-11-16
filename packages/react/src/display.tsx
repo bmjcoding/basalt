@@ -7,7 +7,8 @@ import { ArrowUpGlyph } from "./glyphs/arrow-up";
 import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
-import { inLevel, usePanelLevel } from "./layers";
+import { useCellPeek } from "./cell-peek";
+import { inLevel, useFloatingLayer, usePanelLevel } from "./layers";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import { StatusSizeContext } from "./status-size";
 import type { StatusSize } from "./status-size";
@@ -319,6 +320,8 @@ export function Table({ columns, minWidth, pinned, className, style, children, r
     },
     [ref],
   );
+  // A cut cell is a stop and opens its whole value in place (see cell-peek.ts). Its plate floats above a modal the table sits in.
+  useCellPeek(node, fixed, useFloatingLayer()?.zIndex);
   const merged = { ...(minWidth === undefined ? null : { minWidth: length(minWidth) }), ...vars, ...style } as React.CSSProperties;
   return (
     <table {...props} ref={setRef} data-fixed={fixed ? "" : undefined} data-pinned={fixed ? pinned : undefined} style={merged} className={join("basalt-table", className)}>

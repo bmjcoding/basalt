@@ -2,9 +2,12 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Field as BaseField } from "@base-ui/react/field";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, InfoIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { ChevronDownGlyph } from "./glyphs/chevron-down";
+import { CopyGlyph } from "./glyphs/copy";
 import { IconButton } from "./button";
 import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
 import { Icon } from "./icon";
@@ -297,7 +300,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
   };
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <IconButton size="sm" icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy code"} onClick={copy} />
+      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label={copied ? "Copied" : "Copy code"} onClick={copy} />
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>
   ) : null;
@@ -368,7 +371,7 @@ export function AccordionItem({ title, children, className, ...props }: Accordio
       <BaseAccordion.Header className="basalt-accordion-header">
         <BaseAccordion.Trigger className="basalt-accordion-trigger">
           <span>{title}</span>
-          <Icon icon={CaretDownIcon} size={16} className="basalt-accordion-caret" />
+          <Icon icon={ChevronDownGlyph} size={16} className="basalt-accordion-caret" />
         </BaseAccordion.Trigger>
       </BaseAccordion.Header>
       <BaseAccordion.Panel className="basalt-accordion-panel">

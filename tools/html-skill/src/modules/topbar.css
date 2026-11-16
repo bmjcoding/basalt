@@ -37,8 +37,14 @@
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
     color: var(--basalt-text-primary);
   }
+  /* The skip link (core) with a bar: it hangs under the bar, space-2 below the bar's line, on the brand's start edge at every width (the bar's own inline padding, and
+     the page's centred column for a .topbar), fixed to the viewport so it covers nothing in the bar and moves nothing. Unseen until focus: clipped, not moved, so it never
+     shows over the bar on its way out. React's SkipLink does the same under a SiteHeader, AppHeader or .basalt-sticky-bar. */
+  .skip-link { position: fixed; top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); inset-inline-start: var(--bh-pad-left); transform: none; }
+  :root:has(.topbar) .skip-link { inset-inline-start: max(var(--bh-pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--bh-pad-left))); }
+  .skip-link:not(:focus) { clip-path: inset(50%); }
   /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
-  :is(.topbar, .app-header) .faint { color: var(--basalt-text-secondary); }
+  :is(.topbar, .app-header) :is(.faint, .necessity) { color: var(--basalt-text-secondary); }
   :is(.topbar, .app-header) .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
   /* The opaque form of the bar, for a page whose content does not scroll under it: the same bar on the page colour, with no filter. */
   :is(.topbar, .app-header)[data-solid] { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }

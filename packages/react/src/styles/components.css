@@ -285,6 +285,14 @@
     color: var(--basalt-text-primary);
   }
 
+  /* "Required" or "Optional", directly after the label (not at the far end of its row): tertiary ink at text-xs, 400, hidden from
+     assistive technology (the input's own `required` says it). Never an asterisk, a colour or a glyph alone. */
+  .basalt-field-necessity {
+    margin-inline-start: var(--basalt-space-1-5);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-tertiary);
+  }
+
   .basalt-field-description,
   .basalt-field-error {
     margin: 0;
@@ -921,8 +929,12 @@
     scroll-margin-top: calc(-1 * (var(--basalt-sticky-offset) + var(--basalt-space-4)));
   }
 
-  /* The skip link: the first element of the page, unseen until it has focus, then at the page's top start over everything (the layer of a
-     toast). 44px tall under a coarse pointer, and not drawn in print. The look of the HTML skill's `.skip-link`, link underline included. */
+  /* The skip link: the first element of the page, unseen until it has focus. It leaves the flow, so it floats as a tooltip does: level 3,
+     the rim, `shadow-overlay` and radius 8 (decisions 138 and 139). With no sticky bar it sits at the page's top start; with one it hangs
+     under the bar, `space-2` below the bar's line, on the brand's start edge at every width (the bar's own inline padding, and the
+     page's centred column when the bar is a site header), fixed to the viewport so it is under the bar wherever the page is scrolled.
+     It covers nothing in the bar and moves nothing. 44px tall under a coarse pointer, and not drawn in print. The look of the HTML
+     skill's `.skip-link`, link underline included. */
   .basalt-skip-link {
     box-sizing: border-box;
     position: absolute;
@@ -930,14 +942,29 @@
     top: var(--basalt-space-2);
     transform: translateY(-200%);
     padding: var(--basalt-space-2) var(--basalt-space-3);
-    border-radius: var(--basalt-radius-sm);
-    background: var(--basalt-surface-3);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-md);
+    background: var(--_surface, var(--basalt-surface-3));
+    box-shadow: var(--basalt-shadow-overlay);
     color: var(--basalt-text-primary);
     z-index: var(--basalt-layer-toast);
     text-decoration: underline;
     text-decoration-color: var(--basalt-border-input);
     text-underline-offset: var(--basalt-size-underline-offset);
   }
+  :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link {
+    position: fixed;
+    top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2));
+    inset-inline-start: var(--_pad-left);
+    transform: none;
+  }
+  :root:has(.basalt-site-header) .basalt-skip-link {
+    inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
+  }
+  /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
+  .basalt-skip-link:not(:focus) { box-shadow: none; }
+  :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link:not(:focus) { clip-path: inset(50%); }
   .basalt-skip-link:hover { text-decoration-color: currentColor; }
   .basalt-skip-link:focus { transform: none; }
   .basalt-skip-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -1673,6 +1700,40 @@
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
 
+  /* A cut cell can be read (decisions 138 and 139). The ellipsis and the row stay; a cut cell is a focus stop (`data-cut`, set by Table), and
+     its focus ring is the flush-field -2 inset, because +2 would be cut by the cell's own clip and cross its neighbours. On hover (after
+     the tooltip's wait) or focus its whole value opens in place over it, on a level-3 plate: the rim, shadow-overlay and radius 8, its
+     text starting on the pixel the cell's text starts on, wrapping at the container's end edge and never past the viewport. It is
+     aria-hidden (the cell holds the value), opened by the keyboard it carries the control ring at +2 round the plate, and after Esc the
+     cell shows its own ring. Under reduced motion it only fades; it never scales, because a scale would move the text. */
+  .basalt-table[data-fixed] :is(td, th)[data-cut]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-cell-peek {
+    box-sizing: border-box;
+    position: fixed;
+    z-index: var(--basalt-layer-tooltip);
+    display: flex;
+    align-items: center;
+    width: max-content;
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-md);
+    background: var(--_surface, var(--basalt-surface-3));
+    box-shadow: var(--basalt-shadow-overlay);
+    white-space: normal;
+    overflow-wrap: break-word;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility 0s linear calc(var(--basalt-duration-base) * 0.75);
+  }
+  .basalt-cell-peek[data-open] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  .basalt-cell-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+
   /* The sort control: the whole header cell is the button (decision 84). The button fills the cell, so the label sits
      exactly where a plain header's label does (the cell's 16px padding is the button's), and a press anywhere sorts.
      Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label,
@@ -2204,6 +2265,10 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
+  /* On touch a one-line entry is at least 44 tall with its line centred (12 above and 12 below; its plate stays 40); a two-line entry is 58 already. */
+  @media (pointer: coarse) {
+    .basalt-notification { min-height: var(--basalt-size-tap-min); align-content: center; }
+  }
   .basalt-notification::before {
     content: "";
     position: absolute;
@@ -2709,22 +2774,43 @@
 
   /* ---- Number ticker ---- */
 
-  /* The readable text is always there (visually hidden); the rolling strip is drawn over it. Under reduced
-     motion the strip goes and the text shows as it is, at the same width and baseline. Kerning is off so
-     the digits, drawn one by one, and the run of text advance the same. */
-  .basalt-ticker { display: inline-flex; align-items: flex-end; font-variant-numeric: tabular-nums; font-kerning: none; }
-  .basalt-ticker-visual { display: inline-flex; align-items: flex-end; }
-  .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; }
+  /* The rolling strips are drawn, never selected (`user-select: none`), and sit where they always did. The readable text is the number once, first in the
+     flow of the sentence it is in: transparent and selectable, in a box with no width that its text overflows, under the strips. So a selection paints the sentence's
+     own band through it (one band, one line of copied text, the number once) and the ticker is as wide as its strips, to the subpixel. An inline-block
+     adds no line break to a copy where an inline-flex does. At rest the text draws nothing. Under reduced motion the strips go and the text is the visible
+     text. Kerning is
+     off so the digits, drawn one by one, and the run of text advance the same. */
+  .basalt-ticker { white-space: nowrap; font-variant-numeric: tabular-nums; font-kerning: none; }
+  .basalt-ticker > .basalt-ticker-text { display: inline-block; width: 0; color: transparent; forced-color-adjust: none; }
+  .basalt-ticker > .basalt-ticker-visual { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
+  /* A zero-width character, so the strips' line has a text strut in a page with no doctype too (its baseline is then the text's, as in standards mode); it is generated, so it is never copied. */
+  .basalt-ticker > .basalt-ticker-visual::before { content: "\200b"; }
+  /* A ticker that is a flex item (the sparkline's headline) keeps what it always did: its digits sit on the bottom of whatever box it is stretched to. */
+  .basalt-sparkline-head > .basalt-ticker { display: flex; align-items: flex-end; }
+  /* Under reduced motion and in forced colours the strips go and the number is its own text, in the sentence's own line: plain tabular text with the same width and baseline as the
+     strips it replaces, so a selection paints one band under the whole sentence (in forced colours the system's, with its selected-text colour on the digits: the system paints
+     them, `forced-color-adjust` left alone). A new value changes in place there, as the other moving parts stop in forced colours. The sparkline's headline is a flex item and keeps
+     its 1em box, clipped to it, so its digits do not move. */
+  @media (prefers-reduced-motion: reduce), (forced-colors: active) {
+    .basalt-ticker > .basalt-ticker-visual { display: none; }
+    .basalt-ticker > .basalt-ticker-text { display: inline; width: auto; color: inherit; forced-color-adjust: auto; }
+    .basalt-sparkline-head > .basalt-ticker > .basalt-ticker-text { display: inline-block; height: 1em; overflow: clip; line-height: 1; }
+  }
+  /* The strips are built of inline boxes only: a block or a flex container inside what a selection skips adds a line break to the copy. A strip is as wide as its widest digit
+     (min-content, one digit to a line) and as tall as ten lines of 1em, shown through a window of 1em. */
+  .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; vertical-align: top; }
   .basalt-ticker-strip {
-    display: flex;
-    flex-direction: column;
+    display: inline-block;
+    width: min-content;
+    vertical-align: top;
+    white-space: normal;
     transform: translateY(calc(var(--_d, 0) * -1em));
     transition: transform var(--basalt-duration-slow) var(--basalt-ease-out);
   }
   /* A gliding ticker is already easing its value in script; the strip follows that clock and never starts its own. */
   .basalt-ticker[data-glide] .basalt-ticker-strip { transition: none; }
-  .basalt-ticker-strip > span { display: block; height: 1em; line-height: 1; }
-  .basalt-ticker-char { line-height: 1; }
+  .basalt-ticker-strip > span { display: inline-block; height: 1em; line-height: 1; vertical-align: top; }
+  .basalt-ticker-char { line-height: 1; vertical-align: top; }
   .basalt-tabular { font-variant-numeric: tabular-nums; }
 
   /* ---- Skeleton ---- */
@@ -3160,7 +3246,8 @@
   .basalt-chrome .basalt-table-hint,
   .basalt-chrome .basalt-preview-kicker,
   .basalt-chrome .basalt-profile-handle,
-  .basalt-chrome .basalt-framed-credit { color: var(--basalt-text-secondary); }
+  .basalt-chrome .basalt-framed-credit,
+  .basalt-chrome .basalt-field-necessity { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -3556,6 +3643,31 @@
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
     .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }
   }
+  /* A link on a line of its own is a touch target (44px) with no change to layout and no change to its look: inline-flex so the box can be
+     44 tall, and a negative block margin that takes back what the box adds, so its margin box is one line and the line it sits on does not
+     move (1lh is the link's own line height). The underline stays; no wash is drawn. A link in a sentence (a paragraph, a list item, a
+     caption, prose, a field's hint or error, a callout's text) keeps its line, as WCAG 2.5.8 allows for an inline target: a 44px box would
+     lie over the lines above and below it, and two links on neighbouring lines would steal each other's taps. A link in a table cell,
+     a breadcrumb, a page number or a description value has its own rule. */
+  @media (pointer: coarse) {
+    .basalt-link:not(.basalt-page-link, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--basalt-size-tap-min);
+      margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2));
+    }
+    /* A link shorter than 44px wide ("Go") is still a 44 by 44 target: a box with no content, centred on the link and at least 44 wide, is part of the link, so its width
+       and the line it sits on do not change. */
+    .basalt-link:not(.basalt-page-link, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *)::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      left: 50%; /* physical: it is centred, in either direction */
+      width: max(100%, var(--basalt-size-tap-min));
+      transform: translateX(-50%);
+    }
+  }
 
   /* Borders and state markers remain structural when system high-contrast colours replace
      author colours and box shadows. System colour keywords preserve the user's palette. */
@@ -3617,7 +3729,7 @@
     /* Keyboard focus is not this mark: with focus the standard ring (2px, offset 2) draws, as it does on every other control. */
     .basalt-segment[data-pressed]:not(:focus-visible), .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active]:not(:focus-visible), .basalt-pagination [aria-current="page"]:not(:focus-visible) { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
-    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
+    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-skip-link, .basalt-cell-peek, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
@@ -3868,9 +3980,6 @@
     /* The ring still has to show work happening: a slow fade, no movement. Braille holds its first frame. */
     .basalt-spinner[data-variant="ring"] svg { animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot] { animation: none; }
-    /* Digits are plain tabular text: the same width and baseline as the strip they replace. */
-    .basalt-ticker-visual { display: none; }
-    .basalt-ticker-text { position: static; display: inline-block; width: auto; height: 1em; margin: 0; overflow: hidden; clip: auto; line-height: 1; white-space: pre; }
     .basalt-text-morph,
     .basalt-text-morph-glyph { transition: none; }
     /* Changing a panel is a 100ms crossfade, with no travel. */
