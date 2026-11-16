@@ -750,7 +750,8 @@ for (const theme of ["light", "dark"]) {
       const next = benji.getByRole("button", { name: "Next" });
       await next.focus();
       await page.keyboard.press("Enter");
-      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Choose a route" }).textContent(), "Choose a route");
+      // The Stepper's polite live region says where the user is as well as the step's name (audit-fix-c4, A3-13).
+      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Choose a route" }).textContent(), "Step 2 of 3: Choose a route");
       await benji.getByRole("button", { name: "Week" }).click();
       assert.equal(await benji.locator(".basalt-segmented").getAttribute("data-direction"), "forward");
       await page.getByRole("tab", { name: "Runs" }).click();

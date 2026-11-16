@@ -7,6 +7,7 @@ import {
   MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
   TabsList, TabsPanel, GlidePlate, Reserve, SkipLink, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
 } from "@srasyndicate/basalt";
+import { AccordionItem, CardTitle, Stepper, ToastProvider, Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "@srasyndicate/basalt";
 import type { CollisionAvoidance, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
 
 const focus = React.createRef<HTMLButtonElement>();
@@ -199,4 +200,44 @@ export const skipAndReserve = (
     {/* @ts-expect-error show names a wording: a string */}
     <Reserve show={1} alternatives={{ a: "x" }} />
   </>
+);
+
+// Heading levels: Card and Accordion keep h3 unless the page's outline says otherwise; a page title's h1 is not theirs.
+export const levels = (
+  <>
+    <CardTitle>Runs</CardTitle>
+    <CardTitle level={2} className="mine" id="t">Runs</CardTitle>
+    {/* @ts-expect-error a card is never the page's h1 */}
+    <CardTitle level={1}>Runs</CardTitle>
+    <AccordionItem title="Details" headingLevel={4}>Text</AccordionItem>
+    {/* @ts-expect-error the level is 2 to 6 */}
+    <AccordionItem title="Details" headingLevel={7}>Text</AccordionItem>
+  </>
+);
+
+// The Stepper's name and position words, and a toast's action sentence, are the app's to translate.
+export const spokenWords = (
+  <ToastProvider actionWords={(label) => `${label} est disponible. Appuyez sur F6.`}>
+    <Stepper steps={[{ id: "a", label: "Details" }]} value="a" onValueChange={(id) => id.length} label="Étapes" positionLabel={(step, total) => `Étape ${step} sur ${total}`} />
+    {/* @ts-expect-error the position words are a function of the two numbers */}
+    <Stepper steps={[]} value="a" onValueChange={() => {}} positionLabel="Step" />
+  </ToastProvider>
+);
+
+// A toolbar draws nothing; Basalt's own controls are its items, with the props they have outside it.
+export const toolbar = (
+  <Toolbar aria-label="Format" orientation="vertical" loopFocus={false} className="mine" onKeyDown={(event) => event.key}>
+    <ToolbarButton variant="primary" size="sm" icon={HomeGlyph} onClick={(event) => event.currentTarget.value}>Bold</ToolbarButton>
+    <ToolbarButton disabled focusableWhenDisabled={false}>Off</ToolbarButton>
+    <ToolbarIconButton icon={HomeGlyph} label="Home" pressed />
+    <ToolbarGroup aria-label="Links" disabled><ToolbarLink href="#a" target="_blank">Docs</ToolbarLink></ToolbarGroup>
+    <ToolbarSeparator className="rule" />
+    <ToolbarInput aria-label="Find" controlSize="sm" onValueChange={(value) => value.length} />
+    <Menu><MenuTrigger render={<ToolbarButton>More</ToolbarButton>} /></Menu>
+    <Popover><PopoverTrigger render={<ToolbarIconButton icon={HomeGlyph} label="Info" />} /></Popover>
+    {/* @ts-expect-error the item is the toolbar's: it takes no render of its own */}
+    <ToolbarButton render={<a href="#a" />}>Link</ToolbarButton>
+    {/* @ts-expect-error a toolbar button has a label to show */}
+    <ToolbarButton />
+  </Toolbar>
 );

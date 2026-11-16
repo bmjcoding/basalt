@@ -297,6 +297,16 @@ for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["N
   });
 }
 
+// The toolbar (DECISIONS 135): Base UI's toolbar and its roving focus, the direction provider, and Basalt's own controls as items, so
+// the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764.
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 56_000]]) {
+  test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /shiki|cmdk|@radix-ui/.test(f)), []);
+  });
+}
+
 // The figures (decision 94): the description list and the stat are plain markup; the meter carries Base UI's Meter and nothing
 // else of it; the terminal carries a Button, an Icon and the braille spinner, and never Shiki or cmdk.
 for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stats, Stat", 3_500]]) {
