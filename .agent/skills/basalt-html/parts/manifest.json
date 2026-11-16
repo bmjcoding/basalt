@@ -614,8 +614,8 @@
       "icons": [
         "MagnifyingGlass"
       ],
-      "budget": 10801,
-      "budgetReason": "audit-fix-c2 Sol build: 9897 to 10801 bytes (+904); hosted top-layer scrim, logical-host cleanup, scoped keys and the modal depth reset preserve the original page painting and explicit inertness, escape sheet clipping and allow dialogs above the palette. Cap 9900 to 10801.",
+      "budget": 11000,
+      "budgetReason": "audit-fix-c2 Sol build: 9897 to 10801 bytes (+904); hosted top-layer scrim, logical-host cleanup, scoped keys and the modal depth reset preserve the original page painting and explicit inertness, escape sheet clipping and allow dialogs above the palette. Cap 9900 to 10801. Return 1: 10801 to 10843 bytes (+42) for pointer focus on the panel without a ring and modal-only hosting; cap 10801 to 11000, leaving 157 bytes.",
       "usage": 1350,
       "textWords": [
         "a call to Basalt.openPalette or Basalt.closePalette",
@@ -872,8 +872,8 @@
         "XCircle",
         "X"
       ],
-      "budget": 14780,
-      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780.",
+      "budget": 15100,
+      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes.",
       "usage": 1100,
       "builds": [
         "braille"

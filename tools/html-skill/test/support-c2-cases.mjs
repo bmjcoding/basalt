@@ -19,6 +19,7 @@ export const C2_REFUSALS = [
   ['plaintext', '<h1>Before</h1><plaintext>text', /`<plaintext>` is refused/],
   ['non-HTML whitespace', '<h1>x</h1><script>var a = 1;</script\u00a0>', /`<script>` is never closed/],
   ['unclosed noscript', '<h1>x</h1><noscript><p>x', /`<noscript>` is never closed/],
+  ['optional event-handler init', '<button onclick="Basalt?.init()">Init</button>', /onclick.*inline HTML script/],
 ];
 
 export const C2_ACCEPTED = [
@@ -31,4 +32,5 @@ export const C2_ACCEPTED = [
   '<p>A paragraph may omit its end tag and contain the suffix',
   '<svg><math><mtext>These names stay in the SVG namespace</mtext></math></svg>',
   '<math><annotation-xml><svg><rect/></svg></annotation-xml></math>',
+  '<script>Basalt?.init()</script>',
 ];

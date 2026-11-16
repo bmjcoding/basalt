@@ -35,6 +35,19 @@ const frames = (p, n = 3) => p.evaluate((count) => new Promise((resolve) => { le
 // ---- A5-03 and A5-09: compose.mjs on the audit's 15 bodies ----
 
 describe("compose.mjs on bodies it used to get wrong (A5-03, A5-09)", () => {
+  test("return 1: SVG chart-label refusals recommend tspan, and an encoding ampersand is described literally", () => {
+    for (const tag of ["br", "sub", "b"]) assert.throws(() => page(`<svg><text><${tag}>x</${tag}></text></svg>`), new RegExp(`<${tag}>.*<text>.*use <tspan>`));
+    assert.throws(() => page('<math><annotation-xml encoding="a&b">x</annotation-xml></math>'), /encoding.*containing an ampersand.*write the encoding literally/);
+  });
+  test("return 1: optional-chaining init executes once, while literal and handler forms keep their respective contracts", async () => {
+    const body = '<script>Basalt?.init();</script>';
+    assert.ok(!/<script>Basalt\.init\(\);<\/script>\n<\/body>/.test(page(body).html), "a real optional call owns init");
+    assert.match(page('<script>const text = "Basalt?.init()";</script>').html, /<script>Basalt\.init\(\);<\/script>\n<\/body>/, "a string does not own init");
+    assert.throws(() => page('<button onclick="Basalt?.init()">Init</button>'), /onclick.*inline HTML script/);
+    const { page: p, context } = await openHtml(browser, page('<script>Basalt._.step(999, "counter", () => window.inits = (window.inits || 0) + 1); Basalt?.init();</script>').html);
+    assert.equal(await p.evaluate(() => window.inits), 1);
+    await context.close();
+  });
   for (const [name, body, message] of C2_REFUSALS.slice(0, 8)) test(`Sol build: ${name} has an explicit refusal`, () => {
     assert.throws(() => page(body), message);
   });
@@ -228,6 +241,19 @@ describe("compose.mjs on bodies it used to get wrong (A5-03, A5-09)", () => {
 // ---- A5-07: the head a body can carry ----
 
 describe("a body can carry its page's description, icon and share card (A5-07)", () => {
+  test("return 1: ordinary named metas move to the head and itemprop microdata stays in the body", () => {
+    for (const name of ["robots", "author", "referrer", "keywords"]) {
+      const tag = `<meta name="${name}" content="x">`;
+      const { html } = page(`<h1>Metadata</h1>${tag}`);
+      assert.ok(head(html).includes(tag), name);
+      assert.ok(!bodyOf(html).includes(tag), name);
+    }
+    for (const tag of ['<meta itemprop="name" content="Orbit">', '<link itemprop="url" href="https://example.test">']) {
+      const { html } = page(`<h1>Microdata</h1><div itemscope>${tag}</div>`);
+      assert.ok(bodyOf(html).includes(`<div itemscope>${tag}</div>`), "microdata keeps its body location");
+      assert.ok(!head(html).includes(tag), "body microdata is not head metadata");
+    }
+  });
   const TAGS = `<meta name="description" content="A synthetic page.">
 <meta property="og:title" content="Synthetic">
 <meta name="twitter:card" content="summary">
@@ -250,8 +276,8 @@ describe("a body can carry its page's description, icon and share card (A5-07)",
     assert.equal(head(page("<h1>x</h1>").html).includes('name="description"'), false);
   });
 
-  test("every other meta and link is refused with the list of what a body may carry, and a meta or link inside an svg or a template is left alone", () => {
-    for (const tag of ['<meta name="viewport" content="width=500">', '<meta charset="latin1">', '<meta http-equiv="refresh" content="0;url=https://example.test">', '<meta name="description">', '<meta name="description" property="og:title" content="x">', '<meta name="robots" content="noindex">', '<link rel="stylesheet" href="https://example.test/a.css">', '<link rel="preload" href="x" as="font">', '<link rel="icon" href="favicon.ico">', '<link rel="icon" href="data:image/png;base64,AAAA" onload="x()">', '<link href="x">']) {
+  test("other head metas and links are refused with the list of what a body may carry, and a meta or link inside an svg or a template is left alone", () => {
+    for (const tag of ['<meta name="viewport" content="width=500">', '<meta charset="latin1">', '<meta http-equiv="refresh" content="0;url=https://example.test">', '<meta name="description">', '<meta name="description" property="og:title" content="x">', '<link rel="stylesheet" href="https://example.test/a.css">', '<link rel="preload" href="x" as="font">', '<link rel="icon" href="favicon.ico">', '<link rel="icon" href="data:image/png;base64,AAAA" onload="x()">', '<link href="x">']) {
       assert.throws(() => page(`<h1>x</h1>${tag}`), (e) => /may carry <meta name="description"/.test(e.message) && e.message.startsWith(tag.slice(0, 20)), tag);
     }
     assert.doesNotThrow(() => page('<h1>x</h1><svg><link rel="stylesheet" href="x"/></svg><template><meta name="viewport" content="x"></template><!-- <meta name="viewport"> -->'));
@@ -381,6 +407,126 @@ describe("F6 reaches the notifications region (A3-09)", () => {
   const open = (scheme = "dark") => openHtml(browser, compose(BODY, { fonts: false }).html + "", { scheme });
   const show = (p) => p.evaluate(() => { Basalt.toast({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } }); });
   const active = (p) => p.evaluate(() => { const a = document.activeElement; return { cls: a.className, role: a.getAttribute("role"), name: a.getAttribute("aria-label"), tab: a.tabIndex }; });
+
+  for (const host of [false, true]) test(`return 1: ordinary Tab into a toast reverses beside React; the skill also clears stale F6 returns (${host ? "dialog" : "page"})`, async () => {
+    for (const react of [false, true]) {
+      const controls = '<button class="btn" id="first">First</button><button class="btn" id="last">Last</button>';
+      const opened = react
+        ? await fixturePage(reactBrowser, `function App(){const t=B.useToast();React.useEffect(()=>{window.show=()=>t.show({title:"Saved"})},[t]);return ${host ? '<B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Host</B.DialogTitle><B.DialogDescription>d</B.DialogDescription><button id="first">First</button><button id="last">Last</button></B.DialogContent></B.Dialog>' : '<><button id="first">First</button><button id="last">Last</button></>'}}
+          createRoot(document.getElementById("root")).render(<B.ToastProvider><App/></B.ToastProvider>);`, { theme: "dark" })
+        : await openHtml(browser, page(`<!-- basalt:use toast dialog -->${host ? `<dialog class="panel float modal dialog" id="host" aria-label="Host">${controls}</dialog>` : controls}`).html);
+      const p = opened.page;
+      p.setDefaultTimeout(5000);
+      if (host && !react) await p.evaluate(() => Basalt.openDialog("#host"));
+      await p.locator("#last").waitFor();
+      await p.locator("#last").focus();
+      await p.evaluate((r) => { if (r) window.show(); else Basalt.toast({ title: "Saved" }); }, react);
+      await settle(p);
+      await p.locator("#last").focus();
+      const toast = react ? ".basalt-toast" : ".toast";
+      for (const afterF6 of react ? [false] : [false, true]) {
+        if (afterF6) {
+          await p.locator("#first").focus();
+          await p.keyboard.press("F6");
+          assert.equal(await p.evaluate(() => document.activeElement.getAttribute("role")), "region");
+          await p.locator("#last").focus(); // leaving the stack must discard the F6 return target
+        }
+        await p.keyboard.press("Tab");
+        await settle(p); // Base UI's focus guards hand focus on after the key's default move
+        if (react && host) {
+          assert.equal(await p.evaluate(() => document.activeElement.id), "first", "React's modal trap currently wraps before its portaled toast; ordinary dialog entry parity is not claimed");
+          await p.locator("#last").focus();
+          await p.locator(".basalt-toast-viewport").focus(); // compare its reverse route without ever invoking F6
+          await p.keyboard.press("Tab");
+          await settle(p);
+        }
+        assert.equal(await p.locator(toast).first().evaluate((el) => document.activeElement === el), true, `${react ? "React" : "skill"}, after F6 ${afterF6}: ordinary Tab reaches the toast (active ${await p.evaluate(() => document.activeElement.outerHTML.slice(0, 150))})`);
+        await p.keyboard.press("Shift+Tab");
+        await settle(p);
+        assert.equal(await p.evaluate(() => document.activeElement.id), react && host ? "first" : "last", react && host ? "React's portaled reverse route returns through the modal trap to its first control" : "reverse Tab follows document order, never a stale F6 target");
+      }
+      if (opened.context) await opened.context.close(); else await p.close();
+    }
+  });
+
+  test("return 1: toast placement observes document mutations only while hosted in a modal", async () => {
+    const context = await browser.newContext();
+    await context.addInitScript(() => {
+      window.documentMutations = 0;
+      const Original = window.MutationObserver;
+      window.MutationObserver = class extends Original {
+        constructor(callback) { super((records, observer) => { if (this.documentWide) window.documentMutations++; callback(records, observer); }); }
+        observe(target, options) { this.documentWide = target === document.documentElement; return super.observe(target, options); }
+      };
+    });
+    const p = await context.newPage();
+    await context.route("https://basalt.test/", (route) => route.fulfill({ contentType: "text/html", body: page('<!-- basalt:use toast dialog --><button id="outside">Outside</button><div id="writes"></div><dialog id="host"><input aria-label="Name"></dialog>').html }));
+    await p.goto("https://basalt.test/");
+    const mutate = async () => {
+      await p.evaluate(() => { window.documentMutations = 0; document.querySelector("#writes").appendChild(document.createElement("span")); });
+      await frames(p);
+      return p.evaluate(() => window.documentMutations);
+    };
+    assert.equal(await mutate(), 0, "no observer callbacks on a page with no toast or modal");
+    await p.evaluate(() => Basalt.toast({ title: "Saved" })); await settle(p);
+    assert.equal(await mutate(), 0, "a page toast still needs no document observer");
+    await p.evaluate(() => Basalt.openDialog("#host")); await settle(p);
+    assert.ok(await mutate() > 0, "a hosted region observes host removal");
+    await p.evaluate(() => document.querySelector("#host").remove());
+    await p.waitForFunction(() => document.querySelector(".toast-viewport").parentElement === document.body);
+    await settle(p);
+    assert.equal(await mutate(), 0, "host removal releases the region and disconnects the observer");
+    await context.close();
+  });
+
+  test("return 1: a non-modal open dialog is not a palette host", async () => {
+    const { page: p, context } = await openHtml(browser, page('<!-- basalt:use palette dialog --><button id="outside">Outside</button><dialog open id="host"><button id="inside">Inside</button></dialog>').html);
+    await p.locator("#inside").focus();
+    await p.evaluate(() => Basalt.openPalette({ groups: [] }));
+    assert.equal(await p.locator(".palette-scrim").evaluate((el) => el.parentElement === document.body && !el.hasAttribute("popover")), true);
+    assert.equal(await p.locator("#outside").evaluate((el) => el.inert), true, "the outside page is explicitly inert");
+    await p.keyboard.press("Escape");
+    assert.equal(await p.locator("#outside").evaluate((el) => el.inert), false);
+    assert.equal(await p.locator("#host").evaluate((el) => el.open), true);
+    await context.close();
+  });
+
+  for (const host of ["page", "dialog", "sheet"]) for (const part of ["group label", "footer"]) test(`return 1: palette keys work after clicking its ${part} (${host}), beside React`, async () => {
+    for (const react of [false, true]) {
+      const menu = '<B.CommandMenu open={open} onOpenChange={setOpen} hints groups={[{label:"Commands",commands:[{id:"a",label:"Alpha"},{id:"b",label:"Beta",onSelect:()=>window.chosen="Beta"}]}]}/>';
+      const jsx = `function App(){const [open,setOpen]=React.useState(false);React.useEffect(()=>{window.openMenu=()=>setOpen(true)},[]);return ${host === "page" ? menu : host === "dialog" ? `<B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Host</B.DialogTitle><B.DialogDescription>d</B.DialogDescription><B.Input aria-label="Host input"/>${menu}</B.DialogContent></B.Dialog>` : `<B.Sheet defaultOpen><B.SheetContent side="right"><B.SheetTitle>Host</B.SheetTitle><B.SheetDescription>d</B.SheetDescription><B.Input aria-label="Host input"/>${menu}</B.SheetContent></B.Sheet>`}}
+        createRoot(document.getElementById("root")).render(<App/>);`;
+      const opened = react ? await fixturePage(reactBrowser, jsx, { theme: "dark" }) : await openHtml(browser, page(`<!-- basalt:use palette dialog sheet --><button>Open</button>${host === "page" ? "" : `<dialog class="panel float modal ${host}" data-side="right" id="host" aria-label="Host"><input class="input" aria-label="Host input"></dialog>`}`).html);
+      const p = opened.page;
+      p.setDefaultTimeout(5000);
+      if (!react && host !== "page") await p.evaluate(() => Basalt.openDialog("#host"));
+      await settle(p);
+      const openMenu = async () => {
+        await p.evaluate((r) => { if (r) window.openMenu(); else Basalt.openPalette({ groups: [{ label: "Commands", items: [{ label: "Alpha" }, { label: "Beta", onSelect: () => window.chosen = "Beta" }] }] }); }, react);
+        await p.waitForFunction((sel) => document.querySelector(sel)?.hasAttribute("aria-activedescendant"), react ? ".basalt-command-input" : ".palette input");
+        await settle(p);
+      };
+      const click = () => p.locator(react ? part === "footer" ? ".basalt-command-footer" : "[cmdk-group-heading]" : part === "footer" ? ".palette-footer" : ".row-group").click();
+      const selected = () => p.locator(react ? '[cmdk-item][aria-selected="true"]' : '.palette [role="option"][aria-selected="true"]').innerText();
+      await openMenu();
+      await click();
+      assert.equal(await p.evaluate((sel) => document.querySelector(sel).contains(document.activeElement), react ? ".basalt-command" : ".palette"), true, "pointer focus remains inside the palette");
+      if (!react) assert.equal(await p.locator(".palette").evaluate((el) => getComputedStyle(el).outlineStyle), "none", "the panel draws no focus ring");
+      await p.keyboard.press("ArrowDown");
+      assert.match(await selected(), /Beta/);
+      await p.keyboard.press("ArrowUp");
+      assert.match(await selected(), /Alpha/);
+      await p.keyboard.press("ArrowDown");
+      await p.keyboard.press("Enter");
+      await p.waitForFunction(() => window.chosen === "Beta");
+      await openMenu();
+      await click();
+      await p.keyboard.press("Escape");
+      await p.locator(react ? ".basalt-command" : ".palette").waitFor({ state: "detached" });
+      if (host !== "page") assert.equal(await p.locator(react ? host === "dialog" ? ".basalt-dialog:not(.basalt-command)" : ".basalt-sheet" : "#host").isVisible(), true, "Escape closes only the palette");
+      if (opened.context) await opened.context.close(); else await p.close();
+    }
+  });
 
   for (const scheme of ["dark", "light"]) {
     test(`F6 puts focus on the region, a Tab goes to the first toast, and Shift+Tab from the region goes back to where focus was (${scheme})`, async () => {
@@ -645,7 +791,6 @@ describe("F6 reaches the notifications region (A3-09)", () => {
       await settle(s);
       await openPalette();
       assert.deepEqual(await probe(s, ".palette", ".palette .input-row"), standalone, "hosting changes neither depth nor viewport position and does not clip the panel");
-      await s.screenshot({ path: path.join(here, "../../../.review/sol-c2", `palette-${host}-${scheme}-${width}.png`) });
       await s.evaluate(() => { Basalt.toast({ title: "Saved" }); });
       await s.keyboard.press("F6");
       await s.evaluate(() => { document.querySelector("#host").close(); });
@@ -810,21 +955,34 @@ describe("the stage's art is after its content in the markup and behind it on th
   });
 
   // The slow link: the document arrives in two parts, and the stage's art is a layout shift when it comes before the words. The server sends the first part (the bar, the stage's opening, and what is before
-  // the art or the first words), waits, then sends the rest, as a slow link does.
+  // the art or the first words), waits for the browser's first-contentful-paint report, then sends the rest.
   const slow = async (artFirst, { scheme = "dark", width = 390 } = {}) => {
     const html = compose(`<title>Slow</title><header class="topbar"><div class="topbar-inner"><a class="brand" href="#top">Orbit</a></div></header><section class="stage" id="top"><!--SPLIT-->${artFirst ? ART + `<div class="stage-content"><h1 style="margin:0">A synthetic headline</h1><!--LATER-->` : `<div class="stage-content"><h1 style="margin:0">A synthetic headline</h1><!--LATER-->`}<p style="height:420px;margin:0">The words that arrive late.</p></div>${artFirst ? "" : ART}</section><main style="height: 800px"></main>`, { fonts: false }).html;
     const cut = html.indexOf("<!--LATER-->");
     const first = html.slice(0, cut);
     const second = html.slice(cut);
+    let pending;
     const server = http.createServer((req, res) => {
+      if (req.url === "/paint") {
+        res.writeHead(204).end();
+        pending.end(second);
+        return;
+      }
+      if (req.url !== "/") { res.writeHead(404).end(); return; }
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      pending = res;
       res.write(first);
-      setTimeout(() => res.end(second), 700);
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, colorScheme: scheme });
     const p = await context.newPage();
     await p.addInitScript(() => {
+      const paint = new PerformanceObserver((list) => {
+        if (!list.getEntries().some((e) => e.name === "first-contentful-paint")) return;
+        paint.disconnect();
+        fetch("/paint"); // the server cannot release the second chunk before this paint
+      });
+      paint.observe({ type: "paint", buffered: true });
       window.__shifts = [];
       new PerformanceObserver((list) => {
         for (const e of list.getEntries()) {
@@ -833,14 +991,16 @@ describe("the stage's art is after its content in the markup and behind it on th
         }
       }).observe({ type: "layout-shift", buffered: true });
     });
-    await p.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "commit" });
-    await p.waitForFunction(() => document.querySelector(".stage-content h1") && performance.getEntriesByName("first-contentful-paint").length > 0, null, { timeout: 5000 });
-    await p.waitForFunction(() => document.querySelector(".stage-content p"), null, { timeout: 5000 });
-    await frames(p, 6);
-    const shifts = await p.evaluate(() => window.__shifts);
-    await context.close();
-    await new Promise((resolve) => server.close(resolve));
-    return shifts;
+    try {
+      await p.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "commit" });
+      await p.waitForFunction(() => document.querySelector(".stage-content h1") && performance.getEntriesByName("first-contentful-paint").length > 0, null, { timeout: 5000 });
+      await p.waitForFunction(() => document.querySelector(".stage-content p"), null, { timeout: 5000 });
+      await frames(p, 6);
+      return await p.evaluate(() => window.__shifts);
+    } finally {
+      await context.close();
+      await new Promise((resolve) => server.close(resolve));
+    }
   };
 
   test("on a slow link the art does not jump when the words arrive after it: with the art last it is not on the page to move, and with the art first (the old markup) it did", async () => {
@@ -973,6 +1133,6 @@ describe("the documented composer contract over every regression body (A5-09)", 
       if (own) assert.equal(seen.last, "Basalt.init();", `${JSON.stringify(body.slice(0, 70))}: the last script is the composer's own (its parent may be an open ordinary element)`);
       await context.close();
     }
-    assert.ok(accepted >= 40 && refused === 23, `${accepted} accepted, ${refused} refused`);
+    assert.ok(accepted >= 40 && refused === C2_REFUSALS.length + 4, `${accepted} accepted, ${refused} refused (shared refusals plus the four refused fixture files)`);
   });
 });

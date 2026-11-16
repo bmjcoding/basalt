@@ -6,6 +6,7 @@
   .palette-scrim { display: flex; align-items: flex-start; justify-content: center; padding: max(var(--basalt-space-4), 12vh) var(--basalt-space-4) var(--basalt-space-4); overflow: auto; }
   /* stylelint-disable-next-line unit-disallowed-list -- 480px is the palette's height cap; the nearest tokens (popup max-height plus the input band) would shift it */
   .palette { display: flex; flex-direction: column; width: min(var(--basalt-size-command-width), 100%); max-height: min(480px, calc(100dvh - 2 * var(--basalt-space-4))); }
+  .palette:focus { outline: none; } /* Pointer focus stays inside the modal without drawing a control ring on its panel. */
   /* Reset the popover's browser box; keep the original scrim and panel painting in one layer. */
   .palette-scrim[popover] { margin: 0; border: 0; width: auto; height: auto; max-width: none; max-height: none; }
   /* A modal resets its depth even while its top-layer scrim is logically inside another modal. */

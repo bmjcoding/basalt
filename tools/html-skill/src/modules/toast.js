@@ -20,6 +20,7 @@
   var hidden = false;
   var NOSCROLL = { preventScroll: true };
   var modals = []; // focus history, retained when focus is lost to the browser or the document body
+  var modalObserver;
   var prior = null;
   var from = null; // where focus was when F6 took it to the region
 
@@ -56,6 +57,7 @@
     viewport.tabIndex = -1;
     viewport.addEventListener('keydown', function (e) {
       if ((e.target !== viewport && e.target !== viewport.firstElementChild) || (e.key !== 'Escape' && !(e.key === 'Tab' && e.shiftKey))) return; // from the region, or from the first toast (what Shift+Tab would leave the stack for)
+      if (!from || !from.isConnected) { from = null; return; }
       e.preventDefault();
       e.stopPropagation(); // inside a dialog the focus trap would read the element just focused and wrap backwards
       var back = from;
@@ -66,14 +68,14 @@
     viewport.addEventListener('pointerenter', function () { hover = true; sync(); });
     viewport.addEventListener('pointerleave', function () { hover = false; sync(); });
     viewport.addEventListener('focusin', function () { focus = true; sync(); });
-    viewport.addEventListener('focusout', function (e) { if (!viewport.contains(e.relatedTarget)) { focus = false; sync(); } });
+    viewport.addEventListener('focusout', function (e) { if (!viewport.contains(e.relatedTarget)) { from = null; focus = false; sync(); } });
     window.addEventListener('blur', function (e) { if (e.target === window) { blurred = true; sync(); } }, true);
     window.addEventListener('focus', function (e) { if (e.target === window) { blurred = false; sync(); } }, true);
     document.addEventListener('visibilitychange', function () { hidden = document.visibilityState === 'hidden'; sync(); });
     hidden = document.visibilityState === 'hidden';
     document.addEventListener('focusin', place);
     // Native focus can leave for browser chrome. Keep the last focused live modal until focus identifies another.
-    new MutationObserver(place).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
+    modalObserver = new MutationObserver(place);
     document.addEventListener('beforetoggle', function (e) { if (e.newState === 'closed') release(e.target); }, true);
   }
 
@@ -97,6 +99,9 @@
   }
   function move(to) {
     if (viewport.parentNode === to) return;
+    // Only a modal host can disappear or close around the viewport. Ordinary page writes need no observation.
+    modalObserver.disconnect();
+    if (to !== document.body) modalObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
     var was = viewport.matches(':popover-open');
     to.appendChild(viewport);
     if (was || items.length) { viewport.showPopover(); resume(); }

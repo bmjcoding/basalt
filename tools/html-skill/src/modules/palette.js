@@ -148,7 +148,7 @@
     var scrim = document.createElement('div');
     scrim.className = 'scrim palette-scrim';
     scrim.innerHTML =
-      '<div class="panel float modal palette" role="dialog" aria-modal="true" aria-label="' + esc(label) + '">' +
+      '<div class="panel float modal palette" tabindex="-1" role="dialog" aria-modal="true" aria-label="' + esc(label) + '">' +
         '<div class="input-row">' + icon('MagnifyingGlass') +
           '<input type="text" role="combobox" aria-expanded="true" aria-controls="' + id + '-list" aria-autocomplete="list" aria-label="' + esc(label) +
           '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(o.placeholder || 'Type a command or search') + '">' +
@@ -220,7 +220,7 @@
     }
 
     // A native top-layer popover preserves the scrim's drawing and escapes its logical modal host's clipping.
-    var host = opener && opener.closest('dialog[open]');
+    var host = opener && opener.closest('dialog:modal');
     var inerted = [];
     var overflow = document.documentElement.style.overflow;
     var hostObserver;

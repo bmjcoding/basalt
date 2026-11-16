@@ -141,7 +141,7 @@ const JS_TYPE = /^(?:|module|application\/(?:x-)?(?:ecma|java)script|text\/(?:x-
  * comments, which is what detection reads); saved[i] is { kind, text, inner, attrs, comments }. `whole` says the body holds a doctype or an html, head or body tag.
  * `h1` is the text of the first top-level h1 (null when there is none or it never closes). Throws for anything that is never closed or that the end of the text cuts
  * off, since it would swallow the rest of the page, the composer's own script and closing tags included, and for what it will not model: foreign-content breakout, an
- * `annotation-xml` encoding with a character reference, `mglyph` and `malignmark` in a MathML text point, `plaintext`. `stats.frameVisits` counts the stack frames looked at.
+ * `annotation-xml` encoding containing an ampersand, `mglyph` and `malignmark` in a MathML text point, `plaintext`. `stats.frameVisits` counts the stack frames looked at.
  */
 export function readBody(body, stats = {}) {
   const mark = unusedMark(body);
@@ -173,7 +173,7 @@ export function readBody(body, stats = {}) {
     const tag = readTag(body, i);
     if (!tag.terminated) throw cutOff(`a tag (\`${body.slice(i, i + 24).replace(/\s+/g, " ")}…\`)`);
     if (!tag.close) for (const [name, value] of tag.attrs) {
-      if (/^on/.test(name) && /\bBasalt\s*\.\s*init\s*\(/.test(stripJsComments(value, true))) throw new Error(`\`<${tag.name}>\` calls Basalt.init() in \`${name}\`: write the init call in an inline HTML script, not an event handler`);
+      if (/^on/.test(name) && /\bBasalt\s*\??\.\s*init\s*\(/.test(stripJsComments(value, true))) throw new Error(`\`<${tag.name}>\` calls Basalt.init() in \`${name}\`: write the init call in an inline HTML script, not an event handler`);
     }
     return tag;
   };
@@ -227,7 +227,7 @@ export function readBody(body, stats = {}) {
       const name = tag.name;
       if (foreign()) {
         const top = stack[stack.length - 1];
-        if (breaksOut(name, tag.attrs)) throw breakout(name, top.ns);
+        if (breaksOut(name, tag.attrs)) throw breakout(name, top.ns, top.ns === "svg" && stack.some((frame) => frame.ns === "svg" && frame.name === "text"));
         // A spelling does not switch namespaces in foreign content. The dispatcher exception is svg in MathML annotation-xml.
         const ns = top.ns === "math" && top.name === "annotation-xml" && name === "svg" ? "svg" : top.ns;
         if (name === "script" && ns === "svg") throw new Error("`<script>` inside `<svg>` is refused: write executable scripts in HTML outside the svg");
@@ -238,7 +238,7 @@ export function readBody(body, stats = {}) {
           text = MATH_TEXT_POINTS.has(name);
           if (name === "annotation-xml") {
             const encoding = tag.attrs.find((a) => a[0] === "encoding")?.[1] ?? "";
-            if (encoding.includes("&")) throw new Error("`<annotation-xml>` has an `encoding` with a character reference: write the encoding literally (encoding=\"text/html\"), because compose.mjs does not decode references to decide what an element holds");
+            if (encoding.includes("&")) throw new Error("`<annotation-xml>` has an `encoding` containing an ampersand: write the encoding literally (encoding=\"text/html\"), because compose.mjs does not decode references to decide what an element holds");
             html = /^(?:text\/html|application\/xhtml\+xml)$/i.test(encoding);
           }
           html = html || text;
@@ -278,7 +278,7 @@ export function readBody(body, stats = {}) {
       } else {
         if (!stack.length) {
           if (name === "html" || name === "head" || name === "body") whole = true;
-          else if (name === "meta" || name === "link") hold("head", i, tag.end, null, tag.attrs);
+          else if ((name === "meta" || name === "link") && !tag.attrs.some(([key]) => key === "itemprop")) hold("head", i, tag.end, null, tag.attrs);
           else if (name === "h1" && !h1) h1 = { text: "", open: true };
         }
         i = cursor = tag.end;
@@ -304,26 +304,27 @@ export function readBody(body, stats = {}) {
 }
 
 /** The error for HTML inside svg or math. */
-function breakout(name, ns) {
+function breakout(name, ns, svgText = false) {
+  if (svgText) return new Error(`\`<${name}>\` inside SVG \`<text>\` is HTML that a browser lifts out of the svg: use <tspan> for chart labels (dy for line breaks, baseline-shift for subscripts, font-weight for bold)`);
   return new Error(`\`<${name}>\` inside \`<${ns}>\` is HTML in foreign content, which a browser lifts out of the ${ns}, so compose.mjs cannot tell where the rest of the page is: HTML inside ${ns} must be inside ${ns === "svg" ? "foreignObject" : "an annotation-xml with encoding=\"text/html\""}`);
 }
 
 /**
- * A `meta` or `link` a body may carry into the head: the page's description, its icon and its share card. Returns the tag as written, or throws
+ * A `meta` or `link` a body may carry into the head: ordinary named metadata, its icon and its share card. Returns the tag as written, or throws
  * for any other, because compose owns the charset, viewport and colour scheme, and a stylesheet or preload would reach for the network.
  */
 export function headTag(tag, attrs = readTag(tag, 0).attrs) {
   const name = tag.match(/^<(meta|link)/i)[1].toLowerCase();
   const a = {};
   for (const [k, v] of attrs) a[k] ??= v; // the first of a repeated attribute wins, as in a browser
-  const refuse = (why) => new Error(`${tag.length > 90 ? `${tag.slice(0, 87)}...` : tag}: ${why}. A body may carry <meta name="description" content>, <meta property="og:..." content>, <meta name="twitter:..." content>, <link rel="icon" href="data:...">, <link rel="apple-touch-icon" href="data:..."> and <link rel="canonical" href>; compose.mjs writes the rest of the head`);
+  const refuse = (why) => new Error(`${tag.length > 90 ? `${tag.slice(0, 87)}...` : tag}: ${why}. A body may carry <meta name="description" content>, named metas for robots, author, referrer and keywords, <meta property="og:..." content>, <meta name="twitter:..." content>, <link rel="icon" href="data:...">, <link rel="apple-touch-icon" href="data:..."> and <link rel="canonical" href>; compose.mjs writes the rest of the head`);
   const allowed = name === "meta" ? ["name", "property", "content"] : ["rel", "href", "type", "sizes", "media"];
   for (const k of Object.keys(a)) if (!allowed.includes(k)) throw refuse(`${name === "meta" ? "a meta" : "a link"} with \`${k}\` is not accepted`);
   if (name === "meta") {
     const wanted = a.name?.toLowerCase();
     const prop = a.property?.toLowerCase();
     if (!("content" in a)) throw refuse("a meta needs `content`");
-    const named = wanted === "description" || wanted?.startsWith("twitter:");
+    const named = ["description", "robots", "author", "referrer", "keywords"].includes(wanted) || wanted?.startsWith("twitter:");
     if (!((named && prop === undefined) || (prop?.startsWith("og:") && wanted === undefined))) throw refuse("this meta is not accepted");
   } else {
     const rel = a.rel?.toLowerCase().trim();
@@ -486,7 +487,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   ].join("");
   // The body may make the init call itself (to pass palette items that run code); otherwise it is made at the end.
   // Only the page's own executable scripts (the tokenizer says which they are) can call it: text, an attribute or a script of another type that mentions the call does not.
-  const callsInit = held.scripts.some((item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase()) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\.\s*init\s*\(/.test(stripJsComments(item.inner, true)));
+  const callsInit = held.scripts.some((item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase()) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\??\.\s*init\s*\(/.test(stripJsComments(item.inner, true)));
 
   const html = [
     "<!doctype html>",
