@@ -1,0 +1,17 @@
+/* The period stepper (React's PeriodStepper; DECISIONS 162, D19b and vote 7): two icon buttons round a label that says which stretch of time is shown, space-1 apart. The label is 500 at
+   text-base, centred and tabular, on one line, in a seat of at least 128px (two space-16: space-32 is the type-layout module's token, which a page with no display type does not carry); the whole-span view (data-whole) hides the buttons and keeps their room. The buttons are .btn ghost
+   icon-only with the core chevrons. Narrower than 640px of the page's own container (size-breakpoint-container-lg) the stepper takes its own row, in a bar that wraps: full width, buttons at
+   the ends, 52px tall, space-2 of inline padding, a hairline above, each button at least 44 by 44. The container is the page's (container-type: inline-size on the bar's parent). */
+
+@layer basalt {
+
+  .period { display: flex; align-items: center; gap: var(--basalt-space-1); }
+  .period[data-whole] .btn { visibility: hidden; }
+  .period-label { margin: 0; min-width: calc(var(--basalt-space-16) * 2); color: var(--basalt-text-primary); text-align: center; font: var(--basalt-font-weight-medium) var(--bh-base); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .period { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline); }
+    .period .btn { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); }
+  }
+}

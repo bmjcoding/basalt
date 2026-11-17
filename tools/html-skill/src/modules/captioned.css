@@ -1,0 +1,23 @@
+/* Captioned columns (React's CaptionedColumns; DECISIONS 162, vote 4; Blacksand's "what follows" list and its drawing's captions): a short head over a sentence, in columns. One part in two
+   sizes, each with the approved values. The count of columns is the page's: data-columns sets --columns (1 to 4), and a page that changes the count for its own width writes its own rule on
+   --columns. The part has no breakpoints. A description list (dl of div items, a dt and a dd in each). The gutter is size-gutter in both. */
+
+@layer basalt {
+
+  .captioned { --columns: 1; display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); column-gap: var(--basalt-size-gutter); margin: 0; padding: 0; color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-sans); }
+  .captioned[data-columns="2"] { --columns: 2; }
+  .captioned[data-columns="3"] { --columns: 3; }
+  .captioned[data-columns="4"] { --columns: 4; }
+  .captioned > div { min-width: 0; }
+  .captioned dt { margin: 0; color: var(--basalt-text-primary); }
+  .captioned dd { margin: 0; text-wrap: pretty; }
+  /* Large (the home page's list): a divider on top of each item, space-6 above and below; the head text-xl at 600, space-3 above a text-md sentence. */
+  .captioned[data-size="large"] { row-gap: var(--basalt-space-0); }
+  .captioned[data-size="large"] > div { padding-block: var(--basalt-space-6); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .captioned[data-size="large"] dt { margin-block-end: var(--basalt-space-3); font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
+  .captioned[data-size="large"] dd { font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); }
+  /* Small (a drawing's captions): one rule over the whole list and space-5 under it, space-6 between rows; the head text-base at 500, space-1 above a text-base sentence. */
+  .captioned[data-size="small"] { row-gap: var(--basalt-space-6); padding-block-start: var(--basalt-space-5); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .captioned[data-size="small"] dt { margin-block-end: var(--basalt-space-1); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .captioned[data-size="small"] dd { font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+}

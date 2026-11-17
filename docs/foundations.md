@@ -289,6 +289,14 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   count is the table's), `text-tertiary`, 12/16, `aria-hidden`, shown only while the table overflows its container and
   never changed while it scrolls, so nothing in the table moves; a column cut by the edge is not a cue when the next
   column is numeric, because an end-aligned column shows only its empty start.
+- **The flat table and the two-line cell** (DECISIONS 162, D18b). A `TableContainer` with `flat` draws no border, radius, fill or shadow and adds no level, so a
+  panel that holds the table (a `Card`) has one box and not two: what it holds keeps the card's level, and the card's own `space-4` padding is the table's
+  inset (the slab's 20 to 32px went with the slab, D18a). The header band keeps its fill (`surface-sunken-strong`); how a square band reads inside a rounded
+  card is for the owner's review. A flat table's cells are padded `space-2` above and below. `TableCall` is a two-line cell's content: a call in primary at
+  500 over what it changes in secondary at 400, `space-0-5` (2px) apart, wrapping inside its column, so the row grows and no column moves. The panel's head
+  (a title and a count on one line, `gap` `space-1` by `space-4`, `space-5` below) and its note (`text-sm` tertiary, `space-4` above) are the app's markup; the
+  count's dot is the accent `Badge` dot, `size-dot`, never an 8px brass fill (consent row 4). Line heights are each size's token (consent row 3). Status: the
+  implementation hasn't been reviewed.
 - **Selected is shown by shape or weight, never by colour alone** (council, DECISIONS 95 and 138; one state, one look).
   Wherever Basalt says on, selected or chosen it adds a cue that is not colour: one of many is its label at 600 on its pill,
   underline or plate; any of many, and on, is a check in a reserved seat or a filled choice box; a glyph closes and fills.
@@ -750,7 +758,7 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height
   side sheets are square), full (whatever is a circle or a capsule by meaning: avatars, dots, the navigation hover pill, the
   switch, the radio, the slider's track and thumb, progress, meter, and the tab bar's circle). A nested radius is the outer
-  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. **An app tile is a superellipse of exponent 5 at every size and takes no radius** (DECISIONS 162, vote 6; the shape is drawn by the tile's clip, and its hairline follows it). Status: decided by the council and approved by the owner (DECISIONS 138 and 139; the tile, DECISIONS 162); the implementation hasn't been reviewed.
 
 ## Elevation
 
@@ -1476,7 +1484,7 @@ Full-bleed art at the top of a page, and pictures in the flow (decision 104; the
 
 ### The stage
 
-Full-bleed art at the top of a page, behind a clear [site header](#the-clear-bar-over-art). One per page, and the page's first content.
+Full-bleed art at the top of a page, behind a clear [site header](#the-clear-bar-over-art). One stage at the top, which is the page's first content, and at most one [closing block](#the-closing-block) at the end (DECISIONS 162, vote 2).
 
 - **Level 0.** It is the page painted with art: no rim, radius, shadow, line or fade is added where it ends. It ends on `art-field`, the page
   colour, so there is no seam. A soft end is the art's own pixels.
@@ -1495,6 +1503,19 @@ Full-bleed art at the top of a page, behind a clear [site header](#the-clear-bar
   the art: its zone is marked `data-quiet`, and the drawn art keeps detail out of it. How the art leaves room is the art's; a quiet zone need
   not be a box. The top safe area is unverified on a real notch.
 
+### The closing block
+
+A second form of `Stage` (`closing`), at the page's end (DECISIONS 162, vote 2, 4 to 0; Blacksand's "The way in"). **Level 0 on `art-field`,** as the stage is.
+**No headroom and no pull-up:** there is no bar above it, so it has no headroom marker and declares none (`headroom` has no effect), and the bar is not
+changed by it. The air above it and its top padding are `--basalt-section-gap` (128, 96 or 64 by width: consent rows 5 and 6, the prototype's slopes
+snapped to the page's own steps, the ends equal); its bottom padding is the art's room to the floor, `--basalt-stage-room`, which the app sets. Its art
+layer is the stage's (absolute, `inset: 0`, clipped, `pointer-events: none`, hidden from assistive technology), and its words and actions sit in `data-quiet`
+zones, which `checkHeadroom` reads grown by `space-1-5` (`stage: ".basalt-stage[data-closing]"`: a closing block has no headroom marker, so only its zones are read, and it must have one). **Its marks keep out of those zones at every width:** place them in pixels inside the top padding, never by a percentage of the block's height, which lands on the words when they wrap taller on a phone (round 45 drew stars on its headline at 390 that way). **Its art is held still:** a mark that carries `data-ambient` is drawn at full opacity and does not
+loop, because a page has one ambient loop and it is the top stage's (the 24-mark cap and the one hold stand). In forced colours and print the art is not
+drawn, the block is `Canvas` and its bottom padding is `space-16`. The sky, the dunes and the grain are the site's own. **A drawing with labels set on it
+is not ported** (vote 3, 3 to 1): it recomposes for its box, which foundations already calls the site's own (DECISIONS 146 F). Status: the implementation
+hasn't been reviewed.
+
 ### The headroom check
 
 A test helper for a product's own browser tests, and Basalt's, imported from `@srasyndicate/basalt/testing` (a module of its own; the root
@@ -1510,7 +1531,7 @@ A picture in the flow is a distinct object, so a panel's geometry.
 
 - **The rim** is a real 1px border outside the art (`border-rim`, lit on top in dark), never laid over its pixels. **Radius 12** on the page
   (`radius-lg`); inside a panel the nested-radius rule (a card's 12 less its 16 of padding is square). **No shadow:** it does not float.
-- **Drawn art** goes in the same frame (`art` in place of `src`, an inline `svg` or `canvas`): it keeps its proportions and fills the box (`fit="slice"`, the default; `meet` shows all of it on `art-field`), held at its `anchor` (`end floor` is `xMaxYMax`), and its lines do not scale (`vector-effect: non-scaling-stroke`). `Stage` takes the same `fit` and `anchor`, `slice` by default too; a drawing's own `preserveAspectRatio` stands unless a `fit` or an `anchor` is passed. A drawing that must recompose for its box is the site's own. (DECISIONS 146 F.)
+- **Drawn art** goes in the same frame (`art` in place of `src`, an inline `svg` or `canvas`): it keeps its proportions and fills the box (`fit="slice"`, the default; `meet` shows all of it on `art-field`), held at its `anchor` (`end floor` is `xMaxYMax`), and its lines do not scale (`vector-effect: non-scaling-stroke`). `Stage` takes the same `fit` and `anchor`, `slice` by default too; a drawing's own `preserveAspectRatio` stands unless a `fit` or an `anchor` is passed. A drawing that must recompose for its box is the site's own, and so is one with labels set on it (DECISIONS 146 F and 162, vote 3).
 - **An aspect ratio is always set,** from the four tokens (`aspect-photo`, 3:2, is the default), so the frame reserves its box before the art
   loads and nothing shifts. The art fills it with `object-fit: cover`.
 - **While it loads,** and if it fails, the frame shows `surface-placeholder` and nothing else: no shimmer (a placeholder is not running work, so it does not loop), no spinner, no
@@ -1535,7 +1556,10 @@ A picture in the flow is a distinct object, so a panel's geometry.
 | `aspect-square`, `-photo`, `-screen`, `-wide` | 1, 1.5, 1.6, 1.7778 | | 1:1, 3:2 (the default), 16:10, 16:9 |
 
 - **Drawn art is monochrome:** greys from the tones, named by their distance from the field and not by light or dark, so one drawing swaps
-  between the themes by itself. It never goes past `art-mark`, and gradients are only between neighbouring tones. No accent.
+  between the themes by itself. It never goes past `art-mark`, and gradients are only between neighbouring tones. No accent. **A text ink is not an art tone** (DECISIONS
+  162, vote 1, 3 to 1): a drawing's lines take the tone nearest the ink they were drawn in, `text-primary` to `art-mark` (the same colour), `text-secondary` to
+  `art-tone-4`, `text-tertiary` to `art-tone-3` and primary at 30% to `art-tone-2`; stroke widths are the drawing's own, and text drawn in the SVG stays a text
+  ink. SRA's windows and curve are the first drawings to take them (in dark the mid lines get a little lighter and the fine lines a little darker).
 - **Photographs are content:** they keep their own colour, in a frame, as they are.
 - Every colour is an existing neutral, so no primitive is new. The contrast tests carry `text-primary`, `text-secondary` and `border-focus` on
   `art-quiet-limit`, and `text-primary` on `state-selected` and `state-hover` over it, in both themes.
@@ -1643,7 +1667,7 @@ under it. The timing is `travelLeg`, `travelRun` and `createTravellers`, exporte
 leg, because it answers an accept in an app. Anything that answers a pointer or key in place (the pill, the plate), an entry or exit,
 scroll and a loop is not a travel. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
 
-**An ambient loop.** One a page, only in its art (a `Stage`'s art or a framed drawing), and never on text, a control, a data mark, a
+**An ambient loop.** One a page, only in its art (a `Stage`'s art or a framed drawing; a closing block's art is held still, DECISIONS 162), and never on text, a control, a data mark, a
 panel, a rim, a block or anything that carries information. Opacity only, from 1 to 0.2 and back on `ease-in-out`: no translate,
 scale, rotate, blur, glow or colour change. Each mark's period is 0.6 to 1.4 times `duration-loop-ambient` (6000ms), with its own
 phase, so no two are in step; a looping mark is no wider than `size-dot` (6px), and a page has at most 24. It joins the root hold
@@ -1793,6 +1817,42 @@ broke a rule, and each change is named.
   a change of tab moves nothing under it; the panels not shown are `visibility: hidden` and inert. It turns off under 640 (its own width), and it is off
   by default.
 
+## Parts of DECISIONS 162
+
+Decided by the council on 17 Nov 2026 (DECISIONS 162, a vote of four on the last port batches from the owner's approved prototypes). **Status:** the implementation
+hasn't been reviewed. D17 (an accent as a fill, and a product's palette) was not voted: it waits for a research round on colour and contrast. The flat table and
+the closing block are described with [the table](#lines-states-and-actions) and [the stage](#the-closing-block).
+
+### Captioned columns
+
+`CaptionedColumns` is a short head over a sentence, in columns (vote 4, 4 to 0; Blacksand's "what follows" list and its drawing's captions): one part in two sizes, each
+with the approved values, and a description list (`dl` of items, a `dt` and a `dd` in each). **Large:** each item has a `border-divider` rule on top and `space-6` of
+padding above and below, the head `text-xl` at 600 in primary (tracking from the token), `space-3` above a `text-md` 400 sentence in secondary. **Small:** one `size-hairline`
+rule over the whole list and `space-5` under it, `space-6` between rows, the head `text-base` at 500 in primary, `space-1` above a `text-base` 400 sentence in secondary.
+The gutter is `size-gutter` in both. **The count is the app's** (`columns`, 1 to 4): the part has no breakpoints, because the approved pages differ (3 from 900px
+for large; 2 from 480 and 4 from 960 of the container for small) and the breakpoints are the app's container. Neither `Card`, `Stat` nor `DescriptionList` is this shape.
+
+### The app tile
+
+`AppTile` draws the picture an app gives it, clipped to the icon shape, with a 1px hairline round it (votes 5 and 6, 4 to 0; N1's integrations). **The shape is a
+superellipse of exponent 5 at every size and takes no radius**; the hairline follows it, drawn over the picture and half a pixel outside it, `border-hairline`,
+non-scaling. It is flat: a tile in the flow does not float, so no shadow. Nothing is drawn over the picture, and none is recoloured, dimmed, cropped, turned or
+animated. Sizes: 20, 32, 36, 40, 44, 48 and 52 (or the parent's, square). It is decorative (`aria-hidden`), **always beside the company's name,** and not drawn in
+forced colours. Each tile carries its own clip, so none can be left unclipped by a page that forgot a definition. **Basalt ships no company's icon file,** in the
+package, the reference or the skill: the tile shows what a product has the right to show, and the tests and the round use a neutral stand-in. There is no
+fallback when the picture is missing.
+
+### The period stepper
+
+`PeriodStepper` is two icon buttons round a label that says which stretch of time is shown (consent rows 1 to 3 and vote 7, 4 to 0; N1's week stepper). It is not
+`Stepper` (back and next through a short flow) and not `Pagination`. The buttons are `IconButton`s, ghost, 32px, the core `chevron-left` and `chevron-right`
+(`Pagination`'s), `space-1` from the label. The label is `text-base` at 500 in primary, centred, tabular, on one line, in a seat of at least `space-32` (128px).
+**At the first or last period the button stops but keeps focus** (`aria-disabled`, `focusableWhenDisabled`), so a keyboard user is not dropped. **With no periods** (the
+whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and a polite
+status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. **Under 640px of
+the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a hairline above, each button at
+least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
+
 ## Primitives
 
 Components build on Base UI (the default base in shadcn/ui since July 2026, from the team
@@ -1809,7 +1869,7 @@ adjusts a scalar or range, with distinct names for range thumbs. Confirmations u
 AlertDialog with safe initial focus. Sheets use the dialog contract in a scrolling side, bottom or top panel, including safe-area padding and motion preferences.
 
 TimeChart draws a series over time (see [Charts](#charts)), ChartGroup stacks charts on one gutter, and Prose sets a text column's measure (see [Layout](#layout)).
-Stage and PairedArt put full-bleed art under a clear site header, and FramedArt frames a picture in the flow (see [Art](#art)).
+Stage and PairedArt put full-bleed art under a clear site header (a stage may also close a page), and FramedArt frames a picture in the flow (see [Art](#art)). CaptionedColumns, AppTile and PeriodStepper are in [Parts of DECISIONS 162](#parts-of-decisions-162).
 
 Text and Heading consume the shared type scale; structural heading level is independent
 of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
@@ -1888,6 +1948,10 @@ The still table and the multi-select filter were decided by the council in a fou
 9 Nov 2026 (decisions 71 and 82 to 84): the fixed layout and reserved seat, the whole header cell as the sort control, the
 chips and their switch to a checklist at seven values, Clear held in place, and the divider at a scrolled pinned edge.
 Their implementation has not been reviewed by the panel.
+
+The flat table, the closing block, the art tones for drawn lines, captioned columns, the app tile and the period stepper were decided by the council in a four-member
+vote (DECISIONS 162: opus, muse, sol and grok, 3 of 4 deciding; votes 1 and 3 were each 3 to 1, and the rest 4 to 0). Their implementation has not been
+reviewed.
 
 The site icons, the social link, the long form and status dots in forced colours were decided by the council in a three-member vote
 (DECISIONS 106 and 107: opus, sol and grok, with Muse out until 16 Nov 2026). The implementation hasn't been reviewed.

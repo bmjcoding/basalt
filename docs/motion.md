@@ -75,7 +75,7 @@ A traveller that leaves a resting place and stops at another, carrying something
 
 ## The ambient loop
 
-One a page, only in its art, opacity only, from 1 to 0.2 and back on `ease-in-out`; each mark runs 0.6 to 1.4 times `duration-loop-ambient` with its own phase; a looping mark is no wider than `size-dot` and a page has at most 24. It joins the hold, and is still under reduced motion, in forced colours and in print. `LoopsToggle` is the control. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+One a page, only in its art, opacity only, from 1 to 0.2 and back on `ease-in-out`; each mark runs 0.6 to 1.4 times `duration-loop-ambient` with its own phase; a looping mark is no wider than `size-dot` and a page has at most 24. It joins the hold, and is still under reduced motion, in forced colours and in print. `LoopsToggle` is the control. A closing block's art (`Stage closing`) is held still: its marks stay at full opacity, because the page's one loop is the top stage's (DECISIONS 162, vote 2). Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
 
 ## The hover glide
 
