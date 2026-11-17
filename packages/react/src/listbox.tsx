@@ -142,11 +142,13 @@ export interface ListboxOptionProps extends Omit<React.ComponentProps<"div">, "c
   detail?: React.ReactNode;
   /** At the end of the first line: a state, a part, a time. */
   trailing?: React.ReactNode;
+  /** Before the name, after the gutter: a time cell (`EventTime`) for a log. Its column is the cell's own width (DECISIONS 162, B5). */
+  leading?: React.ReactNode;
   disabled?: boolean;
 }
 
 /** One option. A one-line option is 24 tall, a two-line one 48, and 44 at least on a coarse pointer. */
-export function ListboxOption({ value, children, detail, trailing, disabled = false, className, onClick, ...props }: ListboxOptionProps) {
+export function ListboxOption({ value, children, detail, trailing, leading, disabled = false, className, onClick, ...props }: ListboxOptionProps) {
   const state = React.useContext(ListboxState);
   const selected = state?.value === value;
   return (
@@ -158,6 +160,7 @@ export function ListboxOption({ value, children, detail, trailing, disabled = fa
       aria-disabled={disabled || undefined}
       data-value={value}
       data-detail={detail ? "" : undefined}
+      data-leading={leading ? "" : undefined}
       className={join("basalt-listbox-option", className)}
       onClick={(event) => {
         onClick?.(event);
@@ -165,6 +168,7 @@ export function ListboxOption({ value, children, detail, trailing, disabled = fa
       }}
     >
       <span className="basalt-listbox-gutter" aria-hidden="true">{selected ? <Icon icon={ChevronRightGlyph} size={16} /> : null}</span>
+      {leading ? <span className="basalt-listbox-leading">{leading}</span> : null}
       <span className="basalt-listbox-name">{children}</span>
       {trailing ? <span className="basalt-listbox-trailing">{trailing}</span> : null}
       {detail ? <span className="basalt-listbox-detail">{detail}</span> : null}

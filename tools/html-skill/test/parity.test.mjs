@@ -636,6 +636,18 @@ const FIGURES = [
     ],
   },
   {
+    id: "description list, stacked form (DECISIONS 162, R9 and R10)",
+    react: `<div style={{ width: 560 }}><DescriptionList form="stacked" data-testid="list"><DescriptionItem term="Search">What it looks for, in a sentence long enough to wrap onto a second line.</DescriptionItem><DescriptionItem term="Notes">Another, shorter.</DescriptionItem></DescriptionList></div>`,
+    skill: `<div style="width: 560px"><dl class="dlist" data-form="stacked" data-testid="list"><div><dt>Search</dt><dd>What it looks for, in a sentence long enough to wrap onto a second line.</dd></div><div><dt>Notes</dt><dd>Another, shorter.</dd></div></dl></div>`,
+    pairs: [
+      ["list", "[data-testid=list]", ".dlist", ["boxWidth", "boxHeight", "display", "rowGap"]],
+      ["entry", ".basalt-description-item:first-child", ".dlist > div:first-child", ["boxHeight", "display", "paddingTop", "paddingBottom", "boxShadow"]],
+      ["second entry", ".basalt-description-item:last-child", ".dlist > div:last-child", ["relTop", "boxShadow"]],
+      ["title", ".basalt-description-term", ".dlist dt", [...FIG_TEXT, "boxHeight", "letterSpacing"]],
+      ["text", ".basalt-description-details", ".dlist dd", [...FIG_TEXT, "boxHeight", "marginTop"]],
+    ],
+  },
+  {
     id: "meter",
     react: `<div style={{ width: 640 }}><Meter label="Build minutes" value={2240} max={3000} target={2500} unit="min" /></div><div style={{ width: 640 }}><Meter data-over="" label="Bandwidth" value={124000} max={100000} unit="GB" /></div>`,
     skill: `<div style="width: 640px"><div class="meter" role="meter" aria-labelledby="m1" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="2240" aria-valuetext="x" style="--value: 74.6667%; --target: 83.3333%"><div class="meter-head"><span class="meter-label" id="m1">Build minutes</span><span class="meter-reading"><span class="meter-value">2,240</span> of 3,000 min</span></div><div class="meter-track"><span class="meter-fill"></span><span class="meter-tick"></span></div><div class="meter-foot"><span class="meter-left">760 min left</span><span class="meter-target">Target 2,500 min</span></div></div></div><div style="width: 640px"><div class="meter" data-over role="meter" aria-labelledby="m2" aria-valuemin="0" aria-valuemax="100000" aria-valuenow="100000" aria-valuetext="x" style="--value: 124%"><div class="meter-head"><span class="meter-label" id="m2">Bandwidth</span><span class="meter-reading"><span class="meter-value">124,000</span> of 100,000 GB</span></div><div class="meter-track"><span class="meter-fill"></span></div><div class="meter-foot"><span class="meter-left" data-over>24,000 over</span></div></div></div>`,

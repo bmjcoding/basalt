@@ -305,6 +305,48 @@ Ported from the owner's approved site prototypes (DECISIONS 152; the implementat
 - `BigLinkList` and `DirectoryRow` take a name (`aria-label`, or the head). Rows are links: there is no hover wash.
 - `CopyButton` holds both words in one cell, so its width never changes; it says "Copied" for 1500ms (`COPIED_MS`) only after the write succeeded.
 
+## Logs, status and forms
+
+Ported from the owner's approved site prototypes (DECISIONS 162; the implementation hasn't been reviewed by the panel).
+
+```tsx
+{/* A log line: loud fields primary, the rest secondary, one weight */}
+<Terminal title="Proxy" lines={[{ kind: "output", text: "denied 403", fields: ["get a.example ", { text: "denied", loud: true }] }]} />
+<CommandBlock command="get a.example" status="403" refused exit={1} at={Date.now()}><LogLine fields={["blocked ", { text: "denied", loud: true }]} /></CommandBlock>
+<LogSlots label="Sent" lines={[{ id: 1, fields: ["sent ", { text: "1 of 9", loud: true }] }]} widest={[["sent ", { text: "100 of 100", loud: true }]]} />
+
+<EventLog label="Activity" widest="00 Mmm 00:00">
+  <EventLogRule>New since you left</EventLogRule>
+  <EventLine href="/a" verb="opened" object="the page" detail="from the map" time="09:39:11" unread />
+</EventLog>
+<Listbox label="Session"><ListboxOption value="a" leading={<EventTime>09:39:11</EventTime>}><EventText verb="opened" object="the page" /></ListboxOption></Listbox>
+
+<SourceStamp source="github" state="answered" at={Date.now()} onOpen={openRequest} />
+<SourceStateWords what="the weather" state="unreachable" tried={Date.now()} why="timed out" onRetry={ask} alternative={<a href="/elsewhere">See it elsewhere</a>} />
+
+<StatusBar start={<a href="/run">run 4f2a</a>} sources={<DrawerTrigger drawer="d" open={open} variant="ghost" size="sm">1 of 2 sources</DrawerTrigger>}
+  message={message} onMessageClear={() => setMessage(null)} end={<ThemeChoiceControl />} />
+
+<DescriptionList form="stacked"><DescriptionItem term="Hello">What it is.</DescriptionItem></DescriptionList>
+<DescriptionList form="three"><DescriptionItem term="get" detail="fetch a page">a.example</DescriptionItem></DescriptionList>
+<DescriptionColumns><DescriptionList>…</DescriptionList><DescriptionList>…</DescriptionList></DescriptionColumns>
+
+<InlineFields><InlineField label="subject"><InlineInput /></InlineField><InlineField label="message" multiline><InlineTextarea /></InlineField></InlineFields>
+<ActionShortcut shortcut="⌘↵"><Button type="submit">Send</Button></ActionShortcut>
+<FilterToolbar label="Filter and sort" filter={<MultiSelect label="Brand" toolbar … />} result={<FilterResult>Showing 3 of 24</FilterResult>} sort={<Select aria-label="Sort" … />} />
+
+useRouteFocus({ key: path, title: "Shop | Castle", target: titleRef, fromControl });
+const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next", run: next }]);   // the help dialog draws <ShortcutList shortcuts={shortcuts} /> and <SingleKeysSwitch />
+<Countdown to={opens} done="Open" /> <Clock timeZone="America/Chicago" /> <DateAge time={t} short />
+```
+
+- `StatusBar` clears a message after `STATUS_MESSAGE_MS` (5000) only when its `logged` is true; any other message stays until replaced or cleared with Esc. A page has one foot: do not use it with `TabBar`.
+- `useShortcuts` binds single keys only; the choice to turn them off is `useSingleKeys` (`basalt-keys`). Give the help dialog a visible opener that is not a single key.
+- `useNow`, `Clock` and `Countdown` share one lazy timer and hold under `data-loops="held"`. `formatAge` is for beside a date; never in a `Stat`.
+- Smaller parts: `LogFields` (the runs of a line) and `LogLine` (one line alone) draw the one log-line look; `LogSummary` is a four-line summary in a `pre`; `InlineValue` is a row that is a label and a value, not a field. A `CommandBlock`'s head sticks under a bar set with `--_basalt-block-top`.
+- The formatters draw nothing: `formatStamp` ("14:49:07"), `formatClock` ("14:49"), `formatDay` ("1 Nov"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime`, the zone an argument.
+- `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
+
 ## Code
 
 ```tsx

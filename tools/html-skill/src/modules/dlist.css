@@ -16,6 +16,11 @@
   /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
   .dlist dd[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
   .dlist dd[data-missing] { color: var(--basalt-text-tertiary); }
+  /* The stacked form (DECISIONS 162, R9 and R10): a title over its text, 20px between entries, no divider. React's DescriptionList form="stacked". */
+  .dlist[data-form="stacked"] { display: grid; gap: var(--basalt-space-5); }
+  .dlist[data-form="stacked"] > div { display: block; padding-block: 0; box-shadow: none; }
+  .dlist[data-form="stacked"] dt { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  .dlist[data-form="stacked"] dd { margin-top: var(--basalt-space-0-5); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-md); font-variant-numeric: normal; text-wrap: pretty; }
   /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
   @container (width < %bp-container%) {
     .dlist > div { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }

@@ -5350,4 +5350,176 @@
     .basalt-text-button[data-disabled] { color: GrayText; }
   }
 
+  /* ==== Logs, status and forms (DECISIONS 162; the implementation hasn't been reviewed) ==== */
+
+  /* ---- A log line's fields (V1, V2): the fields that say what happened are primary at 400 and the rest secondary at 400. Nothing steps
+     back with age and nothing takes a colour: a refused field stays primary and its word says it. ---- */
+  .basalt-log-field { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-regular); }
+  .basalt-log-line { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); overflow-wrap: break-word; }
+
+  /* ---- Command block (D14a; R1 to R3): the head is sticky and opaque in the page colour, in every state ---- */
+  .basalt-command-block { container-type: inline-size; position: relative; padding-bottom: var(--basalt-space-16); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-mono); }
+  .basalt-command-block + .basalt-command-block { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-command-block-head { position: sticky; top: var(--_basalt-block-top, var(--basalt-space-0)); z-index: 1; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); padding-block: var(--basalt-space-5) var(--basalt-space-4); background: var(--basalt-surface-page); }
+  .basalt-command-block-chevron { align-self: center; color: var(--basalt-text-secondary); }
+  .basalt-command-block-command { flex: 1 1 0; min-width: 0; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); overflow-wrap: break-word; }
+  /* R3: 3ch is about 29px; 28 is space-6 plus space-1, since there is no space-7 token. The chevron-to-command gap (space-2) is already in the row. */
+  .basalt-command-block-meta { display: inline-flex; flex: none; gap: var(--basalt-space-4); margin-inline-start: calc(var(--basalt-space-6) + var(--basalt-space-1) - var(--basalt-space-2)); color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Narrow: the meta is a second row under the command, in the command's column, whether or not it holds anything yet; the prototype has no narrow rule for its head (run.css .block-head), so this is the port's own. */
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-command-block-meta { flex: 1 0 100%; min-height: var(--basalt-text-md-line-height); margin-inline-start: 0; padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  }
+  .basalt-command-block-status[data-refused] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-command-block-body { min-width: 0; }
+
+  /* ---- A log in fixed slots, and its summary (B29): no frame, no title row, no copy button ---- */
+  .basalt-log-slots { display: grid; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); }
+  .basalt-log-slot { padding-block: var(--basalt-space-1); min-width: 0; }
+  .basalt-log-slot-room, .basalt-log-summary-room { display: grid; }
+  .basalt-log-slot[data-new] { animation: basalt-log-in var(--basalt-duration-base) var(--basalt-ease-out) both; }
+  @keyframes basalt-log-in { from { opacity: 0; } }
+  .basalt-log-summary { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / calc(var(--basalt-space-5) + var(--basalt-space-0-5)) var(--basalt-font-family-mono); white-space: pre-wrap; }
+  .basalt-log-summary-line { display: block; }
+  @media (prefers-reduced-motion: reduce) { .basalt-log-slot[data-new] { animation: none; } }
+
+  /* ---- Event log (D14a; V3, V4, R4, R5) ---- */
+  .basalt-event-log { box-sizing: border-box; margin: 0; padding: var(--basalt-space-1-5); list-style: none; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); }
+  .basalt-event-item { margin: 0; }
+  .basalt-event-line {
+    box-sizing: border-box; display: grid; grid-template-columns: var(--basalt-size-dot) auto minmax(0, 1fr); column-gap: var(--basalt-space-2); align-items: start;
+    width: 100%; min-height: var(--basalt-size-control-xs); margin: 0; padding: var(--basalt-space-0-5) var(--basalt-space-2); border: 0; border-radius: var(--basalt-radius-sm);
+    background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer;
+  }
+  @media (hover: hover) { .basalt-event-line:hover { background: var(--basalt-state-hover); } .basalt-event-line:hover .basalt-event-time, .basalt-event-line:hover .basalt-event-detail { color: var(--basalt-text-secondary); } }
+  /* V3: a focusable row takes the control ring at +2, outside the line; no wash on focus. The list keeps space-1-5 from its own edge. */
+  .basalt-event-line:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse) { .basalt-event-line { min-height: var(--basalt-size-tap-min); } }
+  /* V4: the dot's seat is always there; it is filled only while the line is new, and the line's ink steps to primary. No weight change. */
+  .basalt-event-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); margin-top: calc((var(--basalt-size-code-line-height) - var(--basalt-size-dot)) / 2 + var(--basalt-space-0-5)); border-radius: var(--basalt-radius-full); }
+  .basalt-event-line[data-unread] .basalt-event-dot { background: var(--basalt-text-primary); }
+  .basalt-event-line[data-unread] .basalt-event-verb { color: var(--basalt-text-primary); }
+  /* R5: the time column is as wide as the widest stamp it can show, drawn unseen in the cell and measured in the line's own font. */
+  .basalt-event-time { color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-event-time .basalt-reserve { justify-items: end; }
+  .basalt-event-main { display: flex; flex-direction: column; min-width: 0; }
+  .basalt-event-text { min-width: 0; overflow-wrap: anywhere; }
+  .basalt-event-verb { color: var(--basalt-text-secondary); }
+  .basalt-event-object { color: var(--basalt-text-primary); }
+  .basalt-event-detail { display: block; min-width: 0; overflow: hidden; color: var(--basalt-text-tertiary); text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-event-rule { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-xs); margin: 0; padding-inline: var(--basalt-space-2); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-event-rule-line { flex: 1 1 0; height: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  /* The session log: the Listbox's own rows, with a leading time cell between the gutter and the name. */
+  .basalt-listbox-option[data-leading] { grid-template-columns: var(--basalt-size-icon-sm) auto minmax(0, 1fr) auto; }
+  .basalt-listbox-leading { grid-column: 2; }
+  .basalt-listbox-option[data-leading] .basalt-listbox-name { grid-column: 3; }
+  .basalt-listbox-option[data-leading] .basalt-listbox-trailing { grid-column: 4; }
+  .basalt-listbox-option[data-leading] .basalt-listbox-detail { grid-column: 3 / -1; }
+
+  /* ---- Source stamp (D14b; V5, V6, R8): one 8 by 10 seat holds every mark, so a change of state moves nothing ---- */
+  .basalt-source-stamp { box-sizing: border-box; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); margin: 0; padding: 0; border: 0; background: none; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; text-align: start; }
+  .basalt-source-stamp[data-state="stale"], .basalt-source-stamp[data-state="unreachable"] { color: var(--basalt-text-secondary); }
+  .basalt-source-seat { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-space-2); height: var(--basalt-space-2-5); }
+  .basalt-source-mark { display: block; flex: none; }
+  button.basalt-source-stamp { min-height: var(--basalt-size-control-xs); padding-inline: var(--basalt-space-1-5); border-radius: var(--basalt-radius-sm); cursor: pointer; }
+  @media (hover: hover) { button.basalt-source-stamp:hover { color: var(--basalt-text-primary); } }
+  button.basalt-source-stamp:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse) { button.basalt-source-stamp { min-height: var(--basalt-size-tap-min); } }
+  /* Waiting and unreachable, in words only: both sentences stand in one cell (Reserve), so the band keeps its height. */
+  .basalt-source-state { margin: 0; color: var(--basalt-text-secondary); }
+  .basalt-source-state > .basalt-reserve { display: grid; }
+  .basalt-time { font-variant-numeric: tabular-nums; }
+  .basalt-countdown .basalt-reserve { display: inline-grid; }
+  .basalt-date-age { display: inline-flex; align-items: baseline; gap: var(--basalt-space-2); }
+  .basalt-date-age-age { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-date-age-age > [aria-hidden] { margin-inline-end: var(--basalt-space-2); }
+  .basalt-date-age-seat { justify-items: start; }
+
+  /* ---- Status bar (D14b; V7, R6): a 44px foot from 720, fixed (56 plus the safe area) under it ---- */
+  .basalt-status-bar { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--basalt-space-4); min-height: var(--basalt-size-tap-min); padding-inline: var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); white-space: nowrap; }
+  .basalt-status-bar-start, .basalt-status-bar-sources, .basalt-status-bar-end { display: flex; flex: none; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-status-bar-message { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: var(--basalt-space-2); min-width: 0; min-height: var(--basalt-text-sm-line-height); margin: 0; color: var(--basalt-text-primary); }
+  .basalt-status-bar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-status-bar-seat { display: inline-flex; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-status-danger); }
+  .basalt-status-bar-message[data-status="error"] .basalt-status-bar-text { color: var(--basalt-status-danger); }
+  /* The sources button is a ghost sm Button (28, radius 6); its open plate is surface-raised. */
+  .basalt-status-bar .basalt-button[aria-expanded="true"] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the bar is fixed at the foot */
+  @media (width < 720px) {
+    .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-left)) max(var(--basalt-gutter), var(--_inset-right)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2); }
+    .basalt-status-bar-sources { margin-inline-start: auto; }
+    /* The message is stacked above the bar, out of flow, so a message coming and going moves nothing. */
+    .basalt-status-bar-message { position: absolute; inset-inline: 0; bottom: calc(100% + var(--basalt-size-hairline)); justify-content: flex-start; padding: var(--basalt-space-2) var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); white-space: normal; }
+    .basalt-status-bar-message[data-empty] { display: none; }
+    /* A page has one foot. The bar marks the root (`data-status-bar`) when it mounts, so no rule here asks the document what it holds (a `:root:has()` is re-checked on every change on every page). */
+    :root[data-status-bar] { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
+    :root[data-status-bar] .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
+  }
+
+  /* ---- Description list: a stacked form and a three-column form (D15; R9, R10, V8), and whole lists in columns ---- */
+  .basalt-description-list[data-form="stacked"] { display: grid; gap: var(--basalt-space-5); }
+  .basalt-description-list[data-form="stacked"] .basalt-description-item { display: block; padding-block: 0; box-shadow: none; }
+  .basalt-description-list[data-form="stacked"] .basalt-description-term { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  .basalt-description-list[data-form="stacked"] .basalt-description-details { margin-top: var(--basalt-space-0-5); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); text-wrap: pretty; }
+  .basalt-description-list[data-form="three"] { display: grid; grid-template-columns: var(--basalt-size-description-label) max-content minmax(0, 1fr); column-gap: var(--basalt-space-4); }
+  .basalt-description-list[data-form="three"] .basalt-description-item { grid-column: 1 / -1; grid-template-columns: subgrid; }
+  .basalt-description-more { grid-column: 3; min-width: 0; margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); overflow-wrap: anywhere; text-wrap: pretty; }
+  /* size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-description-list[data-form="three"] .basalt-description-item { grid-template-columns: minmax(0, 1fr); }
+    .basalt-description-more { grid-column: 1; }
+  }
+  /* The facts form: whole lists in columns of at least 480px, so none stacks. The column gap is 32 (the prototype's 4ch is 33.6). */
+  .basalt-description-columns { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--basalt-size-breakpoint-container)), 1fr)); column-gap: var(--basalt-space-8); row-gap: var(--basalt-space-6); }
+
+  /* ---- Inline-label form rows (D15; V10, R12) ---- */
+  .basalt-inline-fields { border-top: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  .basalt-inline-field { box-sizing: border-box; display: grid; grid-template-columns: var(--basalt-size-field-label-inline) minmax(0, 1fr); column-gap: var(--basalt-space-2); align-items: center; min-height: var(--basalt-size-tap-min); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  /* On focus: a real 2px outline at −2 inset round the whole row (the field is flush with the form's edge). */
+  .basalt-inline-field:has(:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-inline-label { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-inline-value { min-width: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-inline-control { box-sizing: border-box; width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; outline: none; background: none; color: var(--basalt-text-primary); caret-color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-inline-control::placeholder { color: var(--basalt-text-tertiary); }
+  .basalt-inline-textarea { resize: vertical; }
+  .basalt-inline-field[data-multiline] { align-items: start; padding-block: var(--basalt-space-2); }
+  /* Text entry is 16px on touch. */
+  @media (pointer: coarse) { .basalt-inline-control { font-size: var(--basalt-text-md-size); } }
+
+  /* ---- The filter toolbar (D15, C14): two columns under 720; one wrapping row from 720 with the sort at the end. The block margin from 720 is 20 above and 28 (space-6 plus space-1; there is no space-7 token) below. ---- */
+  .basalt-filter-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--basalt-space-2); margin-block: var(--basalt-space-5); }
+  .basalt-filter-toolbar-kind, .basalt-filter-toolbar-filter { min-width: 0; }
+  .basalt-filter-toolbar-result { grid-column: 1; grid-row: 3; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-filter-toolbar-result > * { margin: 0; }
+  .basalt-filter-toolbar-sort { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--basalt-space-2-5); }
+  .basalt-filter-toolbar-label { display: none; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) {
+    .basalt-filter-toolbar { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3) var(--basalt-space-4); margin-block: var(--basalt-space-5) calc(var(--basalt-space-6) + var(--basalt-space-1)); }
+    .basalt-filter-toolbar-kind { display: none; }
+    .basalt-filter-toolbar-result { order: 2; }
+    .basalt-filter-toolbar-sort { order: 3; margin-inline-start: auto; }
+    .basalt-filter-toolbar-label { display: block; }
+  }
+
+  /* ---- A shortcut as a hint beside its control (V11) and the help list ---- */
+  .basalt-action-shortcut { display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-shortcut-list { display: grid; gap: var(--basalt-space-2); margin: 0; padding: 0; }
+  .basalt-shortcut-row { display: grid; grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr); column-gap: var(--basalt-space-4); align-items: center; min-height: var(--basalt-size-control-xs); }
+  .basalt-shortcut-keys { margin: 0; }
+  .basalt-shortcut-what { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+
+  @media (forced-colors: active) {
+    /* The unread dot is a fill, which forced colours drop: it is drawn as its own border, as the notification centre's is. */
+    .basalt-event-line[data-unread] .basalt-event-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
+    .basalt-status-bar-seat, .basalt-status-bar-message[data-status="error"] .basalt-status-bar-text { color: CanvasText; }
+    .basalt-status-bar, .basalt-status-bar-message { border-color: CanvasText; }
+    .basalt-event-rule-line, .basalt-command-block + .basalt-command-block { border-color: CanvasText; }
+    .basalt-inline-field, .basalt-inline-fields { border-color: CanvasText; }
+    .basalt-inline-field:has(:focus-visible) { outline-color: Highlight; }
+    .basalt-source-stamp { color: CanvasText; }
+  }
+
 }
