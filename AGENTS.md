@@ -220,20 +220,23 @@ line per module, so an agent pays for the modules its page uses and no more. The
 `tools/html-skill/` (its README says how to add a module); edit those and run `npm run build`, never the files in the
 skill folder.
 
-The four sites' pages (`sites/`) are HTML-skill pages too: `sites/README.md` says how they are laid out and built.
+`sites/` holds one Blacksand page built with the HTML skill: `sites/README.md` says how it is laid out and built. The single-file, no-network rule is the HTML skill's own
+(explanations, reports, mockups); how the real sites are built is not decided.
 
 ## Checks
 
 | Command | What it checks | When |
 |---|---|---|
 | `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
-| `npm test` | Token contrast, component behaviour, accessibility (axe) in both themes, bundle size | Before every push |
+| `npm test` | The tokens' tests (contrast and the generated outputs), the React package's typecheck, build and browser tests (behaviour, accessibility with axe in both themes, bundle size and the size table, the browser floor), then the HTML skill's, the brand's and the sites' tests | Before every push |
 | `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
 | `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
+| `npm run ci:local -- --fresh` | The same steps, from a new `git worktree` of the head with `npm ci`, removed afterwards | When a stale `node_modules` or an ignored folder in your checkout could be deciding the result. It checks the commit, not uncommitted changes. |
 
 `ci:local` refuses to run when `ci.yml` has a step it doesn't, so the two stay in step. Without
 Swift, `npm run ci:local -- --web-only` checks the web job alone; say on the PR that the Swift
-package went unchecked. It runs on macOS, not CI's Ubuntu runner, so text measured in a
+package went unchecked. It prints the Node version it runs on beside the one `ci.yml` pins and warns
+when their major versions differ: run it on the pinned major before relying on the result. It runs on macOS, not CI's Ubuntu runner, so text measured in a
 behaviour test uses different fallback fonts: keep a test's margins clear of a font's width.
 
 `npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
@@ -241,8 +244,10 @@ every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, chang
 a PR that says why.
 
 A lint exception is a comment on the line before, with a reason:
-`/* stylelint-disable-next-line declaration-property-unit-disallowed-list -- reason */`.
-A disable without a reason fails the lint.
+`/* stylelint-disable-next-line unit-disallowed-list -- reason */`.
+A disable without a reason, or one that disables nothing, fails the lint. The lint bans raw colours (a colour function in any case), and the units
+`px`, `rem`, `em`, `ch`, the viewport units, the absolute units and `s` and `ms`; a length inside an `@container` query is the rule
+`basalt/container-length` (the exception names the token the number repeats, because a query cannot read a custom property).
 
 Never skip, weaken or delete a test to get green. Fix the cause.
 

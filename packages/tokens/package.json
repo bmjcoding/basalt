@@ -2,7 +2,7 @@
   "name": "@srasyndicate/basalt-tokens",
   "version": "0.1.0",
   "private": true,
-  "description": "Basalt design tokens: one DTCG source, built for CSS, TypeScript, Swift and Kotlin.",
+  "description": "Basalt design tokens: one DTCG source, built for CSS, TypeScript, JSON and Swift.",
   "type": "module",
   "license": "UNLICENSED",
   "exports": {

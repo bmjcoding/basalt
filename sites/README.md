@@ -1,9 +1,10 @@
 # Sites
 
-The pages of the four sites, built on Basalt with the HTML skill. **Basalt is the authority**: nothing here changes a Basalt
-component, token or foundation. A need Basalt doesn't meet is **logged, not built here** (a gap for Basalt's own backlog; the page
-waits or does without). A page is an HTML-skill page: one self-contained file, no network, dark and light, so read
-`.agent/skills/basalt-html/SKILL.md` first.
+The pages of the Basalt sites, built on Basalt with the HTML skill. Today `sites/` holds one site, Blacksand. **Basalt is the authority**: nothing here
+changes a Basalt component, token or foundation. A need Basalt doesn't meet is **logged, not built here** (a gap for Basalt's own backlog; the page
+waits or does without). A page here is an HTML-skill page: one self-contained file, no network, dark and light, so read
+`.agent/skills/basalt-html/SKILL.md` first. **That single-file, no-network rule is the HTML skill's own** (it is for explanations, reports and mockups),
+and `sites/` holds one Blacksand page built that way today; how the real sites are built is not decided.
 
 ## Layout
 
@@ -83,7 +84,8 @@ with a stage and no script has the smoked bar, which is decided; with script it 
 
 ## The stand-ins in `shared/`
 
-The HTML skill doesn't hold the site header or the stage yet (another stream adds them: finish-nov10, batch 7). Until it does, the sites
+The HTML skill now has a site header (`topbar-nav`) and a stage (`stage`) of its own, and the Blacksand page still includes the stand-ins below
+(`sites/blacksand/index.body.html`, `@include shared/site-header.css` and `shared/stage.css`) and has not moved to the skill's modules. The sites
 share one stand-in each, written once and matched to the shipped React components (`SiteHeader`, its narrow menu, `Stage`) without
 redesigning them:
 
@@ -94,5 +96,5 @@ redesigning them:
 
 Their class names are React's (`basalt-site-header`, `basalt-stage`, …), so `sites/test/site-header-parity.test.mjs` and
 `stage-parity.test.mjs` compare each to React in Chromium, in both themes, at 1440 and 390. Every difference that remains is written in
-a list in the test file with its reason, and a new one fails the test. **When the skill gains the real module, delete the stand-in**
-and move the pages to the skill's markup; nothing else in `sites/` depends on a stand-in's name but the pages' markup.
+a list in the test file with its reason, and a new one fails the test. **When a page moves to the skill's module, delete the stand-in**
+and move the page to the skill's markup; nothing else in `sites/` depends on a stand-in's name but the pages' markup.

@@ -10,6 +10,7 @@
     --_inset: max(var(--basalt-space-4), env(safe-area-inset-left, var(--basalt-space-0)), env(safe-area-inset-right, var(--basalt-space-0)));
     position: fixed;
     inset: auto max(var(--basalt-space-4), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-4), env(safe-area-inset-bottom, var(--basalt-space-0))) auto;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
     height: 0;
     margin: 0;

@@ -1,5 +1,8 @@
 # Review the Basalt completion stack
 
+> **17 November 2026: kept as history.** This is the owner's review guide for the completion stack of early November 2026, which merged long ago. Each
+> round is now reviewed from the walkthrough that `npm run review -- <round>` writes (see `AGENTS.md`, "Every round ships") and the pull request's own description.
+
 The completion work is proposed as three focused stages. Each has a signed commit and is
 reviewable independently of later work. The original unsigned source/patch bundle remains
 an archived pre-PR backup; it does not describe the current Git state.

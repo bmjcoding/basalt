@@ -7,6 +7,7 @@
      keys or the pointer are on) lifts its ink to primary and takes the plate, one solid fill per level. No weight change, no bar, no outline.
      Where hover is real one shared plate glides between rows (glide.css); each row's own plate is the fallback. */
 
+  /* stylelint-disable-next-line unit-disallowed-list -- the fallback when the popup's available room is not known: the window itself (a viewport unit) */
   .menu { min-width: var(--basalt-size-menu-min); max-height: var(--available-height, 100vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); }
   .menu-item {
     --_h: var(--basalt-size-menu-row);
@@ -73,6 +74,7 @@
   .menu-item-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .menu-item[data-highlighted] .menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .menu-item:is([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-disabled); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .menu:has(.menu-item-description) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
   @media (pointer: coarse) {
     .menu-item { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }

@@ -39,11 +39,13 @@
      answers its own width, not the viewport's: side by side from the list, the gap and one container breakpoint, so the pane is never narrow beside the list;
      under that, a push. */
   /* 816px is size-list-width (320) + space-4 (16) + size-breakpoint-container (480): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-list-width (320px) + space-4 (16px) + size-breakpoint-container (480px), where the pane sits beside the list; a container query cannot read a custom property */
   @container (width >= 816px) {
     .command-split { grid-template-columns: var(--basalt-size-list-width) minmax(0, 1fr); }
     .command-split .command-pane { contain: size; overflow: auto; }
   }
   /* 816px is size-list-width + space-4 + size-breakpoint-container, as above */
+  /* stylelint-disable-next-line basalt/container-length -- size-list-width (320px) + space-4 (16px) + size-breakpoint-container (480px), where the pane sits beside the list; a container query cannot read a custom property */
   @container (width < 816px) {
     .command-split:not([data-mode]) > .command-pane { display: none; }
     .command-split:not([data-mode]) .row-chevron { display: block; }

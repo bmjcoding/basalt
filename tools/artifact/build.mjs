@@ -250,11 +250,11 @@ const classic = (code, name) => {
   return safe;
 };
 
-const reactLib = await esbuild.build({ stdin: { contents: "import * as R from 'react'; window.React = R;", resolveDir: react }, bundle: true, format: "iife", minify: true, define: prod, write: false, legalComments: "inline" });
+const reactLib = await esbuild.build({ stdin: { contents: "import * as R from 'react'; window.React = R;", resolveDir: react }, bundle: true, format: "iife", minify: true, define: prod, write: false, legalComments: "inline", metafile: true });
 write("components/lib/react.js", classic(reactLib.outputFiles[0].text, "react.js"));
 const domLib = await esbuild.build({
   stdin: { contents: "import * as D from 'react-dom'; import * as C from 'react-dom/client'; window.ReactDOM = Object.assign({}, D, C);", resolveDir: react },
-  bundle: true, format: "iife", minify: true, define: prod, write: false, legalComments: "inline",
+  bundle: true, format: "iife", minify: true, define: prod, write: false, legalComments: "inline", metafile: true,
   plugins: [{ name: "react-global", setup(b) { b.onResolve({ filter: /^react$/ }, () => ({ path: "react", namespace: "g" })); b.onLoad({ filter: /.*/, namespace: "g" }, () => ({ contents: "module.exports=window.React;", loader: "js" })); } }],
 });
 write("components/lib/react-dom.js", classic(domLib.outputFiles[0].text, "react-dom.js"));
@@ -266,7 +266,7 @@ const ICONS = ["CaretDownIcon", "CopyIcon", "DotsThreeIcon", "GearIcon", "Magnif
 const entry = `export * from ${JSON.stringify(path.join(react, "src/index.ts"))};\nexport * as Examples from ${JSON.stringify(path.join(react, "examples/completion.tsx"))};\nexport { ${ICONS.join(", ")} } from "@phosphor-icons/react";\n`;
 const bundle = await esbuild.build({
   stdin: { contents: entry, resolveDir: react, loader: "ts" },
-  bundle: true, format: "iife", globalName: NS, minify: true, define: prod, write: false, jsx: "automatic", target: "es2020",
+  bundle: true, format: "iife", globalName: NS, minify: true, define: prod, write: false, jsx: "automatic", target: "es2020", metafile: true,
   banner: { js: `/* @ds-bundle: ${JSON.stringify({ format: 4, namespace: NS, components: FAMILIES.map((name) => ({ name })) })} */` },
   plugins: [globals],
 });
@@ -274,6 +274,37 @@ const bundleJs = classic(bundle.outputFiles[0].text, "bundle.js");
 for (const c of [...COMPONENTS, ...ICONS]) if (!new RegExp(`\\b${c}\\b`).test(bundleJs)) throw new Error(`bundle is missing ${c}`);
 write("components/bundle.js", bundleJs);
 write("components/api.json", JSON.stringify({ exports: COMPONENTS, families: FAMILIES }, null, 2));
+
+// The third-party code in the three scripts above, and each package's own licence text, beside them: an MIT or similar licence asks that its notice travel with
+// every copy. A package is listed when some of its code is in an output (not merely parsed and shaken away). Its licence is the file the package ships.
+const bundledPackages = new Map();
+for (const result of [reactLib, domLib, bundle]) {
+  for (const output of Object.values(result.metafile.outputs)) {
+    for (const [input, { bytesInOutput }] of Object.entries(output.inputs)) {
+      const at = input.lastIndexOf("node_modules/");
+      if (at < 0 || bytesInOutput === 0) continue;
+      const [first, second] = input.slice(at + "node_modules/".length).split("/");
+      const dir = path.join(path.resolve(process.cwd(), input.slice(0, at)), "node_modules", first.startsWith("@") ? path.join(first, second) : first);
+      bundledPackages.set(dir, true);
+    }
+  }
+}
+const LICENCE_FILE = /^(licen[cs]e|copying|notice)(\.(md|txt|markdown))?$/i;
+const notices = [...bundledPackages.keys()].map((dir) => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+  const files = fs.readdirSync(dir).filter((f) => LICENCE_FILE.test(f)).sort();
+  const licence = typeof manifest.license === "string" ? manifest.license : manifest.license?.type;
+  if (!files.length && !licence) throw new Error(`${manifest.name} is bundled into the reference and declares no licence: find its terms and add them in tools/artifact/build.mjs`);
+  const by = typeof manifest.author === "string" ? manifest.author : manifest.author?.name;
+  const where = typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url;
+  // A package that ships no licence file (react-remove-scroll-bar's archive has none) gets what its own manifest says, said as that.
+  const text = files.length ? files.map((f) => fs.readFileSync(path.join(dir, f), "utf8").trim()).join("\n\n") : `This package ships no licence file. Its package.json declares the licence ${licence}${by ? `, author ${by}` : ""}${where ? `, repository ${where}` : ""}.`;
+  return { name: manifest.name, version: manifest.version, licence: licence ?? "see below", text };
+}).sort((a, b) => a.name.localeCompare(b.name));
+write("components/THIRD-PARTY-NOTICES.txt", [
+  `The Basalt reference bundles the packages below (components/bundle.js and components/lib/*.js). Each one's licence text, as the package ships it, follows its name.`,
+  ...notices.map(({ name, version, licence, text }) => `${"=".repeat(78)}\n${name} ${version} (${licence})\n${"=".repeat(78)}\n\n${text}`),
+].join("\n\n") + "\n");
 
 const componentsCss = [
   fs.readFileSync(path.join(react, "src/styles/components.css"), "utf8"),

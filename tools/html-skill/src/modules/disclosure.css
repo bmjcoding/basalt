@@ -19,7 +19,7 @@
   [data-reveal] { --_reveal-rows: 0fr; --_reveal-ms: calc(var(--basalt-duration-slow) * 0.75); --_reveal-ease: var(--basalt-ease-in); }
   [data-reveal][data-open] { --_reveal-rows: 1fr; --_reveal-ms: var(--basalt-duration-slow); --_reveal-ease: var(--basalt-ease-out); }
   .reveal { display: grid; grid-template-rows: var(--_reveal-rows); transition: grid-template-rows var(--_reveal-ms) var(--_reveal-ease); }
-  .reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--_reveal-ms); }
+  .reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility var(--basalt-duration-instant) linear var(--_reveal-ms); }
   [data-reveal][data-open] .reveal-clip { visibility: visible; transition: none; }
   [data-reveal][data-settled] .reveal-clip { overflow: visible; }
   .reveal-foot { display: flex; padding-block-start: var(--basalt-space-4); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }

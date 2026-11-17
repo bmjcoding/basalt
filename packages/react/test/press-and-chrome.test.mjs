@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
+import { bundleFixture, fixturePage, launch, pkg, settle, sourceStyles } from "./support.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -411,7 +411,7 @@ for (const theme of ["dark", "light"]) {
       assert.equal(s.backgroundColor, await resolve(page, "surface-chrome"));
       assert.equal(s.backdropFilter, "blur(12px)", "blur-chrome, with no saturate and no brightness");
       // Chromium folds the prefixed property into the standard one, so the prefix is proved in the shipped source.
-      const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+      const css = sourceStyles();
       const rule = css.match(/\.basalt-chrome \{[^}]*\}/)?.[0] ?? "";
       assert.match(rule, /-webkit-backdrop-filter: blur\(var\(--basalt-blur-chrome\)\);\s*backdrop-filter: blur\(var\(--basalt-blur-chrome\)\);/);
       assert.ok(!/saturate|brightness/.test(css.match(/backdrop-filter:[^;]*;/g).join("")), "no saturate or brightness in any backdrop-filter");
@@ -493,7 +493,7 @@ for (const theme of ["dark", "light"]) {
       const overlaysAndSearch = [".basalt-listbox-detail", ".basalt-listbox-heading", ".basalt-listbox-trailing", ".basalt-open-into", ".basalt-open-list-label", ".basalt-open-row[data-off] .basalt-open-button", ".basalt-search-count", ".basalt-search-detail", ".basalt-search-field", ".basalt-search-input::placeholder", ".basalt-sheet-head .basalt-dialog-description"];
       const ownFill = [".basalt-sort-seat", ".basalt-table td[data-not-observed]", ".basalt-command [cmdk-group-heading]", ".basalt-command-input::placeholder", ".basalt-command-search", ".basalt-code-gutter", ".basalt-terminal-hint", ".basalt-command-slot", ".basalt-input::placeholder", ".basalt-menu-group-label", ".basalt-menu-item-description", ".basalt-filter-band", ".basalt-filter-band-input::placeholder", ".basalt-nav-group-label", ".basalt-site-footer-legal", ".basalt-notification-line", ".basalt-notification-time", ".basalt-select-value[data-placeholder]", ...overlaysAndSearch];
       assert.deepEqual(found, [...promoted, ...ownFill].sort(), "a part draws tertiary ink that is neither promoted in the bar nor on a fill of its own: promote it in .basalt-chrome or list it here with the reason");
-      const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+      const css = sourceStyles();
       const list = css.match(/(?:\.basalt-chrome [^{;]*,\s*)+\.basalt-chrome [^{;]*\{\s*color: var\(--basalt-text-secondary\);/)?.[0] ?? "";
       for (const selector of promoted) assert.ok(list.includes(`.basalt-chrome ${selector}`), `${selector} is promoted in the bar`);
       await page.close();

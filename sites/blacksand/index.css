@@ -9,6 +9,7 @@
 }
 
 /* The stage fills the first screen less a peek of the section below, and never less than its content and the dunes' room. */
+/* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
 .hero { min-height: calc(100svh - var(--basalt-space-24)); }
 .hero-block { display: flex; flex-direction: column; align-items: flex-start; padding-top: var(--basalt-space-10); padding-bottom: var(--_room); }
 
@@ -78,6 +79,7 @@
 /* Under 1024: the dunes are a band under the words, never behind them. */
 /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token */
 @media (width < 1024px) {
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   :root { --_band: clamp(calc(var(--basalt-space-24) * 2), 30svh, calc(var(--basalt-space-24) * 4)); --_room: calc(var(--_band) + var(--basalt-space-8)); }
   .dunes { height: var(--_band); width: calc(var(--_band) * 5); left: calc(var(--_row-start) + var(--_row-w) * 0.8); transform: translateX(-60%); }
   .stars-side { display: none; }
@@ -96,11 +98,13 @@
 /* Where "The secure ground" at text-4xl (334px in Geist 600) doesn't fit the row's column, the line steps down to text-3xl rather than
    break the phrase ("The secure / ground" was the fault at 360 and 320). The row answers its own width, so a scrollbar counts. */
 /* 336px is the width of "The secure ground" at text-4xl in Geist 600 (334px) plus 2px: a copy measure, not a token. A test pins it. */
+/* stylelint-disable-next-line basalt/container-length -- a copy measure and not a token: the width of "The secure ground" at text-4xl plus 2px, pinned by a test; a container query cannot read a custom property */
 @container hero-row (width < 336px) {
   .hero-line { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
 }
 
 /* The hand-over: the stage ends on the field, and the next section starts on the page with its head on the row's start edge. */
+/* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
 .next { min-height: 60svh; padding-top: var(--basalt-space-12); }
 .next-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); }
 

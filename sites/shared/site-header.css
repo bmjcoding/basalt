@@ -365,6 +365,7 @@
     top: 0;
     left: 0;
     right: 0;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     max-height: 100dvh;
     padding: 0;
     padding-top: var(--_inset-top);

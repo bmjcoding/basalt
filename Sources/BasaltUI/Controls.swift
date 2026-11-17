@@ -248,9 +248,9 @@ public struct BasaltToggleStyle: ToggleStyle {
           Spacer(minLength: Basalt.Space.s3)
           Capsule()
             .fill(configuration.isOn ? Basalt.Colors.actionPrimary.color : Basalt.Colors.surfaceRaised.color)
-            .frame(width: 32, height: 18)
+            .frame(width: Basalt.Size.switchWidth, height: Basalt.Size.switchHeight)
             .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color).frame(width: 14, height: 14).offset(x: configuration.isOn ? 7 : -7))
+            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
             .opacity(enabled ? 1 : 0.5)
         }
         .frame(minHeight: BasaltControlSize.md.minimumHeight)

@@ -2,6 +2,7 @@
 
   /* Figures sit on the page, never in a panel and never boxed: up to three that matter, or one headline. */
   /* width: 100% and a floor of one column keep a row of figures from collapsing to its content when it sits in a flex row. */
+  /* stylelint-disable-next-line unit-disallowed-list -- the narrowest a stat gets before the row wraps (the `min` default), in rem so it follows the reader's text size; no token holds it */
   .stats { width: 100%; min-width: min(var(--min, 10rem), 100%); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 10rem), 100%), 1fr)); gap: var(--basalt-space-6); }
   .stat { display: flex; flex-direction: column; gap: var(--basalt-space-1); padding: 0; }
   .stat-label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-secondary); }

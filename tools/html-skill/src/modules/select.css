@@ -47,6 +47,7 @@
     select.input::picker(select) {
       box-sizing: border-box;
       min-width: anchor-size(width);
+      /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
       max-height: min(var(--basalt-size-popup-max-height), 50vh);
       margin-block: var(--basalt-space-1-5);
       padding: var(--basalt-space-0-5) var(--basalt-space-1);

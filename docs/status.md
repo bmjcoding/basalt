@@ -1,5 +1,9 @@
 # Basalt implementation status
 
+> **17 November 2026: kept as history.** This describes the state of 3 to 7 November 2026 and has not been updated since. The stack it proposes has merged, and
+> the components, rounds and checks have moved on far past it. For where things stand now, read the merged pull requests, `docs/foundations.md`,
+> `packages/react/README.md` (every export) and `AGENTS.md` (the checks).
+
 Assessed from the recovered Claude session, source, tests and distribution checks on
 November 3–4, 2026. [PR #5](https://github.com/bmjcoding/basalt/pull/5) is merged at `c050b23`.
 Completion rounds 5–7 are implemented and proposed as a stack of signed PRs, awaiting owner

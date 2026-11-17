@@ -3,6 +3,7 @@
   /* ---- Scrim and the command palette (a modal panel at level 1, its input band at level 2; it opens and closes with no motion) ---- */
 
   .scrim { position: fixed; inset: 0; z-index: var(--basalt-layer-overlay); background: var(--basalt-scrim); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .palette-scrim { display: flex; align-items: flex-start; justify-content: center; padding: max(var(--basalt-space-4), 12vh) var(--basalt-space-4) var(--basalt-space-4); overflow: auto; }
   /* stylelint-disable-next-line unit-disallowed-list -- 480px is the palette's height cap; the nearest tokens (popup max-height plus the input band) would shift it */
   .palette { display: flex; flex-direction: column; width: min(var(--basalt-size-command-width), 100%); max-height: min(480px, calc(100dvh - 2 * var(--basalt-space-4))); }

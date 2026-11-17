@@ -76,6 +76,7 @@
   .filter-trigger[data-active] .filter-trigger-value { color: var(--basalt-text-primary); }
   .filter-trigger[data-active]:not(:active) { background: var(--basalt-state-selected); }
   .filter-trigger-label-wrap { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  /* stylelint-disable-next-line unit-disallowed-list -- the fallback when the popup's available room is not known: the window itself (a viewport unit) */
   .filter-popup { min-width: var(--basalt-size-select-min); max-height: var(--available-height, 100vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); }
   .filter-row {
     --_h: var(--basalt-size-menu-row);

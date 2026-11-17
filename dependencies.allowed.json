@@ -1,9 +1,9 @@
 {
-  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies don't ship and aren't listed.",
+  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies are not listed: they are not installed with the package. One of them, geist, is copied into dist as the font files, under its own licence (dist/fonts/OFL.txt).",
   "packages/react": {
-    "@base-ui/react": "Accessible unstyled primitives under every component (foundations: Components).",
+    "@base-ui/react": "Accessible unstyled primitives under every component (foundations: Primitives).",
     "cmdk": "Command menu filtering and keyboard selection (MIT, pacocoursey/cmdk). Bailey approved it for the Benji primitives.",
-    "@phosphor-icons/react": "The web icon set (foundations: Iconography).",
+    "@phosphor-icons/react": "The web icon set (foundations: Icons).",
     "@srasyndicate/basalt-tokens": "Basalt's own tokens.",
     "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
     "react": "Peer: the host app's React.",

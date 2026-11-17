@@ -8,6 +8,7 @@
      panel's edges (full bleed, not a plate; no ink lifts: a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed).). The field's mark is a real 2px outline at -2 round the form's band. */
 
   .search { --_control-44: var(--basalt-size-control-2xl); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   dialog.search[open] { display: flex; flex-direction: column; width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4))); padding: 0; overflow: hidden; }
   .search-form {
     box-sizing: border-box;

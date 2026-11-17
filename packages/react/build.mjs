@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 
 import * as esbuild from "esbuild";
 
+import { minifyCss } from "./minify-css.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(here, "dist");
 const require = createRequire(import.meta.url);
@@ -84,6 +86,25 @@ await esbuild.build({
   logLevel: "warning",
 });
 
+// With code splitting, esbuild leaves a bare `import "./chunk-….js";` in a file whose chunk it imported and then used nothing from (a
+// component's helper that only another entry draws). The package declares its JavaScript free of side effects, so an app's bundler drops
+// each of them, and esbuild says so with an `ignored-bare-import` warning on every build (16 of them for an app that imports Button).
+// Nothing a module needs is lost: every chunk that holds code is still imported by name from some file, which is checked here.
+const chunkImport = /^import "\.\/(chunk-[A-Z0-9]+\.js)";\n/gm;
+const built = fs.readdirSync(dist).filter((f) => f.endsWith(".js"));
+for (const file of built) {
+  const source = fs.readFileSync(path.join(dist, file), "utf8");
+  const stripped = source.replace(chunkImport, "");
+  if (stripped !== source) fs.writeFileSync(path.join(dist, file), stripped);
+}
+const imported = built.map((file) => fs.readFileSync(path.join(dist, file), "utf8")).join("\n");
+for (const chunk of built.filter((f) => f.startsWith("chunk-"))) {
+  if (imported.includes(`"./${chunk}"`)) continue;
+  // The one chunk nothing imports by name is a source file with no runtime code (types only): it holds just the directive, and goes.
+  if (fs.readFileSync(path.join(dist, chunk), "utf8").replace(/"use client";|\/\/.*|\s/g, "") !== "") throw new Error(`${chunk} holds code and is imported by no file once its bare imports are gone`);
+  fs.rmSync(path.join(dist, chunk));
+}
+
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
@@ -114,8 +135,9 @@ const fonts = [
 ].join("\n");
 fs.writeFileSync(path.join(dist, "fonts.css"), fonts);
 const tokens = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/tokens.css"), "utf8");
-fs.writeFileSync(path.join(dist, "components.css"), components);
-fs.writeFileSync(path.join(dist, "styles.css"), `${tokens}\n${components}`);
+// The two style sheets ship without their comments and whitespace (minify-css.mjs); the commented source stays in the repository and in the demo page below.
+fs.writeFileSync(path.join(dist, "components.css"), minifyCss(components));
+fs.writeFileSync(path.join(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
 
 // The demo page: every component, both themes, bundled with React for the browser tests.
 const demo = path.join(here, ".demo");
@@ -132,7 +154,8 @@ await esbuild.build({
   logLevel: "warning",
 });
 fs.cpSync(path.join(dist, "fonts"), path.join(demo, "fonts"), { recursive: true });
-fs.writeFileSync(path.join(demo, "styles.css"), `${fonts}\n${tokens}\n${components}`);
+// The demo draws with the sheet as it ships (styles.css, comments and whitespace out), so the pixel proof of a build compares what an app gets.
+fs.writeFileSync(path.join(demo, "styles.css"), `${fonts}\n${fs.readFileSync(path.join(dist, "styles.css"), "utf8")}`);
 fs.writeFileSync(
   path.join(demo, "index.html"),
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Basalt components</title>
