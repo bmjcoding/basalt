@@ -225,7 +225,9 @@ describe("the bytes, with the plugin and without it", () => {
   // each; both pull in Button and so the Spinner). Importing each icon from its own module (also audit-fix-c1, A1-07) changes neither number.
   // Combined in integration-nov15: the limits are E2's, plus audit-fix-c1's raises for the batched spinner (Terminal 25,300 to 25,350, NotificationCentre
   // 140,500 to 140,650); the combined tree fits under them.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 25_350, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_000, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 140_650, 3_500]]) {
+  // Links and rows (DECISIONS 152): Link's arrow form (`arrow`) draws the core right and left arrows, so Pagination, which holds Link, carries them: 19,619 → 20,453 with
+  // the plugin (the two glyphs, the arrow's span and the branch, 834 bytes). Raised from 20,000 to 20,500 for that and for nothing else.
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 25_350, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_500, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 140_650, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));

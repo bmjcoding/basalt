@@ -37,10 +37,49 @@
     return ok;
   }
 
+  /* The form with words (DECISIONS 152, X8): data-copy-words="Copied" keeps the button's own words and holds both in one cell, so its width never
+     changes. It says the words only after the write succeeded, for 1500ms (as CodeBlock and Terminal), and a refused clipboard leaves it as it was.
+     The page's live region says "Copied to clipboard" (or data-copy-status). */
+  function wireWords(button) {
+    var rest = button.innerHTML;
+    var cell = document.createElement('span');
+    cell.className = 'copy-words';
+    var on = document.createElement('span');
+    on.setAttribute('data-on', '');
+    on.innerHTML = rest;
+    var off = document.createElement('span');
+    off.textContent = button.getAttribute('data-copy-words');
+    off.setAttribute('aria-hidden', 'true');
+    off.inert = true;
+    cell.appendChild(on);
+    cell.appendChild(off);
+    button.textContent = '';
+    button.appendChild(cell);
+    function show(copied) {
+      on.toggleAttribute('data-on', !copied);
+      off.toggleAttribute('data-on', copied);
+      on.setAttribute('aria-hidden', String(copied)); on.inert = copied;
+      off.setAttribute('aria-hidden', String(!copied)); off.inert = !copied;
+    }
+    show(false);
+    button.addEventListener('click', function () {
+      var target = button.dataset.copy ? document.querySelector(button.dataset.copy) : null;
+      var text = button.dataset.copyText != null ? button.dataset.copyText : (target ? target.textContent : '');
+      copyText(text).then(function (ok) {
+        if (!ok) return;
+        show(true);
+        announce(button.getAttribute('data-copy-status') || 'Copied to clipboard');
+        clearTimeout(button.__bhTimer);
+        button.__bhTimer = setTimeout(function () { show(false); }, 1500);
+      });
+    });
+  }
+
   function wireCopy() {
     document.querySelectorAll('[data-copy], [data-copy-text]').forEach(function (button) {
       if (button.__bh) return;
       button.__bh = true;
+      if (button.hasAttribute('data-copy-words')) { wireWords(button); return; }
       // The resting label is read once, here, so a second press during the feedback can never mistake "Copied" for it.
       var rest = [button.innerHTML, button.getAttribute('aria-label')];
       var iconOnly = button.hasAttribute('data-icon-only');

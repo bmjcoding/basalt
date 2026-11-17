@@ -12,7 +12,20 @@
   .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
   @media (pointer: coarse) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
+  /* ---- Show all (DECISIONS 152, D6): the rest of a list opens in place ----
+     A button[data-disclosure][data-reveal] controls a root; each .reveal under it is a grid whose one track goes 0fr to 1fr over duration-slow on ease-out, and
+     back at 0.75 on ease-in. Its .reveal-clip keeps space-2 of room beside the rows so a ring is whole, and lets go once the opening is done (data-settled).
+     Closed, the rest is hidden and inert. The button sits in .reveal-foot, under a rule. */
+  [data-reveal] { --_reveal-rows: 0fr; --_reveal-ms: calc(var(--basalt-duration-slow) * 0.75); --_reveal-ease: var(--basalt-ease-in); }
+  [data-reveal][data-open] { --_reveal-rows: 1fr; --_reveal-ms: var(--basalt-duration-slow); --_reveal-ease: var(--basalt-ease-out); }
+  .reveal { display: grid; grid-template-rows: var(--_reveal-rows); transition: grid-template-rows var(--_reveal-ms) var(--_reveal-ease); }
+  .reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--_reveal-ms); }
+  [data-reveal][data-open] .reveal-clip { visibility: visible; transition: none; }
+  [data-reveal][data-settled] .reveal-clip { overflow: visible; }
+  .reveal-foot { display: flex; padding-block-start: var(--basalt-space-4); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+
   @media (prefers-reduced-motion: reduce) {
     .disclosure::after, details > summary::after { transition: none; }
+    .reveal, .reveal-clip { transition: none; }
   }
 }

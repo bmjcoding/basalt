@@ -1,4 +1,9 @@
 @layer basalt {
+  /* The form with words: both wordings stand in one cell, the one not shown unseen, so the button's width is the wider of the two (React's Reserve). */
+  .copy-words { display: inline-grid; justify-items: center; }
+  .copy-words > * { grid-area: 1 / 1; }
+  .copy-words > :not([data-on]) { visibility: hidden; }
+
   @media print {
     [data-copy], [data-copy-text] { display: none; }
   }

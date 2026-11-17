@@ -101,7 +101,17 @@ export type { AlertDialogProps, SheetContentProps, SheetSide } from "./overlays"
 export { ProfileLink, ProfileLinks, SocialLink, SocialLinks } from "./social-links";
 export type { ProfileLinkProps, ProfileLinksProps, SocialLinkProps, SocialLinksProps, SocialService, SocialSize } from "./social-links";
 export { Breadcrumbs, Link, Pagination } from "./navigation";
+export { BackLink } from "./back-link";
+export type { BackLinkProps } from "./back-link";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
+export { LinkCard, LinkTile } from "./link-card";
+export type { LinkCardProps, LinkTileProps } from "./link-card";
+export { BigLinkList, BigLinkRow, DirectoryList, DirectoryRow } from "./link-rows";
+export type { BigLinkListProps, BigLinkRowProps, DirectoryListProps, DirectoryRowProps } from "./link-rows";
+export { Reveal } from "./reveal";
+export type { RevealProps } from "./reveal";
+export { COPIED_MS, CopyButton } from "./copy-button";
+export type { CopyButtonProps } from "./copy-button";
 export { Nav, NavGroup, NavItem } from "./nav";
 export type { NavGroupProps, NavItemProps, NavProps } from "./nav";
 export { SkipLink } from "./skip-link";

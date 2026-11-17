@@ -20,7 +20,7 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 
 Markup built only at run time (a `.row` your script writes) won't be seen: add `<!-- basalt:use rows -->` to the body.
 
-- **core** `.page`, `.stack`, `.panel`, `.card`, `.btn`: always in; always print its usage with your modules.
+- **core** `.page`, `.stack`, `.panel`, `.card`, `.btn`: always in; print its usage with your modules.
 - **glyph** `data-glyph`: Basalt's own glyph by name, never drawn by hand; filled inside `aria-current`.
 - **topbar** `.topbar`: once per page; never restyle it; no danger button; no second blurred layer.
 - **kbd** `data-kbd`, `.kbd`: only a real shortcut the page binds, never on the primary fill; `data-doc` for keys in prose.
@@ -35,6 +35,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
+- **link-rows** `.dir`: a named `ul`; no wash.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.

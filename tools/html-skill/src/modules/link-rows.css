@@ -1,0 +1,61 @@
+@layer basalt {
+
+  /* ---- Link rows (DECISIONS 152, D5b): the directory and the big link rows. React's DirectoryList and BigLinkList. ----
+     A directory is a head, then rows ruled by hairlines, each one link with three fixed columns (name, sentence, state). The name and state columns
+     are 160px (size-description-label's value, for another role here); the sentence takes the rest. The arrow is the core right glyph, drawn as a
+     mask in secondary ink, lifting to primary and travelling 2px (space-0-5) on hover and focus, and not under reduced motion. A row of the page takes
+     no hover wash: a ruled list on the page is not a settings row. The ring is the control ring at +2. The new-tab arrow replaces the go arrow. */
+  .dir { color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); }
+  .dir-head { margin: 0; padding-block-end: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .dir-list { margin: 0; padding: 0; list-style: none; }
+  .dir-list > li:not(.reveal) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .dir-row { display: grid; grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr) var(--basalt-size-description-label); column-gap: var(--basalt-space-6); align-items: baseline; box-sizing: border-box; min-height: var(--basalt-size-row); padding-block: var(--basalt-space-4); color: inherit; letter-spacing: var(--basalt-text-md-tracking); text-decoration: none; }
+  .dir-name { font-weight: var(--basalt-font-weight-semibold); text-wrap: balance; }
+  .dir-what { color: var(--basalt-text-secondary); text-wrap: pretty; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .dir-state { color: var(--basalt-text-secondary); text-align: end; font-variant-numeric: tabular-nums; }
+  .dir-row:is(:hover, :focus-visible) .dir-what { color: var(--basalt-text-primary); }
+  .dir-row:focus-visible, .big-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-sm); }
+  .dir-name > .ext { margin-inline-start: var(--basalt-space-1-5); }
+
+  /* The go arrow, on a same-tab link only: the new-tab arrow takes its place. */
+  .dir-row:not([data-new-tab]) .dir-name::after, .big-link:not([data-new-tab])::after { content: ""; display: inline-block; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-secondary); mask: url("%glyph-mask:arrow-right%") center / contain no-repeat; transition: background-color var(--_colour-ms, var(--basalt-duration-base)) var(--basalt-ease-out), transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  .dir-row:not([data-new-tab]) .dir-name::after { vertical-align: middle; margin-inline-start: var(--basalt-space-1-5); }
+  /* The big rows are Castle's: the arrow's colour steps over duration-fast, its travel stays duration-base (DECISIONS 152, consent row 7). The directory is SRA's and keeps duration-base for both. */
+  .big-link:not([data-new-tab])::after { --_colour-ms: var(--basalt-duration-fast); }
+  .dir-row:not([data-new-tab]):is(:hover, :focus-visible) .dir-name::after, .big-link:not([data-new-tab]):is(:hover, :focus-visible)::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+  :is(.dir-row, .big-link):is(:hover, :focus-visible) .ext { color: var(--basalt-text-primary); }
+  .dir-row:dir(rtl) .dir-name::after, .big-link:dir(rtl)::after { transform: scaleX(-1); }
+  .dir-row:dir(rtl):is(:hover, :focus-visible) .dir-name::after, .big-link:dir(rtl):is(:hover, :focus-visible)::after { transform: scaleX(-1) translateX(var(--basalt-space-0-5)); }
+
+  /* A row after the cut (class reveal, see disclosure) draws its rule inside its clip, so a closed row is no height at all. */
+  .dir-list > li.reveal > .reveal-clip::before { content: ""; display: block; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+
+  /* Under 720 a row is one column and its state starts. */
+  @media (width < %bp-md%) {
+    .dir-row { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-3-5); }
+    .dir-state { text-align: start; }
+  }
+
+  /* ---- The big link rows: full width, one line each, a rule under each ----
+     600 at text-2xl, text-3xl from 1024; from 720 to 1023 two columns, the first two with a rule above. */
+  .big-links { display: grid; margin: 0; padding: 0; list-style: none; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .big-links > li { display: flex; border-block-end: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .big-link { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-4); min-height: var(--basalt-size-row); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-2xl-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-text-2xl-line-height); letter-spacing: var(--basalt-text-2xl-tracking); text-decoration: none; }
+  .big-link::after, .big-link > .ext { margin-inline-end: var(--basalt-space-1); }
+  @media (width >= %bp-md%) and (width < %bp-lg%) {
+    .big-links { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--basalt-space-12); border-block-start: 0; }
+    .big-links > li:nth-child(-n + 2) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .big-link { min-height: var(--basalt-space-16); }
+  }
+  @media (width >= %bp-lg%) {
+    .big-link { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dir-row:is(:hover, :focus-visible) .dir-name::after, .big-link:is(:hover, :focus-visible)::after { transform: none; }
+  }
+  @media (forced-colors: active) {
+    .dir-row:not([data-new-tab]) .dir-name::after, .big-link:not([data-new-tab])::after, .dir-row:not([data-new-tab]):is(:hover, :focus-visible) .dir-name::after, .big-link:not([data-new-tab]):is(:hover, :focus-visible)::after { forced-color-adjust: none; background: LinkText; }
+    .ext { color: inherit; }
+  }
+}

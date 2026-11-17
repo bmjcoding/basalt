@@ -214,6 +214,39 @@ Heading's `level` follows document structure; `size` follows the visual role. Em
 uses a named section with an h2, description and optional actions. It does not announce an
 initial empty view as an error. Avatar requires a person's name and falls back to initials.
 
+## Links and rows
+
+Ported from the owner's approved site prototypes (DECISIONS 152; the implementation hasn't been reviewed by the panel).
+
+```tsx
+<BackLink href="/brands">Brands</BackLink>
+<Link href="/brands" arrow="end">All brands</Link>           {/* "start" for a back arrow */}
+
+<LinkCard href="/work/alpha" title="Alpha" titleLevel={3} media={<img src="…" alt="…" />} description="What it is." state="2026"
+  style={{ "--_basalt-link-card-media-height": "240px" } as React.CSSProperties} />
+<LinkTile href="/p/1" media={<img src="…" alt="…" />} brand="Maker" title="Product" details="500 g"
+  foot={<><span>£12.00</span><Button size="lg">Add</Button></>} />
+
+<DirectoryList title="Client work and other projects" shown={8} showAllLabel="Show all 30">
+  <DirectoryRow href="/a" name="Alpha" description="What it is." state="2026" />
+  {/* … */}
+</DirectoryList>
+<BigLinkList aria-label="Shop by category"><BigLinkRow href="/shop/a">Alpha goods</BigLinkRow></BigLinkList>
+
+<Reveal rest={<MoreContent />} showLabel="Show all 12" hideLabel="Show fewer"><Start /></Reveal>
+<CopyButton text="hello@example.com" variant="secondary" size="lg" statusLabel="Address copied">Copy address</CopyButton>
+```
+
+- **The arrow** is the core right arrow after a link, card or row that goes on in the site and the left arrow before a back link; a link that opens
+  a new tab (`target="_blank"`) draws the new-tab arrow in its place, never both. It travels 2px on hover and focus, not under reduced motion.
+- `LinkCard` and `LinkTile` are unboxed (no rim, no level). The card's media window is as tall as its content unless you set
+  `--_basalt-link-card-media-height`. A tile's `foot` sits outside its link. Anchor props go on the link; a tile's `className` and `foot` go on the tile.
+- `DirectoryList` is one list named by its head. With `shown`, the rows after it open in place from "Show all" (the labels are yours:
+  the part does not count for you beyond the default). Keep the list 8px (`space-2`) from any clipping edge so a row's ring is whole.
+  `Reveal` opens any content the same way. A keyboard open moves focus to the first new item once the opening has ended; a pointer open leaves it on the button.
+- `BigLinkList` and `DirectoryRow` take a name (`aria-label`, or the head). Rows are links: there is no hover wash.
+- `CopyButton` holds both words in one cell, so its width never changes; it says "Copied" for 1500ms (`COPIED_MS`) only after the write succeeded.
+
 ## Code
 
 ```tsx
