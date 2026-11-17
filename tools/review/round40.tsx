@@ -1,6 +1,6 @@
 // Round 40: the charts port batch of the components stream (DECISIONS 153): the lit marks, the headline frame, the lit trend line, the phase chart with its lane, the share bar, the
 // coverage strip, the marks row and the range meter. Ported from the owner's approved site prototypes (the kit's lit figures, N1's dashboard, the personal site's tally) with the council's
-// changes; every vote is in the step it concerns. The small bar plot (vote 10, a four-way split) is held for the owner and is not built. The design panel has not reviewed this
+// changes; every vote is in the step it concerns. The small bar plot (vote 10, a four-way split) was held for the owner, who chose option (a), a short TimeChart bar (DECISIONS 160): it is the last step. The design panel has not reviewed this
 // implementation. Every colour is neutral: N1's and the kit's own colours stay with the sites. Every word and number is synthetic.
 //
 // Each step prints what the decision turned on, measured live in this page (a width that must not change, a movement that must be 0px). The readouts and the layout around the parts are
@@ -9,7 +9,7 @@
 import * as React from "react";
 
 import { CoverageStrip, MarksRow, PhaseChart, RangeMeter, ShareBar, Text, TimeChart, trailingMean } from "../../packages/react/src/index";
-import { calls, coverageDays, lb, marksData, MARKS_CAP, weightData } from "../../packages/react/test/fixtures/figure-data";
+import { calls, coverageDays, EVENTS, events, eventsDays, EVENTS_SUMMARY, lb, marksData, MARKS_CAP, weightData } from "../../packages/react/test/fixtures/figure-data";
 import { lastDays } from "../../packages/react/test/fixtures/chart-data";
 import type { Round } from "./rounds";
 
@@ -337,6 +337,60 @@ function RangeDemo({ state }: { state: string }) {
   );
 }
 
+// ---- 8. the short bar plot ----
+
+function ShortBarDemo({ state }: { state: string }) {
+  const root = React.useRef<HTMLDivElement>(null);
+  useFocusState(root, state, ".basalt-chart-day", -6);
+  const days = React.useMemo(() => eventsDays(), []);
+  const chart = (compact: boolean) => (
+    <TimeChart title="Events a day" kind="bar" plotSize="sm" compact={compact} days={days} series={[{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} locale="en-GB" now={NOW} />
+  );
+  return (
+    <div ref={root} style={{ ...col, maxWidth: 560 }} data-wt-hover>
+      {caption("The short bar plot: a 96px bar chart with no gridlines and no y labels, so the plot is the figure's width. The legend, keys, table and caption are the chart's own.")}
+      <div id="short-compact">{chart(true)}</div>
+      {caption("The same chart without the prop, for the comparison: gridlines, y labels and the gutter for them.")}
+      <div id="short-full">{chart(false)}</div>
+      <Probe
+        root={root} state={state}
+        run={async (el) => {
+          const plain = el.querySelector("#short-compact")!;
+          const full = el.querySelector("#short-full")!;
+          const read = (scope: Element) => {
+            const svg = scope.querySelector("svg.basalt-chart-svg")!;
+            const days = [...scope.querySelectorAll<HTMLElement>(".basalt-chart-day")];
+            const bars = [...svg.querySelectorAll(".basalt-chart-bar")];
+            return { svg, days, bars, grid: svg.querySelectorAll(".basalt-chart-grid").length, y: [...svg.querySelectorAll("text")].filter((t) => /^[\d,.]+$/.test(t.textContent ?? "")).length, base: svg.querySelector(".basalt-chart-baseline")?.getAttribute("y1"), fig: scope.querySelector("figure")!.getBoundingClientRect().width, plot: scope.querySelector(".basalt-chart-plot")!.getBoundingClientRect().width };
+          };
+          const a = read(plain);
+          const b = read(full);
+          const out: string[] = [];
+          out.push(`with the prop: ${a.grid} gridlines, ${a.y} y labels, the first day at ${a.days[0]!.style.left || "0"}, the plot ${px(a.plot)} of the figure's ${px(a.fig)}, ${a.days[0]!.style.height} tall`);
+          out.push(`without it: ${b.grid} gridlines, ${b.y} y labels, the first day at ${b.days[0]!.style.left}, the plot ${px(b.plot)} of ${px(b.fig)}`);
+          const w = (x: typeof a) => Number(x.bars[0]!.getAttribute("width"));
+          out.push(`bars: ${a.bars.length} drawn for ${EVENTS.filter((v) => v != null && v > 0).length} days above zero (${EVENTS.filter((v) => v === 0).length} zero days draw none); ${w(a)}px wide against ${w(b)}px (60% of the day, 2 to 24px), square: ${a.bars.every((x) => !x.getAttribute("rx"))}; the baseline at ${a.base} and ${b.base}; heights match: ${a.bars.every((x, i) => x.getAttribute("height") === b.bars[i]!.getAttribute("height"))}`);
+          out.push(`the missing day: ${a.svg.querySelectorAll(".basalt-chart-hatch").length} hatch, "${a.days[20]!.getAttribute("aria-label")}"`);
+          const parts = () => ({ plot: rect(plain.querySelector(".basalt-chart-plot")), key: rect(plain.querySelector(".basalt-chart-key")), legend: rect(plain.querySelector(".basalt-chart-legend")) });
+          a.days[29]!.focus({ preventScroll: true });
+          await frames(2);
+          const rest = parts();
+          let worst = 0;
+          for (let i = 29; i >= 0; i--) {
+            a.days[i]!.focus({ preventScroll: true });
+            await frames(1);
+            const now = parts();
+            for (const key of Object.keys(rest) as Array<keyof typeof rest>) worst = Math.max(worst, same(rest[key], now[key]));
+          }
+          (document.activeElement as HTMLElement | null)?.blur();
+          out.push(`all 30 days picked in turn by the keys: the plot, the readout and the legend moved at most ${px(worst)}; ${plain.querySelectorAll("figure [aria-live]").length} live regions; one tab stop: ${plain.querySelectorAll(".basalt-chart-day[tabindex='0']").length}`);
+          return out;
+        }}
+      />
+    </div>
+  );
+}
+
 const WIDTHS = [1440, 390];
 const FULL = ["hover", "focus", "reduced-motion", "forced-colours"];
 const QUIET = ["reduced-motion", "forced-colours"];
@@ -346,7 +400,7 @@ export const ROUND_40: Round = {
   title: "The charts port: the lit marks, the headline frame, the phase chart, the share bar, the coverage strip, the marks row and the range meter",
   reviewed: false,
   summary:
-    "The charts batch of the components stream (DECISIONS 153): the approved site prototypes' figures, ported with the council's changes and every colour neutral. The council's votes: 1 the lit gradient, 3 to 1 (opus: flat ink); 2 no area under a line, 3 to 1; 3 how a line curves, no majority, so the line is joined straight as foundations already says; 4 the head dot, 3 to 1; 5 the readings, 4 to 0; 6 the reference lines, no majority, so Basalt's gridlines stand (three of four wanted the kit's two guides: for you); 7 and 8 the frame and its title, 4 to 0; 9 the headline's glide, no majority, so it glides; 10 a small bar plot, a four-way split, held for you and not built; 11 the second plot height, 4 to 0; 12 the share bar's form, 3 to 1; 13 one ink, 4 to 0; 14 the hatch for a missing day, 4 to 0; 15 the marks row's shapes, 3 to 1; 16 opening a week from the plot, no majority, so the prototype's form with its breaks removed; 17 the chosen week's plate, 3 to 1; 18 the range meter's plan, 3 to 1. The design panel has not reviewed this implementation. The skill gets the trend maths only (D7a names its chart module); the other parts are React-only here.",
+    "The charts batch of the components stream (DECISIONS 153): the approved site prototypes' figures, ported with the council's changes and every colour neutral. The council's votes: 1 the lit gradient, 3 to 1 (opus: flat ink); 2 no area under a line, 3 to 1; 3 how a line curves, no majority, so the line is joined straight as foundations already says; 4 the head dot, 3 to 1; 5 the readings, 4 to 0; 6 the reference lines, no majority, so Basalt's gridlines stand (three of four wanted the kit's two guides: for you); 7 and 8 the frame and its title, 4 to 0; 9 the headline's glide, no majority, so it glides; 10 a small bar plot, a four-way split, which you chose as option (a): a short TimeChart bar (DECISIONS 160, the last step); 11 the second plot height, 4 to 0; 12 the share bar's form, 3 to 1; 13 one ink, 4 to 0; 14 the hatch for a missing day, 4 to 0; 15 the marks row's shapes, 3 to 1; 16 opening a week from the plot, no majority, so the prototype's form with its breaks removed; 17 the chosen week's plate, 3 to 1; 18 the range meter's plan, 3 to 1. The design panel has not reviewed this implementation. The skill gets the trend maths only (D7a names its chart module); the other parts are React-only here.",
   steps: [
     {
       id: "lit-marks",
@@ -454,6 +508,21 @@ export const ROUND_40: Round = {
       tryIt: ["Press 0.2, 0.9 and 1.4: only the marker moves; the words say under, inside or over the plan."],
       states: QUIET,
       demo: ({ state }) => <RangeDemo state={state} />,
+    },
+    {
+      id: "short-bar",
+      name: "The short bar plot: a bar chart at 96px with no scale",
+      intro: "TimeChart's `compact`, with kind bar and plotSize sm. Thirty days of counts, twelve of them zero and one not observed, in a column 560px wide (and the phone's width at 390).",
+      widths: WIDTHS,
+      scales: [1, 2],
+      height: 1700,
+      decisions: [
+        "You chose this (DECISIONS 160). Vote 10 of DECISIONS 153 was a four-way split: a short TimeChart bar (this one, Sol's), Sparkline bars with the total in the caption (muse; grok wrote in the same), a Sparkline-shaped part, or not porting it (opus). It is option (a) of the ballot: the same rules as any TimeChart bar (one series, square-ended bars at the 60%-of-the-day rule, zero draws no bar, a day not observed is the hatch), the shorter plot of vote 11 (96px), no gridlines and no y labels or their gutter; the legend, keys, table and figcaption stay. One prop, no new token, no raw length. React only: the HTML skill has the trend maths only (D7a), as for the other parts of this batch.",
+        "Not chosen, so not built: the personal site's own plot (thirty days of 3px stacked unit marks with a Monday ruler and a caption 'each mark is n': a character-cell look with no token), Sparkline bars, and a plot with no table or per-day text. The values here are in the legend, each day's sentence and the table, and every day has a key.",
+      ],
+      tryIt: ["Press Left on the plot: the readout names each day, and nothing moves.", "Open View as table: thirty rows, 1 Nov says Not observed."],
+      states: FULL,
+      demo: ({ state }) => <ShortBarDemo state={state} />,
     },
   ],
 };

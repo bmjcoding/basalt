@@ -19,7 +19,7 @@ const font = (file) => fs.readFileSync(path.join(pkg, "dist", "fonts", file)).to
 const FONTS = `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900}`;
 
 const HOST = `
-import { weightData, calls, lb, marksData, MARKS_CAP, coverageDays } from "./test/fixtures/figure-data.ts";
+import { weightData, calls, lb, marksData, MARKS_CAP, coverageDays, EVENTS, eventsDays, events, EVENTS_SUMMARY } from "./test/fixtures/figure-data.ts";
 import { lastDays } from "./test/fixtures/chart-data.ts";
 const NOW = Date.UTC(2026, 10, 10, 12);
 window.B = B;
@@ -39,6 +39,7 @@ function Scene() {
   switch (c.scene) {
     case "trend": return wrap(<B.TimeChart title="Weight" kind="line" days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} trend={c.trend ?? true} lit={c.lit ?? true} summary="Weight trended down over 28 days." entrance={c.entrance} locale={c.locale} {...common} />);
     case "bars": return wrap(<B.TimeChart title="Steps" kind="bar" days={lastDays(14)} series={[{ id: "s", name: "Steps", values: marksData("columns", 14) }]} lit={c.lit} headline={c.headline} unit="steps" format={(v) => String(Math.round(v))} summary="Steps over 14 days." now={NOW} locale={c.locale} />);
+    case "short": return wrap(<B.TimeChart title="Events a day" kind={c.kind ?? "bar"} plotSize={c.plotSize ?? "sm"} compact={c.compact} days={eventsDays()} series={c.series ?? [{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} locale="en-GB" now={Date.UTC(2026, 10, 16)} entrance={c.entrance} />);
     case "flat": return wrap(<B.TimeChart title="Weight" kind="line" days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} summary="Weight." {...common} />);
     case "phase": return wrap(<B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={c.controlled ?? week} onWeekChange={(i) => { window.opened.push(i); setWeek(i); }} summary="Twelve weeks." {...common} />);
     case "share": return wrap(<div style={{ display: "grid", gap: 24 }}><B.ShareBar id="sm" aria-label="Plan" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="sm" /><B.ShareBar id="md" aria-label="Tally" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="md" /></div>);
@@ -774,3 +775,157 @@ describe("forced colours and reduced motion", () => {
     assert.equal(await css(page.locator(".basalt-chart-span"), "backgroundColor"), "rgba(0, 0, 0, 0)");
   });
 });
+
+// The council's prototype data (the same as test/fixtures/figure-data.ts, which the page bundle imports).
+const EVENTS = [0, 0, 3, 5, 0, 1, 0, 0, 7, 12, 4, 0, 0, 2, 9, 9, 3, 1, 0, 0, null, 6, 8, 2, 0, 0, 0, 4, 11, 5];
+const events = (value) => `${value} ${value === 1 ? "event" : "events"}`;
+
+for (const theme of THEMES) {
+  describe(`${theme}: the short bar plot (DECISIONS 160, the owner's choice for vote 10)`, () => {
+    const geometry = (page) => page.evaluate(() => {
+      const svg = document.querySelector("svg.basalt-chart-svg");
+      const days = [...document.querySelectorAll(".basalt-chart-day")];
+      const bars = [...svg.querySelectorAll(".basalt-chart-bar")].map((b) => ({ x: Number(b.getAttribute("x")), y: Number(b.getAttribute("y")), w: Number(b.getAttribute("width")), h: Number(b.getAttribute("height")), rx: b.getAttribute("rx") }));
+      const left = (e) => parseFloat(e.style.left);
+      return {
+        figure: document.querySelector("figure").getBoundingClientRect().width,
+        plot: document.querySelector(".basalt-chart-plot").getBoundingClientRect().width,
+        svgWidth: Number(svg.getAttribute("width")),
+        x0: left(days[0]),
+        right: left(days[days.length - 1]) + parseFloat(days[days.length - 1].style.width),
+        slot: parseFloat(days[0].style.width),
+        plotH: parseFloat(days[0].style.height),
+        bars,
+        grid: svg.querySelectorAll(".basalt-chart-grid").length,
+        baseline: [...svg.querySelectorAll(".basalt-chart-baseline")].map((l) => Number(l.getAttribute("y1"))),
+        texts: [...svg.querySelectorAll("text")].map((t) => t.textContent),
+        hatch: [...svg.querySelectorAll(".basalt-chart-hatch")].map((h) => ({ h: Number(h.getAttribute("height")), x: Number(h.getAttribute("x")) })),
+      };
+    });
+
+    test("with the prop the plot draws no gridline, no y label and no gutter, and takes the figure's width; without it the same chart keeps them", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      const a = await geometry(page);
+      assert.equal(a.grid, 0, "no gridlines");
+      assert.deepEqual(a.texts.filter((t) => /^[\d,.]+$/.test(t)), [], "no y labels");
+      assert.equal(a.x0, 0, "no gutter: the first day starts at the plot's edge");
+      assert.equal(a.svgWidth, a.plot);
+      assert.equal(a.plot, a.figure, "the plot is the figure's width");
+      assert.equal(a.plotH, 96, "the plot is the short height");
+      assert.equal(a.baseline.length, 1, "the baseline at zero stays");
+      await configure(page, { compact: false });
+      const b = await geometry(page);
+      assert.ok(b.grid >= 2, `the same chart without the prop has gridlines (${b.grid})`);
+      assert.ok(b.texts.filter((t) => /^[\d,.]+$/.test(t)).length >= 3, "and y labels");
+      assert.ok(b.x0 > 16, `and a gutter (${b.x0}px)`);
+      assert.equal(b.plotH, 96);
+    });
+
+    test("the bars are the chart's own: the same 60%-of-the-day rule, square at both ends, the same baseline and the same heights as the chart without the prop; zero draws no bar", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      const a = await geometry(page);
+      await configure(page, { compact: false });
+      const b = await geometry(page);
+      const rule = (g) => Math.max(2, Math.min(24, Math.round(g.slot * 0.6)));
+      for (const g of [a, b]) {
+        assert.ok(g.bars.every((bar) => bar.w === rule(g)), `every bar is ${rule(g)}px wide`);
+        assert.ok(g.bars.every((bar) => bar.rx === null), "square at both ends");
+      }
+      assert.equal(a.bars.length, 17, "seventeen days have a value above zero");
+      assert.equal(EVENTS.filter((v) => v != null && v > 0).length, 17);
+      assert.deepEqual(a.baseline, b.baseline, "the same baseline");
+      assert.deepEqual(a.bars.map((bar) => [bar.y, bar.h]), b.bars.map((bar) => [bar.y, bar.h]), "the same heights, bar for bar: the scale is the chart's own");
+      assert.ok(a.slot > b.slot, "the bars sit further apart: the plot is wider");
+    });
+
+    test("a day not observed is the hatch over the full plot height with its words, and a zero day has a name of its own", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      const g = await geometry(page);
+      assert.equal(g.hatch.length, 1);
+      assert.equal(g.hatch[0].h, 96);
+      assert.ok(g.texts.includes("Not observed"), "the lane says it in words");
+      const days = page.locator(".basalt-chart-day");
+      assert.match(await days.nth(20).getAttribute("aria-label"), /Sunday 1 November.*not observed/i);
+      assert.match(await days.nth(0).getAttribute("aria-label"), /Events 0 events/);
+      assert.equal(await page.locator(".basalt-chart-legend .basalt-chart-name", { hasText: "Not observed" }).count(), 1, "the legend keys it");
+    });
+
+    test("the keys reach every day, the readout names each, there is no live region, and the table has a row a day", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      assert.equal(await page.locator("figure [aria-live]").count(), 0);
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Home");
+      for (let i = 0; i < 30; i++) {
+        const focused = await page.evaluate(() => Number(document.activeElement.dataset.i));
+        assert.equal(focused, i, `day ${i} has focus`);
+        const value = await page.locator(".basalt-chart-value [data-part=value]").first().innerText();
+        const wanted = EVENTS[i] == null ? "Not observed" : events(EVENTS[i]);
+        assert.equal(value, wanted, `the readout names day ${i}`);
+        if (i < 29) await page.keyboard.press("ArrowRight");
+      }
+      await page.keyboard.press("PageUp");
+      assert.equal(await page.evaluate(() => Number(document.activeElement.dataset.i)), 22);
+      await page.keyboard.press("Home");
+      assert.equal(await page.evaluate(() => Number(document.activeElement.dataset.i)), 0);
+      await page.keyboard.press("End");
+      assert.equal(await page.evaluate(() => Number(document.activeElement.dataset.i)), 29);
+      await page.getByRole("button", { name: "View as table" }).click();
+      assert.equal(await page.locator("tbody tr").count(), 30);
+      assert.equal(await page.locator("tbody tr").filter({ hasText: "Sun 1 Nov" }).getByText("Not observed").count(), 1);
+    });
+
+    test("nothing moves: picking days and opening the table move neither the plot nor the legend", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      const measure = async () => ({ plot: await box(page.locator(".basalt-chart-plot")), key: await box(page.locator(".basalt-chart-key")), legend: await box(page.locator(".basalt-chart-legend")), svg: await box(page.locator("svg.basalt-chart-svg")) });
+      const rest = await measure();
+      await page.keyboard.press("Tab");
+      for (let i = 0; i < 29; i++) {
+        await page.keyboard.press("ArrowLeft");
+        await frames(page, 1);
+        const m = await measure();
+        for (const key of Object.keys(rest)) for (const prop of ["x", "y", "width", "height"]) assert.ok(Math.abs(m[key][prop] - rest[key][prop]) < 0.001, `day ${i}: ${key}.${prop} moved`);
+      }
+      await page.getByRole("button", { name: "View as table" }).click();
+      const open = await measure();
+      for (const key of Object.keys(rest)) for (const prop of ["x", "y", "width", "height"]) assert.ok(Math.abs(open[key][prop] - rest[key][prop]) < 0.001, `table: ${key}.${prop} moved`);
+    });
+
+    test("at 560 and 320 nothing overflows and the plot is the figure's width", async () => {
+      for (const [viewport, width] of [[{ width: 600, height: 900 }, 560], [{ width: 340, height: 900 }, 320]]) {
+        const { page } = await scenePage({ scene: "short", compact: true, width }, { theme, viewport });
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${width}: no horizontal overflow`);
+        const g = await geometry(page);
+        assert.equal(g.plot, width);
+        assert.equal(g.figure, width);
+        assert.ok(g.bars.every((bar) => bar.x >= 0 && bar.x + bar.w <= g.plot), "every bar is inside the plot");
+        assert.ok(g.right <= g.plot);
+        await page.close();
+      }
+    });
+
+    test("it is ignored where no look was decided: a line chart, the 240px plot, and a second series keep their gridlines and labels", async () => {
+      const lineSeries = [{ id: "a", name: "Events", values: EVENTS }, { id: "b", name: "Other", values: EVENTS.map((v) => (v == null ? v : v + 1)) }];
+      for (const cfg of [{ kind: "line", series: lineSeries }, { plotSize: "md" }]) {
+        const { page } = await scenePage({ scene: "short", compact: true, width: 560, ...cfg }, { theme });
+        const g = await geometry(page);
+        assert.ok(g.grid >= 2 && g.x0 > 16, `${JSON.stringify(cfg.kind ?? cfg.plotSize)} keeps its gridlines and gutter`);
+        await page.close();
+      }
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560, series: [{ id: "a", name: "Events", values: EVENTS }, { id: "b", name: "Other", values: EVENTS }] }, { theme });
+      assert.equal(await page.locator(".basalt-chart-entry").filter({ hasText: "Other" }).count(), 0, "a bar chart takes one series");
+    });
+
+    test("the entrance is TimeChart's own: the bars scale from their baseline on a replay", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560, entrance: "replay" }, { theme });
+      const kinds = await page.evaluate(() => document.getAnimations().map((a) => a.effect?.target?.getAttribute?.("class") ?? ""));
+      assert.ok(kinds.filter((c) => /basalt-chart-bar/.test(c)).length >= 17, "each bar enters");
+    });
+
+    test("axe: the short bar plot, with its table open, has no violations", async () => {
+      const { page } = await scenePage({ scene: "short", compact: true, width: 560 }, { theme });
+      assert.deepEqual(await axe(page, "figure.basalt-chart"), []);
+      await page.getByRole("button", { name: "View as table" }).click();
+      assert.deepEqual(await axe(page, "figure.basalt-chart"), []);
+    });
+  });
+}

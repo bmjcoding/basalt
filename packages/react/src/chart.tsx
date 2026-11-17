@@ -109,6 +109,14 @@ export interface TimeChartProps extends Omit<React.ComponentProps<"figure">, "ch
   /** The plot's height: `"md"` is 240px (`size-chart-plot`, the default); `"sm"` is the one second, shorter height, 96px (`size-chart-plot-sm`, DECISIONS 153, vote 11). */
   plotSize?: "md" | "sm";
   /**
+   * The short bar plot (DECISIONS 160: the owner chose the ballot's vote 10 option (a), a short `TimeChart kind="bar"`): with `kind="bar"` and `plotSize="sm"` the plot draws no
+   * gridlines, no y labels and no gutter for them, so it takes the figure's width. Everything else is `TimeChart` as it ships: one series, square-ended bars at the 60%-of-the-day rule,
+   * zero draws no bar, a day not observed is the hatch with its reason in words, the baseline at zero, the x labels, the legend that is the readout, the keys and their hint, "View as table"
+   * and the required summary. The values are in the legend, the day's sentence and the table, so the plot needs no scale of its own; use it where a `Sparkline` is too little (a line and one
+   * number) and a full chart too much. Ignored for a line chart, for `plotSize="md"` and (as for any bar chart) past the first series: no look was decided for those.
+   */
+  compact?: boolean;
+  /**
    * A lane under the plot on its own axis, and the plate behind an open span of days across both (the phase chart's calls, DECISIONS 153, votes 16 and 17).
    * `span` is the first and last day (inclusive) of the open span; `children` draws the lane from the plot's geometry, in the width from the plot's first day to its last.
    * The plate is one element that glides to a new span over `duration-slow` on `ease-out`, and axis labels under it take secondary ink.
@@ -338,7 +346,7 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,
-  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", entrance = false, lit = false, headline = false, headlineFormat, trend, plotSize = "md", lane, onDayActivate, activateHint, className, ...props
+  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", entrance = false, lit = false, headline = false, headlineFormat, trend, plotSize = "md", compact = false, lane, onDayActivate, activateHint, className, ...props
 }: TimeChartProps) {
   // The hint legend is hidden on touch until a hardware key is pressed; this asks for the same reveal the shortcut chips use.
   useShortcutsVisible();
@@ -480,7 +488,8 @@ export function TimeChart({
   }, [pinned]);
 
   // ---- The model: everything drawn comes from here ----
-  const natural = frame && n > 0 ? naturalSizes({ frame, measure, series, plan, bar, scale: target, formatTick, unit }) : null;
+  const bare = compact && bar && plotSize === "sm";
+  const natural = frame && n > 0 ? naturalSizes({ frame, measure, series, plan, bar, scale: target, formatTick, unit, bare }) : null;
   const reportGutter = natural?.gutter;
   const reportRight = natural?.right;
   React.useLayoutEffect(() => {
@@ -489,7 +498,7 @@ export function TimeChart({
     return () => group.report(id, null);
   }, [group?.report, id, reportGutter, reportRight]);
   const layout = frame && natural && n > 0
-    ? buildLayout({ frame, measure, series, plan, bar, n, scale: target, drawn, formatTick, unit, natural, shared: group?.shared })
+    ? buildLayout({ frame, measure, series, plan, bar, n, scale: target, drawn, formatTick, unit, natural, bare, shared: group?.shared })
     : null;
   // ---- The entrance: this chart is its page's one, when it asks to be ----
   const drawnOnce = layout !== null;
@@ -665,6 +674,7 @@ export function TimeChart({
       aria-labelledby={titleId}
       data-kind={kind}
       data-plot={plotSize === "sm" ? "sm" : undefined}
+      data-compact={bare ? "" : undefined}
       data-narrow={layout?.narrow ? "" : undefined}
       data-headline={framed ? "" : undefined}
       data-lit={lit ? "" : undefined}
@@ -897,12 +907,14 @@ function Marker({ shape, x, y, half, className, grow = 0, hollow = false, line =
 interface LayoutInput {
   frame: Frame; measure: (text: string, weight?: number) => number; series: ChartSeries[]; plan: ChartPlan | undefined; bar: boolean; n: number;
   scale: Scale; drawn: Snapshot; formatTick: ((value: number) => string) | undefined; unit: string | undefined;
+  /** The short bar plot: no gridlines, no y labels and no gutter for them. */
+  bare?: boolean;
 }
 
 interface Layout {
   width: number; height: number; narrow: boolean; laneRows: number; x0: number; x1: number; top: number; plotH: number; bottom: number; slot: number;
   direct: boolean; ticks: number[]; tickText: (value: number, index: number) => string; y: (value: number) => number; cx: (i: number) => number; sx: (i: number) => number;
-  metrics: Metrics; lo: number; hi: number; barWidth: number;
+  metrics: Metrics; lo: number; hi: number; barWidth: number; bare: boolean;
 }
 
 const numberFormat = (locale?: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 6 });
@@ -915,18 +927,18 @@ const tickWriter = (scale: Scale, formatTick: LayoutInput["formatTick"], unit: s
 };
 
 /** The y gutter and right margin this chart needs on its own: the widest tick label, and the widest direct label. */
-function naturalSizes({ frame, measure, series, plan, bar, scale, formatTick, unit }: Pick<LayoutInput, "frame" | "measure" | "series" | "plan" | "bar" | "scale" | "formatTick" | "unit">): GroupSizes & { narrow: boolean; width: number } {
+function naturalSizes({ frame, measure, series, plan, bar, scale, formatTick, unit, bare }: Pick<LayoutInput, "frame" | "measure" | "series" | "plan" | "bar" | "scale" | "formatTick" | "unit" | "bare">): GroupSizes & { narrow: boolean; width: number } {
   const { metrics: m } = frame;
   const width = Math.max(frame.width, 240);
   const narrow = width < m.container;
   const { ticks, text } = tickWriter(scale, formatTick, unit);
-  const gutter = Math.ceil(Math.max(...ticks.map((t, k) => measure(text(t, k))))) + m.s2;
+  const gutter = bare ? 0 : Math.ceil(Math.max(...ticks.map((t, k) => measure(text(t, k))))) + m.s2;
   const direct = !bar && series.length > 1 && !narrow;
   const names = series.map((s) => s.name).concat(plan ? [plan.label ?? "Plan"] : []);
   return { gutter, right: direct ? Math.ceil(Math.max(...names.map((name) => measure(name)))) + 2 * m.s2 : m.s2, narrow, width };
 }
 
-function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, natural, shared }: LayoutInput & { natural: ReturnType<typeof naturalSizes>; shared: GroupSizes | undefined }): Layout {
+function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, natural, shared, bare = false }: LayoutInput & { natural: ReturnType<typeof naturalSizes>; shared: GroupSizes | undefined }): Layout {
   const { metrics: m } = frame;
   const { width, narrow } = natural;
   const { ticks, text: tickText } = tickWriter(scale, formatTick, unit);
@@ -940,7 +952,7 @@ function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, na
   const lo = drawn.lo;
   const hi = drawn.hi;
   return {
-    width, height: top + plotH + m.s2 + m.lineH, narrow, laneRows, x0, x1, top, plotH, bottom: top + plotH, slot, direct, ticks, tickText, metrics: m, lo, hi,
+    width, height: top + plotH + m.s2 + m.lineH, narrow, laneRows, x0, x1, top, plotH, bottom: top + plotH, slot, direct, ticks, tickText, metrics: m, lo, hi, bare,
     y: (value) => top + (1 - (value - lo) / (hi - lo)) * plotH,
     cx: (i) => x0 + (i + 0.5) * slot,
     sx: (i) => x0 + i * slot,
@@ -1000,7 +1012,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
   const zeroTick = L.ticks.find((t) => nearly(t, 0));
   L.ticks.forEach((t) => {
     const yy = crisp(L.y(t));
-    if (yy < L.top - 1 || yy > L.bottom + 1 || t === zeroTick) return;
+    if (L.bare || yy < L.top - 1 || yy > L.bottom + 1 || t === zeroTick) return;
     push(<line key={`g${t}`} className="basalt-chart-grid" x1={L.x0} x2={L.x1} y1={yy} y2={yy} />);
   });
 
@@ -1158,7 +1170,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
   // y labels, end-aligned in the gutter; the unit once, on the top tick
   L.ticks.forEach((t, k) => {
     const yy = L.y(t);
-    if (yy < L.top - 1 || yy > L.bottom + 1) return;
+    if (L.bare || yy < L.top - 1 || yy > L.bottom + 1) return;
     push(<text key={`y${t}`} className="basalt-chart-axis" x={L.x0 - m.s2} y={yy} textAnchor="end">{L.tickText(t, k)}</text>);
   });
 

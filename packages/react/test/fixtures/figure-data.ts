@@ -69,3 +69,9 @@ export function coverageDays(count = 84, missing: number[] = [12, 13, 14, 40, 70
 }
 
 export const ISO_END = isoDay(Date.UTC(2026, 10, 10));
+
+/** Thirty days of event counts for the short bar plot (the council's prototype data, DECISIONS 160): twelve zero days and one day not observed, ending 10 November 2026. */
+export const EVENTS: Array<number | null> = [0, 0, 3, 5, 0, 1, 0, 0, 7, 12, 4, 0, 0, 2, 9, 9, 3, 1, 0, 0, null, 6, 8, 2, 0, 0, 0, 4, 11, 5];
+export const eventsDays = () => lastDays(EVENTS.length);
+export const events = (value: number) => `${value} ${value === 1 ? "event" : "events"}`;
+export const EVENTS_SUMMARY = "92 events, 12 Oct–10 Nov 2026. First day 0; last day 5; peak 12 on 21 Oct. 1 Nov not observed (no reason supplied). No plan.";

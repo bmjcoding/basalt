@@ -1185,7 +1185,7 @@ plate, in both themes. The tightest pair is the hatch on the light plate, at 3.2
 
 **Status:** decided by the council (DECISIONS 153, in the stream `components-nov14`; ported from the owner's approved site prototypes with the council's
 changes); the implementation hasn't been reviewed. The votes that had no majority left what is already decided standing, as the notes say. The small bar plot
-(vote 10) is held for the owner and is not built.
+(vote 10, a four-way split) was held for the owner, who chose option (a): a short `TimeChart kind="bar"` (DECISIONS 160), below.
 
 - **Lit marks** (`TimeChart`'s `lit`, vote 1, 3 to 1): each solid mark (a bar, a marker) takes one vertical gradient in plot coordinates, lightest at the top
   of the plot, so a taller mark reaches brighter ink. Three neutral stops, `chart-lit-top`, `-mid` (at 55%) and `-base`, each 3:1 on levels 0 to 3 and on the picked
@@ -1221,6 +1221,12 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
 - **The range meter** (`RangeMeter`, vote 18, consent rows 14 and 15): `Meter`'s slot (8px, a 1px input boundary, nothing inside) with its own target tick drawn twice, at the
   plan's two ends, and the reading a dot (`size-meter-marker`, 12px) ringed `size-cut`. `role="meter"`, with the plan in `aria-valuetext`. The ticks and the marker come from one
   scale. No band, no fill.
+- **The short bar plot** (`TimeChart`'s `compact`, vote 10 option (a), chosen by the owner, DECISIONS 160; the implementation hasn't been reviewed): a `kind="bar"` chart at
+  `plotSize="sm"` (96px) that draws no gridlines, no y labels and no gutter for them, so the plot takes the figure's width. Everything else is `TimeChart` as it ships: one series,
+  square-ended bars at the 60%-of-the-day rule, zero draws no bar, a day not observed is the hatch with its reason in words, the baseline at zero, the x labels, the legend that is the
+  readout, the key hint, "View as table" and the required `figcaption`. The values are in the legend, each day's sentence and the table, so the plot needs no scale of its own. Use it
+  where a `Sparkline` (a line and one number) is too little and a full chart too much: counts a day with exact values, keys and a table. It is ignored for a line chart, for the 240px
+  plot and past the first series: no look was decided for those. It gives up the personal site's quantised 3px marks and its Monday ruler, which were not chosen.
 - **Motion:** the share bar, coverage strip, marks row and range meter draw at rest and are never a page's one entrance. A lit trend or bar `TimeChart` can be the one (the
   line draws, a bar scales from its baseline, the readings and the head dot fade; the headline's number is the real value throughout).
 - **Neutral:** every colour here is neutral. N1's verdigris and brass and the kit's own colours stay with the sites; a product colour over these is D17.

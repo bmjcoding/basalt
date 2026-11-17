@@ -73,7 +73,7 @@
 
 // The charts port (DECISIONS 153, round 40): only the trend maths has a counterpart in the skill (`Basalt.trailingMean`, compared in charts-port-parity.test.mjs, D7a is the one item whose
 // "lands in" column names the skill's chart module). The lit marks, the headline frame, the trend line, PhaseChart, ShareBar, CoverageStrip, MarksRow and RangeMeter are React-only in this
-// batch: no skill module draws them yet (2C item 5 of the ballot would add them), so there is no computed style to compare.
+// batch (so is the short bar plot, `TimeChart`'s `compact`, DECISIONS 160, which the owner chose for vote 10: the skill's chart module draws its own gridlines and gutter, and gets no such form): no skill module draws them yet (2C item 5 of the ballot would add them), so there is no computed style to compare.
 
 export const DIFFERENCES = [
   { area: "select popup", pair: "popup", prop: "transformOrigin", react: "160px -6px", skill: "160px 72px", reason: "React's Select popup grows from .98 at the point on the trigger's edge it opened from (Base UI writes --transform-origin from the popup's placement, here the trigger's bottom edge, 6px above the popup). The skill's native popup is a pseudo-element of the select, and CSS can't read where the browser placed it against its anchor, so it scales from its own centre. Same scale, duration and easing (compared above); only the origin differs, which is visible as a slight drift over 200ms.", source: "RECORDED (the lead, on the build's open item 3): keep the centre origin and record why; CSS cannot follow the anchor's placement." },
