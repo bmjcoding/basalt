@@ -156,6 +156,14 @@ first pixel of scroll.
 | A page opening at the top | Clear in its first frame when script runs: no fade from smoked. Without script it stays smoked. |
 | Reduced motion | The duration tokens' 100ms fade (75ms leaving). Nothing moves, so there is no movement to remove. |
 | Reduced transparency, forced colours, print | No change: the bar is opaque in both states. |
+
+DECISIONS 146 D. A bar that arrives, or leaves and returns (`useSitePhase`; see [foundations](foundations.md#a-bar-that-arrives-or-leaves-and-returns)):
+
+| Piece | What it does | Reduced motion |
+|---|---|---|
+| Arriving bar (`useSitePhase`) | Drops in from above its own top edge over `duration-slower` on `ease-out`; leaves at 0.75 on `ease-in`. The opening state, a jump past the line and a return to rest straight from pinned switch at once. A turn mid-exit travels back from where the bar has reached. | Opacity only, 100ms (75 out) |
+| The theme choice's pill | Slides to the chosen word over `duration-slow` on `ease-out`, as the segmented control's does. | Each word paints its own pill |
+| The footer's disclosure chevron | Turns over `duration-slow` on `ease-out`. | Colour only |
 | No `backdrop-filter` | Clear at the top as usual; scrolled, the fill fades to the opaque `surface-page` fallback and the line arrives, the same fade. |
 | Framed art arrives | The art fades in over `duration-base` on `ease-out`, once decoded, opacity only. Art already loaded when the component mounts shows at once. Under reduced motion it is 100ms. |
 

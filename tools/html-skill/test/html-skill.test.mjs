@@ -1131,7 +1131,7 @@ describe("the smoked header (.topbar)", () => {
       const { page, context } = await open("template-static.html", { scheme });
       const s = await read(page, "backgroundColor", "backdropFilter", "borderBottomColor", "borderBottomStyle", "borderBottomWidth", "color", "position", "top");
       assert.equal(s.backgroundColor, await token(page, "surface-chrome", "background-color"));
-      assert.match(s.backgroundColor, scheme === "dark" ? /\/ 0\.85\)$|, 0\.85\)$/ : /\/ 0\.92\)$|, 0\.92\)$/, "the page colour with alpha: 85% in dark, 92% in light");
+      assert.match(s.backgroundColor, scheme === "dark" ? /\/ 0\.925\)$|, 0\.925\)$/ : /\/ 0\.96\)$|, 0\.96\)$/, "the page colour with alpha: 92.5% in dark, 96% in light (DECISIONS 146 E)");
       assert.equal(s.backdropFilter, "blur(12px)", "blur-chrome and nothing else: no saturate, no brightness");
       assert.equal(s.borderBottomWidth, "1px");
       assert.equal(s.borderBottomStyle, "solid");

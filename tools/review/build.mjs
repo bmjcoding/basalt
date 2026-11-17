@@ -40,7 +40,10 @@ fs.mkdirSync(out, { recursive: true });
 // ---- the page, once per round
 
 // Round 32 draws two pages composed by the HTML skill's own compose.mjs: composed here, only when that round is wanted, and handed to the bundle as a constant.
-const skillPages = !wanted.length || wanted.includes("32") ? (await import("./round32-skill.mjs")).skillPages() : {};
+const skillPages = {
+  ...(!wanted.length || wanted.includes("32") ? (await import("./round32-skill.mjs")).skillPages() : {}),
+  ...(!wanted.length || wanted.includes("39") ? (await import("./round39-skill.mjs")).skillPages39() : {}),
+};
 
 const bundle = await esbuild.build({
   entryPoints: [path.join(here, "walkthrough.tsx")],

@@ -292,7 +292,7 @@ test("the kbd chip is a fill and nothing else: no border token exists for it", (
 
 // ---- The smoked header (surface-chrome, blur-chrome): the one translucent surface ----
 //
-// The fill is the page colour at a fixed alpha (85% in dark, 92% in light) over a backdrop blurred by 12px, so what sits
+// The fill is the page colour at a fixed alpha (92.5% in dark, 96% in light: the owner's midpoint, DECISIONS 146 E) over a backdrop blurred by 12px, so what sits
 // behind the bar can be anything. The worst case is the plate that fights the fill hardest: pure white under the dark bar,
 // pure black under the light one; both plates are proved in both themes. A blur only mixes colours between those two
 // extremes, so no backdrop can give a text pair a lower ratio than the plate it is nearest to. Only primary and secondary
@@ -301,10 +301,10 @@ test("the kbd chip is a fill and nothing else: no border token exists for it", (
 const PLATES = { white: { mode: "rgb", r: 1, g: 1, b: 1 }, black: { mode: "rgb", r: 0, g: 0, b: 0 } };
 
 for (const theme of THEMES) {
-  test(`${theme}: the header fill is the page colour at 85% (dark) or 92% (light), and its blur is 12px`, () => {
+  test(`${theme}: the header fill is the page colour at 92.5% (dark) or 96% (light), and its blur is 12px`, () => {
     const fill = color(theme, "surface-chrome");
     const page = color(theme, "surface-page");
-    assert.equal(Math.round((fill.alpha ?? 1) * 100), theme === "dark" ? 85 : 92, `${theme}: header fill alpha`);
+    assert.equal(Math.round((fill.alpha ?? 1) * 1000), theme === "dark" ? 925 : 960, `${theme}: header fill alpha`);
     for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(fill[channel] - page[channel]) < 1e-4, `${theme}: the header fill is not the page colour (${channel})`);
     assert.equal(tokens.primitives["blur-chrome"].css, "12px");
   });
@@ -338,10 +338,23 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`${theme}: tertiary text fails on the header over at least one plate, which is why the rule bars it`, () => {
+  test(`${theme}: at the midpoint primary and secondary hold 4.5:1 on the bare fill and on the selected wash, and tertiary holds only on the bare fill (DECISIONS 146 E)`, () => {
+    // At 85% dark, secondary on the selected wash over white was 4.40:1, a failure. Every pair is composited in order: plate,
+    // bar fill, wash, ink. Tertiary would pass on the bare fill but still fails on the wash, so the rule keeps it off the bar.
     const fill = color(theme, "surface-chrome");
-    const worst = Math.min(...Object.values(PLATES).map((under) => { const bar = over(fill, under); return ratio(over(color(theme, "text-tertiary"), bar), bar); }));
-    assert.ok(worst < 4.5, `${theme}: tertiary holds ${fmt(worst)}:1 on every plate, so the rule against it is no longer needed`);
+    for (const [plate, under] of Object.entries(PLATES)) {
+      const bar = over(fill, under);
+      const wash = over(color(theme, "state-selected"), bar);
+      for (const t of ["text-primary", "text-secondary"]) {
+        for (const [where, bg] of [["the bare fill", bar], ["the selected wash", wash]]) {
+          const r = ratio(over(color(theme, t), bg), bg);
+          assert.ok(r >= 4.5, `${theme}: ${t} on ${where} over a ${plate} plate is ${fmt(r)}:1, needs 4.5:1`);
+        }
+      }
+      assert.ok(ratio(over(color(theme, "text-tertiary"), bar), bar) >= 4.5, `${theme}: tertiary on the bare fill over a ${plate} plate`);
+    }
+    const onWash = Math.min(...Object.values(PLATES).map((under) => { const wash = over(color(theme, "state-selected"), over(fill, under)); return ratio(over(color(theme, "text-tertiary"), wash), wash); }));
+    assert.ok(onWash < 4.5, `${theme}: tertiary holds ${fmt(onWash)}:1 on the wash on every plate, so the rule against it is no longer needed`);
   });
 
   test(`${theme}: a focus ring in the header keeps 3:1 over both plates`, () => {
@@ -355,12 +368,22 @@ for (const theme of THEMES) {
   });
 }
 
-test("the header's worst cases are the ones the panel measured: secondary is about 5.86:1 in dark over white and 6.77:1 in light over black", () => {
+test("the header's worst cases are the ones the council measured at the midpoint: secondary 7.19:1 in dark over white and 7.42:1 in light over black; on the selected wash 5.71:1 and 6.34:1", () => {
   const dark = over(color("dark", "surface-chrome"), PLATES.white);
   const light = over(color("light", "surface-chrome"), PLATES.black);
   // The council rounded the composite to 8 bits; this one keeps it exact. They agree to the second decimal place.
-  assert.ok(Math.abs(ratio(over(color("dark", "text-secondary"), dark), dark) - 5.86) <= 0.03, "dark secondary over white");
-  assert.ok(Math.abs(ratio(over(color("light", "text-secondary"), light), light) - 6.77) <= 0.03, "light secondary over black");
+  const secondary = (theme, bar) => ratio(over(color(theme, "text-secondary"), bar), bar);
+  assert.ok(Math.abs(secondary("dark", dark) - 7.19) <= 0.03, "dark secondary over white");
+  assert.ok(Math.abs(secondary("light", light) - 7.42) <= 0.03, "light secondary over black");
+  const darkWash = over(color("dark", "state-selected"), dark);
+  const lightWash = over(color("light", "state-selected"), light);
+  assert.ok(Math.abs(secondary("dark", darkWash) - 5.71) <= 0.05, `dark secondary on the selected wash over white ${secondary("dark", darkWash)}`);
+  assert.ok(Math.abs(secondary("light", lightWash) - 6.34) <= 0.05, `light secondary on the selected wash over black ${secondary("light", lightWash)}`);
+  // The pair that failed before the midpoint: 4.40:1 at 85%.
+  assert.ok(secondary("dark", darkWash) >= 4.5, "the 4.40:1 failure is gone");
+  // Primary and the focus ring, at the same worst cases.
+  assert.ok(ratio(over(color("dark", "text-primary"), dark), dark) >= 15.8, "dark primary over white");
+  assert.ok(ratio(over(color("light", "text-primary"), light), light) >= 15.7, "light primary over black");
 });
 
 // ---- Callouts, toasts and the notification centre (council item 82, owner item 83) ----

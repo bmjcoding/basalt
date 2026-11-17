@@ -82,14 +82,20 @@ describe("paired art", () => {
 
   test("it follows the system setting when the page chooses none, and a class theme root works too", async () => {
     const p = await open(STAGE(), { scheme: "dark" });
+    // The system's scheme changes on the next rendering update, and the theme script (if it listens) runs then: read only after two frames, so a script that overwrites the
+    // page's own theme fails this every time and not only when it happens to run late.
+    const system = async (scheme) => { await p.emulateMedia({ colorScheme: scheme }); await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))); };
     await p.evaluate(() => { document.documentElement.removeAttribute("data-theme"); });
-    await p.emulateMedia({ colorScheme: "dark" }); assert.deepEqual(await shown(p), ["dark"]);
-    await p.emulateMedia({ colorScheme: "light" }); assert.deepEqual(await shown(p), ["light"]);
+    await system("dark"); assert.deepEqual(await shown(p), ["dark"]);
+    await system("light"); assert.deepEqual(await shown(p), ["light"]);
     await p.evaluate(() => { document.documentElement.classList.add("dark"); });
     assert.deepEqual(await shown(p), ["dark"], "a .dark root beats the system's light");
+    await system("dark"); await system("light");
+    assert.deepEqual(await shown(p), ["dark"], "and still does after the system changes");
     await p.evaluate(() => { document.documentElement.classList.remove("dark"); document.documentElement.setAttribute("data-theme", "light"); });
-    await p.emulateMedia({ colorScheme: "dark" });
+    await system("dark");
     assert.deepEqual(await shown(p), ["light"], "a chosen light beats the system's dark");
+    assert.equal(await p.evaluate(() => document.documentElement.getAttribute("data-theme")), "light", "and the attribute is the page's, untouched");
     await p.ctx.close();
   });
 

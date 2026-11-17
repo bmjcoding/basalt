@@ -18,7 +18,7 @@
     var resizes = new ResizeObserver(function () { measure(false); });
 
     function measure(travel) {
-      var item = root.querySelector('[aria-pressed="true"]');
+      var item = root.querySelector('[aria-pressed="true"], [aria-checked="true"]');
       if (item !== chosen) {
         if (chosen) resizes.unobserve(chosen);
         if (item) resizes.observe(item);
@@ -51,7 +51,7 @@
     measure(false);
     resizes.observe(root);
     new MutationObserver(function (records) { measure(records.some(function (r) { return r.type === 'attributes'; })); })
-      .observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-pressed'] });
+      .observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-checked'] });
     addEventListener('resize', function () { measure(false); });
     if (document.fonts) document.fonts.ready.then(function () { measure(false); });
   }

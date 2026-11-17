@@ -85,8 +85,8 @@
         "$description": "The fill of a keyboard-key chip. No border. Text on it is text-secondary, or text-primary on a hover or selected wash."
       },
       "chrome": {
-        "$value": { "colorSpace": "oklch", "components": [0.9851, 0, 0], "alpha": 0.92 },
-        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 92%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
+        "$value": { "colorSpace": "oklch", "components": [0.9851, 0, 0], "alpha": 0.96 },
+        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
       },
       "placeholder": {
         "$value": "{color.neutral.94}",

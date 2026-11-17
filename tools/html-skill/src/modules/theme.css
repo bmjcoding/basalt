@@ -1,5 +1,30 @@
 @layer basalt {
   @media print {
-    [data-theme-toggle] { display: none; }
+    [data-theme-toggle], .theme-choice { display: none; }
+  }
+
+  /* The theme choice (React's ThemeChoiceControl, DECISIONS 146 B): System, Light and Dark, three words in the segmented control's drawing (a .segment with role="radiogroup").
+     The chosen word is drawn from the root's data-theme-choice (the head script writes it), so the right word is chosen in the first frame, before any script; with no
+     attribute, System is the chosen one. It is 600 in primary on the pill, its 600 width reserved so nothing moves. */
+  .theme-choice { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  .theme-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
+  .theme-choice .segment { flex-wrap: wrap; max-width: 100%; }
+  .theme-choice .segment button { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  @media (pointer: coarse) { .theme-choice .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  .theme-choice [data-label] { display: inline-flex; flex-direction: column; align-items: center; }
+  .theme-choice [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .theme-choice .segment button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  :root[data-theme-choice="system"] .theme-choice [data-value="system"],
+  :root[data-theme-choice="light"] .theme-choice [data-value="light"],
+  :root[data-theme-choice="dark"] .theme-choice [data-value="dark"],
+  :root:not([data-theme-choice]) .theme-choice [data-value="system"] { background: var(--pill-fill); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); box-shadow: var(--basalt-shadow-pill); }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .theme-choice .segment[data-slide] button[data-value] { background: transparent; box-shadow: none; }
+  }
+  @media (forced-colors: active) {
+    :root[data-theme-choice="system"] .theme-choice [data-value="system"],
+    :root[data-theme-choice="light"] .theme-choice [data-value="light"],
+    :root[data-theme-choice="dark"] .theme-choice [data-value="dark"],
+    :root:not([data-theme-choice]) .theme-choice [data-value="system"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
   }
 }

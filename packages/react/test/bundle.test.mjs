@@ -77,8 +77,9 @@ test("the hold's hook adds nothing to a bundle that does not import it, and is s
   assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), []);
 });
 
-// The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured: useTheme 1,520 bytes,
-// themeBootstrap 296, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above).
+// The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured:
+// themeBootstrap 379, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above). useTheme was 1,520 bytes; knowing who wrote the root's theme (a theme the app set by hand survives
+// a change of the system's scheme, DECISIONS 146 B) and writing data-theme-choice made it 1,889, with the head script in a module of its own so a bundle that imports only the hook does not carry it.
 test("the theme's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
   for (const name of ["Spinner", "Badge", "Button", "Popover", "Menu", "FilterResult", "CommandMenu", "ToastProvider", "useLoops"]) {
     const { inputs } = await graph(name);

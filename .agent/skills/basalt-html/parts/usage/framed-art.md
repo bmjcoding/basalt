@@ -14,3 +14,4 @@
 - The frame shows a plain placeholder while the picture loads and fades it in once decoded; the script sets `data-phase`. With no script the picture just shows.
 - `figcaption` and `.framed-credit` are optional: what the picture shows, then its credit on its own line. Under the frame, never over the picture.
 - It prints, and its rim is `CanvasText` in forced colours. In a `.card` it takes the card's padding off its radius.
+- Art you draw: an `svg` or `canvas` straight in `.framed-frame` instead of the `img`, with `data-fit` and `data-anchor` on the `figure` as the stage's (slice by default). Its strokes do not scale.

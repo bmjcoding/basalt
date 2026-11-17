@@ -19,3 +19,4 @@
 - Level 0: no rim, radius or shadow where it ends, and its height is the content's. The content starts below the headroom (`--basalt-stage-headroom`, 80px and the safe area). A panel on it is solid.
 - Ink goes only where the art is quiet, nothing past `--basalt-art-quiet-limit` there. The bar stays smoked over a stage, from the top, because the skill can't run the headroom check React's bar clears on.
 - The art may hold the page's one ambient loop: `.ambient-mark` with `data-ambient` (opacity only, `--usage loops`).
+- Drawn art (an `svg` or `canvas`) keeps its proportions and fills the box, cropped (`slice`, the default, as a frame's). `data-fit="meet"` shows all of it, and `data-anchor` (`end floor`: start, center or end, then top, center or floor) holds the crop on `.stage`. An `svg` takes it as its `preserveAspectRatio`; one that sets its own keeps it unless `.stage` names `data-fit` or `data-anchor`. Strokes do not scale.

@@ -32,6 +32,10 @@
     object-fit: cover;
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
+  /* Drawn art (an svg or canvas in the frame, DECISIONS 146 F): the same frame, its fit and anchor from the figure's data-fit and data-anchor; its strokes do not scale. */
+  .framed-frame:has(> svg, > canvas) { background-color: var(--basalt-art-field); }
+  .framed-frame > :is(svg, canvas) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: var(--_art-fit, cover); object-position: var(--_art-position, 50% 50%); }
+  .framed-frame svg * { vector-effect: non-scaling-stroke; }
   .framed-frame[data-phase="loading"] > img { opacity: 0; }
   .framed-frame[data-phase="failed"] > img { display: none; }
   .framed-alt {
