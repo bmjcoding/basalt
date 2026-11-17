@@ -149,10 +149,10 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
-    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 92%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
+    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
     public static let surfaceChrome = ThemedColor(
-      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.92),
-      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.85)
+      light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.96),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.925)
     )
 
     /// Skeletons and other loading placeholders: visible on the page in both themes.
@@ -209,7 +209,7 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.145)
     )
 
-    /// The hairline of a hovered control: one step brighter, never a colour.
+    /// The hairline of a hovered control: one step brighter, never a colour. Under more contrast it is text-secondary, so a hovered edge is never fainter than the edge at rest.
     public static let borderHover = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.16),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.24)
@@ -223,6 +223,12 @@ extension Basalt {
 
     /// Input boundaries: 3:1 or better on every surface (WCAG 1.4.11).
     public static let borderInput = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A field's boundary (an input, a select, a number field, a choice box, a switch): the input boundary. Under more contrast it steps to text-secondary (field-contrast), so a field keeps the strongest line.
+    public static let borderField = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
     )
@@ -311,6 +317,24 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// The lightest stop of a lit mark's vertical gradient, at the top of the plot, and a lit line's one stroke. 3:1 on levels 0 to 3 and on the picked day's plate (DECISIONS 153, vote 1).
+    public static let chartLitTop = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+    )
+
+    /// The middle stop of a lit mark's gradient, 55% of the way down the plot. 3:1 on levels 0 to 3.
+    public static let chartLitMid = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.639248, green: 0.639248, blue: 0.639248, alpha: 1)
+    )
+
+    /// The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3.
+    public static let chartLitBase = ThemedColor(
+      light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
+      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+    )
+
     /// The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads.
     public static let artField = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
@@ -353,6 +377,24 @@ extension Basalt {
       dark: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1)
     )
 
+    /// More contrast, lines: a hairline, a divider, a rim and the pill's hairline are drawn in the input boundary's value (border-input), 3:1 or better on every surface. An alias, no new colour. Used only when a person asks for more contrast (prefers-contrast: more; colorSchemeContrast .increased).
+    public static let lineContrast = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour.
+    public static let inkContrast = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+    )
+
+    /// More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour.
+    public static let fieldContrast = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+    )
+
     /// Behind modal dialogs and sheets.
     public static let scrim = ThemedColor(
       light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.4),
@@ -392,6 +434,7 @@ extension Basalt {
     public static let s12: Double = 48
     public static let s16: Double = 64
     public static let s24: Double = 96
+    public static let s32: Double = 128
     public static let s0_5: Double = 2
     public static let s1_5: Double = 6
     public static let s2_5: Double = 10
@@ -399,6 +442,7 @@ extension Basalt {
   }
 
   public enum Radius {
+    public static let xs2: Double = 2
     public static let xs: Double = 4
     public static let sm: Double = 6
     public static let md: Double = 8
@@ -419,6 +463,16 @@ extension Basalt {
     public static let controlMd: Double = 32
     public static let controlLg: Double = 36
     public static let controlXl: Double = 40
+    /// A control at the touch size on every pointer: Castle's icon button, select and filter triggers and option chips (DECISIONS 154). The first rung above xl; compact steps it down to xl.
+    public static let control2xl: Double = 44
+    /// Castle's button, and the narrow switch row and tab (DECISIONS 154). Compact steps it down to 2xl.
+    public static let control3xl: Double = 48
+    /// The switch row from 720px wide, and the step compact takes a 56 control down to (DECISIONS 154: the approved prototype's own 52, which a 36px tile in 6px of padding and two 1px edges cannot make at 48). Compact steps it down to 3xl.
+    public static let control4xl: Double = 52
+    /// The large button, and the tab bar of an app's own navigation (DECISIONS 154). Compact steps it down to 4xl.
+    public static let control5xl: Double = 56
+    /// The least height of a button whose label is two lines (DECISIONS 154). Compact steps it down to 5xl.
+    public static let control6xl: Double = 64
     /// The plate of a Menu, Select or Combobox row (the command menu's is size-control-xl, 40). The row is 4px taller: each row carries 2px above and below its plate, so the 4px gap between plates is drawn inside the rows and neighbouring hit areas touch. Compact steps it down to 32.
     public static let menuRow: Double = 36
     /// The least height of a row's hit area on a coarse pointer.
@@ -468,6 +522,18 @@ extension Basalt {
     public static let sheetWidth: Double = 440
     /// Command menu width, capped by the viewport.
     public static let commandWidth: Double = 560
+    /// A wide dialog's width, capped by the viewport: 992px (DECISIONS 158, Q1), 118 characters of Geist Mono at 14px rounded up, kept in px.
+    public static let dialogWidthWide: Double = 992
+    /// The search button's width from 720, shaped like a field (DECISIONS 155, R5). Below 720 it is a square icon button.
+    public static let searchTrigger: Double = 200
+    /// The leading slot of a search result that shows a brand's logo: 96 by 48, so the row is 60 with 6px above and below (DECISIONS 155, R9).
+    public static let searchLogoWidth: Double = 96
+    /// Height of the logo slot in a search result row.
+    public static let searchLogoHeight: Double = 48
+    /// The leading slot of a search result that shows a product's picture: 48 by 60, so the row is 72 with 6px above and below (DECISIONS 155, R9).
+    public static let searchPackWidth: Double = 48
+    /// Height of the picture slot in a search result row.
+    public static let searchPackHeight: Double = 60
     /// Toast width, capped by the viewport.
     public static let toastWidth: Double = 360
     /// Popover maximum width.
@@ -486,6 +552,8 @@ extension Basalt {
     public static let header: Double = 56
     /// The phone tab bar, its hairline inside, before the bottom safe area.
     public static let tabBar: Double = 56
+    /// The least height of a link row on the page, directory or big (DECISIONS 152, consent row 3): the link itself, with its 1px rule above it outside. Not the header's or the tab bar's role, though the value is the same. A big row in its two-column form takes space-16.
+    public static let row: Double = 56
     /// The app sidebar from the large breakpoint; also a page's own aside, so one side-column width serves both.
     public static let sidebarWidth: Double = 256
     /// The rail, from the medium breakpoint to the large.
@@ -498,12 +566,24 @@ extension Basalt {
     public static let gutter: Double = 24
     /// The row's inline padding under the medium breakpoint.
     public static let gutterNarrow: Double = 16
+    /// The space between a page's sections from the large breakpoint (1024). Apps use the derived --basalt-section-gap, which steps to size-section-gap-md from 720 to 1023 and size-section-gap-narrow under 720.
+    public static let sectionGap: Double = 128
+    /// The space between a page's sections from the medium breakpoint (720) to the large.
+    public static let sectionGapMd: Double = 96
+    /// The space between a page's sections under the medium breakpoint.
+    public static let sectionGapNarrow: Double = 64
+    /// The widest line of display type, in the headline's own em: about 28 characters of Geist at 600, so a headline is a block and never a strip across the row. In Swift it is the number of ems (13), for a frame's maximum width.
+    public static let displayMeasure: Double = 13
     /// Below it: the phone (the tab bar, the menu sheet, the narrow gutter). A media query cannot read a token, so CSS writes this number beside a lint exception that names the token.
     public static let breakpointMd: Double = 720
     /// From it, the sidebar; below it, down to the medium breakpoint, the rail.
     public static let breakpointLg: Double = 1024
     /// A component's own width, in a container query: a description list stacks and a chart goes narrow below it.
     public static let breakpointContainer: Double = 480
+    /// A component's own width, in a container query, below which a button's two lines stay two lines: from it up to size-breakpoint-container the label and its note share one line (DECISIONS 154, D11b). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointContainerSm: Double = 340
+    /// A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointContainerLg: Double = 640
     /// An observed line and the plan stroke in a chart.
     public static let chartLine: Double = 2
     /// A chart marker's diameter, or its side; the diamond has the same area.
@@ -522,6 +602,12 @@ extension Basalt {
     public static let chartDashGap: Double = 4
     /// A chart plot's height at every width.
     public static let chartPlot: Double = 240
+    /// The second, shorter plot height: the phase chart's trend. A plot is 240px, or this (DECISIONS 153, vote 11 and consent row 5).
+    public static let chartPlotSm: Double = 96
+    /// A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10).
+    public static let chartRow: Double = 56
+    /// A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14).
+    public static let meterMarker: Double = 12
     /// The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed.
     public static let stageHeadroom: Double = 80
   }
@@ -556,6 +642,10 @@ extension Basalt {
     public static let xl3 = TypeStyle(size: 30, lineHeight: 36, tracking: -0.025)
     public static let xl4 = TypeStyle(size: 40, lineHeight: 44, tracking: -0.03)
     public static let xl5 = TypeStyle(size: 56, lineHeight: 60, tracking: -0.035)
+    public static let xl6 = TypeStyle(size: 72, lineHeight: 76, tracking: -0.04)
+    public static let xl7 = TypeStyle(size: 96, lineHeight: 96, tracking: -0.045)
+    public static let heroNarrow = TypeStyle(size: 44, lineHeight: 48, tracking: -0.03)
+    public static let displayNarrow = TypeStyle(size: 36, lineHeight: 40, tracking: -0.025)
   }
 
   /// Geist's three weights. In-between weights render differently on native, so Basalt uses whole steps.
@@ -572,6 +662,9 @@ extension Basalt {
     public static let base: Double = 0.15
     public static let slow: Double = 0.2
     public static let slower: Double = 0.3
+    public static let confirm: Double = 1.5
+    public static let figure: Double = 0.6
+    public static let stagger: Double = 0.022
   }
 
   /// A cubic Bézier timing curve.

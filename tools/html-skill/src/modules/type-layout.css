@@ -1,0 +1,129 @@
+/* Display type, the lead and the page (React's Heading roles, Lead, PageRow, PageSections, PageSection, SectionIntro, SectionActions and Columns, DECISIONS 137,
+   approved in 139). The tokens this module needs (text-6xl, text-7xl and the two phone values, space-32, size-section-gap and its two steps, size-display-measure)
+   are in this module's part and not in the core, which is capped, so a page gets them only when it uses a class below or names one of them.
+   Two roles, hero and display, each one name with three values that step at the two breakpoints Basalt has and never with the viewport's width: no clamp, no
+   viewport or container unit in type. The derived properties are what a role resolves to in this window's band, as --basalt-gutter is. */
+
+@layer basalt {
+
+  :root {
+    --basalt-hero-size: var(--basalt-text-7xl-size);
+    --basalt-hero-line-height: var(--basalt-text-7xl-line-height);
+    --basalt-hero-tracking: var(--basalt-text-7xl-tracking);
+    --basalt-display-size: var(--basalt-text-6xl-size);
+    --basalt-display-line-height: var(--basalt-text-6xl-line-height);
+    --basalt-display-tracking: var(--basalt-text-6xl-tracking);
+    --basalt-lead-size: var(--basalt-text-xl-size);
+    --basalt-lead-line-height: var(--basalt-text-xl-line-height);
+    --basalt-lead-tracking: var(--basalt-text-xl-tracking);
+    --basalt-section-gap: var(--basalt-size-section-gap);
+    --basalt-intro-gap: var(--basalt-space-6);
+    --basalt-actions-gap: var(--basalt-space-8);
+  }
+  @media (width < %bp-lg%) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-6xl-size);
+      --basalt-hero-line-height: var(--basalt-text-6xl-line-height);
+      --basalt-hero-tracking: var(--basalt-text-6xl-tracking);
+      --basalt-display-size: var(--basalt-text-5xl-size);
+      --basalt-display-line-height: var(--basalt-text-5xl-line-height);
+      --basalt-display-tracking: var(--basalt-text-5xl-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-md);
+    }
+  }
+  @media (width < %bp-md%) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-hero-narrow-size);
+      --basalt-hero-line-height: var(--basalt-text-hero-narrow-line-height);
+      --basalt-hero-tracking: var(--basalt-text-hero-narrow-tracking);
+      --basalt-display-size: var(--basalt-text-display-narrow-size);
+      --basalt-display-line-height: var(--basalt-text-display-narrow-line-height);
+      --basalt-display-tracking: var(--basalt-text-display-narrow-tracking);
+      --basalt-lead-size: var(--basalt-text-lg-size);
+      --basalt-lead-line-height: var(--basalt-text-lg-line-height);
+      --basalt-lead-tracking: var(--basalt-text-lg-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-narrow);
+      --basalt-intro-gap: var(--basalt-space-4);
+      --basalt-actions-gap: var(--basalt-space-6);
+    }
+  }
+
+  /* Display type: the two roles and the two fixed steps they are made of. 600, balanced, at most size-display-measure wide. overflow-wrap is the safety
+     net, never the plan: a word longer than the row breaks instead of pushing the page sideways (WCAG 1.4.10). */
+  .text-hero, .text-display, .text-6xl, .text-7xl {
+    margin: 0;
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+    font-weight: var(--basalt-font-weight-semibold);
+    max-inline-size: var(--basalt-size-display-measure);
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    hyphens: manual;
+  }
+  .text-hero { font-size: var(--basalt-hero-size); line-height: var(--basalt-hero-line-height); letter-spacing: var(--basalt-hero-tracking); }
+  .text-display { font-size: var(--basalt-display-size); line-height: var(--basalt-display-line-height); letter-spacing: var(--basalt-display-tracking); }
+  .text-7xl { font-size: var(--basalt-text-7xl-size); line-height: var(--basalt-text-7xl-line-height); letter-spacing: var(--basalt-text-7xl-tracking); }
+  .text-6xl { font-size: var(--basalt-text-6xl-size); line-height: var(--basalt-text-6xl-line-height); letter-spacing: var(--basalt-text-6xl-tracking); }
+  /* Two sentences meant as two lines are a block span each, balanced on its own. Never a <br>. */
+  :is(.text-hero, .text-display, .text-6xl, .text-7xl) > .text-line { display: block; }
+
+  /* The lead (not the core's .lead, the report's 16/24): text-xl from 720, text-lg under it. */
+  .text-lead {
+    margin: 0;
+    max-inline-size: var(--basalt-size-prose-width);
+    color: var(--basalt-text-secondary);
+    font-size: var(--basalt-lead-size);
+    font-weight: var(--basalt-font-weight-regular);
+    line-height: var(--basalt-lead-line-height);
+    letter-spacing: var(--basalt-lead-tracking);
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  /* The page row: size-page-width with the gutter inside, the site header's row exactly (the side safe area replaces the gutter where it is larger). */
+  .page-row, .page-section {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--basalt-size-page-width);
+    margin-inline: auto;
+    padding-inline: max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0)));
+  }
+  /* The rhythm: sections are one section gap apart, the first starts half a gap below the bar and the page ends a gap above its footer. */
+  .page-sections { display: block; padding-block-end: var(--basalt-section-gap); }
+  .page-section { padding-block-start: var(--basalt-section-gap); }
+  .page-sections > .page-section:first-child { padding-block-start: calc(var(--basalt-section-gap) / 2); }
+  .section-intro { margin-block-end: calc(var(--basalt-section-gap) / 2); }
+  .section-intro:last-child, .columns > .section-intro { margin-block-end: 0; }
+  .section-intro > .text-lead { margin-block-start: var(--basalt-intro-gap); }
+  .section-intro > .section-actions { margin-block-start: var(--basalt-actions-gap); }
+  .section-actions { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3); }
+
+  /* Columns: twelve tracks on the row. --_ls is the layout's span for an item in this band and an item's own --span (style="--span: 7") refines it from 1024 only:
+     from 720 to 1023 the layout decides (2 and 3 hold, 4 is two rows of two, everything else, an unnamed layout included, is a full row). Each band's rules are in
+     a media query of their own, so no rule has to outrank another. Neither property may cross into a grid nested in an item (custom properties inherit), so every
+     item sets --_ls itself and resets --span, which an item's own inline style still overrides; @property with inherits: false is outside the floor of Firefox 125. */
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--basalt-gutter);
+    row-gap: var(--basalt-space-8);
+    align-items: start;
+  }
+  .columns > * { --_ls: 12; --span: initial; grid-column: span var(--_ls); min-width: 0; }
+  .columns[data-layout="2"] > * { --_ls: 6; }
+  .columns[data-layout="3"] > * { --_ls: 4; }
+  @media (width >= %bp-lg%) {
+    .columns > * { grid-column: span var(--span, var(--_ls)); }
+    .columns[data-layout="4"] > * { --_ls: 3; }
+    .columns[data-layout="5-7"] > :nth-child(odd), .columns[data-layout="7-5"] > :nth-child(even) { --_ls: 5; }
+    .columns[data-layout="5-7"] > :nth-child(even), .columns[data-layout="7-5"] > :nth-child(odd) { --_ls: 7; }
+    .columns[data-layout="4-8"] > :nth-child(odd), .columns[data-layout="8-4"] > :nth-child(even) { --_ls: 4; }
+    .columns[data-layout="4-8"] > :nth-child(even), .columns[data-layout="8-4"] > :nth-child(odd) { --_ls: 8; }
+  }
+  @media (width >= %bp-md%) and (width < %bp-lg%) {
+    .columns[data-layout="4"] > * { --_ls: 6; }
+  }
+  @media (width < %bp-md%) {
+    .columns > * { grid-column: 1 / -1; }
+  }
+}

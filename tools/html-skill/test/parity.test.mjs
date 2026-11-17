@@ -110,6 +110,10 @@ const CASES = [
       ["list", ".basalt-tabs-list", ".tabs", ["boxHeight", "gap", "boxShadow", "borderBottomWidth", "display"]],
       ["selected tab", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", BOX],
       ["other tab", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", BOX],
+      // The chosen label is 600 and a resting one 400, each reserving its 600 width (decisions 138 and 139): the two draw the same width.
+      ["selected tab label", ".basalt-tab[aria-selected=true] [data-label]", ".tab[aria-selected=true] [data-label]", ["fontWeight", "boxWidth"]],
+      ["selected tab width", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", ["boxWidth", "fontWeight"]],
+      ["other tab width", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", ["boxWidth", "fontWeight"]],
       ["panel", ".basalt-tabs-panel", ".tabpanel:not([hidden])", ["paddingTop", "paddingLeft"]],
       ["focus ring", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", OUTLINE, { focus: true }],
     ],
@@ -127,6 +131,11 @@ const CASES = [
       ["pressed fill", ".basalt-segmented[data-slide] > .basalt-pill", ".segment[data-slide] > .pill", ["backgroundColor", "boxShadow", "borderTopLeftRadius", "boxHeight", "boxWidth"]],
       ["pressed, with the shared pill", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["backgroundColor", "boxShadow"]],
       ["rest", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", BOX],
+      ["pressed width", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["boxWidth", "fontWeight"]],
+      // The 600 is on the label, not on the item (decision 149): the two draw the same weight on their labels.
+      ["pressed label", ".basalt-segment[aria-pressed=true] [data-label]", ".segment button[aria-pressed=true] [data-label]", ["fontWeight", "boxWidth"]],
+      ["rest label", ".basalt-segment[aria-pressed=false] [data-label]", ".segment button[aria-pressed=false] [data-label]", ["fontWeight", "boxWidth"]],
+      ["rest width", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", ["boxWidth", "fontWeight"]],
       ["focus ring", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", OUTLINE, { focus: true }],
     ],
   },
@@ -295,6 +304,7 @@ const MENU_ROWS = {
 const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }]`;
 const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'");
 
+const OV_RECT = ["rectLeft", "rectTop", "boxWidth", "boxHeight"];
 const OVERLAYS = [
   {
     id: "dialog",
@@ -338,6 +348,48 @@ const OVERLAYS = [
       ["actions", ".basalt-dialog-actions", ".dialog-actions", ["position", "bottom", "marginTop", "marginRight", "marginBottom", "marginLeft", ...PAD, "backgroundColor", "boxShadow", "boxHeight"]],
     ],
   })),
+  {
+    // DECISIONS 155 (D10b): a sheet with a head (title, count, a 44px close), a scrolling body and a foot, no padding of its own.
+    id: "sheet, head body and foot",
+    uses: "Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<Sheet defaultOpen><SheetContent side="right"><SheetHeader closeLabel="Close cart"><SheetTitle>Your cart</SheetTitle><SheetDescription>3 items</SheetDescription></SheetHeader><SheetBody tabIndex={0}><p>Lines</p></SheetBody><SheetFooter><Button>Review order</Button></SheetFooter></SheetContent></Sheet>));`,
+    skill: `<dialog class="panel float modal sheet" id="s" data-side="right"><header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">Your cart</h2><p class="dialog-description">3 items</p></div><button class="btn sheet-close" data-variant="ghost" data-icon-only aria-label="Close cart" data-dialog-close><span data-glyph="close"></span></button></header><div class="sheet-body" tabindex="0"><p>Lines</p></div><footer class="sheet-foot"><button class="btn">Review order</button></footer></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-sheet", skill: "dialog.sheet[open]" },
+    pairs: [
+      ["sheet", ".basalt-sheet", "dialog.sheet", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowY", "rectLeft", "rectTop", "rectRight", "rectBottom"]],
+      ["head", ".basalt-sheet-head", ".sheet-head", [...OV_RECT, ...PAD, "display", "alignItems", "justifyContent", "gap", "borderBottomWidth", "borderBottomColor"]],
+      ["title", ".basalt-sheet-head .basalt-dialog-title", ".sheet-head .dialog-title", [...TYPE, "color", "marginTop", "marginBottom", ...OV_RECT]],
+      ["count", ".basalt-sheet-head .basalt-dialog-description", ".sheet-head .dialog-description", [...TYPE, "color", "marginTop", "marginBottom", ...OV_RECT]],
+      ["close", ".basalt-sheet-close", ".sheet-close", [...BOX, ...OV_RECT]],
+      ["body", ".basalt-sheet-body", ".sheet-body", [...OV_RECT, ...PAD, "overflowY", "flexGrow"]],
+      ["foot", ".basalt-sheet-foot", ".sheet-foot", [...OV_RECT, ...PAD, "borderTopWidth", "borderTopColor"]],
+    ],
+  },
+  {
+    // DECISIONS 155 (D13a): the search dialog, its field, its count and its result rows (a logo, a picture, a row of its own words).
+    id: "search dialog",
+    uses: "SearchDialog, SearchResults, SearchResult",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<SearchDialog open onOpenChange={() => {}} title="Search the shop" label="Search products" placeholder="A brand, whey" query="whey" onQueryChange={() => {}} count="2 products"><SearchResults><SearchResult href="#a" media={<span style={{ display: "block", width: "100%", height: "100%" }} />} mediaShape="logo" detail="Brand" trailing="›">Alpha</SearchResult><SearchResult href="#b" media={<span style={{ display: "block", width: "100%", height: "100%" }} />} detail="Alpha · 2 lb" trailing="$39">Whey</SearchResult><SearchResult href="#c" centered>See all 12</SearchResult></SearchResults></SearchDialog>));`,
+    skill: `<dialog class="panel float modal dialog search" id="s"><h2 class="dialog-title visually-hidden" tabindex="-1">Search the shop</h2><form class="search-form" role="search"><label class="search-field"><span data-glyph="search"></span><span class="visually-hidden">Search products</span><input class="search-input" type="search" placeholder="A brand, whey" value="whey" autocomplete="off"></label><button type="button" class="btn search-close" data-variant="ghost" data-icon-only aria-label="Close search" data-dialog-close><span data-glyph="close"></span></button></form><p class="search-count">2 products</p><ul class="search-results"><li><a class="search-result" href="#a"><span class="search-media" data-shape="logo"><span style="display:block;width:100%;height:100%"></span></span><span class="search-name"><span class="search-title">Alpha</span><span class="search-detail">Brand</span></span><span class="search-trailing">›</span></a></li><li><a class="search-result" href="#b"><span class="search-media"><span style="display:block;width:100%;height:100%"></span></span><span class="search-name"><span class="search-title">Whey</span><span class="search-detail">Alpha · 2 lb</span></span><span class="search-trailing">$39</span></a></li><li><a class="search-result" href="#c" data-centered><span class="search-name"><span class="search-title">See all 12</span></span></a></li></ul></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-search", skill: "dialog.search[open]" },
+    pairs: [
+      ["dialog", ".basalt-dialog.basalt-search", "dialog.search", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowY", "rectLeft", "rectTop"]],
+      ["form", ".basalt-search-form", ".search-form", [...OV_RECT, ...PAD, "display", "alignItems", "gap", "borderBottomWidth", "borderBottomColor", "borderTopLeftRadius"]],
+      ["field", ".basalt-search-input", ".search-input", [...TYPE, "color", ...OV_RECT, "backgroundColor"]],
+      ["close", ".basalt-search-close", ".search-close", [...BOX, ...OV_RECT]],
+      ["count", ".basalt-search-count", ".search-count", [...TYPE, "color", ...OV_RECT, ...PAD]],
+      ["results", ".basalt-search-results", ".search-results", [...OV_RECT, ...PAD, "overflowY"]],
+      ["logo row", ".basalt-search-result", ".search-results li:nth-child(1) .search-result", [...OV_RECT, ...PAD, ...TYPE, "color", "gap", "borderTopLeftRadius"]],
+      ["logo", ".basalt-search-media[data-shape=logo]", ".search-media[data-shape=logo]", OV_RECT],
+      ["picture row", ".basalt-search-item:nth-child(2) .basalt-search-result", ".search-results li:nth-child(2) .search-result", [...OV_RECT, ...PAD]],
+      ["picture", ".basalt-search-item:nth-child(2) .basalt-search-media", ".search-results li:nth-child(2) .search-media", OV_RECT],
+      ["detail", ".basalt-search-item:nth-child(2) .basalt-search-detail", ".search-results li:nth-child(2) .search-detail", [...TYPE, "color", ...OV_RECT]],
+      ["trailing", ".basalt-search-item:nth-child(2) .basalt-search-trailing", ".search-results li:nth-child(2) .search-trailing", [...TYPE, ...OV_RECT]],
+      ["row of its own words", ".basalt-search-item:nth-child(3) .basalt-search-result", ".search-results li:nth-child(3) .search-result", [...OV_RECT, "justifyContent"]],
+    ],
+  },
   {
     // The site header's narrow menu draws Menu in its band and morphs it to Close (React's MorphIcon). The skill carries no MorphIcon: it swaps the glyph at once
     // and draws the core Close glyph as one path where MorphIcon draws one path for each stroke (see parity-differences.mjs).
@@ -1014,7 +1066,9 @@ const CHIP_HOVER_BLUR = [["hover", ".basalt-chip[role=checkbox]:not([data-checke
 const hoverOf = (react, skill) => ({ hover: [react, skill] });
 const parkPointer = async (page) => { await page.mouse.move(0, 0); };
 const markTrigger = { react: (p) => p.evaluate(() => document.querySelector(".basalt-filter-trigger")?.setAttribute("data-parity-trigger", "")), skill: (p) => p.evaluate(() => document.querySelector(".filter-trigger")?.setAttribute("data-parity-trigger", "")) };
-const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await parkPointer(p); } };
+// The popup lights its first row when it takes focus, and a pointer leaving a row clears it: on a busy machine the focus can land after the pointer was parked, so the
+// pointer goes over the first row and away again on each page, and the rows are read at rest whichever came first.
+const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await p.locator(".basalt-filter-row").first().hover(); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await p.locator(".filter-row").first().hover(); await parkPointer(p); } };
 const POPUP_BOX = ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "gapBelow", "startOffset"];
 const ROW = [...BOXRECT, "paddingLeft", "paddingRight", "display", "alignItems", "gap", "color", "backgroundColor", ...TYPE];
 const TABLES = [
@@ -1090,6 +1144,9 @@ const TABLES = [
       ["pinned select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["pinned name cell", "tbody tr:first-child th", "tbody tr:first-child th", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["pinned name cell, selected", "tbody tr:nth-child(2) th", "tbody tr:nth-child(2) th", ["backgroundColor"]],
+      // The wash is on every cell of the row in both builds (decision 149): an unpinned cell of the selected row is the same colour as React's.
+      ["unpinned cell, selected", "tbody tr:nth-child(2) td:nth-child(3)", "tbody tr:nth-child(2) td:nth-child(3)", ["backgroundColor"]],
+      ["last cell, selected", "tbody tr:nth-child(2) td:nth-child(5)", "tbody tr:nth-child(2) td:nth-child(5)", ["backgroundColor"]],
       ["pinned header, name", "thead th:nth-child(2)", "thead th:nth-child(2)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["position"]],
       ["edge divider at rest", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "boxWidth", "backgroundColor", "position", "content"], { pseudo: "::after" }],
@@ -1098,6 +1155,10 @@ const TABLES = [
       ["scrolled: divider", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "backgroundColor", "boxWidth"], { pseudo: "::after", scroll: 120 }],
       ["scrolled: select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["rectLeft", "backgroundColor"], { scroll: 120 }],
       ["scrolled: a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["rectLeft"], { scroll: 120 }],
+      // A hovered row's wash is on every cell in both builds (decision 149): the pointer rests on the first row and each cell is read, last because the pointer stays.
+      ["hovered row: pinned name", "tbody tr:first-child th", "tbody tr:first-child th", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
+      ["hovered row: an unpinned cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
+      ["hovered row: the last cell", "tbody tr:first-child td:nth-child(5)", "tbody tr:first-child td:nth-child(5)", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
     ],
   },
   {
@@ -1472,7 +1533,7 @@ const ART_IMPORTS = `const { SiteHeader, Stage, PairedArt, FramedArt, Card, Card
 const ART_BAR = `<SiteHeader brand={<>${NAV_MARK}<span>Acme</span></>} brandLabel="Acme home" />`;
 const ART_BAR_SKILL = `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Acme home">${NAV_MARK}<span>Acme</span></a><span class="spacer"></span></div></header>`;
 const stageReact = `<div>${ART_BAR}<Stage art={<PairedArt dark={"${NIGHT}"} light={"${DAY}"} loading="eager" width={1600} height={800} position="30% 50%" />}><div style={{ height: 360, padding: "0 24px" }}><h1 style={{ margin: 0 }}>A synthetic headline</h1></div></Stage><main style={{ height: 900 }} /></div>`;
-const stageSkill = `${ART_BAR_SKILL}<section class="stage"><div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"></div><div class="stage-content"><div style="height: 360px; padding: 0 24px"><h1 style="margin: 0">A synthetic headline</h1></div></div></section><main style="height: 900px"></main>`;
+const stageSkill = `${ART_BAR_SKILL}<section class="stage"><div class="stage-content"><div style="height: 360px; padding: 0 24px"><h1 style="margin: 0">A synthetic headline</h1></div></div><div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"></div></section><main style="height: 900px"></main>`;
 const STAGE_PAIRS = [
   ["stage", ".basalt-stage", ".stage", [...BOXRECT, "paddingTop", "paddingBottom", "marginTop", "backgroundColor", "backgroundImage", "color", "position", "boxSizing", "fontFamily", "borderTopWidth", "borderTopLeftRadius", "boxShadow", "overflow", "fontSize", "lineHeight"]],
   ["art layer", ".basalt-stage-art", ".stage-art", [...BOXRECT, "position", "overflow", "pointerEvents", "ariaHidden"]],
@@ -1554,7 +1615,7 @@ const ART = [
 // The combobox is read closed (the field, its placeholder and caret), chosen (a value in it), in focus, open (the popup, the rows, the check, the two-line row, the lit row, the shared
 // plate, the disabled row) and with no match (the empty sentence). The popup's place is read against the field, marked on both pages (the group has no props of its own in React). The
 // sparkline is read with data, with one sample, empty and loading.
-const REST_IMPORTS = `const { Combobox, Sparkline, SkipLink } = B;`;
+const REST_IMPORTS = `const { Combobox, Sparkline, SkipLink, Text, Heading, Lead, PageRow, PageSections, PageSection, SectionIntro, SectionActions, Columns, ColumnsItem, Button } = B;`;
 const CB_OPTIONS = `[{ value: "eu", label: "Frankfurt", description: "eu-central, lowest latency" }, { value: "us", label: "Ashburn" }, { value: "ap", label: "Singapore" }, { value: "gone", label: "Sydney", disabled: true }]`;
 const cbSkill = (inner = "", { chosen = true, attrs = "" } = {}) => `<div class="combobox" data-empty="No options match."><input class="input" aria-label="Region" placeholder="Search regions…"${attrs}><ul><li data-value="eu" data-description="eu-central, lowest latency">Frankfurt</li><li data-value="us"${chosen ? ' aria-selected="true"' : ""}>Ashburn</li><li data-value="ap">Singapore</li><li data-value="gone" aria-disabled="true">Sydney</li></ul></div>${inner}`;
 const cbFrame = (inner) => `<div style={{ padding: 16, width: 320 }}>${inner}</div>`;
@@ -1603,7 +1664,7 @@ const SPARK_PAIRS = [
   ["head", ".basalt-sparkline-head", ".sparkline-head", [...BOXRECT, "display", "justifyContent", "columnGap"]],
   ["label", ".basalt-sparkline-label", ".sparkline-label", [...BOXRECT, ...TYPE, "color", "fontFamily"]],
   ["value", ".basalt-ticker", ".sparkline-value", [...BOXRECT, "display", "alignItems", ...TYPE, "color", "fontVariantNumeric", "fontKerning"]],
-  ["value, as spoken", ".basalt-ticker-text", ".sparkline-value > .visually-hidden", ["plainText", "position", "boxWidth", "boxHeight"]],
+  ["value, as spoken", ".basalt-ticker-text", ".sparkline-value > .sparkline-text", ["plainText", "position", "boxWidth", "boxHeight"]],
   ["value's digits", ".basalt-ticker-digit", ".sparkline-value [data-d]", ["rectLeft", "rectTop", "boxHeight", "display", "overflowX", "lineHeight"]],
   ["image", ".basalt-sparkline svg", ".sparkline svg", [...BOXRECT, "color", "ariaLabel", "role", "attrViewBox"]],
   ["line", ".basalt-sparkline-line", ".sparkline-line", ["attrPoints", "fill", "stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin"]],
@@ -1746,6 +1807,40 @@ const REST = [
   },
 ];
 
+// Display type, the lead, the row, the sections and the columns (DECISIONS 137): React's parts and the skill's classes, read at the three shapes a page has (1440, 800 and 390).
+const TL_TYPE = [...TYPE, "color", "fontFamily", "maxWidth", "textWrapStyle", "overflowWrap", "hyphens", "boxWidth", "boxHeight", "rectLeft", "rectTop"];
+const TL_REACT = (layout = "3") => `<><PageSections><PageSection aria-labelledby="h"><SectionIntro><Heading id="h" level={1} size="hero">Every field note in one plain book.</Heading><Lead>Fieldbook keeps notes, tables and sketches side by side.</Lead><SectionActions><Button variant="primary" size="lg">Start a book</Button><Button size="lg">Read the guide</Button></SectionActions></SectionIntro></PageSection><PageSection aria-labelledby="k"><SectionIntro><Heading id="k" level={2} size="display"><span className="basalt-text-line">Three kinds of page.</span><span className="basalt-text-line">One book.</span></Heading></SectionIntro><Columns layout="${layout}"><div style={{ height: 40 }}>One</div><div style={{ height: 40 }}>Two</div><div style={{ height: 40 }}>Three</div><ColumnsItem span={12}>Own</ColumnsItem></Columns></PageSection><PageSection><Text as="div" size="6xl" id="t6">Plain</Text><Text as="div" size="7xl" id="t7">Plain</Text></PageSection></PageSections><PageRow as="footer">Footer</PageRow></>`;
+const TL_SKILL = (layout = "3") => `<main class="page-sections"><section class="page-section" aria-labelledby="h"><div class="section-intro"><h1 class="text-hero" id="h">Every field note in one plain book.</h1><p class="text-lead">Fieldbook keeps notes, tables and sketches side by side.</p><div class="section-actions"><button class="btn" data-variant="primary" data-size="lg">Start a book</button><button class="btn" data-size="lg">Read the guide</button></div></div></section><section class="page-section" aria-labelledby="k"><div class="section-intro"><h2 class="text-display" id="k"><span class="text-line">Three kinds of page.</span><span class="text-line">One book.</span></h2></div><div class="columns" data-layout="${layout}"><div style="height: 40px">One</div><div style="height: 40px">Two</div><div style="height: 40px">Three</div><div style="--span: 12">Own</div></div></section><section class="page-section"><div class="text-6xl" id="t6">Plain</div><div class="text-7xl" id="t7">Plain</div></section></main><footer class="page-row">Footer</footer>`;
+const TL_PAIRS = [
+  ["sections", ".basalt-page-sections", ".page-sections", ["display", "paddingBottom", "boxWidth", "boxHeight"]],
+  ["first section", ".basalt-page-section", ".page-section", ["paddingTop", "paddingLeft", "paddingRight", "maxWidth", "boxWidth", "marginLeft", "rectLeft", "rectTop"]],
+  ["second section", ".basalt-page-section:nth-child(2)", ".page-section:nth-child(2)", ["paddingTop", "boxHeight", "rectTop"]],
+  ["head", ".basalt-section-intro", ".section-intro", ["marginBottom", "boxHeight"]],
+  ["hero", "#h", "#h", TL_TYPE],
+  ["lead", ".basalt-lead", ".text-lead", [...TL_TYPE, "marginTop"]],
+  ["actions", ".basalt-section-actions", ".section-actions", ["display", "flexWrap", "gap", "marginTop", "boxHeight"]],
+  ["display", "#k", "#k", TL_TYPE],
+  ["a line of a display", "#k .basalt-text-line", "#k .text-line", ["display", "boxHeight"]],
+  ["columns", ".basalt-columns", ".columns", ["display", "gridTemplateColumns", "columnGap", "rowGap", "alignItems", "boxHeight"]],
+  ["column one", ".basalt-columns > :nth-child(1)", ".columns > :nth-child(1)", ["boxWidth", "rectLeft", "rectTop", "minWidth"]],
+  ["column three", ".basalt-columns > :nth-child(3)", ".columns > :nth-child(3)", ["boxWidth", "rectLeft", "rectTop"]],
+  ["column with its own span", ".basalt-columns > :nth-child(4)", ".columns > :nth-child(4)", ["boxWidth", "rectLeft", "rectTop"]],
+  ["fixed step 6xl (weight 600 through Text as through the class)", "#t6", "#t6", TL_TYPE],
+  ["fixed step 7xl (weight 600 through Text as through the class)", "#t7", "#t7", TL_TYPE],
+  ["footer row", ".basalt-page-row", ".page-row", ["paddingLeft", "paddingRight", "maxWidth", "boxWidth", "marginLeft", "rectLeft"]],
+];
+REST.push(
+  ...[[1440, "3"], [800, "4"], [390, "7-5"]].map(([width, layout]) => ({
+    id: `type and layout at ${width}, layout ${layout}`,
+    width,
+    react: TL_REACT(layout),
+    skill: TL_SKILL(layout),
+    touch: width === 390,
+    ready: { react: ".basalt-page-sections", skill: ".page-sections" },
+    pairs: TL_PAIRS,
+  })),
+);
+
 const slug = (id) => id.replace(/\W+/g, "-");
 let reactBrowser;
 let skillBrowser;
@@ -1777,6 +1872,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
       for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) { await p.evaluate(([frame, x]) => { document.querySelector(frame).scrollLeft = x; }, [sel, options.scroll]); await settle(p); }
     }
     if (options.focusOn) {
+      // A programmatic focus is focus-visible only after a key: press one on both pages, so a busy machine's click timing can't decide it.
+      for (const p of [reactPage, skillPage]) await p.keyboard.press("Shift");
       await reactPage.locator(options.focusOn[0]).first().focus();
       await skillPage.locator(options.focusOn[1]).first().focus();
     }
@@ -1797,6 +1894,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
     if (options.focus || options.focusIn || options.focusOn) {
       await reactPage.evaluate(() => document.activeElement?.blur());
       await skillPage.evaluate(() => document.activeElement?.blur());
+      // Leaving focus is a transition too (the ring and the ink): the next pair is read at rest, never part-way back to it.
+      for (const p of [reactPage, skillPage]) await settle(p);
     }
     if (options.press) for (const p of [reactPage, skillPage]) await p.mouse.up();
     if (options.scroll != null) for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) await p.evaluate((frame) => { document.querySelector(frame).scrollLeft = 0; }, sel);

@@ -429,6 +429,14 @@
         "unit": "px"
       }
     },
+    "32": {
+      "$type": "dimension",
+      "$value": {
+        "value": 128,
+        "unit": "px"
+      },
+      "$description": "The large section gap (size-section-gap)."
+    },
     "0-5": {
       "$type": "dimension",
       "$value": {
@@ -461,6 +469,14 @@
     }
   },
   "radius": {
+    "2xs": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The corner of a coverage strip's cell: a quarter of the 4px edge's roundness on a sliver of about 6px (DECISIONS 153, consent row 6)."
+    },
     "xs": {
       "$type": "dimension",
       "$value": {
@@ -541,6 +557,46 @@
           "value": 40,
           "unit": "px"
         }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        },
+        "$description": "A control at the touch size on every pointer: Castle's icon button, select and filter triggers and option chips (DECISIONS 154). The first rung above xl; compact steps it down to xl."
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        },
+        "$description": "Castle's button, and the narrow switch row and tab (DECISIONS 154). Compact steps it down to 2xl."
+      },
+      "4xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 52,
+          "unit": "px"
+        },
+        "$description": "The switch row from 720px wide, and the step compact takes a 56 control down to (DECISIONS 154: the approved prototype's own 52, which a 36px tile in 6px of padding and two 1px edges cannot make at 48). Compact steps it down to 3xl."
+      },
+      "5xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 56,
+          "unit": "px"
+        },
+        "$description": "The large button, and the tab bar of an app's own navigation (DECISIONS 154). Compact steps it down to 4xl."
+      },
+      "6xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 64,
+          "unit": "px"
+        },
+        "$description": "The least height of a button whose label is two lines (DECISIONS 154). Compact steps it down to 5xl."
       }
     },
     "menu-row": {
@@ -762,6 +818,54 @@
       },
       "$description": "Command menu width, capped by the viewport."
     },
+    "dialog-width-wide": {
+      "$type": "dimension",
+      "$value": {
+        "value": 992,
+        "unit": "px"
+      },
+      "$description": "A wide dialog's width, capped by the viewport: 992px (DECISIONS 158, Q1), 118 characters of Geist Mono at 14px rounded up, kept in px."
+    },
+    "search-trigger": {
+      "$type": "dimension",
+      "$value": {
+        "value": 200,
+        "unit": "px"
+      },
+      "$description": "The search button's width from 720, shaped like a field (DECISIONS 155, R5). Below 720 it is a square icon button."
+    },
+    "search-logo-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 96,
+        "unit": "px"
+      },
+      "$description": "The leading slot of a search result that shows a brand's logo: 96 by 48, so the row is 60 with 6px above and below (DECISIONS 155, R9)."
+    },
+    "search-logo-height": {
+      "$type": "dimension",
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Height of the logo slot in a search result row."
+    },
+    "search-pack-width": {
+      "$type": "dimension",
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "The leading slot of a search result that shows a product's picture: 48 by 60, so the row is 72 with 6px above and below (DECISIONS 155, R9)."
+    },
+    "search-pack-height": {
+      "$type": "dimension",
+      "$value": {
+        "value": 60,
+        "unit": "px"
+      },
+      "$description": "Height of the picture slot in a search result row."
+    },
     "toast-width": {
       "$type": "dimension",
       "$value": {
@@ -834,6 +938,14 @@
       },
       "$description": "The phone tab bar, its hairline inside, before the bottom safe area."
     },
+    "row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The least height of a link row on the page, directory or big (DECISIONS 152, consent row 3): the link itself, with its 1px rule above it outside. Not the header's or the tab bar's role, though the value is the same. A big row in its two-column form takes space-16."
+    },
     "sidebar-width": {
       "$type": "dimension",
       "$value": {
@@ -876,6 +988,29 @@
       "$value": "{space.4}",
       "$description": "The row's inline padding under the medium breakpoint."
     },
+    "section-gap": {
+      "$type": "dimension",
+      "$value": "{space.32}",
+      "$description": "The space between a page's sections from the large breakpoint (1024). Apps use the derived --basalt-section-gap, which steps to size-section-gap-md from 720 to 1023 and size-section-gap-narrow under 720."
+    },
+    "section-gap-md": {
+      "$type": "dimension",
+      "$value": "{space.24}",
+      "$description": "The space between a page's sections from the medium breakpoint (720) to the large."
+    },
+    "section-gap-narrow": {
+      "$type": "dimension",
+      "$value": "{space.16}",
+      "$description": "The space between a page's sections under the medium breakpoint."
+    },
+    "display-measure": {
+      "$type": "dimension",
+      "$value": {
+        "value": 13,
+        "unit": "em"
+      },
+      "$description": "The widest line of display type, in the headline's own em: about 28 characters of Geist at 600, so a headline is a block and never a strip across the row. In Swift it is the number of ems (13), for a frame's maximum width."
+    },
     "breakpoint-md": {
       "$type": "dimension",
       "$value": {
@@ -899,6 +1034,22 @@
         "unit": "px"
       },
       "$description": "A component's own width, in a container query: a description list stacks and a chart goes narrow below it."
+    },
+    "breakpoint-container-sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 340,
+        "unit": "px"
+      },
+      "$description": "A component's own width, in a container query, below which a button's two lines stay two lines: from it up to size-breakpoint-container the label and its note share one line (DECISIONS 154, D11b). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
+    "breakpoint-container-lg": {
+      "$type": "dimension",
+      "$value": {
+        "value": 640,
+        "unit": "px"
+      },
+      "$description": "A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
     },
     "chart-line": {
       "$type": "dimension",
@@ -972,6 +1123,30 @@
       },
       "$description": "A chart plot's height at every width."
     },
+    "chart-plot-sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 96,
+        "unit": "px"
+      },
+      "$description": "The second, shorter plot height: the phase chart's trend. A plot is 240px, or this (DECISIONS 153, vote 11 and consent row 5)."
+    },
+    "chart-row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10)."
+    },
+    "meter-marker": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14)."
+    },
     "stage-headroom": {
       "$type": "dimension",
       "$value": {
@@ -979,6 +1154,13 @@
         "unit": "px"
       },
       "$description": "The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed."
+    }
+  },
+  "opacity": {
+    "$type": "number",
+    "amount": {
+      "$value": 0.72,
+      "$description": "The ink of a button's amount (\"Add to cart $49\"), a step quieter than its label (DECISIONS 154, D11b). Used only on the variants whose ink holds 4.5:1 at this opacity on every surface the button can sit on (primary, secondary, outline); ghost and danger keep full ink."
     }
   },
   "aspect": {
@@ -1006,6 +1188,7 @@
         "$type": "fontFamily",
         "$value": [
           "Geist",
+          "Geist Fallback",
           "ui-sans-serif",
           "system-ui",
           "sans-serif"
@@ -1267,6 +1450,102 @@
           "unit": "em"
         }
       }
+    },
+    "6xl": {
+      "$description": "Display type from 1024, and the hero from 720 to 1023: the fixed step the display role is made of (docs/foundations.md, Display type).",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 72,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 76,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.04,
+          "unit": "em"
+        }
+      }
+    },
+    "7xl": {
+      "$description": "The hero from 1024: the fixed step the hero role is made of. A page writes the role, never this step, on a phone.",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 96,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 96,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.045,
+          "unit": "em"
+        }
+      }
+    },
+    "hero-narrow": {
+      "$description": "The hero under 720 (a role's phone value, not a step of the scale): sized so most words fit the 288px row at 44px; a word that does not fit breaks.",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.03,
+          "unit": "em"
+        }
+      }
+    },
+    "display-narrow": {
+      "$description": "The display role under 720 (a role's phone value, not a step of the scale).",
+      "size": {
+        "$type": "dimension",
+        "$value": {
+          "value": 36,
+          "unit": "px"
+        }
+      },
+      "line-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 40,
+          "unit": "px"
+        }
+      },
+      "tracking": {
+        "$type": "dimension",
+        "$value": {
+          "value": -0.025,
+          "unit": "em"
+        }
+      }
     }
   },
   "blur": {
@@ -1281,7 +1560,7 @@
     }
   },
   "duration": {
-    "$description": "Exits run at 0.75 of their entry. Loops (the group at the end) are not entries and are not on this scale.",
+    "$description": "Exits run at 0.75 of their entry. Loops (the group at the end) are not entries and are not on this scale. figure and stagger belong to a figure (an entrance, a travel), not to a control.",
     "instant": {
       "$type": "duration",
       "$value": {
@@ -1317,6 +1596,30 @@
         "unit": "ms"
       }
     },
+    "confirm": {
+      "$type": "duration",
+      "$value": {
+        "value": 1500,
+        "unit": "ms"
+      },
+      "$description": "How long a confirmation holds before it returns to rest: a copy button's \"Copied\" and an icon button's done check (DECISIONS 154, D11c). A hold, not an animation: it is the same with or without reduced motion."
+    },
+    "figure": {
+      "$type": "duration",
+      "$value": {
+        "value": 600,
+        "unit": "ms"
+      },
+      "$description": "A figure's own motion: each mark of a page's one entrance, and the longest leg of a travel the eye follows. Never a control, popup, panel, page or block. Under reduced motion 100ms."
+    },
+    "stagger": {
+      "$type": "duration",
+      "$value": {
+        "value": 22,
+        "unit": "ms"
+      },
+      "$description": "The step between the marks of one figure entering, shrunk so every start falls within duration-slow of the first. Under reduced motion 0."
+    },
     "loop": {
       "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion a spinner fades instead of moving, and a loop is never cut to the 100ms floor, or it flickers.",
       "ring": {
@@ -1342,6 +1645,14 @@
           "unit": "ms"
         },
         "$description": "The reduced-motion fade that replaces a moving spinner, and the breathing line of a loading Sparkline."
+      },
+      "ambient": {
+        "$type": "duration",
+        "$value": {
+          "value": 6000,
+          "unit": "ms"
+        },
+        "$description": "The middle period of a page's one ambient loop (opacity only, in its art): each mark runs 0.6 to 1.4 times it, with its own phase. Not run under reduced motion, in forced colours or in print."
       }
     }
   },

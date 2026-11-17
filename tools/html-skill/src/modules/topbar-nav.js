@@ -1,8 +1,9 @@
 /* Basalt HTML script, topbar-nav module: the site header's links and narrow menu (React's SiteHeader). From the bar's own markup it builds
      - the shared pill that glides between the links (the nav module's rules, glide.js moves it), and each link's reserved 600 width;
      - under 720, a Menu button at the end of the bar (a ghost icon button, the core Menu glyph) and the menu it opens: a modal top sheet whose first row
-       redraws the bar (the brand, the theme toggle and Close, on the Menu button's box) and whose list unrolls beneath it (the links, as Nav rows with no
-       glyph, then the bar's one action, full width). Focus lands on Close; Esc and Close return it to the Menu button; a link closes it; widening the
+       redraws the bar (the brand, the tools, the theme toggle of a report's bar and Close, on the Menu button's box) and whose list unrolls beneath it (when the bar has a [data-loops-toggle],
+       its pressed-toggle button "Pause animations" as the first row, so the hold can be reached while the menu covers the bar (React's SiteHeader, DECISIONS 143 and
+       148); then the links, as Nav rows with no glyph; then the bar's one action, full width). Focus lands on Close; Esc and Close return it to the Menu button; a link closes it; widening the
        window past 720 closes it and puts focus on the current link in the bar.
    The menu is a clone of the bar, made before the page's icons and glyphs are drawn and its theme toggle is wired, so each works in both. React morphs Menu into
    Close in the button; the skill swaps the glyph at once (a recorded difference, the sheet's).
@@ -58,6 +59,8 @@
     if (brand) band.appendChild(copy(brand));
     band.appendChild(el('span', 'spacer'));
     var actions = el('div', 'topbar-menu-actions');
+    // The bar's tools (up to two ghost icon controls that stay at every width, marked data-tool) are drawn again, then the deprecated theme toggle of a report's bar.
+    inner.querySelectorAll('[data-tool]').forEach(function (tool) { actions.appendChild(copy(tool)); });
     var toggle = inner.querySelector('[data-theme-toggle]');
     if (toggle) actions.appendChild(copy(toggle));
     var close = el('button', 'btn', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'aria-label': closeLabel, 'data-dialog-close': '', autofocus: '' });
@@ -65,6 +68,14 @@
     actions.appendChild(close);
     band.appendChild(actions);
     d.appendChild(band);
+    // The hold's control, in its Button form, when the bar has one: loops.js wires every [data-loops-toggle] with one listener and keeps them in step, so the row needs none.
+    if (inner.querySelector('[data-loops-toggle]')) {
+      var row = el('div', 'topbar-menu-loops');
+      var pause = el('button', 'btn', { type: 'button', 'data-loops-toggle': '', 'aria-pressed': 'false' });
+      pause.innerHTML = '<span class="btn-check" aria-hidden="true"></span>Pause animations';
+      row.appendChild(pause);
+      d.appendChild(row);
+    }
     if (links) {
       var nav = el('nav', 'nav', { 'aria-label': links.getAttribute('aria-label') || 'Primary' });
       var list = el('ul', 'nav-list');

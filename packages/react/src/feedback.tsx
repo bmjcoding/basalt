@@ -2,16 +2,24 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Field as BaseField } from "@base-ui/react/field";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { CaretDownIcon, CheckCircleIcon, CheckIcon, CopyIcon, InfoIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { ChevronDownGlyph } from "./glyphs/chevron-down";
+import { CopyGlyph } from "./glyphs/copy";
 import { IconButton } from "./button";
 import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
+import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
+import { CONFIRM_MS } from "./confirm";
 
 // ---- Textarea ----
 
@@ -256,6 +264,12 @@ export interface CodeBlockProps {
   className?: string;
 }
 
+/** Code longer than this (UTF-16 code units) is, in a browser, coloured once its plain text has painted; shorter code is coloured in the render. */
+const COLOUR_LATER_FROM = 10_000;
+
+/** `useSyncExternalStore` with nothing to subscribe to: false in the browser, true on the server and in the hydrating render. */
+const noSubscription = () => () => {};
+
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
 export function CodeBlock({ code, language, title, copyable = true, prompt, className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
@@ -270,21 +284,47 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
     loadCodeLanguage(language).then((ok) => { if (ok && live) setLoaded((n) => n + 1); });
     return () => { live = false; };
   }, [language, status]);
-  const tokens = React.useMemo(() => (status === "ready" ? highlightCode(code, language) : null), [code, language, status, loaded]);
+  // A long block is coloured after its plain text has painted, not inside the render that mounts it: highlighting is the cost, and it
+  // grows with the code (a 99,000-character block took 0.6s of the main thread on a slow device). A short one is coloured at once, as before.
+  // That holds only where an effect will run. On the server, in static markup and in the hydrating render a long block is coloured in
+  // the render exactly as it always was (a language preloaded for the server colours every block up to the cap, and hydration must find
+  // the same spans), and the page keeps those colours: nothing turns plain after hydration.
+  const late = code.length > COLOUR_LATER_FROM;
+  const serverRender = React.useSyncExternalStore(noSubscription, () => false, () => true);
+  const [coloured, setColoured] = React.useState<{ code: string; language: string | undefined; tokens: CodeToken[] | null } | null>(null);
+  const kept = React.useRef<{ code: string; language: string | undefined; tokens: CodeToken[] } | null>(null);
+  const now = React.useMemo(() => (status === "ready" && (!late || serverRender) ? highlightCode(code, language) : null), [code, language, status, loaded, late, serverRender]);
+  if (now) kept.current = { code, language, tokens: now };
+  const held = kept.current && kept.current.code === code && kept.current.language === language ? kept.current.tokens : null;
+  React.useEffect(() => {
+    if (!late || serverRender || held || status !== "ready") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setColoured({ code, language, tokens: highlightCode(code, language) }), 0);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [late, serverRender, held, code, language, status, loaded]);
+  const tokens = now ?? held ?? (late && coloured && coloured.code === code && coloured.language === language ? coloured.tokens : null);
   // Preserve the original whitespace, including CRLF and trailing newlines. Token offsets
   // locate spans in the source; source text is rendered by React, never injected as HTML.
-  let cursor = 0;
-  const content = tokens?.map((token, i) => {
-    const gap = code.slice(cursor, token.offset);
-    cursor = token.offset + token.content.length;
-    return <React.Fragment key={i}>{gap}<span style={{ color: token.color }}>{token.content}</span></React.Fragment>;
-  });
+  const content = React.useMemo(() => {
+    let cursor = 0;
+    const nodes = tokens?.map((token, i) => {
+      const gap = code.slice(cursor, token.offset);
+      cursor = token.offset + token.content.length;
+      return <React.Fragment key={i}>{gap}<span style={{ color: token.color }}>{token.content}</span></React.Fragment>;
+    });
+    return { nodes, rest: code.slice(cursor) };
+  }, [tokens, code]);
   // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
   const lines = React.useMemo(() => (prompt === undefined ? null : codeLines(code, tokens)), [prompt, code, tokens]);
   const [copied, setCopied] = React.useState(false);
   React.useEffect(() => {
     if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
+    const t = setTimeout(() => setCopied(false), CONFIRM_MS);
     return () => clearTimeout(t);
   }, [copied]);
   const copy = async () => {
@@ -297,7 +337,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
   };
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <IconButton size="sm" icon={copied ? CheckIcon : CopyIcon} label={copied ? "Copied" : "Copy code"} onClick={copy} />
+      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label={copied ? "Copied" : "Copy code"} onClick={copy} />
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>
   ) : null;
@@ -322,7 +362,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
             ))}
           </code>
         ) : (
-          <code data-language={language}>{tokens ? <>{content}{code.slice(cursor)}</> : code}</code>
+          <code data-language={language}>{tokens ? <>{content.nodes}{content.rest}</> : code}</code>
         )}
       </pre>
       {title ? null : copyButton}
@@ -359,16 +399,18 @@ export interface AccordionItemProps extends Omit<PartProps<"div", "title">, "chi
   onOpenChange?: (open: boolean, details: ChangeDetails) => void;
   /** The always-visible header. */
   title: React.ReactNode;
+  /** The header's heading level in the page outline, 3 by default; its size stays the same at every level. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   children: React.ReactNode;
 }
 
-export function AccordionItem({ title, children, className, ...props }: AccordionItemProps) {
+export function AccordionItem({ title, headingLevel = 3, children, className, ...props }: AccordionItemProps) {
   return (
     <BaseAccordion.Item {...props} className={withClass("basalt-accordion-item", className)}>
-      <BaseAccordion.Header className="basalt-accordion-header">
+      <BaseAccordion.Header className="basalt-accordion-header" render={headingLevel === 3 ? undefined : React.createElement(`h${headingLevel}`)}>
         <BaseAccordion.Trigger className="basalt-accordion-trigger">
           <span>{title}</span>
-          <Icon icon={CaretDownIcon} size={16} className="basalt-accordion-caret" />
+          <Icon icon={ChevronDownGlyph} size={16} className="basalt-accordion-caret" />
         </BaseAccordion.Trigger>
       </BaseAccordion.Header>
       <BaseAccordion.Panel className="basalt-accordion-panel">

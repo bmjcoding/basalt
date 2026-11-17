@@ -15,3 +15,4 @@ var centre = Basalt.notifications('#bell', {
 - The page owns the entries, their read state and persistence; call `setEntries` after any change. Entries run newest first. An entry with `href` is a link, one without is a button. `time` is the words you write ("2m ago"); `status` is `success`, `warning` or `danger`.
 - It is where a toast's `home: 'centre'` lives. Keep an entry's action reachable while it is valid.
 - Put it in a bar's end, 32px. The unread count is in the button's name, never drawn.
+- On touch a one-line entry is 44 tall, its line centred.

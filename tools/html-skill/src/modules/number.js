@@ -5,7 +5,7 @@
 
   // Steppers are not tab stops (the arrow keys step), as Base UI's are not.
   function stepper(n, icon, label) {
-    return '<button type="button" class="btn" tabindex="-1" data-variant="ghost" data-icon-only data-step="' + n + '" aria-label="' + label + '">' + _.icon(icon) + '</button>';
+    return '<button type="button" class="btn" tabindex="-1" data-variant="ghost" data-icon-only data-step="' + n + '" aria-label="' + label + '">' + icon + '</button>';
   }
 
   function wireNumber() {
@@ -13,8 +13,8 @@
       var input = box.querySelector('input[type="number"]');
       if (!input || box.__bh) return;
       box.__bh = true;
-      box.insertAdjacentHTML('afterbegin', stepper(-1, 'Minus', 'Decrease value'));
-      box.insertAdjacentHTML('beforeend', stepper(1, 'Plus', 'Increase value'));
+      box.insertAdjacentHTML('afterbegin', stepper(-1, '%glyph-svg:minus%', 'Decrease value'));
+      box.insertAdjacentHTML('beforeend', stepper(1, '%glyph-svg:plus%', 'Increase value'));
       var down = box.firstElementChild, up = box.lastElementChild;
 
       // Disabled at the ends, and when the field is.

@@ -423,7 +423,8 @@ describe("no vertical bar, anywhere", () => {
     const rules = [...css.matchAll(/([^{}]+)\{([^{}]*size-indicator[^{}]*)\}/g)].map((m) => m[1].trim().replace(/\s+/g, " ")).filter((selector) => selector !== ":root");
     // The one other use is a meter's target tick and its legend line in the foot: a labelled scale tick, structure and never a mark of
     // state (decision 94; foundations names it beside the pinned column's edge). Any other use is still a bar.
-    assert.deepEqual(rules, [".basalt-tabs-indicator", ".basalt-meter-tick", ".basalt-meter-target::before"], `the indicator token draws something other than the horizontal underline and a meter's tick: ${rules}`);
+    // DECISIONS 154 (A13): a link tab's underline is the same horizontal 2px element, static: a second use of the horizontal underline.
+    assert.deepEqual(rules, [".basalt-tabs-indicator", ".basalt-link-tab-line", ".basalt-meter-tick", ".basalt-meter-target::before"], `the indicator token draws something other than the horizontal underline and a meter's tick: ${rules}`);
     assert.ok(!/inset\s+var\(--basalt-size-indicator\)\s+0/.test(css), "an inset side bar is back");
     assert.ok(!/border-inline-start:[^;]*size-indicator/.test(css), "a border-inline-start bar is back");
   });
@@ -569,7 +570,8 @@ describe("a tab with an icon", () => {
         const icon = document.getElementById("tab-icon");
         const tab = icon.closest(".basalt-tab");
         const range = document.createRange();
-        const text = [...tab.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+        // The label's text is drawn in a span that carries its own copy, or the content is drawn twice in one box (decisions 138 and 145: every label reserves its 600 width).
+        const text = [...(tab.querySelector("[data-label]") ?? tab.querySelector(".basalt-chosen-label > :first-child") ?? tab).childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
         range.selectNodeContents(text);
         const t = [...range.getClientRects()].find((r) => r.width > 0);
         const i = icon.getBoundingClientRect();

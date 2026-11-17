@@ -50,29 +50,48 @@ export function DialogTrigger({ className, ...props }: DialogTriggerProps) {
   return <BaseDialog.Trigger {...props} className={withClass("basalt-dialog-trigger", className)} />;
 }
 
+/** A dialog's width: the default 480, or `wide` (992px, DECISIONS 158 Q1: 118 characters of Geist Mono at 14px, 991.17px, rounded up and kept in px) for a reference dialog of columns and tables. Both are capped by the viewport. */
+export type DialogSize = "default" | "wide";
+
 export interface DialogContentProps extends PartProps<"div"> {
+  /**
+   * `wide` is a reference dialog's width (`size-dialog-width-wide`, 992px, DECISIONS 158 Q1), with Basalt's padding and scroll. Its first focus is its title,
+   * so Enter on opening runs nothing; set `initialFocus` to choose another.
+   */
+  size?: DialogSize;
   /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
   initialFocus?: FocusTarget;
   /** Where focus goes on close. By default, back to the trigger. */
   finalFocus?: FocusTarget;
 }
 
-export function DialogContent({ className, style, children, ref, ...props }: DialogContentProps) {
+export function DialogContent({ className, style, children, ref, size = "default", initialFocus, ...props }: DialogContentProps) {
   const layer = useModalLayer();
-  const popupRef = useModalOutside<HTMLDivElement>(ref, React.useContext(DialogModal));
+  const popup = React.useRef<HTMLDivElement | null>(null);
+  const keepRef = React.useCallback((node: HTMLDivElement | null) => {
+    popup.current = node;
+    if (typeof ref === "function") return ref(node);
+    if (ref) ref.current = node;
+  }, [ref]);
+  const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
+  // A wide dialog is a manual: its first focus is its name, not the first button, so Enter on opening does nothing.
+  const first: FocusTarget | undefined = initialFocus ?? (size === "wide" ? () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true : undefined);
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} initialFocus={first} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );
 }
 
-/** Required in every dialog: it's the dialog's accessible name. */
-export function DialogTitle({ className, ...props }: PartProps<"h2">) {
-  return <BaseDialog.Title {...props} className={withClass("basalt-dialog-title", className)} />;
+/**
+ * Required in every dialog: it's the dialog's accessible name. It can take focus from script (`tabIndex={-1}`), which a wide
+ * dialog and a sheet's next step do, so a screen reader reads the new title; it is never a tab stop and draws no ring.
+ */
+export function DialogTitle({ className, tabIndex = -1, ...props }: PartProps<"h2">) {
+  return <BaseDialog.Title tabIndex={tabIndex} {...props} className={withClass("basalt-dialog-title", className)} />;
 }
 
 export function DialogDescription({ className, ...props }: PartProps<"p">) {

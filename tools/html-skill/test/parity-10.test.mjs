@@ -57,10 +57,18 @@ const token = (p, name, property = "backgroundColor") => p.evaluate(([n, prop]) 
 const resolve = (p, value, property = "backgroundColor") => p.evaluate(([v, prop]) => { const probe = document.createElement("div"); probe.style[prop] = v; document.body.append(probe); const out = getComputedStyle(probe)[prop]; probe.remove(); return out; }, [value, property]);
 const phaseIs = (p, name, selector = ".framed-frame") => p.waitForFunction(([s, n]) => document.querySelector(s)?.getAttribute("data-phase") === n, [selector, name]);
 const frames = (p, n = 2) => p.evaluate((count) => new Promise((resolve) => { let left = count; const tick = () => (--left <= 0 ? resolve() : requestAnimationFrame(tick)); requestAnimationFrame(tick); }), n);
+// Holds the page's animations where they begin (the DevTools protocol's Animation.setPlaybackRate, at 0), so a transition read "in flight" is read at its first
+// frame however long a busy machine took to get there; resume() lets it run, and settle() then waits for it to end.
+const hold = async (p) => {
+  const client = await p.context().newCDPSession(p);
+  await client.send("Animation.enable");
+  await client.send("Animation.setPlaybackRate", { playbackRate: 0 });
+  return { resume: () => client.send("Animation.setPlaybackRate", { playbackRate: 1 }) };
+};
 const ms = (value) => (value.trim().endsWith("ms") ? Number.parseFloat(value) : Number.parseFloat(value) * 1000);
 
 const PAIR = (extra = "") => `<img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager"${extra}><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager"${extra}>`;
-const STAGE = (art = PAIR(), content = "<h1>A headline</h1>") => `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Orbit home">Orbit</a><span class="spacer"></span><button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button></div></header><section class="stage"><div class="stage-art" aria-hidden="true">${art}</div><div class="stage-content"><div style="height: 360px; padding: 0 24px">${content}</div></div></section><main style="height: 1600px"><p id="anchor">Synthetic page.</p></main>`;
+const STAGE = (art = PAIR(), content = "<h1>A headline</h1>") => `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Orbit home">Orbit</a><span class="spacer"></span><button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button></div></header><section class="stage"><div class="stage-content"><div style="height: 360px; padding: 0 24px">${content}</div></div><div class="stage-art" aria-hidden="true">${art}</div></section><main style="height: 1600px"><p id="anchor">Synthetic page.</p></main>`;
 const shown = (p) => p.evaluate(() => [...document.querySelectorAll(".paired-art")].filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getAttribute("data-art")));
 const FIGURE = (props = {}, { alt = "A synthetic dune", caption = "Dunes at the end of the day.", credit = "Synthetic art", src = "https://basalt.test/art.svg" } = {}) => `<figure class="framed"${props.aspect ? ` data-aspect="${props.aspect}"` : ""} style="width: ${props.width ?? 400}px"><div class="framed-frame"><img src="${src}" alt="${alt}"${props.lazy ? ' loading="lazy"' : ""}></div>${caption || credit ? `<figcaption>${caption}${credit ? `<span class="framed-credit">${credit}</span>` : ""}</figcaption>` : ""}</figure>`;
 const FRAME_PAGE = (figure, below = "") => `<div style="padding: 24px">${figure}<p id="below" style="margin: 0">below the frame</p>${below}</div>`;
@@ -82,19 +90,25 @@ describe("paired art", () => {
 
   test("it follows the system setting when the page chooses none, and a class theme root works too", async () => {
     const p = await open(STAGE(), { scheme: "dark" });
+    // The system's scheme changes on the next rendering update, and the theme script (if it listens) runs then: read only after two frames, so a script that overwrites the
+    // page's own theme fails this every time and not only when it happens to run late.
+    const system = async (scheme) => { await p.emulateMedia({ colorScheme: scheme }); await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))); };
     await p.evaluate(() => { document.documentElement.removeAttribute("data-theme"); });
-    await p.emulateMedia({ colorScheme: "dark" }); assert.deepEqual(await shown(p), ["dark"]);
-    await p.emulateMedia({ colorScheme: "light" }); assert.deepEqual(await shown(p), ["light"]);
+    await system("dark"); assert.deepEqual(await shown(p), ["dark"]);
+    await system("light"); assert.deepEqual(await shown(p), ["light"]);
     await p.evaluate(() => { document.documentElement.classList.add("dark"); });
     assert.deepEqual(await shown(p), ["dark"], "a .dark root beats the system's light");
+    await system("dark"); await system("light");
+    assert.deepEqual(await shown(p), ["dark"], "and still does after the system changes");
     await p.evaluate(() => { document.documentElement.classList.remove("dark"); document.documentElement.setAttribute("data-theme", "light"); });
-    await p.emulateMedia({ colorScheme: "dark" });
+    await system("dark");
     assert.deepEqual(await shown(p), ["light"], "a chosen light beats the system's dark");
+    assert.equal(await p.evaluate(() => document.documentElement.getAttribute("data-theme")), "light", "and the attribute is the page's, untouched");
     await p.ctx.close();
   });
 
   test("a nested theme root has its own pair", async () => {
-    const p = await open(`<div data-theme="dark"><section class="stage"><div class="stage-art">${PAIR()}</div><div class="stage-content">x</div></section><div data-theme="light" id="inner"><section class="stage"><div class="stage-art">${PAIR()}</div><div class="stage-content">y</div></section></div></div>`, { scheme: "light" });
+    const p = await open(`<div data-theme="dark"><section class="stage"><div class="stage-content">x</div><div class="stage-art">${PAIR()}</div></section><div data-theme="light" id="inner"><section class="stage"><div class="stage-content">y</div><div class="stage-art">${PAIR()}</div></section></div></div>`, { scheme: "light" });
     // The page's own root is light; the outer root says dark, the inner says light.
     assert.deepEqual(await p.evaluate(() => [...document.querySelectorAll(".paired-art")].map((el) => [el.closest("#inner") ? "inner" : "outer", el.getAttribute("data-art"), getComputedStyle(el).display !== "none"])), [["outer", "dark", true], ["outer", "light", false], ["inner", "dark", false], ["inner", "light", true]]);
     await p.ctx.close();
@@ -156,7 +170,7 @@ describe("the stage", () => {
   }
 
   test("a stage with no bar above it asks for no offset and keeps its headroom; the art fills it", async () => {
-    const p = await open(`<section class="stage"><div class="stage-art">${PAIR()}</div><div class="stage-content"><p>x</p></div></section>`);
+    const p = await open(`<section class="stage"><div class="stage-content"><p>x</p></div><div class="stage-art">${PAIR()}</div></section>`);
     const s = await p.evaluate(() => { const st = getComputedStyle(document.querySelector(".stage")); return { margin: st.marginTop, padding: st.paddingTop, top: document.querySelector(".stage").getBoundingClientRect().top }; });
     assert.deepEqual(s, { margin: "0px", padding: "80px", top: 0 });
     await p.ctx.close();
@@ -223,12 +237,14 @@ describe("framed art", () => {
       assert.deepEqual(await p.evaluate(() => window.__runs ?? []), [], "entering the loading state starts no fade: the picture was never drawn");
       const s = await p.evaluate(() => { const f = document.querySelector(".framed-frame"), img = f.querySelector("img"), c = getComputedStyle(f); return { bg: c.backgroundColor, image: c.backgroundImage, animation: c.animationName, filter: c.filter, imgOpacity: getComputedStyle(img).opacity, children: [...f.children].map((x) => x.tagName), loops: document.getAnimations().length }; });
       assert.deepEqual([s.bg, s.image, s.animation, s.filter, s.imgOpacity, s.children, s.loops], [await token(p, "surface-placeholder"), "none", "none", "none", "0", ["IMG"], 0]);
+      const paused = await hold(p);
       p.release();
       await phaseIs(p, "loaded");
       const fade = await p.locator(".framed-frame > img").evaluate((el) => el.getAnimations().filter((a) => a.transitionProperty).map((a) => ({ property: a.transitionProperty, duration: a.effect.getTiming().duration, easing: a.effect.getTiming().easing })));
       const base = ms(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--basalt-duration-base")));
       const ease = await p.evaluate(() => { const probe = document.createElement("i"); probe.style.transitionTimingFunction = "var(--basalt-ease-out)"; document.body.append(probe); const v = getComputedStyle(probe).transitionTimingFunction; probe.remove(); return v; });
       assert.deepEqual(fade, [{ property: "opacity", duration: base, easing: ease }], "opacity only, over duration-base, on ease-out");
+      await paused.resume();
       await settle(p);
       assert.equal(await p.locator(".framed-frame > img").evaluate((el) => getComputedStyle(el).opacity), "1");
       await p.ctx.close();
@@ -238,6 +254,7 @@ describe("framed art", () => {
   test("under reduced motion the fade is the same opacity-only fade: nothing moves", async () => {
     const p = await open(FRAME_PAGE(FIGURE()), { gate: "hold", reducedMotion: "reduce" });
     await phaseIs(p, "loading");
+    await hold(p);
     p.release();
     await phaseIs(p, "loaded");
     const fade = await p.locator(".framed-frame > img").evaluate((el) => el.getAnimations().filter((a) => a.transitionProperty).map((a) => [a.transitionProperty, a.effect.getTiming().duration]));

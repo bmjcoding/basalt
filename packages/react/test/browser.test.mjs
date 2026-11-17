@@ -579,8 +579,12 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderStyle), "solid");
       assert.equal(await input.evaluate((el) => getComputedStyle(el).borderWidth), "1px");
       const selected = page.getByRole("navigation", { name: "Pagination" }).locator('[aria-current="page"]');
-      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineStyle), "solid");
-      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineWidth), "2px");
+      // Decision 138 (A2, A3): the current page is Highlight on HighlightText, not an inset outline, and keeps its 600.
+      await settle(page); // the chosen item's fill and ink are colour transitions: let them finish
+      const highlight = await selected.evaluate((el) => { const probe = document.createElement("i"); probe.style.cssText = "forced-color-adjust: none; background: Highlight; color: HighlightText"; el.parentElement.append(probe); const s = getComputedStyle(probe); const out = [s.backgroundColor, s.color]; probe.remove(); return out; });
+      assert.deepEqual(await selected.evaluate((el) => { const s = getComputedStyle(el); return [s.backgroundColor, s.color]; }), highlight);
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).outlineStyle), "none", "no outline marks the current page");
+      assert.equal(await selected.evaluate((el) => getComputedStyle(el).boxShadow), "none");
       await page.close();
     });
 
@@ -656,10 +660,10 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await page.getByRole("status", { name: "Loading runs" }).count(), 1);
       assert.equal(await page.getByRole("status", { name: "Loading marks" }).count(), 1);
       assert.match(await page.locator(".basalt-spinner[data-variant=braille] [data-dot='1']").evaluate((el) => getComputedStyle(el).animationTimingFunction), /step/);
-      const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-visually-hidden");
+      const ticker = page.getByRole("region", { name: "Motion" }).locator(".basalt-ticker .basalt-ticker-text");
       assert.equal(await ticker.textContent(), "1,284");
       await page.getByRole("button", { name: "Add a run" }).click();
-      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-visually-hidden")?.textContent === "1,285");
+      await page.waitForFunction(() => document.querySelector(".basalt-ticker .basalt-ticker-text")?.textContent === "1,285");
       const saving = page.getByRole("button", { name: "Saving" });
       assert.equal(await saving.getAttribute("aria-busy"), "true");
       const width = await saving.evaluate((el) => {
@@ -750,7 +754,8 @@ for (const theme of ["light", "dark"]) {
       const next = benji.getByRole("button", { name: "Next" });
       await next.focus();
       await page.keyboard.press("Enter");
-      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Choose a route" }).textContent(), "Choose a route");
+      // The Stepper's polite live region says where the user is as well as the step's name (audit-fix-c4, A3-13).
+      assert.equal(await benji.locator("[aria-live=polite]", { hasText: "Choose a route" }).textContent(), "Step 2 of 3: Choose a route");
       await benji.getByRole("button", { name: "Week" }).click();
       assert.equal(await benji.locator(".basalt-segmented").getAttribute("data-direction"), "forward");
       await page.getByRole("tab", { name: "Runs" }).click();

@@ -3,8 +3,8 @@
 // Every `@phosphor-icons/react` icon ships thin, light, regular, bold, fill and duotone paths in one Map, so an app that draws
 // Warning pays 3.2 KB for it and about two thirds of that is weights nobody draws. Basalt draws Bold, and Fill on a selected glyph
 // marked `fillSafe`. This plugin trims every Phosphor icon in an app's whole graph, Basalt's own and the app's, to the weights the
-// app keeps. It is opt-in: Basalt's `dist` still imports `@phosphor-icons/react` as it always did, so an app that does not use the
-// plugin shares one copy of each icon between Basalt and its own imports, and pays for all six weights as it did before.
+// app keeps. It is opt-in: Basalt's `dist` imports each icon from its own module (`@phosphor-icons/react/dist/csr/<Name>`, the module the package's
+// root re-exports), so an app that does not use the plugin shares one copy of each icon between Basalt and its own imports, and pays for all six weights as it did before.
 //
 // This is development tooling, like the headroom check. It is not exported from the package's root and nothing in the components
 // imports it, so an app's runtime bundle never contains it: an app imports it from `@srasyndicate/basalt/phosphor`, in its

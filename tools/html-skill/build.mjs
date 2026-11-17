@@ -8,6 +8,7 @@
 //   parts/accent.css          the accent module: packages/tokens/dist/css/accents.css (the generated accent classes), minified; a page gets
 //                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
 //   parts/art.css             the chart, art, aspect and stage-headroom tokens, taken out of core.css; a page gets it only when its body names one of them
+//   parts/type-layout.css     the display type, section gap and display measure tokens (taken out of core.css) and src/modules/type-layout.css
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold paths: the skill draws Bold at every size) and Phosphor's MIT notice
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
@@ -83,8 +84,17 @@ function filterTokens(css, keep) {
   });
   return kept.replace(/[^{}]*\{\}/g, "").replace(/@media[^{}]*\{\s*\}/g, "").replace(/\n{3,}/g, "\n\n");
 }
-const inCore = Object.assign((name) => !MODULE_TOKEN.test(name), { keepsOther: true });
+/**
+ * The display type, section gap and display measure tokens (DECISIONS 137) the same way: they are the `type-layout` module's, taken out of the core, and a page
+ * gets them when its body uses one of that module's classes or names one of them.
+ */
+const TYPE_LAYOUT_TOKEN = /^--basalt-(?:text-(?:6xl|7xl|hero-narrow|display-narrow)-|space-32\b|size-section-gap|size-display-measure\b)/;
+/** The link rows' row size (DECISIONS 152), the same way: the `link-rows` module's, out of the core, which has no room for a token only some pages use. */
+const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name), { keepsOther: true });
+const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
 const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
+const inTypeLayout = Object.assign((name) => TYPE_LAYOUT_TOKEN.test(name), { keepsOther: false });
 
 function findPackage(name) {
   for (let dir = here; dir !== path.dirname(dir); dir = path.dirname(dir)) {
@@ -193,7 +203,15 @@ function glyphData() {
   }
   return out;
 }
-const minifyJs = (code) => minify(code.replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
+/**
+ * `%glyph-svg:name%` in a module's script is the whole SVG of a core glyph at rest, 16px: exactly what the glyph module's `Basalt._.glyph(name)` returns, written in at
+ * build time from the drawn set. A module that draws a core glyph itself (the menu's check, the copy button's copy) uses it, so the page carries that one drawing and not the glyph module.
+ */
+const glyphSvg = (name) => {
+  if (!GLYPHS[name] || GLYPHS[name].board) throw new Error(`html-skill: "${name}" is not a core glyph the page can draw`);
+  return `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" focusable="false">${glyphMarkup(name, false)}</svg>`;
+};
+const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
@@ -213,9 +231,11 @@ export function build() {
     if (name === "accent") files["parts/accent.css"] = minifyCss(tokensFile("accents.css"));
     // The art module is the token groups taken out of the core (see MODULE_TOKEN); it has no source file either.
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
+    // The type-layout module's tokens come before its own rules, as the tokens come before the core's.
+    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : "";
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
-      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
+      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
   // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.

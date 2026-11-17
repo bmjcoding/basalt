@@ -1,9 +1,9 @@
 // The cmdk-backed bodies of CommandMenu (the modal) and CommandList (the one in the page). A module of its own, so both can
 // import it when they first show and an app that never opens one never downloads cmdk (and the Radix code under it).
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Command, defaultFilter, useCommandState } from "cmdk";
 import * as React from "react";
 
+import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
 import type { CommandGroup, CommandItem } from "./command";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
@@ -73,7 +73,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, initial
   return (
     <Command label="Command menu" loop filter={commandFilter}>
       <div className="basalt-command-search" data-level={BAND_LEVEL}>
-        <Icon icon={MagnifyingGlassIcon} size={16} />
+        <Icon icon={SearchGlyph} size={16} />
         <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
@@ -345,7 +345,7 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
       onPointerDownCapture={(event) => { lastInput.current = event.pointerType === "touch" ? "touch" : "pointer"; }}
     >
       <div className="basalt-command-search" data-level={bandLevel}>
-        <Icon icon={MagnifyingGlassIcon} size={16} />
+        <Icon icon={SearchGlyph} size={16} />
         <Command.Input
           ref={input}
           className="basalt-command-input"

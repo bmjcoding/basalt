@@ -25,6 +25,7 @@ public enum BasaltStatus: Sendable, CaseIterable {
 
 public struct BasaltCard<Content: View>: View {
   private let content: Content
+  @Environment(\.colorSchemeContrast) private var contrast
   public init(@ViewBuilder content: () -> Content) { self.content = content() }
 
   public var body: some View {
@@ -32,15 +33,16 @@ public struct BasaltCard<Content: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(Basalt.Space.s4)
       .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.lg))
-      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderRim.color))
+      .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderRim.color(contrast, increased: Basalt.Colors.lineContrast)))
       // The rim's top edge is one solid line a little lighter in dark, over the straight part only. No gradient.
       .overlay(alignment: .top) {
-        Rectangle().fill(Basalt.Colors.borderRimTop.color).frame(height: 1).padding(.horizontal, Basalt.Radius.lg)
+        Rectangle().fill(Basalt.Colors.borderRimTop.color(contrast, increased: Basalt.Colors.lineContrast)).frame(height: 1).padding(.horizontal, Basalt.Radius.lg)
       }
   }
 }
 
 public struct BasaltBadge: View {
+  @Environment(\.colorSchemeContrast) private var contrast
   private let title: String
   private let status: BasaltStatus?
   private let plain: Bool
@@ -55,7 +57,7 @@ public struct BasaltBadge: View {
     }
     .padding(.horizontal, plain ? 0 : Basalt.Space.s2)
     .padding(.vertical, plain ? 0 : Basalt.Space.s0_5)
-    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.xs).strokeBorder(plain ? .clear : Basalt.Colors.borderHairline.color))
+    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.xs).strokeBorder(plain ? .clear : Basalt.Colors.borderHairline.color(contrast, increased: Basalt.Colors.lineContrast)))
     .accessibilityElement(children: .combine)
   }
 }
@@ -81,8 +83,31 @@ public struct BasaltCallout<Actions: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .padding(Basalt.Space.s4)
-    .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.lg))
-    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.lg).strokeBorder(Basalt.Colors.borderHairline.color))
+    // Radius 8, as the web callout and foundations have it. Success, warning and danger draw their rim in the status colour at 45%
+    // mixed in sRGB over the callout's own level (surfaceRaised), one solid colour on every side; info keeps the neutral hairline.
+    .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Basalt.Radius.md))
+    .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.md).strokeBorder(rim))
+  }
+
+  private var rim: Color {
+    guard let rim = status.rim else { return Basalt.Colors.borderHairline.color }
+    return rim.color
+  }
+}
+
+extension BasaltStatus {
+  /// The callout's rim: the status colour at 45% mixed in sRGB over the callout's own level, in each appearance. Info has none (it
+  /// keeps the neutral rim), and a toast takes neither.
+  var rim: Basalt.ThemedColor? {
+    let base = Basalt.Colors.surfaceRaised
+    let status: Basalt.ThemedColor
+    switch self {
+    case .info: return nil
+    case .success: status = Basalt.Colors.statusSuccess
+    case .warning: status = Basalt.Colors.statusWarning
+    case .danger: status = Basalt.Colors.statusDanger
+    }
+    return status.mixed(over: base, amount: 0.45)
   }
 }
 
@@ -159,7 +184,8 @@ extension BasaltEmptyState where Actions == EmptyView {
 }
 
 public struct BasaltDivider: View {
+  @Environment(\.colorSchemeContrast) private var contrast
   public init() {}
-  public var body: some View { Rectangle().fill(Basalt.Colors.borderDivider.color).frame(height: Basalt.Size.hairline).accessibilityHidden(true) }
+  public var body: some View { Rectangle().fill(Basalt.Colors.borderDivider.color(contrast, increased: Basalt.Colors.lineContrast)).frame(height: Basalt.Size.hairline).accessibilityHidden(true) }
 }
 #endif

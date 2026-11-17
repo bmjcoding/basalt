@@ -19,12 +19,7 @@ let media: MediaQueryList | undefined;
 // The choice made on this page, for when `localStorage` is blocked and cannot hold it. `undefined`: none made yet.
 let session: ThemeChoice | undefined;
 
-/**
- * A script for the document's head, so the theme applies before the first frame: the stored choice if there is one, else the
- * system's, written to `data-theme` exactly as the HTML skill's head snippet does. The app inlines it:
- * `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`.
- */
-export const themeBootstrap = `(function(){var t;try{t=localStorage.getItem("${KEY}")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("${DARK_QUERY}").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);})();`;
+export { themeBootstrap } from "./theme-bootstrap";
 
 function readChoice(): ThemeChoice {
   try {
@@ -42,37 +37,64 @@ function resolve(choice: ThemeChoice): ThemeName {
   return choice === "system" ? systemTheme() : choice;
 }
 
-/** Writes the resolved theme to the root, as the skill's `initTheme` does; a `system` choice is written as what the system is now. */
+/**
+ * Writes the resolved theme to the root, as the skill's `initTheme` does; a `system` choice is written as what the system is now. It writes the
+ * choice itself as `data-theme-choice` too: the theme choice draws its chosen word from that attribute. A write is ours, so the theme on the root is no
+ * longer the app's own (`hand`).
+ */
 function write() {
-  const theme = resolve(readChoice());
+  const choice = readChoice();
+  const theme = resolve(choice);
   const root = document.documentElement;
-  if (root.getAttribute("data-theme") !== theme) root.setAttribute("data-theme", theme);
+  if (root.getAttribute("data-theme") !== theme) {
+    root.setAttribute("data-theme", theme);
+    // Consume our own write, so the observer reports only what the app does.
+    watch?.takeRecords();
+  }
+  hand = false;
+  root.setAttribute("data-theme-choice", choice);
 }
 
-function change() {
-  write();
+// Who wrote `data-theme`. A theme the app set by hand (an attribute it wrote after this took over, or a `.dark` or `.light` class root) is the app's: a change of the system's
+// scheme does not overwrite it, even with nothing stored. It stays the app's until the reader picks a choice or another tab changes it (`write` is ours again), and it is
+// the app's no longer once the app takes its attribute off. Allocated by the first subscription, never at import.
+let watch: MutationObserver | undefined;
+let hand = false;
+
+function change(ours = true) {
+  if (ours) write();
   for (const notify of subscribers ?? []) notify();
+}
+
+/** The system's scheme changed. System follows it, unless the root's theme is the app's own. */
+function onSystem() {
+  const root = document.documentElement;
+  if (watch?.takeRecords().length) hand = root.hasAttribute("data-theme");
+  change(!(readChoice() === "system" && (hand || root.matches(".dark,.light"))));
 }
 
 function onStorage(event: StorageEvent) {
   // A null key is `localStorage.clear()`, which also removes the choice.
-  if (event.key !== null && event.key !== KEY) return;
-  change();
+  if (event.key === null || event.key === KEY) change();
 }
 
 function install() {
   write();
   window.addEventListener("storage", onStorage);
+  watch = new MutationObserver(() => { hand = document.documentElement.hasAttribute("data-theme"); });
+  watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   if (typeof window.matchMedia === "function") {
     media = window.matchMedia(DARK_QUERY);
-    media.addEventListener("change", change);
+    media.addEventListener("change", onSystem);
   }
 }
 
 function uninstall() {
   window.removeEventListener("storage", onStorage);
-  media?.removeEventListener("change", change);
+  media?.removeEventListener("change", onSystem);
   media = undefined;
+  watch?.disconnect();
+  watch = undefined;
 }
 
 function subscribe(notify: () => void) {

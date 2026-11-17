@@ -115,11 +115,21 @@ export async function measureHeadroom(page: HeadroomPage, theme: HeadroomTheme, 
     const marker = root.querySelector("[data-basalt-headroom]");
     if (!marker) throw new Error("headroom check: the stage has no headroom marker; render it with Stage");
     const boxes = [{ zone: "headroom", element: marker }, ...[...root.querySelectorAll("[data-quiet]")].map((element, index) => ({ zone: element.getAttribute("data-quiet") || `quiet #${index + 1}`, element }))];
-    return boxes.map(({ zone, element }) => {
+    // A quiet zone is read grown by `space-1-5` on every side (the focus ring's 2 and 2 with 2 to spare), so a zone needs no CSS of its own: the box is the ink's, and the
+    // check reads the margin round it. The headroom is read as it is. A grown box stays inside the page.
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;height:0;width:var(--basalt-space-1-5, 0px)";
+    document.body.append(probe);
+    const grow = probe.getBoundingClientRect().width;
+    probe.remove();
+    const page = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
+    return boxes.map(({ zone, element }, index) => {
       const rect = element.getBoundingClientRect();
+      const by = index === 0 ? 0 : grow;
       // Inward to whole CSS pixels, so a fractional edge never reads a pixel the zone doesn't cover.
-      const left = Math.ceil(rect.left + window.scrollX), top = Math.ceil(rect.top + window.scrollY);
-      return { zone, x: left, y: top, width: Math.floor(rect.right + window.scrollX) - left, height: Math.floor(rect.bottom + window.scrollY) - top };
+      const left = Math.max(0, Math.ceil(rect.left + window.scrollX - by)), top = Math.max(0, Math.ceil(rect.top + window.scrollY - by));
+      const right = Math.min(page.width, Math.floor(rect.right + window.scrollX + by)), bottom = Math.min(page.height, Math.floor(rect.bottom + window.scrollY + by));
+      return { zone, x: left, y: top, width: right - left, height: bottom - top };
     });
   }, { stage, hide })) as Array<{ zone: string; x: number; y: number; width: number; height: number }>;
 

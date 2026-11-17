@@ -90,6 +90,11 @@
     }
   }
   .topbar-menu .sheet-band { gap: var(--basalt-space-2); }
+  /* The hold's row, when the bar has a loops toggle: the pressed-toggle button at the band's own gutter, natural width, 44 tall (React's .basalt-site-menu-loops). */
+  .topbar-menu-loops {
+    padding: var(--basalt-space-2) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) 0 max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0)));
+  }
+  .topbar-menu-loops .btn { --_h: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
   .topbar-menu .nav {
     padding-block: var(--basalt-space-2);
     padding-inline: max(var(--basalt-space-1-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-1-5), env(safe-area-inset-right, var(--basalt-space-0)));

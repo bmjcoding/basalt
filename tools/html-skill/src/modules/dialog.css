@@ -39,6 +39,8 @@
 
   .dialog-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
   .dialog-description { margin: var(--basalt-space-2) 0 0; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); color: var(--basalt-text-secondary); }
+  /* A title takes focus from script (a sheet's next step): nothing operates it, so it draws no ring. */
+  .dialog-title:focus { outline: none; }
   .dialog-actions { display: flex; justify-content: flex-end; gap: var(--basalt-space-2); margin-top: var(--basalt-space-6); }
 
   @media (prefers-reduced-motion: reduce) {

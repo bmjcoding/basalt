@@ -123,8 +123,10 @@
   .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
   /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
   .footer:not(.page .footer) { width: calc(min(100%, var(--basalt-size-page-width)) - 2 * var(--basalt-gutter)); margin-top: 0; margin-inline: auto; padding-bottom: var(--basalt-space-8); }
-  .skip-link { position: absolute; inset-inline-start: var(--basalt-space-2); top: var(--basalt-space-2); transform: translateY(-200%); padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-3); color: var(--basalt-text-primary); z-index: var(--basalt-layer-toast); }
-  .skip-link:focus { transform: none; }
+  /* The skip link is unseen until it has focus. It leaves the flow, so it floats as a tooltip does: level 3, the rim, shadow-overlay (while focused), radius 8.
+     With no bar it sits at the page's top start; the topbar module hangs it under the bar. */
+  .skip-link { position: absolute; inset-inline-start: var(--basalt-space-2); top: var(--basalt-space-2); transform: translateY(-200%); padding: var(--basalt-space-2) var(--basalt-space-3); border: var(--basalt-size-hairline) solid var(--basalt-border-rim); border-top-color: var(--basalt-border-rim-top); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-3); color: var(--basalt-text-primary); z-index: var(--basalt-layer-toast); }
+  .skip-link:focus { transform: none; box-shadow: var(--basalt-shadow-overlay); }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
   .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
@@ -252,7 +254,8 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
   .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
   .btn svg { flex: none; }
-  @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
+  /* Radius follows the box as it is drawn (decision 138, E1): a button is at least 44 on touch, so it is radius 8, as every control that size is. */
+  @media (pointer: coarse) { .btn { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
   /* A link on its own is a touch target (44px); a link inside running text is not, so a paragraph, list item, quote, caption,
      hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
      `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits
@@ -269,6 +272,9 @@
       margin-block: var(--bh-tap-margin, min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2)));
     }
     .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
+    /* A link shorter than 44px wide ("Go") is still a 44 by 44 target: a box with no content, centred on the link and at least 44 wide, is part of the link, so its width and its line do not change. */
+    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap) { position: relative; }
+    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap)::after { content: ""; position: absolute; inset-block: 0; left: 50%; width: max(100%, var(--basalt-size-tap-min)); transform: translateX(-50%); }
   }
 
   @keyframes bh-spin { to { transform: rotate(360deg); } }

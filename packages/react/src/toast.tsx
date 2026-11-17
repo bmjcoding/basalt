@@ -1,7 +1,10 @@
 import { Toast as BaseToast } from "@base-ui/react/toast";
-import { CheckCircleIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
+import { CloseGlyph } from "./glyphs/close";
 import { Icon } from "./icon";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
@@ -131,21 +134,30 @@ interface Controller {
   limit: number;
   seq: number;
   say: ((text: string, urgent: boolean) => void) | null;
+  /** The sentence added to the announcement of a toast that has an action, from the action's label. */
+  actionWords: (label: string) => string;
   /** Said before the announcer mounted (a toast shown on load). */
   early: Array<[string, boolean]>;
 }
 
 const ControllerContext = React.createContext<Controller | null>(null);
 
+const defaultActionWords = (label: string) => `${label} is available. Press F6 to reach it.`;
+
 function createController(): Controller {
-  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, early: [] };
+  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [] };
 }
 
 const statusOf = (options: Pick<ToastOptions, "status">): ToastStatus => options.status ?? "neutral";
 
 function announce(c: Controller, options: ToastOptions, suffix = "") {
-  const text = `${options.title}${suffix}${options.description ? `. ${options.description}` : ""}`;
-  const urgent = statusOf(options) === "danger";
+  const said = `${options.title}${suffix}${options.description ? `. ${options.description}` : ""}`;
+  // The action's sentence is its own: after a full stop it follows on, after a bare phrase it gets one.
+  const text = options.action ? `${said}${/[.!?]$/.test(said) ? " " : ". "}${c.actionWords(options.action.label)}` : said;
+  say(c, text, statusOf(options) === "danger");
+}
+
+function say(c: Controller, text: string, urgent: boolean) {
   if (c.say) c.say(text, urgent);
   else c.early.push([text, urgent]);
 }
@@ -237,7 +249,11 @@ function update(c: Controller, id: string, patch: ToastUpdate) {
   if (!c.items.has(id)) return;
   c.api?.update(id, toBase(c, entry, ++c.seq));
   const settled = !next.running;
+  // A changed result is said whole, with its action's sentence if it has one. An action that appears, or whose label changes, with the
+  // result as it was, is said alone: the listener has the result already. An action that goes says nothing.
+  const actionNews = !!next.action && next.action.label !== prev.action?.label;
   if (settled && (ends || prev.title !== next.title || prev.description !== next.description)) announce(c, next);
+  else if (settled && actionNews) say(c, c.actionWords(next.action!.label), statusOf(next) === "danger");
 }
 
 function close(c: Controller, id: string) {
@@ -258,16 +274,28 @@ function promise<Value>(c: Controller, work: Promise<Value>, o: ToastPromiseOpti
 
 // ---- The provider ----
 
+export interface ToastProviderProps {
+  children: React.ReactNode;
+  /** How many toasts show at once. Default 3. */
+  limit?: number;
+  /**
+   * For a toast with an action, the sentence its announcement ends with, from the action's label. It says the action exists and
+   * how to reach it. For translation. Default: "Undo is available. Press F6 to reach it." A toast with no action says nothing extra.
+   */
+  actionWords?: (label: string) => string;
+}
+
 /**
  * Place once near the root of the app. Toasts appear bottom-right (the bottom edge, full width, at phone widths), stack three
  * deep with the ones behind peeking, expand on hover or focus, and pause their clocks while hovered, focused, in a blurred window
  * or in a hidden tab. Results are announced from text-only live regions: danger assertively, the rest politely, once each.
  * The stack itself stays a named region (F6 reaches it).
  */
-export function ToastProvider({ children, limit = 3 }: { children: React.ReactNode; limit?: number }) {
+export function ToastProvider({ children, limit = 3, actionWords = defaultActionWords }: ToastProviderProps) {
   const controller = React.useRef<Controller | null>(null);
   if (!controller.current) controller.current = createController();
   controller.current.limit = limit;
+  controller.current.actionWords = actionWords;
   return (
     <ControllerContext.Provider value={controller.current}>
       <BaseToast.Provider limit={limit} timeout={0}>
@@ -412,10 +440,11 @@ function useToastTimer(ms: number, restart: number, paused: boolean, done: () =>
 
 function ToastList() {
   const { toasts } = BaseToast.useToastManager<ToastData>();
-  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} />);
+  const front = toasts.find((toast) => toast.transitionStatus !== "ending");
+  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} front={toast === front} />);
 }
 
-function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number] }) {
+function ToastItem({ toast, front }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean }) {
   const { close: closeToast } = BaseToast.useToastManager();
   const expanded = React.useContext(ExpandedContext);
   const away = React.useContext(AwayContext);
@@ -431,6 +460,7 @@ function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManag
       toast={toast}
       data-level={1}
       data-toast-id={toast.id}
+      data-front={front ? "" : undefined}
       data-status={status}
       data-running={running ? "" : undefined}
       className="basalt-toast"
@@ -457,7 +487,7 @@ function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManag
         </div>
         {toast.actionProps ? <BaseToast.Action className="basalt-button basalt-toast-action" data-variant="secondary" data-size="xs" /> : null}
         <BaseToast.Close className="basalt-button basalt-toast-close" data-variant="ghost" data-size="xs" data-icon-only="" aria-label="Dismiss">
-          <Icon icon={XIcon} size={16} />
+          <Icon icon={CloseGlyph} size={16} />
         </BaseToast.Close>
       </BaseToast.Content>
     </BaseToast.Root>

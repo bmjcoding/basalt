@@ -20,7 +20,7 @@
 
   // React's ticker as it stands at rest: the number in text for a screen reader, and for the eye one box for each character (a digit's is 1em tall).
   function value(text) {
-    return '<span class="sparkline-value"><span class="visually-hidden">' + esc(text) + '</span><span aria-hidden="true">' +
+    return '<span class="sparkline-value"><span class="sparkline-text">' + esc(text) + '</span><span aria-hidden="true">' +
       Array.prototype.map.call(text, function (c) { return /\d/.test(c) ? '<span data-d>' + c + '</span>' : '<span>' + esc(c) + '</span>'; }).join('') + '</span></span>';
   }
 

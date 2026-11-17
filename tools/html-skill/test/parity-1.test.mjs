@@ -6,6 +6,7 @@ import fs from "node:fs";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
+import { settle } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml, read, skillDir } from "./support.mjs";
 
 let browser;
@@ -225,11 +226,11 @@ describe("native chrome", () => {
     assert.deepEqual([closed.summary[0], ...closed.summary.slice(2, 6)], [closed.button[0], ...closed.button.slice(2, 6)], "the summary has the button's box, type and chevron");
     assert.equal(closed.summary[1], "none");
     await p.locator("summary").click();
-    await p.waitForTimeout(300);
+    await settle(p); // the chevron's turn is a transition: read it once it has ended, not after a fixed wait
     const open = await read();
     assert.notEqual(open.summary[6], closed.summary[6], "the chevron turns");
     await p.locator("button.disclosure").click();
-    await p.waitForTimeout(300);
+    await settle(p);
     assert.equal((await read()).button[6], open.summary[6], "to the same place as the button's");
     await context.close();
   });

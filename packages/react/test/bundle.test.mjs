@@ -49,12 +49,33 @@ async function graph(name) {
 
 // The whole static chunk graph, under splitting, for single imports. CommandMenu's lazy panel must not drag the
 // keyboard machinery, the icons or anything else into an import that never mentions it.
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 15_000], ["Kbd", 11_000]]) {
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 15_600], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 2_500], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 17_000]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
-    if (!["Button", "Kbd"].includes(name)) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), []);
+    if (!["Button", "Kbd", "LoopsToggle", "LoopsToggleIcon", "Drawer"].includes(name)) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), []);
+  });
+}
+
+// The overlays and search batch (DECISIONS 155). A sheet's head and the search dialog are Base UI's dialog plus a Button for the close, and nothing else:
+// no cmdk (the command panel is the one lazy module), no Phosphor, and the listbox, the opening list, the notice bar and the trigger load no Base UI at all.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_000]]) {
+  test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki|\/dist\/command/.test(f)), []);
+  });
+}
+
+// DECISIONS 154, the controls port: each new export alone, with splitting. Measured: TextButton 8,570, SwitchRow 24,794, SwitchRowGroup 10,977,
+// OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
+for (const [name, limit, baseUi] of [["TextButton", 9_200, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 141_500, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+  test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
+    const { bytes, chunks, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
+    if (!baseUi) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), [], `${name} loads more than it is`);
   });
 }
 
@@ -77,8 +98,9 @@ test("the hold's hook adds nothing to a bundle that does not import it, and is s
   assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), []);
 });
 
-// The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured: useTheme 1,520 bytes,
-// themeBootstrap 296, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above).
+// The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured:
+// themeBootstrap 379, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above). useTheme was 1,520 bytes; knowing who wrote the root's theme (a theme the app set by hand survives
+// a change of the system's scheme, DECISIONS 146 B) and writing data-theme-choice made it 1,889, with the head script in a module of its own so a bundle that imports only the hook does not carry it.
 test("the theme's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
   for (const name of ["Spinner", "Badge", "Button", "Popover", "Menu", "FilterResult", "CommandMenu", "ToastProvider", "useLoops"]) {
     const { inputs } = await graph(name);
@@ -297,6 +319,16 @@ for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["N
   });
 }
 
+// The toolbar (DECISIONS 135): Base UI's toolbar and its roving focus, the direction provider, and Basalt's own controls as items, so
+// the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764. Combined in integration-nov15b: the controls batch's Button (DECISIONS 154) and the links batch's Link arrow (DECISIONS 152) both ride in the set, which measures 56,008, over the 56,000 each side kept, so the limit is 56,050 (the measured bytes rounded up to the next 50).
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 56_050]]) {
+  test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /shiki|cmdk|@radix-ui/.test(f)), []);
+  });
+}
+
 // The figures (decision 94): the description list and the stat are plain markup; the meter carries Base UI's Meter and nothing
 // else of it; the terminal carries a Button, an Icon and the braille spinner, and never Shiki or cmdk.
 for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stats, Stat", 3_500]]) {
@@ -315,9 +347,75 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress)\//.test(f)), "an unrelated Base UI part is in a Meter-only bundle");
 });
 
+// The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
+// Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
+// CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465. The short bar plot (`compact`, DECISIONS 160) added 120 bytes to TimeChart (46,973 to 47,093); PhaseChart is 49,643.
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["CoverageStrip", 2_000], ["MarksRow", 1_200]]) {
+  test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
+  });
+}
+
+test("the short bar plot's `compact` prop adds under 400 bytes to TimeChart (it was 46,973 before the prop)", async () => {
+  const { bytes } = await bundle("TimeChart");
+  assert.ok(bytes < 46_973 + 400, `TimeChart bundle is ${bytes} bytes; the prop may add 400`);
+});
+
+test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no Shiki; TimeChart and PhaseChart load no Shiki or cmdk", async () => {
+  const meter = await bundle("RangeMeter");
+  assert.ok(meter.bytes < 12_000, `RangeMeter bundle is ${meter.bytes} bytes`);
+  assert.ok(meter.inputs.some((f) => /@base-ui\/react\/(esm\/)?meter\//.test(f)), "Base UI's Meter is in");
+  assert.ok(!meter.inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress)\//.test(f)));
+  for (const [name, limit] of [["TimeChart", 50_000], ["PhaseChart", 52_000]]) {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), [], name); // the chart's key hint draws Kbd, which carries the shortcut icons: that was so before this port
+  }
+});
+
 test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
   const { bytes, inputs } = await bundle("Terminal");
   assert.ok(bytes < 40_000, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
+
+// The page's parts (DECISIONS 137) are plain elements and class names: each one alone is a few hundred bytes and loads no Base UI, no icon, no keyboard
+// machinery. Measured with splitting, the whole static graph (bytes, before this change in brackets): Lead 347, PageRow 374, PageSections 380, PageSection 361,
+// SectionIntro 358, SectionActions 360, Columns 399 and ColumnsItem 391 in a production build (1,146 and 849 in development, which carry the warning); Heading 933 (805) and Text 1,056 (904), which gained the two display roles and two steps.
+test("Lead, PageRow, PageSections, PageSection, SectionIntro, SectionActions, Columns and ColumnsItem are each under 600 bytes alone and load nothing else; Heading and Text grew by under 200", async () => {
+  for (const name of ["Lead", "PageRow", "PageSections", "PageSection", "SectionIntro", "SectionActions", "Columns", "ColumnsItem"]) {
+    const { bytes, inputs } = await graph(name);
+    assert.ok(bytes < 600, `${name} alone: ${bytes} bytes`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|display|composition)\.js$/.test(f)), [], `${name} loads more than it is`);
+  }
+  for (const [name, before] of [["Heading", 805], ["Text", 904]]) {
+    const { bytes } = await graph(name);
+    assert.ok(bytes < before + 200, `${name} alone: ${bytes} bytes, was ${before}`);
+  }
+});
+
+// The icon form of LoopsToggle is what a site's header draws on every page: it must not load the settings row's Switch (DECISIONS 143, defect F).
+test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch", async () => {
+  const { bytes, inputs } = await graph("LoopsToggleIcon");
+  assert.ok(bytes < 20_000, `${bytes} bytes`);
+  assert.deepEqual(inputs.filter((f) => /@base-ui\/react\/switch\//.test(f)), [], "Base UI's switch");
+  const all = await graph("LoopsToggle");
+  assert.ok(all.inputs.some((f) => /@base-ui\/react\/switch\//.test(f)), "LoopsToggle, which draws every form, does load Base UI's switch");
+  assert.ok(all.bytes - bytes > 5_000, `the icon form is ${all.bytes - bytes} bytes lighter than the whole control`);
+});
+
+// Links and rows (DECISIONS 152). The cards, the rows and the back link are plain markup and the core arrow glyphs: no Base UI part, no Phosphor
+// and no Shiki. The three that carry a button (Reveal, DirectoryList's show all, CopyButton) carry Base UI's Button and nothing else.
+// Measured: LinkCard 5,174 bytes, LinkTile 4,597, BackLink 4,004, BigLinkList 391, DirectoryList 16,729, Reveal 16,328, CopyButton 15,495.
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 19_000, true], ["Reveal", 18_000, true], ["CopyButton", 17_500, true]]) {
+  test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
+    const { bytes, chunks, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki|@phosphor-icons/.test(f)), []);
+    if (!base) assert.deepEqual(inputs.filter((f) => /@base-ui/.test(f)), [], `${name} loads a Base UI part it does not use`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui\/react\/(menu|dialog|select|popover|tooltip|accordion|tabs)\//.test(f)), []);
+  });
+}

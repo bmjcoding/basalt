@@ -3,9 +3,10 @@ import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
+import { ChosenLabel } from "./chosen";
 import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
-import { withClass } from "./utils";
+import { join, withClass } from "./utils";
 
 const TabsMotion = React.createContext<{
   order: React.MutableRefObject<string[]>;
@@ -19,12 +20,18 @@ export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"d
   value?: Value | null;
   defaultValue?: Value | null;
   orientation?: Orientation;
+  /**
+   * The height of the tabs in a horizontal bar: `lg` (36px, the default), `3xl` (48px) or `5xl` (56px; 48px in a container narrower than
+   * `size-breakpoint-container-lg`, 640px, when an ancestor is a container). A tab of 48 or 56 is 16px text with 10px of padding either
+   * side (24px between two labels) and radius 8 on its top corners. Vertical tabs have one size.
+   */
+  size?: "lg" | "3xl" | "5xl";
   /** Called with the new tab's `value`, unchanged (`null` when no tab can be selected). Call `details.cancel()` to refuse. */
   onValueChange?: (value: Value | null, details: ChangeDetails) => void;
 }
 
 /** Tabs switch between panels of one view. The new panel slides in from the direction you moved. */
-export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, ...props }: TabsProps<Value>) {
+export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, size, ...props }: TabsProps<Value>) {
   const order = React.useRef<string[]>([]);
   // Order and direction are looked up by the value's text, a private key: what the app sees is never changed.
   const previous = React.useRef<string | null>(value == null && defaultValue == null ? null : String(value ?? defaultValue));
@@ -51,6 +58,7 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
             {...props}
             value={value}
             defaultValue={defaultValue}
+            data-size={size && size !== "lg" ? size : undefined}
             className={withClass("basalt-tabs", className)}
             onValueChange={(next: Value | null, details: ChangeDetails) => {
               onValueChange?.(next, details);
@@ -116,7 +124,7 @@ export interface TabProps extends PartProps<"button", "value"> {
   disabled?: boolean;
 }
 
-export function Tab({ className, value, ...props }: TabProps) {
+export function Tab({ className, value, children, ...props }: TabProps) {
   const motion = React.useContext(TabsMotion);
   React.useLayoutEffect(() => {
     if (!motion || value == null) return;
@@ -124,7 +132,10 @@ export function Tab({ className, value, ...props }: TabProps) {
     if (!motion.order.current.includes(id)) motion.order.current.push(id);
     if (motion.previous.current == null) motion.previous.current = id;
   }, [motion, value]);
-  return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)} />;
+  // The label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice (see ChosenLabel).
+  // The children are wrapped before the primitive sees them, so a tab an app draws as an element of its own (`render`) reserves too, when its children are its
+  // words. Words an app's `render` supplies itself are never seen: the 600 is on the label, so they keep their weight and move nothing.
+  return <BaseTabs.Tab {...props} value={value} className={withClass("basalt-tab", className)}><ChosenLabel>{children}</ChosenLabel></BaseTabs.Tab>;
 }
 
 export interface TabsPanelProps extends PartProps<"div", "value"> {
@@ -133,8 +144,31 @@ export interface TabsPanelProps extends PartProps<"div", "value"> {
   keepMounted?: boolean;
 }
 
-export function TabsPanel({ className, ...props }: TabsPanelProps) {
-  return <BaseTabs.Panel {...props} className={withClass("basalt-tabs-panel", className)} />;
+const PanelsStacked = React.createContext(false);
+
+export interface TabsPanelsProps extends React.ComponentProps<"div"> {
+  /**
+   * Every panel stays mounted in one grid cell, so the view is as tall as its tallest panel and changing tab moves nothing under it
+   * (DECISIONS 154, X6). The panels that are not shown keep their room but are `visibility: hidden` and inert, so they leave the accessibility
+   * tree, find-in-page and any selection. It turns off, and each panel takes its own height, when this element is narrower than
+   * `size-breakpoint-container-lg` (640px). Off by default: tabs without it draw as they always did.
+   */
+  stacked?: boolean;
+}
+
+/** The panels of a `Tabs`, in one element, so they can share one seat (`stacked`). Put it inside `Tabs`, after the `TabsList`. */
+export function TabsPanels({ stacked = false, className, ...props }: TabsPanelsProps) {
+  return (
+    <PanelsStacked.Provider value={stacked}>
+      <div {...props} data-stacked={stacked ? "" : undefined} className={join("basalt-tabs-panels", className)} />
+    </PanelsStacked.Provider>
+  );
+}
+
+export function TabsPanel({ className, keepMounted, ...props }: TabsPanelProps) {
+  // Stacked panels all stay mounted: a panel that is not there would take no room.
+  const stacked = React.useContext(PanelsStacked);
+  return <BaseTabs.Panel {...props} keepMounted={stacked || keepMounted} className={withClass("basalt-tabs-panel", className)} />;
 }
 
 export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "value"> {
@@ -151,8 +185,9 @@ export interface SegmentedControlProps extends PartProps<"div", "defaultValue" |
 
 /**
  * A single choice among a few options that filter or change the current view (a time
- * range, a layout). Use `Tabs` when each option has its own panel. The selected segment
- * is a raised pill, not a colour change, so it's visible without colour (WCAG 1.4.11).
+ * range, a layout). Use `Tabs` when each option has its own panel. The chosen segment's label is 600 in primary ink against
+ * 400 in secondary at rest, each reserving the other's width so nothing moves; the raised pill and the ink step support it.
+ * A segment with no label (an icon alone) draws its glyph's selected form.
  */
 export function SegmentedControl({ value, defaultValue, onValueChange, className, children, ...props }: SegmentedControlProps) {
   // Always controlled underneath, so a segmented control can never end up with nothing
@@ -191,6 +226,7 @@ export interface SegmentProps extends PartProps<"button", "value"> {
   nativeButton?: boolean;
 }
 
-export function Segment({ className, ...props }: SegmentProps) {
-  return <Toggle {...props} className={withClass("basalt-segment", className)} />;
+export function Segment({ className, children, ...props }: SegmentProps) {
+  // As a Tab: the label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice.
+  return <Toggle {...props} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
 }

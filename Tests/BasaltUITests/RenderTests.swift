@@ -38,6 +38,45 @@ final class RenderTests: XCTestCase {
     }
   }
 
+  /// One callout per status, as the audit's A5-06 asks to see them (decisions 138 and 139): radius 8, and for success, warning and
+  /// danger a rim in the status colour at 45% over the callout's own level. Written to BASALT_SNAPSHOT_DIR for the review round.
+  struct CalloutSample: View {
+    var body: some View {
+      VStack(alignment: .leading, spacing: Basalt.Space.s4) {
+        BasaltCallout("Heads up", description: "Runs stop at midnight UTC.", status: .info)
+        BasaltCallout("Deploy finished", description: "blacksand-api is live in production.", status: .success)
+        BasaltCallout("Quota nearly used", description: "You have used 92% of this month's runs.", status: .warning)
+        BasaltCallout("Route refused", description: "This run isn't allowed to reach that host.", status: .danger)
+      }
+      .padding(Basalt.Space.s6)
+      .frame(width: 420)
+      .background(Basalt.Colors.surfacePage.color)
+    }
+  }
+
+  func testCalloutsRenderInBothAppearances() throws {
+    Basalt.Fonts.register()
+    for (name, appearance, scheme) in [("light", NSAppearance.Name.aqua, ColorScheme.light), ("dark", .darkAqua, .dark)] {
+      var png: Data?
+      NSAppearance(named: appearance)!.performAsCurrentDrawingAppearance {
+        let host = NSHostingView(rootView: CalloutSample().environment(\.colorScheme, scheme))
+        host.appearance = NSAppearance(named: appearance)
+        host.frame = NSRect(origin: .zero, size: host.fittingSize)
+        host.layoutSubtreeIfNeeded()
+        if let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+          host.cacheDisplay(in: host.bounds, to: rep)
+          png = rep.representation(using: .png, properties: [:])
+        }
+      }
+      let data = try XCTUnwrap(png)
+      XCTAssertGreaterThan(data.count, 5_000, "\(name) callout render is unexpectedly empty")
+      if let dir = ProcessInfo.processInfo.environment["BASALT_SNAPSHOT_DIR"] {
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("swiftui-callouts-\(name).png"))
+      }
+    }
+  }
+
   func testNativeComponentsRenderInBothAppearances() throws {
     Basalt.Fonts.register()
     var images: [Data] = []

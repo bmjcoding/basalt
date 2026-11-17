@@ -373,16 +373,17 @@ describe("pinned columns at 390: the name sticks (and the select column with it)
       const scrolled = await pinnedLeft();
       assert.deepEqual(scrolled.slice(0, 2), rest.slice(0, 2), "the select column and the name stay where they were");
       assert.ok(scrolled[2] < rest[2], "the columns after them scroll away");
-      // Opaque in every state: the cell's own background has no alpha, and the wash is an image laid over it.
+      // Opaque in every state: the cell's own background has no alpha, and the row's wash is mixed into it as one colour (decision 138, C11), never an image or a layer.
       const opaque = (state) => page.evaluate(() => [1, 2].map((n) => { const c = getComputedStyle(document.querySelector(`#runs tbody tr:first-child > :nth-child(${n})`)); return [c.backgroundColor, c.backgroundImage.startsWith("linear-gradient"), c.position, c.zIndex]; }));
       const alpha = (c) => (/^rgba?\(([^)]+)\)$/.test(c) ? (c.match(/[\d.]+/g)[3] ?? "1") : /\/\s*([\d.]+)\)/.test(c) ? c.match(/\/\s*([\d.]+)\)/)[1] : "1");
       const at = await opaque();
       for (const [bg, , position] of at) { assert.equal(alpha(bg), "1", `a pinned cell's fill is opaque (${bg})`); assert.equal(position, "sticky"); }
       await page.locator("#runs tbody tr:first-child td:nth-child(3)").hover({ force: true }).catch(() => {});
       await page.mouse.move(200, 300);
-      const selectedRow = await page.evaluate(() => { const cell = document.querySelector("#runs tbody tr:nth-child(2) > :nth-child(2)"); return [getComputedStyle(cell).backgroundColor, getComputedStyle(cell, "::before").backgroundColor]; });
+      const selectedRow = await page.evaluate(() => { const cell = document.querySelector("#runs tbody tr:nth-child(2) > :nth-child(2)"), rest = document.querySelector("#runs tbody tr:first-child > :nth-child(2)"); return [getComputedStyle(cell).backgroundColor, getComputedStyle(cell, "::before").content, getComputedStyle(cell).backgroundImage, getComputedStyle(rest).backgroundColor]; });
       assert.equal(alpha(selectedRow[0]), "1", "a selected row's pinned cell keeps an opaque fill");
-      assert.notEqual(alpha(selectedRow[1]), "0", "and the selected wash is laid over it, behind the words");
+      assert.ok(["none", "normal"].includes(selectedRow[1]) && selectedRow[2] === "none", "the selected wash is one colour mixed into the cell, with no ::before layer and no image (decision 138, C11)");
+      assert.notEqual(selectedRow[0], selectedRow[3], "and the cell wears the selected wash");
       assert.deepEqual(errors, []);
       await context.close();
     });
@@ -449,9 +450,9 @@ describe("pinned columns at 390: the name sticks (and the select column with it)
     await settled(page);
     const canvas = await resolve(page, "Canvas", "background-color");
     const text = await resolve(page, "CanvasText", "background-color");
-    const cell = await page.evaluate(() => { const el = document.querySelector("#runs tbody tr:nth-child(2) > :nth-child(2)"); return [getComputedStyle(el).backgroundColor, getComputedStyle(el, "::before").backgroundColor]; });
-    assert.equal(cell[0], canvas);
-    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#runs tbody tr:nth-child(2) > :nth-child(2)"), "::before").display), "none", "and the wash drops");
+    const cell = await page.evaluate(() => { const el = document.querySelector("#runs tbody tr:nth-child(2) > :nth-child(2)"); return [getComputedStyle(el).backgroundColor, getComputedStyle(el, "::before").content]; });
+    assert.equal(cell[0], canvas, "and the wash drops: the selected row's cell is Canvas, with no layer of its own");
+    assert.ok(["none", "normal"].includes(cell[1]), "no ::before layer to drop (decision 138, C11)");
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#runs tbody tr:first-child > :nth-child(2)"), "::after").backgroundColor), text);
     assert.equal(await page.locator("#runs thead th:nth-child(3) .sort-seat").evaluate((el) => getComputedStyle(el).color), await resolve(page, "ButtonText"));
     await context.close();
@@ -773,10 +774,10 @@ describe("the result line: shown at once, spoken once after 400ms of stillness, 
 });
 
 describe("reduced motion, forced colours, touch and axe", () => {
-  test("under reduced motion the chips' glyphs change at once", async () => {
+  test("under reduced motion the chips' glyphs still crossfade over duration-fast (decision 138, C10)", async () => {
     const { page, context } = await open({ reducedMotion: "reduce", body: FILTER(4) });
-    assert.equal((await css(page.locator("#f .chip-seat > svg").first(), "transitionProperty")).transitionProperty, "none");
-    assert.equal((await css(page.locator("#f .chip-seat > svg").first(), "transitionDuration")).transitionDuration, "0s");
+    assert.equal((await css(page.locator("#f .chip-seat > svg").first(), "transitionProperty")).transitionProperty, "opacity");
+    assert.equal((await css(page.locator("#f .chip-seat > svg").first(), "transitionDuration")).transitionDuration, "0.1s");
     await context.close();
   });
 

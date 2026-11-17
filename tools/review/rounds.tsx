@@ -96,6 +96,18 @@ import { ROUND_27 } from "./round27";
 import { ROUND_28 } from "./round28";
 import { ROUND_29 } from "./round29";
 import { ROUND_30 } from "./round30";
+import { ROUND_31 } from "./round31";
+import { ROUND_32 } from "./round32";
+import { ROUND_33 } from "./round33";
+import { ROUND_34 } from "./round34";
+import { ROUND_35 } from "./round35";
+import { ROUND_36 } from "./round36";
+import { ROUND_37 } from "./round37";
+import { ROUND_38 } from "./round38";
+import { ROUND_39 } from "./round39";
+import { ROUND_40 } from "./round40";
+import { ROUND_41 } from "./round41";
+import { ROUND_42 } from "./round42";
 
 export interface Step {
   id: string;
@@ -114,6 +126,8 @@ export interface Step {
   scales?: number[];
   /** The viewport height. Default 400, or 640 for an open state. */
   height?: number;
+  /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
+  bleed?: boolean;
   demo: (props: { state: string }) => React.ReactNode;
 }
 
@@ -627,3 +641,15 @@ ROUNDS.push(ROUND_27);
 ROUNDS.push(ROUND_28);
 ROUNDS.push(ROUND_29);
 ROUNDS.push(ROUND_30);
+ROUNDS.push(ROUND_31);
+ROUNDS.push(ROUND_32);
+ROUNDS.push(ROUND_33);
+ROUNDS.push(ROUND_34);
+ROUNDS.push(ROUND_35);
+ROUNDS.push(ROUND_36);
+ROUNDS.push(ROUND_37);
+ROUNDS.push(ROUND_38);
+ROUNDS.push(ROUND_39);
+ROUNDS.push(ROUND_40);
+ROUNDS.push(ROUND_41);
+ROUNDS.push(ROUND_42);

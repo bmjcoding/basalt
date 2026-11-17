@@ -42,7 +42,9 @@ const MIT = fs.readFileSync(path.join(phosphorDir, "LICENSE"), "utf8").trim();
 function usedIcons() {
   const names = new Set();
   for (const file of fs.readdirSync(src).filter((f) => /\.tsx?$/.test(f))) {
-    for (const match of fs.readFileSync(path.join(src, file), "utf8").matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"@phosphor-icons\/react"/g)) {
+    // Each icon is imported from its own module (`@phosphor-icons/react/dist/csr/<Name>`), so Node loads one file per icon and not all of
+    // Phosphor's barrel. It is the same module the barrel re-exports, so an app's own import of the icon still shares the one copy.
+    for (const match of fs.readFileSync(path.join(src, file), "utf8").matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"@phosphor-icons\/react\/dist\/csr\/(\w+)"/g)) {
       for (const part of match[1].split(",")) if (part.trim()) names.add(part.trim().split(/\s+as\s+/)[0].replace(/Icon$/, ""));
     }
   }
@@ -80,14 +82,15 @@ async function bundle(contents, { plugin = false, resolveDir = pkg, weights = BA
 const own = (name, icons) => `import { ${name} } from "./dist/index.js"; import { ${icons.map((i) => `${i}Icon`).join(", ")} } from "@phosphor-icons/react"; console.log(${name.split(", ").join(", ")}, ${icons.map((i) => `${i}Icon`).join(", ")});`;
 const alone = (name) => `import { ${name} } from "./dist/index.js"; console.log(${name.split(", ").join(", ")});`;
 
-// What each component draws, so that an app can hold its own copy of the same icons.
+// What each component draws from Phosphor, so that an app can hold its own copy of the same icons. Since DECISIONS 138 and 139 (E2) the core set
+// draws check, close, the chevrons, copy, plus, minus and search, so Terminal, Pagination and ToastProvider no longer draw Phosphor's Check, Copy,
+// Caret or X, and Breadcrumbs draws no Phosphor icon at all.
 const CASES = [
   ["Kbd", ["Command", "Control", "Option"]],
-  ["Terminal", ["CheckCircle", "Check", "Copy", "Warning", "XCircle"]],
+  ["Terminal", ["CheckCircle", "Warning", "XCircle"]],
   ["Callout", ["Info", "CheckCircle", "Warning", "XCircle"]],
-  ["Breadcrumbs", ["CaretRight"]],
-  ["Pagination", ["CaretLeft", "CaretRight", "DotsThree"]],
-  ["ToastProvider", ["CheckCircle", "Warning", "XCircle", "X"]],
+  ["Pagination", ["DotsThree"]],
+  ["ToastProvider", ["CheckCircle", "Warning", "XCircle"]],
   ["NotificationCentre", ["CheckCircle", "Warning", "XCircle"]],
 ];
 
@@ -95,7 +98,7 @@ describe("the default build: Basalt's dist imports Phosphor as it did, and nothi
   test("dist holds no trimmed icon, and its components import the package's icons", () => {
     assert.deepEqual(fs.readdirSync(dist).filter((f) => /^phosphor-/.test(f)), []);
     const texts = fs.readdirSync(dist).filter((f) => f.endsWith(".js")).map((f) => fs.readFileSync(path.join(dist, f), "utf8"));
-    assert.ok(texts.filter((t) => /from "@phosphor-icons\/react"/.test(t)).length >= 10, "the package's icons are imported, not bundled");
+    assert.ok(texts.filter((t) => /from "@phosphor-icons\/react\/dist\/csr\/\w+"/.test(t)).length >= 10, "the package's icons are imported, not bundled");
     assert.equal(texts.filter((t) => /weight === "bold"/.test(t)).length, 0, "no trimmed table in dist");
   });
 
@@ -121,12 +124,12 @@ describe("the default build: Basalt's dist imports Phosphor as it did, and nothi
     }
   }
 
-  // The lazy command panel is built on its own and inlines MagnifyingGlass (build.mjs: it shares no file with the package). That copy is
-  // the one exception, it was there before, and it costs nothing until a menu opens.
-  test("CommandMenu: the lazy panel's own MagnifyingGlass is the only icon that comes twice", async () => {
+  // The lazy command panel is built on its own (build.mjs: it shares no file with the package). It used to inline Phosphor's MagnifyingGlass, the
+  // one icon that came twice; since DECISIONS 138 and 139 (E2) it draws the core set's `search`, so no Phosphor icon comes twice at all.
+  test("CommandMenu: the lazy panel draws the core search glyph, and no Phosphor icon comes twice", async () => {
     const mixed = await bundle(own("CommandMenu", ["MagnifyingGlass"]));
     const twice = mixed.icons.filter((icon, i) => mixed.icons.indexOf(icon) !== i);
-    assert.deepEqual(twice, ["MagnifyingGlassIcon"]);
+    assert.deepEqual(twice, []);
   });
 });
 
@@ -211,10 +214,22 @@ describe("the plugin's transform", () => {
 });
 
 describe("the bytes, with the plugin and without it", () => {
-  // [component, the most the bundle may be with the plugin, the least the plugin must save]. Measured (default → plugin): Kbd 9,169 → 6,700,
+  // [component, the most the bundle may be with the plugin, the least the plugin must save]. First measured (default → plugin): Kbd 9,169 → 6,700,
   // Terminal 31,742 → 26,236, Callout 11,776 → 6,702, Pagination 21,747 → 20,641, ToastProvider 89,556 → 84,701, NotificationCentre
   // 144,041 → 140,253. The limits sit just above what is measured; the Phosphor notice (about 1.1 KB, once) is in them.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_500, 5_000], ["Callout", 6_950, 4_500], ["Pagination", 20_900, 1_000], ["ToastProvider", 85_000, 4_500], ["NotificationCentre", 140_500, 3_500]]) {
+  // E2 (DECISIONS 138 and 139) moved check, close, the chevrons and copy to the core set, so Terminal, Pagination and ToastProvider hold fewer Phosphor
+  // icons for the plugin to trim, and the core glyph code now rides with Toast. Measured now (default → plugin): Terminal 28,779 → 25,060, Pagination
+  // 19,284 → 19,619 (the plugin's notice is bigger than what its one icon saved), ToastProvider 90,503 → 86,723.
+  // Terminal and NotificationCentre were raised by 50 and 150 bytes in audit-fix-c1 (A1-05), and only because of the batched spinner. Measured
+  // with the plugin: Terminal 26,423 and NotificationCentre 140,498 with the spinner as it was, 26,506 and 140,581 with the batched one (83 bytes
+  // each; both pull in Button and so the Spinner). Importing each icon from its own module (also audit-fix-c1, A1-07) changes neither number.
+  // Combined in integration-nov15: the limits are E2's, plus audit-fix-c1's raises for the batched spinner (Terminal 25,300 to 25,350, NotificationCentre
+  // 140,500 to 140,650); the combined tree fits under them.
+  // DECISIONS 154: Button grew about 650 bytes (the outline, amount, count, two-line, full-width and done forms, and Reserve), so Terminal, Pagination and NotificationCentre, which carry it, rose by as much: 25,350 to 26,100, 20,000 to 20,700 and 140,650 to 141,850.
+  // Links and rows (DECISIONS 152): Link's arrow form (`arrow`) draws the core right and left arrows, so Pagination, which holds Link, carries them: 19,619 → 20,453 with
+  // the plugin (the two glyphs, the arrow's span and the branch, 834 bytes). Raised from 20,000 to 20,500 for that and for nothing else.
+  // Combined in integration-nov15b: Pagination holds both Button (DECISIONS 154, 20,700) and Link's arrows (DECISIONS 152, 20,500), and measures 21,560 with the plugin, over both limits, so its limit is 21,600 (the measured bytes rounded up to the next 50).
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_100, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_600, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));
@@ -235,10 +250,10 @@ describe("the bytes, with the plugin and without it", () => {
   });
 
   // A component that draws one small icon can cost a little more with the plugin: the notice (about 1.1 KB) is bigger than what its few
-  // weights saved. The cost is bounded by the notice.
-  test("Breadcrumbs, which draws one caret, costs at most the notice more with the plugin", async () => {
-    const plain = await bundle(alone("Breadcrumbs"));
-    const trimmed = await bundle(alone("Breadcrumbs"), { plugin: true });
+  // weights saved. The cost is bounded by the notice. Pagination draws one Phosphor icon (the gap's DotsThree) since DECISIONS 138 and 139 (E2).
+  test("Pagination, which draws one Phosphor icon, costs at most the notice more with the plugin", async () => {
+    const plain = await bundle(alone("Pagination"));
+    const trimmed = await bundle(alone("Pagination"), { plugin: true });
     assert.ok(trimmed.bytes - plain.bytes < 600, `${plain.bytes} → ${trimmed.bytes}`);
   });
 });
@@ -283,7 +298,7 @@ describe("the licence is in an output once", () => {
 // --- the markup, before and after: a real browser, built from the same source ---
 const REFERENCE = process.env.BASALT_ICON_REFERENCE ?? path.join(src, "index.ts");
 const FIXTURE = `
-import { PlusIcon, PlayIcon } from "@phosphor-icons/react";
+import { PlusIcon, PlayIcon, SunIcon, MoonIcon } from "@phosphor-icons/react";
 const Site = ({ name, children }) => <div data-site={name}>{children}</div>;
 function Toasts() {
   const t = B.useToast();
@@ -326,6 +341,7 @@ function App() {
         <B.Nav aria-label="Primary"><B.NavItem href="#a" icon={PlayIcon} current>A</B.NavItem><B.NavItem href="#b" icon={B.HomeGlyph}>B</B.NavItem></B.Nav>
         <B.Icon icon={PlayIcon} size={20} selected fillSafe /><B.Icon icon={PlayIcon} size={24} selected /><B.Icon icon={PlayIcon} size={16} />
       </Site>
+      <Site name="theme-menu"><B.ThemeMenu /><B.Icon icon={SunIcon} /><B.Icon icon={MoonIcon} /></Site>
       <Site name="notifications"><B.NotificationCentre entries={ENTRIES} defaultOpen /></Site>
       <Site name="select-open"><B.Select aria-label="Open" options={options} defaultValue="a" defaultOpen /></Site>
       <Site name="combobox-open"><B.Combobox aria-label="Zone" options={options} defaultValue="a" defaultOpen /></Site>
@@ -396,7 +412,7 @@ describe("every icon's markup is byte-identical to before, in every component an
       assert.ok(markup.includes(d), `${name} is drawn in the fixture`);
     }
     const sites = new Set(reference.icons.map(([site]) => site));
-    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "notifications", "portal"]) {
+    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "theme-menu", "notifications", "portal"]) {
       assert.ok(sites.has(site), `${site} draws an icon`);
     }
     // the toasts, the open Menu, its submenu, the open Select and Combobox and the command menu are portalled, outside any site

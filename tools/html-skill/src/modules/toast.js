@@ -18,6 +18,11 @@
   var focus = false;
   var blurred = false;
   var hidden = false;
+  var NOSCROLL = { preventScroll: true };
+  var modals = []; // focus history, retained when focus is lost to the browser or the document body
+  var modalObserver;
+  var prior = null;
+  var from = null; // where focus was when F6 took it to the region
 
   function status(o) { return o.status || 'neutral'; }
   function homes(o) { return o.home === undefined ? [] : typeof o.home === 'string' ? [o.home] : o.home; }
@@ -48,16 +53,30 @@
     viewport.setAttribute('role', 'region');
     viewport.setAttribute('aria-label', 'Notifications');
     viewport.setAttribute('aria-live', 'off');
+    // F6 reaches the region, as Base UI's viewport does in React: focus goes to it (not in the tab order), and Shift+Tab or Escape from it goes back to where it came from.
+    viewport.tabIndex = -1;
+    viewport.addEventListener('keydown', function (e) {
+      if ((e.target !== viewport && e.target !== viewport.firstElementChild) || (e.key !== 'Escape' && !(e.key === 'Tab' && e.shiftKey))) return; // from the region, or from the first toast (what Shift+Tab would leave the stack for)
+      if (!from || !from.isConnected) { from = null; if (e.key !== 'Escape') return; }
+      e.preventDefault();
+      e.stopPropagation(); // inside a dialog the focus trap would read the element just focused and wrap backwards
+      var back = from;
+      from = null;
+      if (back && back.isConnected) back.focus(NOSCROLL);
+    });
     document.body.appendChild(viewport);
     viewport.addEventListener('pointerenter', function () { hover = true; sync(); });
     viewport.addEventListener('pointerleave', function () { hover = false; sync(); });
     viewport.addEventListener('focusin', function () { focus = true; sync(); });
-    viewport.addEventListener('focusout', function (e) { if (!viewport.contains(e.relatedTarget)) { focus = false; sync(); } });
+    viewport.addEventListener('focusout', function (e) { if (document.hasFocus() && !viewport.contains(e.relatedTarget)) { from = null; focus = false; sync(); } });
     window.addEventListener('blur', function (e) { if (e.target === window) { blurred = true; sync(); } }, true);
     window.addEventListener('focus', function (e) { if (e.target === window) { blurred = false; sync(); } }, true);
     document.addEventListener('visibilitychange', function () { hidden = document.visibilityState === 'hidden'; sync(); });
     hidden = document.visibilityState === 'hidden';
-    new MutationObserver(rehome).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    document.addEventListener('focusin', place);
+    // Native focus can leave for browser chrome. Keep the last focused live modal until focus identifies another.
+    modalObserver = new MutationObserver(place);
+    document.addEventListener('beforetoggle', function (e) { if (e.newState === 'closed') release(e.target); }, true);
   }
 
   function ensureRegion() {
@@ -68,19 +87,32 @@
     document.body.appendChild(alertRegion);
   }
 
-  /**
-   * Toasts stay interactive over a modal, as React's do (their portal is not inside the page the dialog makes inert): while a modal is open the viewport lives
-   * inside it, which the browser leaves live, and goes back to the body when it closes. Level and place do not change (it is fixed, in the top layer).
-   */
-  function rehome() {
+  /** Focus identifies the live modal; its history supplies the same answer when the document loses focus. */
+  function place() {
     if (!viewport) return;
-    var modals = document.querySelectorAll('dialog.modal[open]');
-    var to = modals.length ? modals[modals.length - 1] : document.body;
+    modals = modals.filter(function (m) { return m.isConnected && m.matches('dialog:modal,.palette-scrim'); });
+    var a = document.activeElement;
+    var m = a && a.closest ? a.closest('dialog:modal,.palette-scrim') : null;
+    if (m) { modals = modals.filter(function (x) { return x !== m; }); modals.push(m); }
+    if (a !== document.body && !viewport.contains(a)) prior = a;
+    move(modals[modals.length - 1] || document.body);
+  }
+  function move(to) {
     if (viewport.parentNode === to) return;
+    // Only a modal host can disappear or close around the viewport. Ordinary page writes need no observation.
+    modalObserver.disconnect();
+    if (to !== document.body) modalObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
     var was = viewport.matches(':popover-open');
     to.appendChild(viewport);
     if (was || items.length) { viewport.showPopover(); resume(); }
   }
+  /** Move before a modal hides or removes its contents; its own focus restoration places us in the next modal. */
+  function release(m) {
+    if (m === viewport) return;
+    if (viewport && m.contains(viewport)) move(document.body);
+    modals = modals.filter(function (x) { return x !== m; });
+  }
+  _.toast = { release: release };
   /** A moved element restarts its animations: each drain line picks up where its clock is. */
   function resume() {
     items.forEach(function (t) {
@@ -110,6 +142,7 @@
     });
     items.forEach(function (t) {
       var i = live.indexOf(t);
+      t.el.toggleAttribute('data-front', i === 0);
       if (i < 0) return;
       var st = t.el.style;
       st.setProperty('--toast-index', i);
@@ -134,17 +167,23 @@
     if (t.running) { t.left = Math.max(0, t.left - (Date.now() - t.running)); t.running = 0; }
     if (ms <= 0 || expanded() || away()) return;
     t.running = Date.now();
-    t.timer = setTimeout(function () { dismiss(t.id); }, t.left);
+    t.timer = setTimeout(function () { dismiss(t.id, true); }, t.left);
   }
 
-  function dismiss(id) {
+  function dismiss(id, keyboard) {
     var t = items.filter(function (x) { return x.id === id; })[0];
     if (!t || t.leaving) return;
+    keyboard = keyboard == null ? t.keyboard !== false : keyboard;
     t.leaving = true;
     clearTimeout(t.timer);
     t.el.setAttribute('data-ending-style', '');
     sync();
     var finish = function () {
+      if (focused(t)) {
+        var next = keyboard && items.filter(function (x) { return x !== t && !x.leaving; }).pop();
+        var back = next ? next.el : from && from.isConnected ? from : prior;
+        if (back && back.isConnected) back.focus(NOSCROLL);
+      }
       t.el.remove();
       items = items.filter(function (x) { return x !== t; });
       if (!items.length && viewport.matches(':popover-open')) viewport.hidePopover();
@@ -185,7 +224,7 @@
       (t.count > 1 ? '<span class="toast-count" aria-hidden="true">×' + t.count + '</span><span class="visually-hidden">, ' + t.count + ' times</span>' : '') + '</p>' +
       '<p class="toast-description" id="' + t.id + '-d">' + _.esc(o.description || '') + '</p></div>' +
       (o.action ? '<button type="button" class="btn toast-action" data-size="xs"' + (o.action.keys ? ' aria-keyshortcuts="' + _.esc(o.action.keys) + '"' : '') + '><span>' + _.esc(o.action.label) + '</span></button>' : '') +
-      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">' + _.icon('X') + '</button>';
+      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">' + '%glyph-svg:close%' + '</button>';
     var action = t.content.querySelector('.toast-action');
     if (action) action.addEventListener('click', function () { o.action.onClick(); });
     t.content.querySelector('.toast-close').addEventListener('click', function () { dismiss(t.id); });
@@ -211,18 +250,22 @@
     t.el.appendChild(t.content);
     fill(t);
     t.el.setAttribute('data-starting-style', '');
-    // It lives in the open modal, if there is one, and is raised above what has been opened since.
-    var modals = document.querySelectorAll('dialog.modal[open]');
-    var to = modals.length ? modals[modals.length - 1] : document.body;
+    // It lives in the modal that holds focus, if there is one, and is raised above what has been opened since.
+    place();
     var above = document.querySelector('[popover]:popover-open:not(.toast-viewport)');
-    if (viewport.parentNode !== to) to.appendChild(viewport);
-    else if (viewport.matches(':popover-open') && above) viewport.hidePopover();
+    if (viewport.matches(':popover-open') && above) viewport.hidePopover();
     if (!viewport.matches(':popover-open')) viewport.showPopover();
     viewport.insertBefore(t.el, viewport.firstChild);
     sync();
     void t.el.offsetWidth;
     t.el.removeAttribute('data-starting-style');
-    t.el.addEventListener('keydown', function (e) { if (e.key === 'Escape') dismiss(t.id); });
+    t.el.addEventListener('keydown', function (e) {
+      t.keyboard = true;
+      if (e.key !== 'Escape') return;
+      e.preventDefault(); // the containing native modal must stay open when Escape dismisses a toast action
+      e.stopPropagation();
+      dismiss(t.id, true);
+    });
     swipe(t);
     // Running work is not announced, step by step or at all: only its result is.
     if (!t.o.running) announce(t.o, t.count > 1 ? ', ' + t.count + ' times' : '');
@@ -231,7 +274,7 @@
   /** Swiping a toast to the right dismisses it; a short pull springs back. */
   function swipe(t) {
     var x0 = null;
-    t.el.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse' || e.button === 0) if (!e.target.closest('button')) x0 = e.clientX; });
+    t.el.addEventListener('pointerdown', function (e) { t.keyboard = false; if (e.pointerType !== 'mouse' || e.button === 0) if (!e.target.closest('button')) x0 = e.clientX; });
     t.el.addEventListener('pointermove', function (e) {
       if (x0 === null) return;
       var dx = Math.max(0, e.clientX - x0);
@@ -315,5 +358,16 @@
   show.close = close;
   show.promise = promise;
   // The announcer exists, empty, before the first toast, so the first result is spoken.
-  _.step(140, 'wireToast', function () { ensureRegion(); });
+  _.step(140, 'wireToast', function () {
+    ensureRegion();
+    ensure(); // observe focus before any modal opens, even if the first toast is raised after focus is lost
+    // Only this module handles keys in the toast stack; the palette checks its own event target.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'F6' || !items.length || e.target === viewport) return;
+      e.preventDefault();
+      place();
+      if (!viewport.contains(document.activeElement)) from = document.activeElement === document.body && prior && prior.isConnected ? prior : document.activeElement;
+      viewport.focus(NOSCROLL);
+    }, true);
+  });
 })(window.Basalt);

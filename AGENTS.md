@@ -63,10 +63,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   inner glow or sheen, no blur, no animation, no outer frame, no light falloff on the page.
   Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
   at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
-  toast included, keeps the neutral rim.
-- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`,
-  `blur-chrome`, 12px, no saturate) is the only translucent, blurred surface. Dialogs, sheets,
-  menus, popovers, toasts and the command menu stay solid. Use the class once per viewport;
+  toast included, keeps the neutral rim. Under more contrast every side is the input boundary's value.
+- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`: `#000` at 92.5%
+  in dark, `#fafafa` at 96% in light; `blur-chrome`, 12px, no saturate) is the only translucent,
+  blurred surface. Dialogs, sheets, menus, popovers, toasts and the command menu stay solid. The
+  theme control is in the site footer, never in the bar. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
   back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, in
   print, and in forced colours (`Canvas`).
@@ -87,43 +88,72 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   side of a numeric column); the whole header cell is the sort button (−2 inset focus, hover lifts the label and shows the
   caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
   `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
-  is never covered. Pages set `scrollbar-gutter: stable`.
-- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade), checkboxes
+  is never covered. Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
+  it is cut it is a focus stop, and on hover or focus its whole value opens in place on a level-3 plate (WCAG 1.4.13: Esc, hoverable,
+  persistent; never past the viewport); after Esc the cell shows its own −2 ring. A column of one fixed form (a date, a time, a status)
+  is sized for its longest form under WCAG 1.4.12 spacing, and so is a header's label for its column (a sortable header is its own
+  button and opens no plate).
+- **The multi-select filter:** any-of-many is chips with no track (a check on, a plus off, a 100ms crossfade, kept under reduced motion), checkboxes
   in a labelled group; seven or more values, or a toolbar, are a trigger and a checklist, by count and never viewport.
   Clear stays mounted and `aria-disabled` at zero, keeping focus. One debounced polite result line is what is spoken.
+- **The skip link and the required mark:** a focused skip link hangs under a sticky bar, `space-2` below its line, on the brand's start
+  edge, floating (level 3, the rim, `shadow-overlay`, radius 8). A required field shows "Required" directly after its label in tertiary
+  at `text-xs`, hidden from assistive technology; "Optional" only where an author marks it; never an asterisk.
+- **A `NumberTicker`** draws its digits and never selects them; the number is in the sentence's flow under them, transparent, and is
+  what a selection paints and copies, once, on the sentence's line. Under reduced motion and in forced colours the digits do not roll: the number is plain text.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
-- **Selected is shown by shape or a step in ink, not a wash alone:** the raised pill with a
-  hairline, a check, or a checked box. One state, one look, across components (tabs,
-  segments, pagination, table rows, choice cards and pressed toggle buttons). **There is no vertical bar and no inset outline
-  anywhere**, apart from a header band that is itself a button (the sortable table header, below), which takes the
-  flush-field −2 inset (so does a phone tab bar cell, which is itself a link), and these structural vertical lines, each
-  named and never a selection, sort, active or status mark: the 1px divider at a pinned table column's edge while the table
-  is scrolled, the app sidebar's 1px edge, and a meter's labelled target tick. The active row in a menu, select, combobox or command menu is a rounded plate
+- **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
+  the current page) is its label at 600 (from 400), its width reserved so nothing moves (the live words and icon keep their start edges in segments and tabs; a component is reserved too, but native or component labels holding a control, even a hidden input, a frame, media, canvas, script, style, dialog, template or slot, and words Basalt never sees, keep 400 and are not reserved), an icon in it taking its selected form, on the raised pill, the underline or
+  the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
+  segments, pagination, table rows, choice cards and pressed toggle buttons). The pill's edge is its hairline and casts no
+  shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
+  horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
+  pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
+  inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of
+  tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
+  vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
+  column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
+  `Separator` between groups of controls, and the edges between a `NumberField`'s value and its steppers. The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
-  weight change (WCAG 1.4.1). A selected table row is the wash band, and its checked box
-  carries the state. Horizontal tabs keep their underline: it is horizontal. In a segmented
+  weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
+  carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
+  pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
+- **Reservation limits:** native-element width copies are cleaned in props without an observer; opaque components need DOM cleanup and a second live instance, so server HTML can duplicate ids and controls until hydration (permanently without scripts), and an unsafe component can narrow when hydration declines it. The HTML skill still widens resting items once on initialization; build-time reservation and glyphs are a later batch (DECISIONS 150).
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
   full-bleed band holding its own control focuses that control; a band that is itself the link
   or button takes the flush-field −2 inset.
-- **Keyboard keys are chips:** a fill with no border, one per key, 2px apart; ⌘ ⌥ ⌃ are
-  Phosphor icons. Only real shortcuts, one per row, never on the primary fill; the chip is
+- **Keyboard keys are chips:** a fill with no border, 20px tall (`size-kbd`), one per key, 2px apart; ⌘ ⌥ ⌃ are
+  Phosphor icons at 12 inside the chip. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
-- **Radius by role:** 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code
-  blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets), full (avatars, dots and the navigation hover pill). A nested
-  radius is the outer radius minus the padding.
+- **Radius by role,** by the size a box is drawn at (a 32px control drawn at 44 on touch is 8; a `NumberField` group drawn at
+  40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
+  dialogs), 16 (bottom sheets), full (avatars, dots, the navigation hover pill, the switch, the radio, the slider's track and
+  thumb, progress, meter, and the tab bar's circle). A nested radius is the outer radius minus the padding.
+- **More contrast** (`prefers-contrast: more`; Increase Contrast on Apple platforms): three aliases and no new colour. Lines
+  (the hairline, the divider, the rim, the pill's hairline) step to `border-input`, tertiary ink to `text-secondary`, a
+  hovered edge (`border-hover`) to `text-secondary`, and a field's boundary (`border-field`, equal to `border-input` outside the
+  mode) to `text-secondary`; the input boundary itself, and so a progress or slider track and a link's underline, does not step. It works in both themes and under a theme chosen with the toggle, and the contrast
+  tests prove every text pair at 4.5:1 and every boundary at 3:1 in the mode.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
   (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,
   the parts of a field or a disabled or loading button). In popup rows (Menu, Select, Combobox,
   command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
-  reduced motion and in forced colours. Nothing overshoots or loops, except spinners. Under reduced motion, opacity only. See `docs/motion.md`.
+  reduced motion and in forced colours. Nothing overshoots. Two kinds of thing loop, and nothing else: a mark that says work is running
+  (the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
+  one ambient loop, opacity only, in its art; `data-loops="held"` stops both. One figure on a page's first screen may draw its marks once
+  at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
+  traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
+  filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
+  Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density. Text entry is 16px on touch.
+  targets stay at least 44px whatever the density. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  touch, and a `Link` on a line of its own has a 44px hit box with no change to layout; a link in a sentence keeps its line.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
   light.
 - **Styling comes from tokens.** No raw colours in component CSS. Lengths come from
@@ -134,12 +164,27 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Icons:** the core set on the web (`@srasyndicate/basalt`, one module per glyph: 2.25 units
   on 24 at every size, an opening at rest that selected closes and fills, morphs only between rest
   and selected, within a rotation group, and the four drawn pairs), and Phosphor Bold at 16, 20
-  and 24 for the long tail; Fill only on a selected glyph marked `fillSafe`. Danger is XCircle.
+  and 24 for what the core set does not draw (a component never draws Phosphor's version of a core glyph: check, close, the
+  chevrons, copy, plus, minus and search are the core's; the key glyphs ⌘ ⌥ ⌃ stay Phosphor's; glyphs are drawn at 16, 20 and 24,
+  and at 12 only as a mark inside a box: a choice box's check or dash and a key chip's ⌘ ⌥ ⌃); Fill only on a selected glyph
+  marked `fillSafe`. A glyph that swaps crossfades over `duration-fast`, with or without reduced motion. Danger is XCircle.
   Navigation glyphs in a sidebar or rail are primary at rest; every other icon is secondary at
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts
   (info, warning, error, success). Status icons pair with words.
-- **Type:** Geist and Geist Mono at 400, 500 and 600 only.
+- **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
+  arrives; it does not promise the same wrap at every width.
+- **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed
+  steps `text-6xl` and `text-7xl` and a phone value each. They step at 720 and 1024 on the viewport and never fluidly: no `clamp`, no viewport or container
+  unit in type. A display headline is 600, `text-wrap: balance`, at most `size-display-measure` (13em), never a `<br>` (two sentences meant as two lines are
+  two block spans), in the full row or a span of seven columns or more (`Columns` and `ColumnsItem` warn in development, and draw it as written); `overflow-wrap: break-word` is the net, never the plan. Docs and examples show the
+  roles on a phone and never a fixed `6xl` or `7xl` there. The lead is `text-xl` from 720 and `text-lg` under it, 400 in secondary ink, `text-wrap: pretty`.
+- **The page:** one row (`size-page-width`, the gutter inside, the header's), for a first screen too; sections one `--basalt-section-gap` apart (128 from
+  1024, 96 from 720, 64 under it), the first half a gap below the bar, a head half a gap above its body, a gap above the footer; no section is given the
+  window's height. The first line of the next section's headline shows on the first screen; that test yields when a reader enlarges text or spacing and is
+  never met by shrinking type, clipping or fixing a height. `Columns` are twelve tracks (`2`, `3`, `4`, `7-5`, `5-7`, `8-4`, `4-8`, or an item's own span):
+  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component at 480 on
+  its own width); 900 and 1280 are not adopted.
 
 ## Engineering rules
 

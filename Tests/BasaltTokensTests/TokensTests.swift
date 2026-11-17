@@ -48,6 +48,17 @@ final class TokensTests: XCTestCase {
     check(Basalt.Colors.borderFocus, atLeast: 3, "border-focus")
   }
 
+  /// More contrast (decisions 138 and 139): three aliases and no new colour, each holding its contrast on every surface in both themes.
+  func testMoreContrastAliasesAreTheColoursTheyNameAndHold() {
+    XCTAssertEqual(Basalt.Colors.lineContrast, Basalt.Colors.borderInput)
+    XCTAssertEqual(Basalt.Colors.inkContrast, Basalt.Colors.textSecondary)
+    XCTAssertEqual(Basalt.Colors.fieldContrast, Basalt.Colors.textSecondary)
+    XCTAssertEqual(Basalt.Colors.borderField, Basalt.Colors.borderInput, "outside the mode a field's boundary is the input boundary")
+    check(Basalt.Colors.lineContrast, atLeast: 3, "line-contrast")
+    check(Basalt.Colors.fieldContrast, atLeast: 3, "field-contrast")
+    check(Basalt.Colors.inkContrast, atLeast: 4.5, "ink-contrast")
+  }
+
   func testSyntaxMeetsAA() {
     check(Basalt.Colors.syntaxKeyword, atLeast: 4.5, "syntax-keyword")
     check(Basalt.Colors.syntaxString, atLeast: 4.5, "syntax-string")
@@ -85,6 +96,18 @@ final class TokensTests: XCTestCase {
     XCTAssertEqual(Basalt.TypeScale.base, .init(size: 14, lineHeight: 20, tracking: 0))
     XCTAssertEqual(Basalt.Duration.fast, 0.1)
     XCTAssertEqual(Basalt.Easing.out.y1, 1, "entries settle without overshoot")
+  }
+
+  /// The display steps, the roles' phone values and the section gaps (DECISIONS 137): the ten shipped steps do not change.
+  func testDisplayTypeAndPageRhythm() {
+    XCTAssertEqual(Basalt.TypeScale.xl5, .init(size: 56, lineHeight: 60, tracking: -0.035))
+    XCTAssertEqual(Basalt.TypeScale.xl6, .init(size: 72, lineHeight: 76, tracking: -0.04))
+    XCTAssertEqual(Basalt.TypeScale.xl7, .init(size: 96, lineHeight: 96, tracking: -0.045))
+    XCTAssertEqual(Basalt.TypeScale.heroNarrow, .init(size: 44, lineHeight: 48, tracking: -0.03))
+    XCTAssertEqual(Basalt.TypeScale.displayNarrow, .init(size: 36, lineHeight: 40, tracking: -0.025))
+    XCTAssertEqual(Basalt.Space.s32, 128)
+    XCTAssertEqual([Basalt.Size.sectionGap, Basalt.Size.sectionGapMd, Basalt.Size.sectionGapNarrow], [128, 96, 64])
+    XCTAssertEqual(Basalt.Size.displayMeasure, 13, "a number of ems")
   }
 
   func testFontsAreBundled() {

@@ -85,8 +85,8 @@
         "$description": "The fill of a keyboard-key chip. No border. Text on it is text-secondary, or text-primary on a hover or selected wash."
       },
       "chrome": {
-        "$value": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.85 },
-        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #000, at 85%, over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
+        "$value": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.925 },
+        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #000, at 92.5% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
       },
       "placeholder": {
         "$value": "{color.neutral.9}",
@@ -130,7 +130,7 @@
       },
       "hover": {
         "$value": "{color.white.24}",
-        "$description": "The hairline of a hovered control: one step brighter, never a colour."
+        "$description": "The hairline of a hovered control: one step brighter, never a colour. Under more contrast it is text-secondary, so a hovered edge is never fainter than the edge at rest."
       },
       "divider": {
         "$value": "{color.white.6}",
@@ -139,6 +139,10 @@
       "input": {
         "$value": "{color.white.38}",
         "$description": "Input boundaries: 3:1 or better on every surface (WCAG 1.4.11)."
+      },
+      "field": {
+        "$value": "{color.border.input}",
+        "$description": "A field's boundary (an input, a select, a number field, a choice box, a switch): the input boundary. Under more contrast it steps to text-secondary (field-contrast), so a field keeps the strongest line."
       },
       "focus": {
         "$value": "{color.neutral.63}",
@@ -215,6 +219,18 @@
       "axis": {
         "$value": "{color.text.tertiary}",
         "$description": "A chart's axis labels and the words for a gap."
+      },
+      "lit-top": {
+        "$value": "{color.neutral.100}",
+        "$description": "The lightest stop of a lit mark's vertical gradient, at the top of the plot, and a lit line's one stroke. 3:1 on levels 0 to 3 and on the picked day's plate (DECISIONS 153, vote 1)."
+      },
+      "lit-mid": {
+        "$value": "{color.neutral.64}",
+        "$description": "The middle stop of a lit mark's gradient, 55% of the way down the plot. 3:1 on levels 0 to 3."
+      },
+      "lit-base": {
+        "$value": "{color.neutral.52}",
+        "$description": "The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3."
       }
     },
     "art": {
@@ -246,6 +262,18 @@
         "$value": "{color.art.tone-2}",
         "$description": "In a quiet zone no pixel is lighter (dark) or darker (light) than this: the stage's headroom under the bar, and each data-quiet zone. Primary and secondary text and the focus ring hold their contrast on it."
       }
+    },
+    "line-contrast": {
+      "$value": "{color.white.38}",
+      "$description": "More contrast, lines: a hairline, a divider, a rim and the pill's hairline are drawn in the input boundary's value (border-input), 3:1 or better on every surface. An alias, no new colour. Used only when a person asks for more contrast (prefers-contrast: more; colorSchemeContrast .increased)."
+    },
+    "ink-contrast": {
+      "$value": "{color.neutral.63}",
+      "$description": "More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour."
+    },
+    "field-contrast": {
+      "$value": "{color.neutral.63}",
+      "$description": "More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour."
     },
     "scrim": {
       "$value": "{color.black.80}",
@@ -296,50 +324,6 @@
         }
       ],
       "$description": "Secondary buttons, avatars and the current page: a translucent line backed by the page colour. Panels use the rim, not this.",
-      "$type": "shadow"
-    },
-    "pill": {
-      "$value": [
-        {
-          "color": "{color.white.15}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 0,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 0,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 1,
-            "unit": "px"
-          }
-        },
-        {
-          "color": "{color.black.40}",
-          "offsetX": {
-            "value": 0,
-            "unit": "px"
-          },
-          "offsetY": {
-            "value": 1,
-            "unit": "px"
-          },
-          "blur": {
-            "value": 2,
-            "unit": "px"
-          },
-          "spread": {
-            "value": 0,
-            "unit": "px"
-          }
-        }
-      ],
-      "$description": "A selected segment, raised from its track.",
       "$type": "shadow"
     },
     "overlay": {

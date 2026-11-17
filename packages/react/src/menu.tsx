@@ -1,7 +1,8 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import { CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
+import { CheckGlyph } from "./glyphs/check";
+import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
@@ -159,7 +160,7 @@ export interface MenuCheckboxItemProps extends MenuRowProps {
 export function MenuCheckboxItem({ className, children, description, ...props }: MenuCheckboxItemProps) {
   return (
     <BaseMenu.CheckboxItem {...props} data-described={description ? "" : undefined} data-lead="" className={withClass("basalt-menu-item", className)}>
-      <span className="basalt-menu-check"><BaseMenu.CheckboxItemIndicator><Icon icon={CheckIcon} /></BaseMenu.CheckboxItemIndicator></span>
+      <span className="basalt-menu-check"><BaseMenu.CheckboxItemIndicator><Icon icon={CheckGlyph} /></BaseMenu.CheckboxItemIndicator></span>
       <span className="basalt-menu-item-label">{children}</span>
       {description ? <span className="basalt-menu-item-description">{description}</span> : null}
     </BaseMenu.CheckboxItem>
@@ -213,7 +214,7 @@ export function MenuSubmenuTrigger({ className, children, ...props }: MenuSubmen
   return (
     <BaseMenu.SubmenuTrigger {...props} className={withClass("basalt-menu-item basalt-menu-submenu-trigger", className)}>
       <span className="basalt-menu-item-label">{children}</span>
-      <Icon icon={CaretRightIcon} />
+      <Icon icon={ChevronRightGlyph} />
     </BaseMenu.SubmenuTrigger>
   );
 }

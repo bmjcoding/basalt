@@ -1,9 +1,12 @@
 import * as React from "react";
 
+import { entranceVerdict, markEntranceSeen, playEntrance } from "./entrance";
+import type { EntranceMark, EntranceRun } from "./entrance";
 import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, usePanelLevel } from "./layers";
 import { bezier, glideTiming, useReducedMotion } from "./motion";
+import { NumberTicker } from "./number-ticker";
 import { join } from "./utils";
 
 // A chart: a series over time, as lines or as bars (decision 101). Ink is the kind of value (primary observed, secondary planned,
@@ -72,7 +75,63 @@ export interface TimeChartProps extends Omit<React.ComponentProps<"figure">, "ch
    */
   now?: Date | number;
   locale?: string;
+  /**
+   * Makes this chart its page's one entrance (DECISIONS 136): on a first visit, at load, its marks draw once, each over `duration-figure`
+   * on `ease-out` and `duration-stagger` apart (a bar scales from its baseline, a solid line draws along its length, every other mark
+   * fades in). The title, the legend, the numbers, the axes, the table and every control are at rest in the first frame. A change of
+   * data mid-entrance takes over: every mark glides from where it is drawn over `duration-slow`, and the visit counts as seen.
+   * Drawn at rest on a second visit (stored for the page's path in `localStorage` when the entrance finishes or gives way), under
+   * reduced motion, under the root hold, in a hidden tab, on a page opened below its first screen, when the page's script started more
+   * than a second after navigation, and in print. One chart a page; nothing is armed by scrolling. Default false: a chart's first paint is at rest. `"replay"` plays the entrance whatever the page has seen and however late the script ran (a review page's Replay button; an app never needs it).
+   */
+  entrance?: boolean | "replay";
+  /**
+   * The lit marks (DECISIONS 153, vote 1): each solid mark (a bar, a marker) takes one vertical gradient in plot coordinates, the lightest stop at the top
+   * of the plot, so a taller mark reaches brighter ink; a line is one stroke in the top stop. Three neutral stops (`chart-lit-top`, `-mid`, `-base`), each 3:1
+   * on levels 0 to 3. No series takes a colour. Default false: a chart's marks are `chart-observed`, flat.
+   */
+  lit?: boolean;
+  /**
+   * The figure's frame with its number as the headline (DECISIONS 153, votes 7, 8 and 9): a 14/20 title with "View as table" in one 28px row, the picked day's
+   * number of the first series as the headline (`text-4xl` under 720px, `text-5xl` from it) in a seat as wide as its widest form, the unit beside it, and one
+   * context line. It replaces the legend rows, so give it one series. The number glides over `duration-slow` when a day is picked; there is no live region (focus
+   * is the announcement). The legend of a chart that does not set this is unchanged, and so are its reserved widths.
+   */
+  headline?: boolean;
+  /** How the headline is written, without its unit (the unit stands beside it). Default: the number as it is, with the decimals it has. */
+  headlineFormat?: (value: number) => string;
+  /**
+   * A line of one series, with its trailing mean as the lit line (DECISIONS 153, votes 2 to 5): each reading is a small dot (`size-track`, tertiary ink), the trend
+   * is one straight 2px line that breaks at a gap, the picked day is one head dot on the line (`size-chart-mark` ringed `size-cut`), with no area under the line and no
+   * plate. The number is the trend on the picked day. `true` is a 7-day window; a number sets the window. Needs `kind="line"`, and sets `headline`.
+   */
+  trend?: boolean | number;
+  /** The plot's height: `"md"` is 240px (`size-chart-plot`, the default); `"sm"` is the one second, shorter height, 96px (`size-chart-plot-sm`, DECISIONS 153, vote 11). */
+  plotSize?: "md" | "sm";
+  /**
+   * The short bar plot (DECISIONS 160: the owner chose the ballot's vote 10 option (a), a short `TimeChart kind="bar"`): with `kind="bar"` and `plotSize="sm"` the plot draws no
+   * gridlines, no y labels and no gutter for them, so it takes the figure's width. Everything else is `TimeChart` as it ships: one series, square-ended bars at the 60%-of-the-day rule,
+   * zero draws no bar, a day not observed is the hatch with its reason in words, the baseline at zero, the x labels, the legend that is the readout, the keys and their hint, "View as table"
+   * and the required summary. The values are in the legend, the day's sentence and the table, so the plot needs no scale of its own; use it where a `Sparkline` is too little (a line and one
+   * number) and a full chart too much. Ignored for a line chart, for `plotSize="md"` and (as for any bar chart) past the first series: no look was decided for those.
+   */
+  compact?: boolean;
+  /**
+   * A lane under the plot on its own axis, and the plate behind an open span of days across both (the phase chart's calls, DECISIONS 153, votes 16 and 17).
+   * `span` is the first and last day (inclusive) of the open span; `children` draws the lane from the plot's geometry, in the width from the plot's first day to its last.
+   * The plate is one element that glides to a new span over `duration-slow` on `ease-out`, and axis labels under it take secondary ink.
+   */
+  lane?: { span: readonly [number, number]; children: (geometry: ChartLaneGeometry) => React.ReactNode; below?: (geometry: ChartLaneGeometry) => React.ReactNode };
+  /**
+   * Pressing a day, or Enter on the focused day, calls this with its index (the phase chart opens that day's week). A day stays an image with a roving tab stop; a
+   * pointer still only picks. `activateHint` says what Enter does, in the key legend ("opens the week").
+   */
+  onDayActivate?: (index: number) => void;
+  activateHint?: string;
 }
+
+/** What a lane under a chart's plot needs: the plot's days, and the width from its first day to its last, which the lane spans. */
+export interface ChartLaneGeometry { days: number; width: number; slot: number; narrow: boolean }
 
 // ---- Small pure helpers ----
 
@@ -100,6 +159,24 @@ const isoOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const shapeOf = (text: string) => text.replace(/\d/g, "0");
 const unique = <T,>(list: T[]) => [...new Set(list)];
 const nearly = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
+/**
+ * The trailing mean of a run of readings (the trend of a line, DECISIONS 153, D7a): for each day, the mean of the readings in the `window` days ending on it.
+ * A day has no trend until `min` readings (3, or the window if it is shorter) are in its window; one missing day between two readings keeps its trend, and two or
+ * more in a row stop it. No readings, or one day, are fine: the result is `null`s, never NaN or Infinity.
+ */
+export function trailingMean(values: ReadonlyArray<number | null | undefined>, { window = 7, min = 3 }: { window?: number; min?: number } = {}): Array<number | null> {
+  const span = Math.max(1, Math.floor(window));
+  const need = Math.max(1, Math.min(Math.floor(min), span));
+  const has = (i: number) => typeof values[i] === "number" && Number.isFinite(values[i]);
+  return values.map((_, i) => {
+    let sum = 0;
+    let count = 0;
+    for (let k = Math.max(0, i - span + 1); k <= i; k++) if (has(k)) { sum += values[k] as number; count++; }
+    const alone = has(i) || (has(i - 1) && has(i + 1));
+    return count >= need && alone ? sum / count : null;
+  });
+}
 
 interface Run { from: number; to: number; key: string }
 function runs(from: number, to: number, keyOf: (index: number) => string): Run[] {
@@ -200,20 +277,20 @@ const sameSnapshot = (a: Snapshot, b: Snapshot) =>
 // ---- Metrics: tokens and text, measured in the browser ----
 
 interface Metrics {
-  mark: number; cut: number; line: number; hair: number; pitch: number; barMax: number; barMin: number; plot: number;
+  mark: number; cut: number; line: number; track: number; hair: number; pitch: number; barMax: number; barMin: number; plot: number;
   s1: number; s2: number; lineH: number; container: number; dash: number; dashGap: number;
 }
 
-function readMetrics(element: HTMLElement): Metrics {
+function readMetrics(element: HTMLElement, small = false): Metrics {
   const style = getComputedStyle(element);
   const px = (name: string, fallback: number) => {
     const value = parseFloat(style.getPropertyValue(name));
     return Number.isFinite(value) ? value : fallback;
   };
   return {
-    mark: px("--basalt-size-chart-mark", 8), cut: px("--basalt-size-cut", 2), line: px("--basalt-size-chart-line", 2), hair: px("--basalt-size-hairline", 1),
+    mark: px("--basalt-size-chart-mark", 8), cut: px("--basalt-size-cut", 2), line: px("--basalt-size-chart-line", 2), track: px("--basalt-size-track", 4), hair: px("--basalt-size-hairline", 1),
     pitch: px("--basalt-size-hatch-pitch", 4), barMax: px("--basalt-size-chart-bar-max", 24), barMin: px("--basalt-size-chart-bar-min", 2),
-    plot: px("--basalt-size-chart-plot", 240), s1: px("--basalt-space-1", 4), s2: px("--basalt-space-2", 8), lineH: px("--basalt-text-xs-line-height", 16),
+    plot: small ? px("--basalt-size-chart-plot-sm", 96) : px("--basalt-size-chart-plot", 240), s1: px("--basalt-space-1", 4), s2: px("--basalt-space-2", 8), lineH: px("--basalt-text-xs-line-height", 16),
     container: px("--basalt-size-breakpoint-container", 480), dash: px("--basalt-size-chart-dash", 6), dashGap: px("--basalt-size-chart-dash-gap", 4),
   };
 }
@@ -269,12 +346,16 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,
-  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", className, ...props
+  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", entrance = false, lit = false, headline = false, headlineFormat, trend, plotSize = "md", compact = false, lane, onDayActivate, activateHint, className, ...props
 }: TimeChartProps) {
   // The hint legend is hidden on touch until a hardware key is pressed; this asks for the same reveal the shortcut chips use.
   useShortcutsVisible();
   const bar = kind === "bar";
-  const series = React.useMemo(() => allSeries.slice(0, bar ? 1 : 3), [allSeries, bar]);
+  const trendWindow = !bar && trend ? (typeof trend === "number" ? Math.max(1, Math.floor(trend)) : 7) : null;
+  // The frame with its headline reads one number, so it takes one series.
+  const framed = headline || trendWindow !== null;
+  const series = React.useMemo(() => allSeries.slice(0, bar || framed ? 1 : 3), [allSeries, bar, framed]);
+  const trendNow = React.useMemo(() => (trendWindow ? trailingMean(series[0]?.values ?? [], { window: trendWindow }) : null), [series, trendWindow]);
   const n = days.length;
   const id = React.useId().replace(/:/g, "");
   const titleId = `${id}-title`;
@@ -309,6 +390,7 @@ export function TimeChart({
 
   // ---- The glide: a value that changes in place travels with the scale; a new range fades in ----
   const [motion, setMotion] = React.useState<{ from: Snapshot; progress: number } | null>(null);
+  const entranceRun = React.useRef<EntranceRun | null>(null);
   const drawnRef = React.useRef(targetSnap);
   const previousRef = React.useRef({ snap: targetSnap, dayKey });
   const [range, setRange] = React.useState({ key: dayKey, serial: 0 });
@@ -317,8 +399,11 @@ export function TimeChart({
     // Before paint, so the frame that has the new values already starts from what was on screen.
     const before = previousRef.current;
     previousRef.current = { snap: targetSnap, dayKey };
-    if (before.dayKey !== dayKey || reduced) { setMotion(null); drawnRef.current = targetSnap; return undefined; }
+    if (before.dayKey !== dayKey || reduced) { entranceRun.current?.rest(); setMotion(null); drawnRef.current = targetSnap; return undefined; }
     if (sameSnapshot(before.snap, targetSnap)) return undefined;
+    // Input wins: a change of data mid-entrance takes over, and every mark glides from where it is drawn (the entrance's own yield),
+    // while the values glide on the same clock.
+    entranceRun.current?.yield();
     const from = drawnRef.current;
     const { duration, curve } = glideTiming();
     const start = performance.now();
@@ -349,13 +434,13 @@ export function TimeChart({
     if (!plot) return undefined;
     const update = () => {
       const width = plot.clientWidth;
-      setFrame((current) => (current && Math.abs(current.width - width) < 0.5 ? current : { width, metrics: current?.metrics ?? readMetrics(plot) }));
+      setFrame((current) => (current && Math.abs(current.width - width) < 0.5 ? current : { width, metrics: current?.metrics ?? readMetrics(plot, plotSize === "sm") }));
     };
-    setFrame({ width: plot.clientWidth, metrics: readMetrics(plot) });
+    setFrame({ width: plot.clientWidth, metrics: readMetrics(plot, plotSize === "sm") });
     const observer = new ResizeObserver(update);
     observer.observe(plot);
     return () => observer.disconnect();
-  }, []);
+  }, [plotSize]);
   React.useEffect(() => {
     // Text is measured with the real face; once it loads, measure again.
     let live = true;
@@ -387,6 +472,12 @@ export function TimeChart({
   const picked = focusWithin ? stop : pinned ?? hover;
   const active = picked !== null && picked >= 0 && picked < n ? picked : null;
   const shown = active ?? n - 1;
+  // The headline's day: the latest, or (for a trend) the latest day that has one. A day with none is "—", never a zero.
+  const homeDay = trendNow ? Math.max(0, trendNow.reduce<number>((last, value, i) => (value == null ? last : i), -1)) : n - 1;
+  const headDay = active ?? Math.min(homeDay, Math.max(n - 1, 0));
+  // The headline is written with the decimals the readings have (a trend's mean has many more, and is not more exact than what it averages).
+  const headDecimals = React.useMemo(() => Math.max(0, ...(series[0]?.values ?? []).map((v) => (typeof v === "number" && Number.isFinite(v) ? decimalsOf(v) : 0))), [series]);
+  const headValue = (i: number) => (trendNow ? trendNow[i] ?? null : series[0]?.values[i] ?? null);
 
   React.useEffect(() => {
     if (pinned === null) return undefined;
@@ -397,7 +488,8 @@ export function TimeChart({
   }, [pinned]);
 
   // ---- The model: everything drawn comes from here ----
-  const natural = frame && n > 0 ? naturalSizes({ frame, measure, series, plan, bar, scale: target, formatTick, unit }) : null;
+  const bare = compact && bar && plotSize === "sm";
+  const natural = frame && n > 0 ? naturalSizes({ frame, measure, series, plan, bar, scale: target, formatTick, unit, bare }) : null;
   const reportGutter = natural?.gutter;
   const reportRight = natural?.right;
   React.useLayoutEffect(() => {
@@ -406,12 +498,45 @@ export function TimeChart({
     return () => group.report(id, null);
   }, [group?.report, id, reportGutter, reportRight]);
   const layout = frame && natural && n > 0
-    ? buildLayout({ frame, measure, series, plan, bar, n, scale: target, drawn, formatTick, unit, natural, shared: group?.shared })
+    ? buildLayout({ frame, measure, series, plan, bar, n, scale: target, drawn, formatTick, unit, natural, bare, shared: group?.shared })
     : null;
+  // ---- The entrance: this chart is its page's one, when it asks to be ----
+  const drawnOnce = layout !== null;
+  const entranceDecided = React.useRef(false);
+  React.useLayoutEffect(() => {
+    if (!entrance || !drawnOnce || entranceDecided.current) return undefined;
+    const plot = plotRef.current;
+    const svg = plot?.querySelector<SVGSVGElement>(".basalt-chart-svg");
+    if (!plot || !svg) return undefined;
+    entranceDecided.current = true;
+    if (entranceVerdict(plot, undefined, entrance === "replay") !== "play") return undefined;
+    const marks: EntranceMark[] = [];
+    svg.querySelectorAll<SVGElement>(".basalt-chart-bar, .basalt-chart-plan, .basalt-chart-band, .basalt-chart-band-edge, .basalt-chart-line, .basalt-chart-ring, .basalt-chart-mark, .basalt-chart-reading").forEach((element) => {
+      if (element.matches(".basalt-chart-bar")) marks.push({ element, kind: "bar", below: element.hasAttribute("data-below") });
+      else if (element.matches(".basalt-chart-line:not([data-dash=\"dash\"]):not([data-dash=\"dot\"])")) marks.push({ element, kind: "line" });
+      else marks.push({ element, kind: "fade" });
+    });
+    if (!marks.length) { markEntranceSeen(); return undefined; }
+    const run = playEntrance(marks, () => markEntranceSeen());
+    entranceRun.current = run;
+    // The root hold arriving mid-entrance, or printing beginning, draws the figure at rest at once, with no new animation, and settles any glide a data change handed the marks to.
+    const watch = new MutationObserver(() => { if (document.documentElement.getAttribute("data-loops") === "held") run.rest(); });
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-loops"] });
+    // Two signals, because the two ways of printing give different ones: emulated or changed print media fires the media query's change, and the browser's own print
+    // path fires `beforeprint` and no change (it lays the page out for the printer without changing what `matchMedia` says). Either settles the figure at once.
+    const printing = window.matchMedia("print");
+    const onPrint = () => { if (printing.matches) run.rest(); };
+    const beforePrint = () => run.rest();
+    printing.addEventListener("change", onPrint);
+    window.addEventListener("beforeprint", beforePrint);
+    const stopWatching = () => { watch.disconnect(); printing.removeEventListener("change", onPrint); window.removeEventListener("beforeprint", beforePrint); };
+    run.settled.then(() => { stopWatching(); if (entranceRun.current === run) entranceRun.current = null; });
+    return () => { stopWatching(); run.cancel(); if (entranceRun.current === run) entranceRun.current = null; entranceDecided.current = false; };
+  }, [entrance, drawnOnce]);
   const dayLabel = (i: number) => formats.short.format(at(stamps, i));
   const gaps = React.useMemo(() => gapsOf(series, n, motion?.from, progress), [series, n, motion?.from, progress]);
 
-  const pointerDay = (event: React.PointerEvent) => {
+  const pointerDay = (event: { clientX: number }) => {
     if (!layout || !plotRef.current) return null;
     const x = event.clientX - plotRef.current.getBoundingClientRect().left;
     if (x < layout.x0 || x > layout.x1) return null;
@@ -429,6 +554,7 @@ export function TimeChart({
     else if (event.key === "PageUp") to = index - 7;
     else if (event.key === "Home") to = 0;
     else if (event.key === "End") to = n - 1;
+    else if (event.key === "Enter" && onDayActivate) { event.preventDefault(); onDayActivate(index); return; }
     else return;
     event.preventDefault();
     to = clamp(to, 0, n - 1);
@@ -440,112 +566,199 @@ export function TimeChart({
   const todayIso = isoOf(now === undefined ? Date.now() : new Date(now).getTime());
   const lastIsToday = days[n - 1] === todayIso;
   const sentences = React.useMemo(
-    () => stamps.map((_, i) => daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp: at(stamps, i), planLabel: plan?.label ?? "Plan", today: lastIsToday })),
-    [stamps, series, plan, partial, partialSuffix, say, formats, n, lastIsToday],
+    () => stamps.map((_, i) => daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp: at(stamps, i), planLabel: plan?.label ?? "Plan", today: lastIsToday, trend: trendNow, trendLabel: `${trendWindow}-day trend` })),
+    [stamps, series, plan, partial, partialSuffix, say, formats, n, lastIsToday, trendNow, trendWindow],
   );
 
+  // The headline frame's one context line: the day, then what sits beside the number (the trend's change and the reading; a plan; why a day has none).
+  const contextText = (i: number, latest: boolean) => {
+    const first = series[0];
+    const v = first?.values[i] ?? null;
+    const parts = [`${latest ? "Latest · " : ""}${formats.withDay.format(at(stamps, i))}`];
+    if (v == null) parts.push(first?.reasons?.[i] ? `${NOT_OBSERVED} · ${first.reasons[i]}` : NOT_OBSERVED);
+    if (trendNow) {
+      const t = trendNow[i];
+      const from = trendNow.findIndex((x) => x != null);
+      if (t != null && from >= 0 && trendNow[from] != null && from !== i) {
+        const delta = t - (trendNow[from] as number);
+        parts.push(nearly(delta, 0) ? `no change since ${formats.short.format(at(stamps, from))}` : `${delta > 0 ? "+" : "−"}${format(Math.abs(delta))} since ${formats.short.format(at(stamps, from))}`);
+      } else if (t == null && v != null) parts.push("too few days for a trend");
+      if (v != null) parts.push(`reading ${format(v)}`);
+    } else {
+      if (v != null && i === partial) parts.push(partialSuffix);
+      const p = plan?.values[i];
+      if (plan && p != null) parts.push(`${plan.label ?? "Plan"} ${planText(plan, p, format, formatPlan)}`);
+    }
+    // A number and its unit stay together when the line wraps: a space between a digit and a word that follows it is a no-break space.
+    return parts.join(" · ").replace(/(\d)[ ]+(?=\p{L})/gu, "$1\u00a0");
+  };
+
   const Heading = `h${heading}` as const;
+  const toggle = (
+    <button
+      type="button"
+      className="basalt-button basalt-chart-toggle"
+      data-variant="secondary"
+      data-size="sm"
+      aria-expanded={open}
+      aria-controls={tableId}
+      onClick={() => setOpen((value) => !value)}
+    >
+      <span className="basalt-button-label">{open ? "Hide the table" : "View as table"}</span>
+    </button>
+  );
+  const plotBlock = (
+    <div
+      ref={plotRef}
+      className="basalt-chart-plot"
+      style={layout ? { height: layout.height } : undefined}
+      onClick={onDayActivate ? (event) => { const day = pointerDay(event); if (day !== null) onDayActivate(day); } : undefined}
+      onPointerMove={(event) => {
+        // A finger only moves while it is down: it scrubs, and the day it reaches is held until a tap outside.
+        if (event.pointerType === "touch") { if (event.buttons !== 0) setPinned(pointerDay(event)); return; }
+        setHover(pointerDay(event));
+      }}
+      onPointerDown={(event) => {
+        const day = pointerDay(event);
+        if (event.pointerType === "touch") setPinned(day);
+        else setHover(day);
+      }}
+      onPointerLeave={(event) => { if (event.pointerType !== "touch") setHover(null); }}
+    >
+      <span ref={rulerRef} className="basalt-chart-ruler" aria-hidden="true" />
+      {layout ? (
+        <ChartSvg
+          key={range.serial}
+          entering={range.serial > 0}
+          idBase={id} layout={layout} series={series} plan={plan} bar={bar} n={n} drawn={drawn} active={active} partial={partial}
+          gaps={gaps} stamps={stamps} formats={formats} dayLabel={dayLabel} metrics={frame!.metrics} measure={measure} unit={unit} formatTick={formatTick}
+          planLabel={plan?.label ?? "Plan"} lit={lit} plated={lane?.span ?? null}
+          trend={trendWindow !== null ? trailingMean(drawn.series[0] ?? [], { window: trendWindow }) : null} headDay={trendNow ? headDay : null}
+        />
+      ) : null}
+      {layout ? (
+        <div
+          role="group"
+          aria-roledescription="chart"
+          aria-labelledby={titleId}
+          aria-describedby={`${captionId} ${keysId}`}
+          className="basalt-chart-days"
+          onKeyDown={onKeyDown}
+          onFocus={(event) => {
+            const index = Number((event.target as HTMLElement).dataset.i);
+            if (Number.isInteger(index)) { setFocusDay(index); setFocusWithin(true); }
+          }}
+          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false); }}
+        >
+          {Array.from({ length: n }, (_, i) => (
+            <div
+              key={i}
+              ref={(element) => { dayRefs.current[i] = element; }}
+              role="img"
+              tabIndex={i === stop ? 0 : -1}
+              aria-label={sentences[i]}
+              data-i={i}
+              data-active={active === i ? "" : undefined}
+              className="basalt-chart-day"
+              style={{ left: layout.x0 + i * layout.slot, top: layout.top, width: layout.slot, height: layout.plotH }}
+            />
+          ))}
+        </div>
+      ) : null}
+      <span id={keysId} className="basalt-visually-hidden">Arrow keys move a day, Page Up and Page Down a week, Home and End to the ends.{onDayActivate && activateHint ? ` Enter ${activateHint}.` : ""}</span>
+    </div>
+  );
   return (
     <figure
       {...props}
       aria-labelledby={titleId}
       data-kind={kind}
+      data-plot={plotSize === "sm" ? "sm" : undefined}
+      data-compact={bare ? "" : undefined}
       data-narrow={layout?.narrow ? "" : undefined}
+      data-headline={framed ? "" : undefined}
+      data-lit={lit ? "" : undefined}
+      data-trend={trendWindow !== null ? "" : undefined}
       className={join("basalt-chart", className)}
     >
-      <div className="basalt-chart-head">
+      <div className="basalt-chart-head" data-frame={framed ? "" : undefined}>
         <Heading id={titleId} className="basalt-chart-title">{title}</Heading>
+        {framed ? toggle : null}
         {source ? <p className="basalt-chart-source">{source}</p> : null}
       </div>
-      <Readout
-        series={series} plan={plan} bar={bar} n={n} shown={shown} active={active} partial={partial} partialLabel={partialLabel} partialSuffix={partialSuffix}
-        format={format} formatPlan={formatPlan} formats={formats} stamps={stamps} idBase={id}
-      />
-      <div
-        ref={plotRef}
-        className="basalt-chart-plot"
-        style={layout ? { height: layout.height } : undefined}
-        onPointerMove={(event) => {
-          // A finger only moves while it is down: it scrubs, and the day it reaches is held until a tap outside.
-          if (event.pointerType === "touch") { if (event.buttons !== 0) setPinned(pointerDay(event)); return; }
-          setHover(pointerDay(event));
-        }}
-        onPointerDown={(event) => {
-          const day = pointerDay(event);
-          if (event.pointerType === "touch") setPinned(day);
-          else setHover(day);
-        }}
-        onPointerLeave={(event) => { if (event.pointerType !== "touch") setHover(null); }}
-      >
-        <span ref={rulerRef} className="basalt-chart-ruler" aria-hidden="true" />
-        {layout ? (
-          <ChartSvg
-            key={range.serial}
-            entering={range.serial > 0}
-            idBase={id} layout={layout} series={series} plan={plan} bar={bar} n={n} drawn={drawn} active={active} partial={partial}
-            gaps={gaps} stamps={stamps} formats={formats} dayLabel={dayLabel} metrics={frame!.metrics} measure={measure} unit={unit} formatTick={formatTick}
-            planLabel={plan?.label ?? "Plan"}
-          />
-        ) : null}
-        {layout ? (
-          <div
-            role="group"
-            aria-roledescription="chart"
-            aria-labelledby={titleId}
-            aria-describedby={`${captionId} ${keysId}`}
-            className="basalt-chart-days"
-            onKeyDown={onKeyDown}
-            onFocus={(event) => {
-              const index = Number((event.target as HTMLElement).dataset.i);
-              if (Number.isInteger(index)) { setFocusDay(index); setFocusWithin(true); }
-            }}
-            onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false); }}
-          >
-            {Array.from({ length: n }, (_, i) => (
-              <div
-                key={i}
-                ref={(element) => { dayRefs.current[i] = element; }}
-                role="img"
-                tabIndex={i === stop ? 0 : -1}
-                aria-label={sentences[i]}
-                data-i={i}
-                data-active={active === i ? "" : undefined}
-                className="basalt-chart-day"
-                style={{ left: layout.x0 + i * layout.slot, top: layout.top, width: layout.slot, height: layout.plotH }}
-              />
-            ))}
-          </div>
-        ) : null}
-        <span id={keysId} className="basalt-visually-hidden">Arrow keys move a day, Page Up and Page Down a week, Home and End to the ends.</span>
-      </div>
+      {framed ? (
+        <Headline
+          value={headValue(headDay)} unit={unit} format={headlineFormat} decimals={headDecimals} locale={locale}
+          forms={unique(Array.from({ length: n }, (_, k) => { const v = headValue(k); return v == null ? "—" : shapeOf((headlineFormat ?? ((x: number) => fixedNumber(x, headDecimals, locale)))(v)); }))}
+          context={contextText(headDay, active === null && headDay === homeDay)}
+          contextForms={unique(Array.from({ length: n }, (_, k) => shapeOf(contextText(k, k === homeDay))))}
+        />
+      ) : (
+        <Readout
+          series={series} plan={plan} bar={bar} n={n} shown={shown} active={active} partial={partial} partialLabel={partialLabel} partialSuffix={partialSuffix}
+          format={format} formatPlan={formatPlan} formats={formats} stamps={stamps} idBase={id}
+        />
+      )}
+      {lane ? (
+        <div className="basalt-chart-body">
+          {layout ? <i className="basalt-chart-span" aria-hidden="true" style={{ left: layout.x0 + lane.span[0] * layout.slot, width: (lane.span[1] - lane.span[0] + 1) * layout.slot, top: layout.top - layout.metrics.s1 }} /> : null}
+          {plotBlock}
+          {layout ? <div className="basalt-chart-lane-slot" style={{ marginInlineStart: layout.x0, width: layout.x1 - layout.x0 }}>{lane.children({ days: n, width: layout.x1 - layout.x0, slot: layout.slot, narrow: layout.narrow })}</div> : null}
+        </div>
+      ) : plotBlock}
+      {lane?.below && layout ? lane.below({ days: n, width: layout.x1 - layout.x0, slot: layout.slot, narrow: layout.narrow }) : null}
       <p className="basalt-chart-hint" data-kbd-hint="" aria-hidden="true">
         <span><Kbd>←</Kbd> <Kbd>→</Kbd> a day</span>
         <span><Kbd>PgUp</Kbd> <Kbd>PgDn</Kbd> a week</span>
         <span><Kbd>Home</Kbd> <Kbd>End</Kbd> the ends</span>
+        {onDayActivate && activateHint ? <span><Kbd>Enter</Kbd> {activateHint}</span> : null}
       </p>
-      <div className="basalt-chart-foot">
-        <button
-          type="button"
-          className="basalt-button basalt-chart-toggle"
-          data-variant="secondary"
-          data-size="sm"
-          aria-expanded={open}
-          aria-controls={tableId}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <span className="basalt-button-label">{open ? "Hide the table" : "View as table"}</span>
-        </button>
-      </div>
+      {framed ? null : <div className="basalt-chart-foot">{toggle}</div>}
       <div id={tableId} className="basalt-chart-table" hidden={!open}>
         {open ? (
           <ChartTable
             title={title} series={series} plan={plan} n={n} stamps={stamps} formats={formats} partial={partial} partialSuffix={partialSuffix}
-            format={format} formatPlan={formatPlan}
+            format={format} formatPlan={formatPlan} trend={trendNow} trendLabel={`${trendWindow}-day trend`}
           />
         ) : null}
       </div>
       <figcaption id={captionId} className="basalt-chart-summary">{summary}</figcaption>
     </figure>
+  );
+}
+
+// ---- The headline frame's number ----
+
+/** The decimals a number is written with, and a number written with exactly that many. Built when called, not when the module loads. */
+const decimalsOf = (value: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 6, useGrouping: false }).format(value).split(".")[1]?.length ?? 0;
+/** A number written with exactly `decimals` decimals, in the chart's own locale (the context line's): the decimal mark and the grouping are the reader's. */
+const fixedNumber = (value: number, decimals: number, locale?: string) => new Intl.NumberFormat(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+
+interface HeadlineProps {
+  value: number | null; unit: string | undefined; format: ((value: number) => string) | undefined; decimals: number; locale: string; forms: string[]; context: string; contextForms: string[];
+}
+
+/**
+ * The number as the headline and the legend at once (DECISIONS 153, votes 7 and 9). The number and the context line each reserve the widest and tallest of
+ * their forms (digits as zeros: the numerals are tabular), so a picked day moves nothing; the number glides over `duration-slow`, and its real value is in
+ * the text from the first frame. There is no live region: moving focus to a day is the announcement.
+ */
+function Headline({ value, unit, format, decimals, locale, forms, context, contextForms }: HeadlineProps) {
+  const write = format ?? ((shown: number) => fixedNumber(shown, decimals, locale));
+  return (
+    <div className="basalt-chart-readout">
+      <p className="basalt-chart-headline">
+        <span className="basalt-chart-seat">
+          {forms.map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
+          {value == null ? <span data-missing="">—</span> : <NumberTicker glide value={value} format={write} />}
+        </span>
+        {unit ? <span className="basalt-chart-unit">{unit}</span> : null}
+      </p>
+      <p className="basalt-chart-context">
+        {contextForms.map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
+        <span>{context}</span>
+      </p>
+    </div>
   );
 }
 
@@ -694,12 +907,14 @@ function Marker({ shape, x, y, half, className, grow = 0, hollow = false, line =
 interface LayoutInput {
   frame: Frame; measure: (text: string, weight?: number) => number; series: ChartSeries[]; plan: ChartPlan | undefined; bar: boolean; n: number;
   scale: Scale; drawn: Snapshot; formatTick: ((value: number) => string) | undefined; unit: string | undefined;
+  /** The short bar plot: no gridlines, no y labels and no gutter for them. */
+  bare?: boolean;
 }
 
 interface Layout {
   width: number; height: number; narrow: boolean; laneRows: number; x0: number; x1: number; top: number; plotH: number; bottom: number; slot: number;
   direct: boolean; ticks: number[]; tickText: (value: number, index: number) => string; y: (value: number) => number; cx: (i: number) => number; sx: (i: number) => number;
-  metrics: Metrics; lo: number; hi: number; barWidth: number;
+  metrics: Metrics; lo: number; hi: number; barWidth: number; bare: boolean;
 }
 
 const numberFormat = (locale?: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 6 });
@@ -712,18 +927,18 @@ const tickWriter = (scale: Scale, formatTick: LayoutInput["formatTick"], unit: s
 };
 
 /** The y gutter and right margin this chart needs on its own: the widest tick label, and the widest direct label. */
-function naturalSizes({ frame, measure, series, plan, bar, scale, formatTick, unit }: Pick<LayoutInput, "frame" | "measure" | "series" | "plan" | "bar" | "scale" | "formatTick" | "unit">): GroupSizes & { narrow: boolean; width: number } {
+function naturalSizes({ frame, measure, series, plan, bar, scale, formatTick, unit, bare }: Pick<LayoutInput, "frame" | "measure" | "series" | "plan" | "bar" | "scale" | "formatTick" | "unit" | "bare">): GroupSizes & { narrow: boolean; width: number } {
   const { metrics: m } = frame;
   const width = Math.max(frame.width, 240);
   const narrow = width < m.container;
   const { ticks, text } = tickWriter(scale, formatTick, unit);
-  const gutter = Math.ceil(Math.max(...ticks.map((t, k) => measure(text(t, k))))) + m.s2;
+  const gutter = bare ? 0 : Math.ceil(Math.max(...ticks.map((t, k) => measure(text(t, k))))) + m.s2;
   const direct = !bar && series.length > 1 && !narrow;
   const names = series.map((s) => s.name).concat(plan ? [plan.label ?? "Plan"] : []);
   return { gutter, right: direct ? Math.ceil(Math.max(...names.map((name) => measure(name)))) + 2 * m.s2 : m.s2, narrow, width };
 }
 
-function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, natural, shared }: LayoutInput & { natural: ReturnType<typeof naturalSizes>; shared: GroupSizes | undefined }): Layout {
+function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, natural, shared, bare = false }: LayoutInput & { natural: ReturnType<typeof naturalSizes>; shared: GroupSizes | undefined }): Layout {
   const { metrics: m } = frame;
   const { width, narrow } = natural;
   const { ticks, text: tickText } = tickWriter(scale, formatTick, unit);
@@ -737,7 +952,7 @@ function buildLayout({ frame, series, bar, n, scale, drawn, formatTick, unit, na
   const lo = drawn.lo;
   const hi = drawn.hi;
   return {
-    width, height: top + plotH + m.s2 + m.lineH, narrow, laneRows, x0, x1, top, plotH, bottom: top + plotH, slot, direct, ticks, tickText, metrics: m, lo, hi,
+    width, height: top + plotH + m.s2 + m.lineH, narrow, laneRows, x0, x1, top, plotH, bottom: top + plotH, slot, direct, ticks, tickText, metrics: m, lo, hi, bare,
     y: (value) => top + (1 - (value - lo) / (hi - lo)) * plotH,
     cx: (i) => x0 + (i + 0.5) * slot,
     sx: (i) => x0 + i * slot,
@@ -765,11 +980,13 @@ interface SvgProps {
   idBase: string; layout: Layout; series: ChartSeries[]; plan: ChartPlan | undefined; bar: boolean; n: number; drawn: Snapshot; active: number | null;
   partial: number | undefined; gaps: Array<GapInfo | null>; stamps: number[]; formats: DateFormats; dayLabel: (i: number) => string; metrics: Metrics;
   measure: (text: string, weight?: number) => number; unit: string | undefined; formatTick: ((value: number) => string) | undefined; planLabel: string; entering: boolean;
+  lit: boolean; trend: Array<number | null> | null; headDay: number | null; plated: readonly [number, number] | null;
 }
 
-function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, partial, gaps, stamps, formats, dayLabel, metrics: m, measure, planLabel, entering }: SvgProps) {
+function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, partial, gaps, stamps, formats, dayLabel, metrics: m, measure, planLabel, entering, lit, trend, headDay, plated }: SvgProps) {
   const crisp = (v: number) => Math.round(v - 0.5) + 0.5;
   const hatchId = `${idBase}-hatch`;
+  const litId = `${idBase}-lit`;
   const els: React.ReactNode[] = [];
   const push = (node: React.ReactNode) => els.push(node);
   const main = drawn.series[0] ?? [];
@@ -780,6 +997,14 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
       <pattern id={hatchId} patternUnits="userSpaceOnUse" width={m.pitch} height={m.pitch} patternTransform="rotate(45)">
         <line className="basalt-chart-hatch-line" x1={m.hair / 2} y1={0} x2={m.hair / 2} y2={m.pitch} />
       </pattern>
+      {lit ? (
+        // One gradient for every solid mark in the plot, in the plot's own coordinates: the top of the plot is the lightest stop, so a taller mark reaches brighter ink.
+        <linearGradient id={litId} gradientUnits="userSpaceOnUse" x1={0} x2={0} y1={L.top} y2={L.bottom}>
+          <stop offset={0} className="basalt-chart-lit-stop" data-stop="top" />
+          <stop offset={0.55} className="basalt-chart-lit-stop" data-stop="mid" />
+          <stop offset={1} className="basalt-chart-lit-stop" data-stop="base" />
+        </linearGradient>
+      ) : null}
     </defs>
   );
 
@@ -787,12 +1012,12 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
   const zeroTick = L.ticks.find((t) => nearly(t, 0));
   L.ticks.forEach((t) => {
     const yy = crisp(L.y(t));
-    if (yy < L.top - 1 || yy > L.bottom + 1 || t === zeroTick) return;
+    if (L.bare || yy < L.top - 1 || yy > L.bottom + 1 || t === zeroTick) return;
     push(<line key={`g${t}`} className="basalt-chart-grid" x1={L.x0} x2={L.x1} y1={yy} y2={yy} />);
   });
 
-  // the picked day's plate
-  if (active !== null) push(<rect key="plate" className="basalt-chart-plate" x={L.sx(active)} y={L.top} width={L.slot} height={L.plotH} />);
+  // the picked day's plate (a trend marks its day with one head dot on the line, and has no plate)
+  if (active !== null && !trend) push(<rect key="plate" className="basalt-chart-plate" x={L.sx(active)} y={L.top} width={L.slot} height={L.plotH} />);
 
   // the plan band: equal neighbours are one band, the hover wash between 1px edges in the plan's ink; a step has no risers
   if (plan?.kind === "band") {
@@ -840,7 +1065,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
       if (i === partial) {
         const inset = m.line / 2;
         push(<rect key={`bar${i}`} className="basalt-chart-bar" data-so-far="" x={bx + inset} y={topY + inset} width={Math.max(bw - 2 * inset, 0)} height={Math.max(run - 2 * inset, 0)} />);
-      } else if (run > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" x={bx} y={topY} width={bw} height={run} />);
+      } else if (run > 0) push(<rect key={`bar${i}`} className="basalt-chart-bar" data-below={v < 0 ? "" : undefined} x={bx} y={topY} width={bw} height={run} />);
     }
     // The cut is drawn only where the bar runs on past it, so a bar's end is never hidden.
     for (let i = 0; i < n; i++) {
@@ -866,8 +1091,30 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
     });
   }
 
+  // a trend: each reading a small dot, the trailing mean one straight line that breaks at a gap, the picked day one head dot on the line
+  if (!bar && trend) {
+    const readings = drawn.series[0] ?? [];
+    const radius = m.track / 2;
+    readings.forEach((v, i) => { if (v != null) push(<circle key={`rd${i}`} className="basalt-chart-reading" cx={L.cx(i)} cy={L.y(v)} r={radius} />); });
+    let d = "";
+    let open = false;
+    trend.forEach((t, i) => { if (t == null) { open = false; return; } d += `${open ? "L" : "M"}${L.cx(i).toFixed(1)} ${L.y(t).toFixed(1)}`; open = true; });
+    const head = headDay !== null ? trend[headDay] : null;
+    push(
+      <g key="trend" data-series={series[0]?.id} className="basalt-chart-series">
+        {d ? <path className="basalt-chart-line" data-dash="solid" d={d} /> : null}
+        {headDay !== null && head != null ? (
+          <>
+            <Marker shape="disc" x={L.cx(headDay)} y={L.y(head)} half={m.mark / 2} grow={m.cut} className="basalt-chart-ring" />
+            <Marker shape="disc" x={L.cx(headDay)} y={L.y(head)} half={m.mark / 2} className="basalt-chart-mark" />
+          </>
+        ) : null}
+      </g>,
+    );
+  }
+
   // lines: the last series first so series 1 is in front; each series draws its rings, then its line, then its markers
-  if (!bar) {
+  if (!bar && !trend) {
     const everyDay = L.slot >= MARKER_DAYS * m.mark;
     series.slice().reverse().forEach((s, reversed) => {
       const k = series.length - 1 - reversed;
@@ -923,7 +1170,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
   // y labels, end-aligned in the gutter; the unit once, on the top tick
   L.ticks.forEach((t, k) => {
     const yy = L.y(t);
-    if (yy < L.top - 1 || yy > L.bottom + 1) return;
+    if (L.bare || yy < L.top - 1 || yy > L.bottom + 1) return;
     push(<text key={`y${t}`} className="basalt-chart-axis" x={L.x0 - m.s2} y={yy} textAnchor="end">{L.tickText(t, k)}</text>);
   });
 
@@ -953,11 +1200,11 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
     const x = L.cx(i);
     if (activeBox && x + w / 2 > activeBox[0] && x - w / 2 < activeBox[1]) return;
     const anchor = anchorFor(x, text);
-    push(<text key={`x${i}`} className="basalt-chart-axis" x={anchor === "end" ? L.width : anchor === "start" ? 0 : x} y={axisY} textAnchor={anchor}>{text}</text>);
+    push(<text key={`x${i}`} className="basalt-chart-axis" data-plated={plated && i >= plated[0] && i <= plated[1] ? "" : undefined} x={anchor === "end" ? L.width : anchor === "start" ? 0 : x} y={axisY} textAnchor={anchor}>{text}</text>);
   });
   if (active !== null && activeText !== null) {
     const anchor = anchorFor(L.cx(active), activeText);
-    push(<text key="xa" className="basalt-chart-axis" data-active="" x={anchor === "end" ? L.width : anchor === "start" ? 0 : L.cx(active)} y={axisY} textAnchor={anchor}>{activeText}</text>);
+    push(<text key="xa" className="basalt-chart-axis" data-active="" data-plated={plated && active >= plated[0] && active <= plated[1] ? "" : undefined} x={anchor === "end" ? L.width : anchor === "start" ? 0 : L.cx(active)} y={axisY} textAnchor={anchor}>{activeText}</text>);
   }
 
   // direct labels at each line's last observed point, nudged apart by a line of text
@@ -978,6 +1225,7 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
   return (
     <svg
       className="basalt-chart-svg"
+      style={lit ? ({ "--_lit": `url("#${litId}")` } as React.CSSProperties) : undefined}
       data-entering={entering ? "" : undefined}
       width={L.width}
       height={L.height}
@@ -995,16 +1243,17 @@ function ChartSvg({ idBase, layout: L, series, plan, bar, n, drawn, active, part
 
 interface SentenceInput {
   i: number; n: number; series: ChartSeries[]; plan: ChartPlan | undefined; partial: number | undefined; partialSuffix: string; say: (value: number) => string;
-  formats: DateFormats; stamp: number; planLabel: string; today: boolean;
+  formats: DateFormats; stamp: number; planLabel: string; today: boolean; trend?: Array<number | null> | null; trendLabel?: string;
 }
 
 /** The day's full sentence: the day, each series' value or "not observed" and its reason, the plan, and where the value sits against it. */
-function daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp, planLabel, today }: SentenceInput) {
+function daySentence({ i, n, series, plan, partial, partialSuffix, say, formats, stamp, planLabel, today, trend, trendLabel }: SentenceInput) {
   const parts = [`${formats.long.format(stamp)}${i === n - 1 && today ? ", today" : ""}`];
   series.forEach((s) => {
     const v = s.values[i];
     parts.push(`${s.name} ${v == null ? `not observed${s.reasons?.[i] ? `, ${s.reasons[i]}` : ""}` : `${say(v)}${i === partial ? ` ${partialSuffix}` : ""}`}`);
   });
+  if (trend) parts.push(trend[i] == null ? `No ${trendLabel}` : `${trendLabel} ${say(trend[i] as number)}`);
   const p = plan?.values[i];
   const note = plan?.kind === "value" ? plan.notes?.[i] : undefined;
   parts.push(p == null ? note ?? `No ${planLabel.toLowerCase()}` : typeof p === "number" ? `${planLabel} ${say(p)}` : `${planLabel} ${say(p[0])} to ${say(p[1])}`);
@@ -1021,11 +1270,11 @@ function daySentence({ i, n, series, plan, partial, partialSuffix, say, formats,
 
 interface TableProps {
   title: string; series: ChartSeries[]; plan: ChartPlan | undefined; n: number; stamps: number[]; formats: DateFormats; partial: number | undefined;
-  partialSuffix: string; format: (value: number) => string; formatPlan: TimeChartProps["formatPlan"];
+  partialSuffix: string; format: (value: number) => string; formatPlan: TimeChartProps["formatPlan"]; trend?: Array<number | null> | null; trendLabel?: string;
 }
 
 /** The still table: fixed layout, the date a pinned row header, newest first, numbers end-aligned, "Not observed" in tertiary with the reason in a note. */
-function ChartTable({ title, series, plan, n, stamps, formats, partial, partialSuffix, format, formatPlan }: TableProps) {
+function ChartTable({ title, series, plan, n, stamps, formats, partial, partialSuffix, format, formatPlan, trend, trendLabel }: TableProps) {
   const level = usePanelLevel();
   const frame = React.useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = React.useState(false);
@@ -1042,7 +1291,7 @@ function ChartTable({ title, series, plan, n, stamps, formats, partial, partialS
     observer.observe(element);
     return () => { element.removeEventListener("scroll", mark); observer.disconnect(); };
   }, []);
-  const columns = [{ width: "8rem" }, ...series.map(() => ({ width: "7.5rem" })), ...(plan ? [{ width: "8.5rem" }] : []), {}];
+  const columns = [{ width: "8rem" }, ...series.map(() => ({ width: "7.5rem" })), ...(trend ? [{ width: "7.5rem" }] : []), ...(plan ? [{ width: "8.5rem" }] : []), {}];
   const rows: React.ReactNode[] = [];
   for (let i = n - 1; i >= 0; i--) {
     const notes: string[] = [];
@@ -1063,6 +1312,7 @@ function ChartTable({ title, series, plan, n, stamps, formats, partial, partialS
       <tr key={i}>
         <th scope="row">{formats.withDay.format(at(stamps, i))}</th>
         {cells}
+        {trend ? <td data-numeric="">{trend[i] == null ? "" : format(trend[i] as number)}</td> : null}
         {plan ? <td data-numeric="">{p == null ? "" : planText(plan, p, format, formatPlan)}</td> : null}
         <td className="basalt-chart-note">{text ? text.charAt(0).toUpperCase() + text.slice(1) : ""}</td>
       </tr>,
@@ -1080,6 +1330,7 @@ function ChartTable({ title, series, plan, n, stamps, formats, partial, partialS
               <tr>
                 <th scope="col">Date</th>
                 {series.map((s) => <th key={s.id} scope="col" data-numeric="">{s.name}</th>)}
+                {trend ? <th scope="col" data-numeric="">{trendLabel}</th> : null}
                 {plan ? <th scope="col" data-numeric="">{plan.label ?? "Plan"}</th> : null}
                 <th scope="col">Note</th>
               </tr>

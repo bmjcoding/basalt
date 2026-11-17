@@ -9,10 +9,21 @@
   .sparkline { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
   .sparkline-head, .sparkline-axis { display: flex; justify-content: space-between; gap: var(--basalt-space-2); }
   .sparkline-label { font-weight: var(--basalt-font-weight-medium); }
-  .sparkline-value { display: inline-flex; align-items: flex-end; font-variant-numeric: tabular-nums; font-kerning: none; }
-  .sparkline-value > [aria-hidden] { display: inline-flex; align-items: flex-end; }
-  .sparkline-value [data-d] { display: inline-block; height: 1em; overflow: hidden; line-height: 1; }
-  .sparkline-value [aria-hidden] > span { line-height: 1; }
+  /* React's ticker (DECISIONS 138, 139 and 142): the number is in text once, first, transparent and selectable in a box with no width that its text overflows, and the strips (here the digit that shows) follow it,
+     unselectable and built of inline boxes only (a block or a flex container inside what a selection skips adds a line break to a copy). So a selection copies the number once, on the line. */
+  .sparkline-value { white-space: nowrap; font-variant-numeric: tabular-nums; font-kerning: none; }
+  .sparkline-head > .sparkline-value { display: flex; align-items: flex-end; }
+  .sparkline-text { display: inline-block; width: 0; color: transparent; forced-color-adjust: none; }
+  .sparkline-value > [aria-hidden] { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
+  .sparkline-value > [aria-hidden]::before { content: "\200b"; }
+  .sparkline-value [data-d] { display: inline-block; height: 1em; overflow: hidden; line-height: 1; vertical-align: top; }
+  .sparkline-value [aria-hidden] > span { line-height: 1; vertical-align: top; }
+  /* In forced colours the strips go and the number is its own text, in the sentence's line: the system paints one selection band and its selected-text colour on the digits (React's ticker does the same). The head keeps its 1em box. */
+  @media (forced-colors: active) {
+    .sparkline-value > [aria-hidden] { display: none; }
+    .sparkline-text { display: inline; width: auto; color: inherit; forced-color-adjust: auto; }
+    .sparkline-head > .sparkline-value > .sparkline-text { display: inline-block; height: 1em; overflow: clip; line-height: 1; }
+  }
   .sparkline svg { width: 100%; height: var(--basalt-space-16); color: var(--basalt-text-secondary); }
   .sparkline-line { fill: none; stroke: currentColor; stroke-width: var(--basalt-size-hairline); stroke-linecap: round; stroke-linejoin: round; }
   .sparkline[data-loading] .sparkline-line { animation: bh-breathe var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }

@@ -95,7 +95,8 @@ describe("what a body gets", () => {
     assert.deepEqual(used("<p>A sortable table, a still table, a filter, a chip and a result line are words here.</p>"), []);
     const filter = compose('<div class="filter" data-label="Status"></div>', { fonts: false });
     for (const name of ["plus", "check"]) assert.ok(filter.glyphs.includes(name), `a filter draws the ${name} glyph, so the page carries it`);
-    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(filter.icons.includes(name), `and the ${name} icon`);
+    // DECISIONS 138 and 139 (E2): the trigger's chevron and the band's search are the core glyphs, written into the module; the Phosphor icons are not on the page.
+    for (const name of ["CaretDown", "MagnifyingGlass"]) assert.ok(!filter.icons.includes(name), `the ${name} icon is not carried: the core glyph draws it`);
     const still = compose("<table data-fixed><tr><td>x</td></tr></table>", { fonts: false });
     for (const name of ["arrow-up", "arrow-down"]) assert.ok(still.glyphs.includes(name), `a still table draws the ${name} glyph`);
     assert.ok(still.icons.includes("CaretUpDown"));
@@ -299,7 +300,7 @@ describe("the command line", () => {
       const r = run(["p.body.html", "--no-fonts"], dir);
       assert.equal(r.status, 0, r.stderr);
       const lines = r.stdout.trim().split("\n");
-      assert.match(lines[0], /^p\.html: [\d.]+ KB, core \+ callout, copy; icons: Check, X$/);
+      assert.match(lines[0], /^p\.html: [\d.]+ KB, core \+ callout, copy; icons: none$/);
       const wanted = ["callout", "copy"].map((n) => `  ${n}: ${indexLines(skill).find((l) => l.name === n).warning}`);
       assert.deepEqual(lines.slice(2), wanted, "one line for each module, in the page's order");
       assert.deepEqual(run(["p.body.html", "--no-fonts"], dir).stdout, r.stdout, "the same input gives the same output");
@@ -445,9 +446,9 @@ describe("modules map to the index and the usage texts", () => {
   });
 
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
-    // A usage may point at one class of another module, said here so it is on purpose (the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
+    // A usage may point at one class of another module, said here so it is on purpose (the theme choice is a .segment radio group and its icon form opens a .menu; the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
     // The app shell names the phone tab bar that goes in it; the tab bar names the sheet and the nav rows of its More cell (a page that uses them brings them by their own markup).
-    const mentions = { core: ["hint"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"] };
+    const mentions = { core: ["hint", "text-lead"], braille: ["status"], loops: ["btn-check"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"], ambient: ["stage-art", "framed-frame"], theme: ["segment", "menu", "menu-item", "menu-item-label"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
@@ -478,7 +479,7 @@ describe("modules map to the index and the usage texts", () => {
         let markup = null;
         if (/^\.[a-z][\w-]*$/.test(span)) markup = `<div class="${span.slice(1)}">x</div>`;
         else if (/^data-[a-z-]+$/.test(span)) markup = `<div ${span}>x</div>`;
-        else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x`;
+        else if (/^<[a-z-]+>$/.test(span)) markup = `${span}x${/^<(?:textarea|title|style|script)>$/.test(span) ? span.replace("<", "</") : ""}`; // a text element is closed: one that is never closed is refused (A5-09)
         else if (/^type="range"$/.test(span)) markup = `<input ${span}>`;
         else if (/^role="tablist"$/.test(span)) markup = `<div ${span}>x</div>`;
         else if (/^popovertarget$/.test(span)) markup = `<button ${span}="p">x</button>`;

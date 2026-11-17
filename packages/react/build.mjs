@@ -3,7 +3,7 @@
 //   dist/*.d.ts         type declarations
 //   dist/components.css the component styles, with the tokens package's accent classes, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
-//   dist/fonts.css      Geist Sans and Mono @font-face rules, with the variable font files
+//   dist/fonts.css      Geist Sans and Mono @font-face rules, with the variable font files, and the Geist Fallback face (three, one per weight)
 //   .demo/              a page with every component in both themes, for the browser tests
 
 import { execFileSync } from "node:child_process";
@@ -35,7 +35,7 @@ const packageDir = (name) => {
 // every file that entry shares with an ordinary import (utils, icon, kbd, Phosphor's icon base) is merged into one chunk
 // that the ordinary import then loads, whatever it needs: Spinner paid 12.7 KB for a 1 KB component, Skeleton 12 KB.
 // The panel is loaded on demand, so a second copy of those few files costs nothing until a menu opens.
-const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "cmdk", "shiki", "shiki/*"];
+const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"];
 // The notice (without its comment marks) that the panel's banner carries and that the opt-in Phosphor plugin (src/tooling/phosphor.ts) puts
 // in front of the icons it trims. It is one string, so the two comments are identical and a bundler that holds both keeps one copy.
 const phosphorNotice = `Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}`;
@@ -101,6 +101,15 @@ const fonts = [
   "/* Geist Sans and Geist Mono, variable fonts. SIL Open Font License 1.1: see fonts/OFL.txt. */",
   '@font-face { font-family: "Geist"; src: url("./fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }',
   '@font-face { font-family: "Geist Mono"; src: url("./fonts/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }',
+  "/* Geist Fallback: a local face that stands in for Geist until it arrives, so the swap moves a page as little as it can (DECISIONS 137). One face",
+  "   per Basalt weight, because Arial has a regular and a bold and Geist's three weights differ in width: size-adjust is Geist's width over",
+  "   Arial's, measured on the Geist file above (400: 102.4%, 500: 104.7%, 600 against Arial Bold: 99.5%, on 3,100 characters of English), and",
+  "   the overrides are Geist's own ascent (1.005em) and descent (0.295em) divided by that size-adjust, so a baseline sits where Geist's will. It",
+  "   reduces the shift and does not promise the same wrap at every width: a line within a percent of Geist's width can still break elsewhere. Where",
+  "   Arial is not installed the next family in font-family-sans answers. */",
+  '@font-face { font-family: "Geist Fallback"; src: local("Arial"), local("ArialMT"); font-weight: 400; font-style: normal; size-adjust: 102.4%; ascent-override: 98.1%; descent-override: 28.8%; line-gap-override: 0%; }',
+  '@font-face { font-family: "Geist Fallback"; src: local("Arial"), local("ArialMT"); font-weight: 500; font-style: normal; size-adjust: 104.7%; ascent-override: 96%; descent-override: 28.2%; line-gap-override: 0%; }',
+  '@font-face { font-family: "Geist Fallback"; src: local("Arial Bold"), local("Arial-BoldMT"); font-weight: 600; font-style: normal; size-adjust: 99.5%; ascent-override: 101%; descent-override: 29.6%; line-gap-override: 0%; }',
   "",
 ].join("\n");
 fs.writeFileSync(path.join(dist, "fonts.css"), fonts);

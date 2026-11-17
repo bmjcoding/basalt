@@ -4,6 +4,8 @@
 
   .field { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; }
   .field > label, .label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-primary); }
+  /* "Required" or "Optional", directly after the label: tertiary ink at text-xs, 400, hidden from assistive technology (the input's own `required` says it). Never an asterisk. */
+  .necessity { margin-inline-start: var(--basalt-space-1-5); font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }
   .hint, .error { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
   .error { color: var(--basalt-status-danger); }
   .input {
@@ -14,7 +16,7 @@
     border: 0;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-1);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / normal var(--basalt-font-family-sans);
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -24,7 +26,7 @@
   .input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .input:disabled { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
-  @media (pointer: coarse) { .input { height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); } }
+  @media (pointer: coarse) { .input { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); } }
 
   /* ---- Native chrome where Basalt has a design (date and time pickers stay native: Basalt has none) ---- */
 

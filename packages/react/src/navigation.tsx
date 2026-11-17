@@ -1,7 +1,10 @@
-import { CaretLeftIcon, CaretRightIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import * as React from "react";
 
+import { ChevronLeftGlyph } from "./glyphs/chevron-left";
+import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Button } from "./button";
+import { GoArrow } from "./go-arrow";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
@@ -12,20 +15,36 @@ export interface LinkProps extends React.ComponentProps<"a"> {
    * prop for the arrow: it, and these words, come from `target="_blank"` and nothing else.
    */
   newTabLabel?: string;
+  /**
+   * The arrow form of a link, for a link on a line of its own rather than in running text (DECISIONS 152, vote 4): no underline,
+   * weight 500, a 44px target, and the core arrow as its cue: `"end"` is a right arrow after the words (going on in the site),
+   * `"start"` a left arrow before them (going back). Secondary ink, lifting to primary and travelling 2px with the link's hover. A link
+   * with `target="_blank"` draws the new-tab arrow in the arrow's place and never both.
+   */
+  arrow?: "end" | "start";
 }
 
 /**
  * A link. A link with `target="_blank"` also draws the new-tab arrow after its label and says "(opens in a new tab)" in its
  * name: automatically, with no opt-out. A same-tab link to another site gets neither.
  */
-export function Link({ className, target, rel, children, newTabLabel, ...props }: LinkProps) {
+export function Link({ className, target, rel, children, newTabLabel, arrow, ...props }: LinkProps) {
   const newTab = opensNewTab(target);
   const relationship = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
+  if (!newTab && arrow) {
+    return (
+      <a {...props} target={target} rel={relationship} data-arrow={arrow} className={join("basalt-link", "basalt-link-go", className)}>
+        {arrow === "start" ? <GoArrow side="start" /> : null}
+        <span className="basalt-link-label">{children}</span>
+        {arrow === "end" ? <GoArrow /> : null}
+      </a>
+    );
+  }
   if (!newTab) return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)}>{children}</a>;
   // An aria-label replaces the content, so the words join the label itself. A link that holds only a logo keeps the words and skips the arrow.
   const label = props["aria-label"];
   return (
-    <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" className={join("basalt-link", className)}>
+    <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" data-arrow={arrow} className={join("basalt-link", arrow && "basalt-link-go", className)}>
       <span className="basalt-link-label">{children}</span>
       {hasVisibleText(children) ? <NewTabGlyph /> : null}
       {label ? null : <NewTabWords label={newTabLabel} />}
@@ -48,7 +67,7 @@ export function Breadcrumbs({ items, className, "aria-label": label = "Breadcrum
       <ol>
         {items.map((item, index) => (
           <li key={index}>
-            {index ? <Icon icon={CaretRightIcon} size={16} /> : null}
+            {index ? <Icon icon={ChevronRightGlyph} size={16} /> : null}
             {item.href ? <Link href={item.href} aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</Link> : <span aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</span>}
           </li>
         ))}
@@ -72,21 +91,26 @@ function pageItems(page: number, count: number): Array<number | "gap-before" | "
   return [1, ...(start > 2 ? ["gap-before" as const] : []), ...Array.from({ length: end - start + 1 }, (_, i) => start + i), ...(end < count - 1 ? ["gap-after" as const] : []), count];
 }
 
-/** Bounded pagination: a constant-sized page window even for a very large result set. */
+/** Bounded pagination: a constant-sized page window even for a very large result set. The current page is its number at 600 on a plate. */
 export function Pagination({ page, pageCount, onPageChange, hrefForPage, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   if (count <= 1) return null;
   const current = Math.max(1, Math.min(count, Math.floor(page) || 1));
   const control = (value: number, name: string, content: React.ReactNode, disabled = false) => {
     const selected = value === current && name.startsWith("Page ");
+    // A page's number is 400 at rest and 600 on the current page, and carries a copy of itself that the stylesheet lays out at 600, so it reserves
+    // the width (the same as ChosenLabel does for a segment or a tab).
+    if (typeof content === "number") content = <span data-label={content}>{content}</span>;
     if (hrefForPage && !disabled) return <Link href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link">{content}</Link>;
+    // A page that is not there (before the first, after the last) keeps a link's box: a Button's is 4px wider, so reaching the first or last page would move every page after it.
+    if (hrefForPage) return <a role="link" aria-disabled="true" aria-label={name} className="basalt-page-link">{content}</a>;
     return <Button size="sm" variant="ghost" aria-label={name} aria-current={selected ? "page" : undefined} disabled={disabled} onClick={() => onPageChange?.(value)}>{content}</Button>;
   };
   return (
     <nav {...props} aria-label={label} className={join("basalt-pagination", className)}>
-      {control(current - 1, "Previous page", <Icon icon={CaretLeftIcon} />, current === 1)}
+      {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current === 1)}
       {pageItems(current, count).map((item) => <React.Fragment key={item}>{typeof item === "number" ? control(item, `Page ${item}`, item) : <span className="basalt-pagination-gap" aria-hidden="true"><Icon icon={DotsThreeIcon} /></span>}</React.Fragment>)}
-      {control(current + 1, "Next page", <Icon icon={CaretRightIcon} />, current === count)}
+      {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current === count)}
     </nav>
   );
 }

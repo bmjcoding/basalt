@@ -6,7 +6,6 @@
   var _ = B._;
   var P = _.palette;
   var esc = _.esc;
-  var icon = _.icon;
   var kbdGroup = _.kbd.kbdGroup;
   var seq = 0;
   var keyBound = false;
@@ -40,7 +39,7 @@
     host.insertAdjacentHTML('beforeend',
       '<div class="command-split">' +
         '<div class="panel command-page" tabindex="-1" role="region" aria-label="' + esc(label) + '">' +
-          '<div class="input-row">' + icon('MagnifyingGlass') +
+          '<div class="input-row">' + _.searchSvg +
             '<input type="text" role="combobox" aria-expanded="true" aria-controls="' + id + '-list" aria-autocomplete="list" aria-label="' + esc(placeholder) +
             '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(placeholder) + '">' +
             '<span class="command-slot" aria-hidden="true"></span>' +

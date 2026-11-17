@@ -136,7 +136,6 @@
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
     .filter-popup[data-glide] .filter-row[data-highlighted]::before { background-color: transparent; }
   }
-  @media (prefers-reduced-motion: reduce) { .chip-seat > svg { transition: none; } }
   @media (forced-colors: active) {
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both glyphs) named HighlightText,
        and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */

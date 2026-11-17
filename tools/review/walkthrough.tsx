@@ -48,7 +48,7 @@ function App() {
 
   if (shot) {
     return (
-      <div className="wt-shot" data-step={step.id}>
+      <div className="wt-shot" data-step={step.id} data-bleed={step.bleed ? "" : undefined}>
         {step.demo({ state })}
       </div>
     );

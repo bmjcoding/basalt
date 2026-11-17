@@ -13,6 +13,7 @@ import { chromium } from "playwright";
 
 import { build, moduleNames, skillDir } from "../build.mjs";
 import { iconData } from "../icons.mjs";
+import { freezeAnimations, settle } from "../../../packages/react/test/support.mjs";
 import { EXAMPLES, examplePage } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -121,6 +122,7 @@ for (const file of TEMPLATES) {
         if (file === "template-interactive.html") {
           await page.keyboard.press("Control+k");
           await page.locator(".palette input").waitFor();
+          await settle(page);
           assert.deepEqual(await axe(page), [], "the open palette");
         }
         assert.deepEqual(errors, []);
@@ -450,11 +452,13 @@ describe("the palette", () => {
   test("the result count is spoken inside the dialog, once the typing pauses, and only when it changed", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+    // The count is spoken once the typing pauses: the page's timers are on the shared clock from before the palette opens, so the pause is the test's to give, not the machine's.
+    const clock = await freezeAnimations(page);
     await page.keyboard.press("Control+k");
-    await page.locator(".palette input").waitFor();
+    for (let tries = 0; tries < 100 && !(await page.evaluate(() => !!document.querySelector(".palette input"))); tries++) await clock.advance(16);
     assert.equal(await page.evaluate(() => !!document.querySelector(".palette [role=status]")), true, "the live region is inside the dialog");
     await page.keyboard.type("show json", { delay: 50 });
-    await page.waitForTimeout(900);
+    await clock.advance(900);
     const spoken = (await page.evaluate(() => window.__spoken)).filter(Boolean);
     assert.ok(spoken.length <= 2, `spoken ${JSON.stringify(spoken)}`);
     assert.match(spoken.at(-1), /^\d+ results?$/);
@@ -462,7 +466,7 @@ describe("the palette", () => {
     await page.keyboard.press("Backspace");
     await page.keyboard.type("n", { delay: 10 });
     const after = await page.evaluate(() => window.__spoken.length);
-    await page.waitForTimeout(700);
+    await clock.advance(700);
     assert.equal(await page.evaluate(() => window.__spoken.length), after, "the same count is not spoken again");
     await context.close();
   });
@@ -523,12 +527,13 @@ describe("the copy button", () => {
     const rest = await page.evaluate(() => [document.querySelector("[data-copy]").innerHTML, document.querySelector("#icon-copy").innerHTML]);
     for (const selector of ["[data-copy]", "#icon-copy"]) {
       await page.locator(selector).click();
-      await page.waitForTimeout(200);
+      await page.waitForFunction((sel) => /Copied/.test(document.querySelector(sel).textContent) || document.querySelector(sel).getAttribute("aria-label") === "Copied", selector); // the feedback is showing: the second press is inside its window
       await page.locator(selector).click();
     }
     assert.match(await page.locator("[data-copy]").textContent(), /Copied/);
     assert.equal(await page.locator("#icon-copy").getAttribute("aria-label"), "Copied");
-    await page.waitForTimeout(2200);
+    // It ends on the original label once the feedback window has passed: wait for that state, not for a time.
+    await page.waitForFunction((original) => document.querySelector("[data-copy]").innerHTML === original[0] && document.querySelector("#icon-copy").innerHTML === original[1], rest, { timeout: 10000 });
     assert.deepEqual(await page.evaluate(() => [document.querySelector("[data-copy]").innerHTML, document.querySelector("#icon-copy").innerHTML]), rest);
     assert.equal(await page.locator("#icon-copy").getAttribute("aria-label"), "Copy payload");
     await context.close();
@@ -730,7 +735,8 @@ describe("figures, not stat tiles", () => {
     assert.equal(order.size, "24px", "the existing 2xl");
     assert.ok(order.bottom < 844, `the headline ends at ${order.bottom}`);
     await page.locator("#rps").focus();
-    await page.waitForTimeout(100);
+    // Focus scrolls the field into view smoothly: read where it ends up, not 100ms into the scroll.
+    await page.evaluate(() => new Promise((resolve) => { let last = -1; let still = 0; const tick = () => { const y = scrollY; still = y === last ? still + 1 : 0; last = y; if (still >= 3) resolve(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick); }));
     const view = await page.evaluate(() => { const r = document.querySelector("#out-cost").getBoundingClientRect(); const bar = document.querySelector(".topbar").getBoundingClientRect(); return { top: r.top >= bar.bottom, bottom: r.bottom <= window.innerHeight }; });
     assert.deepEqual(view, { top: true, bottom: true });
     await page.locator("#rps").fill("800");
@@ -776,7 +782,7 @@ describe("primitives", () => {
         const [status, plain] = document.querySelectorAll(".badge");
         return {
           group: [cs(group).backgroundColor, cs(group).borderRadius, cs(group).paddingTop],
-          on: [cs(on).backgroundColor, cs(on).boxShadow, cs(on).color, cs(on).height, cs(on).borderRadius, cs(on).fontWeight],
+          on: [cs(on).backgroundColor, cs(on).boxShadow, cs(on).color, cs(on).height, cs(on).borderRadius, cs(on.querySelector("[data-label]") ?? on).fontWeight], // the 600 is on the label, not on the button (decision 149)
           off: [cs(off).backgroundColor, cs(off).boxShadow, cs(off).color],
           badge: [cs(plain).fontSize, cs(plain).fontWeight, cs(plain).color, cs(plain).borderRadius, cs(plain).height, cs(plain).boxShadow, cs(plain).borderTopWidth, cs(plain).borderTopColor, cs(plain).boxSizing],
           dot: [cs(status, "::before").width, cs(status, "::before").content, cs(plain, "::before").content],
@@ -785,8 +791,8 @@ describe("primitives", () => {
       });
       const px = (v) => resolve(page, "width", v);
       assert.deepEqual(out.group, [await resolve(page, "backgroundColor", "var(--basalt-surface-sunken-strong)"), await px("var(--basalt-radius-md)"), await px("var(--basalt-space-0-5)")]);
-      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "var(--basalt-shadow-pill)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
-      assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "500"]);
+      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "0 0 0 1px var(--basalt-border-hairline)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
+      assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "600"]); // this page has not run the script: the chosen button is 600 itself, as on origin/main (decision 138, A); with the script the 600 sits on the label (audit-design-a.test.mjs)
       assert.deepEqual(out.off, ["rgba(0, 0, 0, 0)", "none", await resolve(page, "color", "var(--basalt-text-secondary)")]);
       assert.deepEqual(out.badge, [await px("var(--basalt-text-xs-size)"), "500", await resolve(page, "color", "var(--basalt-text-secondary)"), await px("var(--basalt-radius-xs)"), await px("var(--basalt-size-badge)"), "none", await px("var(--basalt-size-hairline)"), await resolve(page, "color", "var(--basalt-border-hairline)"), "border-box"], "the edge is a real 1px border, not an inset shadow");
       assert.deepEqual([out.dot[0], out.dot[1] !== "none", out.dot[2]], [await px("var(--basalt-size-dot)"), true, "none"], "a status badge draws its dot, a count does not");
@@ -1087,7 +1093,7 @@ describe("the SKILL's rules", () => {
       /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
       /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
-      /\*\*Selected\*\* is a shape or a step in ink, never a wash alone: the raised pill, a row's filled background, a checked box, a tab's underline\. No vertical bar, no inset outline\./,
+      /\*\*Selected\*\* is a shape or weight, never a wash alone: a segment or tab label at 600 \(400 at rest\) on its pill or underline, a row's filled background, a checked box\. No vertical bar; an outline never marks a state\./,
       /standalone links too/,
       /\*\*Keys\.\*\* No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
     ]) assert.match(skill, rule);
@@ -1131,7 +1137,7 @@ describe("the smoked header (.topbar)", () => {
       const { page, context } = await open("template-static.html", { scheme });
       const s = await read(page, "backgroundColor", "backdropFilter", "borderBottomColor", "borderBottomStyle", "borderBottomWidth", "color", "position", "top");
       assert.equal(s.backgroundColor, await token(page, "surface-chrome", "background-color"));
-      assert.match(s.backgroundColor, scheme === "dark" ? /\/ 0\.85\)$|, 0\.85\)$/ : /\/ 0\.92\)$|, 0\.92\)$/, "the page colour with alpha: 85% in dark, 92% in light");
+      assert.match(s.backgroundColor, scheme === "dark" ? /\/ 0\.925\)$|, 0\.925\)$/ : /\/ 0\.96\)$|, 0\.96\)$/, "the page colour with alpha: 92.5% in dark, 96% in light (DECISIONS 146 E)");
       assert.equal(s.backdropFilter, "blur(12px)", "blur-chrome and nothing else: no saturate, no brightness");
       assert.equal(s.borderBottomWidth, "1px");
       assert.equal(s.borderBottomStyle, "solid");
@@ -1163,7 +1169,7 @@ describe("the smoked header (.topbar)", () => {
       const secondary = await token(page, "text-secondary");
       const primary = await token(page, "text-primary");
       assert.equal(await ink("[data-theme-toggle]"), secondary, "at rest");
-      const press = async (sel) => { const box = await page.locator(sel).boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.waitForTimeout(250); };
+      const press = async (sel) => { const box = await page.locator(sel).boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await settle(page); };
       await press("[data-theme-toggle]");
       assert.equal(await ink("[data-theme-toggle]"), primary, "pressed on the bar");
       await page.mouse.move(5, 5); // release off the button, so it doesn't click and flip the theme
@@ -1223,7 +1229,7 @@ describe("the press scale", () => {
     const box = await page.locator(selector).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page); // the press is a 100ms transition: read it once it has ended, not after a fixed wait
   };
   const transform = (page, selector) => page.locator(selector).evaluate((el) => getComputedStyle(el).transform);
   const probes = '<div id="press" style="display:flex;gap:16px;padding:16px"><button class="btn" id="b-ok">Save</button><button class="btn" id="b-aria" aria-disabled="true">Off</button><button class="btn" id="b-busy" aria-busy="true"><span>Busy</span></button><button class="btn" data-variant="primary" id="b-primary">Primary</button><div class="row" id="r" style="width:120px">Row</div><button class="tab" role="tab" id="t">Tab</button><button class="disclosure" id="d" style="width:120px">More</button></div>';
@@ -1236,7 +1242,7 @@ describe("the press scale", () => {
     await press(page, "#b-ok");
     assert.equal(await transform(page, "#b-ok"), "matrix(0.98, 0, 0, 0.98, 0, 0)");
     await page.mouse.up();
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.equal(await transform(page, "#b-ok"), "none");
     await press(page, "#b-primary");
     assert.equal(await transform(page, "#b-primary"), "matrix(0.98, 0, 0, 0.98, 0, 0)", "every variant");
@@ -1431,6 +1437,7 @@ describe("palette rows say their shortcut in words", () => {
     await page.keyboard.type("jump");
     assert.equal(await page.locator(".palette [role=option]").count(), 1);
     assert.equal(await page.locator(".palette [role=option]").getAttribute("aria-describedby") !== null, true, "kept after a filter re-renders");
+    await settle(page);
     assert.deepEqual(await axe(page), []);
     await context.close();
   });

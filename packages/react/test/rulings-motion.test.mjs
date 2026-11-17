@@ -215,29 +215,43 @@ describe("the spinners", () => {
 
 describe("NumberTicker under reduced motion", () => {
   const row = `<div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 24, fontFamily: "Geist Mono, monospace" }}><span id="ref">Runs</span><B.NumberTicker value={1284.5} /></div>`;
-  const measure = (page) => page.evaluate(() => {
-    const ticker = document.querySelector(".basalt-ticker").getBoundingClientRect();
-    const ref = document.getElementById("ref").getBoundingClientRect();
-    return { width: ticker.width, bottom: ticker.bottom - ref.bottom, top: ticker.top - ref.top };
-  });
+  // The number's own pixels: the row, as a picture. Two pictures of the same number in the same place differ in nothing but a comma's foot (DECISIONS 147: the 1em clip under
+  // reduced motion is gone, and six unselected pixels at a comma's foot change).
+  const picture = async (page) => (await page.locator("#root > div").screenshot()).toString("base64");
+  const differing = (page, a, b) => page.evaluate(async ([x, y]) => {
+    const load = (s) => new Promise((resolve) => { const i = new Image(); i.onload = () => resolve(i); i.src = `data:image/png;base64,${s}`; });
+    const [A, B] = await Promise.all([load(x), load(y)]);
+    const read = (i) => { const c = document.createElement("canvas"); c.width = i.width; c.height = i.height; const g = c.getContext("2d"); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height).data; };
+    if (A.width !== B.width || A.height !== B.height) return -1;
+    const da = read(A); const db = read(B); let n = 0;
+    for (let k = 0; k < da.length; k += 4) if (da[k] !== db[k] || da[k + 1] !== db[k + 1] || da[k + 2] !== db[k + 2]) n += 1;
+    return n;
+  }, [a, b]);
 
-  test("it is plain tabular text with the same width and baseline as the strip, and still reads and copies as the number", async () => {
+  test("it is plain tabular text with the same width and place as the strip, and still reads and copies as the number", async () => {
     const { page } = await fixturePage(browser, render(row));
     await settle(page);
-    const rolling = await measure(page);
-    assert.equal(await page.locator(".basalt-ticker-text").evaluate((el) => getComputedStyle(el).position), "absolute", "hidden while the strip is drawn");
+    const rolling = await picture(page);
+    const width = (page) => page.evaluate(() => { const v = document.querySelector(".basalt-ticker-visual"); const t = document.querySelector(".basalt-ticker-text"); return (getComputedStyle(v).display === "none" ? t : v).getBoundingClientRect().width; });
+    const wide = await width(page);
+    // DECISIONS 138 and 147 (C2): the readable number is in the sentence's flow under the strips, transparent, in a box with no width: not a visually hidden box.
+    assert.deepEqual(await page.locator(".basalt-ticker-text").evaluate((el) => { const s = getComputedStyle(el); return [s.position, s.color, s.width]; }), ["static", "rgba(0, 0, 0, 0)", "0px"], "transparent and in the flow while the strip is drawn");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await settle(page);
-    const plain = await measure(page);
-    assert.ok(Math.abs(plain.width - rolling.width) < 0.5, `width ${rolling.width} became ${plain.width}`);
-    assert.ok(Math.abs(plain.bottom - rolling.bottom) < 0.5 && Math.abs(plain.top - rolling.top) < 0.5, `the baseline moved: ${JSON.stringify({ rolling, plain })}`);
+    const plain = await picture(page);
+    assert.ok(Math.abs((await width(page)) - wide) < 0.5, "the width is the strips' width");
+    const changed = await differing(page, rolling, plain);
+    assert.ok(changed >= 0 && changed <= 30, `the number is where it was: ${changed} pixels differ`);
     const shown = await page.evaluate(() => {
       const text = document.querySelector(".basalt-ticker-text");
       const visual = document.querySelector(".basalt-ticker-visual");
-      return { text: text.textContent, textDisplay: getComputedStyle(text).display, textWidth: text.getBoundingClientRect().width, visual: getComputedStyle(visual).display, tabular: getComputedStyle(text).fontVariantNumeric };
+      const s = getComputedStyle(text);
+      return { text: text.textContent, textDisplay: s.display, height: s.height, overflow: s.overflow, textWidth: text.getBoundingClientRect().width, visual: getComputedStyle(visual).display, tabular: s.fontVariantNumeric };
     });
     assert.equal(shown.text, "1,284.5");
     assert.ok(shown.textWidth > 20 && shown.visual === "none");
+    assert.equal(shown.textDisplay, "inline", "in the sentence's own line: no 1em box, no clip");
+    assert.equal(shown.overflow, "visible");
     assert.match(shown.tabular, /tabular-nums/);
     await page.close();
   });
@@ -304,7 +318,7 @@ describe("Sparkline", () => {
   test("the headline eases with the scale, and what is read is the target", async () => {
     const { page } = await fixturePage(browser, fixture, { clock: true });
     await page.evaluate(() => window.set([10, 20, 20]));
-    assert.equal(await page.locator(".basalt-sparkline-head .basalt-visually-hidden").textContent(), "20");
+    assert.equal(await page.locator(".basalt-sparkline-head .basalt-ticker-text").textContent(), "20");
     const digits = () => page.evaluate(() => [...document.querySelectorAll(".basalt-sparkline-head .basalt-ticker-digit")].map((d) => d.style.getPropertyValue("--_d")).join(""));
     const out = new Set();
     await frames(page, 260, async () => { out.add(await digits()); });

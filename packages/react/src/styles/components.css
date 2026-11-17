@@ -10,6 +10,11 @@
     --_basalt-control-md: var(--basalt-size-control-sm);
     --_basalt-control-lg: var(--basalt-size-control-md);
     --_basalt-control-xl: var(--basalt-size-control-lg);
+    --_basalt-control-2xl: var(--basalt-size-control-xl);
+    --_basalt-control-3xl: var(--basalt-size-control-2xl);
+    --_basalt-control-4xl: var(--basalt-size-control-3xl);
+    --_basalt-control-5xl: var(--basalt-size-control-4xl);
+    --_basalt-control-6xl: var(--basalt-size-control-5xl);
     --_basalt-control-font: var(--basalt-text-sm-size);
     --_basalt-control-line: var(--basalt-text-sm-line-height);
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
@@ -25,6 +30,11 @@
     --_basalt-control-md: initial;
     --_basalt-control-lg: initial;
     --_basalt-control-xl: initial;
+    --_basalt-control-2xl: initial;
+    --_basalt-control-3xl: initial;
+    --_basalt-control-4xl: initial;
+    --_basalt-control-5xl: initial;
+    --_basalt-control-6xl: initial;
     --_basalt-control-font: initial;
     --_basalt-control-line: initial;
     --_basalt-control-lg-radius: initial;
@@ -113,6 +123,46 @@
   .basalt-reserve > * { grid-area: 1 / 1; }
   .basalt-reserve > :not([data-on]) { visibility: hidden; }
 
+  /* A chosen item's label (a segment, a tab, a link tab, a page) is 400 at rest and 600 when chosen, and reserves the 600's width, as the navigation's label
+     does: the item's text is drawn in a span that carries its own copy in data-label, laid out at 600, unseen, one line tall and pulled back over the line, so the
+     span is as wide as the 600 and nothing beside it moves when the choice changes. The label keeps its start edge in segments, tabs and link tabs; pagination stays centred. */
+  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button, .basalt-link-tab) [data-label] { display: inline-flex; flex-direction: column; align-items: flex-start; white-space: nowrap; }
+  :is(.basalt-segment, .basalt-tab, .basalt-page-link, .basalt-pagination .basalt-button, .basalt-link-tab) [data-label]::after {
+    content: attr(data-label);
+    height: 1lh;
+    margin-block-end: -1lh;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  /* Pagination keeps its centred numeral; a segment or tab puts the reserved slack at the end. */
+  :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-label] { align-items: center; }
+
+  /* A label that is not plain text (an element, words in a span, a component) is drawn twice in one grid cell, the second copy at 600,
+     unseen (aria-hidden and inert), so the cell is the content's width at 600 whatever it holds. Both copies keep their start edge,
+     as the plain label does: the live words and icon never recenter when their weight changes. */
+  .basalt-chosen-label { display: inline-grid; justify-items: start; }
+  .basalt-chosen-label > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .basalt-chosen-label > [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+
+  /* The 600 is on the label, not on the item (decision 149): a label Basalt reserves (the text above, or the first copy of a composed one) goes to 600 when its item is
+     chosen, and words it cannot see (an app's own render, a component) keep their weight and move nothing: such an item still reads as chosen by its pill, underline or
+     plate and its primary ink. */
+  :is(.basalt-segment[data-pressed], .basalt-tab[data-active], .basalt-link-tab[aria-current="page"], .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"]) :is([data-label], .basalt-chosen-label > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
+
+  /* An icon in a segment or tab draws both of its forms in one box and shows the one that matches the item, crossfading over duration-fast
+     (decision 145): the box is the same either way, so choosing moves nothing. */
+  .basalt-glyph-pair { display: inline-grid; flex: none; }
+  /* A segment is not a flex box (its text is centred): one that holds an icon or a composed label sets its content on one centre line, as a tab does, and an
+     element that holds an icon beside words (a span round both) sets the two on one centre line, 6px apart. */
+  .basalt-segment:has(> .basalt-glyph-pair, > .basalt-icon, > .basalt-chosen-label) { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
+  :is(.basalt-segment, .basalt-tab, .basalt-link-tab) :is(span, a, b, i, em, strong, small, mark, code, abbr):not(.basalt-glyph-pair):has(> .basalt-glyph-pair, > .basalt-icon) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-glyph-pair > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-glyph-pair > :last-child,
+  :is([data-pressed], [data-active], .basalt-link-tab[aria-current="page"]) .basalt-glyph-pair > :first-child { opacity: 0; }
+  :is([data-pressed], [data-active], .basalt-link-tab[aria-current="page"]) .basalt-glyph-pair > :last-child { opacity: 1; }
+
   .basalt-button,
   .basalt-input,
   .basalt-menu-item,
@@ -157,7 +207,7 @@
     border: 0;
     border-radius: var(--_radius);
     font-size: var(--_font);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--_weight, var(--basalt-font-weight-medium));
     line-height: 1;
     white-space: nowrap;
     user-select: none;
@@ -173,7 +223,14 @@
   .basalt-button[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); --_px: var(--basalt-space-2-5); --_font: var(--basalt-text-sm-size); }
   .basalt-button[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); --_px: var(--basalt-space-3-5); --_radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-button[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  /* The large sizes (DECISIONS 154, D11a): 44, 48, 52 and 56, radius 8 at every one (the drawn-box rule), 16px text at 600 where a button has
+     text, and 12px between a button's parts from 48 up. Compact steps each down a rung (56 to 52, 52 to 48, 48 to 44, 44 to 40). */
+  .basalt-button[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); }
+  .basalt-button[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
   .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
+  .basalt-button[data-full-width] { display: flex; width: 100%; }
 
   .basalt-button[data-variant="primary"] {
     background: var(--basalt-action-primary);
@@ -199,6 +256,15 @@
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent);
   }
 
+  /* Outline (DECISIONS 154, A7): transparent, a 1px input-boundary edge (inside the box, so it takes no room), primary ink. Hover takes the edge to
+     primary ink; a press is the selected wash, as every variant but primary. It is for a button beside the primary one that must not read as a
+     second primary ("Back to cart", "Shop by brand"). It never toggles. */
+  .basalt-button[data-variant="outline"] {
+    background: transparent;
+    color: var(--basalt-text-primary);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+  }
+
   /* Hover brightens: text up a step, the hairline up a step, a wash on transparent buttons.
      Never a scale. Only on devices that really hover, so touch doesn't stick. */
   @media (hover: hover) {
@@ -208,6 +274,7 @@
     }
     .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
     .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
+    .basalt-button[data-variant="outline"]:hover:not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-primary); }
   }
 
   /* A press is a colour step, and Button and IconButton (which are this class) also scale to .98 over
@@ -216,7 +283,8 @@
   .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-loading]) { background: var(--basalt-action-primary-press); }
   .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-loading]),
   .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-loading]),
-  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-loading]) {
+  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-loading]),
+  .basalt-button[data-variant="outline"]:active:not([data-disabled]):not([data-loading]) {
     background: var(--basalt-state-selected);
   }
   .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: scale(0.98); }
@@ -234,8 +302,69 @@
   .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
   .basalt-button[data-loading] > .basalt-icon,
-  .basalt-button[data-loading] > .basalt-button-check { opacity: 0; }
+  .basalt-button[data-loading] > .basalt-button-check,
+  .basalt-button[data-loading] > .basalt-button-lines,
+  .basalt-button[data-loading] > .basalt-button-amount,
+  .basalt-button[data-loading] > .basalt-button-count,
+  .basalt-button[data-loading] > .basalt-button-swap { opacity: 0; }
   .basalt-button-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+  /* The amount (DECISIONS 154, A8): after the label, in tabular figures and the label's own weight, in a seat as wide as the widest amount the app
+     names, so the label never moves as the amount changes. Its ink is the label's at opacity-amount (0.72) on the variants where that holds 4.5:1
+     on every surface they sit on (primary, secondary, outline); on ghost and danger, where it would not, it is the label's ink. Never in forced colours. */
+  .basalt-button-amount { font-variant-numeric: tabular-nums; }
+  .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }
+
+  /* The count (DECISIONS 154, D11d): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. It holds two tabular
+     digits (a hidden "00" shares its cell), so 0 to 99 never moves the button; a third digit widens it. It is aria-hidden: the name carries the count.
+     Never a fill and never a colour: the edge is the input boundary and the number is the cue. */
+  .basalt-button-count {
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    height: var(--basalt-size-control-xs);
+    min-width: var(--basalt-size-control-xs);
+    padding: 0 var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-full);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .basalt-button-count[data-zero] { color: var(--basalt-text-secondary); }
+  .basalt-button-count::before { content: "00"; grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
+  .basalt-button-count > span { grid-area: 1 / 1; }
+
+  /* Two lines (DECISIONS 154, D11b): the label over a note, start-aligned, at least 64 tall; in a container 340 to 480 wide the two share one line,
+     the label first and the note at the end, baseline-aligned and 12px apart, at 48. The label's own line is 14/20 (a <code> in it is mono). */
+  .basalt-button[data-lines] {
+    --_radius: var(--basalt-radius-md);
+    height: auto;
+    min-width: 0;
+    min-height: var(--_basalt-control-6xl, var(--basalt-size-control-6xl));
+    padding-block: var(--basalt-space-2-5);
+    justify-content: flex-start;
+    text-align: start;
+  }
+  .basalt-button-lines { display: grid; gap: var(--basalt-space-0-5); justify-items: start; min-width: 0; }
+  .basalt-button[data-lines] .basalt-button-label { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); min-width: 0; }
+  .basalt-button[data-lines] .basalt-button-label code { font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: inherit; }
+  .basalt-button-note { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); min-width: 0; }
+  .basalt-button[data-lines][data-disabled] .basalt-button-note { color: inherit; }
+  /* size-breakpoint-container-sm (340px) and size-breakpoint-container (480px): a container query cannot read a token */
+  @container (340px <= width < 480px) {
+    .basalt-button[data-lines] { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); padding-block: var(--basalt-space-2); }
+    .basalt-button[data-lines] > .basalt-button-lines { display: flex; flex: 1; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); }
+  }
+
+  /* The done state (DECISIONS 154, D11c): rest and done glyphs share one cell of the glyph's size and swap by opacity over duration-fast. The swap is
+     a glyph change, so it keeps its 100ms crossfade with or without reduced motion (DECISIONS 138, C10). No fill, no plate: the glyph is the cue. */
+  .basalt-button-swap { display: grid; }
+  .basalt-button-swap > .basalt-icon { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-button-swap > .basalt-icon:last-child,
+  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:first-child { opacity: 0; }
+  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:last-child { opacity: 1; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
      level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
@@ -262,7 +391,8 @@
   .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
   .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); }
   .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
-  .basalt-button[data-variant="danger"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
+  .basalt-button[data-variant="danger"][data-disabled],
+  .basalt-button[data-variant="outline"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
   /* Loading is busy, not disabled: the variant colour stays and a spinner sits on the label. */
   .basalt-button[data-loading] { cursor: progress; }
@@ -270,6 +400,57 @@
   .basalt-button[data-variant="secondary"][data-loading] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-hairline); }
   .basalt-button[data-variant="ghost"][data-loading] { background: transparent; color: var(--basalt-text-secondary); }
   .basalt-button[data-variant="danger"][data-loading] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
+  .basalt-button[data-variant="outline"][data-loading] { background: transparent; color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input); }
+
+  /* ---- TextButton (DECISIONS 154, D5d) ----
+     A button that reads as running text: no box and no height, the text's own font, primary ink and a 1px underline in the input boundary that
+     goes to the ink on hover, as Link's does. Radius 4 is only the focus ring's corner. No pressed state. The icon after the words is
+     not underlined. The quiet form is secondary ink at rest. On touch a button on a line of its own has a 44px hit box with no change to layout
+     (a box with no content, centred and at least 44 wide, like Link's); one inside a sentence keeps its line. */
+  .basalt-text-button {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--basalt-space-1-5);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-xs);
+    background: none;
+    color: var(--basalt-text-primary);
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-text-button[data-quiet] { color: var(--basalt-text-secondary); }
+  .basalt-text-button-label {
+    text-decoration: underline;
+    text-decoration-color: var(--basalt-border-input);
+    text-underline-offset: var(--basalt-size-underline-offset);
+    text-decoration-thickness: var(--basalt-size-hairline);
+    transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-text-button > .basalt-icon { align-self: center; flex: none; color: var(--basalt-text-secondary); }
+  .basalt-text-button:hover:not([data-disabled]) .basalt-text-button-label { text-decoration-color: currentColor; }
+  .basalt-text-button[data-quiet]:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
+  .basalt-text-button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-text-button[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  .basalt-text-button[data-disabled] > .basalt-icon { color: inherit; }
+  .basalt-text-button[data-disabled] .basalt-text-button-label { text-decoration-color: currentColor; }
+  @media (pointer: coarse) {
+    .basalt-text-button:not(:is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table) *)::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%; /* physical: it is centred, in either direction */
+      width: max(100%, var(--basalt-size-tap-min));
+      height: var(--basalt-size-tap-min);
+      transform: translate(-50%, -50%);
+    }
+  }
 
   /* ---- Field and Input ---- */
 
@@ -283,6 +464,14 @@
   .basalt-field-label {
     font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-primary);
+  }
+
+  /* "Required" or "Optional", directly after the label (not at the far end of its row): tertiary ink at text-xs, 400, hidden from
+     assistive technology (the input's own `required` says it). Never an asterisk, a colour or a glyph alone. */
+  .basalt-field-necessity {
+    margin-inline-start: var(--basalt-space-1-5);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-tertiary);
   }
 
   .basalt-field-description,
@@ -305,7 +494,7 @@
     border: 0;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-text-primary);
     font-size: var(--_basalt-control-font, var(--basalt-text-base-size));
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -315,6 +504,10 @@
   .basalt-input[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
   .basalt-input[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-input[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
 
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -561,6 +754,11 @@
     letter-spacing: var(--basalt-text-lg-tracking);
   }
 
+  /* A wide dialog (D10a; 992px decided in DECISIONS 158, Q1): a reference dialog of columns and tables, capped by the viewport. Basalt's padding and scroll. */
+  .basalt-dialog[data-size="wide"] { width: min(var(--basalt-size-dialog-width-wide), calc(100vw - 2 * var(--basalt-space-4))); }
+  /* A title takes focus from script (a wide dialog's first focus, a sheet's next step). Nothing operates it, so it draws no ring. */
+  .basalt-dialog-title:focus { outline: none; }
+
   .basalt-dialog-description {
     margin: var(--basalt-space-2) 0 0;
     font-size: var(--basalt-text-base-size);
@@ -599,7 +797,7 @@
     background: transparent;
     color: var(--basalt-text-secondary);
     font-size: var(--basalt-text-sm-size);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--basalt-font-weight-regular);
     cursor: pointer;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
@@ -608,6 +806,8 @@
     .basalt-tab:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
   }
 
+  /* The chosen tab is its label at 600 in primary ink; a resting one is 400 in secondary. Its width is the 600's at rest too
+     (ChosenLabel: the text carries a copy of itself laid out at 600), so choosing moves nothing. */
   .basalt-tab[data-active] { color: var(--basalt-text-primary); }
   .basalt-tab[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
 
@@ -666,7 +866,94 @@
   }
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] {
     background: var(--_pill);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
+  }
+
+  /* Tabs at 48 or 56 (DECISIONS 154, D12): 16px text, 10px of padding either side (24px between two labels, 4px of gap), radius 8 on the top
+     corners (the drawn box is 44 or more). The 56 bar steps to 48 in a container narrower than size-breakpoint-container-lg (640px). The
+     underline is the same 2px element as at 36. */
+  .basalt-tabs[data-size="3xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-tabs:is([data-size="3xl"], [data-size="5xl"]) > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab {
+    padding-inline: var(--basalt-space-2-5);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
+  }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  }
+
+  /* Panels that share one seat (DECISIONS 154, X6). All panels stay mounted in one grid cell; the ones not shown keep their room and are
+     visibility: hidden (Base UI also makes them inert), so the view is as tall as its tallest panel and a change of tab moves nothing under
+     it. No !important: an author rule beats the user agent's [hidden]. The element is its own container, so it turns off by its own width. */
+  .basalt-tabs-panels[data-stacked] { display: grid; container-type: inline-size; }
+  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel { grid-area: 1 / 1; min-width: 0; }
+  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: block; visibility: hidden; }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: none; }
+  }
+
+  /* ---- Link tabs (DECISIONS 154, D12) ----
+     A nav of links on a hairline. The current link is its label at 600 in primary ink (400 in secondary at rest, each label reserving its 600 width, as a tab's
+     does: decisions 138 and 149) with a 2px underline: a real element (so forced colours keep it), static, not sliding. Focus is the control ring at +2 outside the link, never an inset outline. Padding is 8 either side at 36, 10 at 48 and 56 (24px
+     between two labels), the gap 4 and the first link has no padding at its start. Hover lifts the ink. */
+  .basalt-link-tabs { margin: 0; padding: 0; }
+  .basalt-link-tabs > ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--basalt-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
+  }
+  .basalt-link-tab {
+    --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg));
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    height: var(--_h);
+    padding: 0 var(--basalt-space-2);
+    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-link-tabs[data-size="3xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-link-tabs:is([data-size="3xl"], [data-size="5xl"]) .basalt-link-tab {
+    padding-inline: var(--basalt-space-2-5);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
+  }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  }
+  .basalt-link-tabs > ul > li:first-child > .basalt-link-tab { padding-inline-start: 0; }
+  .basalt-link-tab-line { position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .basalt-link-tab[aria-current] { color: var(--basalt-text-primary); }
+  .basalt-link-tab[aria-current] > .basalt-link-tab-line { opacity: 1; }
+  @media (hover: hover) {
+    .basalt-link-tab:hover { color: var(--basalt-text-primary); }
+  }
+  .basalt-link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse) {
+    .basalt-link-tab { min-height: var(--basalt-size-tap-min); }
+  }
+  /* Under 720px wide the row is replaced by a Select of the same links (A15, Castle's form: the prototype hides the row and shows a select there). Both are in
+     the markup, and only this rule chooses, so nothing moves or flashes on load; display: none takes the hidden one out of the accessibility tree and the
+     Tab order. The Select says "Go to" before the page's name (valuePrefix, DECISIONS 158); it is Basalt's own, the field's width, at Castle's 44 for the 48 row (the 36 row's 36, 44 on touch, and 48 for the 56 row): see SELECT_SIZE in link-tabs.tsx. */
+  .basalt-link-tabs-select { display: none; min-width: 0; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the row is a Select */
+  @media (width < 720px) {
+    .basalt-link-tabs > ul { display: none; }
+    .basalt-link-tabs-select { display: block; }
   }
 
   /* ---- Segmented control ---- */
@@ -675,6 +962,10 @@
      track against a 1.35:1 step reads as a pill, not a wash). Light keeps surface-top, white on the track. */
   .basalt-segmented,
   .basalt-tabs-list { --_pill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); }
+  /* The pill's edge is its hairline and nothing else: it sits in the flow, so it casts no shadow (a shadow is for what floats). The hairline is
+     the line token, so it steps to the input boundary under more contrast. */
+  .basalt-segmented,
+  .basalt-tabs-list { --_pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
   /* Without light-dark(): the mix of the two, by --_dkp (see the depth section). */
   @supports not (color: light-dark(white, black)) {
     .basalt-segmented,
@@ -700,7 +991,7 @@
     background: transparent;
     color: var(--basalt-text-secondary);
     font-size: var(--basalt-text-sm-size);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--basalt-font-weight-regular);
     cursor: pointer;
     transition-property: background-color, color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -711,11 +1002,12 @@
     .basalt-segment:hover:not([data-pressed]):not([data-disabled]) { color: var(--basalt-text-primary); }
   }
 
-  /* Selected is a raised pill with a hairline, visible without colour (WCAG 1.4.11). */
+  /* Chosen is the label at 600 in primary ink (decisions 138 and 139), against 400 in secondary at rest: the weight is the cue, which does
+     not rest on colour (WCAG 1.4.1, technique G182). The raised pill with its hairline and the ink step support it. */
   .basalt-segment[data-pressed] {
     background: var(--_pill);
     color: var(--basalt-text-primary);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
   }
 
   /* The sliding pill. SegmentedControl and a vertical TabsList hold one shared pill, which travels to the chosen
@@ -739,7 +1031,7 @@
     transform: translate(var(--_pill-x), var(--_pill-y));
     border-radius: var(--basalt-radius-sm);
     background: var(--_pill);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
     pointer-events: none;
     transition-property: transform, width, height;
     transition-duration: var(--basalt-duration-slow);
@@ -755,6 +1047,38 @@
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab { transition-property: color; }
     .basalt-segmented[data-slide] .basalt-segment[data-pressed],
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
+  }
+
+  /* ---- The theme choice (DECISIONS 146 B): System, Light and Dark, three words in the segmented control's drawing, with radio semantics ----
+     The chosen word is drawn from the root's `data-theme-choice` (the head script writes it, `useTheme` keeps it), so the right word is chosen in the first frame, before any
+     script and before hydration; with no attribute, System is the chosen one (nothing stored). It is 600 in primary on the pill, its 600 width reserved so nothing moves. */
+  .basalt-theme-choice { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  .basalt-theme-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  /* The words may be larger than the 28px they are drawn in (200% text): the segment grows and the group wraps, and nothing overflows. */
+  .basalt-theme-choice .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
+  .basalt-theme-choice .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
+  @media (pointer: coarse) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  /* The word's start edge and its reserved 600 width come from the segmented control's own rules (the data-label span, DECISIONS 138 and 139); the chosen word's 600 is also set
+     on the button below, because with no script and no data-pressed the right word is chosen from data-theme-choice alone. */
+  .basalt-theme-choice .basalt-segment[data-pressed],
+  :root[data-theme-choice="system"] .basalt-theme-choice [data-value="system"],
+  :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
+  :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
+  :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] {
+    background: var(--_pill);
+    color: var(--basalt-text-primary);
+    font-weight: var(--basalt-font-weight-semibold);
+    box-shadow: var(--_pill-edge);
+  }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .basalt-theme-choice .basalt-segmented[data-slide] .basalt-segment { background: transparent; box-shadow: none; }
+  }
+  @media (forced-colors: active) {
+    .basalt-theme-choice .basalt-segment[data-pressed],
+    :root[data-theme-choice="system"] .basalt-theme-choice [data-value="system"],
+    :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
+    :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
+    :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
   }
 
   /* ---- Navigation: a sidebar and its collapsed rail ---- */
@@ -894,6 +1218,7 @@
     /* --_inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
     --_inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--_inset-bottom-sim, var(--basalt-space-0)));
     --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--_inset-top));     /* what a sticky thing under a bar adds */
+    --basalt-site-row: var(--basalt-sticky-offset);                                  /* the resting row's height: a bar that arrives keeps it in a slot, and a stage is pulled up by it */
     --basalt-bottom-offset: var(--basalt-space-0);
     --_pad-left: max(var(--basalt-gutter), var(--_inset-left));                      /* a bar's inline padding: the gutter or the side inset */
     --_pad-right: max(var(--basalt-gutter), var(--_inset-right));
@@ -921,8 +1246,12 @@
     scroll-margin-top: calc(-1 * (var(--basalt-sticky-offset) + var(--basalt-space-4)));
   }
 
-  /* The skip link: the first element of the page, unseen until it has focus, then at the page's top start over everything (the layer of a
-     toast). 44px tall under a coarse pointer, and not drawn in print. The look of the HTML skill's `.skip-link`, link underline included. */
+  /* The skip link: the first element of the page, unseen until it has focus. It leaves the flow, so it floats as a tooltip does: level 3,
+     the rim, `shadow-overlay` and radius 8 (decisions 138 and 139). With no sticky bar it sits at the page's top start; with one it hangs
+     under the bar, `space-2` below the bar's line, on the brand's start edge at every width (the bar's own inline padding, and the
+     page's centred column when the bar is a site header), fixed to the viewport so it is under the bar wherever the page is scrolled.
+     It covers nothing in the bar and moves nothing. 44px tall under a coarse pointer, and not drawn in print. The look of the HTML
+     skill's `.skip-link`, link underline included. */
   .basalt-skip-link {
     box-sizing: border-box;
     position: absolute;
@@ -930,14 +1259,29 @@
     top: var(--basalt-space-2);
     transform: translateY(-200%);
     padding: var(--basalt-space-2) var(--basalt-space-3);
-    border-radius: var(--basalt-radius-sm);
-    background: var(--basalt-surface-3);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-md);
+    background: var(--_surface, var(--basalt-surface-3));
+    box-shadow: var(--basalt-shadow-overlay);
     color: var(--basalt-text-primary);
     z-index: var(--basalt-layer-toast);
     text-decoration: underline;
     text-decoration-color: var(--basalt-border-input);
     text-underline-offset: var(--basalt-size-underline-offset);
   }
+  :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link {
+    position: fixed;
+    top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2));
+    inset-inline-start: var(--_pad-left);
+    transform: none;
+  }
+  :root:has(.basalt-site-header) .basalt-skip-link {
+    inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
+  }
+  /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
+  .basalt-skip-link:not(:focus) { box-shadow: none; }
+  :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link:not(:focus) { clip-path: inset(50%); }
   .basalt-skip-link:hover { text-decoration-color: currentColor; }
   .basalt-skip-link:focus { transform: none; }
   .basalt-skip-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -990,7 +1334,11 @@
   .basalt-site-brand {
     display: inline-flex;
     align-items: center;
-    flex: none;
+    /* The brand gives way before the end cluster does: a lockup too wide for the bar at 320 beside the loops toggle, two tools and Menu is clipped at its end, never the Menu
+       button pushed off the screen (the ring's 4px stays inside the clip). */
+    flex: 0 1 auto;
+    overflow: clip;
+    overflow-clip-margin: calc(var(--basalt-size-focus-offset) + var(--basalt-size-focus-width));
     height: var(--basalt-size-tap-min);
     min-width: var(--basalt-size-tap-min);
     margin: 0;
@@ -1010,6 +1358,15 @@
     white-space: nowrap;
   }
   .basalt-site-brand:focus-visible .basalt-site-brand-mark { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The lockup by pixel density (DECISIONS 146 F): each drawing is a `symbol` defined once (the sprite is out of the flow) and drawn with `use`; the 1x drawing shows,
+     and the 2x drawing replaces it from 2dppx (brand/README.md), so only one is rendered. It draws in the text colour, so it stays in forced colours. */
+  .basalt-lockup-sprite { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+  .basalt-lockup { display: block; flex: none; max-width: none; pointer-events: none; }
+  .basalt-lockup-2x { display: none; }
+  @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+    .basalt-lockup-1x { display: none; }
+    .basalt-lockup-2x { display: block; }
+  }
 
   /* The links: navigation, so Nav's language. 14/20 at 400 in secondary ink on a 32px hugging pill; the hit area is 44 tall
      at every pointer, with 2px either side of the pill, so pills are 4 apart and neighbouring hit areas touch. Hover is the
@@ -1085,12 +1442,32 @@
     .basalt-site-links[data-glide] .basalt-site-link .basalt-site-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
 
+  /* The pill link as a part (DECISIONS 146 C). `sm` is the footer's: 13/18 on a 28px pill in a 32px hit area, 44 on touch. A column's hit areas touch, as a row's do.
+     `hang` pulls the list out by its link's padding and its pill's, so the words line up with an edge; it never takes the pill closer than space-1-5 to the gutter's
+     edge (the gutter is space-4 under 720: 16, less the 10 of the sm pill's hang, leaves 6). */
+  .basalt-site-links[data-size="sm"] { --_hang: calc(var(--basalt-space-0-5) + var(--basalt-space-2)); margin-inline-start: 0; }
+  .basalt-site-links[data-size="md"] { --_hang: calc(var(--basalt-space-0-5) + var(--basalt-space-3)); }
+  /* The 28 and 32 are minimums: at 200% text a label wraps inside its pill and the pill and its hit area grow, so nothing overflows or is cut. */
+  .basalt-site-links[data-size="sm"] .basalt-site-link { height: auto; min-height: var(--basalt-size-control-md); }
+  .basalt-site-links[data-size="sm"] .basalt-site-pill { height: auto; min-height: var(--basalt-size-control-sm); padding-inline: var(--basalt-space-2); }
+  .basalt-site-links[data-size="sm"] .basalt-site-label { white-space: normal; overflow-wrap: anywhere; }
+  .basalt-site-links[data-size="sm"] .basalt-site-label {
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-site-links[data-orientation="column"] { margin-inline-start: 0; }
+  .basalt-site-links[data-orientation="column"] .basalt-site-links-list { flex-direction: column; align-items: flex-start; }
+  .basalt-site-links[data-hang] { margin-inline-start: calc(-1 * var(--_hang, var(--basalt-space-0))); }
+  @media (pointer: coarse) {
+    .basalt-site-links[data-size="sm"] .basalt-site-link { min-height: var(--basalt-size-tap-min); }
+  }
+
   /* Under 720 the links and the action leave the bar; the brand, the toggle and a Menu button stay. The bar's buttons are 44
      whatever the pointer, radius 8, and the glyph keeps IconButton's own 16. */
   .basalt-site-menu-trigger { display: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu */
   @media (width < 720px) {
-    .basalt-site-links,
+    .basalt-site-bar .basalt-site-links,
     .basalt-site-action { display: none; }
     .basalt-site-menu-trigger { display: inline-flex; }
     .basalt-bar-actions { gap: var(--basalt-space-1); }
@@ -1132,6 +1509,14 @@
     padding-inline: var(--_pad-left) var(--_pad-right);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
+  /* The menu's first row when the page has a loops toggle: the same control in its Button form, at the band's own gutter, 44 on touch like the foot's button. */
+  .basalt-site-menu-loops {
+    padding: var(--basalt-space-2) var(--_pad-right) 0 var(--_pad-left);
+  }
+  .basalt-site-menu-loops .basalt-button {
+    --_h: var(--basalt-size-tap-min);
+    --_radius: var(--basalt-radius-md);
+  }
   .basalt-site-menu-nav {
     padding-block: var(--basalt-space-2);
     padding-inline: max(var(--basalt-space-1-5), var(--_inset-left)) max(var(--basalt-space-1-5), var(--_inset-right));
@@ -1149,6 +1534,115 @@
     .basalt-sheet[data-side="top"][data-starting-style],
     .basalt-sheet[data-side="top"][data-ending-style] { clip-path: none; opacity: 0; }
   }
+
+  /* ---- The site footer (DECISIONS 146 A) ----
+     On the page at level 0: no fill, no rim, no shadow. One 1px divider the width of the row (never full-bleed), half a section gap above it (64 from 1024, 48 from 720, 32
+     under) and `space-8` inside. The brand, a sentence and the social links are the identity; the links are a line (one unlabelled list beside the brand) or labelled groups;
+     the base is the legal line and the theme choice. Under 720 a labelled group is a disclosure once script has run; without script every group is open, two a row. */
+  .basalt-site-page { display: flex; flex-direction: column; min-height: 100svh; }
+  .basalt-site-page > main { flex: 1 0 auto; }
+  .basalt-site-footer {
+    --_gap: var(--basalt-space-12);
+    box-sizing: border-box;
+    margin-top: calc(var(--basalt-section-gap) / 2);
+    padding-bottom: calc(var(--basalt-space-8) + var(--_inset-bottom));
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-site-footer-body { padding-top: var(--basalt-space-8); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-site-footer-top { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--basalt-gutter); row-gap: var(--basalt-space-8); }
+  .basalt-site-footer-id { grid-column: 1 / span 4; display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-3); min-width: 0; }
+  /* The brand link is a 44px target on a 32px lockup: its slack comes off the gap, so the identity block is as tall as what is drawn. */
+  .basalt-site-footer-id > .basalt-site-brand { margin-block: calc(-1 * (var(--basalt-size-tap-min) - var(--basalt-size-control-md)) / 2); }
+  .basalt-site-footer-note { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); }
+  .basalt-site-footer-links { grid-column: 5 / -1; min-width: 0; }
+  .basalt-site-footer-top:not(:has(.basalt-site-footer-id)) > .basalt-site-footer-links { grid-column: 1 / -1; }
+  .basalt-site-footer-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--basalt-gutter); row-gap: var(--basalt-space-8); align-items: start; }
+  .basalt-site-footer-group { min-width: 0; }
+  .basalt-site-footer-label {
+    margin: 0 0 var(--basalt-space-1);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  /* The line form: one unlabelled list of up to six, beside the brand and start-aligned as the bar's links are. */
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-top { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-6); row-gap: var(--basalt-space-2); }
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-links { flex: 1 1 auto; }
+  .basalt-site-footer[data-form="line"] .basalt-site-links-list { flex-wrap: wrap; }
+  .basalt-site-footer-base { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--basalt-space-6); row-gap: var(--basalt-space-4); margin-top: var(--_gap); }
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-base { margin-top: var(--basalt-space-4); }
+  .basalt-site-footer-legal { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-tertiary); }
+  .basalt-site-footer-toggle { display: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; below it the brand takes the whole row and the groups sit under it, four a row */
+  @media (width < 1024px) {
+    .basalt-site-footer-id, .basalt-site-footer-links { grid-column: 1 / -1; }
+    .basalt-site-footer-id { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-6); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the base stacks and a labelled group is a disclosure */
+  @media (width < 720px) {
+    .basalt-site-footer { --_gap: var(--basalt-space-8); }
+    .basalt-site-footer-top { row-gap: var(--basalt-space-6); }
+    .basalt-site-footer-id { flex-direction: column; align-items: flex-start; }
+    .basalt-site-footer-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--basalt-space-4); row-gap: var(--basalt-space-6); }
+    .basalt-site-footer-base { flex-direction: column; align-items: flex-start; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-groups { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group + .basalt-site-footer-group { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-site-footer[data-wired] .basalt-site-footer-label { margin: 0; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-label-wide { display: none; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-toggle { display: flex; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group:not([data-open]) > .basalt-site-links { display: none; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group[data-open] > .basalt-site-links { padding-bottom: var(--basalt-space-2); }
+  }
+  /* A disclosure row: 44 tall with the label and the chevron, the control ring at +2 outside it. */
+  .basalt-site-footer-toggle {
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--basalt-size-tap-min);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-site-footer-toggle:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-site-footer-toggle > .basalt-icon { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media (hover: hover) { .basalt-site-footer-toggle:hover > .basalt-icon { color: var(--basalt-text-primary); } }
+  .basalt-site-footer-group[data-open] > .basalt-site-footer-label .basalt-site-footer-toggle > .basalt-icon { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .basalt-site-footer-toggle > .basalt-icon { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); } }
+  @media (forced-colors: active) {
+    .basalt-site-footer-body, .basalt-site-footer[data-wired] .basalt-site-footer-group + .basalt-site-footer-group { border-color: CanvasText; }
+  }
+  @media print { .basalt-site-footer-toggle { display: none; } .basalt-site-footer-label-wide { display: inline; } .basalt-site-footer-group > .basalt-site-links { display: block; } }
+
+  /* ---- A bar that arrives, or leaves and returns (DECISIONS 146 D) ----
+     One header element in a slot that keeps the resting row's height in the flow in every phase, so nothing below it ever moves. At rest and between it sits in the slot and
+     scrolls with the page; pinned, the same element is `position: fixed` and drops in from above its own top edge over duration-slower on ease-out, and leaves at 0.75 on
+     ease-in (opacity only under reduced motion). A site restyles the row and the bar by `data-form`. */
+  .basalt-site-slot { position: relative; height: var(--basalt-site-row, var(--basalt-sticky-offset)); }
+  .basalt-site-slot > .basalt-site-header {
+    --basalt-phase-from: calc(-100% - var(--basalt-size-hairline));
+    position: absolute;
+    inset: 0 0 auto;
+  }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"] { position: fixed; top: 0; }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="from"] { transform: translateY(var(--basalt-phase-from)); transition: none; }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="in"] { transform: translateY(0); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="out"] { transform: translateY(var(--basalt-phase-from)); transition: transform calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion] { transform: none; }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="from"] { opacity: 0; }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="in"] { opacity: 1; transition: opacity var(--basalt-duration-slower) var(--basalt-ease-out); }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="out"] { opacity: 0; transition: opacity calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  }
+  @media print { .basalt-site-slot > .basalt-site-header[data-form] { position: absolute; transform: none; opacity: 1; transition: none; } }
 
   /* The app shell: one grid, and the document scrolls. The sidebar is sticky at 100dvh and scrolls its own list only when
      Nav overflows; its brand band is the header's 56 and draws no line of its own; the header's line ends at the sidebar's
@@ -1536,7 +2030,7 @@
     height: var(--basalt-size-choice);
     margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-choice)) / 2);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-action-primary-text);
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -1665,6 +2159,40 @@
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
 
+  /* A cut cell can be read (decisions 138 and 139). The ellipsis and the row stay; a cut cell is a focus stop (`data-cut`, set by Table), and
+     its focus ring is the flush-field -2 inset, because +2 would be cut by the cell's own clip and cross its neighbours. On hover (after
+     the tooltip's wait) or focus its whole value opens in place over it, on a level-3 plate: the rim, shadow-overlay and radius 8, its
+     text starting on the pixel the cell's text starts on, wrapping at the container's end edge and never past the viewport. It is
+     aria-hidden (the cell holds the value), opened by the keyboard it carries the control ring at +2 round the plate, and after Esc the
+     cell shows its own ring. Under reduced motion it only fades; it never scales, because a scale would move the text. */
+  .basalt-table[data-fixed] :is(td, th)[data-cut]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-cell-peek {
+    box-sizing: border-box;
+    position: fixed;
+    z-index: var(--basalt-layer-tooltip);
+    display: flex;
+    align-items: center;
+    width: max-content;
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-md);
+    background: var(--_surface, var(--basalt-surface-3));
+    box-shadow: var(--basalt-shadow-overlay);
+    white-space: normal;
+    overflow-wrap: break-word;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility 0s linear calc(var(--basalt-duration-base) * 0.75);
+  }
+  .basalt-cell-peek[data-open] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  .basalt-cell-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+
   /* The sort control: the whole header cell is the button (decision 84). The button fills the cell, so the label sits
      exactly where a plain header's label does (the cell's 16px padding is the button's), and a press anywhere sorts.
      Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label,
@@ -1741,10 +2269,20 @@
   .basalt-table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
   .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
+  /* A wash over an opaque fill is one colour, mixed here (decision 138, C11), never a gradient, an image or a layer of its own: the wash's
+     colour at its own alpha (white at 6% and 9% in dark, black at 4% and 7% in light, the tokens' values) over the cell's fill, in sRGB, as a
+     browser composites it, so the cell paints the colours it did. light-dark() picks by the colour scheme the theme sets. */
   @media (hover: hover) {
-    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised)))); }
   }
-  .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-image: linear-gradient(var(--basalt-state-selected), var(--basalt-state-selected)); }
+  .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised)))); }
+  /* A browser without light-dark(): the two mixed by --_dkp, as the plate is (see the depth section). */
+  @supports not (color: light-dark(white, black)) {
+    @media (hover: hover) {
+      .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised)))); }
+    }
+    .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised)))); }
+  }
   /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is
      actually scrolled, and never a selection, sort or status mark. */
   .basalt-table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
@@ -1828,6 +2366,142 @@
     .basalt-chip::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-lg) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)) 0; }
   }
 
+  /* A chip at 44 and up (MultiSelect's controlSize, DECISIONS 154): its height, radius 8 and 16px text; on touch the box is already the target. */
+  .basalt-chip[data-size="2xl"] { height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); }
+  .basalt-chip[data-size="3xl"] { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-chip[data-size="4xl"] { height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); }
+  .basalt-chip[data-size="5xl"] { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"]) { border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  @media (pointer: coarse) {
+    .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"])::before { content: none; }
+  }
+
+  /* ---- SwitchRow (DECISIONS 154, D9) ----
+     One checkbox drawn as a row: a tile, a name over a kind, and a 16px seat where a plus (off) and a check (on) cross over in 100ms, a swap that
+     keeps its fade under reduced motion (DECISIONS 138, C10). Radius 8; 52 tall from 720px wide (size-control-4xl) and 48 under it
+     (size-control-3xl, compact one rung down), the tile 36 and 32. Off is secondary ink on the input boundary (3:1); on is the selected wash and primary
+     ink and its edge does not change; hover lifts the ink to primary and takes the edge to secondary ink (not border-hover: that is fainter than
+     the input boundary, so the edge would drop under 3:1); a press is the hover wash. Focus is the control ring at +2 outside. A hover or
+     press never moves anything. In forced colours on is Highlight with HighlightText and no outline. */
+  .basalt-switch-rows { display: grid; align-content: start; gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-switch-row {
+    position: relative;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--basalt-space-2-5);
+    width: 100%;
+    min-width: 0;
+    min-height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl));
+    margin: 0;
+    padding: var(--basalt-space-1-5) var(--basalt-space-3) var(--basalt-space-1-5) var(--basalt-space-2);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font-family: var(--basalt-font-family-sans);
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-switch-row[data-tile] { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .basalt-switch-row-tile { display: block; flex: none; width: var(--basalt-size-control-lg); height: var(--basalt-size-control-lg); }
+  .basalt-switch-row-tile > * { display: block; width: 100%; height: 100%; }
+  .basalt-switch-row-text { display: grid; min-width: 0; }
+  .basalt-switch-row-name { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-kind { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-switch-row-seat > .basalt-icon { position: absolute; inset: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-switch-row-check, .basalt-switch-row[data-checked] .basalt-switch-row-plus { opacity: 0; }
+  .basalt-switch-row[data-checked] .basalt-switch-row-check { opacity: 1; }
+  .basalt-switch-row[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-switch-row[data-checked] .basalt-switch-row-seat { color: var(--basalt-text-primary); }
+  .basalt-switch-row[data-checked] .basalt-switch-row-kind { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    .basalt-switch-row:hover:not([data-disabled]) { color: var(--basalt-text-primary); border-color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+    .basalt-switch-row:hover:not([data-disabled]):not([data-checked]) .basalt-switch-row-seat { color: var(--basalt-text-secondary); }
+  }
+  .basalt-switch-row:active:not([data-disabled]) { background: var(--basalt-state-hover); }
+  .basalt-switch-row[data-checked]:active:not([data-disabled]) { background: var(--basalt-state-selected); }
+  .basalt-switch-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-switch-row[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .basalt-switch-row[data-disabled] :is(.basalt-switch-row-seat, .basalt-switch-row-kind) { color: var(--basalt-text-disabled); }
+  .basalt-switch-row[data-disabled][data-checked] { background: transparent; }
+  /* Under 720px wide: 48 tall, the tile 32, the name 13/18, the padding and the gap a step tighter. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the row is 48 */
+  @media (width < 720px) {
+    .basalt-switch-row { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); column-gap: var(--basalt-space-2); padding-inline: var(--basalt-space-1-5) var(--basalt-space-2); }
+    .basalt-switch-row-tile { width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); }
+    .basalt-switch-row-name { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  }
+
+  /* ---- OptionChips (DECISIONS 154, D9): one of many, eight at most, as chips that wrap with no track ----
+     A fieldset and its legend (with a small tertiary count), then chips 8px apart. A chip is 44 tall (40 compact), radius 8, padding 10 before and 14
+     after, 16px text, with a round 16px seat every chip reserves: a ring at rest, filled with the check when chosen. The chosen chip is the selected
+     wash and primary ink; its edge does not change (no inked border: it would read as focus). Rest is secondary ink on the input boundary; hover
+     lifts the ink and takes the edge to secondary ink (as the switch row). A value that cannot be chosen is the disabled look with its words kept.
+     The fill swaps in 100ms, with or without reduced motion. Focus is the control ring at +2 outside. */
+  .basalt-option-chips { min-width: 0; margin: 0; padding: 0; border: 0; }
+  .basalt-option-chips-legend { display: block; }
+  .basalt-option-chips-count { margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-option-chips-list { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
+  .basalt-option-chip {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    min-height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl));
+    margin: 0;
+    padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-option-chip-seat {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--basalt-size-choice);
+    height: var(--basalt-size-choice);
+    border-radius: var(--basalt-radius-full);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-action-primary-text);
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-option-chip-seat > .basalt-icon { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-option-chip[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: var(--basalt-action-primary); box-shadow: none; }
+  .basalt-option-chip[data-checked] .basalt-option-chip-seat > .basalt-icon { opacity: 1; }
+  .basalt-option-chip-note { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  @media (hover: hover) {
+    .basalt-option-chip:hover:not([data-unavailable]):not([data-disabled]) { color: var(--basalt-text-primary); border-color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+  }
+  .basalt-option-chip:active:not([data-unavailable]):not([data-disabled]) { background: var(--basalt-state-hover); }
+  .basalt-option-chip[data-checked]:active:not([data-unavailable]):not([data-disabled]) { background: var(--basalt-state-selected); }
+  .basalt-option-chip:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-option-chip[data-unavailable], .basalt-option-chip[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .basalt-option-chip[data-unavailable] .basalt-option-chip-seat, .basalt-option-chip[data-disabled] .basalt-option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
+  .basalt-option-chip[data-disabled][data-checked] { background: transparent; }
+  @media (pointer: coarse) {
+    .basalt-option-chip { min-height: max(var(--_basalt-control-2xl, var(--basalt-size-control-2xl)), var(--basalt-size-tap-min)); }
+  }
+
   /* The trigger and the checklist. The trigger is a secondary Button: it reads the label, then its value, then a caret, and
      takes the selected wash while it filters. The popup is a menu's popup: popup rows, a 36px plate in a 40px row. */
   .basalt-filter[data-popup] { flex-direction: row; align-items: center; }
@@ -1905,7 +2579,7 @@
     padding: 0;
     border: 0;
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-action-primary-text);
     cursor: inherit;
     transition-property: background-color, box-shadow;
@@ -1944,7 +2618,7 @@
     border: 0;
     border-radius: var(--basalt-radius-full);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     cursor: inherit;
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -1999,7 +2673,7 @@
     border: 0;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / 1 var(--basalt-font-family-sans);
     text-align: left;
@@ -2010,6 +2684,15 @@
   .basalt-select-trigger[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
   .basalt-select-trigger[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-select-trigger[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  /* A label before the value inside the trigger (valuePrefix): the multi-select trigger's form, a label then its value, on the trigger's one line (the height does
+     not change). The label is secondary ink and the value keeps the trigger's own; both stay on one line and the value is cut by an ellipsis before the caret. */
+  .basalt-select-lead { display: inline-flex; align-items: baseline; gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-select-prefix { flex: none; color: var(--basalt-text-secondary); white-space: nowrap; }
+  .basalt-select-lead > .basalt-select-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-select-value[data-placeholder] { color: var(--basalt-text-tertiary); }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
@@ -2030,6 +2713,7 @@
     z-index: var(--basalt-layer-toast);
     width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
   }
+  .basalt-toast-viewport:focus { outline: none; }
 
   .basalt-toast {
     --_gap: var(--basalt-space-2);
@@ -2075,7 +2759,8 @@
   .basalt-toast[data-limited] { opacity: 0; }
   .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
   .basalt-toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
-  .basalt-toast:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-toast:focus-visible,
+  .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   .basalt-toast-content {
     display: flex;
@@ -2195,6 +2880,10 @@
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+  }
+  /* On touch a one-line entry is at least 44 tall with its line centred (12 above and 12 below; its plate stays 40); a two-line entry is 58 already. */
+  @media (pointer: coarse) {
+    .basalt-notification { min-height: var(--basalt-size-tap-min); align-content: center; }
   }
   .basalt-notification::before {
     content: "";
@@ -2701,22 +3390,43 @@
 
   /* ---- Number ticker ---- */
 
-  /* The readable text is always there (visually hidden); the rolling strip is drawn over it. Under reduced
-     motion the strip goes and the text shows as it is, at the same width and baseline. Kerning is off so
-     the digits, drawn one by one, and the run of text advance the same. */
-  .basalt-ticker { display: inline-flex; align-items: flex-end; font-variant-numeric: tabular-nums; font-kerning: none; }
-  .basalt-ticker-visual { display: inline-flex; align-items: flex-end; }
-  .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; }
+  /* The rolling strips are drawn, never selected (`user-select: none`), and sit where they always did. The readable text is the number once, first in the
+     flow of the sentence it is in: transparent and selectable, in a box with no width that its text overflows, under the strips. So a selection paints the sentence's
+     own band through it (one band, one line of copied text, the number once) and the ticker is as wide as its strips, to the subpixel. An inline-block
+     adds no line break to a copy where an inline-flex does. At rest the text draws nothing. Under reduced motion the strips go and the text is the visible
+     text. Kerning is
+     off so the digits, drawn one by one, and the run of text advance the same. */
+  .basalt-ticker { white-space: nowrap; font-variant-numeric: tabular-nums; font-kerning: none; }
+  .basalt-ticker > .basalt-ticker-text { display: inline-block; width: 0; color: transparent; forced-color-adjust: none; }
+  .basalt-ticker > .basalt-ticker-visual { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
+  /* A zero-width character, so the strips' line has a text strut in a page with no doctype too (its baseline is then the text's, as in standards mode); it is generated, so it is never copied. */
+  .basalt-ticker > .basalt-ticker-visual::before { content: "\200b"; }
+  /* A ticker that is a flex item (the sparkline's headline) keeps what it always did: its digits sit on the bottom of whatever box it is stretched to. */
+  .basalt-sparkline-head > .basalt-ticker { display: flex; align-items: flex-end; }
+  /* Under reduced motion and in forced colours the strips go and the number is its own text, in the sentence's own line: plain tabular text with the same width and baseline as the
+     strips it replaces, so a selection paints one band under the whole sentence (in forced colours the system's, with its selected-text colour on the digits: the system paints
+     them, `forced-color-adjust` left alone). A new value changes in place there, as the other moving parts stop in forced colours. The sparkline's headline is a flex item and keeps
+     its 1em box, clipped to it, so its digits do not move. */
+  @media (prefers-reduced-motion: reduce), (forced-colors: active) {
+    .basalt-ticker > .basalt-ticker-visual { display: none; }
+    .basalt-ticker > .basalt-ticker-text { display: inline; width: auto; color: inherit; forced-color-adjust: auto; }
+    .basalt-sparkline-head > .basalt-ticker > .basalt-ticker-text { display: inline-block; height: 1em; overflow: clip; line-height: 1; }
+  }
+  /* The strips are built of inline boxes only: a block or a flex container inside what a selection skips adds a line break to the copy. A strip is as wide as its widest digit
+     (min-content, one digit to a line) and as tall as ten lines of 1em, shown through a window of 1em. */
+  .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; vertical-align: top; }
   .basalt-ticker-strip {
-    display: flex;
-    flex-direction: column;
+    display: inline-block;
+    width: min-content;
+    vertical-align: top;
+    white-space: normal;
     transform: translateY(calc(var(--_d, 0) * -1em));
     transition: transform var(--basalt-duration-slow) var(--basalt-ease-out);
   }
   /* A gliding ticker is already easing its value in script; the strip follows that clock and never starts its own. */
   .basalt-ticker[data-glide] .basalt-ticker-strip { transition: none; }
-  .basalt-ticker-strip > span { display: block; height: 1em; line-height: 1; }
-  .basalt-ticker-char { line-height: 1; }
+  .basalt-ticker-strip > span { display: inline-block; height: 1em; line-height: 1; vertical-align: top; }
+  .basalt-ticker-char { line-height: 1; vertical-align: top; }
   .basalt-tabular { font-variant-numeric: tabular-nums; }
 
   /* ---- Skeleton ---- */
@@ -3046,7 +3756,10 @@
   .basalt-chart-not-observed { color: var(--basalt-text-tertiary); }
   .basalt-chart-note { color: var(--basalt-text-secondary); }
   @media (hover: hover) {
-    .basalt-chart-table tbody tr:hover > th { background-image: linear-gradient(var(--basalt-state-hover), var(--basalt-state-hover)); }
+    .basalt-chart-table tbody tr:hover > th { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised)))); }
+    @supports not (color: light-dark(white, black)) {
+      .basalt-chart-table tbody tr:hover > th { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised)))); }
+    }
     .basalt-chart-table tbody tr:hover .basalt-chart-not-observed { color: var(--basalt-text-secondary); }
   }
   @media (pointer: coarse) {
@@ -3073,6 +3786,148 @@
     .basalt-chart-name, .basalt-chart-value, .basalt-chart-date, .basalt-chart-title { color: CanvasText; }
     .basalt-chart-source, .basalt-chart-hint, .basalt-chart-value [data-missing], .basalt-chart-not-observed { color: GrayText; }
     .basalt-chart-table tbody th { background-color: Canvas; background-image: none; }
+  }
+
+  /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----
+     Ported from the owner's approved prototypes, with the council's changes. The lit gradient is three neutral stops that each hold 3:1 on levels 0 to 3; a lit line is
+     one stroke in the top stop; there is no area under a line, no cursor, no halo and no plate on a trend. The implementation hasn't been reviewed. */
+  .basalt-chart-lit-stop[data-stop="top"] { stop-color: var(--basalt-chart-lit-top); }
+  .basalt-chart-lit-stop[data-stop="mid"] { stop-color: var(--basalt-chart-lit-mid); }
+  .basalt-chart-lit-stop[data-stop="base"] { stop-color: var(--basalt-chart-lit-base); }
+  .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark):not([data-so-far]) { fill: var(--_lit); }
+  .basalt-chart[data-lit] .basalt-chart-svg .basalt-chart-line { stroke: var(--basalt-chart-lit-top); }
+  .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark)[data-so-far] { stroke: var(--basalt-chart-lit-top); }
+  /* A trend's readings: small dots in tertiary ink at full strength, never faded. */
+  .basalt-chart-reading { fill: var(--basalt-chart-axis); }
+  .basalt-chart-axis[data-plated]:not([data-active]) { fill: var(--basalt-text-secondary); }
+
+  /* The frame with its number as the headline: a 14/20 title and "View as table" in one 28px row, the number in a seat as wide as its widest form, the unit beside it,
+     one context line as tall as its tallest form. No live region; nothing moves when a day is picked. */
+  .basalt-chart-head[data-frame] { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--basalt-space-0-5) var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
+  .basalt-chart-head[data-frame] .basalt-chart-title { flex: 1; min-width: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-chart-head[data-frame] .basalt-chart-source { flex-basis: 100%; }
+  .basalt-chart-readout { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-chart-headline {
+    display: flex; align-items: baseline; gap: var(--basalt-space-2); min-width: 0; margin: 0; color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-4xl-size) / var(--basalt-text-4xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-4xl-tracking);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the headline takes text-5xl (56/60), below it text-4xl (40/44) */
+  @media (min-width: 720px) {
+    .basalt-chart-headline { font-size: var(--basalt-text-5xl-size); line-height: var(--basalt-text-5xl-line-height); letter-spacing: var(--basalt-text-5xl-tracking); }
+  }
+  .basalt-chart-seat, .basalt-chart-context { display: inline-grid; }
+  .basalt-chart-seat > *, .basalt-chart-context > * { grid-area: 1 / 1; }
+  .basalt-chart-seat > .basalt-chart-reserve { font-kerning: none; }
+  /* The seat is as wide as its widest reserved form and nothing else: the digits drawn over it overflow it, so a form that is a sixty-fourth of a pixel wider than its text cannot move the unit. */
+  .basalt-chart-seat > :not(.basalt-chart-reserve) { inline-size: 0; }
+  .basalt-chart-seat [data-missing] { color: var(--basalt-text-tertiary); }
+  .basalt-chart-unit { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-chart-context { justify-self: start; margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+
+  /* The plot's second height (96px), and the lane with the open span's plate behind both. The plate is one element that glides over duration-slow on ease-out. */
+  .basalt-chart[data-plot="sm"] .basalt-chart-plot { min-height: calc(var(--basalt-size-chart-plot-sm) + var(--basalt-text-xs-line-height) * 3 + var(--basalt-space-1) + var(--basalt-space-2)); }
+  .basalt-chart-body { position: relative; }
+  .basalt-chart-span { position: absolute; bottom: 0; border-radius: var(--basalt-radius-md); background: var(--basalt-state-selected); pointer-events: none; transition: left var(--basalt-duration-slow) var(--basalt-ease-out), width var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-chart-lane-slot { position: relative; }
+  .basalt-phase-calls { display: grid; grid-template-columns: repeat(var(--_weeks), minmax(0, 1fr)); }
+  .basalt-phase-call {
+    display: grid; place-items: center; min-height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); color: var(--basalt-text-secondary); cursor: pointer; white-space: nowrap;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-phase-call > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-phase-call i { display: none; flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-text-primary); }
+  .basalt-phase-call[data-changed] { color: var(--basalt-text-primary); }
+  .basalt-phase-call[data-changed] i { display: block; }
+  .basalt-phase-call:has(input:checked) { color: var(--basalt-text-primary); }
+  .basalt-phase-call:has(input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (hover: hover) { .basalt-phase-call:hover { color: var(--basalt-text-primary); } }
+  /* Where twelve 44px choices do not fit, the lane is marks only (a changed week's mark is larger), and a finger steps with previous and next. A keyboard still reaches every mark. */
+  .basalt-phase-calls[data-marks] .basalt-phase-call > span { font-size: 0; gap: 0; }
+  .basalt-phase-calls[data-marks] .basalt-phase-call i { display: block; background: var(--basalt-text-tertiary); }
+  .basalt-phase-calls[data-marks] .basalt-phase-call[data-changed] i { width: var(--basalt-space-2); height: var(--basalt-space-2); background: var(--basalt-text-primary); }
+  .basalt-phase-calls[data-marks] .basalt-phase-call:has(input:checked) i { background: var(--basalt-text-primary); }
+  @media (pointer: coarse) {
+    .basalt-phase-call { min-height: var(--basalt-size-tap-min); }
+    .basalt-phase-calls[data-marks] .basalt-phase-call { pointer-events: none; }
+  }
+  .basalt-phase-steps { display: grid; gap: var(--basalt-space-2); }
+  .basalt-phase-step-buttons { display: flex; gap: var(--basalt-space-2); }
+  .basalt-phase-open { display: inline-grid; justify-self: start; min-height: var(--basalt-space-10); margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-phase-open > * { grid-area: 1 / 1; }
+  .basalt-phase-open b { margin-inline-end: var(--basalt-space-1-5); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+
+  /* A share bar: parts of a whole, one ink, a 4px gap, full radius, each part's share and name under it. */
+  .basalt-share { display: flex; gap: var(--basalt-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; font-family: var(--basalt-font-family-sans); }
+  /* A part is never narrower than its bar's floor (12px on a tally) or its own words, and it takes that width from the others (flex), so the parts and their gaps are always the bar's width. */
+  .basalt-share-part { display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: auto; }
+  .basalt-share[data-size="md"] .basalt-share-bar { min-width: var(--basalt-space-3); }
+  .basalt-share-bar { width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
+  .basalt-share[data-size="md"] .basalt-share-bar { height: var(--basalt-space-3); }
+  .basalt-share-value { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); overflow-wrap: anywhere; }
+
+  /* A coverage strip: a cell a day, lit when recorded, Basalt's hatch when not, the missing dates in words. */
+  .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, var(--basalt-chart-missing) 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
+  .basalt-coverage { display: grid; gap: var(--basalt-space-2-5); min-width: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-coverage-cells { display: grid; grid-template-columns: repeat(var(--_n), minmax(0, 1fr)); column-gap: var(--basalt-space-0-5); height: var(--basalt-space-12); }
+  .basalt-coverage-cell { border-radius: var(--basalt-radius-2xs); background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)); }
+  .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
+  .basalt-coverage[data-form="week"] .basalt-coverage-cells { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--basalt-space-1); height: auto; width: min(100%, calc(var(--basalt-space-24) * 2.5)); }
+  .basalt-coverage[data-form="week"] .basalt-coverage-cell { aspect-ratio: 1; border-radius: var(--basalt-radius-sm); }
+  .basalt-coverage-words { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+
+  /* A marks row: one kind of reading across a run of days, in the form of the thing measured. The heights glide over duration-slow; it is drawn at rest. */
+  .basalt-marks { --_row: var(--basalt-size-chart-row); position: relative; display: grid; grid-template-columns: repeat(var(--_n), minmax(0, 1fr)); height: var(--_row); pointer-events: none; }
+  .basalt-marks i { display: block; font-style: normal; }
+  .basalt-marks-cell { position: relative; min-width: 0; }
+  .basalt-marks-mark {
+    position: absolute; bottom: 0; left: 50%; translate: -50% 0; width: min(44%, calc(var(--basalt-space-6) + var(--basalt-space-1))); height: calc(var(--_v) * 100%);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)) 50% 100% / 100% var(--_row) no-repeat;
+  }
+  .basalt-marks[data-kind="pills"] .basalt-marks-mark { bottom: 50%; translate: -50% 50%; width: min(26%, var(--basalt-space-3)); border-radius: var(--basalt-radius-full); background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)) 50% 50% / 100% var(--_row) no-repeat; }
+  .basalt-marks[data-kind="blocks"] .basalt-marks-mark { width: min(64%, calc(var(--basalt-space-10) + var(--basalt-space-1))); border-radius: var(--basalt-radius-md); }
+  .basalt-marks-rest { position: absolute; bottom: calc(var(--basalt-size-dot) - var(--basalt-size-hairline)); left: 50%; translate: -50% 0; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-axis); }
+  .basalt-marks-seat { position: absolute; top: 0; bottom: calc(var(--basalt-size-dot) - var(--basalt-size-hairline)); left: 50%; translate: -50% 0; width: min(72%, calc(var(--basalt-space-12) + var(--basalt-space-1))); border-radius: var(--basalt-radius-md); background: var(--_hatch); }
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-marks-mark { transition: height var(--basalt-duration-slow) var(--basalt-ease-out); }
+  }
+
+  /* A range meter: the meter's slot with its target tick drawn twice, and a ringed dot. */
+  .basalt-range-marker {
+    position: absolute; top: 50%; left: var(--_at); translate: -50% -50%; box-sizing: content-box; width: var(--basalt-size-meter-marker); height: var(--basalt-size-meter-marker);
+    border: var(--basalt-size-cut) solid var(--_cut); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-range-marker { transition: left var(--basalt-duration-slow) var(--basalt-ease-out); }
+  }
+  .basalt-range-plan { color: var(--basalt-text-secondary); text-align: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-chart-span { transition: none; }
+  }
+  @media (forced-colors: active) {
+    .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark):not([data-so-far]) { fill: CanvasText; }
+    .basalt-chart[data-lit] .basalt-chart-svg .basalt-chart-line, .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark)[data-so-far] { stroke: CanvasText; }
+    .basalt-chart-reading { fill: CanvasText; }
+    .basalt-chart-axis[data-plated]:not([data-active]) { fill: CanvasText; }
+    .basalt-chart-headline, .basalt-chart-unit, .basalt-chart-context { color: CanvasText; }
+    .basalt-chart-head[data-frame] .basalt-chart-title { color: CanvasText; }
+    .basalt-chart-seat [data-missing] { color: GrayText; }
+    .basalt-chart-span { border: var(--basalt-size-hairline) solid Highlight; background: none; forced-color-adjust: none; }
+    .basalt-phase-call { color: CanvasText; }
+    .basalt-phase-call i, .basalt-phase-calls[data-marks] .basalt-phase-call i { forced-color-adjust: none; background: CanvasText; }
+    .basalt-share-bar, .basalt-marks-mark, .basalt-range-marker { forced-color-adjust: none; background: CanvasText; }
+    .basalt-share-value, .basalt-share-name, .basalt-coverage-words, .basalt-phase-open, .basalt-phase-open b { color: CanvasText; }
+    .basalt-coverage-cell { forced-color-adjust: none; background: CanvasText; }
+    .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
+    .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, GrayText 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
+    .basalt-marks-rest { forced-color-adjust: none; background: CanvasText; }
+    .basalt-marks-seat { forced-color-adjust: none; }
+    .basalt-range-marker { border-color: Canvas; }
+    .basalt-range-plan { color: CanvasText; }
   }
 
   /* ---- Accordion ---- */
@@ -3142,17 +3997,22 @@
   .basalt-chrome .basalt-text[data-tone="tertiary"],
   .basalt-chrome .basalt-sparkline-axis,
   .basalt-chrome .basalt-chip-seat,
+  .basalt-chrome .basalt-switch-row-seat,
+  .basalt-chrome .basalt-option-chips-count,
   .basalt-chrome .basalt-filter-count,
   .basalt-chrome .basalt-stat-source,
   .basalt-chrome .basalt-chart-source,
   .basalt-chrome .basalt-chart-hint,
   .basalt-chrome .basalt-chart-value [data-missing],
+  .basalt-chrome .basalt-chart-seat [data-missing],
   .basalt-chrome .basalt-chart-not-observed,
   .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-table-hint,
   .basalt-chrome .basalt-preview-kicker,
   .basalt-chrome .basalt-profile-handle,
-  .basalt-chrome .basalt-framed-credit { color: var(--basalt-text-secondary); }
+  .basalt-chrome .basalt-framed-credit,
+  .basalt-chrome .basalt-link-tile-details,
+  .basalt-chrome .basalt-field-necessity { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -3193,6 +4053,14 @@
     .basalt-input[data-size],
     .basalt-input.basalt-textarea,
     .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
+    /* Radius follows the box as it is drawn (decision 138, E1): these are 44 here whatever size they were set at, so they are 8, as the narrow
+       bar's 44px buttons are. A segment keeps its 6: it is nested in a track that is 8 with 2 of padding. */
+    .basalt-button,
+    .basalt-button[data-size] { --_radius: var(--basalt-radius-md); }
+    .basalt-input,
+    .basalt-input[data-size],
+    .basalt-select-trigger,
+    .basalt-select-trigger[data-size] { border-radius: var(--basalt-radius-md); }
   }
 
   /* ---- Forms and editable choices ---- */
@@ -3216,8 +4084,11 @@
     max-width: 100%;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
   }
+  /* A group drawn at 36 or 40 is radius 8, as a control of that size is (decision 138, E1); its buttons already are. */
+  .basalt-number-group[data-size="lg"] { border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-number-group[data-size="xl"] { border-radius: var(--basalt-radius-md); }
   .basalt-number-group:has(.basalt-number-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-number-group[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .basalt-number-group[data-disabled] { background: var(--basalt-surface-sunken); }
@@ -3298,8 +4169,314 @@
     /* Two classes, as the 40px rule it replaces: a single class is outranked by it and never applied, leaving text under the 44px caret. */
     .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
     .basalt-number-group .basalt-button { min-width: var(--basalt-size-tap-min); }
+    .basalt-number-group { border-radius: var(--basalt-radius-md); }
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
+
+  /* ---- Overlays and search (DECISIONS 155) ---- */
+
+  /* The 44px control at every pointer (DECISIONS 154, D11a) is the size ladder's 2xl, read directly so compact density does not step it. */
+  .basalt-sheet-head, .basalt-search, .basalt-search-trigger { --_control-44: var(--basalt-size-control-2xl); }
+
+  /* A sheet with a head, a body and a foot (D10b): edge to edge, no padding of its own. The head and the foot keep the safe areas.
+     The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it on a divider. */
+  .basalt-sheet:has(> .basalt-sheet-head, > .basalt-sheet-body, > .basalt-sheet-foot) { padding: 0; overflow: hidden; }
+  .basalt-sheet-head {
+    box-sizing: border-box;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--basalt-space-3);
+    padding: max(var(--basalt-space-3), env(safe-area-inset-top)) max(var(--basalt-space-3), env(safe-area-inset-right)) var(--basalt-space-3) max(var(--basalt-space-5), env(safe-area-inset-left));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-sheet-head-text { flex: 1; min-width: 0; }
+  .basalt-sheet-head .basalt-dialog-title { font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
+  .basalt-sheet-head .basalt-dialog-description { margin: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
+  .basalt-sheet-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left)) max(var(--basalt-space-5), env(safe-area-inset-right));
+  }
+  .basalt-sheet-foot {
+    box-sizing: border-box;
+    flex: none;
+    padding: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-right)) max(var(--basalt-space-5), env(safe-area-inset-bottom)) max(var(--basalt-space-5), env(safe-area-inset-left));
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+
+  /* A drawer (D10b): in the flow, under a page's column, with two titled halves. No portal, scrim, level, motion, shadow, fill, rim or
+     corner. Its one mark is a divider along its top (V2). Each half scrolls inside; under 720 it is a page of its own. */
+  .basalt-drawer {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--_columns, minmax(0, 1fr) minmax(0, 1fr));
+    column-gap: var(--basalt-space-6);
+    height: calc(var(--_rows, 13) * var(--basalt-size-control-xs));
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-drawer[hidden] { display: none; }
+  .basalt-drawer-back { display: none; justify-self: start; margin-inline-start: calc(-1 * var(--basalt-space-2-5)); }
+  .basalt-drawer-section { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding-top: var(--basalt-space-3); }
+  .basalt-drawer-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
+  .basalt-drawer-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  .basalt-drawer-actions { display: flex; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the drawer is a page: its halves stack, with a divider between */
+  @media (width < 720px) {
+    .basalt-drawer { display: block; height: auto; border-top: 0; }
+    .basalt-drawer-back { display: inline-flex; }
+    .basalt-drawer-section { display: block; }
+    .basalt-drawer-section + .basalt-drawer-section { margin-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-drawer-body { overflow: visible; }
+  }
+
+  /* The search trigger (D13a): a button shaped like a field from 720, and a 44px icon button under it. The word is decoration. */
+  .basalt-search-trigger {
+    box-sizing: border-box;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-2-5);
+    width: var(--_control-44);
+    height: var(--_control-44);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / 1 var(--basalt-font-family-sans);
+    cursor: pointer;
+    -webkit-font-smoothing: antialiased;
+  }
+  .basalt-search-trigger-word { display: none; }
+  .basalt-search-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (hover: hover) { .basalt-search-trigger:hover { background: var(--basalt-state-hover); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the trigger is a field-shaped button with the word */
+  @media (width >= 720px) {
+    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-input); color: var(--basalt-text-secondary); }
+    .basalt-search-trigger-word { display: inline; }
+    @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
+  }
+
+  /* The search dialog (D13a, V3): centred, with a results area of a fixed height, so the field and the count never move. */
+  .basalt-dialog.basalt-search {
+    display: flex;
+    flex-direction: column;
+    width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4)));
+    padding: 0;
+    overflow: hidden;
+  }
+  .basalt-search-form {
+    box-sizing: border-box;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-1);
+    margin: 0;
+    padding: var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-4);
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    border-start-start-radius: var(--basalt-radius-lg);
+    border-start-end-radius: var(--basalt-radius-lg);
+  }
+  /* The field's focus mark (V4): a real outline, 2px at −2, round its band (the field and the close button), in the focus colour. */
+  .basalt-search-form:has(.basalt-search-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-search-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--basalt-space-2-5); color: var(--basalt-text-tertiary); }
+  .basalt-search-input {
+    flex: 1;
+    min-width: 0;
+    height: var(--_control-44);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .basalt-search-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* A browser draws its own clear × in a search field. The band has one ×: the close button. */
+  .basalt-search-input::-webkit-search-cancel-button,
+  .basalt-search-input::-webkit-search-decoration,
+  .basalt-search-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
+  .basalt-search-input::-ms-clear { display: none; }
+  .basalt-search-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-search-count {
+    box-sizing: border-box;
+    flex: none;
+    min-height: calc(var(--basalt-space-3) + var(--basalt-text-sm-line-height) + var(--basalt-space-1));
+    padding: var(--basalt-space-3) var(--basalt-space-4) var(--basalt-space-1);
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    color: var(--basalt-text-tertiary);
+  }
+  /* The results area is as tall as a full result: its logo rows, its picture rows and a "See all" row, plus its padding. */
+  .basalt-search-results {
+    --_floor: var(--basalt-space-12);
+    --_logo-row: max(var(--_floor), calc(var(--basalt-size-search-logo-height) + 2 * var(--basalt-space-1-5)));
+    --_pack-row: max(var(--_floor), calc(var(--basalt-size-search-pack-height) + 2 * var(--basalt-space-1-5)));
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    min-height: 0;
+    height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
+    margin: 0;
+    padding: var(--basalt-space-1) var(--basalt-space-2) var(--basalt-space-2-5);
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: var(--basalt-space-1-5);
+  }
+  .basalt-search-item { margin: 0; padding: 0; list-style: none; }
+  /* A result is a link and a tab stop, with the control ring at +2 (it sits 8px from the panel's edge). Its hover wash is not a plate:
+     it runs to the panel's edges, and no ink lifts. No ink lifts (V5): a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed). */
+  .basalt-search-result {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-3);
+    min-height: var(--basalt-space-12);
+    padding: var(--basalt-space-1-5) var(--basalt-space-2);
+    border-radius: var(--basalt-radius-md);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    text-decoration: none;
+  }
+  .basalt-search-result::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-2)); }
+  @media (hover: hover) {
+    .basalt-search-result:hover::before { background: var(--basalt-state-hover); }
+  }
+  .basalt-search-result:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-search-media { position: relative; flex: none; display: block; }
+  .basalt-search-media[data-shape="logo"] { width: var(--basalt-size-search-logo-width); height: var(--basalt-size-search-logo-height); }
+  .basalt-search-media[data-shape="pack"] { width: var(--basalt-size-search-pack-width); height: var(--basalt-size-search-pack-height); }
+  .basalt-search-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .basalt-search-title, .basalt-search-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-search-detail { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-weight: var(--basalt-font-weight-regular); color: var(--basalt-text-tertiary); }
+  .basalt-search-trailing { flex: none; font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; }
+  .basalt-search-result[data-centered] { justify-content: center; }
+  .basalt-search-result[data-centered] .basalt-search-name { flex: none; }
+
+  /* The notice bar (D16): one short notice across the top of a page, in the level-1 fill with a divider under it. */
+  .basalt-notice-bar {
+    box-sizing: border-box;
+    background: var(--_surface, var(--basalt-surface-raised));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+  }
+  .basalt-notice-bar-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--basalt-space-6); row-gap: 0; padding-block-start: var(--basalt-space-1-5); }
+  .basalt-notice-bar-text { flex: 1 1 auto; min-width: 0; margin: 0; padding-block: var(--basalt-space-1); }
+  .basalt-notice-bar-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the line does not wrap and has no extra space above */
+  @media (width >= 720px) { .basalt-notice-bar-in { flex-wrap: nowrap; padding-block-start: 0; } }
+
+  /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with a chevron in its gutter and
+     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
+  .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
+  /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
+  .basalt-listbox-scroll { box-sizing: border-box; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: var(--basalt-space-1-5); overflow-y: auto; }
+  .basalt-listbox:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-listbox[data-flush]:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-listbox-group + .basalt-listbox-group { margin-top: var(--basalt-space-2); }
+  .basalt-listbox-heading { display: flex; align-items: center; min-height: var(--basalt-size-control-xs); padding-inline: var(--basalt-space-1-5); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
+  .basalt-listbox-option {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto;
+    column-gap: var(--basalt-space-2);
+    align-items: center;
+    align-content: center;
+    min-height: var(--basalt-size-control-xs);
+    padding-inline: var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-sm);
+    cursor: pointer;
+    user-select: none;
+  }
+  .basalt-listbox-option[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  .basalt-listbox-option::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-listbox-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
+  .basalt-listbox-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-listbox-trailing { grid-column: 3; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  .basalt-listbox-detail { grid-column: 2 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-tertiary); }
+  .basalt-listbox-option[aria-selected="true"] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-listbox-option[aria-selected="true"] :is(.basalt-listbox-trailing, .basalt-listbox-detail) { color: var(--basalt-text-secondary); }
+  .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: default; }
+  @media (hover: hover) {
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail) { color: var(--basalt-text-secondary); }
+  }
+  @media (pointer: coarse) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+
+  /* The opening list (D13c): rows that open. A grid shared by every row, so the cells line up down the list. The name is a button stretched over
+     the row; the cursor row has the one tab stop, a plate, a chevron, a chip and the word it opens into. Filtering leaves rows in place. */
+  .basalt-open-list { box-sizing: border-box; display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) max-content max-content max-content; column-gap: var(--basalt-space-3); min-width: 0; padding: var(--basalt-space-1-5); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-open-list-group, .basalt-open-list-rows { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; margin: 0; padding: 0; }
+  .basalt-open-list-rows { list-style: none; }
+  .basalt-open-list-group + .basalt-open-list-group { margin-top: var(--basalt-space-2); }
+  .basalt-open-list-label { grid-column: 1 / -1; display: flex; align-items: center; min-height: var(--basalt-size-control-xs); margin: 0; padding-inline: var(--basalt-space-1-5); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
+  .basalt-open-row {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    align-content: center;
+    min-height: var(--basalt-size-control-xs);
+    padding-inline: var(--basalt-space-1-5);
+    margin: 0;
+    border-radius: var(--basalt-radius-sm);
+  }
+  .basalt-open-row[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  .basalt-open-row::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-open-row:has(.basalt-open-button:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-open-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
+  .basalt-open-name { grid-column: 2; min-width: 0; }
+  .basalt-open-button { display: block; max-width: 100%; margin: 0; padding: 0; border: 0; background: none; color: var(--basalt-text-primary); font: inherit; text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none; }
+  /* The whole row opens: the button's own box is stretched over it. */
+  .basalt-open-button::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+  .basalt-open-part { grid-column: 3; }
+  .basalt-open-state { grid-column: 4; text-align: end; }
+  .basalt-open-part, .basalt-open-state { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-open-into { grid-column: 5; display: flex; align-items: center; justify-content: flex-end; gap: var(--basalt-space-2); color: var(--basalt-text-tertiary); }
+  .basalt-open-detail { grid-column: 2 / -1; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-open-row[data-cursor] { background: var(--basalt-state-hover); }
+  .basalt-open-list:focus-within .basalt-open-row[data-cursor] { background: var(--basalt-state-selected); }
+  .basalt-open-row[data-cursor] .basalt-open-into { color: var(--basalt-text-primary); }
+  .basalt-open-row:not([data-cursor]) .basalt-open-into .basalt-kbd { visibility: hidden; }
+  /* A row filtering left in place that does not match: tertiary ink, no cells, no second line, and the cursor skips it. */
+  .basalt-open-row[data-off] .basalt-open-button { color: var(--basalt-text-tertiary); }
+  .basalt-open-row[data-off] :is(.basalt-open-part, .basalt-open-state, .basalt-open-detail) { visibility: hidden; }
+  @media (hover: hover) {
+    .basalt-open-row:hover::before { background: var(--basalt-state-hover); }
+    .basalt-open-row:hover .basalt-open-into { color: var(--basalt-text-primary); }
+    .basalt-open-row[data-off]:hover .basalt-open-button { color: var(--basalt-text-secondary); }
+  }
+  @media (pointer: coarse) { .basalt-open-row { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the list is a column with no cursor plate */
+  @media (width < 720px) { .basalt-open-row[data-cursor], .basalt-open-list:focus-within .basalt-open-row[data-cursor] { background: none; } }
 
   /* ---- Navigation, typography and composition ---- */
 
@@ -3331,6 +4508,107 @@
   .basalt-breadcrumbs .basalt-link:hover { color: var(--basalt-text-primary); text-decoration: underline; }
   .basalt-breadcrumbs [aria-current="page"] { color: var(--basalt-text-primary); }
   .basalt-breadcrumbs:dir(rtl) .basalt-icon { transform: rotate(180deg); }
+
+  /* ---- Link cards, directory rows, big link rows, the arrow link and the back link (DECISIONS 152) ----
+     The arrow is the core right or left glyph (the new-tab arrow is the external glyph and nothing else): secondary ink at rest, primary on
+     hover and focus, travelling 2px (space-0-5) in its own direction over duration-base on ease-out, and not under reduced motion. No
+     wash on a row of the page: a ruled list on the page is not a settings row. Every ring is the control ring at +2. */
+  .basalt-go-arrow { --_travel: 1; --_flip: 1; display: inline-flex; flex: none; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-base) var(--basalt-ease-out), transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  /* Castle's forms (the arrow link and the big row) step their colour over duration-fast; the arrow's travel stays duration-base (DECISIONS 152, consent row 7). SRA's card and directory keep duration-base for both. */
+  :is(.basalt-link-go, .basalt-big-link) .basalt-go-arrow { transition: color var(--basalt-duration-fast) var(--basalt-ease-out), transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-go-arrow[data-side="start"] { --_travel: -1; }
+  .basalt-go-arrow:dir(rtl) { --_flip: -1; }
+  .basalt-go-arrow:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { color: var(--basalt-text-primary); transform: translateX(calc(var(--_travel) * var(--_flip) * var(--basalt-space-0-5))); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):is(:hover, :focus-visible) .basalt-external { color: var(--basalt-text-primary); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-tile-link, .basalt-back-link a):focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-sm); }
+
+  /* The arrow link: a Link on a line of its own. No underline, weight 500, the arrow is its cue, a 44px target. */
+  .basalt-link-go { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-decoration: none; white-space: nowrap; }
+  .basalt-link-go:hover { text-decoration: none; }
+
+  /* The back link: one line above a title. */
+  .basalt-back-link { font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-back-link a { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); color: inherit; font: inherit; text-decoration: none; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-back-link a:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+
+  /* The link card: a link round a picture, a heading, a sentence and a state. No rim, no level. */
+  .basalt-link-card { --_arrow: var(--basalt-size-icon-lg); position: relative; display: block; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); text-decoration: none; }
+  .basalt-link-card-media { position: relative; display: block; height: var(--_basalt-link-card-media-height, auto); overflow: hidden; background: var(--basalt-surface-page); }
+  .basalt-link-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--basalt-space-6); padding-block-start: var(--basalt-space-10); }
+  .basalt-link-card-title { margin: 0; font-size: var(--basalt-display-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-display-line-height); letter-spacing: var(--basalt-display-tracking); text-wrap: balance; overflow-wrap: anywhere; }
+  .basalt-link-card-top > :is(.basalt-go-arrow, .basalt-external) { margin-block-start: calc((var(--basalt-display-line-height) - var(--_arrow)) / 2); }
+  .basalt-link-card :is(.basalt-go-arrow, .basalt-external) > .basalt-icon { width: var(--_arrow); height: var(--_arrow); }
+  .basalt-link-card-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--basalt-space-8); padding-block-start: var(--basalt-space-5); color: var(--basalt-text-secondary); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-link-card-what { transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-link-card-state { font-variant-numeric: tabular-nums; }
+  .basalt-link-card:is(:hover, :focus-visible) .basalt-link-card-what { color: var(--basalt-text-primary); }
+
+  /* The tile: a link round a picture and text, and a foot row beside it, not inside it. */
+  .basalt-link-tile { display: flex; flex-direction: column; min-width: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-link-tile-link { display: flex; flex: 1; flex-direction: column; gap: var(--basalt-space-0-5); color: var(--basalt-text-primary); text-decoration: none; border-radius: var(--basalt-radius-sm); }
+  .basalt-link-tile-media { display: block; margin-block-end: calc(var(--basalt-space-3) - var(--basalt-space-0-5)); }
+  .basalt-link-tile-brand { display: block; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-link-tile-title { margin: 0; font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-link-tile-link:hover .basalt-link-tile-title { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .basalt-link-tile-details { display: block; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-link-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-block-start: var(--basalt-space-1-5); }
+
+  /* The directory: a head, then rows ruled by hairlines, each one link with three fixed columns (name, sentence, state). The name and state
+     columns are 160px, size-description-label's value, for another role here; the sentence takes the rest. */
+  .basalt-directory { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-directory-head { margin: 0; padding-block-end: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-directory-list { margin: 0; padding: 0; list-style: none; }
+  .basalt-directory-item:not([data-rest]) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-directory-row { display: grid; grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr) var(--basalt-size-description-label); column-gap: var(--basalt-space-6); align-items: baseline; box-sizing: border-box; min-height: var(--basalt-size-row); padding-block: var(--basalt-space-4); color: inherit; text-decoration: none; }
+  .basalt-directory-name { font-weight: var(--basalt-font-weight-semibold); text-wrap: balance; }
+  .basalt-directory-name > .basalt-go-arrow { display: inline-flex; vertical-align: middle; margin-inline-start: var(--basalt-space-1-5); }
+  .basalt-directory-name > .basalt-external { margin-inline-start: var(--basalt-space-1-5); }
+  .basalt-directory-what { color: var(--basalt-text-secondary); text-wrap: pretty; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-directory-state { color: var(--basalt-text-secondary); text-align: end; font-variant-numeric: tabular-nums; }
+  .basalt-directory-row:is(:hover, :focus-visible) .basalt-directory-what { color: var(--basalt-text-primary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a row is one column and its state starts */
+  @media (width < 720px) {
+    .basalt-directory-row { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-3-5); }
+    .basalt-directory-state { text-align: start; }
+  }
+
+  /* The rest opens in place: a track going 0fr to 1fr. Its clip keeps space-2 of room beside the rows so a ring is whole, and lets go once
+     the opening is done (data-settled). Closed, the rest is hidden and, with it, out of the keyboard's way (the markup also makes it inert). */
+  [data-reveal] { --_reveal-rows: 0fr; --_reveal-ms: calc(var(--basalt-duration-slow) * 0.75); --_reveal-ease: var(--basalt-ease-in); }
+  [data-reveal][data-open] { --_reveal-rows: 1fr; --_reveal-ms: var(--basalt-duration-slow); --_reveal-ease: var(--basalt-ease-out); }
+  .basalt-reveal-panel { display: grid; grid-template-rows: var(--_reveal-rows); transition: grid-template-rows var(--_reveal-ms) var(--_reveal-ease); }
+  .basalt-reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--_reveal-ms); }
+  [data-reveal][data-open] .basalt-reveal-clip { visibility: visible; transition: none; }
+  [data-reveal][data-settled] .basalt-reveal-clip { overflow: visible; }
+  /* A directory row after the cut draws its rule inside its clip, so a closed row is no height at all. */
+  .basalt-directory-item[data-rest] > .basalt-reveal-clip::before { content: ""; display: block; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-reveal-foot { display: flex; padding-block-start: var(--basalt-space-4); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+
+  /* Big link rows: full width, one line each, a rule under each. From 720 to 1023 they stand in two columns, the first two with a rule above. */
+  .basalt-big-links { display: grid; margin: 0; padding: 0; list-style: none; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-big-link-item { display: flex; border-block-end: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-big-link { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-4); min-height: var(--basalt-size-row); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-2xl-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-text-2xl-line-height); letter-spacing: var(--basalt-text-2xl-tracking); text-decoration: none; }
+  .basalt-big-link-words { min-width: 0; }
+  .basalt-big-link > :is(.basalt-go-arrow, .basalt-external) { margin-inline-end: var(--basalt-space-1); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 to 1023 the rows stand in two columns */
+  @media (width >= 720px) and (width < 1024px) {
+    .basalt-big-links { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--basalt-space-12); border-block-start: 0; }
+    .basalt-big-link-item:nth-child(-n + 2) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-big-link { min-height: var(--basalt-space-16); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it the words step to text-3xl */
+  @media (width >= 1024px) {
+    .basalt-big-link { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a card's arrow is 20px and its foot stacks */
+  @media (width < 720px) {
+    .basalt-link-card { --_arrow: var(--basalt-size-icon-md); }
+    .basalt-link-card-foot { display: grid; gap: var(--basalt-space-1); }
+  }
+
+  /* The copy button with words: both wordings stand in one cell (Reserve), so the button's width is the wider of the two. */
+  .basalt-copy-words { justify-items: center; }
 
   /* ---- Social links and the profile list (decisions 106, 107) ----
      A social link is a glyph and the service's name. The name is underlined in the input-boundary colour (3:1), brightening to the
@@ -3398,10 +4676,13 @@
 
   .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; }
   .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
-  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
-  /* The current page is the selected pill, whether the pages are links or buttons. */
+  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
+  /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
   .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
-  .basalt-page-link:hover { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  .basalt-page-link[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  /* A page button's number is 400 at rest: the Button's own weight is 500. */
+  .basalt-pagination .basalt-button { font-weight: var(--basalt-font-weight-regular); }
   .basalt-pagination-gap { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-control-sm); color: var(--basalt-text-secondary); }
 
   .basalt-separator { flex: none; border: 0; background: var(--basalt-border-divider); }
@@ -3424,9 +4705,155 @@
   [data-selected] .basalt-text[data-tone="tertiary"], [data-highlighted] .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-inline-code { padding: var(--basalt-space-0-5) var(--basalt-space-1); border-radius: var(--basalt-radius-xs); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); font-family: var(--basalt-font-family-mono); font-size: 0.9em; font-weight: var(--basalt-font-weight-regular); line-height: inherit; }
 
+  /* ---- Display type, the lead and the page (DECISIONS 137, approved in 139) ----
+     Two roles a page writes, hero and display, each one name with three values that step at the two breakpoints Basalt has and never with the
+     viewport's width: no clamp, no viewport or container unit in type. Under them are the fixed steps text-6xl and text-7xl, and a phone value
+     for each role. The derived properties below are what a role resolves to in this window's band, as --basalt-gutter is. */
+  :root {
+    --basalt-hero-size: var(--basalt-text-7xl-size);
+    --basalt-hero-line-height: var(--basalt-text-7xl-line-height);
+    --basalt-hero-tracking: var(--basalt-text-7xl-tracking);
+    --basalt-display-size: var(--basalt-text-6xl-size);
+    --basalt-display-line-height: var(--basalt-text-6xl-line-height);
+    --basalt-display-tracking: var(--basalt-text-6xl-tracking);
+    --basalt-lead-size: var(--basalt-text-xl-size);
+    --basalt-lead-line-height: var(--basalt-text-xl-line-height);
+    --basalt-lead-tracking: var(--basalt-text-xl-tracking);
+    --basalt-section-gap: var(--basalt-size-section-gap);
+    --basalt-intro-gap: var(--basalt-space-6);
+    --basalt-actions-gap: var(--basalt-space-8);
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; below it the hero takes text-6xl, display text-5xl and the sections the medium gap */
+  @media (width < 1024px) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-6xl-size);
+      --basalt-hero-line-height: var(--basalt-text-6xl-line-height);
+      --basalt-hero-tracking: var(--basalt-text-6xl-tracking);
+      --basalt-display-size: var(--basalt-text-5xl-size);
+      --basalt-display-line-height: var(--basalt-text-5xl-line-height);
+      --basalt-display-tracking: var(--basalt-text-5xl-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-md);
+    }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the roles take their phone values, the lead text-lg and the sections the narrow gap */
+  @media (width < 720px) {
+    :root {
+      --basalt-hero-size: var(--basalt-text-hero-narrow-size);
+      --basalt-hero-line-height: var(--basalt-text-hero-narrow-line-height);
+      --basalt-hero-tracking: var(--basalt-text-hero-narrow-tracking);
+      --basalt-display-size: var(--basalt-text-display-narrow-size);
+      --basalt-display-line-height: var(--basalt-text-display-narrow-line-height);
+      --basalt-display-tracking: var(--basalt-text-display-narrow-tracking);
+      --basalt-lead-size: var(--basalt-text-lg-size);
+      --basalt-lead-line-height: var(--basalt-text-lg-line-height);
+      --basalt-lead-tracking: var(--basalt-text-lg-tracking);
+      --basalt-section-gap: var(--basalt-size-section-gap-narrow);
+      --basalt-intro-gap: var(--basalt-space-4);
+      --basalt-actions-gap: var(--basalt-space-6);
+    }
+  }
+  /* How a display headline wraps: balanced, at most size-display-measure, and never a <br> (two sentences meant as two lines are two block
+     spans). overflow-wrap is the safety net, never the plan: a word longer than the row breaks instead of pushing the page sideways (WCAG 1.4.10). */
+  :is(.basalt-heading, .basalt-text)[data-display] { max-inline-size: var(--basalt-size-display-measure); text-wrap: balance; overflow-wrap: break-word; hyphens: manual; }
+  :is(.basalt-heading, .basalt-text)[data-display] > .basalt-text-line { display: block; }
+
+  /* The lead: the paragraph under a display headline. Existing steps only: text-xl from 720, text-lg under it. */
+  .basalt-lead {
+    margin: 0;
+    max-inline-size: var(--basalt-size-prose-width);
+    color: var(--basalt-text-secondary);
+    font-family: var(--basalt-font-family-sans);
+    font-size: var(--basalt-lead-size);
+    font-weight: var(--basalt-font-weight-regular);
+    line-height: var(--basalt-lead-line-height);
+    letter-spacing: var(--basalt-lead-tracking);
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  /* The page row: size-page-width with the gutter inside, the site header's row exactly (the side safe area replaces the gutter where it is larger). */
+  .basalt-page-row, .basalt-page-section {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--basalt-size-page-width);
+    margin-inline: auto;
+    padding-inline: var(--_pad-left) var(--_pad-right);
+  }
+  /* The rhythm: sections are one section gap apart, the first starts half a gap below the bar and the page ends a gap above its footer.
+     No section is given the window's height, so the widest empty band on a page is one gap. */
+  .basalt-page-sections { display: block; padding-block-end: var(--basalt-section-gap); }
+  .basalt-page-section { padding-block-start: var(--basalt-section-gap); }
+  .basalt-page-sections > .basalt-page-section:first-child { padding-block-start: calc(var(--basalt-section-gap) / 2); }
+  /* A section's head, then half a gap to its body. */
+  .basalt-section-intro { margin-block-end: calc(var(--basalt-section-gap) / 2); }
+  .basalt-section-intro:last-child, .basalt-columns > .basalt-section-intro { margin-block-end: 0; }
+  .basalt-section-intro > .basalt-lead { margin-block-start: var(--basalt-intro-gap); }
+  .basalt-section-intro > .basalt-section-actions { margin-block-start: var(--basalt-actions-gap); }
+  .basalt-section-actions { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3); }
+
+  /* Columns: twelve tracks on the row, the gutter between them and space-8 between rows. For pages only: a component answers its own width.
+     --_ls is the layout's span for an item in this band and an item's own --span (the style `ColumnsItem` writes) refines it from 1024 only: from 720 to
+     1023 the layout decides (2 and 3 hold, 4 is two rows of two, everything else, an unnamed layout included, is a full row). Each band's rules are in a
+     media query of their own, so no rule has to outrank another. Neither property may cross into a grid nested in an item (custom properties inherit),
+     so every item sets --_ls itself and resets --span, which an item's own inline style still overrides; @property with inherits: false would do it in one
+     line but is outside the floor of Firefox 125. */
+  .basalt-columns {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--basalt-gutter);
+    row-gap: var(--basalt-space-8);
+    align-items: start;
+  }
+  .basalt-columns > * { --_ls: 12; --span: initial; grid-column: span var(--_ls); min-width: 0; }
+  .basalt-columns[data-layout="2"] > * { --_ls: 6; }
+  .basalt-columns[data-layout="3"] > * { --_ls: 4; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it four columns are four, the uneven splits hold and an item's own span counts */
+  @media (width >= 1024px) {
+    .basalt-columns > * { grid-column: span var(--span, var(--_ls)); }
+    .basalt-columns[data-layout="4"] > * { --_ls: 3; }
+    .basalt-columns[data-layout="5-7"] > :nth-child(odd), .basalt-columns[data-layout="7-5"] > :nth-child(even) { --_ls: 5; }
+    .basalt-columns[data-layout="5-7"] > :nth-child(even), .basalt-columns[data-layout="7-5"] > :nth-child(odd) { --_ls: 7; }
+    .basalt-columns[data-layout="4-8"] > :nth-child(odd), .basalt-columns[data-layout="8-4"] > :nth-child(even) { --_ls: 4; }
+    .basalt-columns[data-layout="4-8"] > :nth-child(even), .basalt-columns[data-layout="8-4"] > :nth-child(odd) { --_ls: 8; }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 to 1023 four columns are two rows of two */
+  @media (width >= 720px) and (width < 1024px) {
+    .basalt-columns[data-layout="4"] > * { --_ls: 6; }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it every item takes the full row, in source order */
+  @media (width < 720px) {
+    .basalt-columns > * { grid-column: 1 / -1; }
+  }
+
   @media (pointer: coarse) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
+    .basalt-page-link { border-radius: var(--basalt-radius-md); }
     .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }
+  }
+  /* A link on a line of its own is a touch target (44px) with no change to layout and no change to its look: inline-flex so the box can be
+     44 tall, and a negative block margin that takes back what the box adds, so its margin box is one line and the line it sits on does not
+     move (1lh is the link's own line height). The underline stays; no wash is drawn. A link in a sentence (a paragraph, a list item, a
+     caption, prose, a field's hint or error, a callout's text) keeps its line, as WCAG 2.5.8 allows for an inline target: a 44px box would
+     lie over the lines above and below it, and two links on neighbouring lines would steal each other's taps. A link in a table cell,
+     a breadcrumb, a page number or a description value has its own rule. */
+  @media (pointer: coarse) {
+    .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--basalt-size-tap-min);
+      margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2));
+    }
+    /* A link shorter than 44px wide ("Go") is still a 44 by 44 target: a box with no content, centred on the link and at least 44 wide, is part of the link, so its width
+       and the line it sits on do not change. */
+    .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *)::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      left: 50%; /* physical: it is centred, in either direction */
+      width: max(100%, var(--basalt-size-tap-min));
+      transform: translateX(-50%);
+    }
   }
 
   /* Borders and state markers remain structural when system high-contrast colours replace
@@ -3443,6 +4870,9 @@
     .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked] { background: Highlight; color: HighlightText; }
     .basalt-segment[data-pressed] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+    /* The current page is Highlight with HighlightText, as a chosen segment is, with no box shadow (the plate's hairline); a page that is
+       a link keeps its real border, now in Highlight. All three keep the 600, which forced colours never takes away. */
+    .basalt-pagination :is(.basalt-page-link, .basalt-button)[aria-current="page"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; }
     .basalt-checkbox-indicator, .basalt-radio-indicator, .basalt-switch-thumb { forced-color-adjust: none; }
     .basalt-checkbox-indicator { color: HighlightText; }
     /* The lit row. Chromium paints a Canvas backplate behind text it forces, so on a Highlight fill the label renders
@@ -3486,10 +4916,16 @@
     .basalt-slider-thumb, .basalt-slider-indicator, .basalt-progress-indicator { background: Highlight; }
     /* The tab bar is a fill on a Canvas list: Highlight. */
     .basalt-tabs-indicator { forced-color-adjust: none; background: Highlight; }
-    /* Keyboard focus is not this mark: with focus the standard ring (2px, offset 2) draws, as it does on every other control. */
-    .basalt-segment[data-pressed]:not(:focus-visible), .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab[data-active]:not(:focus-visible), .basalt-pagination [aria-current="page"]:not(:focus-visible) { outline: var(--basalt-size-focus-width) solid Highlight; outline-offset: calc(-1 * var(--basalt-size-focus-offset)); }
+    /* The chosen item opts out of colour adjustment for its fill, which would leave its focus ring the theme's grey (2.5:1 where the theme and
+       the palette disagree): the ring is the system's, as an ordinary control's is (decision 145). */
+    .basalt-segment[data-pressed]:focus-visible,
+    .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active]:focus-visible,
+    .basalt-pagination :is(.basalt-page-link, .basalt-button)[aria-current="page"]:focus-visible { outline-color: Highlight; }
+    /* No state is marked by an outline here (decision 138): the chosen item is Highlight and HighlightText above, or the horizontal
+       tab's Highlight underline, and keeps its 600. Keyboard focus is the standard ring (2px, offset 2) on the chosen item as on every
+       other control, which an outline of its own on the chosen item used to hide. */
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
-    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
+    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-skip-link, .basalt-cell-peek, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
@@ -3498,6 +4934,7 @@
     /* A toast's mark keeps its shape here (the dots it replaced vanished): an icon is paths, and takes the system foreground. */
     .basalt-toast[data-status] .basalt-toast-seat,
     .basalt-toast[data-status] .basalt-toast-title { color: CanvasText; }
+    .basalt-toast:focus-visible, .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline-color: Highlight; }
     /* The unread dots, the nav dot and the checked radio's dot are fills, which forced colours drop: each is drawn as its own border, as a
        status dot is (see the badge), so it takes the system colour of where it sits and needs no override on a lit row. A hovered entry
        is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */
@@ -3554,6 +4991,8 @@
     .basalt-table-hint { color: CanvasText; }
     /* A social link is LinkText, glyph and arrow included: they inherit the link's forced colour instead of their own secondary. */
     .basalt-social-link :is(.basalt-icon, .basalt-external), .basalt-profile-link :is(.basalt-icon, .basalt-external) { color: inherit; }
+    /* The arrows and the rules of link rows take the link's forced colour. */
+    .basalt-go-arrow, :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link) .basalt-external { color: inherit; }
   }
 
   /* ---- Art: the clear bar, the stage, paired art and framed art (decision 104) ----
@@ -3594,14 +5033,17 @@
      page colour, which meets the headroom by definition. */
   .basalt-stage {
     position: relative;
+    isolation: isolate;
     box-sizing: border-box;
-    margin-top: calc(-1 * var(--basalt-sticky-offset));
+    margin-top: calc(-1 * var(--basalt-site-row));
     padding-top: var(--basalt-stage-headroom);
     background-color: var(--basalt-art-field);
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
   }
-  .basalt-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  /* The art comes after the content in the markup (so on a slow link the words arrive first and the stage is not painted short and grown), and sits behind it by
+     z-index inside a stacking context of its own: paint order is what it was when the art came first. */
+  .basalt-stage-art { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; }
   .basalt-stage-art > :is(svg, canvas, picture, img, video) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .basalt-stage-headroom { position: absolute; inset: 0 0 auto 0; height: var(--basalt-stage-headroom); pointer-events: none; }
   .basalt-stage-content { position: relative; }
@@ -3683,6 +5125,42 @@
     letter-spacing: var(--basalt-text-xs-tracking);
   }
   @media print { .basalt-framed { break-inside: avoid; } }
+  /* Drawn art in the frame and the stage (DECISIONS 146 F): it keeps its proportions and fills the box (`slice`, cropped like `object-fit: cover`) or shows whole on
+     `art-field` (`meet`), held at its anchor. An inline svg takes this as its own preserveAspectRatio (set by the component); a canvas, picture or image as object-fit and
+     object-position, from two custom properties. Strokes do not scale: a 1px line stays 1px at every size. */
+  .basalt-framed-art { position: absolute; inset: 0; overflow: hidden; background-color: var(--basalt-art-field); }
+  .basalt-framed-art > :is(svg, canvas, picture, img, video) { display: block; width: 100%; height: 100%; object-fit: var(--_art-fit, cover); object-position: var(--_art-position, 50% 50%); }
+  .basalt-stage-art > :is(canvas, picture, img, video) { object-fit: var(--_art-fit, cover); object-position: var(--_art-position, 50% 50%); }
+  :is(.basalt-framed-art, .basalt-stage-art) svg * { vector-effect: non-scaling-stroke; }
+
+  /* ---- The ambient loop (DECISIONS 136 C): a page's one, opacity only, in its art ----
+     A mark that carries data-ambient (the props `ambient(index)` returns, or an `AmbientMark`) loops from 1 down to 0.2 and back on
+     ease-in-out, each on its own period (0.6 to 1.4 times duration-loop-ambient, --_k) and phase (--_ph, a negative delay), so no two are
+     in step. It runs only inside a stage's art or a framed frame, and is still under the hold, reduced motion, forced colours and print. */
+  .basalt-ambient-mark { position: absolute; display: block; width: var(--basalt-size-dot); height: var(--basalt-size-dot); background: var(--basalt-art-tone-4); pointer-events: none; }
+  @keyframes basalt-ambient { 50% { opacity: 0.2; } }
+  :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] {
+    animation: basalt-ambient calc(var(--basalt-duration-loop-ambient) * var(--_k, 1)) var(--basalt-ease-in-out) calc(var(--basalt-duration-loop-ambient) * var(--_k, 1) * var(--_ph, 0) * -1) infinite;
+  }
+  :root[data-loops="held"] [data-ambient] { animation: none; }
+  @media (prefers-reduced-motion: reduce) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
+  @media (forced-colors: active) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } .basalt-ambient-mark { background: CanvasText; forced-color-adjust: none; } }
+  @media print { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
+
+  /* ---- LoopsToggle's settings row ---- */
+  .basalt-loops-switch { display: grid; gap: var(--basalt-space-1); justify-items: start; }
+  .basalt-loops-description { margin: 0; padding-inline-start: calc(var(--basalt-size-switch-width) + var(--basalt-space-2)); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+
+  /* ---- Items that move to their places (DECISIONS 136 D) ----
+     The box is its own stacking context, so a leaving item (the same element, out of the flow where it stood, inert) paints under every
+     item that stays and under nothing outside the box. Reflow moves items by transform and fades them; this is only where they sit. While
+     the box's height glides it clips what is past its edge, with a space-1-5 margin so a +2 ring stays whole. A list's rows are opaque
+     while they move, in their container's own surface, so a row crossing another covers it instead of printing over it. */
+  .basalt-reflow { position: relative; isolation: isolate; }
+  .basalt-reflow > .basalt-reflow-item[data-leaving] { position: absolute; margin: 0; pointer-events: none; z-index: -1; }
+  .basalt-reflow[data-moving] { clip-path: inset(calc(-1 * var(--basalt-space-1-5))); }
+  .basalt-reflow[data-layout="list"][data-flowing] > .basalt-reflow-item { background-color: var(--_surface, var(--basalt-surface-page)); }
+  .basalt-filter-result:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
 
   /* ---- reduced motion: nothing moves; state changes become short fades ---- */
 
@@ -3711,9 +5189,6 @@
     /* The ring still has to show work happening: a slow fade, no movement. Braille holds its first frame. */
     .basalt-spinner[data-variant="ring"] svg { animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot] { animation: none; }
-    /* Digits are plain tabular text: the same width and baseline as the strip they replace. */
-    .basalt-ticker-visual { display: none; }
-    .basalt-ticker-text { position: static; display: inline-block; width: auto; height: 1em; margin: 0; overflow: hidden; clip: auto; line-height: 1; white-space: pre; }
     .basalt-text-morph,
     .basalt-text-morph-glyph { transition: none; }
     /* Changing a panel is a 100ms crossfade, with no travel. */
@@ -3727,9 +5202,43 @@
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
-    /* The chip's glyph swap has no crossfade: the plus and the check change at once. */
-    .basalt-chip-seat > .basalt-icon { transition: none; }
+    /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
+    /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
+    :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { transform: none; }
+    .basalt-reveal-panel, .basalt-reveal-clip { transition: none; }
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
     .basalt-travel { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); transform: translate(var(--_to-x), var(--_to-y)) translate(-50%, -50%); }
   }
+  /* ---- The controls of DECISIONS 154 in forced colours and print ----
+     A box-shadow edge is dropped by forced colours, so the count pill, the option chip's seat and the outline button draw a real border in a system
+     colour. On is Highlight with HighlightText for the row, its name and its check, with no outline as a state mark; focus is the ordinary ring.
+     The amount is full ink: an opacity is an author colour. The current link tab's underline is Highlight. Unavailable and disabled are GrayText. */
+  @media (forced-colors: active) {
+    .basalt-button-count { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
+    .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: 1; }
+    .basalt-switch-row,
+    .basalt-option-chip { border-color: ButtonText; color: ButtonText; }
+    .basalt-switch-row :is(.basalt-switch-row-kind, .basalt-switch-row-seat),
+    .basalt-option-chip-seat { color: ButtonText; }
+    .basalt-switch-row[data-checked],
+    .basalt-switch-row[data-checked]:hover,
+    .basalt-switch-row[data-checked]:active,
+    .basalt-option-chip[data-checked],
+    .basalt-option-chip[data-checked]:hover,
+    .basalt-option-chip[data-checked]:active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .basalt-switch-row[data-checked] :is(.basalt-switch-row-name, .basalt-switch-row-kind, .basalt-switch-row-seat, .basalt-icon) { color: HighlightText; }
+    .basalt-option-chip[data-checked] :is(.basalt-option-chip-label, .basalt-option-chip-note) { color: HighlightText; }
+    .basalt-option-chip-seat { box-shadow: none; border: var(--basalt-size-hairline) solid ButtonText; }
+    .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: HighlightText; border-color: HighlightText; color: Highlight; }
+    .basalt-option-chip[data-checked] .basalt-option-chip-seat > .basalt-icon { color: Highlight; }
+    .basalt-switch-row[data-disabled],
+    .basalt-option-chip[data-disabled],
+    .basalt-option-chip[data-unavailable] { border-color: GrayText; color: GrayText; }
+    .basalt-switch-row[data-disabled] :is(.basalt-switch-row-kind, .basalt-switch-row-seat),
+    .basalt-option-chip[data-disabled] .basalt-option-chip-seat,
+    .basalt-option-chip[data-unavailable] .basalt-option-chip-seat { color: GrayText; border-color: GrayText; }
+    .basalt-link-tab-line { forced-color-adjust: none; background: Highlight; }
+    .basalt-text-button[data-disabled] { color: GrayText; }
+  }
+
 }

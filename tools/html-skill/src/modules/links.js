@@ -18,8 +18,8 @@
       var words = ' ' + (a.getAttribute('data-new-tab-label') || '(opens in a new tab)');
       var label = a.getAttribute('aria-label');
       var named = a.textContent.trim() !== '';
-      // The arrow sits after the name: inside a row's label, else at the end of the link.
-      if (named && !/^mailto:/i.test(a.getAttribute('href') || '')) (a.querySelector('.row-label') || a).insertAdjacentHTML('beforeend', '<span class="ext" aria-hidden="true">\u2060' + ARROW + '</span>');
+      // The arrow sits after the name: inside a row's label or a directory's name, else at the end of the link.
+      if (named && !/^mailto:/i.test(a.getAttribute('href') || '')) (a.querySelector('.row-label, .dir-name') || a).insertAdjacentHTML('beforeend', '<span class="ext" aria-hidden="true">\u2060' + ARROW + '</span>');
       // An aria-label replaces the content, so the words join the label itself.
       if (label) a.setAttribute('aria-label', label + words);
       else a.insertAdjacentHTML('beforeend', '<span class="visually-hidden">' + _.esc(words) + '</span>');
