@@ -392,14 +392,15 @@ describe("the bar and the shape", () => {
 
   test("the bar is clear at the top, smoked after 2px of scroll, and clear again at the top", async () => {
     const { page, context } = await open({ width: 1440 });
-    const state = async () => { await page.waitForTimeout(700); return { top: await page.evaluate(() => document.querySelector("header").hasAttribute("data-top")), alpha: await alphaOf(page, "header.basalt-chrome") }; };
-    assert.deepEqual(await state(), { top: true, alpha: 0 });
+    // The bar's fill is a transition and `data-top` follows the scroll a frame later: wait for the attribute to say what the scroll did, then for the transition to end.
+    const state = async (top) => { await page.waitForFunction((t) => document.querySelector("header").hasAttribute("data-top") === t, top); await settled(page); return { top: await page.evaluate(() => document.querySelector("header").hasAttribute("data-top")), alpha: await alphaOf(page, "header.basalt-chrome") }; };
+    assert.deepEqual(await state(true), { top: true, alpha: 0 });
     await page.evaluate(() => window.scrollTo(0, 2));
-    const smoked = await state();
+    const smoked = await state(false);
     assert.equal(smoked.top, false);
     assert.ok(smoked.alpha > 100, `the bar's fill is alpha ${smoked.alpha} after 2px`);
     await page.evaluate(() => window.scrollTo(0, 0));
-    assert.deepEqual(await state(), { top: true, alpha: 0 });
+    assert.deepEqual(await state(true), { top: true, alpha: 0 });
     await context.close();
   });
 

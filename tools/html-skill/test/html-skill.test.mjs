@@ -13,6 +13,7 @@ import { chromium } from "playwright";
 
 import { build, moduleNames, skillDir } from "../build.mjs";
 import { iconData } from "../icons.mjs";
+import { freezeAnimations, settle } from "../../../packages/react/test/support.mjs";
 import { EXAMPLES, examplePage } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -121,6 +122,7 @@ for (const file of TEMPLATES) {
         if (file === "template-interactive.html") {
           await page.keyboard.press("Control+k");
           await page.locator(".palette input").waitFor();
+          await settle(page);
           assert.deepEqual(await axe(page), [], "the open palette");
         }
         assert.deepEqual(errors, []);
@@ -450,11 +452,13 @@ describe("the palette", () => {
   test("the result count is spoken inside the dialog, once the typing pauses, and only when it changed", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+    // The count is spoken once the typing pauses: the page's timers are on the shared clock from before the palette opens, so the pause is the test's to give, not the machine's.
+    const clock = await freezeAnimations(page);
     await page.keyboard.press("Control+k");
-    await page.locator(".palette input").waitFor();
+    for (let tries = 0; tries < 100 && !(await page.evaluate(() => !!document.querySelector(".palette input"))); tries++) await clock.advance(16);
     assert.equal(await page.evaluate(() => !!document.querySelector(".palette [role=status]")), true, "the live region is inside the dialog");
     await page.keyboard.type("show json", { delay: 50 });
-    await page.waitForTimeout(900);
+    await clock.advance(900);
     const spoken = (await page.evaluate(() => window.__spoken)).filter(Boolean);
     assert.ok(spoken.length <= 2, `spoken ${JSON.stringify(spoken)}`);
     assert.match(spoken.at(-1), /^\d+ results?$/);
@@ -462,7 +466,7 @@ describe("the palette", () => {
     await page.keyboard.press("Backspace");
     await page.keyboard.type("n", { delay: 10 });
     const after = await page.evaluate(() => window.__spoken.length);
-    await page.waitForTimeout(700);
+    await clock.advance(700);
     assert.equal(await page.evaluate(() => window.__spoken.length), after, "the same count is not spoken again");
     await context.close();
   });
@@ -523,12 +527,13 @@ describe("the copy button", () => {
     const rest = await page.evaluate(() => [document.querySelector("[data-copy]").innerHTML, document.querySelector("#icon-copy").innerHTML]);
     for (const selector of ["[data-copy]", "#icon-copy"]) {
       await page.locator(selector).click();
-      await page.waitForTimeout(200);
+      await page.waitForFunction((sel) => /Copied/.test(document.querySelector(sel).textContent) || document.querySelector(sel).getAttribute("aria-label") === "Copied", selector); // the feedback is showing: the second press is inside its window
       await page.locator(selector).click();
     }
     assert.match(await page.locator("[data-copy]").textContent(), /Copied/);
     assert.equal(await page.locator("#icon-copy").getAttribute("aria-label"), "Copied");
-    await page.waitForTimeout(2200);
+    // It ends on the original label once the feedback window has passed: wait for that state, not for a time.
+    await page.waitForFunction((original) => document.querySelector("[data-copy]").innerHTML === original[0] && document.querySelector("#icon-copy").innerHTML === original[1], rest, { timeout: 10000 });
     assert.deepEqual(await page.evaluate(() => [document.querySelector("[data-copy]").innerHTML, document.querySelector("#icon-copy").innerHTML]), rest);
     assert.equal(await page.locator("#icon-copy").getAttribute("aria-label"), "Copy payload");
     await context.close();
@@ -730,7 +735,8 @@ describe("figures, not stat tiles", () => {
     assert.equal(order.size, "24px", "the existing 2xl");
     assert.ok(order.bottom < 844, `the headline ends at ${order.bottom}`);
     await page.locator("#rps").focus();
-    await page.waitForTimeout(100);
+    // Focus scrolls the field into view smoothly: read where it ends up, not 100ms into the scroll.
+    await page.evaluate(() => new Promise((resolve) => { let last = -1; let still = 0; const tick = () => { const y = scrollY; still = y === last ? still + 1 : 0; last = y; if (still >= 3) resolve(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick); }));
     const view = await page.evaluate(() => { const r = document.querySelector("#out-cost").getBoundingClientRect(); const bar = document.querySelector(".topbar").getBoundingClientRect(); return { top: r.top >= bar.bottom, bottom: r.bottom <= window.innerHeight }; });
     assert.deepEqual(view, { top: true, bottom: true });
     await page.locator("#rps").fill("800");
@@ -1163,7 +1169,7 @@ describe("the smoked header (.topbar)", () => {
       const secondary = await token(page, "text-secondary");
       const primary = await token(page, "text-primary");
       assert.equal(await ink("[data-theme-toggle]"), secondary, "at rest");
-      const press = async (sel) => { const box = await page.locator(sel).boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.waitForTimeout(250); };
+      const press = async (sel) => { const box = await page.locator(sel).boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await settle(page); };
       await press("[data-theme-toggle]");
       assert.equal(await ink("[data-theme-toggle]"), primary, "pressed on the bar");
       await page.mouse.move(5, 5); // release off the button, so it doesn't click and flip the theme
@@ -1223,7 +1229,7 @@ describe("the press scale", () => {
     const box = await page.locator(selector).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page); // the press is a 100ms transition: read it once it has ended, not after a fixed wait
   };
   const transform = (page, selector) => page.locator(selector).evaluate((el) => getComputedStyle(el).transform);
   const probes = '<div id="press" style="display:flex;gap:16px;padding:16px"><button class="btn" id="b-ok">Save</button><button class="btn" id="b-aria" aria-disabled="true">Off</button><button class="btn" id="b-busy" aria-busy="true"><span>Busy</span></button><button class="btn" data-variant="primary" id="b-primary">Primary</button><div class="row" id="r" style="width:120px">Row</div><button class="tab" role="tab" id="t">Tab</button><button class="disclosure" id="d" style="width:120px">More</button></div>';
@@ -1236,7 +1242,7 @@ describe("the press scale", () => {
     await press(page, "#b-ok");
     assert.equal(await transform(page, "#b-ok"), "matrix(0.98, 0, 0, 0.98, 0, 0)");
     await page.mouse.up();
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.equal(await transform(page, "#b-ok"), "none");
     await press(page, "#b-primary");
     assert.equal(await transform(page, "#b-primary"), "matrix(0.98, 0, 0, 0.98, 0, 0)", "every variant");
@@ -1431,6 +1437,7 @@ describe("palette rows say their shortcut in words", () => {
     await page.keyboard.type("jump");
     assert.equal(await page.locator(".palette [role=option]").count(), 1);
     assert.equal(await page.locator(".palette [role=option]").getAttribute("aria-describedby") !== null, true, "kept after a filter re-renders");
+    await settle(page);
     assert.deepEqual(await axe(page), []);
     await context.close();
   });

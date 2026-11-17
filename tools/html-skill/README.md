@@ -81,6 +81,34 @@ two templates, byte for byte. A PR that changes a pixel on purpose re-records th
 `node tools/html-skill/test/record-baseline.mjs`. The diff of the fixtures then shows what moved, and the PR shows a before and after of every
 region that differs. It does not delete or loosen the test. (Fonts stay out of the fixtures: each has a `<!-- basalt:fonts -->` placeholder.)
 
+## What a composed page needs from a Content-Security-Policy
+
+A page is one file with no network, so a policy can allow almost nothing. Measured on the two examples and the Blacksand page (no `on*=""` handler, no `eval` or `new Function`, no URL that leaves the file), the least policy that gives no violation is:
+
+```
+default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data:
+```
+
+`img-src data:` is needed wherever the page draws a `data:` URL as an image, a CSS background or an icon: a form control's marks, a framed image, a stage's picture, a `<link rel="icon">`; leave it out for a page with none. With `'unsafe-inline'` replaced by a hash (`'sha256-…'`) for each inline `<script>` and `<style>` block, every script still runs and the only thing blocked is the `style=""` attribute that many components carry, so `style-src-attr 'unsafe-inline'` is the one thing a strict policy cannot drop. The scripts write their styles through the CSSOM, which a policy allows. With scripts off a page follows the system theme and its text is readable, but its icons are not drawn (an icon-only button such as the theme toggle is an empty box), the tabs' other panels stay `hidden`, and a disclosure's content stays closed. `test/audit-fixes-c2.test.mjs` composes the two examples and loads them under both policies.
+
+## The head
+
+A body may carry `<meta name="description" content>`, named metas for `robots`, `author`, `referrer` and `keywords`, `<meta property="og:…" content>`, `<meta name="twitter:…" content>`, `<link rel="icon" href="data:…">`, `<link rel="apple-touch-icon" href="data:…">` and `<link rel="canonical" href>`; `compose.mjs` lifts them into the head after the title, in the order written, and refuses any other `meta` or `link` with that list (it owns the charset, viewport and colour scheme, and an icon is a `data:` URL because a page makes no request). Body microdata stays where written: a `meta` with `itemprop` and `content` and none of `name`, `http-equiv`, `charset` or `property`; or a `link` with `itemprop` and `href` and no `rel`. Other tags carrying `itemprop` pass through the same head checks as tags without it. Inside an `svg`, a `math`, a `template`, a script, a style or a comment a tag is left as written.
+
+## Fonts
+
+`compose.mjs` inlines both Geist faces on every page. It does not drop the mono face, because whether a page draws it cannot be decided from its text.
+
+## Known limits
+
+The input contract is a complete HTML body fragment using the documented markup, not every string that a browser can recover as HTML. The composer is a small tokenizer, not an HTML validator or tree builder. Its checks catch the tested cases that consume the suffix, but acceptance does not certify arbitrary malformed HTML. An open ordinary HTML element can contain the final script; that script need not be a direct child of `body`.
+
+Foreign elements keep their actual namespace, regardless of their spelling. HTML inside SVG belongs in `foreignObject`; HTML inside MathML belongs in `annotation-xml` with a literal `encoding="text/html"`. Foreign-content breakout tags, unmatched foreign end tags, encoded annotation encodings, and `mglyph` or `malignmark` directly inside MathML text integration points are refused. For the last two, supply a complete MathML fragment without that exception, or put HTML in an annotation. SVG scripts are refused: put executable scripts in HTML. Comments must use the normal `<!-- text -->` ending. These are conservative authoring restrictions, including some browser-recoverable input.
+
+Automatic init detection is a lexical convenience, not a JavaScript parser. It recognises a direct `Basalt.init(...)` or `Basalt?.init(...)` call in an inline executable HTML script, including an HTML integration point but excluding an inert template. Comments, quoted strings, template literals and regular expressions are not calls. Script types must be literal, and a literal direct init call in an event handler is refused; put that call in an inline HTML script instead. An author-owned init call must actually execute exactly once. The composer does not evaluate JavaScript: it cannot prove conditional execution, follow aliases or computed names, inspect template substitutions or external scripts, or protect its suffix from `document.write`, document replacement, or code that changes Basalt. Those cases and JavaScript grammar beyond this lexical scan have no automatic exactly-once guarantee. For example, `if (false) Basalt.init()` suppresses the automatic call but never initialises the page. Make the direct call unconditional, or let the composer add it.
+
+The toast region follows the focused modal (a native dialog or sheet, or the palette), retaining the last live modal when document focus is lost. On the page the palette keeps its original scrim and painting. Inside a native modal, its scrim uses a manual top-layer popover to escape clipping and transforms while retaining the host’s focus scope. Its logical host closes it when that host closes or is removed. Dialogs and sheets may open above a palette; their keys belong to them, and closing them resumes the palette. Open these overlays after the init steps have run (after `DOMContentLoaded` if `Basalt.init()` was called while parsing), so the toast module observes their focus from the start. Keyboard events keep their real composition state. When focus started on the palette input, Shift+Tab from the region or first toast returns to that input in both implementations. The skill keeps the palette, dialogs and sheets open on Escape from the region or a toast action; when focus arrived by F6, it returns to that control. Current React closes its `CommandMenu`, `Dialog` or `Sheet` on these Escape paths, so Escape parity is not claimed. Ordinary Tab from the last control in a skill dialog reaches its toast, and Shift+Tab returns to that control without F6. React’s dialog trap currently wraps to its first control before its portaled toast; that entry route is recorded separately, not claimed as parity.
+
 ## Budgets
 
 In `src/modules.json`: `skillMd` (the context an agent pays, never above what it was), `core`, `everything` (core, every module and

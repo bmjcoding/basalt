@@ -691,8 +691,10 @@ describe("reduced motion, forced colours, touch and axe", () => {
       states.push(["at rest", await axeViolations(page)]);
       await page.focus(FIELD);
       await page.keyboard.press("ArrowDown");
+      await settle(page);
       states.push(["in use", await axeViolations(page)]);
       await page.fill(FIELD, "zzz");
+      await settle(page);
       states.push(["no match", await axeViolations(page)]);
       await context.close();
       const split = await open({ scheme: theme, body: PAGE({ width: 900, preview: true }) });
@@ -709,6 +711,7 @@ describe("reduced motion, forced colours, touch and axe", () => {
       const forced = await open({ scheme: theme, forced: true });
       await ready(forced.page);
       await forced.page.focus(FIELD);
+      await settle(forced.page);
       states.push(["forced colours", await axeViolations(forced.page)]);
       await forced.context.close();
       assert.deepEqual(states.filter(([, v]) => v.length), [], "no violations in any state");

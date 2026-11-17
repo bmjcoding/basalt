@@ -588,6 +588,7 @@ describe("sparkline: loops, reduced motion, forced colours and axe", () => {
         const { page, context } = await openHtml(browser, compose(`<title>S</title>${body}`, { fonts: false }).html, { scheme: theme });
         assert.deepEqual(await axeViolations(page), []);
         await page.emulateMedia({ forcedColors: "active" });
+        await settle(page);
         assert.deepEqual(await axeViolations(page), [], "forced colours");
         if (await page.locator(".sparkline-line").count()) {
           const forced = await page.evaluate(() => { const s = getComputedStyle(document.querySelector(".sparkline-line")); const probe = document.createElement("div"); probe.style.color = s.stroke; document.body.append(probe); const c = getComputedStyle(probe).color; probe.remove(); return [s.stroke !== "none", c !== "rgba(0, 0, 0, 0)"]; });

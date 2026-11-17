@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { freezeAnimations } from "../../../packages/react/test/support.mjs";
+import { freezeAnimations, settle } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -153,7 +153,7 @@ describe("checkbox, radio and switch: native inputs, named, keyboard, in the for
       await auto.focus();
       await page.keyboard.press("Space");
       assert.equal(await auto.isChecked(), true);
-      await page.waitForTimeout(250);
+      await settle(page); // the thumb's travel is a transition
       assert.equal(Math.round(await travel()), 14, "32 wide, 14 thumb, 2 either side");
       assert.equal((await form(page)).auto, "on");
       // 32 by 18, fully round; the on track is the action fill.
@@ -351,7 +351,7 @@ describe("the choice card and the pressed toggle", () => {
       const rest = await at();
       await tog.click();
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(250);
+      await settle(page);
       const on = await at();
       assert.equal(await tog.getAttribute("aria-pressed"), "true");
       assert.deepEqual([on.w, on.h], [rest.w, rest.h], "0px");
@@ -581,6 +581,8 @@ describe("axe", () => {
   test("axe finds nothing in forced colours, with a box mixed and the hold on", async () => {
     const { page, context } = await open({ forced: true });
     await page.locator("#hold").click();
+    await page.waitForFunction(() => document.querySelector("#hold").getAttribute("aria-pressed") === "true");
+    await settle(page); // axe reads a settled page: the press, the hold and the colours it changes have ended
     assert.deepEqual(await axeViolations(page), []);
     await context.close();
   });

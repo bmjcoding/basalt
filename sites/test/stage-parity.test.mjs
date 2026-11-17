@@ -39,9 +39,9 @@ const skillBody = () => `<title>Parity</title>
   </div>
 </header>
 <section class="basalt-stage" data-headroom>
-  <div class="basalt-stage-art" aria-hidden="true">${DUNES}<img class="basalt-paired-art" data-art="dark" src="${DARK}" alt="" loading="lazy" decoding="async" width="40" height="20" style="object-position: left top;"><img class="basalt-paired-art" data-art="light" src="${LIGHT}" alt="" loading="lazy" decoding="async" width="40" height="20" style="object-position: left top;"></div>
   <span class="basalt-stage-headroom" data-basalt-headroom aria-hidden="true"></span>
   <div class="basalt-stage-content"><div style="height: 400px; padding: 0 24px"><h1 data-quiet="headline" style="margin: 0; font: 600 32px/40px sans-serif">A synthetic headline</h1></div></div>
+  <div class="basalt-stage-art" aria-hidden="true">${DUNES}<img class="basalt-paired-art" data-art="dark" src="${DARK}" alt="" loading="lazy" decoding="async" width="40" height="20" style="object-position: left top;"><img class="basalt-paired-art" data-art="light" src="${LIGHT}" alt="" loading="lazy" decoding="async" width="40" height="20" style="object-position: left top;"></div>
 </section>
 <main style="height: 2400px"><p>Synthetic page.</p></main>
 <!-- @include shared/site-header.js -->
@@ -88,8 +88,8 @@ async function open({ theme, width, forcedColors = "none", media }) {
 
 const HEADER = ["backgroundColor", "borderBottomColor", "borderBottomStyle", "borderBottomWidth", "backdropFilter", "transitionProperty", "transitionDuration", "transitionTimingFunction", "boxHeight", "color"];
 const stagePairs = [
-  ["stage", ".basalt-stage", ".basalt-stage", [...PLACE, "position", "boxSizing", "marginTop", "paddingTop", "backgroundColor", "color", "fontFamily", "borderTopWidth", "borderRadius", "boxShadow", "filter"]],
-  ["art", ".basalt-stage-art", ".basalt-stage-art", [...PLACE, "position", "overflowX", "overflowY", "pointerEvents", "display", "ariaHidden"]],
+  ["stage", ".basalt-stage", ".basalt-stage", [...PLACE, "position", "boxSizing", "marginTop", "paddingTop", "backgroundColor", "color", "fontFamily", "borderTopWidth", "borderRadius", "boxShadow", "filter", "isolation"]],
+  ["art", ".basalt-stage-art", ".basalt-stage-art", [...PLACE, "position", "zIndex", "overflowX", "overflowY", "pointerEvents", "display", "ariaHidden"]],
   ["art drawing", ".basalt-stage-art > svg", ".basalt-stage-art > svg", [...PLACE, "position", "display"]],
   ["headroom", ".basalt-stage-headroom", ".basalt-stage-headroom", [...PLACE, "position", "pointerEvents", "ariaHidden"]],
   ["content", ".basalt-stage-content", ".basalt-stage-content", [...PLACE, "position"]],

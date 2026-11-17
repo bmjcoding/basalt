@@ -1023,7 +1023,9 @@ const CHIP_HOVER_BLUR = [["hover", ".basalt-chip[role=checkbox]:not([data-checke
 const hoverOf = (react, skill) => ({ hover: [react, skill] });
 const parkPointer = async (page) => { await page.mouse.move(0, 0); };
 const markTrigger = { react: (p) => p.evaluate(() => document.querySelector(".basalt-filter-trigger")?.setAttribute("data-parity-trigger", "")), skill: (p) => p.evaluate(() => document.querySelector(".filter-trigger")?.setAttribute("data-parity-trigger", "")) };
-const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await parkPointer(p); } };
+// The popup lights its first row when it takes focus, and a pointer leaving a row clears it: on a busy machine the focus can land after the pointer was parked, so the
+// pointer goes over the first row and away again on each page, and the rows are read at rest whichever came first.
+const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await p.locator(".basalt-filter-row").first().hover(); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await p.locator(".filter-row").first().hover(); await parkPointer(p); } };
 const POPUP_BOX = ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "gapBelow", "startOffset"];
 const ROW = [...BOXRECT, "paddingLeft", "paddingRight", "display", "alignItems", "gap", "color", "backgroundColor", ...TYPE];
 const TABLES = [
@@ -1488,7 +1490,7 @@ const ART_IMPORTS = `const { SiteHeader, Stage, PairedArt, FramedArt, Card, Card
 const ART_BAR = `<SiteHeader brand={<>${NAV_MARK}<span>Acme</span></>} brandLabel="Acme home" />`;
 const ART_BAR_SKILL = `<header class="topbar"><div class="topbar-inner"><a class="brand" href="#" aria-label="Acme home">${NAV_MARK}<span>Acme</span></a><span class="spacer"></span></div></header>`;
 const stageReact = `<div>${ART_BAR}<Stage art={<PairedArt dark={"${NIGHT}"} light={"${DAY}"} loading="eager" width={1600} height={800} position="30% 50%" />}><div style={{ height: 360, padding: "0 24px" }}><h1 style={{ margin: 0 }}>A synthetic headline</h1></div></Stage><main style={{ height: 900 }} /></div>`;
-const stageSkill = `${ART_BAR_SKILL}<section class="stage"><div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"></div><div class="stage-content"><div style="height: 360px; padding: 0 24px"><h1 style="margin: 0">A synthetic headline</h1></div></div></section><main style="height: 900px"></main>`;
+const stageSkill = `${ART_BAR_SKILL}<section class="stage"><div class="stage-content"><div style="height: 360px; padding: 0 24px"><h1 style="margin: 0">A synthetic headline</h1></div></div><div class="stage-art" aria-hidden="true"><img class="paired-art" data-art="dark" src="${NIGHT}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"><img class="paired-art" data-art="light" src="${DAY}" alt="" width="1600" height="800" loading="eager" decoding="async" style="object-position: 30% 50%"></div></section><main style="height: 900px"></main>`;
 const STAGE_PAIRS = [
   ["stage", ".basalt-stage", ".stage", [...BOXRECT, "paddingTop", "paddingBottom", "marginTop", "backgroundColor", "backgroundImage", "color", "position", "boxSizing", "fontFamily", "borderTopWidth", "borderTopLeftRadius", "boxShadow", "overflow", "fontSize", "lineHeight"]],
   ["art layer", ".basalt-stage-art", ".stage-art", [...BOXRECT, "position", "overflow", "pointerEvents", "ariaHidden"]],
@@ -1827,6 +1829,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
       for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) { await p.evaluate(([frame, x]) => { document.querySelector(frame).scrollLeft = x; }, [sel, options.scroll]); await settle(p); }
     }
     if (options.focusOn) {
+      // A programmatic focus is focus-visible only after a key: press one on both pages, so a busy machine's click timing can't decide it.
+      for (const p of [reactPage, skillPage]) await p.keyboard.press("Shift");
       await reactPage.locator(options.focusOn[0]).first().focus();
       await skillPage.locator(options.focusOn[1]).first().focus();
     }
@@ -1847,6 +1851,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
     if (options.focus || options.focusIn || options.focusOn) {
       await reactPage.evaluate(() => document.activeElement?.blur());
       await skillPage.evaluate(() => document.activeElement?.blur());
+      // Leaving focus is a transition too (the ring and the ink): the next pair is read at rest, never part-way back to it.
+      for (const p of [reactPage, skillPage]) await settle(p);
     }
     if (options.press) for (const p of [reactPage, skillPage]) await p.mouse.up();
     if (options.scroll != null) for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) await p.evaluate((frame) => { document.querySelector(frame).scrollLeft = 0; }, sel);

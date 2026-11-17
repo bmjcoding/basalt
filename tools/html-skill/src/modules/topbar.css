@@ -20,6 +20,12 @@
     scrollbar-gutter: stable;
     scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
   }
+  /* What sits in the bar sits inside that scroll padding, so focusing it (a Tab into the bar from a scrolled page) would scroll the page until it cleared
+     the padding. A scroll margin as negative as the padding is deep keeps what is in the bar where it is; an anchor still lands at the padding, because only
+     the things in the bar take the margin (React's rule for .basalt-site-header, .basalt-app-header and .basalt-sticky-bar). */
+  :is(.topbar, .app-header) * {
+    scroll-margin-top: calc(-1 * (var(--basalt-sticky-offset) + var(--basalt-space-4)));
+  }
 
   /* The bar is Basalt's chrome (foundations, "Chrome: the smoked header"; the .basalt-chrome class in @basalt/react): the one smoked surface.
      surface-chrome over a 12px blur (no saturate), a hairline below, primary ink. Use it once per viewport. It is 56px in all, border box, its 1px line

@@ -19,6 +19,8 @@
     overflow: visible;
     color: var(--basalt-text-primary);
   }
+  .toast-viewport:focus { outline: none; }
+  .toast-viewport:focus > .toast[data-front] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .toast {
     --_gap: var(--basalt-space-2);
     --_peek: var(--basalt-space-2);
@@ -92,6 +94,7 @@
   }
   @media (forced-colors: active) {
     .toast { border-color: CanvasText; }
+    .toast:focus-visible, .toast-viewport:focus > .toast[data-front] { outline-color: Highlight; }
     .toast[data-status] :is(.toast-seat, .toast-title) { color: CanvasText; }
     .toast-drain { forced-color-adjust: none; background: CanvasText; }
   }

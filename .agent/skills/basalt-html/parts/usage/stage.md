@@ -5,13 +5,15 @@
 ```html
 <header class="topbar">…</header>
 <section class="stage">
+  <div class="stage-content">…the hero's words and panels…</div>
   <div class="stage-art" aria-hidden="true">
     <img class="paired-art" data-art="dark" src="night.webp" alt="" width="2400" height="1200" loading="lazy" decoding="async">
     <img class="paired-art" data-art="light" src="day.webp" alt="" width="2400" height="1200" loading="lazy" decoding="async">
   </div>
-  <div class="stage-content">…the hero's words and panels…</div>
 </section>
 ```
+
+- `.stage-art` comes after `.stage-content`: it is behind the words by z-index, and on a slow link the words arrive before the art.
 
 - The art is decoration: `aria-hidden` and `alt=""`; it is not drawn in forced colours and does not print. Never filter, dim, tint or blend it.
 - `.paired-art` shows the picture for the page's theme, the toggle's too: write both. A `loading="lazy"` pair downloads only the one shown. `object-position` sets the crop.

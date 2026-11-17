@@ -32,9 +32,11 @@ export interface StageProps extends Omit<React.ComponentProps<"section">, "child
 export function Stage({ art, headroom = false, className, children, ...props }: StageProps) {
   return (
     <section {...props} data-headroom={headroom ? "" : undefined} className={join("basalt-stage", className)}>
-      <div className="basalt-stage-art" aria-hidden="true">{art}</div>
       <span className="basalt-stage-headroom" data-basalt-headroom="" aria-hidden="true" />
       <div className="basalt-stage-content">{children}</div>
+      {/* After the content, so on a slow link the words arrive before the art and the stage is not painted short and then grown; it is
+          absolutely placed and behind the content by z-index, so paint order and focus order are what they were. */}
+      <div className="basalt-stage-art" aria-hidden="true">{art}</div>
     </section>
   );
 }
