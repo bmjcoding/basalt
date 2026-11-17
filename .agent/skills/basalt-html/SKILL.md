@@ -22,7 +22,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 
 - **core** `.page`, `.stack`, `.panel`, `.card`, `.btn`: always in; always print its usage with your modules.
 - **glyph** `data-glyph`: Basalt's own glyph by name, never drawn by hand; filled inside `aria-current`.
-- **topbar** `.topbar`: once per page; never restyle it; no danger button; no second blurred layer.
+- **topbar** `.topbar`, `.site-footer`: once per page; never restyle it; no danger button; no second blurred layer.
 - **kbd** `data-kbd`, `.kbd`: only a real shortcut the page binds, never on the primary fill; `data-doc` for keys in prose.
 - **segment** `.segment`: `button[aria-pressed]`, one true; a click doesn't switch it, your script does.
 - **forms** `.field`, `.input`, `<input>`, `<select>`, `<textarea>`: wrap a select in `.select`; errors are `aria-invalid`.
@@ -63,7 +63,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **loops** `data-loops-toggle`: a page that spins past five seconds needs it; the control's name stays fixed.
 - **ambient** `data-ambient`: one loop a page, in art only, opacity only; the page then needs the `loops` toggle.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
-- **theme** `data-theme-toggle`: on a ghost, icon-only `.btn`; leave it empty.
+- **theme** `.theme-choice`, `data-theme-menu`: the footer's three words, or an icon and a menu.
 - **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.
 - **menu** `.menu`: rows are `button.menu-item` with a role; a radio sits in a `role="group"`.
 - **combobox** `.combobox`: an `input.input` and a `ul` of `li`; the script builds the popup, caret and value.

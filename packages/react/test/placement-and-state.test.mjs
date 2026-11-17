@@ -636,7 +636,7 @@ describe("the theme's state: useTheme and themeBootstrap", () => {
 
   test("the head script is the skill's head snippet: the same theme part, character for character", async () => {
     const skill = compose(`<title>T</title><p>x</p>`, { fonts: false }).html;
-    const snippet = skill.match(/<script>(\(function\(\)\{var t;try\{t=localStorage\.getItem\("basalt-theme"\).*?)<\/script>/)?.[1];
+    const snippet = skill.match(/<script>(\(function\(\)\{var t,c,r=document\.documentElement;try\{t=localStorage\.getItem\("basalt-theme"\).*?)<\/script>/)?.[1];
     assert.ok(snippet, "the skill's head snippet is found");
     // The skill's snippet goes on to set the keyboard attribute; the theme part is everything before that.
     assert.equal(snippet.slice(0, snippet.indexOf(`try{if(sessionStorage`)), themeBootstrap.slice(0, -"})();".length));

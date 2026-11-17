@@ -64,9 +64,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
   at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
   toast included, keeps the neutral rim. Under more contrast every side is the input boundary's value.
-- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`,
-  `blur-chrome`, 12px, no saturate) is the only translucent, blurred surface. Dialogs, sheets,
-  menus, popovers, toasts and the command menu stay solid. Use the class once per viewport;
+- **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`: `#000` at 92.5%
+  in dark, `#fafafa` at 96% in light; `blur-chrome`, 12px, no saturate) is the only translucent,
+  blurred surface. Dialogs, sheets, menus, popovers, toasts and the command menu stay solid. The
+  theme control is in the site footer, never in the bar. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
   back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, in
   print, and in forced colours (`Canvas`).

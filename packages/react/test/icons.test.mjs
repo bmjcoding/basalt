@@ -294,7 +294,7 @@ describe("the licence is in an output once", () => {
 // --- the markup, before and after: a real browser, built from the same source ---
 const REFERENCE = process.env.BASALT_ICON_REFERENCE ?? path.join(src, "index.ts");
 const FIXTURE = `
-import { PlusIcon, PlayIcon } from "@phosphor-icons/react";
+import { PlusIcon, PlayIcon, SunIcon, MoonIcon } from "@phosphor-icons/react";
 const Site = ({ name, children }) => <div data-site={name}>{children}</div>;
 function Toasts() {
   const t = B.useToast();
@@ -337,6 +337,7 @@ function App() {
         <B.Nav aria-label="Primary"><B.NavItem href="#a" icon={PlayIcon} current>A</B.NavItem><B.NavItem href="#b" icon={B.HomeGlyph}>B</B.NavItem></B.Nav>
         <B.Icon icon={PlayIcon} size={20} selected fillSafe /><B.Icon icon={PlayIcon} size={24} selected /><B.Icon icon={PlayIcon} size={16} />
       </Site>
+      <Site name="theme-menu"><B.ThemeMenu /><B.Icon icon={SunIcon} /><B.Icon icon={MoonIcon} /></Site>
       <Site name="notifications"><B.NotificationCentre entries={ENTRIES} defaultOpen /></Site>
       <Site name="select-open"><B.Select aria-label="Open" options={options} defaultValue="a" defaultOpen /></Site>
       <Site name="combobox-open"><B.Combobox aria-label="Zone" options={options} defaultValue="a" defaultOpen /></Site>
@@ -407,7 +408,7 @@ describe("every icon's markup is byte-identical to before, in every component an
       assert.ok(markup.includes(d), `${name} is drawn in the fixture`);
     }
     const sites = new Set(reference.icons.map(([site]) => site));
-    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "notifications", "portal"]) {
+    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "theme-menu", "notifications", "portal"]) {
       assert.ok(sites.has(site), `${site} draws an icon`);
     }
     // the toasts, the open Menu, its submenu, the open Select and Combobox and the command menu are portalled, outside any site

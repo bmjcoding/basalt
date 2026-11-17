@@ -812,6 +812,47 @@
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
   }
 
+  /* ---- The theme choice (DECISIONS 146 B): System, Light and Dark, three words in the segmented control's drawing, with radio semantics ----
+     The chosen word is drawn from the root's `data-theme-choice` (the head script writes it, `useTheme` keeps it), so the right word is chosen in the first frame, before any
+     script and before hydration; with no attribute, System is the chosen one (nothing stored). It is 600 in primary on the pill, its 600 width reserved so nothing moves. */
+  .basalt-theme-choice { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  .basalt-theme-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  /* The words may be larger than the 28px they are drawn in (200% text): the segment grows and the group wraps, and nothing overflows. */
+  .basalt-theme-choice .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
+  .basalt-theme-choice .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
+  @media (pointer: coarse) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  .basalt-theme-choice-word { display: inline-flex; flex-direction: column; align-items: center; }
+  /* The 600 width is reserved by the word itself, unseen. */
+  .basalt-theme-choice-word::after {
+    content: attr(data-label);
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
+  .basalt-theme-choice .basalt-segment[data-pressed],
+  :root[data-theme-choice="system"] .basalt-theme-choice [data-value="system"],
+  :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
+  :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
+  :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] {
+    background: var(--_pill);
+    color: var(--basalt-text-primary);
+    font-weight: var(--basalt-font-weight-semibold);
+    box-shadow: var(--basalt-shadow-pill);
+  }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .basalt-theme-choice .basalt-segmented[data-slide] .basalt-segment { background: transparent; box-shadow: none; }
+  }
+  @media (forced-colors: active) {
+    .basalt-theme-choice .basalt-segment[data-pressed],
+    :root[data-theme-choice="system"] .basalt-theme-choice [data-value="system"],
+    :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
+    :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
+    :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+  }
+
   /* ---- Navigation: a sidebar and its collapsed rail ---- */
 
   /* X's way (decisions 42 and 45). The link is the whole row, so the target is the column; the pill inside it is
@@ -949,6 +990,7 @@
     /* --_inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
     --_inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--_inset-bottom-sim, var(--basalt-space-0)));
     --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--_inset-top));     /* what a sticky thing under a bar adds */
+    --basalt-site-row: var(--basalt-sticky-offset);                                  /* the resting row's height: a bar that arrives keeps it in a slot, and a stage is pulled up by it */
     --basalt-bottom-offset: var(--basalt-space-0);
     --_pad-left: max(var(--basalt-gutter), var(--_inset-left));                      /* a bar's inline padding: the gutter or the side inset */
     --_pad-right: max(var(--basalt-gutter), var(--_inset-right));
@@ -1064,7 +1106,11 @@
   .basalt-site-brand {
     display: inline-flex;
     align-items: center;
-    flex: none;
+    /* The brand gives way before the end cluster does: a lockup too wide for the bar at 320 beside the loops toggle, two tools and Menu is clipped at its end, never the Menu
+       button pushed off the screen (the ring's 4px stays inside the clip). */
+    flex: 0 1 auto;
+    overflow: clip;
+    overflow-clip-margin: calc(var(--basalt-size-focus-offset) + var(--basalt-size-focus-width));
     height: var(--basalt-size-tap-min);
     min-width: var(--basalt-size-tap-min);
     margin: 0;
@@ -1084,6 +1130,15 @@
     white-space: nowrap;
   }
   .basalt-site-brand:focus-visible .basalt-site-brand-mark { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The lockup by pixel density (DECISIONS 146 F): each drawing is a `symbol` defined once (the sprite is out of the flow) and drawn with `use`; the 1x drawing shows,
+     and the 2x drawing replaces it from 2dppx (brand/README.md), so only one is rendered. It draws in the text colour, so it stays in forced colours. */
+  .basalt-lockup-sprite { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+  .basalt-lockup { display: block; flex: none; max-width: none; pointer-events: none; }
+  .basalt-lockup-2x { display: none; }
+  @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+    .basalt-lockup-1x { display: none; }
+    .basalt-lockup-2x { display: block; }
+  }
 
   /* The links: navigation, so Nav's language. 14/20 at 400 in secondary ink on a 32px hugging pill; the hit area is 44 tall
      at every pointer, with 2px either side of the pill, so pills are 4 apart and neighbouring hit areas touch. Hover is the
@@ -1159,12 +1214,32 @@
     .basalt-site-links[data-glide] .basalt-site-link .basalt-site-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
 
+  /* The pill link as a part (DECISIONS 146 C). `sm` is the footer's: 13/18 on a 28px pill in a 32px hit area, 44 on touch. A column's hit areas touch, as a row's do.
+     `hang` pulls the list out by its link's padding and its pill's, so the words line up with an edge; it never takes the pill closer than space-1-5 to the gutter's
+     edge (the gutter is space-4 under 720: 16, less the 10 of the sm pill's hang, leaves 6). */
+  .basalt-site-links[data-size="sm"] { --_hang: calc(var(--basalt-space-0-5) + var(--basalt-space-2)); margin-inline-start: 0; }
+  .basalt-site-links[data-size="md"] { --_hang: calc(var(--basalt-space-0-5) + var(--basalt-space-3)); }
+  /* The 28 and 32 are minimums: at 200% text a label wraps inside its pill and the pill and its hit area grow, so nothing overflows or is cut. */
+  .basalt-site-links[data-size="sm"] .basalt-site-link { height: auto; min-height: var(--basalt-size-control-md); }
+  .basalt-site-links[data-size="sm"] .basalt-site-pill { height: auto; min-height: var(--basalt-size-control-sm); padding-inline: var(--basalt-space-2); }
+  .basalt-site-links[data-size="sm"] .basalt-site-label { white-space: normal; overflow-wrap: anywhere; }
+  .basalt-site-links[data-size="sm"] .basalt-site-label {
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-site-links[data-orientation="column"] { margin-inline-start: 0; }
+  .basalt-site-links[data-orientation="column"] .basalt-site-links-list { flex-direction: column; align-items: flex-start; }
+  .basalt-site-links[data-hang] { margin-inline-start: calc(-1 * var(--_hang, var(--basalt-space-0))); }
+  @media (pointer: coarse) {
+    .basalt-site-links[data-size="sm"] .basalt-site-link { min-height: var(--basalt-size-tap-min); }
+  }
+
   /* Under 720 the links and the action leave the bar; the brand, the toggle and a Menu button stay. The bar's buttons are 44
      whatever the pointer, radius 8, and the glyph keeps IconButton's own 16. */
   .basalt-site-menu-trigger { display: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu */
   @media (width < 720px) {
-    .basalt-site-links,
+    .basalt-site-bar .basalt-site-links,
     .basalt-site-action { display: none; }
     .basalt-site-menu-trigger { display: inline-flex; }
     .basalt-bar-actions { gap: var(--basalt-space-1); }
@@ -1231,6 +1306,115 @@
     .basalt-sheet[data-side="top"][data-starting-style],
     .basalt-sheet[data-side="top"][data-ending-style] { clip-path: none; opacity: 0; }
   }
+
+  /* ---- The site footer (DECISIONS 146 A) ----
+     On the page at level 0: no fill, no rim, no shadow. One 1px divider the width of the row (never full-bleed), half a section gap above it (64 from 1024, 48 from 720, 32
+     under) and `space-8` inside. The brand, a sentence and the social links are the identity; the links are a line (one unlabelled list beside the brand) or labelled groups;
+     the base is the legal line and the theme choice. Under 720 a labelled group is a disclosure once script has run; without script every group is open, two a row. */
+  .basalt-site-page { display: flex; flex-direction: column; min-height: 100svh; }
+  .basalt-site-page > main { flex: 1 0 auto; }
+  .basalt-site-footer {
+    --_gap: var(--basalt-space-12);
+    box-sizing: border-box;
+    margin-top: calc(var(--basalt-section-gap) / 2);
+    padding-bottom: calc(var(--basalt-space-8) + var(--_inset-bottom));
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-site-footer-body { padding-top: var(--basalt-space-8); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-site-footer-top { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--basalt-gutter); row-gap: var(--basalt-space-8); }
+  .basalt-site-footer-id { grid-column: 1 / span 4; display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-3); min-width: 0; }
+  /* The brand link is a 44px target on a 32px lockup: its slack comes off the gap, so the identity block is as tall as what is drawn. */
+  .basalt-site-footer-id > .basalt-site-brand { margin-block: calc(-1 * (var(--basalt-size-tap-min) - var(--basalt-size-control-md)) / 2); }
+  .basalt-site-footer-note { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); }
+  .basalt-site-footer-links { grid-column: 5 / -1; min-width: 0; }
+  .basalt-site-footer-top:not(:has(.basalt-site-footer-id)) > .basalt-site-footer-links { grid-column: 1 / -1; }
+  .basalt-site-footer-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--basalt-gutter); row-gap: var(--basalt-space-8); align-items: start; }
+  .basalt-site-footer-group { min-width: 0; }
+  .basalt-site-footer-label {
+    margin: 0 0 var(--basalt-space-1);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  /* The line form: one unlabelled list of up to six, beside the brand and start-aligned as the bar's links are. */
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-top { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-6); row-gap: var(--basalt-space-2); }
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-links { flex: 1 1 auto; }
+  .basalt-site-footer[data-form="line"] .basalt-site-links-list { flex-wrap: wrap; }
+  .basalt-site-footer-base { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--basalt-space-6); row-gap: var(--basalt-space-4); margin-top: var(--_gap); }
+  .basalt-site-footer[data-form="line"] .basalt-site-footer-base { margin-top: var(--basalt-space-4); }
+  .basalt-site-footer-legal { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-tertiary); }
+  .basalt-site-footer-toggle { display: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; below it the brand takes the whole row and the groups sit under it, four a row */
+  @media (width < 1024px) {
+    .basalt-site-footer-id, .basalt-site-footer-links { grid-column: 1 / -1; }
+    .basalt-site-footer-id { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-6); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the base stacks and a labelled group is a disclosure */
+  @media (width < 720px) {
+    .basalt-site-footer { --_gap: var(--basalt-space-8); }
+    .basalt-site-footer-top { row-gap: var(--basalt-space-6); }
+    .basalt-site-footer-id { flex-direction: column; align-items: flex-start; }
+    .basalt-site-footer-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--basalt-space-4); row-gap: var(--basalt-space-6); }
+    .basalt-site-footer-base { flex-direction: column; align-items: flex-start; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-groups { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group + .basalt-site-footer-group { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-site-footer[data-wired] .basalt-site-footer-label { margin: 0; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-label-wide { display: none; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-toggle { display: flex; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group:not([data-open]) > .basalt-site-links { display: none; }
+    .basalt-site-footer[data-wired] .basalt-site-footer-group[data-open] > .basalt-site-links { padding-bottom: var(--basalt-space-2); }
+  }
+  /* A disclosure row: 44 tall with the label and the chevron, the control ring at +2 outside it. */
+  .basalt-site-footer-toggle {
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--basalt-size-tap-min);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-site-footer-toggle:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-site-footer-toggle > .basalt-icon { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media (hover: hover) { .basalt-site-footer-toggle:hover > .basalt-icon { color: var(--basalt-text-primary); } }
+  .basalt-site-footer-group[data-open] > .basalt-site-footer-label .basalt-site-footer-toggle > .basalt-icon { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .basalt-site-footer-toggle > .basalt-icon { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); } }
+  @media (forced-colors: active) {
+    .basalt-site-footer-body, .basalt-site-footer[data-wired] .basalt-site-footer-group + .basalt-site-footer-group { border-color: CanvasText; }
+  }
+  @media print { .basalt-site-footer-toggle { display: none; } .basalt-site-footer-label-wide { display: inline; } .basalt-site-footer-group > .basalt-site-links { display: block; } }
+
+  /* ---- A bar that arrives, or leaves and returns (DECISIONS 146 D) ----
+     One header element in a slot that keeps the resting row's height in the flow in every phase, so nothing below it ever moves. At rest and between it sits in the slot and
+     scrolls with the page; pinned, the same element is `position: fixed` and drops in from above its own top edge over duration-slower on ease-out, and leaves at 0.75 on
+     ease-in (opacity only under reduced motion). A site restyles the row and the bar by `data-form`. */
+  .basalt-site-slot { position: relative; height: var(--basalt-site-row, var(--basalt-sticky-offset)); }
+  .basalt-site-slot > .basalt-site-header {
+    --basalt-phase-from: calc(-100% - var(--basalt-size-hairline));
+    position: absolute;
+    inset: 0 0 auto;
+  }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"] { position: fixed; top: 0; }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="from"] { transform: translateY(var(--basalt-phase-from)); transition: none; }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="in"] { transform: translateY(0); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="out"] { transform: translateY(var(--basalt-phase-from)); transition: transform calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion] { transform: none; }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="from"] { opacity: 0; }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="in"] { opacity: 1; transition: opacity var(--basalt-duration-slower) var(--basalt-ease-out); }
+    .basalt-site-slot > .basalt-site-header[data-form="bar"][data-motion="out"] { opacity: 0; transition: opacity calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  }
+  @media print { .basalt-site-slot > .basalt-site-header[data-form] { position: absolute; transform: none; opacity: 1; transition: none; } }
 
   /* The app shell: one grid, and the document scrolls. The sidebar is sticky at 100dvh and scrolls its own list only when
      Nav overflows; its brand band is the header's 56 and draws no line of its own; the header's line ends at the sidebar's
@@ -3924,7 +4108,7 @@
     position: relative;
     isolation: isolate;
     box-sizing: border-box;
-    margin-top: calc(-1 * var(--basalt-sticky-offset));
+    margin-top: calc(-1 * var(--basalt-site-row));
     padding-top: var(--basalt-stage-headroom);
     background-color: var(--basalt-art-field);
     color: var(--basalt-text-primary);
@@ -4014,6 +4198,13 @@
     letter-spacing: var(--basalt-text-xs-tracking);
   }
   @media print { .basalt-framed { break-inside: avoid; } }
+  /* Drawn art in the frame and the stage (DECISIONS 146 F): it keeps its proportions and fills the box (`slice`, cropped like `object-fit: cover`) or shows whole on
+     `art-field` (`meet`), held at its anchor. An inline svg takes this as its own preserveAspectRatio (set by the component); a canvas, picture or image as object-fit and
+     object-position, from two custom properties. Strokes do not scale: a 1px line stays 1px at every size. */
+  .basalt-framed-art { position: absolute; inset: 0; overflow: hidden; background-color: var(--basalt-art-field); }
+  .basalt-framed-art > :is(svg, canvas, picture, img, video) { display: block; width: 100%; height: 100%; object-fit: var(--_art-fit, cover); object-position: var(--_art-position, 50% 50%); }
+  .basalt-stage-art > :is(canvas, picture, img, video) { object-fit: var(--_art-fit, cover); object-position: var(--_art-position, 50% 50%); }
+  :is(.basalt-framed-art, .basalt-stage-art) svg * { vector-effect: non-scaling-stroke; }
 
   /* ---- The ambient loop (DECISIONS 136 C): a page's one, opacity only, in its art ----
      A mark that carries data-ambient (the props `ambient(index)` returns, or an `AmbientMark`) loops from 1 down to 0.2 and back on

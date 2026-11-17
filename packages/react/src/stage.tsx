@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { fitArt } from "./art-fit";
+import type { ArtAnchor, ArtFit } from "./art-fit";
 import { join } from "./utils";
 
 // The stage: full-bleed art at the top of a page, under the site header (decision 104). Level 0, so it is the page painted with art:
@@ -13,6 +15,10 @@ export interface StageProps extends Omit<React.ComponentProps<"section">, "child
    * printed. Never dimmed, inverted, tinted, filtered or blended. A one-version photograph is not a stage; put it in `FramedArt`.
    */
   art: React.ReactNode;
+  /** How drawn art (an inline `svg` or `canvas`) sits in the stage: `slice` (the default) keeps its proportions and fills the box, cropped like `object-fit: cover`; `meet` shows all of it. A drawing's own `preserveAspectRatio` stands unless a fit or an anchor is passed. Strokes do not scale. */
+  fit?: ArtFit;
+  /** Where the crop holds, like `object-position`: `end floor` keeps the end and the floor in every box. Default `center center`. */
+  anchor?: ArtAnchor;
   /**
    * Declares that the product's headroom check passed: the top `size-stage-headroom` (80px) plus the top safe area, across the full
    * width, holds no pixel past `art-quiet-limit`, in each theme, at the widths the art composes for (`checkHeadroom`, from
@@ -29,14 +35,16 @@ export interface StageProps extends Omit<React.ComponentProps<"section">, "child
  * Its height is its content's (the hero's), and while the art loads it shows `art-field`, the page colour, which meets the headroom
  * by definition.
  */
-export function Stage({ art, headroom = false, className, children, ...props }: StageProps) {
+export function Stage({ art, fit, anchor, headroom = false, className, children, ...props }: StageProps) {
+  // `slice` by default, as FramedArt's (DECISIONS 146 F); a drawing's own preserveAspectRatio stands unless a fit or an anchor is passed.
+  const drawn = fitArt(art, fit, anchor, fit !== undefined || anchor !== undefined);
   return (
     <section {...props} data-headroom={headroom ? "" : undefined} className={join("basalt-stage", className)}>
       <span className="basalt-stage-headroom" data-basalt-headroom="" aria-hidden="true" />
       <div className="basalt-stage-content">{children}</div>
       {/* After the content, so on a slow link the words arrive before the art and the stage is not painted short and then grown; it is
           absolutely placed and behind the content by z-index, so paint order and focus order are what they were. */}
-      <div className="basalt-stage-art" aria-hidden="true">{art}</div>
+      <div className="basalt-stage-art" style={drawn.style} aria-hidden="true">{drawn.node}</div>
     </section>
   );
 }

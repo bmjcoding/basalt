@@ -54,7 +54,7 @@ levels changed no pixel.
 | `surface-sunken` | `#0a0a0a` | `#f5f5f5` | Wells and code blocks on the page |
 | `surface-well-2`, `surface-well-3` | `#111111`, `#171717` | `#f5f5f5` | A well one or two levels deeper (see below) |
 | `surface-sunken-strong` | `#111111` | `#f0f0f0` | Table headers, segmented-control tracks (bands, not boxes) |
-| `surface-chrome` | `#000` at 85% | `#fafafa` at 92% | The fill of a sticky header bar, the page colour with alpha. The only translucent surface; see [Chrome](#chrome-the-smoked-header) |
+| `surface-chrome` | `#000` at 92.5% | `#fafafa` at 96% | The fill of a sticky header bar, the page colour with alpha. The only translucent surface; see [Chrome](#chrome-the-smoked-header) |
 
 Dark steps up from true black in small increments, as Linear does. Nothing above the page
 is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
@@ -510,7 +510,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
-  site header's end cluster, before the theme toggle, on any page with an ambient loop or a loop that can run past five seconds;
+  site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work, and a settings row (the
   label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
   animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
@@ -771,8 +771,7 @@ An app's own sticky header bar is the one smoked surface in Basalt. Dialogs, she
 toasts, tooltips and the command menu stay solid, as they are: an opaque panel on a scrim is the
 overlay, and a translucent layer on a translucent layer is the failure mode.
 
-- **Tokens.** `surface-chrome` is the page colour with alpha: `#000` at 85% in dark, `#fafafa` at
-  92% in light. `blur-chrome` is 12px. There is no `saturate()` and no brightness filter: on a
+- **Tokens.** `surface-chrome` is the page colour with alpha: `#000` at 92.5% in dark, `#fafafa` at 96% in light (the owner's midpoint between the first smoke, 85% and 92%, and solid; DECISIONS 146 E). Over a white picture the dark bar is `#131313`, a shadow of what passes under, not a window onto it. `blur-chrome` is 12px. There is no `saturate()` and no brightness filter: on a
   monochrome page they tint noise or do nothing.
 - **The class.** Put `basalt-chrome` on the app's `<header>`. It is a plain class (no component: a header
   is the app's own layout) that sets `position: sticky; top: 0` on the sticky layer, the fill,
@@ -784,16 +783,14 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
   no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
 - **Ink.** Only `text-primary` and `text-secondary` may sit on it. Over a pure white plate the dark bar
-  holds secondary at 5.84:1 (tertiary falls to 4.09:1, below AA), and over a pure black plate the light
-  bar holds it at 6.77:1 (tertiary 4.27:1); primary is 12.88:1 or better. The class sets primary ink and
+  holds secondary at 7.19:1 (tertiary 5.04:1), and over a pure black plate the light
+  bar holds it at 7.42:1 (tertiary 4.68:1); primary is 15.73:1 or better. Tertiary passes on the bare bar but still fails on the selected wash (4.0:1 in dark over white), so the rule keeps it off the bar anyway. The class sets primary ink and
   promotes tertiary text (`Text tone="tertiary"`, a Sparkline axis) to secondary inside it, and no Basalt
   part draws tertiary text on the bar without a fill of its own. An app does not put tertiary there.
 - **A pressed ghost Button takes primary ink.** Inside the bar only, a ghost Button held down shows `text-primary`
-  on the selected wash (secondary ink is 4.42:1 there on a touch device, where a press is the only state; primary is
-  9.75:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
+  on the selected wash (secondary ink is 5.71:1 there since the midpoint, 4.40:1 before it; primary is 12.59:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
 - **No danger Button on the bar.** Destructive actions don't belong in global chrome (the owner's rule). Danger
-  text on the bar's washes is below AA where the bar sits over a contrasting backdrop: hover 4.32:1 and pressed
-  3.92:1 in dark over white, pressed 4.36:1 in light over black. On the bare bar it passes (5.17:1 and 5.09:1).
+  text would now pass on the bar's washes at the midpoint (5.05:1 pressed in dark over white, 4.79:1 in light over black); the rule is the owner's.
 - **Under a dialog's scrim the bar stays filtered.** It is the one blurred surface and the scrim over it is
   unblurred, so the two never stack blur (the council decided this 4-0, and it is what is built).
 - **Use it once per viewport.** This is a usage rule, not a guarantee. Basalt ships one filtered class and
@@ -1012,7 +1009,7 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
 - **The current page** is primary ink at 600 with its 600 width reserved, no background, no underline, no bar, and
   `aria-current="page"`. **Focus** is the control ring, 2 at +2, round the pill. **Forced colours** are `Nav`'s rule: the current
   page keeps its 600, and hover is `Highlight` with `HighlightText`.
-- **The actions** are, in the end cluster, `LoopsToggle`'s icon form (only on a page with an ambient loop or a loop that can run past five seconds), the theme toggle (a ghost `IconButton`, at every width) and at most one primary Button. Never a danger Button. The loops toggle is before the theme toggle and stays in the bar at every width; the narrow menu has its own row for it (below).
+- **The end cluster** is, in order: `LoopsToggle`'s icon form (only on a page with an ambient loop or a loop that can run past five seconds), up to two tools (ghost icon controls that stay at every width: a search trigger, a basket; `SiteHeader`'s `tools` slot), and at most one primary Button. Never a danger Button. The loops toggle is first and stays in the bar at every width; the narrow menu has its own row for it (below). The theme choice is in [the site footer](#the-site-footer), not the bar: the header has no theme control (`themeToggle` is deprecated and kept for one release). A count beside a tool is not decided here (D11d, in the Controls batch). **Status:** decided by the council (DECISIONS 146, 3 to 0, the loops toggle's place 2 to 1); the implementation hasn't been reviewed.
 - **How many links:** they must fit at 720 beside the brand and the actions, five at most; the rest go in the footer. This is a rule
   for the site, not something the component measures.
 - **The skip link** is the page's first stop, unseen until it has focus. With a sticky bar it then hangs under the bar, `space-2` below
@@ -1026,14 +1023,14 @@ The one smoked bar of a marketing or docs site: the shipped `basalt-chrome`, wit
 
 ### The narrow menu
 
-Under 720 the links and the primary action leave the bar; the brand, the theme toggle and a Menu button stay. The bar's buttons are
+Under 720 the links and the primary action leave the bar; the brand, `LoopsToggle` and the tools (when the page has them) and a Menu button stay. The trigger is the icon only (DECISIONS 146 C, 2 to 1). The bar's buttons are
 44px whatever the pointer, radius 8.
 
 - **The trigger** is a ghost icon button with the core Menu glyph at `IconButton`'s own 16px, named "Menu", with `aria-expanded`,
   `aria-controls` and `aria-haspopup="dialog"`. It morphs to Close over `duration-slow` (the drawn pair).
 - **The menu** is `Sheet side="top"` on Base UI's Dialog, so it keeps the dialog contract: a real focus trap, an inert page, Escape,
   focus return. It has the scrim, level 1, `shadow-modal` and bottom corners of 16 (`radius-xl`). Its first row redraws the bar in
-  place: the brand, the toggle and Close on the Menu button's exact box, with a divider under it. When the page has a loops toggle (the
+  place: the brand, the tools if the bar has them and Close on the Menu button's exact box, with a divider under it. When the page has a loops toggle (the
   site header's `loopsToggle`, passed once), the next row, below the band and before the links, is `LoopsToggle`'s Button form, the pressed
   toggle "Pause animations" at the band's own gutter and 44 tall: the open menu covers the bar, so this is how the hold is reached while it is
   open, and it is the same control, so it and the bar's icon always show one state. The icon is not added to the band. A page with no
@@ -1045,6 +1042,33 @@ Under 720 the links and the primary action leave the bar; the brand, the theme t
   foot, full width, 44px.
 - **Focus:** on open, focus lands on Close. Escape, the scrim, Close or a link closes it, and focus goes back to Menu. Widening past
   720 closes it and focuses the current link in the bar.
+
+### The site footer
+
+The end of every site page (`SiteFooter` and `SitePage`; the HTML skill's `.site-footer` and `.site-page`, in its `topbar` module). **Status:** decided by the council (DECISIONS 146 A, a three-member round); the implementation hasn't been reviewed.
+
+- **It sits on the page at level 0:** no fill, no rim, no shadow. One 1px `border-divider` runs the width of the row, never full-bleed, with half a section gap above it (64 from 1024, 48 from 720, 32 under) and `space-8` inside.
+- **The order:** the brand, an optional sentence (at most `size-prose-width`) and `SocialLinks`; the links; then the base, the legal line and the theme choice. The legal line (tertiary, 13/18) and the theme choice are required.
+- **The links** are a line (one unlabelled list of up to six, beside the brand, start-aligned as in the bar) or labelled groups. Each is the pill link at `sm`: a 28px pill in a 32px hit area on a fine pointer, 44 on touch, at 13/18, hung so the words start on the group label's edge (never closer than `space-1-5` to the gutter's edge). A group label is an `h2`, 13/18 at 500 in primary, in sentence case, never uppercase or mono. All the links are one `nav` named "Footer".
+- **From 1024** the brand takes tracks 1 to 4 and the groups tracks 5 to 12, four a row (2 to 1: opus had tracks 1 to 3 and three a row); from 720 the brand takes the row and the groups sit under it, four a row. **Under 720** a labelled group is a disclosure: a 44px row with the label and the core chevron, a divider between, closed unless the group holds the current page; without script every group is open, two a row. Eight closed groups are one phone screen.
+- **On a short page** the footer sits at the window's foot (the page is a column at least `100svh` tall, `SitePage`); on a long page it ends the page.
+- **The site's own:** its words, which groups and links, the note, the brand, the legal text, and what the footer sits on.
+
+### The theme choice
+
+Three states, System, Light and Dark, where System is nothing stored (DECISIONS 146 B; **Status:** decided by the council; the implementation hasn't been reviewed). In the site footer it is a radio group in the segmented control's drawing, labelled "Theme" (`ThemeChoiceControl`; the skill's `.theme-choice`): one tab stop, the arrows move and choose, Home and End go to the ends; the chosen word is 600 in primary on the raised pill with its 600 width reserved. The head script also writes `data-theme-choice` on the root, and CSS draws the chosen word from it before any script, so the right word is chosen in the first frame. In an app with no footer it is a ghost `IconButton` showing the theme in use (a sun or a moon), named for the choice ("Theme: System"), opening a menu of three radio rows (`ThemeMenu`); in a settings row it is the same three-word control. The site header has no theme control. The HTML skill has both forms: `.theme-choice` in the footer, and `data-theme-menu` (a ghost icon button that shows the theme in use, is named "Theme: System" and opens the page's own `.menu` of three radio rows) for a report's bar or an app header; its old two-state `data-theme-toggle` is deprecated and works for one release, as React's `themeToggle` does.
+
+### Parts for a site's own bar
+
+`SiteBrand` (the brand link), `SiteNav` and `SiteNavList` (the pill link list, `md` in a bar, `sm` in a footer, a row or a column, optionally hung), `SiteMenu` (the narrow menu's trigger and sheet) and `useSitePhase` are exported, with `basalt-chrome` for the smoke, so a site that draws its own bar keeps the behaviour (the glide, the 44px hit area, the current page, the first key, the narrow menu's focus) and builds the shape itself. No site's shape comes into Basalt. `SiteHeader` has the slots `brand`, `links`, `tools` and `action`, and never centres. (DECISIONS 146 C, 3 to 0; the implementation hasn't been reviewed.)
+
+### A bar that arrives, or leaves and returns
+
+`useSitePhase` (and `SiteHeader`'s `phase`, the skill's `data-phase-after`): three phases from one `IntersectionObserver` on two 1px sentinels, no scroll handler. **Rest:** the row's slot is in the window. **Between:** the slot has left and the trigger (`after`: the first screen, the hero, its mark) has not reached the bar's line. **Pinned:** the trigger's bottom has passed the line. Where the page is decides the phase, never the direction of the scroll. The header is one element in a slot that keeps the resting row's height; pinned, the same element is `position: fixed` and drops in from above its own top edge over `duration-slower` on `ease-out`, leaves at 0.75 on `ease-in`, and fades under reduced motion (opacity only). The observer's root margin is long downward, so a jump past a sentinel that starts below the fold still counts; a jump past the line (an anchor, `scrollTo`, a restored scroll), the opening state and a return to rest straight from pinned switch at once; a turn mid-exit travels back from where the bar has reached. Focus inside the bar holds it while the page is between. The focused skip link is `space-2` from the window's top while the page is between. An anchor lands at the bar's line plus `space-4` in every phase (`scroll-padding-top` on the root). The site's CSS restyles the row and the bar by `data-form="row" | "bar"`. (DECISIONS 146 D; the implementation hasn't been reviewed.)
+
+### The brand's lockup
+
+`lockup={{ x1, x2 }}` on `SiteBrand` (and on `SiteHeader`) takes the two header drawings `brand/` ships (`lockup-header-1x` and `-2x`, each a `viewBox` and one path), each defined once as a `symbol` and drawn with `use`; the stylesheet shows the 1x drawing and swaps to the 2x drawing from `min-resolution: 2dppx`, so only one is rendered, no file or `id` repeats and no title makes a tooltip. It draws in the text colour, so it stays in forced colours. The quiet zone round a lockup on art is the headroom check's: it reads each `data-quiet` box grown by `space-1-5` on every side, so a zone needs no CSS. (DECISIONS 146 F; the implementation hasn't been reviewed.)
 
 ### The app shell
 
@@ -1350,7 +1374,7 @@ export and the components never import it, so it is not in an app's bundle). `ch
 1440, in each theme, at 1x and 2x, with the bar's ink and the stage's content hidden, reads every device pixel of the headroom and of each
 `data-quiet` zone, and fails if any pixel crosses the limit, naming the worst one. Nothing samples at run time: a cross-origin image cannot be
 read, and it would cost every page. The pixels come from a screenshot decoded on the page's own canvas, so the browser resolves every colour,
-`oklab()` and `oklch()` included. Add the product's own art breakpoints to `widths`.
+`oklab()` and `oklch()` included. Each `data-quiet` box is read grown by `space-1-5` on every side, so a zone needs no CSS (DECISIONS 146 F). Add the product's own art breakpoints to `widths`.
 
 ### Framed art
 
@@ -1358,6 +1382,7 @@ A picture in the flow is a distinct object, so a panel's geometry.
 
 - **The rim** is a real 1px border outside the art (`border-rim`, lit on top in dark), never laid over its pixels. **Radius 12** on the page
   (`radius-lg`); inside a panel the nested-radius rule (a card's 12 less its 16 of padding is square). **No shadow:** it does not float.
+- **Drawn art** goes in the same frame (`art` in place of `src`, an inline `svg` or `canvas`): it keeps its proportions and fills the box (`fit="slice"`, the default; `meet` shows all of it on `art-field`), held at its `anchor` (`end floor` is `xMaxYMax`), and its lines do not scale (`vector-effect: non-scaling-stroke`). `Stage` takes the same `fit` and `anchor`, `slice` by default too; a drawing's own `preserveAspectRatio` stands unless a `fit` or an `anchor` is passed. A drawing that must recompose for its box is the site's own. (DECISIONS 146 F.)
 - **An aspect ratio is always set,** from the four tokens (`aspect-photo`, 3:2, is the default), so the frame reserves its box before the art
   loads and nothing shifts. The art fills it with `object-fit: cover`.
 - **While it loads,** and if it fails, the frame shows `surface-placeholder` and nothing else: no shimmer (a placeholder is not running work, so it does not loop), no spinner, no
@@ -1571,7 +1596,7 @@ A product's own logo is its own; the social marks are Phosphor's (below).
   `LinkText`, glyph and arrow included.
 - **A row of social links.** Links are `space-4` apart and wrap. On touch each link is at least 44 by 44 as real layout, and the
   16px gap becomes 8px of hit area on either side, so neighbours touch and a wrapped line never overlaps the next. A row never
-  goes in the site header's bar, which ends with the theme toggle and at most one primary Button.
+  goes in the site header's bar.
 - **Icon only** is allowed only for a row made entirely of marks (an author card): ghost IconButtons rendered as links, 32px
   (44 on touch), `space-1` apart, each named for its service, keeping IconButton's .98 press. A new-tab mark has no arrow and
   keeps the phrase in its name. A row that needs Email or a service without a mark is the labelled row.

@@ -6,9 +6,9 @@
 
   .segment { --pill-fill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); position: relative; display: inline-flex; gap: var(--basalt-space-0-5); padding: var(--basalt-space-0-5); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-sunken-strong); }
   .segment button { position: relative; height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
-  @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], :disabled) { color: var(--basalt-text-primary); } }
+  @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], [aria-checked="true"], :disabled) { color: var(--basalt-text-primary); } }
   .segment { --pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
-  .segment button[aria-pressed="true"] { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--pill-edge); }
+  .segment button:is([aria-pressed="true"], [aria-checked="true"]) { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--pill-edge); }
   /* The 600 is on the label, not on the button (decision 149): words the script did not reserve keep their weight and move nothing. */
   .segment button[aria-pressed="true"] :is([data-label], [data-reserve] > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
   /* Before the script has reserved a button (and with the script off) the chosen one is 600 itself; a button the script declined to copy (data-bare) keeps 400. */
@@ -42,12 +42,12 @@
     .segment[data-slide] > .pill { display: block; }
     /* The pill is the shared one: the pressed button paints none of its own, and only its ink changes. */
     .segment[data-slide] button { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-    .segment[data-slide] button[aria-pressed="true"] { background: transparent; box-shadow: none; }
+    .segment[data-slide] button:is([aria-pressed="true"], [aria-checked="true"]) { background: transparent; box-shadow: none; }
   }
 
   @media (forced-colors: active) {
-    .segment button[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+    .segment button:is([aria-pressed="true"], [aria-checked="true"]) { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     /* The chosen button opts out of colour adjustment for its fill; its focus ring is still the system's, as an ordinary control's is (decision 145). */
-    .segment button[aria-pressed="true"]:focus-visible { outline-color: Highlight; }
+    .segment button:is([aria-pressed="true"], [aria-checked="true"]):focus-visible { outline-color: Highlight; }
   }
 }
