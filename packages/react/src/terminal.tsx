@@ -8,6 +8,8 @@ import { CopyGlyph } from "./glyphs/copy";
 import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
 import { Icon } from "./icon";
+import { LogFields } from "./log-fields";
+import type { LogFieldsInput } from "./log-fields";
 import { usePanelLevel } from "./layers";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
@@ -19,7 +21,15 @@ export type TerminalLineKind = "command" | "output" | "done" | "warning" | "erro
 
 export interface TerminalLine {
   kind: TerminalLineKind;
+  /** The line as plain text: what copy takes and what a line without `fields` or `node` draws. */
   text: string;
+  /**
+   * The line as runs of text (DECISIONS 162, V1): `{ text, loud: true }` fields are primary ink at weight 400 and the rest is secondary, with a
+   * word-break opportunity after each comma. A refused field stays primary and its own word says it: no colour.
+   */
+  fields?: LogFieldsInput;
+  /** Anything else a line of output holds (a link, a button, a small table). `text` is still its plain form. */
+  node?: React.ReactNode;
 }
 
 /** Where a transcript whose lines arrive over time has got to. */
@@ -182,7 +192,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
                 kind={line.kind}
                 gutter={line.kind === "command" ? <CodePrompt>{prompt}</CodePrompt> : mark ? <Icon icon={mark.icon} size={16} label={mark.name} className="basalt-terminal-mark" /> : null}
               >
-                {line.text}
+                {line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}
               </CodeLine>
             );
           })}

@@ -229,7 +229,8 @@ describe("the bytes, with the plugin and without it", () => {
   // Links and rows (DECISIONS 152): Link's arrow form (`arrow`) draws the core right and left arrows, so Pagination, which holds Link, carries them: 19,619 → 20,453 with
   // the plugin (the two glyphs, the arrow's span and the branch, 834 bytes). Raised from 20,000 to 20,500 for that and for nothing else.
   // Combined in integration-nov15b: Pagination holds both Button (DECISIONS 154, 20,700) and Link's arrows (DECISIONS 152, 20,500), and measures 21,560 with the plugin, over both limits, so its limit is 21,600 (the measured bytes rounded up to the next 50).
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_100, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_600, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
+  // Logs, status and forms (DECISIONS 162, B3): Terminal's `fields` form draws a line's loud fields through LogFields (414 bytes), so Terminal rose from 26,100 to 26,600.
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_600, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_600, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));

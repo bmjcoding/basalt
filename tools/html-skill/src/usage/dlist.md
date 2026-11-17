@@ -14,3 +14,4 @@ Facts about one thing, on the page: no panel and no rim (put it in a card only w
 - `dd[data-mono]` for identifiers (IDs, hosts, images, addresses); prose and numbers are not mono.
 - A fact with no value keeps its row: `<dd data-missing>Not observed</dd>`, tertiary, no mark. Write the words.
 - Several values for one label are several `dd`s in its row. A link in a value is a 44 by 44 target on touch.
+- `data-form="stacked"` on the `dl` is a title over its text with no divider (what each thing is): 18px 600 title, 16px secondary text, 20px between entries.

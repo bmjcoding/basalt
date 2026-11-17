@@ -898,3 +898,24 @@ for (const theme of THEMES) {
     atLeast(theme, "text-secondary", 4.5, wash);
   });
 }
+
+// ---- Logs, status and forms (DECISIONS 162): the pairs the batch draws ----
+// Event lines and the status bar draw on the page and on levels 1 to 3 (a log inside a card or a panel); the source marks are 8px shapes and the
+// unread dot 6px, which are non-text marks (3:1); a log's time, a line's second line, a block's meta and a source stamp's words are tertiary text
+// (4.5:1), lifted to secondary on the hover wash; the inline rows' bottom line is the input boundary (3:1); the message slot's error words are danger
+// ink on the page (4.5:1); the sources button's open plate is surface-raised, primary on it.
+for (const theme of THEMES) {
+  test(`${theme}: logs, status and forms: tertiary at rest, secondary and primary on the hover wash, the 8px marks and the unread dot at 3:1, the rows' line and the ring`, () => {
+    const levels = LEVELS.map((s) => [s, color(theme, s)]);
+    atLeast(theme, "text-tertiary", 4.5, levels);
+    const washed = levels.map(([n, s]) => [`state-hover over ${n}`, over(color(theme, "state-hover"), s)]);
+    atLeast(theme, "text-secondary", 4.5, washed);
+    atLeast(theme, "text-primary", 4.5, washed);
+    // the source marks (tertiary, and secondary when stale or unreachable) and the unread dot (primary) are non-text marks
+    for (const name of ["text-tertiary", "text-secondary", "text-primary"]) atLeast(theme, name, 3, levels);
+    atLeast(theme, "border-input", 3, levels);
+    atLeast(theme, "border-focus", 3, levels);
+    atLeast(theme, "status-danger", 4.5, [["surface-page", color(theme, "surface-page")]]);
+    atLeast(theme, "text-primary", 4.5, [["surface-raised (the open sources button)", color(theme, "surface-raised")]]);
+  });
+}

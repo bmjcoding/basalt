@@ -488,6 +488,8 @@ extension Basalt {
     public static let indicator: Double = 2
     /// The label column of a DescriptionList: fixed, never sized to its longest label, so every list on a page shares one value edge and a long label wraps inside it.
     public static let descriptionLabel: Double = 160
+    /// The label column of an inline-label form row (InlineField): a short word in 14px mono ("subject", "message") fits it, and every row of one form shares one field edge. DECISIONS 162 V10 and R12.
+    public static let fieldLabelInline: Double = 80
     /// The track of Progress and Slider.
     public static let track: Double = 4
     /// Status dots and the radio's checked dot.

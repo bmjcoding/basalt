@@ -1793,6 +1793,44 @@ broke a rule, and each change is named.
   a change of tab moves nothing under it; the panels not shown are `visibility: hidden` and inert. It turns off under 640 (its own width), and it is off
   by default.
 
+## Logs, status and forms
+
+Scrollback blocks, an event log, a log in fixed slots, the status bar, the source stamp, description-list forms, inline-label rows, route focus, single-key
+shortcuts and time parts (DECISIONS 162: the council voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved site prototypes; the
+implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X10 and X11; X3 is `Reserve`, already built.
+
+- **A log line's fields** (V1, V2; `LogFields`, `LogLine`, `Terminal`'s `fields`). The fields that say what happened are primary ink at 400 and the rest secondary at
+  400. Nothing steps back with age. A refused field stays primary and its own word ("denied") says it: no colour. A refused command's status word is
+  primary at 500 beside `exit N`. A line may be a node; copy still takes the plain text.
+- **The command block** (`CommandBlock`; R1 to R3): a sticky head, opaque in the page colour, over the output. The core chevron, the command at 500 in primary ink, then
+  the status, `exit N` and the time in tertiary; 16 on 24; 20 above and 16 below the head; 28 between the command and its meta; a hairline between blocks and `space-16`
+  under each. The prompt is the app's.
+- **A log in fixed slots** (`LogSlots`, `LogSummary`): the last three lines in three slots, 13 on 20, `space-1` of padding, no frame, title row or copy button. Each slot stands
+  on `Reserve`, holding the room of the widest line the caller lists. The newest line fades in over `duration-base` (opacity only; at once under reduced motion).
+- **The event log** (`EventLog`, `EventLine`, `EventLogRule`, `EventTime`, `EventText`, and `ListboxOption`'s `leading`; V3, V4, R5). Lines are links or buttons with one tab stop. The
+  ring is the control ring at +2 outside each line, the list keeps `space-1-5` from its edge, the hover wash is full bleed, and focus adds no wash. A new line is
+  a 6px dot in a seat every line keeps, with primary ink and a hidden "New: ": no weight change, no colour flash. Each time column is as wide as the widest stamp it can show,
+  measured in the line's own font (the session log "00:00:00"; the activity list its day and clock).
+- **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
+  always; the "just landed" flash is dropped. Source first, time to the second, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
+  **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
+- **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
+  replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
+  line. **A page has one foot**: the status bar and a phone tab bar do not share it; a product that needs both is a later vote.
+- **Description-list forms** (V8, V9, R9 to R11): the list as it ships (160px label, 40px rows, dividers between rows only; the page's record keeps its own rule round it). `form="stacked"`
+  is a title (18/26 at 600) over its text (16/24 secondary, 2px under), 20px between entries, no divider. `form="three"` is term, thing, detail. `DescriptionColumns` lays whole lists out in
+  columns of at least 480px. The facts' column gap is 32 (the prototype's 4ch is about 34).
+- **Inline-label rows** (`InlineFields`, `InlineField`; V10, R12): V10 had no majority, so option (a) stands. A label in `size-field-label-inline` (80), then a bare field; each row's bottom line is
+  `border-input`; on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
+- **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
+- **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field and anything inside
+  `[data-own-keys]`, plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
+- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top, set `document.title` and focus the page's title with no ring; a change that came from a control's own
+  value leaves focus on the control (WCAG 3.2.2). The announcement is `StatusLine`.
+- **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14): a relative age is written only beside its absolute date, never alone and never in a
+  `Stat`'s source line. A countdown ticks by the second and a clock by the minute on one shared timer; `data-loops="held"` freezes both and releasing writes the current value; no live region; reduced motion does not stop them.
+- **Filter toolbar** (`FilterToolbar`): the kind select (phone only), the filter, `FilterResult` and the sort with the word "Sort" beside it (`aria-hidden`, and in the select's `aria-label`).
+
 ## Primitives
 
 Components build on Base UI (the default base in shadcn/ui since July 2026, from the team
