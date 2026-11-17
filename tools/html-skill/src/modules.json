@@ -872,8 +872,8 @@
         "XCircle",
         "X"
       ],
-      "budget": 15100,
-      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes.",
+      "budget": 15400,
+      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes. Return 3 and DECISIONS 156: 15031 to 15367 bytes (+336) for distinct pointer/keyboard focus restoration and the front-toast control ring while the region holds focus. Cap 15100 to 15400 (+300), leaving 33 bytes.",
       "usage": 1100,
       "builds": [
         "braille"

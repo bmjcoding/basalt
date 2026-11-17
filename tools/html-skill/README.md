@@ -91,7 +91,7 @@ default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-
 
 ## The head
 
-A body may carry `<meta name="description" content>`, named metas for `robots`, `author`, `referrer` and `keywords`, `<meta property="og:…" content>`, `<meta name="twitter:…" content>`, `<link rel="icon" href="data:…">`, `<link rel="apple-touch-icon" href="data:…">` and `<link rel="canonical" href>`; `compose.mjs` lifts them into the head after the title, in the order written, and refuses any other `meta` or `link` with that list (it owns the charset, viewport and colour scheme, and an icon is a `data:` URL because a page makes no request). A `meta` or `link` with `itemprop` is body microdata and stays where written. Inside an `svg`, a `math`, a `template`, a script, a style or a comment a tag is left as written.
+A body may carry `<meta name="description" content>`, named metas for `robots`, `author`, `referrer` and `keywords`, `<meta property="og:…" content>`, `<meta name="twitter:…" content>`, `<link rel="icon" href="data:…">`, `<link rel="apple-touch-icon" href="data:…">` and `<link rel="canonical" href>`; `compose.mjs` lifts them into the head after the title, in the order written, and refuses any other `meta` or `link` with that list (it owns the charset, viewport and colour scheme, and an icon is a `data:` URL because a page makes no request). Body microdata stays where written: a `meta` with `itemprop` and `content` and none of `name`, `http-equiv`, `charset` or `property`; or a `link` with `itemprop` and `href` and no `rel`. Other tags carrying `itemprop` pass through the same head checks as tags without it. Inside an `svg`, a `math`, a `template`, a script, a style or a comment a tag is left as written.
 
 ## Fonts
 

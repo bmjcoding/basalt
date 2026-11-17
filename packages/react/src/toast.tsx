@@ -412,10 +412,11 @@ function useToastTimer(ms: number, restart: number, paused: boolean, done: () =>
 
 function ToastList() {
   const { toasts } = BaseToast.useToastManager<ToastData>();
-  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} />);
+  const front = toasts.find((toast) => toast.transitionStatus !== "ending");
+  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} front={toast === front} />);
 }
 
-function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number] }) {
+function ToastItem({ toast, front }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean }) {
   const { close: closeToast } = BaseToast.useToastManager();
   const expanded = React.useContext(ExpandedContext);
   const away = React.useContext(AwayContext);
@@ -431,6 +432,7 @@ function ToastItem({ toast }: { toast: ReturnType<typeof BaseToast.useToastManag
       toast={toast}
       data-level={1}
       data-toast-id={toast.id}
+      data-front={front ? "" : undefined}
       data-status={status}
       data-running={running ? "" : undefined}
       className="basalt-toast"

@@ -278,7 +278,13 @@ export function readBody(body, stats = {}) {
       } else {
         if (!stack.length) {
           if (name === "html" || name === "head" || name === "body") whole = true;
-          else if ((name === "meta" || name === "link") && !tag.attrs.some(([key]) => key === "itemprop")) hold("head", i, tag.end, null, tag.attrs);
+          else if (name === "meta" || name === "link") {
+            const keys = new Set(tag.attrs.map(([key]) => key));
+            const microdata = keys.has("itemprop") && (name === "meta"
+              ? keys.has("content") && !["name", "http-equiv", "charset", "property"].some((key) => keys.has(key))
+              : keys.has("href") && !keys.has("rel"));
+            if (!microdata) hold("head", i, tag.end, null, tag.attrs);
+          }
           else if (name === "h1" && !h1) h1 = { text: "", open: true };
         }
         i = cursor = tag.end;

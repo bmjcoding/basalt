@@ -2030,6 +2030,7 @@
     z-index: var(--basalt-layer-toast);
     width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
   }
+  .basalt-toast-viewport:focus { outline: none; }
 
   .basalt-toast {
     --_gap: var(--basalt-space-2);
@@ -2075,7 +2076,8 @@
   .basalt-toast[data-limited] { opacity: 0; }
   .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
   .basalt-toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
-  .basalt-toast:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-toast:focus-visible,
+  .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   .basalt-toast-content {
     display: flex;
@@ -3498,6 +3500,7 @@
     /* A toast's mark keeps its shape here (the dots it replaced vanished): an icon is paths, and takes the system foreground. */
     .basalt-toast[data-status] .basalt-toast-seat,
     .basalt-toast[data-status] .basalt-toast-title { color: CanvasText; }
+    .basalt-toast:focus-visible, .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline-color: Highlight; }
     /* The unread dots, the nav dot and the checked radio's dot are fills, which forced colours drop: each is drawn as its own border, as a
        status dot is (see the badge), so it takes the system colour of where it sits and needs no override on a lit row. A hovered entry
        is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */

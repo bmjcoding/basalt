@@ -111,7 +111,10 @@ function ToastDemo({ state }: { state: string }) {
       const lines = [`focus starts on: ${name(doc.activeElement)}`];
       doc.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: "F6", bubbles: true, cancelable: true }));
       lines.push(`after F6: ${name(doc.activeElement)}, tabindex ${(doc.activeElement as HTMLElement).tabIndex}`);
-      const toast = doc.querySelector(".toast")!.getBoundingClientRect();
+      const front = doc.querySelector(".toast")!;
+      const toast = front.getBoundingClientRect();
+      const ring = win.getComputedStyle(front);
+      lines.push(`region outline: ${win.getComputedStyle(doc.activeElement!).outlineStyle}; front ring: ${ring.outlineWidth} ${ring.outlineStyle} at ${ring.outlineOffset}`);
       lines.push(`toast above the backdrop: ${!!doc.elementFromPoint(toast.left + toast.width / 2, toast.top + toast.height / 2)?.closest(".toast")}`);
       lines.push(`palette open: ${!!doc.querySelector(".palette")}`);
       if (state === "tab") {
@@ -172,7 +175,7 @@ export const ROUND_36: Round = {
   id: "36",
   title: "The HTML skill, compose.mjs and the tests that failed under load: the fourth audit fix batch",
   summary:
-    "The fourth batch from the full audit (DECISIONS 133): the toast's F6 route works across dialogs, sheets and the palette, including lost document focus. The palette uses a top-layer scrim inside a modal, escapes a sheet's clipping, closes with its logical host, and resets to the documented level 1. The composer checks its regression bodies, explains conservative refusals and states its limits instead of promising to validate arbitrary HTML or JavaScript. Both Geist faces remain. The topbar focus, stage order, escaping, profile group and busy-machine test fixes are retained. The design panel has not reviewed this engineering batch.",
+    "The fourth batch from the full audit (DECISIONS 133): the toast's F6 route works across dialogs, sheets and the palette, including lost document focus. The palette uses a top-layer scrim inside a modal, escapes a sheet's clipping, closes with its logical host, and resets to the documented level 1. The composer checks its regression bodies, explains conservative refusals and states its limits instead of promising to validate arbitrary HTML or JavaScript. Both Geist faces remain. The topbar focus, stage order, escaping, profile group and busy-machine test fixes are retained. The engineering fixes restore the contract; the toast region’s focus mark follows the council’s approved DECISIONS 156.",
   reviewed: false,
   steps: [
     {
@@ -201,9 +204,9 @@ export const ROUND_36: Round = {
         "Engineering, no vote: foundations says the stack is “a named region that F6 reaches”, React's is, and the skill's was not. The region is out of the tab order (tabindex -1); the next Tab is the first toast; Shift+Tab from the region goes back to where focus was; with no toast, F6 is left to the browser. Focus in the stack holds the toasts' clocks, as hover does.",
         "The viewport follows the focused modal and retains its last live host when focus is lost. A palette can open over a sheet or dialog, and a dialog can open over a palette. Palette keys are scoped to its own content; toast events keep their real isComposing value. Closing the logical host closes its palette and preserves the toast.",
         "The skill keeps the palette, dialogs and sheets open when Escape returns from the toast region or an action. React currently closes CommandMenu, Dialog and Sheet on those paths; the difference is recorded in the README's Known limits. Ordinary Tab into a toast and Shift+Tab back follow document order; F6 returns are cleared when focus leaves the region.",
-        "Found, for the panel: the region has no height, and the control ring on it draws as a thin bracket along the stack's bottom edge (the first state shows it). React's region shows the browser's own outline, which draws nothing at that height. The skill's ring is the global focus rule, which this batch did not touch; what should mark a focused region is a design question, so nothing was built for it.",
+        "DECISIONS 156: while F6 focus is on the region, its own box draws nothing and the control ring surrounds the front toast at +2 in both builds, including forced colours. The mark follows a new front toast, and the next Tab moves it 0px.",
       ],
-      tryIt: ["Click the input in an overlay, press F6, Tab, Tab: region, toast, Undo. Shift+Tab twice returns to the input. Ordinary Tab from the palette input stays there.", "Compare the dialog-over-palette, palette-over-sheet, lost-focus and host-close states; the readout hit-tests the toast above the backdrop. Click the palette’s group label or footer, then use ArrowDown and Escape: its keys still work and its host stays open."],
+      tryIt: ["Click the input in an overlay, press F6, Tab, Tab: region, toast, Undo. The ring stays on the same toast box from F6 to Tab. Shift+Tab twice returns to the input. Ordinary Tab from the palette input stays there.", "Compare the dialog-over-palette, palette-over-sheet, lost-focus and host-close states; the readout hit-tests the toast above the backdrop. Click the palette’s group label or footer, then use ArrowDown and Escape: its keys still work and its host stays open."],
       states: ["default", "tab", "dialog", "palette", "dialog-over-palette", "palette-over-sheet", "focus-lost", "host-close"],
       demo: ({ state }) => <ToastDemo state={state} />,
     },

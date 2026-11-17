@@ -348,6 +348,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   - **What a screen reader hears.** Only the result, once, from two live regions that hold only text and exist before the
     first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
     named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
+    While the region itself holds focus, its box draws nothing and the control ring follows the front toast's box at +2, so the next Tab moves the ring 0px, including in forced colours (DECISIONS 156).
   - **The stack.** Three at most, bottom right at `space-4` from the edges, and the bottom edge, full width and above the
     safe area at phone widths. Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
     even behind a taller toast. It expands on hover and focus. A toast that is the only copy, and a focused one, is never

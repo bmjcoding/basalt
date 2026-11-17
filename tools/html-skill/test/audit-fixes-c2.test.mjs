@@ -14,6 +14,7 @@ import { after, before, describe, test } from "node:test";
 
 import { compose, headTag, readBody } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { fixturePage, freezeAnimations, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
+import { assertToastRegionFocus } from "../../../packages/react/test/support-toast-focus.mjs";
 import { hostileBody } from "./support-hostile.mjs";
 import { C2_ACCEPTED, C2_REFUSALS } from "./support-c2-cases.mjs";
 import { EXAMPLES, here, launch, openHtml, read, skillDir } from "./support.mjs";
@@ -241,6 +242,14 @@ describe("compose.mjs on bodies it used to get wrong (A5-03, A5-09)", () => {
 // ---- A5-07: the head a body can carry ----
 
 describe("a body can carry its page's description, icon and share card (A5-07)", () => {
+  test("return 2: itemprop exempts only body microdata, never head directives or missing values", () => {
+    for (const tag of [
+      '<meta itemprop http-equiv="refresh">', '<meta itemprop name="viewport">',
+      '<meta itemprop content="x" name="description">', '<meta itemprop content="0" http-equiv="refresh">',
+      '<meta itemprop content="x" charset="utf-8">', '<meta itemprop content="x" property="og:title">', '<meta itemprop>',
+      '<link itemprop rel="stylesheet" href="https://example.test/x.css">', '<link itemprop href="x" rel="">', '<link itemprop>',
+    ]) assert.throws(() => page(`<h1>Microdata</h1>${tag}`), /not accepted/, tag);
+  });
   test("return 1: ordinary named metas move to the head and itemprop microdata stays in the body", () => {
     for (const name of ["robots", "author", "referrer", "keywords"]) {
       const tag = `<meta name="${name}" content="x">`;
@@ -403,10 +412,119 @@ describe("no field a module writes into markup can run script (A5-10)", () => {
 // ---- A3-09: the toast's F6 route ----
 
 describe("F6 reaches the notifications region (A3-09)", () => {
+  for (const scheme of ["dark", "light"]) for (const width of [1440, 390]) for (const forced of [false, true]) test(`DECISIONS 156: the region's ring follows the front toast and Tab moves 0px (${scheme}, ${width}, forced ${forced})`, async () => {
+    const { page: p, context } = await openHtml(browser, page('<!-- basalt:use toast --><button class="btn" id="origin">Origin</button>').html, { scheme, width });
+    if (forced) await p.emulateMedia({ forcedColors: "active" });
+    await assertToastRegionFocus(p, { toast: ".toast", viewport: ".toast-viewport",
+      show: (title) => p.evaluate((title) => { window.focusToasts ||= {}; window.focusToasts[title] = Basalt.toast({ title }); }, title),
+      close: (title) => p.evaluate((title) => Basalt.toast.close(window.focusToasts[title]), title),
+    });
+    await context.close();
+  });
   const BODY = `<title>Toast</title><!-- basalt:use toast --><main class="page stack"><h1>Toast</h1><button class="btn" id="open">Open</button><button class="btn" id="after">After</button></main><script>Basalt.init();</script>`;
   const open = (scheme = "dark") => openHtml(browser, compose(BODY, { fonts: false }).html + "", { scheme });
   const show = (p) => p.evaluate(() => { Basalt.toast({ title: "Saved", description: "to disk", action: { label: "Undo", onClick() {} } }); });
   const active = (p) => p.evaluate(() => { const a = document.activeElement; return { cls: a.className, role: a.getAttribute("role"), name: a.getAttribute("aria-label"), tab: a.tabIndex }; });
+
+  for (const hosted of [false, true]) for (const [action, count] of [["Dismiss", 1], ["Dismiss", 2], ["Undo", 1], ["body then Escape", 1]]) test(`return 2: removing the focused toast resumes palette keys (${hosted ? "dialog" : "page"}, ${action}, ${count} toast${count === 1 ? "" : "s"})${action === "Dismiss" ? ", beside React" : ""}`, async () => {
+    for (const react of action === "Dismiss" ? [false, true] : [false]) {
+      const menu = '<B.CommandMenu open={open} onOpenChange={setOpen} groups={[{label:"Commands",commands:[{id:"a",label:"Alpha"},{id:"b",label:"Beta"}]}]}/>';
+      const jsx = `function App(){const t=B.useToast();const [open,setOpen]=React.useState(false);React.useEffect(()=>{window.openMenu=()=>setOpen(true);window.show=(n)=>{if(n===2)t.show({title:"Older"});t.show({title:"Saved"})}},[t]);return ${hosted ? `<B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Host</B.DialogTitle><B.DialogDescription>d</B.DialogDescription><B.Input id="host-input" aria-label="Host input"/>${menu}</B.DialogContent></B.Dialog>` : menu}}
+        createRoot(document.getElementById("root")).render(<B.ToastProvider><App/></B.ToastProvider>);`;
+      const opened = react ? await fixturePage(reactBrowser, jsx, { theme: "dark" }) : await openHtml(browser, page(`<!-- basalt:use palette toast dialog --><button id="open">Open</button>${hosted ? '<dialog class="panel float modal dialog" id="host" aria-label="Host"><input class="input" aria-label="Host input"></dialog>' : ""}`).html);
+      const p = opened.page;
+      p.setDefaultTimeout(5000);
+      if (hosted && !react) await p.evaluate(() => Basalt.openDialog("#host"));
+      await settle(p);
+      await p.evaluate((r) => { if (r) window.openMenu(); else Basalt.openPalette({ groups: [{ label: "Commands", items: [{ label: "Alpha" }, { label: "Beta" }] }] }); }, react);
+      await p.waitForFunction((sel) => document.querySelector(sel)?.hasAttribute("aria-activedescendant"), react ? ".basalt-command-input" : ".palette input");
+      await p.evaluate(({ r, n }) => { if (r) window.show(n); else { if (n === 2) Basalt.toast({ title: "Older" }); window.toastId = Basalt.toast({ title: "Saved", action: { label: "Undo", onClick: () => Basalt.toast.close(window.toastId) } }); } }, { r: react, n: count });
+      const toast = p.locator(react ? ".basalt-toast" : ".toast").filter({ hasText: "Saved" });
+      await toast.waitFor(); await settle(p);
+      if (action === "body then Escape") {
+        const box = await toast.boundingBox();
+        await p.mouse.click(box.x + 8, box.y + 8);
+        assert.equal(await toast.evaluate((el) => el.contains(document.activeElement)), true, "pointer focus starts in the toast");
+        await p.keyboard.press("Escape");
+      } else {
+        await toast.hover(); await settle(p);
+        await (react ? toast.locator(".basalt-toast-close") : toast.getByRole("button", { name: action, exact: true })).click();
+      }
+      await toast.waitFor({ state: "detached" }); await settle(p);
+      assert.equal(await p.locator(react ? ".basalt-toast" : ".toast").count(), count - 1, "only the dismissed toast leaves");
+      if (!react) assert.equal(await p.locator(".palette input").evaluate((el) => el === document.activeElement), true, "removal returns focus to the palette input");
+      await p.keyboard.press("ArrowDown");
+      if (!react) assert.match(await p.locator('.palette [aria-selected="true"]').innerText(), /Beta/, "palette navigation resumes");
+      // React's arrow target can differ after dismissal; both must close only the palette on Escape.
+      await p.keyboard.press("Escape"); await settle(p);
+      assert.equal(await p.locator(react ? ".basalt-command" : ".palette").count(), 0, "Escape closes the palette");
+      if (hosted) assert.equal(await p.locator(react ? ".basalt-dialog:not(.basalt-command)" : "#host").isVisible(), true, "the dialog host stays open");
+      if (opened.context) await opened.context.close(); else await p.close();
+    }
+  });
+
+  test("return 3: pointer dismissal returns to the origin even when another toast is live", async () => {
+    const { page: p, context } = await open();
+    await p.evaluate(() => { Basalt.toast({ title: "First" }); Basalt.toast({ title: "Second" }); });
+    await settle(p);
+    await p.locator("#open").focus();
+    await p.keyboard.press("F6"); await p.keyboard.press("Tab");
+    const front = p.locator(".toast").first();
+    await front.getByRole("button", { name: "Dismiss", exact: true }).click();
+    await p.waitForFunction(() => document.querySelectorAll(".toast").length === 1);
+    assert.equal(await p.evaluate(() => document.activeElement.id), "open", "a pointer dismissal leaves the toast stack");
+    await p.locator(".toast").getByRole("button", { name: "Dismiss", exact: true }).click();
+    await p.locator(".toast").waitFor({ state: "detached" });
+    assert.equal(await p.evaluate(() => document.activeElement.id), "open", "the final dismissal returns to the F6 origin");
+    await context.close();
+  });
+
+  for (const key of ["Enter", "Space", "Escape", "action Enter", "action Space"]) test(`return 3: keyboard dismissal keeps focus in the live stack (${key})`, async () => {
+    const { page: p, context } = await open();
+    await p.evaluate(() => { Basalt.toast({ title: "First" }); window.lastToast = Basalt.toast({ title: "Second", action: { label: "Undo", onClick: () => Basalt.toast.close(window.lastToast) } }); });
+    await settle(p); await p.locator("#open").focus();
+    await p.keyboard.press("F6"); await p.keyboard.press("Tab");
+    if (key !== "Escape") {
+      await p.keyboard.press("Tab"); // the action
+      if (!key.startsWith("action ")) await p.keyboard.press("Tab"); // Dismiss
+    }
+    await p.keyboard.press(key.replace("action ", ""));
+    await p.waitForFunction(() => document.querySelectorAll(".toast").length === 1);
+    assert.equal(await p.locator(".toast").evaluate((el) => el === document.activeElement), true, "keyboard dismissal moves to the remaining toast");
+    await p.keyboard.press("Escape");
+    await p.locator(".toast").waitFor({ state: "detached" });
+    assert.equal(await p.evaluate(() => document.activeElement.id), "open", "the empty stack returns to its F6 origin");
+    await context.close();
+  });
+
+  test("return 2: Escape stays in the toast region without an F6 return target", async () => {
+    const { page: p, context } = await openHtml(browser, page('<!-- basalt:use toast dialog --><dialog class="panel float modal dialog" id="host"><button id="last">Last</button></dialog>').html);
+    await p.evaluate(() => { Basalt.openDialog("#host"); Basalt.toast({ title: "Saved" }); });
+    await settle(p); await p.locator("#last").focus();
+    await p.keyboard.press("Tab");
+    assert.equal(await p.locator(".toast").evaluate((el) => el === document.activeElement), true);
+    await p.keyboard.press("F6");
+    assert.equal(await p.evaluate(() => document.activeElement.className), "toast-viewport");
+    await p.keyboard.press("Escape"); await settle(p);
+    assert.equal(await p.locator("#host").evaluate((el) => el.open), true, "Escape cannot close the host");
+    assert.equal(await p.evaluate(() => document.activeElement.className), "toast-viewport", "without an origin, focus stays in the region");
+    await context.close();
+  });
+
+  test("return 2: a window-blur focusout preserves the F6 return target", async () => {
+    const { page: p, context } = await open();
+    await show(p); await settle(p); await p.locator("#open").focus();
+    await p.keyboard.press("F6");
+    await p.evaluate(() => {
+      // Headless cannot reliably switch OS windows. Model its null-relatedTarget event with document focus lost.
+      Object.defineProperty(document, "hasFocus", { configurable: true, value: () => false });
+      try { document.querySelector(".toast-viewport").dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null })); }
+      finally { delete document.hasFocus; }
+    });
+    await p.keyboard.press("Shift+Tab");
+    assert.equal(await p.evaluate(() => document.activeElement.id), "open", "window blur did not discard the origin");
+    await context.close();
+  });
 
   for (const host of [false, true]) test(`return 1: ordinary Tab into a toast reverses beside React; the skill also clears stale F6 returns (${host ? "dialog" : "page"})`, async () => {
     for (const react of [false, true]) {
@@ -511,8 +629,11 @@ describe("F6 reaches the notifications region (A3-09)", () => {
       await openMenu();
       await click();
       assert.equal(await p.evaluate((sel) => document.querySelector(sel).contains(document.activeElement), react ? ".basalt-command" : ".palette"), true, "pointer focus remains inside the palette");
-      if (!react) assert.equal(await p.locator(".palette").evaluate((el) => getComputedStyle(el).outlineStyle), "none", "the panel draws no focus ring");
       await p.keyboard.press("ArrowDown");
+      if (!react) {
+        assert.equal(await p.locator(".palette").evaluate((el) => el.matches(":focus-visible")), true, "keyboard modality would draw a panel ring without the reset");
+        assert.equal(await p.locator(".palette").evaluate((el) => getComputedStyle(el).outlineStyle), "none", "the panel draws no focus ring after a key");
+      }
       assert.match(await selected(), /Beta/);
       await p.keyboard.press("ArrowUp");
       assert.match(await selected(), /Alpha/);

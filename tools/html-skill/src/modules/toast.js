@@ -57,7 +57,7 @@
     viewport.tabIndex = -1;
     viewport.addEventListener('keydown', function (e) {
       if ((e.target !== viewport && e.target !== viewport.firstElementChild) || (e.key !== 'Escape' && !(e.key === 'Tab' && e.shiftKey))) return; // from the region, or from the first toast (what Shift+Tab would leave the stack for)
-      if (!from || !from.isConnected) { from = null; return; }
+      if (!from || !from.isConnected) { from = null; if (e.key !== 'Escape') return; }
       e.preventDefault();
       e.stopPropagation(); // inside a dialog the focus trap would read the element just focused and wrap backwards
       var back = from;
@@ -68,7 +68,7 @@
     viewport.addEventListener('pointerenter', function () { hover = true; sync(); });
     viewport.addEventListener('pointerleave', function () { hover = false; sync(); });
     viewport.addEventListener('focusin', function () { focus = true; sync(); });
-    viewport.addEventListener('focusout', function (e) { if (!viewport.contains(e.relatedTarget)) { from = null; focus = false; sync(); } });
+    viewport.addEventListener('focusout', function (e) { if (document.hasFocus() && !viewport.contains(e.relatedTarget)) { from = null; focus = false; sync(); } });
     window.addEventListener('blur', function (e) { if (e.target === window) { blurred = true; sync(); } }, true);
     window.addEventListener('focus', function (e) { if (e.target === window) { blurred = false; sync(); } }, true);
     document.addEventListener('visibilitychange', function () { hidden = document.visibilityState === 'hidden'; sync(); });
@@ -142,6 +142,7 @@
     });
     items.forEach(function (t) {
       var i = live.indexOf(t);
+      t.el.toggleAttribute('data-front', i === 0);
       if (i < 0) return;
       var st = t.el.style;
       st.setProperty('--toast-index', i);
@@ -166,17 +167,23 @@
     if (t.running) { t.left = Math.max(0, t.left - (Date.now() - t.running)); t.running = 0; }
     if (ms <= 0 || expanded() || away()) return;
     t.running = Date.now();
-    t.timer = setTimeout(function () { dismiss(t.id); }, t.left);
+    t.timer = setTimeout(function () { dismiss(t.id, true); }, t.left);
   }
 
-  function dismiss(id) {
+  function dismiss(id, keyboard) {
     var t = items.filter(function (x) { return x.id === id; })[0];
     if (!t || t.leaving) return;
+    keyboard = keyboard == null ? t.keyboard !== false : keyboard;
     t.leaving = true;
     clearTimeout(t.timer);
     t.el.setAttribute('data-ending-style', '');
     sync();
     var finish = function () {
+      if (focused(t)) {
+        var next = keyboard && items.filter(function (x) { return x !== t && !x.leaving; }).pop();
+        var back = next ? next.el : from && from.isConnected ? from : prior;
+        if (back && back.isConnected) back.focus(NOSCROLL);
+      }
       t.el.remove();
       items = items.filter(function (x) { return x !== t; });
       if (!items.length && viewport.matches(':popover-open')) viewport.hidePopover();
@@ -253,13 +260,11 @@
     void t.el.offsetWidth;
     t.el.removeAttribute('data-starting-style');
     t.el.addEventListener('keydown', function (e) {
+      t.keyboard = true;
       if (e.key !== 'Escape') return;
       e.preventDefault(); // the containing native modal must stay open when Escape dismisses a toast action
       e.stopPropagation();
-      var back = from;
-      from = null;
-      dismiss(t.id);
-      if (back && back.isConnected) back.focus(NOSCROLL);
+      dismiss(t.id, true);
     });
     swipe(t);
     // Running work is not announced, step by step or at all: only its result is.
@@ -269,7 +274,7 @@
   /** Swiping a toast to the right dismisses it; a short pull springs back. */
   function swipe(t) {
     var x0 = null;
-    t.el.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse' || e.button === 0) if (!e.target.closest('button')) x0 = e.clientX; });
+    t.el.addEventListener('pointerdown', function (e) { t.keyboard = false; if (e.pointerType !== 'mouse' || e.button === 0) if (!e.target.closest('button')) x0 = e.clientX; });
     t.el.addEventListener('pointermove', function (e) {
       if (x0 === null) return;
       var dx = Math.max(0, e.clientX - x0);

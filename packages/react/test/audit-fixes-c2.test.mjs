@@ -5,12 +5,22 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { fixturePage, launch, pixels, settle } from "./support.mjs";
+import { assertToastRegionFocus } from "./support-toast-focus.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
 const THEMES = ["dark", "light"];
+for (const theme of THEMES) for (const width of [1440, 390]) for (const forced of [false, true]) test(`DECISIONS 156: the region's ring follows the front toast and Tab moves 0px (${theme}, ${width}, forced ${forced})`, async () => {
+  const { page } = await fixturePage(browser, `function Probe(){const t=B.useToast();React.useEffect(()=>{window.focusToasts={};window.showToast=(title)=>window.focusToasts[title]=t.show({title});window.closeToast=(title)=>t.close(window.focusToasts[title])},[t]);return <button id="origin">Origin</button>}
+    createRoot(document.getElementById("root")).render(<B.ToastProvider><Probe/></B.ToastProvider>);`, { theme, viewport: { width, height: width === 390 ? 844 : 900 } });
+  if (forced) await page.emulateMedia({ forcedColors: "active" });
+  await assertToastRegionFocus(page, { toast: ".basalt-toast", viewport: ".basalt-toast-viewport",
+    show: (title) => page.evaluate((title) => window.showToast(title), title), close: (title) => page.evaluate((title) => window.closeToast(title), title),
+  });
+  await page.close();
+});
 const ART = `<svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true"><rect width="10" height="10" fill="#ff0000"/></svg>`;
 const STAGE = `document.body.style.margin = "0";
   createRoot(document.getElementById("root")).render(<div>
