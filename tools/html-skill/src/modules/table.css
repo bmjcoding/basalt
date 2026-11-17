@@ -29,6 +29,15 @@
   .table-wrap[data-row-density="comfortable"] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
   @media (pointer: coarse) { .table-wrap[data-row-density] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); } }
 
+  /* The flat form (React's TableContainer flat; DECISIONS 162, D18b): a table in a card has the card's one box, so the region draws no border, radius, fill or shadow (leave .panel off it).
+     The header band keeps its fill; the cells are padded space-2 above and below. A two-line cell (.table-call) is a call in primary at 500 over what it changes in secondary at 400,
+     space-0-5 apart, wrapping inside its column. */
+  .table-wrap[data-flat] { border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .table-wrap[data-flat] :is(td, tbody th[scope="row"]) { padding-block: var(--basalt-space-2); }
+  .table-call { display: grid; gap: var(--basalt-space-0-5); white-space: normal; }
+  .table-call-main { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .table-call-detail { color: var(--basalt-text-secondary); }
+
   /* The one line under a table that is wider than its box. table.js fills it and shows it only while the table overflows; never changed while scrolling. */
   .table-hint { margin: var(--basalt-space-2) 0 0; font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }
   .table-hint[hidden] { display: none; }

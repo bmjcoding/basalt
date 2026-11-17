@@ -132,7 +132,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Radius by role,** by the size a box is drawn at (a 32px control drawn at 44 on touch is 8; a `NumberField` group drawn at
   40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
   dialogs), 16 (bottom sheets), full (avatars, dots, the navigation hover pill, the switch, the radio, the slider's track and
-  thumb, progress, meter, and the tab bar's circle). A nested radius is the outer radius minus the padding.
+  thumb, progress, meter, and the tab bar's circle); an app tile is a superellipse of exponent 5 and takes no radius. A nested radius is the outer radius minus the padding.
 - **More contrast** (`prefers-contrast: more`; Increase Contrast on Apple platforms): three aliases and no new colour. Lines
   (the hairline, the divider, the rim, the pill's hairline) step to `border-input`, tertiary ink to `text-secondary`, a
   hovered edge (`border-hover`) to `text-secondary`, and a field's boundary (`border-field`, equal to `border-input` outside the

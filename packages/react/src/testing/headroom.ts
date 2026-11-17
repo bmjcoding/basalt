@@ -46,7 +46,10 @@ export interface HeadroomOptions {
   scales?: number[];
   /** The viewport height. Default 900. */
   height?: number;
-  /** The stage's selector. Default `.basalt-stage`. */
+  /**
+   * The stage's selector. Default `.basalt-stage`, the first stage on the page. A closing block (`Stage closing`) is read with
+   * `.basalt-stage[data-closing]`: it has no headroom, so only its `data-quiet` zones are read (DECISIONS 162, vote 2).
+   */
   stage?: string;
   /** Extra selectors to hide while reading (a cookie banner, a chat widget). The site header and the stage's content are always hidden. */
   hide?: string[];
@@ -112,9 +115,13 @@ export async function measureHeadroom(page: HeadroomPage, theme: HeadroomTheme, 
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const root = document.querySelector(input.stage);
     if (!root) throw new Error(`headroom check: no element matches ${input.stage}`);
+    // A closing block has no bar above it and so no headroom: its words are the only zones, and the art must keep out of them at every width all the same.
+    const closing = root.hasAttribute("data-closing");
     const marker = root.querySelector("[data-basalt-headroom]");
-    if (!marker) throw new Error("headroom check: the stage has no headroom marker; render it with Stage");
-    const boxes = [{ zone: "headroom", element: marker }, ...[...root.querySelectorAll("[data-quiet]")].map((element, index) => ({ zone: element.getAttribute("data-quiet") || `quiet #${index + 1}`, element }))];
+    if (!marker && !closing) throw new Error("headroom check: the stage has no headroom marker; render it with Stage");
+    const quiet = [...root.querySelectorAll("[data-quiet]")].map((element, index) => ({ zone: element.getAttribute("data-quiet") || `quiet #${index + 1}`, element }));
+    if (closing && !quiet.length) throw new Error("headroom check: the closing block has no data-quiet zone; mark its words and actions");
+    const boxes = marker ? [{ zone: "headroom", element: marker }, ...quiet] : quiet;
     // A quiet zone is read grown by `space-1-5` on every side (the focus ring's 2 and 2 with 2 to spare), so a zone needs no CSS of its own: the box is the ink's, and the
     // check reads the margin round it. The headroom is read as it is. A grown box stays inside the page.
     const probe = document.createElement("div");
@@ -125,7 +132,7 @@ export async function measureHeadroom(page: HeadroomPage, theme: HeadroomTheme, 
     const page = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
     return boxes.map(({ zone, element }, index) => {
       const rect = element.getBoundingClientRect();
-      const by = index === 0 ? 0 : grow;
+      const by = element === marker ? 0 : grow;
       // Inward to whole CSS pixels, so a fractional edge never reads a pixel the zone doesn't cover.
       const left = Math.max(0, Math.ceil(rect.left + window.scrollX - by)), top = Math.max(0, Math.ceil(rect.top + window.scrollY - by));
       const right = Math.min(page.width, Math.floor(rect.right + window.scrollX + by)), bottom = Math.min(page.height, Math.floor(rect.bottom + window.scrollY + by));
