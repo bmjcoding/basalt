@@ -950,6 +950,35 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
   choices apart (a visibility, a role, a plan, a model), never to explain an obvious action ("Copy link" stays one line). A described
   menu is as wide as its content, up to `size-popover-max` (320), and then descriptions truncate.
 
+### Overlays and search
+
+Ported from the approved sites and decided by the council in DECISIONS 155 (a four-member vote; the owner's "port what is approved" in DECISIONS 151). The
+implementation hasn't been reviewed.
+
+- **The popover stays 320.** All four refused a wider size: N1's popover drew at `size-popover-max`, so none is built. A **wide dialog** (`size="wide"`) is
+  `size-dialog-width-wide`, 992px, decided in DECISIONS 158 (Q1; 3 to 1; DECISIONS 155's `118ch` was withdrawn, because on Basalt's dialog it draws 1,251.7px): 118 characters of Geist Mono at 14px (991.17px) rounded up, kept in px because the dialog's own face is not mono and Basalt's type sizes are px; capped by the viewport less 2 × `space-4`, with the dialog's own padding and scroll. Its first focus is
+  its title (`tabindex="-1"`, no ring), so Enter on opening runs nothing.
+- **Scrim.** Dialogs and sheets keep Basalt's `scrim` (black at 80% in dark, 40% in light); a product may re-point the token (4 to 0).
+- **A sheet's anatomy.** A head band (the title at `text-xl` 20/28, a count at `text-sm` in tertiary, a 44px close), a scrolling body and a foot, edge to edge with
+  no padding of the sheet's own; a `border-divider` under the head and above the foot; the head and the foot keep the safe areas. Motion is the sheet's own (300ms in,
+  225ms out). A sheet that swaps its body in place (`step`) moves focus to its own title and scrolls the body to the top, so the new title is read out.
+- **The drawer** is a region in the flow with two titled halves: no portal, scrim, level reset, sheet motion, shadow, fill, rim or corner radius. Its top is a
+  `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
+  replaces the record, with a Back button, its halves stacked on a divider.
+- **Search.** The trigger is a button shaped like a field from 720 (`size-search-trigger` 200 by 44, a 1px `border-input` edge, radius 8, the word `aria-hidden`) and a
+  44px icon button under it. The dialog is centred at `size-command-width` (560) and its results area is a fixed height, a full result's, that scrolls inside, so the
+  field and the count never move (4 to 0). A result is a link sized to its picture with 6px above and below: 72 for a 48 by 60 pack, 60 for a 96 by 48 logo, 48 at
+  least (the 48 is a floor, not a size). Results are links and tab stops, each with the control ring at +2, 8px from the panel's edge, and a hover wash that runs
+  full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
+  round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
+- **The listbox and the opening list.** A listbox is a single choice that stays in the page, with one tab stop, `aria-activedescendant`, and a choice that follows
+  the arrow keys; the chosen option has a chevron in its gutter and primary ink, and its weight does not change. Rows that open have the name as a button stretched
+  over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
+  non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
+  (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.
+- **The notice bar** is a full-width band above the header, in the level-1 fill with a `border-divider` under it (no majority, the first option stands), `text-sm`
+  secondary with its first words primary at 600; it is a named region, not a live region, and under 720 it keeps 6px more above its line.
+
 ## Navigation
 
 `Nav`, `NavGroup` and `NavItem` are an app's sidebar and its collapsed rail, drawn X's way (decisions 42, 45, 48 and 49, the

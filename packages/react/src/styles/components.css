@@ -754,6 +754,11 @@
     letter-spacing: var(--basalt-text-lg-tracking);
   }
 
+  /* A wide dialog (D10a; 992px decided in DECISIONS 158, Q1): a reference dialog of columns and tables, capped by the viewport. Basalt's padding and scroll. */
+  .basalt-dialog[data-size="wide"] { width: min(var(--basalt-size-dialog-width-wide), calc(100vw - 2 * var(--basalt-space-4))); }
+  /* A title takes focus from script (a wide dialog's first focus, a sheet's next step). Nothing operates it, so it draws no ring. */
+  .basalt-dialog-title:focus { outline: none; }
+
   .basalt-dialog-description {
     margin: var(--basalt-space-2) 0 0;
     font-size: var(--basalt-text-base-size);
@@ -4167,6 +4172,312 @@
     .basalt-number-group { border-radius: var(--basalt-radius-md); }
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
+
+  /* ---- Overlays and search (DECISIONS 155) ---- */
+
+  /* The 44px control at every pointer (DECISIONS 154, D11a) is not in this branch's size ladder yet: one local value for this batch. */
+  /* stylelint-disable-next-line unit-disallowed-list -- 44px at every pointer: joins the controls batch's size token (DECISIONS 154) */
+  .basalt-sheet-head, .basalt-search, .basalt-search-trigger { --_control-44: 44px; }
+
+  /* A sheet with a head, a body and a foot (D10b): edge to edge, no padding of its own. The head and the foot keep the safe areas.
+     The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it on a divider. */
+  .basalt-sheet:has(> .basalt-sheet-head, > .basalt-sheet-body, > .basalt-sheet-foot) { padding: 0; overflow: hidden; }
+  .basalt-sheet-head {
+    box-sizing: border-box;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--basalt-space-3);
+    padding: max(var(--basalt-space-3), env(safe-area-inset-top)) max(var(--basalt-space-3), env(safe-area-inset-right)) var(--basalt-space-3) max(var(--basalt-space-5), env(safe-area-inset-left));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-sheet-head-text { flex: 1; min-width: 0; }
+  .basalt-sheet-head .basalt-dialog-title { font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
+  .basalt-sheet-head .basalt-dialog-description { margin: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
+  .basalt-sheet-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left)) max(var(--basalt-space-5), env(safe-area-inset-right));
+  }
+  .basalt-sheet-foot {
+    box-sizing: border-box;
+    flex: none;
+    padding: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-right)) max(var(--basalt-space-5), env(safe-area-inset-bottom)) max(var(--basalt-space-5), env(safe-area-inset-left));
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+
+  /* A drawer (D10b): in the flow, under a page's column, with two titled halves. No portal, scrim, level, motion, shadow, fill, rim or
+     corner. Its one mark is a divider along its top (V2). Each half scrolls inside; under 720 it is a page of its own. */
+  .basalt-drawer {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--_columns, minmax(0, 1fr) minmax(0, 1fr));
+    column-gap: var(--basalt-space-6);
+    height: calc(var(--_rows, 13) * var(--basalt-size-control-xs));
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-drawer[hidden] { display: none; }
+  .basalt-drawer-back { display: none; justify-self: start; margin-inline-start: calc(-1 * var(--basalt-space-2-5)); }
+  .basalt-drawer-section { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding-top: var(--basalt-space-3); }
+  .basalt-drawer-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
+  .basalt-drawer-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  .basalt-drawer-actions { display: flex; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the drawer is a page: its halves stack, with a divider between */
+  @media (width < 720px) {
+    .basalt-drawer { display: block; height: auto; border-top: 0; }
+    .basalt-drawer-back { display: inline-flex; }
+    .basalt-drawer-section { display: block; }
+    .basalt-drawer-section + .basalt-drawer-section { margin-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-drawer-body { overflow: visible; }
+  }
+
+  /* The search trigger (D13a): a button shaped like a field from 720, and a 44px icon button under it. The word is decoration. */
+  .basalt-search-trigger {
+    box-sizing: border-box;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--basalt-space-2-5);
+    width: var(--_control-44);
+    height: var(--_control-44);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / 1 var(--basalt-font-family-sans);
+    cursor: pointer;
+    -webkit-font-smoothing: antialiased;
+  }
+  .basalt-search-trigger-word { display: none; }
+  .basalt-search-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (hover: hover) { .basalt-search-trigger:hover { background: var(--basalt-state-hover); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the trigger is a field-shaped button with the word */
+  @media (width >= 720px) {
+    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-input); color: var(--basalt-text-secondary); }
+    .basalt-search-trigger-word { display: inline; }
+    @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
+  }
+
+  /* The search dialog (D13a, V3): centred, with a results area of a fixed height, so the field and the count never move. */
+  .basalt-dialog.basalt-search {
+    display: flex;
+    flex-direction: column;
+    width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4)));
+    padding: 0;
+    overflow: hidden;
+  }
+  .basalt-search-form {
+    box-sizing: border-box;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-1);
+    margin: 0;
+    padding: var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-4);
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    border-start-start-radius: var(--basalt-radius-lg);
+    border-start-end-radius: var(--basalt-radius-lg);
+  }
+  /* The field's focus mark (V4): a real outline, 2px at −2, round its band (the field and the close button), in the focus colour. */
+  .basalt-search-form:has(.basalt-search-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-search-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--basalt-space-2-5); color: var(--basalt-text-tertiary); }
+  .basalt-search-input {
+    flex: 1;
+    min-width: 0;
+    height: var(--_control-44);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .basalt-search-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* A browser draws its own clear × in a search field. The band has one ×: the close button. */
+  .basalt-search-input::-webkit-search-cancel-button,
+  .basalt-search-input::-webkit-search-decoration,
+  .basalt-search-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
+  .basalt-search-input::-ms-clear { display: none; }
+  .basalt-search-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-search-count {
+    box-sizing: border-box;
+    flex: none;
+    min-height: calc(var(--basalt-space-3) + var(--basalt-text-sm-line-height) + var(--basalt-space-1));
+    padding: var(--basalt-space-3) var(--basalt-space-4) var(--basalt-space-1);
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    color: var(--basalt-text-tertiary);
+  }
+  /* The results area is as tall as a full result: its logo rows, its picture rows and a "See all" row, plus its padding. */
+  .basalt-search-results {
+    --_floor: var(--basalt-space-12);
+    --_logo-row: max(var(--_floor), calc(var(--basalt-size-search-logo-height) + 2 * var(--basalt-space-1-5)));
+    --_pack-row: max(var(--_floor), calc(var(--basalt-size-search-pack-height) + 2 * var(--basalt-space-1-5)));
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    min-height: 0;
+    height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
+    margin: 0;
+    padding: var(--basalt-space-1) var(--basalt-space-2) var(--basalt-space-2-5);
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: var(--basalt-space-1-5);
+  }
+  .basalt-search-item { margin: 0; padding: 0; list-style: none; }
+  /* A result is a link and a tab stop, with the control ring at +2 (it sits 8px from the panel's edge). Its hover wash is not a plate:
+     it runs to the panel's edges, and no ink lifts. No ink lifts (V5): a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed). */
+  .basalt-search-result {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-3);
+    min-height: var(--basalt-space-12);
+    padding: var(--basalt-space-1-5) var(--basalt-space-2);
+    border-radius: var(--basalt-radius-md);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    text-decoration: none;
+  }
+  .basalt-search-result::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-2)); }
+  @media (hover: hover) {
+    .basalt-search-result:hover::before { background: var(--basalt-state-hover); }
+  }
+  .basalt-search-result:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-search-media { position: relative; flex: none; display: block; }
+  .basalt-search-media[data-shape="logo"] { width: var(--basalt-size-search-logo-width); height: var(--basalt-size-search-logo-height); }
+  .basalt-search-media[data-shape="pack"] { width: var(--basalt-size-search-pack-width); height: var(--basalt-size-search-pack-height); }
+  .basalt-search-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .basalt-search-title, .basalt-search-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-search-detail { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-weight: var(--basalt-font-weight-regular); color: var(--basalt-text-tertiary); }
+  .basalt-search-trailing { flex: none; font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; }
+  .basalt-search-result[data-centered] { justify-content: center; }
+  .basalt-search-result[data-centered] .basalt-search-name { flex: none; }
+
+  /* The notice bar (D16): one short notice across the top of a page, in the level-1 fill with a divider under it. */
+  .basalt-notice-bar {
+    box-sizing: border-box;
+    background: var(--_surface, var(--basalt-surface-raised));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+  }
+  .basalt-notice-bar-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--basalt-space-6); row-gap: 0; padding-block-start: var(--basalt-space-1-5); }
+  .basalt-notice-bar-text { flex: 1 1 auto; min-width: 0; margin: 0; padding-block: var(--basalt-space-1); }
+  .basalt-notice-bar-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the line does not wrap and has no extra space above */
+  @media (width >= 720px) { .basalt-notice-bar-in { flex-wrap: nowrap; padding-block-start: 0; } }
+
+  /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with a chevron in its gutter and
+     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
+  .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
+  /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
+  .basalt-listbox-scroll { box-sizing: border-box; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: var(--basalt-space-1-5); overflow-y: auto; }
+  .basalt-listbox:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-listbox[data-flush]:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-listbox-group + .basalt-listbox-group { margin-top: var(--basalt-space-2); }
+  .basalt-listbox-heading { display: flex; align-items: center; min-height: var(--basalt-size-control-xs); padding-inline: var(--basalt-space-1-5); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
+  .basalt-listbox-option {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto;
+    column-gap: var(--basalt-space-2);
+    align-items: center;
+    align-content: center;
+    min-height: var(--basalt-size-control-xs);
+    padding-inline: var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-sm);
+    cursor: pointer;
+    user-select: none;
+  }
+  .basalt-listbox-option[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  .basalt-listbox-option::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-listbox-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
+  .basalt-listbox-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-listbox-trailing { grid-column: 3; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  .basalt-listbox-detail { grid-column: 2 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-tertiary); }
+  .basalt-listbox-option[aria-selected="true"] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-listbox-option[aria-selected="true"] :is(.basalt-listbox-trailing, .basalt-listbox-detail) { color: var(--basalt-text-secondary); }
+  .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: default; }
+  @media (hover: hover) {
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail) { color: var(--basalt-text-secondary); }
+  }
+  @media (pointer: coarse) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+
+  /* The opening list (D13c): rows that open. A grid shared by every row, so the cells line up down the list. The name is a button stretched over
+     the row; the cursor row has the one tab stop, a plate, a chevron, a chip and the word it opens into. Filtering leaves rows in place. */
+  .basalt-open-list { box-sizing: border-box; display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) max-content max-content max-content; column-gap: var(--basalt-space-3); min-width: 0; padding: var(--basalt-space-1-5); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-open-list-group, .basalt-open-list-rows { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; margin: 0; padding: 0; }
+  .basalt-open-list-rows { list-style: none; }
+  .basalt-open-list-group + .basalt-open-list-group { margin-top: var(--basalt-space-2); }
+  .basalt-open-list-label { grid-column: 1 / -1; display: flex; align-items: center; min-height: var(--basalt-size-control-xs); margin: 0; padding-inline: var(--basalt-space-1-5); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-tertiary); }
+  .basalt-open-row {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    align-content: center;
+    min-height: var(--basalt-size-control-xs);
+    padding-inline: var(--basalt-space-1-5);
+    margin: 0;
+    border-radius: var(--basalt-radius-sm);
+  }
+  .basalt-open-row[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  .basalt-open-row::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-open-row:has(.basalt-open-button:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-open-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
+  .basalt-open-name { grid-column: 2; min-width: 0; }
+  .basalt-open-button { display: block; max-width: 100%; margin: 0; padding: 0; border: 0; background: none; color: var(--basalt-text-primary); font: inherit; text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none; }
+  /* The whole row opens: the button's own box is stretched over it. */
+  .basalt-open-button::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+  .basalt-open-part { grid-column: 3; }
+  .basalt-open-state { grid-column: 4; text-align: end; }
+  .basalt-open-part, .basalt-open-state { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-open-into { grid-column: 5; display: flex; align-items: center; justify-content: flex-end; gap: var(--basalt-space-2); color: var(--basalt-text-tertiary); }
+  .basalt-open-detail { grid-column: 2 / -1; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-open-row[data-cursor] { background: var(--basalt-state-hover); }
+  .basalt-open-list:focus-within .basalt-open-row[data-cursor] { background: var(--basalt-state-selected); }
+  .basalt-open-row[data-cursor] .basalt-open-into { color: var(--basalt-text-primary); }
+  .basalt-open-row:not([data-cursor]) .basalt-open-into .basalt-kbd { visibility: hidden; }
+  /* A row filtering left in place that does not match: tertiary ink, no cells, no second line, and the cursor skips it. */
+  .basalt-open-row[data-off] .basalt-open-button { color: var(--basalt-text-tertiary); }
+  .basalt-open-row[data-off] :is(.basalt-open-part, .basalt-open-state, .basalt-open-detail) { visibility: hidden; }
+  @media (hover: hover) {
+    .basalt-open-row:hover::before { background: var(--basalt-state-hover); }
+    .basalt-open-row:hover .basalt-open-into { color: var(--basalt-text-primary); }
+    .basalt-open-row[data-off]:hover .basalt-open-button { color: var(--basalt-text-secondary); }
+  }
+  @media (pointer: coarse) { .basalt-open-row { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the list is a column with no cursor plate */
+  @media (width < 720px) { .basalt-open-row[data-cursor], .basalt-open-list:focus-within .basalt-open-row[data-cursor] { background: none; } }
 
   /* ---- Navigation, typography and composition ---- */
 

@@ -304,6 +304,7 @@ const MENU_ROWS = {
 const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }]`;
 const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'");
 
+const OV_RECT = ["rectLeft", "rectTop", "boxWidth", "boxHeight"];
 const OVERLAYS = [
   {
     id: "dialog",
@@ -347,6 +348,48 @@ const OVERLAYS = [
       ["actions", ".basalt-dialog-actions", ".dialog-actions", ["position", "bottom", "marginTop", "marginRight", "marginBottom", "marginLeft", ...PAD, "backgroundColor", "boxShadow", "boxHeight"]],
     ],
   })),
+  {
+    // DECISIONS 155 (D10b): a sheet with a head (title, count, a 44px close), a scrolling body and a foot, no padding of its own.
+    id: "sheet, head body and foot",
+    uses: "Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Button",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<Sheet defaultOpen><SheetContent side="right"><SheetHeader closeLabel="Close cart"><SheetTitle>Your cart</SheetTitle><SheetDescription>3 items</SheetDescription></SheetHeader><SheetBody tabIndex={0}><p>Lines</p></SheetBody><SheetFooter><Button>Review order</Button></SheetFooter></SheetContent></Sheet>));`,
+    skill: `<dialog class="panel float modal sheet" id="s" data-side="right"><header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">Your cart</h2><p class="dialog-description">3 items</p></div><button class="btn sheet-close" data-variant="ghost" data-icon-only aria-label="Close cart" data-dialog-close><span data-glyph="close"></span></button></header><div class="sheet-body" tabindex="0"><p>Lines</p></div><footer class="sheet-foot"><button class="btn">Review order</button></footer></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-sheet", skill: "dialog.sheet[open]" },
+    pairs: [
+      ["sheet", ".basalt-sheet", "dialog.sheet", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowY", "rectLeft", "rectTop", "rectRight", "rectBottom"]],
+      ["head", ".basalt-sheet-head", ".sheet-head", [...OV_RECT, ...PAD, "display", "alignItems", "justifyContent", "gap", "borderBottomWidth", "borderBottomColor"]],
+      ["title", ".basalt-sheet-head .basalt-dialog-title", ".sheet-head .dialog-title", [...TYPE, "color", "marginTop", "marginBottom", ...OV_RECT]],
+      ["count", ".basalt-sheet-head .basalt-dialog-description", ".sheet-head .dialog-description", [...TYPE, "color", "marginTop", "marginBottom", ...OV_RECT]],
+      ["close", ".basalt-sheet-close", ".sheet-close", [...BOX, ...OV_RECT]],
+      ["body", ".basalt-sheet-body", ".sheet-body", [...OV_RECT, ...PAD, "overflowY", "flexGrow"]],
+      ["foot", ".basalt-sheet-foot", ".sheet-foot", [...OV_RECT, ...PAD, "borderTopWidth", "borderTopColor"]],
+    ],
+  },
+  {
+    // DECISIONS 155 (D13a): the search dialog, its field, its count and its result rows (a logo, a picture, a row of its own words).
+    id: "search dialog",
+    uses: "SearchDialog, SearchResults, SearchResult",
+    react: `flushSync(() => createRoot(document.getElementById("root")).render(<SearchDialog open onOpenChange={() => {}} title="Search the shop" label="Search products" placeholder="A brand, whey" query="whey" onQueryChange={() => {}} count="2 products"><SearchResults><SearchResult href="#a" media={<span style={{ display: "block", width: "100%", height: "100%" }} />} mediaShape="logo" detail="Brand" trailing="›">Alpha</SearchResult><SearchResult href="#b" media={<span style={{ display: "block", width: "100%", height: "100%" }} />} detail="Alpha · 2 lb" trailing="$39">Whey</SearchResult><SearchResult href="#c" centered>See all 12</SearchResult></SearchResults></SearchDialog>));`,
+    skill: `<dialog class="panel float modal dialog search" id="s"><h2 class="dialog-title visually-hidden" tabindex="-1">Search the shop</h2><form class="search-form" role="search"><label class="search-field"><span data-glyph="search"></span><span class="visually-hidden">Search products</span><input class="search-input" type="search" placeholder="A brand, whey" value="whey" autocomplete="off"></label><button type="button" class="btn search-close" data-variant="ghost" data-icon-only aria-label="Close search" data-dialog-close><span data-glyph="close"></span></button></form><p class="search-count">2 products</p><ul class="search-results"><li><a class="search-result" href="#a"><span class="search-media" data-shape="logo"><span style="display:block;width:100%;height:100%"></span></span><span class="search-name"><span class="search-title">Alpha</span><span class="search-detail">Brand</span></span><span class="search-trailing">›</span></a></li><li><a class="search-result" href="#b"><span class="search-media"><span style="display:block;width:100%;height:100%"></span></span><span class="search-name"><span class="search-title">Whey</span><span class="search-detail">Alpha · 2 lb</span></span><span class="search-trailing">$39</span></a></li><li><a class="search-result" href="#c" data-centered><span class="search-name"><span class="search-title">See all 12</span></span></a></li></ul></dialog>`,
+    open: "Basalt.openDialog('#s')",
+    ready: { react: ".basalt-search", skill: "dialog.search[open]" },
+    pairs: [
+      ["dialog", ".basalt-dialog.basalt-search", "dialog.search", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowY", "rectLeft", "rectTop"]],
+      ["form", ".basalt-search-form", ".search-form", [...OV_RECT, ...PAD, "display", "alignItems", "gap", "borderBottomWidth", "borderBottomColor", "borderTopLeftRadius"]],
+      ["field", ".basalt-search-input", ".search-input", [...TYPE, "color", ...OV_RECT, "backgroundColor"]],
+      ["close", ".basalt-search-close", ".search-close", [...BOX, ...OV_RECT]],
+      ["count", ".basalt-search-count", ".search-count", [...TYPE, "color", ...OV_RECT, ...PAD]],
+      ["results", ".basalt-search-results", ".search-results", [...OV_RECT, ...PAD, "overflowY"]],
+      ["logo row", ".basalt-search-result", ".search-results li:nth-child(1) .search-result", [...OV_RECT, ...PAD, ...TYPE, "color", "gap", "borderTopLeftRadius"]],
+      ["logo", ".basalt-search-media[data-shape=logo]", ".search-media[data-shape=logo]", OV_RECT],
+      ["picture row", ".basalt-search-item:nth-child(2) .basalt-search-result", ".search-results li:nth-child(2) .search-result", [...OV_RECT, ...PAD]],
+      ["picture", ".basalt-search-item:nth-child(2) .basalt-search-media", ".search-results li:nth-child(2) .search-media", OV_RECT],
+      ["detail", ".basalt-search-item:nth-child(2) .basalt-search-detail", ".search-results li:nth-child(2) .search-detail", [...TYPE, "color", ...OV_RECT]],
+      ["trailing", ".basalt-search-item:nth-child(2) .basalt-search-trailing", ".search-results li:nth-child(2) .search-trailing", [...TYPE, ...OV_RECT]],
+      ["row of its own words", ".basalt-search-item:nth-child(3) .basalt-search-result", ".search-results li:nth-child(3) .search-result", [...OV_RECT, "justifyContent"]],
+    ],
+  },
   {
     // The site header's narrow menu draws Menu in its band and morphs it to Close (React's MorphIcon). The skill carries no MorphIcon: it swaps the glyph at once
     // and draws the core Close glyph as one path where MorphIcon draws one path for each stroke (see parity-differences.mjs).

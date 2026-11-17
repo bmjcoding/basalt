@@ -2,12 +2,14 @@ import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
+import { IconButton } from "./button";
+import { CloseGlyph } from "./glyphs/close";
 import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogModal, DialogTitle, DialogTrigger } from "./dialog";
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
 import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
 import type { PartProps } from "./types";
-import { withClass, withStyle } from "./utils";
+import { join, withClass, withStyle } from "./utils";
 
 export interface AlertDialogProps extends Omit<DialogProps, "modal" | "disablePointerDismissal"> {}
 
@@ -55,16 +57,37 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
  * corners of 16. It is as tall as its content and scrolls inside at the viewport's height.
  */
 export type SheetSide = "left" | "right" | "bottom" | "top";
-export interface SheetContentProps extends DialogContentProps {
+export interface SheetContentProps extends Omit<DialogContentProps, "size"> {
   side?: SheetSide;
+  /**
+   * Which step the sheet shows, for a sheet that swaps its body in place (a cart, then its summary). When it changes, focus goes to
+   * the sheet's title (not the first control, and not by a document-wide query), so the new title is read out, and the body scrolls
+   * back to its top. The first value is not a change. The app swaps the body and the foot; the sheet moves focus.
+   */
+  step?: string | number;
 }
 
 export { Dialog as Sheet, DialogTrigger as SheetTrigger, DialogTitle as SheetTitle, DialogDescription as SheetDescription, DialogClose as SheetClose, DialogActions as SheetActions };
 
 /** A modal side panel for a task or detail, with native dialog focus and dismissal behaviour. */
-export function SheetContent({ side = "right", className, style, children, ref, ...props }: SheetContentProps) {
+export function SheetContent({ side = "right", className, style, children, ref, step, ...props }: SheetContentProps) {
   const layer = useModalLayer();
-  const popupRef = useModalOutside<HTMLDivElement>(ref, React.useContext(DialogModal));
+  const popup = React.useRef<HTMLDivElement | null>(null);
+  const keepRef = React.useCallback((node: HTMLDivElement | null) => {
+    popup.current = node;
+    if (typeof ref === "function") return ref(node);
+    if (ref) ref.current = node;
+  }, [ref]);
+  const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
+  const shown = React.useRef(step);
+  React.useEffect(() => {
+    if (shown.current === step) return;
+    shown.current = step;
+    const sheet = popup.current;
+    if (!sheet) return;
+    sheet.querySelector<HTMLElement>(".basalt-sheet-body")?.scrollTo?.(0, 0);
+    sheet.querySelector<HTMLElement>(".basalt-dialog-title")?.focus({ preventScroll: true });
+  }, [step]);
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
@@ -73,4 +96,33 @@ export function SheetContent({ side = "right", className, style, children, ref, 
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );
+}
+
+export interface SheetHeaderProps extends React.ComponentProps<"header"> {
+  /** The close button's name ("Close cart"). Give it and the head draws a 44px close at its end; leave it out and there is none. */
+  closeLabel?: string;
+}
+
+/**
+ * The sheet's head band: its `SheetTitle` (20/28, 600) and, under it, a `SheetDescription` (a count, 13/18, tertiary), with a close
+ * button at the end. A hairline `border-divider` runs under it. It keeps the top and the inline-end safe areas. A sheet that has a
+ * head, a body and a foot has no padding of its own: the three bands are edge to edge.
+ */
+export function SheetHeader({ closeLabel, className, children, ...props }: SheetHeaderProps) {
+  return (
+    <header {...props} className={join("basalt-sheet-head", className)}>
+      <div className="basalt-sheet-head-text">{children}</div>
+      {closeLabel ? <DialogClose render={<IconButton icon={CloseGlyph} label={closeLabel} className="basalt-sheet-close" />} /> : null}
+    </header>
+  );
+}
+
+/** The part of a sheet that scrolls, between its head and its foot. Give it a `tabIndex={0}` if it holds nothing focusable, so a keyboard can scroll it. */
+export function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
+  return <div {...props} className={join("basalt-sheet-body", className)} />;
+}
+
+/** The foot band, fixed under the body on a divider, whatever the body's length. It keeps the bottom safe area. */
+export function SheetFooter({ className, ...props }: React.ComponentProps<"footer">) {
+  return <footer {...props} className={join("basalt-sheet-foot", className)} />;
 }

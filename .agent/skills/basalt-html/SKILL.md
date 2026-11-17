@@ -72,6 +72,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **combobox** `.combobox`: an `input.input` and a `ul` of `li`; the script builds the popup, caret and value.
 - **dialog** `data-dialog-open`: a `<dialog>` with a `.dialog-title`; an alert dialog marks its safe button `data-cancel`.
 - **sheet** `.sheet`: a dialog with `data-side`; the top one opens with a `.sheet-band`.
+- **search** `.search`: link rows in a fixed-height `.search-results`; Enter in the field sends the query, never a row.
 - **tooltip** `data-tooltip`: only supplements a name the control already has; plain text.
 - **toast** `Basalt.toast`: no `home` means it stays until dismissed; never build your own.
 - **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.

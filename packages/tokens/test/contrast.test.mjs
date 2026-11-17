@@ -872,3 +872,29 @@ for (const theme of THEMES) {
     }
   });
 }
+
+// ---- Overlays and search (DECISIONS 155): the pairs the batch draws ----
+// The search dialog, the sheet's head, the drawer, the listbox, the opening list and the notice bar draw no new colour. They use these pairs, listed so
+// the batch's own reading is proved: tertiary ink at rest (a count line, a second line, a group heading, a row filtering left in place); secondary
+// ink where tertiary sits on a wash (a hovered result's second line, a chosen option's trailing cell, a cursor row's cells); primary on both washes (a
+// chosen option's name, the cursor row's end word); the search trigger's input boundary and the focus ring on every level.
+for (const theme of THEMES) {
+  test(`${theme}: overlays and search: tertiary at rest, secondary on a wash, primary on both, and the trigger's boundary and the ring`, () => {
+    const levels = LEVELS.map((s) => [s, color(theme, s)]);
+    atLeast(theme, "text-tertiary", 4.5, levels);
+    const washed = levels.flatMap(([n, s]) => ["state-hover", "state-selected"].map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
+    atLeast(theme, "text-secondary", 4.5, washed);
+    atLeast(theme, "text-primary", 4.5, washed);
+    // The trigger sits on the page (level 0) and on a level-1 bar; its edge is the control boundary, the ring the focus colour.
+    atLeast(theme, "border-input", 3, levels);
+    atLeast(theme, "border-focus", 3, levels);
+  });
+
+  // DECISIONS 155 V5, and the return that kept the pixels: a search result lifts no ink on hover. A modal is always level 1, so the pair is the
+  // hover wash over surface-1: tertiary (a result's detail) and secondary both hold 4.5:1 there, so tertiary needs no step to secondary.
+  test(`${theme}: a search result's detail (tertiary) holds 4.5:1 on the hover wash over the dialog's level, so nothing lifts on hover`, () => {
+    const wash = [["state-hover over surface-1", over(color(theme, "state-hover"), color(theme, "surface-1"))]];
+    atLeast(theme, "text-tertiary", 4.5, wash);
+    atLeast(theme, "text-secondary", 4.5, wash);
+  });
+}
