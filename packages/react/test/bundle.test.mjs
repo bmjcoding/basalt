@@ -337,6 +337,29 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress)\//.test(f)), "an unrelated Base UI part is in a Meter-only bundle");
 });
 
+// The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
+// Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
+// CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465.
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["CoverageStrip", 2_000], ["MarksRow", 1_200]]) {
+  test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
+  });
+}
+
+test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no Shiki; TimeChart and PhaseChart load no Shiki or cmdk", async () => {
+  const meter = await bundle("RangeMeter");
+  assert.ok(meter.bytes < 12_000, `RangeMeter bundle is ${meter.bytes} bytes`);
+  assert.ok(meter.inputs.some((f) => /@base-ui\/react\/(esm\/)?meter\//.test(f)), "Base UI's Meter is in");
+  assert.ok(!meter.inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress)\//.test(f)));
+  for (const [name, limit] of [["TimeChart", 50_000], ["PhaseChart", 52_000]]) {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), [], name); // the chart's key hint draws Kbd, which carries the shortcut icons: that was so before this port
+  }
+});
+
 test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
   const { bytes, inputs } = await bundle("Terminal");
   assert.ok(bytes < 40_000, `Terminal bundle is ${bytes} bytes`);

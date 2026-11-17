@@ -219,6 +219,18 @@
       "axis": {
         "$value": "{color.text.tertiary}",
         "$description": "A chart's axis labels and the words for a gap."
+      },
+      "lit-top": {
+        "$value": "{color.neutral.100}",
+        "$description": "The lightest stop of a lit mark's vertical gradient, at the top of the plot, and a lit line's one stroke. 3:1 on levels 0 to 3 and on the picked day's plate (DECISIONS 153, vote 1)."
+      },
+      "lit-mid": {
+        "$value": "{color.neutral.64}",
+        "$description": "The middle stop of a lit mark's gradient, 55% of the way down the plot. 3:1 on levels 0 to 3."
+      },
+      "lit-base": {
+        "$value": "{color.neutral.52}",
+        "$description": "The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3."
       }
     },
     "art": {
