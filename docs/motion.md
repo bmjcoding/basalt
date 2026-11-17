@@ -49,6 +49,8 @@ A multi-select chip (`MultiSelect`) shows a plus when off and the check when on 
 
 A pressed toggle Button (`aria-pressed`; secondary and ghost) swaps its check the same way: the seat's glyph fades over `duration-fast` on `ease-out`, and the fill and ink step with it. It is a crossfade, not a `MorphIcon` morph, and the 100ms fade stays under reduced motion; the .98 press stays Button's momentary press (none under reduced motion). A choice card crossfades its fill, its hover wash and its box over `duration-fast` too, the same 100ms under reduced motion, and never scales.
 
+The controls of DECISIONS 154 swap glyphs the same way, and every one keeps its 100ms crossfade with or without reduced motion (DECISIONS 138, C10; the ballot's "no crossfade under reduced motion" did not stand): the switch row's plus and check, an option chip's filled seat and its check, and an `IconButton`'s done state (the plus and the check share one cell and swap by opacity over `duration-fast` on `ease-out`). The done state holds for `duration-confirm` (1500ms), a hold and not an animation, so it is the same under reduced motion; `useConfirm` clears its timer on unmount. Link tabs do not slide their underline (the links are routes and the row is drawn again with each page), and stacked tab panels keep the 8px slide of the incoming panel without moving the seat. **Status:** decided by the council (DECISIONS 154); the implementation hasn't been reviewed.
+
 The sort indicator of a sortable table header (the caret and the two arrows) swaps at once: it has no transition, and nothing in a still table moves.
 
 ## The sliding pill

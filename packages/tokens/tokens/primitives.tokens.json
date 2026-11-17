@@ -549,6 +549,46 @@
           "value": 40,
           "unit": "px"
         }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        },
+        "$description": "A control at the touch size on every pointer: Castle's icon button, select and filter triggers and option chips (DECISIONS 154). The first rung above xl; compact steps it down to xl."
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        },
+        "$description": "Castle's button, and the narrow switch row and tab (DECISIONS 154). Compact steps it down to 2xl."
+      },
+      "4xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 52,
+          "unit": "px"
+        },
+        "$description": "The switch row from 720px wide, and the step compact takes a 56 control down to (DECISIONS 154: the approved prototype's own 52, which a 36px tile in 6px of padding and two 1px edges cannot make at 48). Compact steps it down to 3xl."
+      },
+      "5xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 56,
+          "unit": "px"
+        },
+        "$description": "The large button, and the tab bar of an app's own navigation (DECISIONS 154). Compact steps it down to 4xl."
+      },
+      "6xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 64,
+          "unit": "px"
+        },
+        "$description": "The least height of a button whose label is two lines (DECISIONS 154). Compact steps it down to 5xl."
       }
     },
     "menu-row": {
@@ -931,6 +971,22 @@
       },
       "$description": "A component's own width, in a container query: a description list stacks and a chart goes narrow below it."
     },
+    "breakpoint-container-sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 340,
+        "unit": "px"
+      },
+      "$description": "A component's own width, in a container query, below which a button's two lines stay two lines: from it up to size-breakpoint-container the label and its note share one line (DECISIONS 154, D11b). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
+    "breakpoint-container-lg": {
+      "$type": "dimension",
+      "$value": {
+        "value": 640,
+        "unit": "px"
+      },
+      "$description": "A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
     "chart-line": {
       "$type": "dimension",
       "$value": {
@@ -1010,6 +1066,13 @@
         "unit": "px"
       },
       "$description": "The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed."
+    }
+  },
+  "opacity": {
+    "$type": "number",
+    "amount": {
+      "$value": 0.72,
+      "$description": "The ink of a button's amount (\"Add to cart $49\"), a step quieter than its label (DECISIONS 154, D11b). Used only on the variants whose ink holds 4.5:1 at this opacity on every surface the button can sit on (primary, secondary, outline); ghost and danger keep full ink."
     }
   },
   "aspect": {
@@ -1444,6 +1507,14 @@
         "value": 300,
         "unit": "ms"
       }
+    },
+    "confirm": {
+      "$type": "duration",
+      "$value": {
+        "value": 1500,
+        "unit": "ms"
+      },
+      "$description": "How long a confirmation holds before it returns to rest: a copy button's \"Copied\" and an icon button's done check (DECISIONS 154, D11c). A hold, not an animation: it is the same with or without reduced motion."
     },
     "figure": {
       "$type": "duration",

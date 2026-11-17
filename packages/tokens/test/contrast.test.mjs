@@ -94,6 +94,51 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- DECISIONS 154: the controls batch ----
+
+const AMOUNT = Number(tokens.primitives["opacity-amount"].css);
+
+for (const theme of THEMES) {
+  // D11b, row 11: the amount is the label's ink at opacity-amount only where that holds 4.5:1. Primary, secondary and outline pass on every
+  // fill and surface they sit on (rest, hover wash, selected wash); ghost's secondary ink and danger's do not on every surface, so they keep full ink.
+  test(`${theme}: a button's amount at opacity-amount meets 4.5:1 on primary (rest, hover, press), and as primary ink on every surface and wash (secondary, outline)`, () => {
+    for (const bg of ["action-primary", "action-primary-hover", "action-primary-press"]) {
+      const under = color(theme, bg);
+      const r = ratio(over({ ...color(theme, "action-primary-text"), alpha: AMOUNT }, under), under);
+      assert.ok(r >= 4.5, `${theme}: the amount on ${bg} is ${fmt(r)}:1`);
+    }
+    const unders = surfaces(theme).flatMap(([n, s]) => [[n, s], ...["state-hover", "state-selected"].map((w) => [`${w} over ${n}`, over(color(theme, w), s)])]);
+    for (const [n, under] of unders) {
+      const r = ratio(over({ ...color(theme, "text-primary"), alpha: AMOUNT }, under), under);
+      assert.ok(r >= 4.5, `${theme}: the amount in primary ink on ${n} is ${fmt(r)}:1`);
+    }
+  });
+
+  test(`${theme}: ghost's secondary ink at opacity-amount does NOT hold 4.5:1 on every surface, which is why ghost and danger keep full ink`, () => {
+    const worst = Math.min(...surfaces(theme).map(([, s]) => ratio(over({ ...color(theme, "text-secondary"), alpha: AMOUNT }, s), s)));
+    assert.ok(worst < 4.5, `${theme}: secondary at the amount's opacity is ${fmt(worst)}:1 at worst; if this now passes, ghost may take the quiet amount`);
+  });
+
+  // D9, A3: the switch row's and the option chip's edge is the input boundary (3:1). Its hover step is text-secondary, because border-hover is
+  // fainter than the input boundary and would take the edge under 3:1.
+  test(`${theme}: the switch row's and option chip's edge holds 3:1 at rest and on hover (text-secondary), and border-hover would not`, () => {
+    atLeast(theme, "border-input", 3);
+    atLeast(theme, "text-secondary", 3);
+    const worst = Math.min(...surfaces(theme).map(([, s]) => ratio(over(color(theme, "border-hover"), s), s)));
+    assert.ok(worst < 3, `${theme}: border-hover is ${fmt(worst)}:1 at worst; it is fainter than border-input, so it cannot be the hover edge of a 3:1 boundary`);
+  });
+
+  test(`${theme}: an option chip's filled seat (action-primary with the check in action-primary-text) meets 3:1 as a mark, on the selected wash over every level`, () => {
+    const r = ratio(color(theme, "action-primary-text"), color(theme, "action-primary"));
+    assert.ok(r >= 3, `${theme}: the check on the seat is ${fmt(r)}:1`);
+    for (const [n, s] of LEVELS.map((l) => [l, color(theme, l)])) {
+      const wash = over(color(theme, "state-selected"), s);
+      const seat = ratio(color(theme, "action-primary"), wash);
+      assert.ok(seat >= 3, `${theme}: the filled seat on the wash over ${n} is ${fmt(seat)}:1`);
+    }
+  });
+}
+
 test("every colour is inside sRGB, so it looks the same on every display", () => {
   const srgb = inGamut("rgb");
   for (const scope of ["primitives", ...THEMES]) {

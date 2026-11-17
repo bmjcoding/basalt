@@ -12,6 +12,7 @@ import { usePanelLevel } from "./layers";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
+import { CONFIRM_MS } from "./confirm";
 
 /** What a line is: a command, what came back, or a result (done, a warning, an error). */
 export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error";
@@ -109,7 +110,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
   const [copied, setCopied] = React.useState(false);
   React.useEffect(() => {
     if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
+    const t = setTimeout(() => setCopied(false), CONFIRM_MS);
     return () => clearTimeout(t);
   }, [copied]);
   const copy = async () => {

@@ -12,8 +12,17 @@ export { Menu, MenuCheckboxItem, MenuContent, MenuGroup, MenuGroupLabel, MenuIte
 export type { MenuCheckboxItemProps, MenuContentProps, MenuItemProps, MenuProps, MenuRadioGroupProps, MenuRadioItemProps, MenuRowProps, MenuSubmenuProps, MenuSubmenuTriggerProps, MenuTriggerProps } from "./menu";
 export { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./dialog";
 export type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
-export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel } from "./tabs";
-export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsProps } from "./tabs";
+export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel, TabsPanels } from "./tabs";
+export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsPanelsProps, TabsProps } from "./tabs";
+export { LinkTab, LinkTabs } from "./link-tabs";
+export type { LinkTabProps, LinkTabsProps } from "./link-tabs";
+export { TextButton } from "./text-button";
+export type { TextButtonProps } from "./text-button";
+export { SwitchRow, SwitchRowGroup } from "./switch-row";
+export type { SwitchRowGroupProps, SwitchRowProps } from "./switch-row";
+export { OptionChips } from "./option-chips";
+export type { OptionChip, OptionChipsProps } from "./option-chips";
+export { CONFIRM_MS, useConfirm } from "./confirm";
 export {
   Badge,
   BadgePair,

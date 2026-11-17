@@ -1,0 +1,76 @@
+@layer basalt {
+
+  /* ---- Option chips (React's OptionChips, DECISIONS 154, D9b): one of many, eight at most, as chips that wrap with no track ----
+     A fieldset and its legend (with a small tertiary count), then native radios drawn as chips 8px apart: 44 tall, radius 8, padding 10 before and 14
+     after, 16px text, a round 16px seat every chip reserves (a ring at rest; filled, with a 12px check, when chosen). The chosen chip is the selected wash and
+     primary ink; its edge does not change. Rest is secondary ink on the input boundary; hover lifts the ink and takes the edge to secondary ink (border-hover
+     is fainter than the boundary). A value that cannot be chosen is aria-disabled on its input: the disabled look, its words kept, reachable, never chosen
+     (the script keeps it from being chosen). The fill swaps in 100ms, with or without reduced motion. The chip is a label around a real radio. Each state is written two ways, so no browser needs :has(): a state attribute the script keeps (data-checked,
+     data-unavailable, data-focus on the label), and :has() on the input, which also draws it before the script runs; a browser without :has() drops that half of each :is() and
+     keeps the attribute. */
+  .option-chips { min-width: 0; margin: 0; padding: 0; border: 0; }
+  .option-chips-legend { display: block; padding: 0; margin-bottom: var(--basalt-space-3); color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--bh-base); }
+  .option-chips-count { margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--bh-sm); }
+  .option-chips-list { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
+  .option-chip {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    min-height: var(--basalt-size-control-2xl);
+    margin: 0;
+    padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .option-chip > .option-chip-input { appearance: none; position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border-radius: inherit; opacity: 0; cursor: inherit; }
+  .option-chip > .option-chip-input:focus-visible { outline: none; }
+  .option-chip-seat {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--basalt-size-choice);
+    height: var(--basalt-size-choice);
+    border-radius: var(--basalt-radius-full);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-action-primary-text);
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .option-chip-seat > svg { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: var(--basalt-action-primary); box-shadow: none; }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat > svg { opacity: 1; }
+  .option-chip-note { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  @media (hover: hover) {
+    .option-chip:hover:not(:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"])))) { color: var(--basalt-text-primary); border-color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+  }
+  .option-chip:active:not(:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"])))) { background: var(--basalt-state-hover); }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)):active:not(:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"])))) { background: var(--basalt-state-selected); }
+  .option-chip:is([data-focus], :has(> .option-chip-input:focus-visible)) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
+  .option-chip:is([data-checked][data-unavailable], :has(> .option-chip-input:disabled:checked)) { background: transparent; }
+  @media (pointer: coarse) { .option-chip { min-height: var(--basalt-size-tap-min); } }
+
+  @media (forced-colors: active) {
+    .option-chip { border-color: ButtonText; color: ButtonText; }
+    .option-chip-seat { box-shadow: none; border: var(--basalt-size-hairline) solid ButtonText; color: ButtonText; }
+    .option-chip:is([data-checked], :has(> .option-chip-input:checked)), .option-chip:is([data-checked], :has(> .option-chip-input:checked)):hover, .option-chip:is([data-checked], :has(> .option-chip-input:checked)):active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: HighlightText; border-color: HighlightText; color: Highlight; }
+    .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat > svg { color: Highlight; }
+    .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))), .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { border-color: GrayText; color: GrayText; }
+  }
+}

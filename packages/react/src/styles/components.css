@@ -10,6 +10,11 @@
     --_basalt-control-md: var(--basalt-size-control-sm);
     --_basalt-control-lg: var(--basalt-size-control-md);
     --_basalt-control-xl: var(--basalt-size-control-lg);
+    --_basalt-control-2xl: var(--basalt-size-control-xl);
+    --_basalt-control-3xl: var(--basalt-size-control-2xl);
+    --_basalt-control-4xl: var(--basalt-size-control-3xl);
+    --_basalt-control-5xl: var(--basalt-size-control-4xl);
+    --_basalt-control-6xl: var(--basalt-size-control-5xl);
     --_basalt-control-font: var(--basalt-text-sm-size);
     --_basalt-control-line: var(--basalt-text-sm-line-height);
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
@@ -25,6 +30,11 @@
     --_basalt-control-md: initial;
     --_basalt-control-lg: initial;
     --_basalt-control-xl: initial;
+    --_basalt-control-2xl: initial;
+    --_basalt-control-3xl: initial;
+    --_basalt-control-4xl: initial;
+    --_basalt-control-5xl: initial;
+    --_basalt-control-6xl: initial;
     --_basalt-control-font: initial;
     --_basalt-control-line: initial;
     --_basalt-control-lg-radius: initial;
@@ -157,7 +167,7 @@
     border: 0;
     border-radius: var(--_radius);
     font-size: var(--_font);
-    font-weight: var(--basalt-font-weight-medium);
+    font-weight: var(--_weight, var(--basalt-font-weight-medium));
     line-height: 1;
     white-space: nowrap;
     user-select: none;
@@ -173,7 +183,14 @@
   .basalt-button[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); --_px: var(--basalt-space-2-5); --_font: var(--basalt-text-sm-size); }
   .basalt-button[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); --_px: var(--basalt-space-3-5); --_radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-button[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  /* The large sizes (DECISIONS 154, D11a): 44, 48, 52 and 56, radius 8 at every one (the drawn-box rule), 16px text at 600 where a button has
+     text, and 12px between a button's parts from 48 up. Compact steps each down a rung (56 to 52, 52 to 48, 48 to 44, 44 to 40). */
+  .basalt-button[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); }
+  .basalt-button[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
   .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
+  .basalt-button[data-full-width] { display: flex; width: 100%; }
 
   .basalt-button[data-variant="primary"] {
     background: var(--basalt-action-primary);
@@ -199,6 +216,15 @@
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent);
   }
 
+  /* Outline (DECISIONS 154, A7): transparent, a 1px input-boundary edge (inside the box, so it takes no room), primary ink. Hover takes the edge to
+     primary ink; a press is the selected wash, as every variant but primary. It is for a button beside the primary one that must not read as a
+     second primary ("Back to cart", "Shop by brand"). It never toggles. */
+  .basalt-button[data-variant="outline"] {
+    background: transparent;
+    color: var(--basalt-text-primary);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+  }
+
   /* Hover brightens: text up a step, the hairline up a step, a wash on transparent buttons.
      Never a scale. Only on devices that really hover, so touch doesn't stick. */
   @media (hover: hover) {
@@ -208,6 +234,7 @@
     }
     .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
     .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
+    .basalt-button[data-variant="outline"]:hover:not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-primary); }
   }
 
   /* A press is a colour step, and Button and IconButton (which are this class) also scale to .98 over
@@ -216,7 +243,8 @@
   .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-loading]) { background: var(--basalt-action-primary-press); }
   .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-loading]),
   .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-loading]),
-  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-loading]) {
+  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-loading]),
+  .basalt-button[data-variant="outline"]:active:not([data-disabled]):not([data-loading]) {
     background: var(--basalt-state-selected);
   }
   .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: scale(0.98); }
@@ -234,8 +262,69 @@
   .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
   .basalt-button[data-loading] > .basalt-icon,
-  .basalt-button[data-loading] > .basalt-button-check { opacity: 0; }
+  .basalt-button[data-loading] > .basalt-button-check,
+  .basalt-button[data-loading] > .basalt-button-lines,
+  .basalt-button[data-loading] > .basalt-button-amount,
+  .basalt-button[data-loading] > .basalt-button-count,
+  .basalt-button[data-loading] > .basalt-button-swap { opacity: 0; }
   .basalt-button-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+  /* The amount (DECISIONS 154, A8): after the label, in tabular figures and the label's own weight, in a seat as wide as the widest amount the app
+     names, so the label never moves as the amount changes. Its ink is the label's at opacity-amount (0.72) on the variants where that holds 4.5:1
+     on every surface they sit on (primary, secondary, outline); on ghost and danger, where it would not, it is the label's ink. Never in forced colours. */
+  .basalt-button-amount { font-variant-numeric: tabular-nums; }
+  .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }
+
+  /* The count (DECISIONS 154, D11d): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. It holds two tabular
+     digits (a hidden "00" shares its cell), so 0 to 99 never moves the button; a third digit widens it. It is aria-hidden: the name carries the count.
+     Never a fill and never a colour: the edge is the input boundary and the number is the cue. */
+  .basalt-button-count {
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    height: var(--basalt-size-control-xs);
+    min-width: var(--basalt-size-control-xs);
+    padding: 0 var(--basalt-space-1-5);
+    border-radius: var(--basalt-radius-full);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .basalt-button-count[data-zero] { color: var(--basalt-text-secondary); }
+  .basalt-button-count::before { content: "00"; grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
+  .basalt-button-count > span { grid-area: 1 / 1; }
+
+  /* Two lines (DECISIONS 154, D11b): the label over a note, start-aligned, at least 64 tall; in a container 340 to 480 wide the two share one line,
+     the label first and the note at the end, baseline-aligned and 12px apart, at 48. The label's own line is 14/20 (a <code> in it is mono). */
+  .basalt-button[data-lines] {
+    --_radius: var(--basalt-radius-md);
+    height: auto;
+    min-width: 0;
+    min-height: var(--_basalt-control-6xl, var(--basalt-size-control-6xl));
+    padding-block: var(--basalt-space-2-5);
+    justify-content: flex-start;
+    text-align: start;
+  }
+  .basalt-button-lines { display: grid; gap: var(--basalt-space-0-5); justify-items: start; min-width: 0; }
+  .basalt-button[data-lines] .basalt-button-label { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); min-width: 0; }
+  .basalt-button[data-lines] .basalt-button-label code { font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: inherit; }
+  .basalt-button-note { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); min-width: 0; }
+  .basalt-button[data-lines][data-disabled] .basalt-button-note { color: inherit; }
+  /* size-breakpoint-container-sm (340px) and size-breakpoint-container (480px): a container query cannot read a token */
+  @container (340px <= width < 480px) {
+    .basalt-button[data-lines] { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); padding-block: var(--basalt-space-2); }
+    .basalt-button[data-lines] > .basalt-button-lines { display: flex; flex: 1; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); }
+  }
+
+  /* The done state (DECISIONS 154, D11c): rest and done glyphs share one cell of the glyph's size and swap by opacity over duration-fast. The swap is
+     a glyph change, so it keeps its 100ms crossfade with or without reduced motion (DECISIONS 138, C10). No fill, no plate: the glyph is the cue. */
+  .basalt-button-swap { display: grid; }
+  .basalt-button-swap > .basalt-icon { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-button-swap > .basalt-icon:last-child,
+  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:first-child { opacity: 0; }
+  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:last-child { opacity: 1; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
      level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
@@ -262,7 +351,8 @@
   .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
   .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); }
   .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
-  .basalt-button[data-variant="danger"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
+  .basalt-button[data-variant="danger"][data-disabled],
+  .basalt-button[data-variant="outline"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
   /* Loading is busy, not disabled: the variant colour stays and a spinner sits on the label. */
   .basalt-button[data-loading] { cursor: progress; }
@@ -270,6 +360,57 @@
   .basalt-button[data-variant="secondary"][data-loading] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-hairline); }
   .basalt-button[data-variant="ghost"][data-loading] { background: transparent; color: var(--basalt-text-secondary); }
   .basalt-button[data-variant="danger"][data-loading] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
+  .basalt-button[data-variant="outline"][data-loading] { background: transparent; color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input); }
+
+  /* ---- TextButton (DECISIONS 154, D5d) ----
+     A button that reads as running text: no box and no height, the text's own font, primary ink and a 1px underline in the input boundary that
+     goes to the ink on hover, as Link's does. Radius 4 is only the focus ring's corner. No pressed state. The icon after the words is
+     not underlined. The quiet form is secondary ink at rest. On touch a button on a line of its own has a 44px hit box with no change to layout
+     (a box with no content, centred and at least 44 wide, like Link's); one inside a sentence keeps its line. */
+  .basalt-text-button {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--basalt-space-1-5);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--basalt-radius-xs);
+    background: none;
+    color: var(--basalt-text-primary);
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-text-button[data-quiet] { color: var(--basalt-text-secondary); }
+  .basalt-text-button-label {
+    text-decoration: underline;
+    text-decoration-color: var(--basalt-border-input);
+    text-underline-offset: var(--basalt-size-underline-offset);
+    text-decoration-thickness: var(--basalt-size-hairline);
+    transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-text-button > .basalt-icon { align-self: center; flex: none; color: var(--basalt-text-secondary); }
+  .basalt-text-button:hover:not([data-disabled]) .basalt-text-button-label { text-decoration-color: currentColor; }
+  .basalt-text-button[data-quiet]:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
+  .basalt-text-button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-text-button[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  .basalt-text-button[data-disabled] > .basalt-icon { color: inherit; }
+  .basalt-text-button[data-disabled] .basalt-text-button-label { text-decoration-color: currentColor; }
+  @media (pointer: coarse) {
+    .basalt-text-button:not(:is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table) *)::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%; /* physical: it is centred, in either direction */
+      width: max(100%, var(--basalt-size-tap-min));
+      height: var(--basalt-size-tap-min);
+      transform: translate(-50%, -50%);
+    }
+  }
 
   /* ---- Field and Input ---- */
 
@@ -323,6 +464,10 @@
   .basalt-input[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
   .basalt-input[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-input[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
 
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -675,6 +820,93 @@
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] {
     background: var(--_pill);
     box-shadow: var(--basalt-shadow-pill);
+  }
+
+  /* Tabs at 48 or 56 (DECISIONS 154, D12): 16px text, 10px of padding either side (24px between two labels, 4px of gap), radius 8 on the top
+     corners (the drawn box is 44 or more). The 56 bar steps to 48 in a container narrower than size-breakpoint-container-lg (640px). The
+     underline is the same 2px element as at 36. */
+  .basalt-tabs[data-size="3xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-tabs:is([data-size="3xl"], [data-size="5xl"]) > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab {
+    padding-inline: var(--basalt-space-2-5);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
+  }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  }
+
+  /* Panels that share one seat (DECISIONS 154, X6). All panels stay mounted in one grid cell; the ones not shown keep their room and are
+     visibility: hidden (Base UI also makes them inert), so the view is as tall as its tallest panel and a change of tab moves nothing under
+     it. No !important: an author rule beats the user agent's [hidden]. The element is its own container, so it turns off by its own width. */
+  .basalt-tabs-panels[data-stacked] { display: grid; container-type: inline-size; }
+  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel { grid-area: 1 / 1; min-width: 0; }
+  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: block; visibility: hidden; }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: none; }
+  }
+
+  /* ---- Link tabs (DECISIONS 154, D12) ----
+     A nav of links on a hairline. The current link is primary ink with a 2px underline: a real element (so forced colours keep it), static, not
+     sliding. Focus is the control ring at +2 outside the link, never an inset outline. Padding is 8 either side at 36, 10 at 48 and 56 (24px
+     between two labels), the gap 4 and the first link has no padding at its start. Hover lifts the ink. */
+  .basalt-link-tabs { margin: 0; padding: 0; }
+  .basalt-link-tabs > ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--basalt-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
+  }
+  .basalt-link-tab {
+    --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg));
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    height: var(--_h);
+    padding: 0 var(--basalt-space-2);
+    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-link-tabs[data-size="3xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-link-tabs:is([data-size="3xl"], [data-size="5xl"]) .basalt-link-tab {
+    padding-inline: var(--basalt-space-2-5);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
+  }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  @container (width < 640px) {
+    .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  }
+  .basalt-link-tabs > ul > li:first-child > .basalt-link-tab { padding-inline-start: 0; }
+  .basalt-link-tab-line { position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .basalt-link-tab[aria-current] { color: var(--basalt-text-primary); }
+  .basalt-link-tab[aria-current] > .basalt-link-tab-line { opacity: 1; }
+  @media (hover: hover) {
+    .basalt-link-tab:hover { color: var(--basalt-text-primary); }
+  }
+  .basalt-link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse) {
+    .basalt-link-tab { min-height: var(--basalt-size-tap-min); }
+  }
+  /* Under 720px wide the row is replaced by a Select of the same links (A15, Castle's form: the prototype hides the row and shows a select there). Both are in
+     the markup, and only this rule chooses, so nothing moves or flashes on load; display: none takes the hidden one out of the accessibility tree and the
+     Tab order. The Select says "Go to" before the page's name (valuePrefix, DECISIONS 158); it is Basalt's own, the field's width, at Castle's 44 for the 48 row (the 36 row's 36, 44 on touch, and 48 for the 56 row): see SELECT_SIZE in link-tabs.tsx. */
+  .basalt-link-tabs-select { display: none; min-width: 0; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the row is a Select */
+  @media (width < 720px) {
+    .basalt-link-tabs > ul { display: none; }
+    .basalt-link-tabs-select { display: block; }
   }
 
   /* ---- Segmented control ---- */
@@ -1897,6 +2129,142 @@
     .basalt-chip::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-lg) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)) 0; }
   }
 
+  /* A chip at 44 and up (MultiSelect's controlSize, DECISIONS 154): its height, radius 8 and 16px text; on touch the box is already the target. */
+  .basalt-chip[data-size="2xl"] { height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); }
+  .basalt-chip[data-size="3xl"] { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
+  .basalt-chip[data-size="4xl"] { height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); }
+  .basalt-chip[data-size="5xl"] { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"]) { border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  @media (pointer: coarse) {
+    .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"])::before { content: none; }
+  }
+
+  /* ---- SwitchRow (DECISIONS 154, D9) ----
+     One checkbox drawn as a row: a tile, a name over a kind, and a 16px seat where a plus (off) and a check (on) cross over in 100ms, a swap that
+     keeps its fade under reduced motion (DECISIONS 138, C10). Radius 8; 52 tall from 720px wide (size-control-4xl) and 48 under it
+     (size-control-3xl, compact one rung down), the tile 36 and 32. Off is secondary ink on the input boundary (3:1); on is the selected wash and primary
+     ink and its edge does not change; hover lifts the ink to primary and takes the edge to secondary ink (not border-hover: that is fainter than
+     the input boundary, so the edge would drop under 3:1); a press is the hover wash. Focus is the control ring at +2 outside. A hover or
+     press never moves anything. In forced colours on is Highlight with HighlightText and no outline. */
+  .basalt-switch-rows { display: grid; align-content: start; gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-switch-row {
+    position: relative;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--basalt-space-2-5);
+    width: 100%;
+    min-width: 0;
+    min-height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl));
+    margin: 0;
+    padding: var(--basalt-space-1-5) var(--basalt-space-3) var(--basalt-space-1-5) var(--basalt-space-2);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font-family: var(--basalt-font-family-sans);
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-switch-row[data-tile] { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .basalt-switch-row-tile { display: block; flex: none; width: var(--basalt-size-control-lg); height: var(--basalt-size-control-lg); }
+  .basalt-switch-row-tile > * { display: block; width: 100%; height: 100%; }
+  .basalt-switch-row-text { display: grid; min-width: 0; }
+  .basalt-switch-row-name { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-kind { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-switch-row-seat > .basalt-icon { position: absolute; inset: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-switch-row-check, .basalt-switch-row[data-checked] .basalt-switch-row-plus { opacity: 0; }
+  .basalt-switch-row[data-checked] .basalt-switch-row-check { opacity: 1; }
+  .basalt-switch-row[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-switch-row[data-checked] .basalt-switch-row-seat { color: var(--basalt-text-primary); }
+  .basalt-switch-row[data-checked] .basalt-switch-row-kind { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    .basalt-switch-row:hover:not([data-disabled]) { color: var(--basalt-text-primary); border-color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+    .basalt-switch-row:hover:not([data-disabled]):not([data-checked]) .basalt-switch-row-seat { color: var(--basalt-text-secondary); }
+  }
+  .basalt-switch-row:active:not([data-disabled]) { background: var(--basalt-state-hover); }
+  .basalt-switch-row[data-checked]:active:not([data-disabled]) { background: var(--basalt-state-selected); }
+  .basalt-switch-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-switch-row[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .basalt-switch-row[data-disabled] :is(.basalt-switch-row-seat, .basalt-switch-row-kind) { color: var(--basalt-text-disabled); }
+  .basalt-switch-row[data-disabled][data-checked] { background: transparent; }
+  /* Under 720px wide: 48 tall, the tile 32, the name 13/18, the padding and the gap a step tighter. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the row is 48 */
+  @media (width < 720px) {
+    .basalt-switch-row { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); column-gap: var(--basalt-space-2); padding-inline: var(--basalt-space-1-5) var(--basalt-space-2); }
+    .basalt-switch-row-tile { width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); }
+    .basalt-switch-row-name { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  }
+
+  /* ---- OptionChips (DECISIONS 154, D9): one of many, eight at most, as chips that wrap with no track ----
+     A fieldset and its legend (with a small tertiary count), then chips 8px apart. A chip is 44 tall (40 compact), radius 8, padding 10 before and 14
+     after, 16px text, with a round 16px seat every chip reserves: a ring at rest, filled with the check when chosen. The chosen chip is the selected
+     wash and primary ink; its edge does not change (no inked border: it would read as focus). Rest is secondary ink on the input boundary; hover
+     lifts the ink and takes the edge to secondary ink (as the switch row). A value that cannot be chosen is the disabled look with its words kept.
+     The fill swaps in 100ms, with or without reduced motion. Focus is the control ring at +2 outside. */
+  .basalt-option-chips { min-width: 0; margin: 0; padding: 0; border: 0; }
+  .basalt-option-chips-legend { display: block; }
+  .basalt-option-chips-count { margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-option-chips-list { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
+  .basalt-option-chip {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    min-height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl));
+    margin: 0;
+    padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
+    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border-radius: var(--basalt-radius-md);
+    background: transparent;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-option-chip-seat {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--basalt-size-choice);
+    height: var(--basalt-size-choice);
+    border-radius: var(--basalt-radius-full);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-action-primary-text);
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out);
+  }
+  .basalt-option-chip-seat > .basalt-icon { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-option-chip[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
+  .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: var(--basalt-action-primary); box-shadow: none; }
+  .basalt-option-chip[data-checked] .basalt-option-chip-seat > .basalt-icon { opacity: 1; }
+  .basalt-option-chip-note { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  @media (hover: hover) {
+    .basalt-option-chip:hover:not([data-unavailable]):not([data-disabled]) { color: var(--basalt-text-primary); border-color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+  }
+  .basalt-option-chip:active:not([data-unavailable]):not([data-disabled]) { background: var(--basalt-state-hover); }
+  .basalt-option-chip[data-checked]:active:not([data-unavailable]):not([data-disabled]) { background: var(--basalt-state-selected); }
+  .basalt-option-chip:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-option-chip[data-unavailable], .basalt-option-chip[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
+  .basalt-option-chip[data-unavailable] .basalt-option-chip-seat, .basalt-option-chip[data-disabled] .basalt-option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
+  .basalt-option-chip[data-disabled][data-checked] { background: transparent; }
+  @media (pointer: coarse) {
+    .basalt-option-chip { min-height: max(var(--_basalt-control-2xl, var(--basalt-size-control-2xl)), var(--basalt-size-tap-min)); }
+  }
+
   /* The trigger and the checklist. The trigger is a secondary Button: it reads the label, then its value, then a caret, and
      takes the selected wash while it filters. The popup is a menu's popup: popup rows, a 36px plate in a 40px row. */
   .basalt-filter[data-popup] { flex-direction: row; align-items: center; }
@@ -2079,6 +2447,15 @@
   .basalt-select-trigger[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
   .basalt-select-trigger[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
   .basalt-select-trigger[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  /* A label before the value inside the trigger (valuePrefix): the multi-select trigger's form, a label then its value, on the trigger's one line (the height does
+     not change). The label is secondary ink and the value keeps the trigger's own; both stay on one line and the value is cut by an ellipsis before the caret. */
+  .basalt-select-lead { display: inline-flex; align-items: baseline; gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-select-prefix { flex: none; color: var(--basalt-text-secondary); white-space: nowrap; }
+  .basalt-select-lead > .basalt-select-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-select-value[data-placeholder] { color: var(--basalt-text-tertiary); }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
@@ -3236,6 +3613,8 @@
   .basalt-chrome .basalt-text[data-tone="tertiary"],
   .basalt-chrome .basalt-sparkline-axis,
   .basalt-chrome .basalt-chip-seat,
+  .basalt-chrome .basalt-switch-row-seat,
+  .basalt-chrome .basalt-option-chips-count,
   .basalt-chrome .basalt-filter-count,
   .basalt-chrome .basalt-stat-source,
   .basalt-chrome .basalt-chart-source,
@@ -3998,4 +4377,36 @@
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
     .basalt-travel { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); transform: translate(var(--_to-x), var(--_to-y)) translate(-50%, -50%); }
   }
+  /* ---- The controls of DECISIONS 154 in forced colours and print ----
+     A box-shadow edge is dropped by forced colours, so the count pill, the option chip's seat and the outline button draw a real border in a system
+     colour. On is Highlight with HighlightText for the row, its name and its check, with no outline as a state mark; focus is the ordinary ring.
+     The amount is full ink: an opacity is an author colour. The current link tab's underline is Highlight. Unavailable and disabled are GrayText. */
+  @media (forced-colors: active) {
+    .basalt-button-count { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
+    .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: 1; }
+    .basalt-switch-row,
+    .basalt-option-chip { border-color: ButtonText; color: ButtonText; }
+    .basalt-switch-row :is(.basalt-switch-row-kind, .basalt-switch-row-seat),
+    .basalt-option-chip-seat { color: ButtonText; }
+    .basalt-switch-row[data-checked],
+    .basalt-switch-row[data-checked]:hover,
+    .basalt-switch-row[data-checked]:active,
+    .basalt-option-chip[data-checked],
+    .basalt-option-chip[data-checked]:hover,
+    .basalt-option-chip[data-checked]:active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .basalt-switch-row[data-checked] :is(.basalt-switch-row-name, .basalt-switch-row-kind, .basalt-switch-row-seat, .basalt-icon) { color: HighlightText; }
+    .basalt-option-chip[data-checked] :is(.basalt-option-chip-label, .basalt-option-chip-note) { color: HighlightText; }
+    .basalt-option-chip-seat { box-shadow: none; border: var(--basalt-size-hairline) solid ButtonText; }
+    .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: HighlightText; border-color: HighlightText; color: Highlight; }
+    .basalt-option-chip[data-checked] .basalt-option-chip-seat > .basalt-icon { color: Highlight; }
+    .basalt-switch-row[data-disabled],
+    .basalt-option-chip[data-disabled],
+    .basalt-option-chip[data-unavailable] { border-color: GrayText; color: GrayText; }
+    .basalt-switch-row[data-disabled] :is(.basalt-switch-row-kind, .basalt-switch-row-seat),
+    .basalt-option-chip[data-disabled] .basalt-option-chip-seat,
+    .basalt-option-chip[data-unavailable] .basalt-option-chip-seat { color: GrayText; border-color: GrayText; }
+    .basalt-link-tab-line { forced-color-adjust: none; background: Highlight; }
+    .basalt-text-button[data-disabled] { color: GrayText; }
+  }
+
 }

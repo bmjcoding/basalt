@@ -4,20 +4,27 @@ import * as React from "react";
 import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, newTabRender, newTabWords } from "./new-tab";
+import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
-export type ControlSize = "xs" | "sm" | "md" | "lg" | "xl";
+/** `outline` is transparent with an input-boundary edge and primary ink (DECISIONS 154, A7): a button beside the primary one that must not look like a second primary. */
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
+export type ControlSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
 
 type BaseProps = Omit<PartProps<"button">, "children"> & {
   /** Set to false when `render` produces something other than a native `<button>`, such as a link. */
   nativeButton?: boolean;
   /** Stay focusable while disabled, so a keyboard user can still reach it and read why. */
   focusableWhenDisabled?: boolean;
-  /** Control height: 24, 28, 32, 36 or 40px. md (32px) is the app default. */
+  /**
+   * Control height: 24, 28, 32, 36, 40, 44, 48, 52 or 56px (xs to 5xl). md (32px) is the app default. 2xl and up are radius 8 and,
+   * on a button with text, 600 (DECISIONS 154). Compact density steps each one down: 56 to 52, 52 to 48, 48 to 44, 44 to 40.
+   */
   size?: ControlSize;
+  /** The button is as wide as the space it is in, its label centred. Nothing else changes. */
+  fullWidth?: boolean;
   /** Shows a spinner and ignores activation. The label stays, so the width does not jump. */
   loading?: boolean;
   /**
@@ -31,7 +38,7 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
  * A toggle: `pressed` writes `aria-pressed`. Only secondary and ghost buttons toggle (a latched primary would read as the
  * primary action, a latched danger as an error); on those two `pressed` is a type error.
  */
-type Toggle = { variant?: "secondary" | "ghost"; pressed?: boolean } | { variant: "primary" | "danger"; pressed?: never };
+type Toggle = { variant?: "secondary" | "ghost"; pressed?: boolean } | { variant: "primary" | "danger" | "outline"; pressed?: never };
 
 export type ButtonProps = BaseProps &
   Toggle & {
@@ -41,13 +48,33 @@ export type ButtonProps = BaseProps &
     iconEnd?: IconComponent;
     /** `icon` is a long-tail glyph that keeps its silhouette when filled, so a pressed toggle may fill it. A core glyph needs no mark. */
     fillSafe?: boolean;
+    /**
+     * A quieter amount after the label ("Add to cart $49"), in tabular figures. It sits in a seat that holds the widest amount
+     * named in `amountReserve`, so the label never moves when the amount changes. Put the amount in the button's name too (a
+     * screen reader reads the amount with the label, in order).
+     */
+    amount?: React.ReactNode;
+    /** Every other amount `amount` can take, so the seat is as wide as the widest. Name the widest; the rest are unseen. */
+    amountReserve?: readonly React.ReactNode[];
+    /**
+     * A count in an outlined pill beside the label. The pill is `aria-hidden`: the button's name carries the count ("Cart, 3
+     * items"). Its number is secondary at zero and primary above. It holds two tabular digits (0 to 99), so it does not move
+     * while the count grows in that range.
+     */
+    count?: number;
+    /**
+     * A second line under the label, start-aligned, in secondary ink (13/18 over the label's 14/20), for a button that says where it goes and then
+     * what it will do. In a container between `size-breakpoint-container-sm` and `size-breakpoint-container` wide the two share one line.
+     * Give the container `container-type: inline-size`; with none, the button stays two lines. The note is part of the button's name.
+     */
+    note?: React.ReactNode;
     children: React.ReactNode;
   };
 
 const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 
 /** A button. Its label says what happens: "Deploy", not "OK". */
-export function Button({ variant = "secondary", size = "md", icon, iconEnd, fillSafe, pressed, loading = false, disabled, onClick, className, children, newTabLabel, render, ...props }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading = false, disabled, onClick, className, children, newTabLabel, render, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
   const link = newTabRender(render);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
@@ -63,6 +90,8 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, fill
       data-loading={loading ? "" : undefined}
       data-variant={variant}
       data-size={size}
+      data-full-width={fullWidth ? "" : undefined}
+      data-lines={note ? "" : undefined}
       className={withClass("basalt-button", className)}
       onClick={(event) => {
         // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
@@ -76,10 +105,28 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, fill
       {icon ? <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} /> : null}
       {/* A text toggle's 16px seat holds the check while pressed and is empty while not, so both are one width. */}
       {toggles && !icon ? <span className="basalt-button-check" aria-hidden="true"><Icon icon={CheckGlyph} size={16} /></span> : null}
-      <span className="basalt-button-label">
-        {children}
-        {link.newTab ? <NewTabWords label={newTabLabel} /> : null}
-      </span>
+      {note ? (
+        <span className="basalt-button-lines">
+          <span className="basalt-button-label">
+            {children}
+            {link.newTab ? <NewTabWords label={newTabLabel} /> : null}
+          </span>
+          <span className="basalt-button-note">{note}</span>
+        </span>
+      ) : (
+        <span className="basalt-button-label">
+          {children}
+          {link.newTab ? <NewTabWords label={newTabLabel} /> : null}
+        </span>
+      )}
+      {amount !== undefined ? (
+        <Reserve
+          className="basalt-button-amount"
+          show="now"
+          alternatives={{ now: amount, ...Object.fromEntries((amountReserve ?? []).map((other, at) => [`reserve-${at}`, other])) }}
+        />
+      ) : null}
+      {count !== undefined ? <span className="basalt-button-count" aria-hidden="true" data-zero={count === 0 ? "" : undefined}><span>{count}</span></span> : null}
       {link.newTab ? <NewTabGlyph size={iconSize(size)} /> : iconEnd ? <Icon icon={iconEnd} size={iconSize(size)} /> : null}
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>
@@ -89,6 +136,14 @@ export function Button({ variant = "secondary", size = "md", icon, iconEnd, fill
 export type IconButtonProps = BaseProps &
   Toggle & {
     icon: IconComponent;
+    /**
+     * The "done" state: the glyph is replaced by `doneIcon` (the core check) in the button's own ink, with a 100ms crossfade that
+     * stays under reduced motion. No fill, no plate and no change of name: say what happened in a polite line outside the button (a
+     * `StatusLine`). Hold it for `CONFIRM_MS` with `useConfirm`. Both glyphs share one seat, so nothing moves.
+     */
+    done?: boolean;
+    /** The glyph shown while `done`. Default: the core check. */
+    doneIcon?: IconComponent;
     /** `icon` is a long-tail glyph that keeps its silhouette when filled, so a pressed toggle may fill it. A core glyph needs no mark. */
     fillSafe?: boolean;
     /** Required: an icon-only button has no visible text, so this is its name. Also shown as its tooltip by convention. For a button that opens a new tab, the words are added to it. */
@@ -96,7 +151,7 @@ export type IconButtonProps = BaseProps &
   };
 
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
-export function IconButton({ variant = "ghost", size = "md", icon, fillSafe, pressed, label, loading = false, disabled, onClick, className, newTabLabel, render, ...props }: IconButtonProps) {
+export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading = false, disabled, onClick, className, newTabLabel, render, ...props }: IconButtonProps) {
   const link = newTabRender(render);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
@@ -113,6 +168,8 @@ export function IconButton({ variant = "ghost", size = "md", icon, fillSafe, pre
       data-variant={variant}
       data-size={size}
       data-icon-only=""
+      data-full-width={fullWidth ? "" : undefined}
+      data-done={done ? "" : undefined}
       className={withClass("basalt-button", className)}
       onClick={(event) => {
         // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
@@ -123,7 +180,15 @@ export function IconButton({ variant = "ghost", size = "md", icon, fillSafe, pre
         onClick?.(event);
       }}
     >
-      <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
+      {done !== undefined ? (
+        // Rest and done share one cell of the glyph's size, and swap by opacity: the button never changes.
+        <span className="basalt-button-swap" aria-hidden="true">
+          <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
+          <Icon icon={doneIcon} size={iconSize(size)} />
+        </span>
+      ) : (
+        <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
+      )}
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>
   );
