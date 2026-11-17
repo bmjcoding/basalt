@@ -310,7 +310,7 @@ for (const id of rounds) {
             } else await page.waitForTimeout(700);
           }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
-          if (/^(tab-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
+          if (/^((tab|open)-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
             await page.locator("[data-wt-hover]").first().hover();
             await page.waitForTimeout(250);
           }

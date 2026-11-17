@@ -469,6 +469,18 @@ extension Basalt {
     public static let sheetWidth: Double = 440
     /// Command menu width, capped by the viewport.
     public static let commandWidth: Double = 560
+    /// A wide dialog's width, capped by the viewport: 992px (DECISIONS 158, Q1), 118 characters of Geist Mono at 14px rounded up, kept in px.
+    public static let dialogWidthWide: Double = 992
+    /// The search button's width from 720, shaped like a field (DECISIONS 155, R5). Below 720 it is a square icon button.
+    public static let searchTrigger: Double = 200
+    /// The leading slot of a search result that shows a brand's logo: 96 by 48, so the row is 60 with 6px above and below (DECISIONS 155, R9).
+    public static let searchLogoWidth: Double = 96
+    /// Height of the logo slot in a search result row.
+    public static let searchLogoHeight: Double = 48
+    /// The leading slot of a search result that shows a product's picture: 48 by 60, so the row is 72 with 6px above and below (DECISIONS 155, R9).
+    public static let searchPackWidth: Double = 48
+    /// Height of the picture slot in a search result row.
+    public static let searchPackHeight: Double = 60
     /// Toast width, capped by the viewport.
     public static let toastWidth: Double = 360
     /// Popover maximum width.

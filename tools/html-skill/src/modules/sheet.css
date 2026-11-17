@@ -62,6 +62,39 @@
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
 
+  /* A sheet with a head, a body and a foot (React's SheetHeader, SheetBody and SheetFooter; DECISIONS 155, D10b): edge to edge, no padding of its own, the
+     head and the foot keeping the safe areas. The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it. */
+  /* stylelint-disable-next-line unit-disallowed-list -- 44px at every pointer: joins the controls batch's size token (DECISIONS 154) */
+  .sheet-head { --_control-44: 44px; }
+  dialog.sheet:has(> .sheet-head, > .sheet-body, > .sheet-foot) { padding: 0; overflow: hidden; }
+  .sheet-head {
+    box-sizing: border-box;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--basalt-space-3);
+    padding: max(var(--basalt-space-3), env(safe-area-inset-top, var(--basalt-space-0))) max(var(--basalt-space-3), env(safe-area-inset-right, var(--basalt-space-0))) var(--basalt-space-3) max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0)));
+    border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .sheet-head-text { flex: 1; min-width: 0; }
+  .sheet-head .dialog-title { font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
+  .sheet-head .dialog-description { margin: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
+  .sheet-close { --_h: var(--_control-44); border-radius: var(--basalt-radius-md); flex: none; }
+  .sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-right, var(--basalt-space-0)));
+  }
+  .sheet-foot {
+    box-sizing: border-box;
+    flex: none;
+    padding: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0)));
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     dialog.sheet { transform: none; opacity: 0; clip-path: none; }
     dialog.sheet[open] { opacity: 1; }
@@ -71,5 +104,7 @@
 
   @media (forced-colors: active) {
     .sheet-band { border-bottom-color: CanvasText; }
+    .sheet-head { border-bottom-color: CanvasText; }
+    .sheet-foot { border-top-color: CanvasText; }
   }
 }
