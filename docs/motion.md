@@ -45,7 +45,7 @@ The code-block copy control swaps its Phosphor Copy icon for Check, instantly. T
 
 ## Chips and sort indicators
 
-A multi-select chip (`MultiSelect`) shows a plus when off and the check when on in one 16px seat. The two glyphs are stacked and swap by opacity over `duration-fast` on `ease-out` (a crossfade, not a `MorphIcon` morph: plus to check is not one of the allowed morphs); under reduced motion they change at once. A chip's colour changes ease over `duration-fast` too, hover-in is instant, and a press is a colour step with no scale.
+A multi-select chip (`MultiSelect`) shows a plus when off and the check when on in one 16px seat. The two glyphs are stacked and swap by opacity over `duration-fast` on `ease-out` (a crossfade, not a `MorphIcon` morph: plus to check is not one of the allowed morphs), with or without reduced motion: it is opacity only, which reduced motion keeps (DECISIONS 138, C10; decided by the council and approved by the owner, the implementation hasn't been reviewed). A chip's colour changes ease over `duration-fast` too, hover-in is instant, and a press is a colour step with no scale.
 
 A pressed toggle Button (`aria-pressed`; secondary and ghost) swaps its check the same way: the seat's glyph fades over `duration-fast` on `ease-out`, and the fill and ink step with it. It is a crossfade, not a `MorphIcon` morph, and the 100ms fade stays under reduced motion; the .98 press stays Button's momentary press (none under reduced motion). A choice card crossfades its fill, its hover wash and its box over `duration-fast` too, the same 100ms under reduced motion, and never scales.
 
@@ -53,7 +53,7 @@ The sort indicator of a sortable table header (the caret and the two arrows) swa
 
 ## The sliding pill
 
-`SegmentedControl` and a vertical `TabsList` each hold one pill element. When a segment or tab becomes chosen, the pill travels to it by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`, whatever the distance. The move is a CSS transition, not a keyframe animation: a second change 60ms in turns the pill from where it has reached, without a queue or a snap back. The chosen label's ink changes at the press, over `duration-fast`, and does not wait for the pill.
+`SegmentedControl` and a vertical `TabsList` each hold one pill element. When a segment or tab becomes chosen, the pill travels to it by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`, whatever the distance. The move is a CSS transition, not a keyframe animation: a second change 60ms in turns the pill from where it has reached, without a queue or a snap back. The chosen label's ink changes at the press, over `duration-fast`, and does not wait for the pill; its weight changes from 400 to 600 at the same press and moves nothing, because every label reserves its 600 width. The pill's edge is its hairline: it casts no drop shadow, and `shadow-pill` is retired (DECISIONS 138; decided by the council and approved by the owner, the implementation hasn't been reviewed).
 
 The component measures the chosen item into four CSS variables on the control, and nothing else: no animation frame is ever in React state. It re-measures when the control or the item resizes, when fonts finish loading, and when the screen turns; those re-placements are not moves. Its observers are removed with the control.
 

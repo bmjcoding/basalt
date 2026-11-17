@@ -87,13 +87,14 @@
   table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2),
   table[data-pinned="3"] tr:not([data-empty]) > :nth-child(2) { inset-inline-start: var(--_pin-1); }
   table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3) { inset-inline-start: var(--_pin-2); }
-  /* The row's wash is laid over the cell's own fill by the cell's ::before (a flat fill, behind the words), so a pinned cell shows the hover and selected
-     washes and stays opaque. It exists on the pinned columns only: they are the cells that are positioned. */
-  :is(table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1), table[data-pinned="2"] tr:not([data-empty]) > :nth-child(-n + 2), table[data-pinned="3"] tr:not([data-empty]) > :nth-child(-n + 3)):is(td, th[scope="row"])::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  /* A hovered or selected row's wash is on every cell of the row, pinned or not (decision 149), as React's is and as this module's plain table's is, and each cell is
+     one colour, mixed here (decision 138, C11), never a gradient, an image or a layer of its own: the wash's colour at its own alpha (white at 6% and 9% in dark, black
+     at 4% and 7% in light, the tokens' values) over the cell's fill, in sRGB, as a browser composites it. A pinned cell stays opaque in every state, and no column,
+     header or row height moves. light-dark() picks by the colour scheme the theme sets; a browser without it keeps the cell's own fill. */
   @media (hover: hover) {
-    table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"])::before { background: var(--basalt-state-hover); }
+    table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--panel-bg, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--panel-bg, var(--basalt-surface-raised)))); }
   }
-  table[data-pinned] tbody tr[aria-selected="true"] > :is(td, th[scope="row"])::before { background: var(--basalt-state-selected); }
+  table[data-pinned] tbody tr[aria-selected="true"] > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--panel-bg, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--panel-bg, var(--basalt-surface-raised)))); }
   /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is actually scrolled, and never a
      selection, sort or status mark. */
   table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
@@ -110,7 +111,6 @@
     table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,
     table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { forced-color-adjust: none; background: CanvasText; }
     table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: Canvas; }
-    table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"])::before { display: none; }
     .sort-seat { color: ButtonText; }
   }
 }

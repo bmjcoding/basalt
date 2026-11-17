@@ -23,6 +23,7 @@
       };
       tabs.forEach(function (tab) {
         tab.type = 'button';
+        _.reserve(tab);
         tab.addEventListener('click', function () { select(tab, false); });
         tab.addEventListener('keydown', function (e) {
           var i = tabs.indexOf(tab);

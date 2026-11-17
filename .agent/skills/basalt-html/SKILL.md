@@ -85,7 +85,7 @@ Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's)
 - **Type:** Geist and Geist Mono, weights 400, 500 and 600 only. Mono for identifiers, code, numbers in logs.
 - **Levels, rim, nesting.** A panel (`.panel`, `.card`, `.callout`, `.code`, `.table-wrap`) is one level above what holds it, capped at 3, with a 1px rim and no shadow. Level is position, not importance: a hero or a featured card on the page is still level 1. Group with space and dividers first; a panel is for a distinct object (code, table, preview, callout); go at most one panel deep inside a panel. Only things that leave the flow (menu, popover, dialog, palette) take `.float` and a shadow.
 - **Keys.** No single-character shortcuts on the page (WCAG 2.1.4): a shortcut needs ⌘, ⌃ or ⌥.
-- **Selected** is a shape or a step in ink, never a wash alone: the raised pill, a row's filled background, a checked box, a tab's underline. No vertical bar, no inset outline.
+- **Selected** is a shape or weight, never a wash alone: a segment or tab label at 600 (400 at rest) on its pill or underline, a row's filled background, a checked box. No vertical bar; an outline never marks a state.
 - **Both themes, always.** WCAG 2.2 AA: 4.5:1 text, 3:1 boundaries, focus and icons (the tokens pass; do not invent colours).
 - **Motion** from the tokens only; entries ease out, nothing bounces or overshoots; under reduced motion, opacity only. A press is a colour step; only `.btn` scales (`--usage core`).
 - **390px wide** must work: no sideways scroll, touch targets at least 44px (standalone links too: `--usage core`), inputs 16px (the CSS does this on coarse pointers). Don't hide a column to make a table fit.

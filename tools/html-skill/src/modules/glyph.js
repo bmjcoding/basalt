@@ -1,6 +1,6 @@
 /* Basalt HTML script, glyph module: Basalt's own glyphs (the core set, packages/react/glyphs/source.mjs), drawn from <span data-glyph="home"></span>.
    A glyph is eight cubic strokes on a 24 grid, 2.25 units wide at every size. At rest it has an opening; inside the current page (an ancestor with
-   aria-current, or data-current) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. data-size is 16
+   aria-current, or data-current) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. In a segment or a tab it follows the item's choice. data-size is 16
    (the default), 20 or 24. The drawings are worked out at build time (build.mjs), and a page carries only the glyphs it names, plus the ones a module draws itself
    (compose.mjs adds them with Basalt._.addGlyphs). Used by the sheet's Menu and Close, the navigation's glyphs and the tab bar.
    Source: tools/html-skill/src/modules/glyph.js (do not edit the copy in the skill folder). */
@@ -31,8 +31,10 @@
   function hydrate(root) {
     (root || document).querySelectorAll('[data-glyph]').forEach(function (el) {
       var selected = el.hasAttribute('data-selected') || !!el.closest('[aria-current]:not([aria-current="false"]), [data-current]');
-      var svg = glyph(el.getAttribute('data-glyph'), { size: Number(el.getAttribute('data-size')) || 16, selected: selected });
-      if (svg) el.outerHTML = svg;
+      var name = el.getAttribute('data-glyph'), size = Number(el.getAttribute('data-size')) || 16;
+      var svg = glyph(name, { size: size, selected: selected });
+      // In a segment or a tab the glyph draws both forms in one box, and the item's own state shows the one that matches (the segment and tabs modules' CSS), so it follows the choice.
+      if (svg) el.outerHTML = !selected && el.closest('.segment, [role="tab"]') ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
     });
   }
 

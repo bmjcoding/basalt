@@ -60,6 +60,7 @@
     document.querySelectorAll('.segment').forEach(function (root) {
       if (root.__bh) return;
       root.__bh = true;
+      root.querySelectorAll('button').forEach(_.reserve);
       attach(root);
     });
   }

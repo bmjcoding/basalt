@@ -325,7 +325,7 @@ describe("pinned columns at 390", () => {
       await page.getByRole("checkbox", { name: /^Select edge-router-101$/ }).tap();
       const sel = await page.evaluate(() => { const td = document.querySelector("tbody tr[data-selected] > td:nth-child(2)"); const cs = getComputedStyle(td); return { alpha: cs.backgroundColor, image: cs.backgroundImage }; });
       assert.ok(opaque(sel.alpha), "an opaque fill");
-      assert.match(sel.image, /gradient/, "with the selected wash over it, as one cell background");
+      assert.equal(sel.image, "none", "the selected wash is one cell background colour, never a gradient or an image (decision 138, C11)");
     });
 
     test(`under a pointer, a hovered pinned cell stays opaque and wears the row's wash (${theme})`, async () => {
@@ -334,7 +334,7 @@ describe("pinned columns at 390", () => {
       await page.locator("tbody tr:nth-child(2)").hover({ position: { x: 300, y: 10 } });
       const cell = await page.evaluate(() => { const cs = getComputedStyle(document.querySelector("tbody tr:nth-child(2) > td:nth-child(2)")); return { color: cs.backgroundColor, image: cs.backgroundImage }; });
       assert.ok(opaque(cell.color), "opaque under the pointer");
-      assert.match(cell.image, /gradient/);
+      assert.equal(cell.image, "none", "the row's wash is mixed into the cell's one background colour (decision 138, C11)");
     });
   }
 
@@ -559,10 +559,10 @@ describe("the multi-select: chips", () => {
     }
   });
 
-  test("reduced motion: the plus and the check change at once", async () => {
+  test("reduced motion: the plus and the check still crossfade over duration-fast (decision 138, C10)", async () => {
     const { page } = await open({ reducedMotion: "reduce", ...DESKTOP });
-    const d = await page.getByRole("checkbox", { name: "Failed" }).evaluate((el) => getComputedStyle(el.querySelector(".basalt-chip-seat > svg")).transitionDuration);
-    assert.equal(d, "0s");
+    const d = await page.getByRole("checkbox", { name: "Failed" }).evaluate((el) => { const s = getComputedStyle(el.querySelector(".basalt-chip-seat > svg")); return [s.transitionProperty, s.transitionDuration]; });
+    assert.deepEqual(d, ["opacity", "0.1s"]);
   });
 
   test("hover brightens the label and the line a step; a press is a colour step with no scale", async () => {

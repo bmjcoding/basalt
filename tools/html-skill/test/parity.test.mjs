@@ -110,6 +110,10 @@ const CASES = [
       ["list", ".basalt-tabs-list", ".tabs", ["boxHeight", "gap", "boxShadow", "borderBottomWidth", "display"]],
       ["selected tab", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", BOX],
       ["other tab", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", BOX],
+      // The chosen label is 600 and a resting one 400, each reserving its 600 width (decisions 138 and 139): the two draw the same width.
+      ["selected tab label", ".basalt-tab[aria-selected=true] [data-label]", ".tab[aria-selected=true] [data-label]", ["fontWeight", "boxWidth"]],
+      ["selected tab width", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", ["boxWidth", "fontWeight"]],
+      ["other tab width", ".basalt-tab[aria-selected=false]", ".tab[aria-selected=false]", ["boxWidth", "fontWeight"]],
       ["panel", ".basalt-tabs-panel", ".tabpanel:not([hidden])", ["paddingTop", "paddingLeft"]],
       ["focus ring", ".basalt-tab[aria-selected=true]", ".tab[aria-selected=true]", OUTLINE, { focus: true }],
     ],
@@ -127,6 +131,11 @@ const CASES = [
       ["pressed fill", ".basalt-segmented[data-slide] > .basalt-pill", ".segment[data-slide] > .pill", ["backgroundColor", "boxShadow", "borderTopLeftRadius", "boxHeight", "boxWidth"]],
       ["pressed, with the shared pill", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["backgroundColor", "boxShadow"]],
       ["rest", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", BOX],
+      ["pressed width", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["boxWidth", "fontWeight"]],
+      // The 600 is on the label, not on the item (decision 149): the two draw the same weight on their labels.
+      ["pressed label", ".basalt-segment[aria-pressed=true] [data-label]", ".segment button[aria-pressed=true] [data-label]", ["fontWeight", "boxWidth"]],
+      ["rest label", ".basalt-segment[aria-pressed=false] [data-label]", ".segment button[aria-pressed=false] [data-label]", ["fontWeight", "boxWidth"]],
+      ["rest width", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", ["boxWidth", "fontWeight"]],
       ["focus ring", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", OUTLINE, { focus: true }],
     ],
   },
@@ -1090,6 +1099,9 @@ const TABLES = [
       ["pinned select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["pinned name cell", "tbody tr:first-child th", "tbody tr:first-child th", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["pinned name cell, selected", "tbody tr:nth-child(2) th", "tbody tr:nth-child(2) th", ["backgroundColor"]],
+      // The wash is on every cell of the row in both builds (decision 149): an unpinned cell of the selected row is the same colour as React's.
+      ["unpinned cell, selected", "tbody tr:nth-child(2) td:nth-child(3)", "tbody tr:nth-child(2) td:nth-child(3)", ["backgroundColor"]],
+      ["last cell, selected", "tbody tr:nth-child(2) td:nth-child(5)", "tbody tr:nth-child(2) td:nth-child(5)", ["backgroundColor"]],
       ["pinned header, name", "thead th:nth-child(2)", "thead th:nth-child(2)", ["position", "left", "zIndex", "backgroundColor", ...BOXRECT]],
       ["a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["position"]],
       ["edge divider at rest", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "boxWidth", "backgroundColor", "position", "content"], { pseudo: "::after" }],
@@ -1098,6 +1110,10 @@ const TABLES = [
       ["scrolled: divider", "tbody tr:first-child th", "tbody tr:first-child th", ["opacity", "backgroundColor", "boxWidth"], { pseudo: "::after", scroll: 120 }],
       ["scrolled: select cell", "tbody tr:first-child td:nth-child(1)", "tbody tr:first-child td:nth-child(1)", ["rectLeft", "backgroundColor"], { scroll: 120 }],
       ["scrolled: a scrolling cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["rectLeft"], { scroll: 120 }],
+      // A hovered row's wash is on every cell in both builds (decision 149): the pointer rests on the first row and each cell is read, last because the pointer stays.
+      ["hovered row: pinned name", "tbody tr:first-child th", "tbody tr:first-child th", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
+      ["hovered row: an unpinned cell", "tbody tr:first-child td:nth-child(3)", "tbody tr:first-child td:nth-child(3)", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
+      ["hovered row: the last cell", "tbody tr:first-child td:nth-child(5)", "tbody tr:first-child td:nth-child(5)", ["backgroundColor"], { hover: ["tbody tr:first-child", "tbody tr:first-child"] }],
     ],
   },
   {

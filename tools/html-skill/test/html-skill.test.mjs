@@ -776,7 +776,7 @@ describe("primitives", () => {
         const [status, plain] = document.querySelectorAll(".badge");
         return {
           group: [cs(group).backgroundColor, cs(group).borderRadius, cs(group).paddingTop],
-          on: [cs(on).backgroundColor, cs(on).boxShadow, cs(on).color, cs(on).height, cs(on).borderRadius, cs(on).fontWeight],
+          on: [cs(on).backgroundColor, cs(on).boxShadow, cs(on).color, cs(on).height, cs(on).borderRadius, cs(on.querySelector("[data-label]") ?? on).fontWeight], // the 600 is on the label, not on the button (decision 149)
           off: [cs(off).backgroundColor, cs(off).boxShadow, cs(off).color],
           badge: [cs(plain).fontSize, cs(plain).fontWeight, cs(plain).color, cs(plain).borderRadius, cs(plain).height, cs(plain).boxShadow, cs(plain).borderTopWidth, cs(plain).borderTopColor, cs(plain).boxSizing],
           dot: [cs(status, "::before").width, cs(status, "::before").content, cs(plain, "::before").content],
@@ -785,8 +785,8 @@ describe("primitives", () => {
       });
       const px = (v) => resolve(page, "width", v);
       assert.deepEqual(out.group, [await resolve(page, "backgroundColor", "var(--basalt-surface-sunken-strong)"), await px("var(--basalt-radius-md)"), await px("var(--basalt-space-0-5)")]);
-      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "var(--basalt-shadow-pill)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
-      assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "500"]);
+      assert.deepEqual(out.on.slice(0, 3), [await resolve(page, "backgroundColor", scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"), await resolve(page, "boxShadow", "0 0 0 1px var(--basalt-border-hairline)"), await resolve(page, "color", "var(--basalt-text-primary)")], "pressed is a raised pill with a hairline");
+      assert.deepEqual(out.on.slice(3), [await px("var(--basalt-size-control-sm)"), await px("var(--basalt-radius-sm)"), "600"]); // this page has not run the script: the chosen button is 600 itself, as on origin/main (decision 138, A); with the script the 600 sits on the label (audit-design-a.test.mjs)
       assert.deepEqual(out.off, ["rgba(0, 0, 0, 0)", "none", await resolve(page, "color", "var(--basalt-text-secondary)")]);
       assert.deepEqual(out.badge, [await px("var(--basalt-text-xs-size)"), "500", await resolve(page, "color", "var(--basalt-text-secondary)"), await px("var(--basalt-radius-xs)"), await px("var(--basalt-size-badge)"), "none", await px("var(--basalt-size-hairline)"), await resolve(page, "color", "var(--basalt-border-hairline)"), "border-box"], "the edge is a real 1px border, not an inset shadow");
       assert.deepEqual([out.dot[0], out.dot[1] !== "none", out.dot[2]], [await px("var(--basalt-size-dot)"), true, "none"], "a status badge draws its dot, a count does not");
@@ -1087,7 +1087,7 @@ describe("the SKILL's rules", () => {
       /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
       /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
-      /\*\*Selected\*\* is a shape or a step in ink, never a wash alone: the raised pill, a row's filled background, a checked box, a tab's underline\. No vertical bar, no inset outline\./,
+      /\*\*Selected\*\* is a shape or weight, never a wash alone: a segment or tab label at 600 \(400 at rest\) on its pill or underline, a row's filled background, a checked box\. No vertical bar; an outline never marks a state\./,
       /standalone links too/,
       /\*\*Keys\.\*\* No single-character shortcuts on the page \(WCAG 2\.1\.4\)/,
     ]) assert.match(skill, rule);

@@ -122,7 +122,7 @@
   }
 
   /* On touch the trigger is at least 44 and its text 16px (React's Select trigger), whatever its size. */
-  @media (pointer: coarse) { select.input { min-height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); } }
+  @media (pointer: coarse) { select.input { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); } }
 
   @media (forced-colors: active) {
     select.input:has(> option:checked[value=""]) { color: GrayText; }

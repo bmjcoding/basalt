@@ -287,7 +287,7 @@ describe("the segment's pill", () => {
       assert.deepEqual([pill.display, pill.hidden, pill.radius, pill.running], ["block", "true", "6px", 0]);
       assert.ok(near(pill.x, at.x) && near(pill.y, at.y) && near(pill.w, at.width) && near(pill.h, at.height), JSON.stringify([pill, at]));
       assert.equal(pill.bg, await resolve(page, scheme === "dark" ? "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))" : "var(--basalt-surface-top)"));
-      assert.equal(pill.shadow, await resolve(page, "var(--basalt-shadow-pill)", "box-shadow"));
+      assert.equal(pill.shadow, await resolve(page, "0 0 0 1px var(--basalt-border-hairline)", "box-shadow"));
       const own = await page.locator("#b1").evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).boxShadow]);
       assert.deepEqual(own, ["rgba(0, 0, 0, 0)", "none"], "the pressed button paints no pill of its own while the shared one is drawn");
       assert.equal(await page.locator("#g > :first-child").evaluate((el) => el.className), "pill");
@@ -314,7 +314,7 @@ describe("the segment's pill", () => {
     await frames(reduced.page);
     assert.equal((await pillOf(reduced.page)).display, "none");
     const own = await reduced.page.locator("#b1").evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).boxShadow]);
-    assert.deepEqual(own, [await resolve(reduced.page, "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))"), await resolve(reduced.page, "var(--basalt-shadow-pill)", "box-shadow")]);
+    assert.deepEqual(own, [await resolve(reduced.page, "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))"), await resolve(reduced.page, "0 0 0 1px var(--basalt-border-hairline)", "box-shadow")]);
     await reduced.context.close();
 
     const { page, context } = await open(SEG);
@@ -342,7 +342,7 @@ describe("a tab's icon", () => {
       <div class="tabpanel" id="p1">A</div><div class="tabpanel" id="p2" hidden>B</div></div>`);
     const out = await page.locator("#t1").evaluate((tab) => {
       const c = getComputedStyle(tab), svg = tab.querySelector("svg").getBoundingClientRect(), box = tab.getBoundingClientRect();
-      const range = document.createRange(); range.selectNodeContents([...tab.childNodes].find((n) => n.nodeType === 3));
+      const range = document.createRange(); range.selectNodeContents([...(tab.querySelector("[data-label]") ?? tab).childNodes].find((n) => n.nodeType === 3)); // the label's text sits in a span that carries its own copy (decision 138)
       const text = range.getBoundingClientRect();
       const after = getComputedStyle(tab, "::after");
       return { display: c.display, gap: c.columnGap, centre: [svg.top + svg.height / 2, box.top + box.height / 2, text.top + text.height / 2], gapPx: text.left - svg.right, under: [after.height, after.width, box.width] };
