@@ -89,7 +89,10 @@ function filterTokens(css, keep) {
  * gets them when its body uses one of that module's classes or names one of them.
  */
 const TYPE_LAYOUT_TOKEN = /^--basalt-(?:text-(?:6xl|7xl|hero-narrow|display-narrow)-|space-32\b|size-section-gap|size-display-measure\b)/;
-const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name), { keepsOther: true });
+/** The link rows' row size (DECISIONS 152), the same way: the `link-rows` module's, out of the core, which has no room for a token only some pages use. */
+const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name), { keepsOther: true });
+const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
 const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
 const inTypeLayout = Object.assign((name) => TYPE_LAYOUT_TOKEN.test(name), { keepsOther: false });
 
@@ -229,7 +232,7 @@ export function build() {
     // The art module is the token groups taken out of the core (see MODULE_TOKEN); it has no source file either.
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     // The type-layout module's tokens come before its own rules, as the tokens come before the core's.
-    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : "";
+    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : "";
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));

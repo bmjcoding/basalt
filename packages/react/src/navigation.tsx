@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Button } from "./button";
+import { GoArrow } from "./go-arrow";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
@@ -14,20 +15,36 @@ export interface LinkProps extends React.ComponentProps<"a"> {
    * prop for the arrow: it, and these words, come from `target="_blank"` and nothing else.
    */
   newTabLabel?: string;
+  /**
+   * The arrow form of a link, for a link on a line of its own rather than in running text (DECISIONS 152, vote 4): no underline,
+   * weight 500, a 44px target, and the core arrow as its cue: `"end"` is a right arrow after the words (going on in the site),
+   * `"start"` a left arrow before them (going back). Secondary ink, lifting to primary and travelling 2px with the link's hover. A link
+   * with `target="_blank"` draws the new-tab arrow in the arrow's place and never both.
+   */
+  arrow?: "end" | "start";
 }
 
 /**
  * A link. A link with `target="_blank"` also draws the new-tab arrow after its label and says "(opens in a new tab)" in its
  * name: automatically, with no opt-out. A same-tab link to another site gets neither.
  */
-export function Link({ className, target, rel, children, newTabLabel, ...props }: LinkProps) {
+export function Link({ className, target, rel, children, newTabLabel, arrow, ...props }: LinkProps) {
   const newTab = opensNewTab(target);
   const relationship = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
+  if (!newTab && arrow) {
+    return (
+      <a {...props} target={target} rel={relationship} data-arrow={arrow} className={join("basalt-link", "basalt-link-go", className)}>
+        {arrow === "start" ? <GoArrow side="start" /> : null}
+        <span className="basalt-link-label">{children}</span>
+        {arrow === "end" ? <GoArrow /> : null}
+      </a>
+    );
+  }
   if (!newTab) return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)}>{children}</a>;
   // An aria-label replaces the content, so the words join the label itself. A link that holds only a logo keeps the words and skips the arrow.
   const label = props["aria-label"];
   return (
-    <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" className={join("basalt-link", className)}>
+    <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" data-arrow={arrow} className={join("basalt-link", arrow && "basalt-link-go", className)}>
       <span className="basalt-link-label">{children}</span>
       {hasVisibleText(children) ? <NewTabGlyph /> : null}
       {label ? null : <NewTabWords label={newTabLabel} />}

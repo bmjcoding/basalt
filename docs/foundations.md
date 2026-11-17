@@ -211,6 +211,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
 - **Settings and list rows** are full-bleed bands, not plates: each row spans the card edge to edge, dividers run edge to
   edge, and a row you can act on takes the hover wash (the card clips the corners). A choose-one list inside a card uses
   the menu plate. There is no settings-row component; this is the pattern for an app's own markup.
+  A ruled list on the page (a directory, the big link rows) is not a settings row: it takes the ink lift and no hover wash
+  (DECISIONS 152).
 - **Primary action:** the inverse of the page (near-white on dark, near-black on light),
   brightening to pure white or black on hover, and stepping to `action-primary-press` (the
   action colour 85% toward the page: about `#bfbfbf` in dark, `#333333` in light) while pressed.
@@ -322,7 +324,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   `Switch`; exactly one of many is a segmented control, never toggle buttons.
 - **External links** (`Link`, and a `Button` or `IconButton` rendered as an anchor; council, DECISIONS 95). The arrow means
   "opens in a new tab" and nothing else, so it comes automatically from `target="_blank"`, with no prop and no opt-out;
-  a same-tab link to another site gets nothing. It is the core `external` glyph after the label, `aria-hidden`, never
+  a same-tab link to another site gets no new-tab arrow (DECISIONS 152: the right arrow means going on in the site and the left arrow back; see [Links and rows](#links-and-rows)). It is the core `external` glyph after the label, `aria-hidden`, never
   underlined, 16px beside 12 to 16px text and in Buttons xs to lg, 20px beside text of 20px and up (`Text` and `Heading` at xl or larger set a private size for what they hold) and in an xl Button, where it takes the trailing-icon
   slot at the button's own gap (a new-tab Button has no other trailing icon). In running text it adds no space: the glyph's
   own side bearing, a word joiner (U+2060) before it and `nowrap` keep it with the last word, so it never starts a line.
@@ -980,6 +982,39 @@ labels, and `aria-current="page"` on the current link.
   hovered item is `Highlight` with `HighlightText` and no backplate.
 - **Touch and density.** A row is at least 48 tall on touch. Compact steps the pill down to 40 (a 40px rail circle), with a
   floor of 44 on touch, so a row is still 48.
+
+### Links and rows
+
+The link card and tile, the directory, the big link rows, the arrow link, the back link, show all and the copy button with words (DECISIONS 152: the council
+voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved site prototypes; the implementation hasn't been reviewed by the panel). Candidates D5a, D5b, D5c, D6 and X8.
+
+- **The arrow.** After a link, card or row that goes on in the site: the core `arrow-right` (16px; 24 on a card, 20 under 720). Before a
+  back link: `arrow-left`. Up-right (`external`) is the new-tab cue and nothing else, so a link, card or row that opens a new tab draws
+  that in the arrow's place, never both. Secondary ink at rest, primary on hover and focus; it travels 2px (`space-0-5`) in its own direction
+  over `duration-base` on `ease-out`, not under reduced motion (vote 2, no majority: the prototype's picture lift on a tile is dropped, a 2-2 tie
+  that kept the option with less change). In a right-to-left page it turns and travels the other way.
+- **The link card** (`LinkCard`) is one link round a media window, a heading, a sentence and a state; no rim, no level (not a `Card`). The
+  heading is the display role; the sentence and the state sit on one baseline `space-8` apart and stack under 720. **The tile** (`LinkTile`)
+  is a link round a picture, a brand line, a name (`text-md`, 500, a real heading, underlined on hover) and details, with a foot row outside
+  the link, because a link cannot hold a button. Link radius 6 so the ring has a shape.
+- **The directory** (`DirectoryList`, `DirectoryRow`): a head, then rows ruled by `border-divider`, each one link of three fixed columns:
+  the name (600) and the state (end-aligned, tabular) at 160px (`size-description-label`'s value) and the sentence the rest; one column
+  under 720 with the state starting. A row is `size-row` (56px, a new token) at least. **One list with one name, always.** Text is `text-md`
+  (DECISIONS 152, consent row 1: the prototypes' 15px). **The big link rows** (`BigLinkList`, `BigLinkRow`): one line, 600, `text-2xl`
+  and `text-3xl` from 1024 (the prototype's fluid 22 to 36 is gone: no clamp), two columns from 720 to 1023.
+- **The arrow link** is `Link` with `arrow="end"` or `"start"`: no underline, 500, `text-md`, a 44px target, the arrow its cue (WCAG 1.4.1). **The back
+  link** (`BackLink`) is a `nav` with one link: `text-base`, secondary lifting to primary with no underline, a 44px target.
+- **Show all** (`Reveal`, and `DirectoryList`'s `shown`): a secondary large button under a rule; `aria-expanded` and `aria-controls`; the
+  rest is `inert` and hidden while closed. It opens as a grid row going `0fr` to `1fr` over `duration-slow` on `ease-out` and closes at 0.75× on `ease-in`;
+  under reduced motion it is simply there. The clip keeps `space-2` beside the rows so a ring is whole and lets go at the transition's own end. A
+  keyboard open puts focus on the first new row only once the clip has let go (vote 5, no majority); a pointer open leaves it on the button.
+- **The copy button** (`CopyButton`): a `Button` of any variant and size that copies a string, says its words, then "Copied" for 1500ms
+  (as `CodeBlock` and `Terminal`), with both in one `Reserve` cell so its width never changes and a visually hidden `role="status"`. It says
+  Copied only after the write succeeded; a refused or missing clipboard leaves the button as it was.
+- **A cut table cell that holds a link** is unchanged (vote 7: no majority, so DECISIONS 142 stands: no plate).
+- **Values the builder chose where the ballot gave none, and the council left standing** (DECISIONS 157: no member objected): the link card's spacing (`space-10` above the heading, `space-5`
+  before the foot) and heading size (the `display` role), the directory's column gap (`space-6`) and head spacing (`space-3`), the show-all rule's padding (`space-4`),
+  the tile's foot gap (`space-1-5`); the prototypes set these on the site's own unit grid, which is not ported.
 
 ## Site structure
 

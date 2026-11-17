@@ -3872,6 +3872,7 @@
   .basalt-chrome .basalt-preview-kicker,
   .basalt-chrome .basalt-profile-handle,
   .basalt-chrome .basalt-framed-credit,
+  .basalt-chrome .basalt-link-tile-details,
   .basalt-chrome .basalt-field-necessity { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
@@ -4063,6 +4064,107 @@
   .basalt-breadcrumbs .basalt-link:hover { color: var(--basalt-text-primary); text-decoration: underline; }
   .basalt-breadcrumbs [aria-current="page"] { color: var(--basalt-text-primary); }
   .basalt-breadcrumbs:dir(rtl) .basalt-icon { transform: rotate(180deg); }
+
+  /* ---- Link cards, directory rows, big link rows, the arrow link and the back link (DECISIONS 152) ----
+     The arrow is the core right or left glyph (the new-tab arrow is the external glyph and nothing else): secondary ink at rest, primary on
+     hover and focus, travelling 2px (space-0-5) in its own direction over duration-base on ease-out, and not under reduced motion. No
+     wash on a row of the page: a ruled list on the page is not a settings row. Every ring is the control ring at +2. */
+  .basalt-go-arrow { --_travel: 1; --_flip: 1; display: inline-flex; flex: none; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-base) var(--basalt-ease-out), transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  /* Castle's forms (the arrow link and the big row) step their colour over duration-fast; the arrow's travel stays duration-base (DECISIONS 152, consent row 7). SRA's card and directory keep duration-base for both. */
+  :is(.basalt-link-go, .basalt-big-link) .basalt-go-arrow { transition: color var(--basalt-duration-fast) var(--basalt-ease-out), transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-go-arrow[data-side="start"] { --_travel: -1; }
+  .basalt-go-arrow:dir(rtl) { --_flip: -1; }
+  .basalt-go-arrow:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { color: var(--basalt-text-primary); transform: translateX(calc(var(--_travel) * var(--_flip) * var(--basalt-space-0-5))); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):is(:hover, :focus-visible) .basalt-external { color: var(--basalt-text-primary); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-tile-link, .basalt-back-link a):focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-sm); }
+
+  /* The arrow link: a Link on a line of its own. No underline, weight 500, the arrow is its cue, a 44px target. */
+  .basalt-link-go { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-decoration: none; white-space: nowrap; }
+  .basalt-link-go:hover { text-decoration: none; }
+
+  /* The back link: one line above a title. */
+  .basalt-back-link { font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-back-link a { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); color: inherit; font: inherit; text-decoration: none; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-back-link a:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+
+  /* The link card: a link round a picture, a heading, a sentence and a state. No rim, no level. */
+  .basalt-link-card { --_arrow: var(--basalt-size-icon-lg); position: relative; display: block; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); text-decoration: none; }
+  .basalt-link-card-media { position: relative; display: block; height: var(--_basalt-link-card-media-height, auto); overflow: hidden; background: var(--basalt-surface-page); }
+  .basalt-link-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--basalt-space-6); padding-block-start: var(--basalt-space-10); }
+  .basalt-link-card-title { margin: 0; font-size: var(--basalt-display-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-display-line-height); letter-spacing: var(--basalt-display-tracking); text-wrap: balance; overflow-wrap: anywhere; }
+  .basalt-link-card-top > :is(.basalt-go-arrow, .basalt-external) { margin-block-start: calc((var(--basalt-display-line-height) - var(--_arrow)) / 2); }
+  .basalt-link-card :is(.basalt-go-arrow, .basalt-external) > .basalt-icon { width: var(--_arrow); height: var(--_arrow); }
+  .basalt-link-card-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--basalt-space-8); padding-block-start: var(--basalt-space-5); color: var(--basalt-text-secondary); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-link-card-what { transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-link-card-state { font-variant-numeric: tabular-nums; }
+  .basalt-link-card:is(:hover, :focus-visible) .basalt-link-card-what { color: var(--basalt-text-primary); }
+
+  /* The tile: a link round a picture and text, and a foot row beside it, not inside it. */
+  .basalt-link-tile { display: flex; flex-direction: column; min-width: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-link-tile-link { display: flex; flex: 1; flex-direction: column; gap: var(--basalt-space-0-5); color: var(--basalt-text-primary); text-decoration: none; border-radius: var(--basalt-radius-sm); }
+  .basalt-link-tile-media { display: block; margin-block-end: calc(var(--basalt-space-3) - var(--basalt-space-0-5)); }
+  .basalt-link-tile-brand { display: block; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-link-tile-title { margin: 0; font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-link-tile-link:hover .basalt-link-tile-title { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .basalt-link-tile-details { display: block; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-link-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-block-start: var(--basalt-space-1-5); }
+
+  /* The directory: a head, then rows ruled by hairlines, each one link with three fixed columns (name, sentence, state). The name and state
+     columns are 160px, size-description-label's value, for another role here; the sentence takes the rest. */
+  .basalt-directory { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-directory-head { margin: 0; padding-block-end: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-directory-list { margin: 0; padding: 0; list-style: none; }
+  .basalt-directory-item:not([data-rest]) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-directory-row { display: grid; grid-template-columns: var(--basalt-size-description-label) minmax(0, 1fr) var(--basalt-size-description-label); column-gap: var(--basalt-space-6); align-items: baseline; box-sizing: border-box; min-height: var(--basalt-size-row); padding-block: var(--basalt-space-4); color: inherit; text-decoration: none; }
+  .basalt-directory-name { font-weight: var(--basalt-font-weight-semibold); text-wrap: balance; }
+  .basalt-directory-name > .basalt-go-arrow { display: inline-flex; vertical-align: middle; margin-inline-start: var(--basalt-space-1-5); }
+  .basalt-directory-name > .basalt-external { margin-inline-start: var(--basalt-space-1-5); }
+  .basalt-directory-what { color: var(--basalt-text-secondary); text-wrap: pretty; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
+  .basalt-directory-state { color: var(--basalt-text-secondary); text-align: end; font-variant-numeric: tabular-nums; }
+  .basalt-directory-row:is(:hover, :focus-visible) .basalt-directory-what { color: var(--basalt-text-primary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a row is one column and its state starts */
+  @media (width < 720px) {
+    .basalt-directory-row { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-3-5); }
+    .basalt-directory-state { text-align: start; }
+  }
+
+  /* The rest opens in place: a track going 0fr to 1fr. Its clip keeps space-2 of room beside the rows so a ring is whole, and lets go once
+     the opening is done (data-settled). Closed, the rest is hidden and, with it, out of the keyboard's way (the markup also makes it inert). */
+  [data-reveal] { --_reveal-rows: 0fr; --_reveal-ms: calc(var(--basalt-duration-slow) * 0.75); --_reveal-ease: var(--basalt-ease-in); }
+  [data-reveal][data-open] { --_reveal-rows: 1fr; --_reveal-ms: var(--basalt-duration-slow); --_reveal-ease: var(--basalt-ease-out); }
+  .basalt-reveal-panel { display: grid; grid-template-rows: var(--_reveal-rows); transition: grid-template-rows var(--_reveal-ms) var(--_reveal-ease); }
+  .basalt-reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--_reveal-ms); }
+  [data-reveal][data-open] .basalt-reveal-clip { visibility: visible; transition: none; }
+  [data-reveal][data-settled] .basalt-reveal-clip { overflow: visible; }
+  /* A directory row after the cut draws its rule inside its clip, so a closed row is no height at all. */
+  .basalt-directory-item[data-rest] > .basalt-reveal-clip::before { content: ""; display: block; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-reveal-foot { display: flex; padding-block-start: var(--basalt-space-4); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+
+  /* Big link rows: full width, one line each, a rule under each. From 720 to 1023 they stand in two columns, the first two with a rule above. */
+  .basalt-big-links { display: grid; margin: 0; padding: 0; list-style: none; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-big-link-item { display: flex; border-block-end: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-big-link { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-4); min-height: var(--basalt-size-row); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-2xl-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-text-2xl-line-height); letter-spacing: var(--basalt-text-2xl-tracking); text-decoration: none; }
+  .basalt-big-link-words { min-width: 0; }
+  .basalt-big-link > :is(.basalt-go-arrow, .basalt-external) { margin-inline-end: var(--basalt-space-1); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 to 1023 the rows stand in two columns */
+  @media (width >= 720px) and (width < 1024px) {
+    .basalt-big-links { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--basalt-space-12); border-block-start: 0; }
+    .basalt-big-link-item:nth-child(-n + 2) { border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-big-link { min-height: var(--basalt-space-16); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it the words step to text-3xl */
+  @media (width >= 1024px) {
+    .basalt-big-link { font-size: var(--basalt-text-3xl-size); line-height: var(--basalt-text-3xl-line-height); letter-spacing: var(--basalt-text-3xl-tracking); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a card's arrow is 20px and its foot stacks */
+  @media (width < 720px) {
+    .basalt-link-card { --_arrow: var(--basalt-size-icon-md); }
+    .basalt-link-card-foot { display: grid; gap: var(--basalt-space-1); }
+  }
+
+  /* The copy button with words: both wordings stand in one cell (Reserve), so the button's width is the wider of the two. */
+  .basalt-copy-words { justify-items: center; }
 
   /* ---- Social links and the profile list (decisions 106, 107) ----
      A social link is a glyph and the service's name. The name is underlined in the input-boundary colour (3:1), brightening to the
@@ -4291,7 +4393,7 @@
      lie over the lines above and below it, and two links on neighbouring lines would steal each other's taps. A link in a table cell,
      a breadcrumb, a page number or a description value has its own rule. */
   @media (pointer: coarse) {
-    .basalt-link:not(.basalt-page-link, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) {
+    .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) {
       position: relative;
       display: inline-flex;
       align-items: center;
@@ -4300,7 +4402,7 @@
     }
     /* A link shorter than 44px wide ("Go") is still a 44 by 44 target: a box with no content, centred on the link and at least 44 wide, is part of the link, so its width
        and the line it sits on do not change. */
-    .basalt-link:not(.basalt-page-link, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *)::after {
+    .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *)::after {
       content: "";
       position: absolute;
       inset-block: 0;
@@ -4445,6 +4547,8 @@
     .basalt-table-hint { color: CanvasText; }
     /* A social link is LinkText, glyph and arrow included: they inherit the link's forced colour instead of their own secondary. */
     .basalt-social-link :is(.basalt-icon, .basalt-external), .basalt-profile-link :is(.basalt-icon, .basalt-external) { color: inherit; }
+    /* The arrows and the rules of link rows take the link's forced colour. */
+    .basalt-go-arrow, :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link) .basalt-external { color: inherit; }
   }
 
   /* ---- Art: the clear bar, the stage, paired art and framed art (decision 104) ----
@@ -4655,6 +4759,9 @@
     .basalt-skeleton { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
     /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
+    /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
+    :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { transform: none; }
+    .basalt-reveal-panel, .basalt-reveal-clip { transition: none; }
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
     .basalt-travel { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out); transform: translate(var(--_to-x), var(--_to-y)) translate(-50%, -50%); }
   }

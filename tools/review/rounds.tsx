@@ -103,6 +103,7 @@ import { ROUND_34 } from "./round34";
 import { ROUND_35 } from "./round35";
 import { ROUND_36 } from "./round36";
 import { ROUND_37 } from "./round37";
+import { ROUND_38 } from "./round38";
 import { ROUND_39 } from "./round39";
 import { ROUND_41 } from "./round41";
 
@@ -645,5 +646,6 @@ ROUNDS.push(ROUND_34);
 ROUNDS.push(ROUND_35);
 ROUNDS.push(ROUND_36);
 ROUNDS.push(ROUND_37);
+ROUNDS.push(ROUND_38);
 ROUNDS.push(ROUND_39);
 ROUNDS.push(ROUND_41);

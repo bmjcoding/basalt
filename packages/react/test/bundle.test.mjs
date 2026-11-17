@@ -368,3 +368,16 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
   assert.ok(all.inputs.some((f) => /@base-ui\/react\/switch\//.test(f)), "LoopsToggle, which draws every form, does load Base UI's switch");
   assert.ok(all.bytes - bytes > 5_000, `the icon form is ${all.bytes - bytes} bytes lighter than the whole control`);
 });
+
+// Links and rows (DECISIONS 152). The cards, the rows and the back link are plain markup and the core arrow glyphs: no Base UI part, no Phosphor
+// and no Shiki. The three that carry a button (Reveal, DirectoryList's show all, CopyButton) carry Base UI's Button and nothing else.
+// Measured: LinkCard 5,174 bytes, LinkTile 4,597, BackLink 4,004, BigLinkList 391, DirectoryList 16,729, Reveal 16,328, CopyButton 15,495.
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 19_000, true], ["Reveal", 18_000, true], ["CopyButton", 17_500, true]]) {
+  test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
+    const { bytes, chunks, inputs } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki|@phosphor-icons/.test(f)), []);
+    if (!base) assert.deepEqual(inputs.filter((f) => /@base-ui/.test(f)), [], `${name} loads a Base UI part it does not use`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui\/react\/(menu|dialog|select|popover|tooltip|accordion|tabs)\//.test(f)), []);
+  });
+}

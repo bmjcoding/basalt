@@ -1,1 +1,1 @@
-@layer basalt{@media print{[data-copy],[data-copy-text]{display:none}}}
+@layer basalt{.copy-words{display:inline-grid;justify-items:center}.copy-words>*{grid-area:1 / 1}.copy-words>:not([data-on]){visibility:hidden}@media print{[data-copy],[data-copy-text]{display:none}}}

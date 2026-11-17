@@ -521,6 +521,8 @@ extension Basalt {
     public static let header: Double = 56
     /// The phone tab bar, its hairline inside, before the bottom safe area.
     public static let tabBar: Double = 56
+    /// The least height of a link row on the page, directory or big (DECISIONS 152, consent row 3): the link itself, with its 1px rule above it outside. Not the header's or the tab bar's role, though the value is the same. A big row in its two-column form takes space-16.
+    public static let row: Double = 56
     /// The app sidebar from the large breakpoint; also a page's own aside, so one side-column width serves both.
     public static let sidebarWidth: Double = 256
     /// The rail, from the medium breakpoint to the large.

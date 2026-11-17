@@ -882,6 +882,14 @@
       },
       "$description": "The phone tab bar, its hairline inside, before the bottom safe area."
     },
+    "row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The least height of a link row on the page, directory or big (DECISIONS 152, consent row 3): the link itself, with its 1px rule above it outside. Not the header's or the tab bar's role, though the value is the same. A big row in its two-column form takes space-16."
+    },
     "sidebar-width": {
       "$type": "dimension",
       "$value": {

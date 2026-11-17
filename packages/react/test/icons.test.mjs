@@ -226,7 +226,10 @@ describe("the bytes, with the plugin and without it", () => {
   // Combined in integration-nov15: the limits are E2's, plus audit-fix-c1's raises for the batched spinner (Terminal 25,300 to 25,350, NotificationCentre
   // 140,500 to 140,650); the combined tree fits under them.
   // DECISIONS 154: Button grew about 650 bytes (the outline, amount, count, two-line, full-width and done forms, and Reserve), so Terminal, Pagination and NotificationCentre, which carry it, rose by as much: 25,350 to 26,100, 20,000 to 20,700 and 140,650 to 141,850.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_100, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 20_700, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
+  // Links and rows (DECISIONS 152): Link's arrow form (`arrow`) draws the core right and left arrows, so Pagination, which holds Link, carries them: 19,619 → 20,453 with
+  // the plugin (the two glyphs, the arrow's span and the branch, 834 bytes). Raised from 20,000 to 20,500 for that and for nothing else.
+  // Combined in integration-nov15b: Pagination holds both Button (DECISIONS 154, 20,700) and Link's arrows (DECISIONS 152, 20,500), and measures 21,560 with the plugin, over both limits, so its limit is 21,600 (the measured bytes rounded up to the next 50).
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_100, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_600, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       const plain = await bundle(alone(name));
