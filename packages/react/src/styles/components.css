@@ -1053,17 +1053,8 @@
   .basalt-theme-choice .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
   .basalt-theme-choice .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
   @media (pointer: coarse) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
-  .basalt-theme-choice-word { display: inline-flex; flex-direction: column; align-items: center; }
-  /* The 600 width is reserved by the word itself, unseen. */
-  .basalt-theme-choice-word::after {
-    content: attr(data-label);
-    height: 0;
-    overflow: hidden;
-    visibility: hidden;
-    font-weight: var(--basalt-font-weight-semibold);
-    user-select: none;
-    pointer-events: none;
-  }
+  /* The word's start edge and its reserved 600 width come from the segmented control's own rules (the data-label span, DECISIONS 138 and 139); the chosen word's 600 is also set
+     on the button below, because with no script and no data-pressed the right word is chosen from data-theme-choice alone. */
   .basalt-theme-choice .basalt-segment[data-pressed],
   :root[data-theme-choice="system"] .basalt-theme-choice [data-value="system"],
   :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
@@ -1072,7 +1063,7 @@
     background: var(--_pill);
     color: var(--basalt-text-primary);
     font-weight: var(--basalt-font-weight-semibold);
-    box-shadow: var(--basalt-shadow-pill);
+    box-shadow: var(--_pill-edge);
   }
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
     .basalt-theme-choice .basalt-segmented[data-slide] .basalt-segment { background: transparent; box-shadow: none; }
