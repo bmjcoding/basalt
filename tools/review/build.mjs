@@ -245,7 +245,7 @@ for (const id of rounds) {
       for (const [width, tag] of widths) {
        for (const scale of step.scales ?? [2]) {
         for (const theme of ["dark", "light"]) {
-          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !state.startsWith("cmd-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print", "more-contrast", "touch"].includes(state); // these are pages, not open overlays
+          const overlay = !state.startsWith("nav-") && !state.startsWith("chart-") && !state.startsWith("cmd-") && !["default", "film", "ghost", "frames", "reduced-motion", "forced-colours", "forced-mixed", "hover", "focus", "sorted-asc", "one-row", "empty", "scrolled", "chips-on", "clear-focus", "reduced-transparency", "print", "more-contrast"].includes(state) && !(id === "34" && state === "touch"); // these are pages, not open overlays (round 34's "touch" is a page; round 30's keeps the overlay's wait, which its hit-box readout needs)
           // Media states are real emulations. "forced-mixed" puts the opposite palette under the authored theme. A state that
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");

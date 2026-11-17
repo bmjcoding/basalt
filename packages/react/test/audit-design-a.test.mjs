@@ -962,3 +962,49 @@ for (const kind of ['segment', 'tab']) test(`r4 regression: ${kind} declines nat
     assert.equal(await page.locator(`.basalt-${kind}`).first().evaluate((el) => getComputedStyle(el.querySelector('span')).fontWeight), '400');
   } finally { await page.close(); }
 });
+
+
+// Return 1: a width copy must never receive an app's ref, including React 19 ref-as-prop components.
+const REF_LABELS = {
+  "a DOM element": (ref, text) => `<span ref={${ref}}>${text}</span>`,
+  "a forwardRef component": (ref, text) => `<Forwarded ref={${ref}} name="${text}" />`,
+  "a ref-as-prop component": (ref, text) => `<RefProp ref={${ref}} name="${text}" />`,
+  "a component's child": (ref, text) => `<Wrapper><span ref={${ref}}>${text}</span></Wrapper>`,
+  "a fragment's child": (ref, text) => `<><span ref={${ref}}>${text}</span></>`,
+  "an iterable child": (ref, text) => `<Wrapper>{new Set([<span key="label" ref={${ref}}>${text}</span>])}</Wrapper>`,
+  "a component reading its child's props": (ref, text) => `<ChildProps><span ref={${ref}} id="${text}" /></ChildProps>`,
+};
+for (const kind of ['segment', 'tab']) for (const [shape, label] of Object.entries(REF_LABELS)) {
+  test(`return 1 refs: ${kind}, ${shape}: object and callback refs reach the live label once`, async () => {
+    const prelude = `window.labelRef = React.createRef(); window.refCalls = []; window.refNulls = 0;
+const callbackRef = (node) => { if (node) window.refCalls.push(node); else window.refNulls += 1; };
+const Forwarded = React.forwardRef(({ name }, ref) => <span ref={ref}>{name}</span>);
+function RefProp({ ref, name }) { return <span ref={ref}>{name}</span>; }
+function Wrapper({ children }) { return <span>{children}</span>; }
+function ChildProps({ children }) { const child = React.Children.toArray(children)[0]; return React.cloneElement(child, undefined, child.props.id); }
+`;
+    const content = kind === 'segment'
+      ? `<B.SegmentedControl aria-label="Refs" defaultValue="a"><B.Segment value="a">${label('window.labelRef', 'Alpha')}</B.Segment><B.Segment value="b">${label('callbackRef', 'Beta')}</B.Segment></B.SegmentedControl>`
+      : `<B.Tabs defaultValue="a"><B.TabsList aria-label="Refs"><B.Tab value="a">${label('window.labelRef', 'Alpha')}</B.Tab><B.Tab value="b">${label('callbackRef', 'Beta')}</B.Tab></B.TabsList><B.TabsPanel value="a" hidden /></B.Tabs>`;
+    const { page, errors } = await open(prelude + `window.refRoot = createRoot(document.getElementById("root")); window.refRoot.render(${content});`);
+    try {
+      const inspect = () => page.evaluate(() => ({
+        object: { text: window.labelRef.current?.textContent, live: !!window.labelRef.current?.isConnected && !window.labelRef.current.closest('[data-wide]') },
+        callback: window.refCalls.map((node) => ({ text: node.textContent, live: node.isConnected && !node.closest('[data-wide]') })),
+        nulls: window.refNulls,
+        copies: [...document.querySelectorAll('[data-wide]')].map((node) => node.textContent),
+      }));
+      const expected = { object: { text: 'Alpha', live: true }, callback: [{ text: 'Beta', live: true }], nulls: 0, copies: ['Alpha', 'Beta'] };
+      assert.deepEqual(await inspect(), expected, 'only the live nodes are assigned, and ordinary component props still display in the width copy');
+      for (const index of [1, 0]) {
+        await page.locator(`.basalt-${kind}`).nth(index).click();
+        await settle(page);
+        assert.deepEqual(await inspect(), expected, 'changing choice neither reassigns nor duplicates either ref');
+      }
+      await page.evaluate(() => window.refRoot.unmount());
+      await settle(page);
+      assert.deepEqual(await page.evaluate(() => ({ object: window.labelRef.current, calls: window.refCalls.length, nulls: window.refNulls })), { object: null, calls: 1, nulls: 1 }, 'the live refs detach once on unmount');
+      assert.deepEqual(errors, []);
+    } finally { await page.close(); }
+  });
+}

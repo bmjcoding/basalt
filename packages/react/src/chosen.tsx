@@ -26,7 +26,7 @@ function follow(children: React.ReactNode): React.ReactNode {
 }
 
 // The second copy of a label is there for its width and for nothing else, so it may hold nothing that can be resolved to, found, or submitted.
-const REFERENCES = ["id", "name", "form", "htmlFor", "list", "ref", "aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "aria-activedescendant", "aria-details", "aria-errormessage"];
+const REFERENCES = ["id", "name", "form", "htmlFor", "list", "aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "aria-activedescendant", "aria-details", "aria-errormessage"];
 // Twin of reserve()'s decline list in tools/html-skill/src/core.js; anything that takes input, submits, loads or plays cannot be copied.
 const UNSAFE = "input,select,textarea,button,form,iframe,object,embed,script,style,video,audio,canvas,dialog,template,slot";
 
@@ -78,9 +78,18 @@ function ReservedLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="basalt-chosen-label">
       <span>{follow(children)}</span>
-      <span ref={copy} data-wide="" aria-hidden="true" inert>{follow(stripped(children))}</span>
+      <span ref={copy} data-wide="" aria-hidden="true" inert>{follow(stripped(withoutRefs(children)))}</span>
     </span>
   );
+}
+
+/** Clear every app ref in the width copy, including nested React children, while preserving ordinary component props. */
+function withoutRefs(children: React.ReactNode): React.ReactNode {
+  if (children && typeof children === "object" && Symbol.iterator in children) return Array.from(children as Iterable<React.ReactNode>, withoutRefs);
+  if (!React.isValidElement<AnyProps>(children)) return children;
+  // React 19 cloneElement keeps a ref for undefined; null clears it. Fragments accept only key and children.
+  return React.cloneElement(children, children.type === React.Fragment ? undefined : { ref: null },
+    ...(children.props.children === undefined ? [] : [withoutRefs(children.props.children)]));
 }
 
 /** The same content with no `id`, no `name`, no reference to either and no hidden control (nothing a `for`, an `aria-labelledby`, a `url(#…)` or a form can resolve to). */
