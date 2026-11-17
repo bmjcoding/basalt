@@ -18,6 +18,16 @@
     return current ? current.getAttribute('href') : null;
   }
 
+  /** The label (the element before the underline) is drawn through reserve(), as a tab's is: the current link's 600 is on the label and every label holds its 600 width, so no link moves. */
+  function reserveLabels() {
+    document.querySelectorAll('.link-tab').forEach(function (link) {
+      if (link.__bhReserved) return;
+      link.__bhReserved = true;
+      var label = link.querySelector(':scope > :not(.link-tab-line)');
+      if (label) _.reserve(label);
+    });
+  }
+
   function wire() {
     document.querySelectorAll('.link-tabs').forEach(function (nav) {
       var select = nav.querySelector('.link-tabs-select select');
@@ -56,4 +66,6 @@
   }
 
   _.step(45, 'wireLinkTabs', wire);
+  // After the glyphs are drawn (step 45), as a tab's and a segment's are (step 90).
+  _.step(90, 'reserveLinkTabLabels', reserveLabels);
 })(window.Basalt);

@@ -1,7 +1,7 @@
 @layer basalt {
 
   /* ---- Link tabs (React's LinkTabs, DECISIONS 154, D12): a nav of links on a hairline ----
-     The current link is primary ink with a 2px underline that does not slide, a real element (Highlight in forced colours); focus is the control ring at +2
+     The current link is its label at 600 in primary ink (400 in secondary at rest, each label reserving its 600 width) with a 2px underline that does not slide, a real element (Highlight in forced colours); focus is the control ring at +2
      outside the link, never an inset outline. 36, 48 or 56 tall (data-size on the nav; 56 steps to 48 in a container under 640), 16px text from 48, 24px
      between two labels, and the first link has no padding at its start. The row wraps and does not scroll. Not a tablist: every link is a tab stop. Under 720 the row is a select (below). */
   .link-tabs { margin: 0; padding: 0; }
@@ -16,7 +16,7 @@
     padding: 0 var(--basalt-space-2);
     border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
     color: var(--basalt-text-secondary);
-    font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
     text-decoration: none;
     white-space: nowrap;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -31,6 +31,21 @@
   .link-tabs > ul > li:first-child > .link-tab { padding-inline-start: 0; }
   .link-tab-line { position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
   .link-tab[aria-current] { color: var(--basalt-text-primary); }
+  /* The current link's label is 600 against 400 at rest and every label reserves its 600 width, as a tab's does (decisions 138 and 149): the script draws the label (the span before
+     the underline) through reserve(), so the 600 is on the label and no link's box moves. With the script off, or on a label it left alone, the current link is 600 itself unless data-bare. */
+  .link-tab[aria-current] :is([data-label], [data-reserve] > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
+  .link-tab[aria-current] > :not(.link-tab-line):not([data-reserved], [data-bare]) { font-weight: var(--basalt-font-weight-semibold); }
+  .link-tab [data-label] { display: inline-flex; flex-direction: column; align-items: flex-start; }
+  .link-tab [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .link-tab [data-reserve] { display: inline-grid; justify-items: start; }
+  .link-tab [data-reserve] > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); white-space: nowrap; }
+  .link-tab [data-wide] { visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .link-tab :is(span, b, i, em, strong, small, mark, code, abbr):not([data-pair]):has(> svg, > [data-pair]) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .link-tab [data-pair] { display: inline-grid; flex: none; }
+  .link-tab [data-pair] > * { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .link-tab [data-pair] > :last-child { opacity: 0; }
+  .link-tab[aria-current] [data-pair] > :first-child { opacity: 0; }
+  .link-tab[aria-current] [data-pair] > :last-child { opacity: 1; }
   .link-tab[aria-current] > .link-tab-line { opacity: 1; }
   @media (hover: hover) { .link-tab:hover { color: var(--basalt-text-primary); } }
   .link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }

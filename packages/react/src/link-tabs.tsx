@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { ChosenLabel } from "./chosen";
 import { Select } from "./choice";
 import { join } from "./utils";
 
@@ -88,7 +89,7 @@ export interface LinkTabProps extends Omit<React.ComponentProps<"a">, "aria-curr
 export function LinkTab({ current = false, render, className, children, ...props }: LinkTabProps) {
   const content = (
     <>
-      <span className="basalt-link-tab-label">{children}</span>
+      <span className="basalt-link-tab-label"><ChosenLabel>{children}</ChosenLabel></span>
       <span className="basalt-link-tab-line" aria-hidden="true" />
     </>
   );

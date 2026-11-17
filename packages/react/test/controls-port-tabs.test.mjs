@@ -417,3 +417,115 @@ describe("X6: panels that share one seat", () => {
     });
   }
 });
+
+// A link tab's selected state (DECISIONS 138 A, 145, 149, and the ballot's D12 row "chosen label 600 reserving width"): the current link's label is 600 in primary ink,
+// a resting one 400 in secondary, every label reserves its 600 width and starts where it did, so choosing a page moves nothing. Joined in integration-nov15b.
+describe("D12: a link tab takes the selected state (400 in secondary at rest, 600 in primary when current, its 600 width reserved)", () => {
+  // Castle's own nine labels are not in the repository, so these nine stand in: short and long words, a hyphen, a two-word label and an ampersand.
+  const NINE = ["Everything", "Protein", "Creatine", "Pre-workout", "Vitamins & minerals", "Sleep", "Bars", "Mass gainers", "Accessories"];
+  const APP = (names, size = "3xl", wrap = "") => `(() => { const names = ${JSON.stringify(names)}; const App = () => { const [c, setC] = React.useState(0); return <div style={{ boxSizing: "border-box", width: "100%", padding: "0 16px"${wrap} }}><B.LinkTabs aria-label="k" size="${size}">{names.map((n, i) => <B.LinkTab key={n} href="#" current={c === i} onClick={(e) => { e.preventDefault(); setC(i); }}>{n}</B.LinkTab>)}</B.LinkTabs></div>; }; return <App />; })()`;
+  // Every link's box, its label's box, and the x where its words start (a range over the first text), so a word that slid inside a box that did not move shows too.
+  const geometry = (page) => page.evaluate(() => [...document.querySelectorAll(".basalt-link-tab")].map((a) => {
+    const r = a.getBoundingClientRect(); const l = a.querySelector(".basalt-link-tab-label").getBoundingClientRect();
+    const walker = document.createTreeWalker(a.querySelector(".basalt-link-tab-label"), NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.nodeValue.trim() && !n.parentElement.closest("[data-wide]") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) });
+    const range = document.createRange(); range.selectNodeContents(walker.nextNode()); const t = range.getBoundingClientRect();
+    return [r.x, r.y, r.width, r.height, l.x, l.width, t.x];
+  }));
+
+  for (const theme of THEMES) {
+    test(`a resting link is 400 in secondary ink and the current one 600 in primary (${theme})`, async () => {
+      const { page } = await open(LINKS('size="3xl"'), { theme, ...DESKTOP });
+      const ink = await page.evaluate(() => { const p = document.createElement("i"); document.body.append(p); const read = (v) => { p.style.color = v; return getComputedStyle(p).color; }; return { primary: read("var(--basalt-text-primary)"), secondary: read("var(--basalt-text-secondary)") }; });
+      const weight = (n) => page.getByRole("link").nth(n).locator("[data-label]").evaluate((el) => getComputedStyle(el).fontWeight);
+      assert.equal(await weight(0), "600");
+      assert.equal((await css(page.getByRole("link").nth(0), "color")).color, ink.primary);
+      for (const n of [1, 2, 3]) {
+        assert.equal(await weight(n), "400", `link ${n} at rest`);
+        assert.equal((await css(page.getByRole("link").nth(n), "color")).color, ink.secondary);
+      }
+      assert.equal((await css(page.getByRole("link").nth(1), "fontWeight")).fontWeight, "400", "a resting link is not 500 any more");
+    });
+
+    test(`choosing a page moves no link's box and no word's start edge, for nine labels at 1440 (${theme}) (0px)`, async () => {
+      const { page } = await open(APP(NINE), { theme, ...DESKTOP });
+      const before = await geometry(page);
+      for (const i of [3, 8, 4, 0, 6]) {
+        await page.getByRole("link").nth(i).click();
+        assert.equal(await page.locator("a[aria-current=page]").textContent(), NINE[i]);
+        assert.deepEqual(await geometry(page), before, `choosing ${NINE[i]}`);
+      }
+    });
+
+    test(`a short label and a long label keep their boxes and their start edges when chosen (${theme}) (0px)`, async () => {
+      const names = ["Hi", "Everything for the serious lifter", "Go", "A fairly long second kind of label"];
+      const { page } = await open(APP(names, "lg"), { theme, ...DESKTOP });
+      const before = await geometry(page);
+      for (const i of [1, 3, 0, 2]) {
+        await page.getByRole("link").nth(i).click();
+        assert.deepEqual(await geometry(page), before, `choosing ${names[i]}`);
+      }
+    });
+  }
+
+  test("every label reserves its 600 width: a link is as wide as its label at 600, whether or not it is current", async () => {
+    const { page } = await open(APP(NINE), DESKTOP);
+    const widths = await page.evaluate(() => [...document.querySelectorAll(".basalt-link-tab-label")].map((l) => { const d = l.querySelector("[data-label]"); const range = document.createRange(); range.selectNodeContents(d.firstChild); const live = range.getBoundingClientRect().width; return [l.getBoundingClientRect().width, live]; }));
+    for (const [reserved, live] of widths) assert.ok(reserved >= live, "the label's box is at least its words");
+    assert.ok(widths.some(([reserved, live]) => reserved > live + 0.5), "a resting label's box is wider than its 400 words: the 600 width is held");
+  });
+
+  test("the nine links at 1440 sit in one row, and the row's width is known", async () => {
+    const { page } = await open(APP(NINE), DESKTOP);
+    const row = await page.evaluate(() => { const links = [...document.querySelectorAll(".basalt-link-tab")]; const boxes = links.map((a) => a.getBoundingClientRect()); return { rows: new Set(boxes.map((b) => Math.round(b.y))).size, extent: boxes[boxes.length - 1].right - boxes[0].left, sum: boxes.reduce((s, b) => s + b.width, 0) }; });
+    assert.equal(row.rows, 1, "one row at 1440");
+    // the links' own widths plus eight gaps of 4px (space-1): nothing else is in the row
+    assert.ok(Math.abs(row.extent - (row.sum + 8 * 4)) <= 0.6, `the row's extent ${row.extent} is the links ${row.sum} and eight gaps of 4`);
+    assert.ok(row.extent < 1440 - 32, "and it fits the content width with room to spare");
+  });
+
+  test("a link whose label is in an element is reserved too, and choosing it moves nothing", async () => {
+    const jsx = `(() => { const App = () => { const [c, setC] = React.useState(0); return <div style={{ padding: "0 16px" }}><B.LinkTabs aria-label="k" size="3xl">{["One", "Two", "Three"].map((n, i) => <B.LinkTab key={n} href="#" current={c === i} onClick={(e) => { e.preventDefault(); setC(i); }}><span>{n} things</span></B.LinkTab>)}</B.LinkTabs></div>; }; return <App />; })()`;
+    const { page } = await open(jsx, DESKTOP);
+    assert.equal(await page.locator(".basalt-link-tab .basalt-chosen-label").count(), 3, "each label is drawn twice in one box");
+    const weights = () => page.evaluate(() => [...document.querySelectorAll(".basalt-link-tab")].map((a) => getComputedStyle(a.querySelector(".basalt-chosen-label > :first-child")).fontWeight));
+    assert.deepEqual(await weights(), ["600", "400", "400"]);
+    const before = await geometry(page);
+    await page.getByRole("link").nth(2).click();
+    assert.deepEqual(await weights(), ["400", "400", "600"]);
+    assert.deepEqual(await geometry(page), before);
+    assert.equal(await page.locator("[data-wide]").evaluateAll((els) => els.every((e) => e.getAttribute("aria-hidden") === "true" && e.hasAttribute("inert"))), true, "the second copy is unseen and inert");
+  });
+
+  test("a link with an icon beside its words takes the icon's selected form when current, and nothing moves", async () => {
+    const jsx = `(() => { const App = () => { const [c, setC] = React.useState(0); return <div style={{ padding: "0 16px" }}><B.LinkTabs aria-label="k" size="3xl">{["Home", "Docs", "Shop"].map((n, i) => <B.LinkTab key={n} href="#" current={c === i} onClick={(e) => { e.preventDefault(); setC(i); }}><B.Icon icon={B.HomeGlyph} />{n}</B.LinkTab>)}</B.LinkTabs></div>; }; return <App />; })()`;
+    const { page } = await open(jsx, DESKTOP);
+    assert.equal(await page.locator(".basalt-link-tab .basalt-glyph-pair").count(), 3);
+    const shown = () => page.evaluate(() => [...document.querySelectorAll(".basalt-link-tab")].map((a) => [...a.querySelector(".basalt-glyph-pair").children].map((c) => Math.round(Number(getComputedStyle(c).opacity))).join("/")));
+    assert.deepEqual(await shown(), ["0/1", "1/0", "1/0"]);
+    const before = await geometry(page);
+    await page.getByRole("link").nth(1).click();
+    await page.waitForFunction(() => document.getAnimations().length === 0 && getComputedStyle(document.querySelectorAll(".basalt-link-tab")[1].querySelector(".basalt-glyph-pair").lastElementChild).opacity === "1");
+    assert.deepEqual(await shown(), ["1/0", "0/1", "1/0"]);
+    assert.deepEqual(await geometry(page), before);
+  });
+
+  test("a label that holds a control is declined and keeps its weight, as a tab's is", async () => {
+    const jsx = `<B.LinkTabs aria-label="k" size="3xl"><B.LinkTab href="#a" current><input type="hidden" value="x" />Kept</B.LinkTab><B.LinkTab href="#b">Other</B.LinkTab></B.LinkTabs>`;
+    const { page } = await open(jsx, DESKTOP);
+    assert.equal(await page.locator(".basalt-link-tab [data-wide]").count(), 0, "no second copy of a label that holds a control");
+    assert.equal((await css(page.getByRole("link").nth(0).locator(".basalt-link-tab-label"), "fontWeight")).fontWeight, "400", "it keeps 400 and is not reserved");
+  });
+
+  test("in forced colours the weights and the boxes hold, and the current underline is still Highlight", async () => {
+    const { page } = await open(APP(NINE), DESKTOP);
+    await page.emulateMedia({ forcedColors: "active" });
+    await settle(page);
+    const before = await geometry(page);
+    assert.equal(await page.getByRole("link").nth(0).locator("[data-label]").evaluate((el) => getComputedStyle(el).fontWeight), "600");
+    assert.equal(await page.getByRole("link").nth(1).locator("[data-label]").evaluate((el) => getComputedStyle(el).fontWeight), "400");
+    await page.getByRole("link").nth(5).click();
+    assert.deepEqual(await geometry(page), before);
+    const hl = await page.evaluate(() => { const p = document.createElement("div"); document.body.append(p); p.style.backgroundColor = "Highlight"; const c = getComputedStyle(p).backgroundColor; p.remove(); return c; });
+    assert.equal((await css(page.locator("a[aria-current] .basalt-link-tab-line"), "backgroundColor")).backgroundColor, hl);
+  });
+});

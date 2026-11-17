@@ -33,8 +33,8 @@
       var selected = el.hasAttribute('data-selected') || !!el.closest('[aria-current]:not([aria-current="false"]), [data-current]');
       var name = el.getAttribute('data-glyph'), size = Number(el.getAttribute('data-size')) || 16;
       var svg = glyph(name, { size: size, selected: selected });
-      // In a segment or a tab the glyph draws both forms in one box, and the item's own state shows the one that matches (the segment and tabs modules' CSS), so it follows the choice.
-      if (svg) el.outerHTML = !selected && el.closest('.segment, [role="tab"]') ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
+      // In a segment, a tab or a link tab the glyph draws both forms in one box, and the item's own state shows the one that matches (the segment and tabs modules' CSS), so it follows the choice.
+      if (svg) el.outerHTML = !selected && el.closest('.segment, [role="tab"], .link-tab') ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
     });
   }
 

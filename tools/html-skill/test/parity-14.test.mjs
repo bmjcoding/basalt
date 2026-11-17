@@ -359,3 +359,90 @@ describe("the skill's select says where choosing goes, and only a real choice na
     assert.equal(await skill.page.evaluate(() => document.activeElement.tagName), "SELECT");
   });
 });
+
+// A link tab's selected state (join 2 of integration-nov15b; DECISIONS 138 A, 145, 149 and the ballot's D12 row): the current link's label is 600 in primary, a resting one 400 in
+// secondary, every label reserves its 600 width, so choosing a page moves no link and no word. React's LinkTab takes ChosenLabel; the skill's link tabs take reserve(), with the
+// label (the span before the underline) drawn by the script.
+describe("a link tab's selected state, the skill's against React's", () => {
+  // Castle's own nine labels are not in the repository, so these nine stand in.
+  const NINE = ["Everything", "Protein", "Creatine", "Pre-workout", "Vitamins & minerals", "Sleep", "Bars", "Mass gainers", "Accessories"];
+  const reactRow = (labels, extra = "") => `(() => { const names = ${JSON.stringify(labels)}; createRoot(document.getElementById("root")).render(<div style={{ padding: "0 16px" }}><B.LinkTabs aria-label="k" size="3xl">{names.map((n, i) => <B.LinkTab key={n} href={"#" + i} current={i === 0}>${extra}{n}</B.LinkTab>)}</B.LinkTabs></div>); })()`;
+  const skillRow = (labels, label = (n) => `<span>${n}</span>`) => `<div style="padding: 0 16px"><nav class="link-tabs" aria-label="k" data-size="3xl"><ul>${labels.map((n, i) => `<li><a class="link-tab" href="#${i}"${i === 0 ? ' aria-current="page"' : ""}>${label(n)}<span class="link-tab-line" aria-hidden="true"></span></a></li>`).join("")}</ul><div class="link-tabs-select"><span class="select"><span class="link-tabs-select-label" aria-hidden="true">Go to</span><select class="input" data-size="lg" aria-label="Go to ${labels[0]}">${labels.map((n, i) => `<option value="#${i}"${i === 0 ? " selected" : ""}>${n}</option>`).join("")}</select></span></div></nav></div>`;
+  // Every link's box, its label's box and the x where its words start, in either implementation.
+  const geometry = (page, link, labelOf) => page.evaluate(({ link, labelOf }) => [...document.querySelectorAll(link)].map((a) => {
+    const r = a.getBoundingClientRect(); const label = labelOf === "react" ? a.querySelector(".basalt-link-tab-label") : a.querySelector(":scope > :not(.link-tab-line)"); const l = label.getBoundingClientRect();
+    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.nodeValue.trim() && !n.parentElement.closest("[data-wide]") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) });
+    const range = document.createRange(); range.selectNodeContents(walker.nextNode()); const t = range.getBoundingClientRect();
+    return [r.x, r.width, r.height, l.x, l.width, t.x].map((n) => Math.round(n * 100) / 100);
+  }), { link, labelOf });
+  const weights = (page, link) => page.evaluate((link) => [...document.querySelectorAll(link)].map((a) => { const w = a.querySelector("[data-label], [data-reserve] > :first-child"); return [getComputedStyle(w).fontWeight, getComputedStyle(a).color]; }), link);
+
+  for (const theme of THEMES) {
+    test(`the weights and ink, every link's width and every word's start edge match React's for nine labels at 1440 in ${theme}`, async () => {
+      const react = await reactPage(reactRow(NINE), { theme, viewport: { width: 1440, height: 400 } });
+      const skill = await openHtml(browser, page(skillRow(NINE)), { scheme: theme, width: 1440 });
+      await react.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const [rw, sw] = [await weights(react.page, ".basalt-link-tab"), await weights(skill.page, ".link-tab")];
+      assert.deepEqual(sw, rw);
+      assert.deepEqual(sw.map(([w]) => w), ["600", ...Array(8).fill("400")]);
+      assert.notEqual(sw[0][1], sw[1][1], "the current link is primary and the rest secondary");
+      const [rg, sg] = [await geometry(react.page, ".basalt-link-tab", "react"), await geometry(skill.page, ".link-tab", "skill")];
+      // The skill's links carry the label in an unclassed span, so the label box is the same as React's; the row is one line in both.
+      for (let i = 0; i < NINE.length; i++) for (const [k, name] of [[1, "width"], [2, "height"], [4, "label width"], [5, "word start"]]) assert.ok(Math.abs(sg[i][k] - rg[i][k]) <= 0.6, `${NINE[i]} ${name}: ${sg[i][k]} vs ${rg[i][k]}`);
+      assert.deepEqual(skill.errors, []);
+    });
+
+    test(`moving aria-current moves no link and no word (0px), for nine labels and for a short and a long label, in ${theme}`, async () => {
+      for (const labels of [NINE, ["Hi", "Everything for the serious lifter", "Go", "A fairly long second kind of label"]]) {
+        const skill = await openHtml(browser, page(skillRow(labels)), { scheme: theme, width: 1440 });
+        const before = await geometry(skill.page, ".link-tab", "skill");
+        for (const i of [labels.length - 1, 1, 0, 2]) {
+          await skill.page.evaluate((i) => { const links = [...document.querySelectorAll(".link-tab")]; links.forEach((a) => a.removeAttribute("aria-current")); links[i].setAttribute("aria-current", "page"); }, i);
+          assert.deepEqual(await geometry(skill.page, ".link-tab", "skill"), before, `current ${labels[i]}`);
+          const w = (await weights(skill.page, ".link-tab")).map(([x]) => x);
+          assert.deepEqual(w, labels.map((_, n) => (n === i ? "600" : "400")));
+        }
+      }
+    });
+  }
+
+  test("a label in an element, and a label with an icon, are reserved and move nothing when they become current", async () => {
+    const element = await openHtml(browser, page(skillRow(["One", "Two", "Three"], (n) => `<span><b>${n}</b> things</span>`)), { width: 1440 });
+    assert.equal(await element.page.locator(".link-tab [data-reserve]").count(), 3, "each is drawn twice in one box");
+    const before = await geometry(element.page, ".link-tab", "skill");
+    await element.page.evaluate(() => { const links = [...document.querySelectorAll(".link-tab")]; links.forEach((a) => a.removeAttribute("aria-current")); links[2].setAttribute("aria-current", "page"); });
+    assert.deepEqual(await geometry(element.page, ".link-tab", "skill"), before);
+    assert.deepEqual((await weights(element.page, ".link-tab")).map(([w]) => w), ["400", "400", "600"]);
+    const icon = await openHtml(browser, page(skillRow(["Home", "Docs", "Shop"], (n) => `<span><span data-glyph="home"></span>${n}</span>`)), { width: 1440 });
+    assert.equal(await icon.page.locator(".link-tab [data-pair]").count(), 2, "a resting link's icon is drawn in both forms (the current one in its selected form)");
+    const beforeIcon = await geometry(icon.page, ".link-tab", "skill");
+    await icon.page.evaluate(() => { const links = [...document.querySelectorAll(".link-tab")]; links.forEach((a) => a.removeAttribute("aria-current")); links[1].setAttribute("aria-current", "page"); });
+    await settleAnimations(icon.page);
+    assert.deepEqual(await geometry(icon.page, ".link-tab", "skill"), beforeIcon);
+    assert.equal(await icon.page.locator(".link-tab[aria-current] [data-pair] > :last-child").evaluate((el) => getComputedStyle(el).opacity), "1");
+  });
+
+  test("with the script off the current link is 600 itself, and a label that holds a control is left alone", async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled: false });
+    const offPage = await context.newPage();
+    await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: page(skillRow(NINE)) }));
+    await offPage.goto("https://basalt.test/");
+    assert.deepEqual((await offPage.evaluate(() => [...document.querySelectorAll(".link-tab")].map((a) => getComputedStyle(a.firstElementChild).fontWeight))).slice(0, 2), ["600", "400"]);
+    await context.close();
+    const held = await openHtml(browser, page(skillRow(["Kept", "Other"], (n) => `<span><input type="hidden" value="x">${n}</span>`)), { width: 1440 });
+    assert.equal(await held.page.locator(".link-tab [data-wide]").count(), 0, "no second copy of a label that holds a control");
+    assert.deepEqual(await held.page.locator(".link-tab > span:not(.link-tab-line)").first().evaluate((el) => [el.hasAttribute("data-bare"), getComputedStyle(el).fontWeight]), [true, "400"]);
+  });
+
+  test("in forced colours the weights and the boxes hold and the current underline is Highlight", async () => {
+    const skill = await openHtml(browser, page(skillRow(NINE)), { width: 1440 });
+    await skill.page.emulateMedia({ forcedColors: "active" });
+    await settleAnimations(skill.page);
+    const before = await geometry(skill.page, ".link-tab", "skill");
+    await skill.page.evaluate(() => { const links = [...document.querySelectorAll(".link-tab")]; links.forEach((a) => a.removeAttribute("aria-current")); links[5].setAttribute("aria-current", "page"); });
+    assert.deepEqual(await geometry(skill.page, ".link-tab", "skill"), before);
+    assert.deepEqual((await weights(skill.page, ".link-tab")).map(([w]) => w).slice(4, 7), ["400", "600", "400"]);
+    const hl = await skill.page.evaluate(() => { const p = document.createElement("div"); document.body.append(p); p.style.backgroundColor = "Highlight"; return getComputedStyle(p).backgroundColor; });
+    assert.equal((await measure(skill.page, ".link-tab[aria-current] .link-tab-line", ["backgroundColor"])).backgroundColor, hl);
+  });
+});
