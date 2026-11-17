@@ -3169,6 +3169,148 @@
     .basalt-chart-table tbody th { background-color: Canvas; background-image: none; }
   }
 
+  /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----
+     Ported from the owner's approved prototypes, with the council's changes. The lit gradient is three neutral stops that each hold 3:1 on levels 0 to 3; a lit line is
+     one stroke in the top stop; there is no area under a line, no cursor, no halo and no plate on a trend. The implementation hasn't been reviewed. */
+  .basalt-chart-lit-stop[data-stop="top"] { stop-color: var(--basalt-chart-lit-top); }
+  .basalt-chart-lit-stop[data-stop="mid"] { stop-color: var(--basalt-chart-lit-mid); }
+  .basalt-chart-lit-stop[data-stop="base"] { stop-color: var(--basalt-chart-lit-base); }
+  .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark):not([data-so-far]) { fill: var(--_lit); }
+  .basalt-chart[data-lit] .basalt-chart-svg .basalt-chart-line { stroke: var(--basalt-chart-lit-top); }
+  .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark)[data-so-far] { stroke: var(--basalt-chart-lit-top); }
+  /* A trend's readings: small dots in tertiary ink at full strength, never faded. */
+  .basalt-chart-reading { fill: var(--basalt-chart-axis); }
+  .basalt-chart-axis[data-plated]:not([data-active]) { fill: var(--basalt-text-secondary); }
+
+  /* The frame with its number as the headline: a 14/20 title and "View as table" in one 28px row, the number in a seat as wide as its widest form, the unit beside it,
+     one context line as tall as its tallest form. No live region; nothing moves when a day is picked. */
+  .basalt-chart-head[data-frame] { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--basalt-space-0-5) var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
+  .basalt-chart-head[data-frame] .basalt-chart-title { flex: 1; min-width: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-chart-head[data-frame] .basalt-chart-source { flex-basis: 100%; }
+  .basalt-chart-readout { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-chart-headline {
+    display: flex; align-items: baseline; gap: var(--basalt-space-2); min-width: 0; margin: 0; color: var(--basalt-text-primary);
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-4xl-size) / var(--basalt-text-4xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-4xl-tracking);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the headline takes text-5xl (56/60), below it text-4xl (40/44) */
+  @media (min-width: 720px) {
+    .basalt-chart-headline { font-size: var(--basalt-text-5xl-size); line-height: var(--basalt-text-5xl-line-height); letter-spacing: var(--basalt-text-5xl-tracking); }
+  }
+  .basalt-chart-seat, .basalt-chart-context { display: inline-grid; }
+  .basalt-chart-seat > *, .basalt-chart-context > * { grid-area: 1 / 1; }
+  .basalt-chart-seat > .basalt-chart-reserve { font-kerning: none; }
+  /* The seat is as wide as its widest reserved form and nothing else: the digits drawn over it overflow it, so a form that is a sixty-fourth of a pixel wider than its text cannot move the unit. */
+  .basalt-chart-seat > :not(.basalt-chart-reserve) { inline-size: 0; }
+  .basalt-chart-seat [data-missing] { color: var(--basalt-text-tertiary); }
+  .basalt-chart-unit { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-chart-context { justify-self: start; margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+
+  /* The plot's second height (96px), and the lane with the open span's plate behind both. The plate is one element that glides over duration-slow on ease-out. */
+  .basalt-chart[data-plot="sm"] .basalt-chart-plot { min-height: calc(var(--basalt-size-chart-plot-sm) + var(--basalt-text-xs-line-height) * 3 + var(--basalt-space-1) + var(--basalt-space-2)); }
+  .basalt-chart-body { position: relative; }
+  .basalt-chart-span { position: absolute; bottom: 0; border-radius: var(--basalt-radius-md); background: var(--basalt-state-selected); pointer-events: none; transition: left var(--basalt-duration-slow) var(--basalt-ease-out), width var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-chart-lane-slot { position: relative; }
+  .basalt-phase-calls { display: grid; grid-template-columns: repeat(var(--_weeks), minmax(0, 1fr)); }
+  .basalt-phase-call {
+    display: grid; place-items: center; min-height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); color: var(--basalt-text-secondary); cursor: pointer; white-space: nowrap;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-phase-call > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-phase-call i { display: none; flex: none; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-text-primary); }
+  .basalt-phase-call[data-changed] { color: var(--basalt-text-primary); }
+  .basalt-phase-call[data-changed] i { display: block; }
+  .basalt-phase-call:has(input:checked) { color: var(--basalt-text-primary); }
+  .basalt-phase-call:has(input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (hover: hover) { .basalt-phase-call:hover { color: var(--basalt-text-primary); } }
+  /* Where twelve 44px choices do not fit, the lane is marks only (a changed week's mark is larger), and a finger steps with previous and next. A keyboard still reaches every mark. */
+  .basalt-phase-calls[data-marks] .basalt-phase-call > span { font-size: 0; gap: 0; }
+  .basalt-phase-calls[data-marks] .basalt-phase-call i { display: block; background: var(--basalt-text-tertiary); }
+  .basalt-phase-calls[data-marks] .basalt-phase-call[data-changed] i { width: var(--basalt-space-2); height: var(--basalt-space-2); background: var(--basalt-text-primary); }
+  .basalt-phase-calls[data-marks] .basalt-phase-call:has(input:checked) i { background: var(--basalt-text-primary); }
+  @media (pointer: coarse) {
+    .basalt-phase-call { min-height: var(--basalt-size-tap-min); }
+    .basalt-phase-calls[data-marks] .basalt-phase-call { pointer-events: none; }
+  }
+  .basalt-phase-steps { display: grid; gap: var(--basalt-space-2); }
+  .basalt-phase-step-buttons { display: flex; gap: var(--basalt-space-2); }
+  .basalt-phase-open { display: inline-grid; justify-self: start; min-height: var(--basalt-space-10); margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-phase-open > * { grid-area: 1 / 1; }
+  .basalt-phase-open b { margin-inline-end: var(--basalt-space-1-5); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+
+  /* A share bar: parts of a whole, one ink, a 4px gap, full radius, each part's share and name under it. */
+  .basalt-share { display: flex; gap: var(--basalt-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; font-family: var(--basalt-font-family-sans); }
+  /* A part is never narrower than its bar's floor (12px on a tally) or its own words, and it takes that width from the others (flex), so the parts and their gaps are always the bar's width. */
+  .basalt-share-part { display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: auto; }
+  .basalt-share[data-size="md"] .basalt-share-bar { min-width: var(--basalt-space-3); }
+  .basalt-share-bar { width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
+  .basalt-share[data-size="md"] .basalt-share-bar { height: var(--basalt-space-3); }
+  .basalt-share-value { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); overflow-wrap: anywhere; }
+
+  /* A coverage strip: a cell a day, lit when recorded, Basalt's hatch when not, the missing dates in words. */
+  .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, var(--basalt-chart-missing) 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
+  .basalt-coverage { display: grid; gap: var(--basalt-space-2-5); min-width: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-coverage-cells { display: grid; grid-template-columns: repeat(var(--_n), minmax(0, 1fr)); column-gap: var(--basalt-space-0-5); height: var(--basalt-space-12); }
+  .basalt-coverage-cell { border-radius: var(--basalt-radius-2xs); background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)); }
+  .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
+  .basalt-coverage[data-form="week"] .basalt-coverage-cells { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--basalt-space-1); height: auto; width: min(100%, calc(var(--basalt-space-24) * 2.5)); }
+  .basalt-coverage[data-form="week"] .basalt-coverage-cell { aspect-ratio: 1; border-radius: var(--basalt-radius-sm); }
+  .basalt-coverage-words { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+
+  /* A marks row: one kind of reading across a run of days, in the form of the thing measured. The heights glide over duration-slow; it is drawn at rest. */
+  .basalt-marks { --_row: var(--basalt-size-chart-row); position: relative; display: grid; grid-template-columns: repeat(var(--_n), minmax(0, 1fr)); height: var(--_row); pointer-events: none; }
+  .basalt-marks i { display: block; font-style: normal; }
+  .basalt-marks-cell { position: relative; min-width: 0; }
+  .basalt-marks-mark {
+    position: absolute; bottom: 0; left: 50%; translate: -50% 0; width: min(44%, calc(var(--basalt-space-6) + var(--basalt-space-1))); height: calc(var(--_v) * 100%);
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
+    background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)) 50% 100% / 100% var(--_row) no-repeat;
+  }
+  .basalt-marks[data-kind="pills"] .basalt-marks-mark { bottom: 50%; translate: -50% 50%; width: min(26%, var(--basalt-space-3)); border-radius: var(--basalt-radius-full); background: linear-gradient(180deg, var(--basalt-chart-lit-top), var(--basalt-chart-lit-mid) 55%, var(--basalt-chart-lit-base)) 50% 50% / 100% var(--_row) no-repeat; }
+  .basalt-marks[data-kind="blocks"] .basalt-marks-mark { width: min(64%, calc(var(--basalt-space-10) + var(--basalt-space-1))); border-radius: var(--basalt-radius-md); }
+  .basalt-marks-rest { position: absolute; bottom: calc(var(--basalt-size-dot) - var(--basalt-size-hairline)); left: 50%; translate: -50% 0; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-axis); }
+  .basalt-marks-seat { position: absolute; top: 0; bottom: calc(var(--basalt-size-dot) - var(--basalt-size-hairline)); left: 50%; translate: -50% 0; width: min(72%, calc(var(--basalt-space-12) + var(--basalt-space-1))); border-radius: var(--basalt-radius-md); background: var(--_hatch); }
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-marks-mark { transition: height var(--basalt-duration-slow) var(--basalt-ease-out); }
+  }
+
+  /* A range meter: the meter's slot with its target tick drawn twice, and a ringed dot. */
+  .basalt-range-marker {
+    position: absolute; top: 50%; left: var(--_at); translate: -50% -50%; box-sizing: content-box; width: var(--basalt-size-meter-marker); height: var(--basalt-size-meter-marker);
+    border: var(--basalt-size-cut) solid var(--_cut); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-range-marker { transition: left var(--basalt-duration-slow) var(--basalt-ease-out); }
+  }
+  .basalt-range-plan { color: var(--basalt-text-secondary); text-align: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-chart-span { transition: none; }
+  }
+  @media (forced-colors: active) {
+    .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark):not([data-so-far]) { fill: CanvasText; }
+    .basalt-chart[data-lit] .basalt-chart-svg .basalt-chart-line, .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark)[data-so-far] { stroke: CanvasText; }
+    .basalt-chart-reading { fill: CanvasText; }
+    .basalt-chart-axis[data-plated]:not([data-active]) { fill: CanvasText; }
+    .basalt-chart-headline, .basalt-chart-unit, .basalt-chart-context { color: CanvasText; }
+    .basalt-chart-head[data-frame] .basalt-chart-title { color: CanvasText; }
+    .basalt-chart-seat [data-missing] { color: GrayText; }
+    .basalt-chart-span { border: var(--basalt-size-hairline) solid Highlight; background: none; forced-color-adjust: none; }
+    .basalt-phase-call { color: CanvasText; }
+    .basalt-phase-call i, .basalt-phase-calls[data-marks] .basalt-phase-call i { forced-color-adjust: none; background: CanvasText; }
+    .basalt-share-bar, .basalt-marks-mark, .basalt-range-marker { forced-color-adjust: none; background: CanvasText; }
+    .basalt-share-value, .basalt-share-name, .basalt-coverage-words, .basalt-phase-open, .basalt-phase-open b { color: CanvasText; }
+    .basalt-coverage-cell { forced-color-adjust: none; background: CanvasText; }
+    .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
+    .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, GrayText 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
+    .basalt-marks-rest { forced-color-adjust: none; background: CanvasText; }
+    .basalt-marks-seat { forced-color-adjust: none; }
+    .basalt-range-marker { border-color: Canvas; }
+    .basalt-range-plan { color: CanvasText; }
+  }
+
   /* ---- Accordion ---- */
 
   .basalt-accordion { font-family: var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
@@ -3241,6 +3383,7 @@
   .basalt-chrome .basalt-chart-source,
   .basalt-chrome .basalt-chart-hint,
   .basalt-chrome .basalt-chart-value [data-missing],
+  .basalt-chrome .basalt-chart-seat [data-missing],
   .basalt-chrome .basalt-chart-not-observed,
   .basalt-chrome .basalt-description-details[data-missing],
   .basalt-chrome .basalt-table-hint,

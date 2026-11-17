@@ -469,6 +469,14 @@
     }
   },
   "radius": {
+    "2xs": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The corner of a coverage strip's cell: a quarter of the 4px edge's roundness on a sliver of about 6px (DECISIONS 153, consent row 6)."
+    },
     "xs": {
       "$type": "dimension",
       "$value": {
@@ -1002,6 +1010,30 @@
         "unit": "px"
       },
       "$description": "A chart plot's height at every width."
+    },
+    "chart-plot-sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 96,
+        "unit": "px"
+      },
+      "$description": "The second, shorter plot height: the phase chart's trend. A plot is 240px, or this (DECISIONS 153, vote 11 and consent row 5)."
+    },
+    "chart-row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10)."
+    },
+    "meter-marker": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14)."
     },
     "stage-headroom": {
       "$type": "dimension",

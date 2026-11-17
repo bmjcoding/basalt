@@ -18,6 +18,8 @@ const LENGTHS = {
   "size-chart-line": ["2px", 2, "chartLine"], "size-chart-mark": ["8px", 8, "chartMark"], "size-cut": ["2px", 2, "cut"], "size-hatch-pitch": ["4px", 4, "hatchPitch"],
   "size-chart-bar-max": ["24px", 24, "chartBarMax"], "size-chart-bar-min": ["2px", 2, "chartBarMin"], "size-chart-dash": ["6px", 6, "chartDash"],
   "size-chart-dash-gap": ["4px", 4, "chartDashGap"], "size-chart-plot": ["240px", 240, "chartPlot"],
+  // DECISIONS 153: the second plot height, the marks row's default height and the range meter's marker.
+  "size-chart-plot-sm": ["96px", 96, "chartPlotSm"], "size-chart-row": ["56px", 56, "chartRow"], "size-meter-marker": ["12px", 12, "meterMarker"],
 };
 
 test("every layout and chart length is emitted to CSS as a custom property", () => {
@@ -26,14 +28,19 @@ test("every layout and chart length is emitted to CSS as a custom property", () 
 
 test("every layout and chart length is in the JS tokens, and every chart colour role in both themes", () => {
   for (const name of Object.keys(LENGTHS)) assert.ok(json.primitives[name], `${name} is not in the JSON/JS tokens`);
-  for (const theme of ["light", "dark"]) for (const role of ["observed", "plan", "band", "missing", "grid", "baseline", "axis"]) assert.ok(json[theme][`chart-${role}`], `${theme}: chart-${role}`);
+  for (const theme of ["light", "dark"]) for (const role of ["observed", "plan", "band", "missing", "grid", "baseline", "axis", "lit-top", "lit-mid", "lit-base"]) assert.ok(json[theme][`chart-${role}`], `${theme}: chart-${role}`);
 });
 
 test("every layout and chart length is in Swift in points, and a rem is resolved at 16 with a doc comment that says so", () => {
   for (const [name, [, points, id]] of Object.entries(LENGTHS)) assert.match(swift, new RegExp(`public static let ${id}: Double = ${points}\\n`), `${name} is ${points} points in Swift`);
   assert.match(swift, /\/\/\/ [^\n]*Written 72rem; resolved here at 16 points to the rem \(1152\)\.\n\s*public static let pageWidth/);
   assert.match(swift, /\/\/\/ [^\n]*Written 34rem; resolved here at 16 points to the rem \(544\)\.\n\s*public static let proseWidth/);
-  for (const role of ["chartObserved", "chartPlan", "chartBand", "chartMissing", "chartGrid", "chartBaseline", "chartAxis"]) assert.match(swift, new RegExp(`public static let ${role} = ThemedColor`), role);
+  for (const role of ["chartObserved", "chartPlan", "chartBand", "chartMissing", "chartGrid", "chartBaseline", "chartAxis", "chartLitTop", "chartLitMid", "chartLitBase"]) assert.match(swift, new RegExp(`public static let ${role} = ThemedColor`), role);
+});
+
+test("the 2px radius for a coverage strip's cell is in CSS and in Swift (xs2: a name cannot start with a digit)", () => {
+  assert.match(css, /--basalt-radius-2xs: 2px;/);
+  assert.match(swift, /public static let xs2: Double = 2\n/);
 });
 
 test("the gutter tokens are aliases of the space scale, so they cannot drift from it", () => {

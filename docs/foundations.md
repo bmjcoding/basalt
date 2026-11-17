@@ -1181,6 +1181,61 @@ line plus `space-1`), the 60% bar share and the 56px label spacing are rules, no
 The colour roles are aliases, so they cost no new colour, but each joins the contrast tests on every level, on the band and on the
 plate, in both themes. The tightest pair is the hatch on the light plate, at 3.27:1.
 
+### The lit figure, the headline frame and N1's figures
+
+**Status:** decided by the council (DECISIONS 153, in the stream `components-nov14`; ported from the owner's approved site prototypes with the council's
+changes); the implementation hasn't been reviewed. The votes that had no majority left what is already decided standing, as the notes say. The small bar plot
+(vote 10) is held for the owner and is not built.
+
+- **Lit marks** (`TimeChart`'s `lit`, vote 1, 3 to 1): each solid mark (a bar, a marker) takes one vertical gradient in plot coordinates, lightest at the top
+  of the plot, so a taller mark reaches brighter ink. Three neutral stops, `chart-lit-top`, `-mid` (at 55%) and `-base`, each 3:1 on levels 0 to 3 and on the picked
+  day's plate, in both themes. A line is one stroke in the top stop. No series takes a colour: they are the same neutral ink, told apart by dash, marker and name. The
+  default chart is flat `chart-observed`, as before.
+- **The trend** (`TimeChart`'s `trend`, votes 2 to 5): one series' readings as small dots (`size-track`, 4px, tertiary ink at full strength) and their trailing mean
+  (`trailingMean`: a 7-day window, at least 3 readings; one missing day between two readings keeps its trend, two in a row stop it) as one straight 2px line that
+  breaks at a gap and never bridges it. No area under the line (4 to 0 on the dots, 3 to 1 on the area). The picked day is one head dot on the line (`size-chart-mark`
+  ringed `size-cut`), with no cursor, halo or plate. How the line curves (vote 3) and the kit's two reference lines (vote 6) had no majority, so the line is joined
+  straight and the guides are Basalt's gridlines, gutter and baseline rule: for the owner's review page, where three of four members wanted the kit's two labelled guides.
+- **The headline frame** (`TimeChart`'s `headline`, votes 7 to 9): a 14/20, 500, secondary title and "View as table" in one 28px row; the picked day's number as the
+  headline (`text-4xl` under 720px, `text-5xl` from it, in a seat as wide as its widest form, tabular); the unit beside it (the one place a headline carries the unit, a
+  written exception to "the unit is written once, on the top tick": the top tick keeps it too); one context line as tall as its tallest form. There is no live region
+  and no hand-built toggle; the table opens in the same figure as the still table; the key hint stays a legend; the `figcaption` is required. The number glides over
+  `duration-slow` when a day is picked (vote 9 had no majority; the glide, with the readable text the target, is the vote's option that stands), and its real value is in the
+  text from the first frame. It takes one series, and the legend rows of a chart that does not set it are unchanged, with their reserved widths.
+- **The phase chart** (`PhaseChart`, votes 11, 16 and 17): a `TimeChart` with a trend, the one second plot height (`size-chart-plot-sm`, 96px, fixed at every width), and a
+  lane of one choice a week on the plot's own axis, with the open week's plate behind both. A press on a day, or Enter on the focused day, opens its week; the days stay images
+  with a roving tab stop, and there is no live region. The chosen call takes primary ink on the `state-selected` plate with no weight change, and the plate slides over
+  `duration-slow` on `ease-out` (3 to 1; none under reduced motion; in forced colours it is a 1px `Highlight` outline). The lane's choices are 44px on touch. Where a week's
+  slot is under 44px (twelve choices do not fit a phone), the lane is marks (a changed week's mark is larger) and previous and next controls step through the weeks, with the
+  open week in words in a seat as tall as the tallest; a keyboard still reaches every mark. The headline frame's `text-4xl` and `text-5xl` figure is used, over N1's own 22px
+  phase read (DECISIONS 157, consent row C6).
+- **The share bar** (`ShareBar`, votes 12 and 13): N1's form without its gloss: 8px (a plan) or 12px (a tally, each part at least 12px long and as wide as its own words, taken from the other parts so the bar keeps its width) tall, a 4px gap, full radius,
+  one ink for every part (`chart-observed`), each part's share and name under it in words. The shares are whole percents that add to 100. The bar is decoration; a part of
+  nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed); every other share is a whole number.
+- **The coverage strip** (`CoverageStrip`, vote 14, consent rows 6 to 8): a cell a day, lit when recorded and Basalt's hatch when not (no dashed edge), 48px tall with a
+  2px gap and a 2px corner (`radius-2xs`) as a strip of slivers (84 days is a quarter), or seven squares with a 4px gap and `radius-sm` for a week. The cells are hidden from
+  assistive technology; the words ("78 of 84 days recorded. Not recorded: 31 Aug to 2 Sept (watch not worn).") are built from the cells.
+- **The marks row** (`MarksRow`, vote 15, consent rows 9 to 11): one kind of reading across a run of days in the form of the thing measured: columns standing on the row's floor with
+  8px top corners, pills, and blocks with 8px corners; a rest day is a 6px dot (`size-dot`), a missing day the hatch. It is 56px tall (`size-chart-row`, a default the app can
+  set). **A written exception to "a bar is square at both ends"** (3 to 1). The marks glide to a new height over `duration-slow`.
+- **The range meter** (`RangeMeter`, vote 18, consent rows 14 and 15): `Meter`'s slot (8px, a 1px input boundary, nothing inside) with its own target tick drawn twice, at the
+  plan's two ends, and the reading a dot (`size-meter-marker`, 12px) ringed `size-cut`. `role="meter"`, with the plan in `aria-valuetext`. The ticks and the marker come from one
+  scale. No band, no fill.
+- **Motion:** the share bar, coverage strip, marks row and range meter draw at rest and are never a page's one entrance. A lit trend or bar `TimeChart` can be the one (the
+  line draws, a bar scales from its baseline, the readings and the head dot fade; the headline's number is the real value throughout).
+- **Neutral:** every colour here is neutral. N1's verdigris and brass and the kit's own colours stay with the sites; a product colour over these is D17.
+
+| Token | Value | Use |
+|---|---|---|
+| `chart-lit-top`, `-mid`, `-base` | `neutral-100`, `-64`, `-52` in dark; `neutral-9`, `-30`, `-52` in light | The lit gradient's three stops; the top is a lit line's stroke |
+| `size-chart-plot-sm` | 96px | The phase chart's plot |
+| `size-chart-row` | 56px | A marks row's default height |
+| `size-meter-marker` | 12px | A range meter's marker, inside its `size-cut` ring |
+| `radius-2xs` | 2px | A coverage strip's cell (Swift: `Radius.xs2`) |
+
+Widths the prototype set by hand are derived from tokens, with no new one: a marks column is `min(44%, 28px)` (`space-6` + `space-1`), a pill `min(26%, space-3)`, a block
+`min(64%, 44px)` (`space-10` + `space-1`), a missing seat `min(72%, 52px)`, a seven-day strip at most 240px.
+
 ## Layout
 
 The layout lengths and breakpoints (decision 101). Each is a token under `size`, emitted to CSS, JavaScript and Swift.

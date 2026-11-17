@@ -36,6 +36,19 @@
     return out;
   }
 
+  /** The trailing mean of readings (React's trailingMean, DECISIONS 153): the mean of the `window` days ending on each, once `min` readings (3, or the window if shorter) are in
+   *  it; one missing day between two readings keeps its trend, two in a row stop it. No readings, or one day, give nulls (never NaN). Exposed as Basalt.trailingMean. */
+  function trailingMean(values, options) {
+    var span = Math.max(1, Math.floor((options && options.window) || 7));
+    var need = Math.max(1, Math.min(Math.floor((options && options.min) || 3), span));
+    function has(i) { return isNum(values[i]); }
+    return values.map(function (_v, i) {
+      var sum = 0, count = 0;
+      for (var k = Math.max(0, i - span + 1); k <= i; k++) if (has(k)) { sum += values[k]; count++; }
+      return count >= need && (has(i) || (has(i - 1) && has(i + 1))) ? sum / count : null;
+    });
+  }
+
   /* ---------------------------------------------------------------- the scale */
 
   /** 3 to 6 gridlines on round steps. A bar chart starts at zero; a line chart's scale needn't. */
@@ -813,5 +826,6 @@
   // A router's page change without a reload counts as a load: the entrance's late gate then measures from the change (`at`, as performance.now() gave it, or now).
   B.pageChange = function (at) { B.pageChangedAt = at === undefined ? performance.now() : at; };
   B.chart = chart;
+  B.trailingMean = trailingMean;
   _.step(60, 'wireCharts', wireCharts);
 })(window.Basalt);

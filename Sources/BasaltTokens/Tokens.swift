@@ -311,6 +311,24 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// The lightest stop of a lit mark's vertical gradient, at the top of the plot, and a lit line's one stroke. 3:1 on levels 0 to 3 and on the picked day's plate (DECISIONS 153, vote 1).
+    public static let chartLitTop = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+    )
+
+    /// The middle stop of a lit mark's gradient, 55% of the way down the plot. 3:1 on levels 0 to 3.
+    public static let chartLitMid = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.639248, green: 0.639248, blue: 0.639248, alpha: 1)
+    )
+
+    /// The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3.
+    public static let chartLitBase = ThemedColor(
+      light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
+      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+    )
+
     /// The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads.
     public static let artField = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
@@ -400,6 +418,7 @@ extension Basalt {
   }
 
   public enum Radius {
+    public static let xs2: Double = 2
     public static let xs: Double = 4
     public static let sm: Double = 6
     public static let md: Double = 8
@@ -531,6 +550,12 @@ extension Basalt {
     public static let chartDashGap: Double = 4
     /// A chart plot's height at every width.
     public static let chartPlot: Double = 240
+    /// The second, shorter plot height: the phase chart's trend. A plot is 240px, or this (DECISIONS 153, vote 11 and consent row 5).
+    public static let chartPlotSm: Double = 96
+    /// A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10).
+    public static let chartRow: Double = 56
+    /// A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14).
+    public static let meterMarker: Double = 12
     /// The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed.
     public static let stageHeadroom: Double = 80
   }

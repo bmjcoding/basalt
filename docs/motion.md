@@ -141,6 +141,9 @@ A chart (decision 101) is drawn at rest on its first paint, unless it is its pag
 | Picking a day (hover, a tap, a key) | Instant. The plate does not glide: chart days are dense, and a gliding plate trails the pointer. |
 | Reduced motion | Values and the scale snap; a new range is a 100ms fade. |
 | A number beside a chart | At its real value from the first frame, the entrance included; it never counts up. A value that changes in place glides with the marks over `duration-slow` (`NumberTicker glide`), the readable text the target. |
+| The headline number when a day is picked (DECISIONS 153, vote 9: no majority, the glide stands; the implementation hasn't been reviewed) | It glides over `duration-slow` (`NumberTicker glide`), the readable text the target; its seat, the unit and the context line do not move. The picked day on a trend is one head dot that moves at once. |
+| The phase chart's open week (DECISIONS 153, vote 17) | The plate behind the plot and the lane slides to the chosen week over `duration-slow` on `ease-out` (the segmented control's rule); under reduced motion it sets in place, and in forced colours it is an outline. Picking a day on the plot does not move it. |
+| A marks row's new values (DECISIONS 153, consent row 11) | Each mark glides to its height over `duration-slow`; none under reduced motion. The share bar, the coverage strip, the marks row and the range meter draw at rest and are never a page's one entrance; the range meter's marker glides over `duration-slow`. |
 | The entrance (`entrance` on a chart that is its page's one) | Each mark draws once on a first visit over `duration-figure`; a change of data mid-entrance takes over and glides every mark from where it is drawn. |
 
 ## The clear bar and framed art

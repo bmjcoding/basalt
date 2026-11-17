@@ -517,6 +517,27 @@ for (const theme of THEMES) {
     }
   });
 
+  // DECISIONS 153, vote 1: a solid mark takes one vertical gradient in plot coordinates, as three stops, each 3:1 on levels 0 to 3 and on the picked day's plate
+  // over each level (the plate sits behind a bar). They alias neutral steps that already exist, so no new colour is made. The kit's own base stop failed in dark.
+  test(`${theme}: the lit gradient's three stops are neutral steps and each holds 3:1 on every level and on the picked day's plate; the line's stroke is the top stop`, () => {
+    const aliases = theme === "dark" ? { "chart-lit-top": "neutral-100", "chart-lit-mid": "neutral-64", "chart-lit-base": "neutral-52" } : { "chart-lit-top": "neutral-9", "chart-lit-mid": "neutral-30", "chart-lit-base": "neutral-52" };
+    for (const [role, alias] of Object.entries(aliases)) assert.deepEqual(color(theme, role), color(theme, alias), `${role} is not ${alias}`);
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      const plate = over(color(theme, "state-selected"), under);
+      for (const role of ["chart-lit-top", "chart-lit-mid", "chart-lit-base"]) for (const [name, bg] of [["level", under], ["plate", plate]]) {
+        const r = ratio(over(color(theme, role), bg), bg);
+        assert.ok(r >= 3, `${theme}: ${role} on the ${name} at ${level} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the lit gradient runs from the top stop to the base in ink steps, the top the strongest`, () => {
+    const under = color(theme, "surface-1");
+    const r = (role) => ratio(color(theme, role), under);
+    assert.ok(r("chart-lit-top") > r("chart-lit-mid") && r("chart-lit-mid") > r("chart-lit-base"), `${theme}: ${r("chart-lit-top")}, ${r("chart-lit-mid")}, ${r("chart-lit-base")}`);
+  });
+
   test(`${theme}: axis labels (tertiary) hold 4.5:1 on every level, and the legend's names (secondary) and values (primary) hold 4.5:1`, () => {
     for (const level of LEVELS) {
       const under = color(theme, level);
