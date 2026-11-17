@@ -64,8 +64,7 @@
 
   /* A sheet with a head, a body and a foot (React's SheetHeader, SheetBody and SheetFooter; DECISIONS 155, D10b): edge to edge, no padding of its own, the
      head and the foot keeping the safe areas. The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it. */
-  /* stylelint-disable-next-line unit-disallowed-list -- 44px at every pointer: joins the controls batch's size token (DECISIONS 154) */
-  .sheet-head { --_control-44: 44px; }
+  .sheet-head { --_control-44: var(--basalt-size-control-2xl); }
   dialog.sheet:has(> .sheet-head, > .sheet-body, > .sheet-foot) { padding: 0; overflow: hidden; }
   .sheet-head {
     box-sizing: border-box;

@@ -4175,9 +4175,8 @@
 
   /* ---- Overlays and search (DECISIONS 155) ---- */
 
-  /* The 44px control at every pointer (DECISIONS 154, D11a) is not in this branch's size ladder yet: one local value for this batch. */
-  /* stylelint-disable-next-line unit-disallowed-list -- 44px at every pointer: joins the controls batch's size token (DECISIONS 154) */
-  .basalt-sheet-head, .basalt-search, .basalt-search-trigger { --_control-44: 44px; }
+  /* The 44px control at every pointer (DECISIONS 154, D11a) is the size ladder's 2xl, read directly so compact density does not step it. */
+  .basalt-sheet-head, .basalt-search, .basalt-search-trigger { --_control-44: var(--basalt-size-control-2xl); }
 
   /* A sheet with a head, a body and a foot (D10b): edge to edge, no padding of its own. The head and the foot keep the safe areas.
      The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it on a divider. */
