@@ -1048,7 +1048,7 @@ describe("E. the smoke", () => {
     const foundations = fs.readFileSync(path.join(root, "docs", "foundations.md"), "utf8");
     assert.match(foundations, /`#000` at 92\.5% in dark, `#fafafa` at 96% in light/);
     assert.doesNotMatch(foundations, /`#000` at 85% in dark/);
-    assert.match(foundations, /7\.19:1/);
+    assert.match(foundations, /9\.60:1/); // was 7.19:1 before the dark inks were lifted (DECISIONS 166)
   });
 });
 

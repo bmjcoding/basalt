@@ -639,7 +639,7 @@ describe("the headroom check", () => {
     const result = await checkHeadroom(browser, { load: loader(page({ art: detail })), themes: ["dark"], widths: [1440], scales: [1] });
     assert.equal(result.ok, false);
     assert.deepEqual(result.failures.map((f) => f.zone), ["headline"]);
-    assert.equal(result.failures[0].worst.color, "#ededed");
+    assert.equal(result.failures[0].worst.color, "#f4f4f4");
   });
 
   test("a detail that antialiases below the limit at 1x lands whole at 2x: only the 2x run fails", async () => {
