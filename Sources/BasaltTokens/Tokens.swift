@@ -444,6 +444,16 @@ extension Basalt {
     public static let controlMd: Double = 32
     public static let controlLg: Double = 36
     public static let controlXl: Double = 40
+    /// A control at the touch size on every pointer: Castle's icon button, select and filter triggers and option chips (DECISIONS 154). The first rung above xl; compact steps it down to xl.
+    public static let control2xl: Double = 44
+    /// Castle's button, and the narrow switch row and tab (DECISIONS 154). Compact steps it down to 2xl.
+    public static let control3xl: Double = 48
+    /// The switch row from 720px wide, and the step compact takes a 56 control down to (DECISIONS 154: the approved prototype's own 52, which a 36px tile in 6px of padding and two 1px edges cannot make at 48). Compact steps it down to 3xl.
+    public static let control4xl: Double = 52
+    /// The large button, and the tab bar of an app's own navigation (DECISIONS 154). Compact steps it down to 4xl.
+    public static let control5xl: Double = 56
+    /// The least height of a button whose label is two lines (DECISIONS 154). Compact steps it down to 5xl.
+    public static let control6xl: Double = 64
     /// The plate of a Menu, Select or Combobox row (the command menu's is size-control-xl, 40). The row is 4px taller: each row carries 2px above and below its plate, so the 4px gap between plates is drawn inside the rows and neighbouring hit areas touch. Compact steps it down to 32.
     public static let menuRow: Double = 36
     /// The least height of a row's hit area on a coarse pointer.
@@ -537,6 +547,10 @@ extension Basalt {
     public static let breakpointLg: Double = 1024
     /// A component's own width, in a container query: a description list stacks and a chart goes narrow below it.
     public static let breakpointContainer: Double = 480
+    /// A component's own width, in a container query, below which a button's two lines stay two lines: from it up to size-breakpoint-container the label and its note share one line (DECISIONS 154, D11b). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointContainerSm: Double = 340
+    /// A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointContainerLg: Double = 640
     /// An observed line and the plan stroke in a chart.
     public static let chartLine: Double = 2
     /// A chart marker's diameter, or its side; the diamond has the same area.
@@ -609,6 +623,7 @@ extension Basalt {
     public static let base: Double = 0.15
     public static let slow: Double = 0.2
     public static let slower: Double = 0.3
+    public static let confirm: Double = 1.5
     public static let figure: Double = 0.6
     public static let stagger: Double = 0.022
   }

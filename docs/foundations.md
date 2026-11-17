@@ -352,7 +352,8 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   follows. The nav dot, the checked radio's dot and the notification centre's dots are drawn the same way. The badge keeps
   its box: border-box, its inline padding reduced by the hairline, so the border changes nothing.
 - **The multi-select filter** (`MultiSelect`; decisions 82 and 83). One rule picks the control: one of many is a pill in a
-  track (`SegmentedControl`), any of many is a check with no track. Up to six values are independent chips: 32px, or 36
+  track (`SegmentedControl`), except one of many that wraps, with eight values or fewer, which is chips with radio semantics and no track
+  (`OptionChips`, below; DECISIONS 154, A4); any of many is a check with no track. Up to six values are independent chips: 32px, or 36
   inside a 44px target on touch, radius 6 (8 at 36), 13/18 at 500 (14 on touch), 8px apart. Off is a hairline and a
   tertiary plus in the chip's 16px seat; on is the selected wash, primary ink and the check in the same seat, so turning
   one on moves nothing, and it is never colour alone: the glyph changes shape. The swap is a 100ms crossfade
@@ -726,8 +727,9 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
   popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
   lengths; Stylelint enforces it, with the screen-reader clip as the one exception.
-- **Controls:** 24, 28, 32, 36 and 40px tall; 32 is the app default, and
-  `data-density="compact"` moves controls down one step (24px is the floor) and uses 13px
+- **Controls:** 24, 28, 32, 36 and 40px tall, and from DECISIONS 154 44, 48, 52 and 56 (`size-control-2xl` to `-5xl`; 64, `-6xl`, is the least height of a
+  two-line button); 32 is the app default, and
+  `data-density="compact"` moves controls down one step (24px is the floor; 56 to 52, 52 to 48, 48 to 44, 44 to 40) and uses 13px
   control text. Set it on `<html>` so portalled menus inherit it; a nested
   `data-density="default"` restores regular sizes. A popup row (Menu, Select, Combobox) is a 36px plate (`size-menu-row`, which is
   `size-control-lg`) in a 40px hit area, and a command menu row a 40px plate in a 44px hit area; compact steps the plates to 32
@@ -1610,6 +1612,60 @@ A product's own logo is its own; the social marks are Phosphor's (below).
 Icons take `currentColor`, default to the secondary text colour, and turn primary when active.
 Navigation glyphs in a sidebar or rail are primary at rest, like their labels. On iOS, system
 concepts (back, share, settings) use SF Symbols.
+
+## Controls of DECISIONS 154
+
+Decided by the council on 15 Nov 2026 (DECISIONS 154, a vote of four on the ports from the owner's approved prototypes). **Status:** the
+implementation hasn't been reviewed. Each part below is ported from a site the owner approved (DECISIONS 151); the council changed only what
+broke a rule, and each change is named.
+
+- **Sizes (D11a).** Controls take four rungs above 40: 44 (`size-control-2xl`), 48 (`3xl`), 52 (`4xl`) and 56 (`5xl`), radius 8 at every one (the
+  drawn-box rule), 16px text. `Button`, `IconButton`, `Input`, `Select`, `Combobox`, `NumberField` and `MultiSelect` (`controlSize`) take them, and
+  the prop sets the pixels. Button text is 600 at 44 and up and 500 at the shipped sizes (A6). The prototype's 15px text is 16 (`text-md`). Compact
+  steps every rung down one, and a touch target stays 44.
+- **Outline (A7).** `Button` variant `outline`: transparent, a 1px `border-input` edge drawn inside the box, primary ink; hover takes the edge to
+  primary ink; a press is the selected wash. It never toggles.
+- **The amount (D11b, A8).** `amount` after the label, in tabular figures, in a seat as wide as the widest amount named in `amountReserve`, so the
+  label and the button never move. Its ink is the label's at `opacity-amount` (0.72) on primary, secondary and outline, where that holds 4.5:1 on every
+  fill and surface (the contrast test proves it), and the label's full ink on ghost and danger, where it would not (the council's consent row 11,
+  by the AA rule and not by vote). Full ink in forced colours.
+- **The count pill (D11d, A11, A12).** `count` on a `Button`: an outlined pill 24 tall in `border-input`, the number 600, secondary at zero and
+  primary above, never a fill and never a colour. It holds two tabular digits (0 to 99 never moves the button; no majority: reserve two digits stands,
+  and a third digit widens it). It is `aria-hidden`; the button's name carries the count.
+- **Two lines (D11b).** `note` on a `Button`: the label (14/20, a `<code>` in it is mono) over a note (13/18, secondary), start-aligned, at least 64
+  (`size-control-6xl`); in a container 340 to 480 wide they share one line at 48, 12px apart. A disabled one keeps the label's ink on the note.
+- **Done (D11c, A9, A10).** `IconButton` `done`: the plus becomes the core check in the button's own ink, in one shared seat, with a 100ms crossfade
+  that stays under reduced motion (DECISIONS 138, C10). No fill, no selected plate, and the name does not change: a `StatusLine` outside says what
+  happened. `useConfirm` holds it for `CONFIRM_MS`, the `duration-confirm` token (1500ms, which the copy buttons now share).
+- **Full width (X12).** `Button` `fullWidth`: as wide as its space, label centred, nothing else changes.
+- **The text button (D5d, A1).** `TextButton`: no box and no control height, the surrounding text's font, primary ink, a 1px `border-input` underline
+  3px off that goes to the ink on hover, radius 4 for the focus ring, an optional `iconEnd` that is not underlined, a quiet form in secondary ink. It
+  has no pressed state: a choice between two is a `SegmentedControl`. On touch one on a line of its own has a 44px hit box that changes no layout; one
+  in a sentence keeps its line. It takes no `Button` box and no .98 press.
+- **The switch row (D9a, A2, A3).** `SwitchRow` in a `SwitchRowGroup`: one checkbox drawn as a row, an optional tile, a name and a kind, and a 16px
+  seat where a plus and a check cross over in 100ms (kept under reduced motion). The edge is `border-input` at rest and checked; hover lifts the ink to
+  primary and the edge to `text-secondary` (not `border-hover`, which is fainter than the boundary and would drop it under 3:1). On is the selected
+  wash and primary ink. It is 52 tall from 720 wide with a 36px tile and a 14/20 name, and 48 under 720 with a 32px tile and a 13/18 name: the
+  council could not draw the ballot's 48 (a 36px tile, 12px of padding and two edges make 50) and kept the approved prototype's values. The row is not
+  a filter: no count, no Clear and no seven-or-more rule; what it does to the page is said once by a `FilterResult` (400ms). In forced colours on
+  is `Highlight` with `HighlightText` and no outline.
+- **Option chips (D9b, A4, A5).** `OptionChips`: one of many, eight at most, as chips that wrap with no track: a fieldset with a legend and a small
+  count; a chip 44 tall, radius 8, padding 10 before and 14 after, 16px, 8px apart, with a round 16px seat every chip reserves (a ring at rest, filled
+  with a 12px check when chosen). The chosen chip is the selected wash and primary ink and its edge does not change. A value that cannot be chosen
+  takes `unavailable` (the words): the disabled look, its words kept, `aria-disabled` and reachable, never chosen by a click, Space or an arrow key
+  landing on it.
+- **Link tabs (D12, A13, A14, A15).** `LinkTabs` and `LinkTab`: a `nav` of links on a hairline, the current one `aria-current="page"` with a real 2px
+  underline element (`Highlight` in forced colours) that does not slide, the control ring at +2 outside (never an inset outline), 36, 48 or 56 tall
+  (56 steps to 48 in a container under 640), 24px between two labels, the first with no start padding. **Under 720 wide the row is replaced by a `Select` of the
+  same links** (A15, 3 to 1, Castle's form; Grok's write-in, the row at every width with the `Select` left to the app, lost): both are in the server's markup and CSS alone
+  chooses at `size-breakpoint-md`, so nothing moves or flashes on load, and the one not shown is `display: none`, out of the accessibility tree and the Tab order. The
+  `Select` is Basalt's own, drawn at Castle's 44 for Castle's 48 row (36 for the 36 row, 48 for the 56 row, the bar's narrow height; a 36 Select is 44 on a coarse pointer, as Basalt's is; what is below moves across 720 by the row's height less the Select's: 0, 4 and 8px), and its value is the current link's `href`, always the row's `aria-current`. **It navigates at once and says so first** (DECISIONS 158, Q2, 3 to 1: WCAG 3.2.2's own exception for a change of context the user has been advised of): a "Go to" label (`goToLabel`; in the skill, the text of `.link-tabs-select-label`) is drawn before the current page's name inside the trigger, in secondary ink on the Select's one line (the multi-select trigger's form, a label then its value, so the height does not change and nothing moves at 390), and its words start the Select's accessible name ("Go to Everything"; WCAG 2.5.3, Label in Name), so the nav's name alone is not enough. **Only a real choice navigates:** a choice from the open list (a click, or Enter on the highlighted option). No key on the closed `Select` does: a typed letter changes the value and fires `change` on a native select and calls Base UI's `onValueChange` (reason `none`) on the closed trigger, and both are held, so the value stays the current page's; the arrow keys open the list in React and navigate nowhere. Navigating is `onNavigate(href)` for an app's router, else `window.location.assign`. With `onNavigate` (or the skill's cancelled `linktabsnavigate`) routing in place, focus stays on the `Select`; on the default a new page loads and focus starts over there. The prototype's route effect that moved focus to the page's heading is X10 and is not ported. `Tabs` takes the same `size`. The chosen label's 600 weight and reserved width (DECISIONS 138
+  A, 145, 149; the ballot's D12 row) are not built here: the wrapper is `chosen.tsx` in the audit-design-a branch, and building it into `LinkTab` (its label takes
+  `ChosenLabel`) and the skill's link tabs (they take `reserve()`) is a named step of the merge, with a test that a link tab's box does not move when the current
+  link changes. Until then the current link is 500.
+- **Panels that share one seat (X6).** `TabsPanels stacked`: every panel stays mounted in one grid cell, so the view is as tall as its tallest panel and
+  a change of tab moves nothing under it; the panels not shown are `visibility: hidden` and inert. It turns off under 640 (its own width), and it is off
+  by default.
 
 ## Primitives
 

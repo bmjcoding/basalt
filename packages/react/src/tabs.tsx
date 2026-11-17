@@ -6,7 +6,7 @@ import * as React from "react";
 import { ChosenLabel } from "./chosen";
 import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
-import { withClass } from "./utils";
+import { join, withClass } from "./utils";
 
 const TabsMotion = React.createContext<{
   order: React.MutableRefObject<string[]>;
@@ -20,12 +20,18 @@ export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"d
   value?: Value | null;
   defaultValue?: Value | null;
   orientation?: Orientation;
+  /**
+   * The height of the tabs in a horizontal bar: `lg` (36px, the default), `3xl` (48px) or `5xl` (56px; 48px in a container narrower than
+   * `size-breakpoint-container-lg`, 640px, when an ancestor is a container). A tab of 48 or 56 is 16px text with 10px of padding either
+   * side (24px between two labels) and radius 8 on its top corners. Vertical tabs have one size.
+   */
+  size?: "lg" | "3xl" | "5xl";
   /** Called with the new tab's `value`, unchanged (`null` when no tab can be selected). Call `details.cancel()` to refuse. */
   onValueChange?: (value: Value | null, details: ChangeDetails) => void;
 }
 
 /** Tabs switch between panels of one view. The new panel slides in from the direction you moved. */
-export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, ...props }: TabsProps<Value>) {
+export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, size, ...props }: TabsProps<Value>) {
   const order = React.useRef<string[]>([]);
   // Order and direction are looked up by the value's text, a private key: what the app sees is never changed.
   const previous = React.useRef<string | null>(value == null && defaultValue == null ? null : String(value ?? defaultValue));
@@ -52,6 +58,7 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
             {...props}
             value={value}
             defaultValue={defaultValue}
+            data-size={size && size !== "lg" ? size : undefined}
             className={withClass("basalt-tabs", className)}
             onValueChange={(next: Value | null, details: ChangeDetails) => {
               onValueChange?.(next, details);
@@ -137,8 +144,31 @@ export interface TabsPanelProps extends PartProps<"div", "value"> {
   keepMounted?: boolean;
 }
 
-export function TabsPanel({ className, ...props }: TabsPanelProps) {
-  return <BaseTabs.Panel {...props} className={withClass("basalt-tabs-panel", className)} />;
+const PanelsStacked = React.createContext(false);
+
+export interface TabsPanelsProps extends React.ComponentProps<"div"> {
+  /**
+   * Every panel stays mounted in one grid cell, so the view is as tall as its tallest panel and changing tab moves nothing under it
+   * (DECISIONS 154, X6). The panels that are not shown keep their room but are `visibility: hidden` and inert, so they leave the accessibility
+   * tree, find-in-page and any selection. It turns off, and each panel takes its own height, when this element is narrower than
+   * `size-breakpoint-container-lg` (640px). Off by default: tabs without it draw as they always did.
+   */
+  stacked?: boolean;
+}
+
+/** The panels of a `Tabs`, in one element, so they can share one seat (`stacked`). Put it inside `Tabs`, after the `TabsList`. */
+export function TabsPanels({ stacked = false, className, ...props }: TabsPanelsProps) {
+  return (
+    <PanelsStacked.Provider value={stacked}>
+      <div {...props} data-stacked={stacked ? "" : undefined} className={join("basalt-tabs-panels", className)} />
+    </PanelsStacked.Provider>
+  );
+}
+
+export function TabsPanel({ className, keepMounted, ...props }: TabsPanelProps) {
+  // Stacked panels all stay mounted: a panel that is not there would take no room.
+  const stacked = React.useContext(PanelsStacked);
+  return <BaseTabs.Panel {...props} keepMounted={stacked || keepMounted} className={withClass("basalt-tabs-panel", className)} />;
 }
 
 export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "value"> {

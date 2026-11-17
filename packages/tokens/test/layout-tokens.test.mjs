@@ -15,6 +15,10 @@ const LENGTHS = {
   "size-gutter": ["var(--basalt-space-6)", 24, "gutter"], "size-gutter-narrow": ["var(--basalt-space-4)", 16, "gutterNarrow"],
   "size-breakpoint-md": ["720px", 720, "breakpointMd"], "size-breakpoint-lg": ["1024px", 1024, "breakpointLg"], "size-breakpoint-container": ["480px", 480, "breakpointContainer"],
   "size-description-label": ["160px", 160, "descriptionLabel"],
+  // DECISIONS 154: the control rungs above 40, and the two container widths a container query cannot read from a token.
+  "size-control-2xl": ["44px", 44, "control2xl"], "size-control-3xl": ["48px", 48, "control3xl"], "size-control-4xl": ["52px", 52, "control4xl"],
+  "size-control-5xl": ["56px", 56, "control5xl"], "size-control-6xl": ["64px", 64, "control6xl"],
+  "size-breakpoint-container-sm": ["340px", 340, "breakpointContainerSm"], "size-breakpoint-container-lg": ["640px", 640, "breakpointContainerLg"],
   "size-chart-line": ["2px", 2, "chartLine"], "size-chart-mark": ["8px", 8, "chartMark"], "size-cut": ["2px", 2, "cut"], "size-hatch-pitch": ["4px", 4, "hatchPitch"],
   "size-chart-bar-max": ["24px", 24, "chartBarMax"], "size-chart-bar-min": ["2px", 2, "chartBarMin"], "size-chart-dash": ["6px", 6, "chartDash"],
   "size-chart-dash-gap": ["4px", 4, "chartDashGap"], "size-chart-plot": ["240px", 240, "chartPlot"],
@@ -138,4 +142,18 @@ test("the breakpoints are still 720, 1024 and 480: no 900 and no 1280 token", as
   const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
   assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480 });
   assert.doesNotMatch(css, /breakpoint-(?:900|1280)|--basalt-size-breakpoint-xl/);
+});
+
+// DECISIONS 154: the hold of a confirmation (D11c) and the ink of a button's amount (D11b).
+test("the confirm hold and the amount's opacity are emitted to CSS, JS and (the hold) Swift", () => {
+  assert.match(css, /--basalt-duration-confirm: 1500ms;/);
+  assert.match(css, /--basalt-opacity-amount: 0.72;/);
+  assert.equal(json.primitives["duration-confirm"].css, "1500ms");
+  assert.equal(json.primitives["opacity-amount"].css, "0.72");
+  assert.match(swift, /public static let confirm: Double = 1.5\n/);
+});
+
+test("the control ladder has no gaps: 24, 28, 32, 36, 40, 44, 48, 52, 56, 64", () => {
+  const rungs = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl"].map((n) => parseFloat(json.primitives[`size-control-${n}`].css));
+  assert.deepEqual(rungs, [24, 28, 32, 36, 40, 44, 48, 52, 56, 64]);
 });

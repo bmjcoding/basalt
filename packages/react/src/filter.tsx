@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { SearchGlyph } from "./glyphs/search";
-import { Button } from "./button";
+import { Button, type ControlSize } from "./button";
 import { CheckGlyph } from "./glyphs/check";
 import { PlusGlyph } from "./glyphs/plus";
 import { Icon } from "./icon";
@@ -45,6 +45,11 @@ export interface MultiSelectProps {
   onValueChange?: (value: string[], details: ChangeDetails) => void;
   /** Use inside a toolbar: always a trigger and a checklist, however few the values. */
   toolbar?: boolean;
+  /**
+   * The height of the chips or of the trigger: `md` (32px, the default) to `5xl` (56px), as a Button's `size`. 2xl (44) and up draw 16px text on
+   * radius 8 (DECISIONS 154, D11a). The popup's rows keep their own size.
+   */
+  controlSize?: ControlSize;
   disabled?: boolean;
   className?: string;
 }
@@ -54,7 +59,7 @@ export interface MultiSelectProps {
  * plus when off and a check when on; seven or more, or a toolbar, are a trigger and a checklist. Clear is always mounted, in
  * place, and never moves focus: at zero it is `aria-disabled`, not `disabled`, so keyboard focus can stay on it.
  */
-export function MultiSelect({ label, options, value, defaultValue, onValueChange, toolbar = false, disabled = false, className }: MultiSelectProps) {
+export function MultiSelect({ label, options, value, defaultValue, onValueChange, toolbar = false, controlSize = "md", disabled = false, className }: MultiSelectProps) {
   const [inner, setInner] = React.useState<string[]>(defaultValue ?? []);
   const chosen = value ?? inner;
   // The order is the options', whatever order the values were chosen in.
@@ -92,7 +97,7 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       Clear
     </Button>
   );
-  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear }} />;
+  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear, controlSize }} />;
   return (
     <div className={join("basalt-filter", className)}>
       <div className="basalt-filter-head">
@@ -104,7 +109,7 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       </div>
       <BaseCheckboxGroup value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} className="basalt-filter-chips">
         {options.map((o) => (
-          <BaseCheckbox.Root key={o.value} value={o.value} disabled={o.disabled} nativeButton render={<button type="button" />} className="basalt-chip">
+          <BaseCheckbox.Root key={o.value} value={o.value} disabled={o.disabled} nativeButton render={<button type="button" />} data-size={controlSize === "md" ? undefined : controlSize} className="basalt-chip">
             {/* One 16px seat on every chip, with both glyphs stacked in it: the plus and the check cross-fade, so turning a chip on moves nothing. */}
             <span className="basalt-chip-seat" aria-hidden="true">
               <Icon icon={PlusGlyph} className="basalt-chip-plus" />
@@ -164,6 +169,7 @@ interface ChecklistProps {
   className?: string;
   count: string;
   clear: React.ReactNode;
+  controlSize: ControlSize;
 }
 
 /**
@@ -171,7 +177,7 @@ interface ChecklistProps {
  * `size-popup-max-height` (nine 40px rows show whole, the tenth is the first to scroll), with the foot outside them. From ten
  * values a search band sits above the rows: 40px, the next level's fill, a divider below.
  */
-function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear }: ChecklistProps) {
+function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear, controlSize }: ChecklistProps) {
   const layer = useFloatingLayer();
   // A popup is its opener plus one, with a floor of 1: from the page it is level 1.
   const level = usePopupLevel();
@@ -229,7 +235,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
         <BasePopover.Trigger
           disabled={disabled}
           data-variant="secondary"
-          data-size="md"
+          data-size={controlSize}
           data-active={ordered.length ? "" : undefined}
           className="basalt-button basalt-filter-trigger"
         >

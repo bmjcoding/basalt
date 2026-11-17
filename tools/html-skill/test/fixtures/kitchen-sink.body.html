@@ -110,6 +110,18 @@
         <div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1">First panel.</div>
         <div class="tabpanel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>Second panel.</div>
       </div>
+      <nav class="link-tabs" aria-label="Link tabs" data-size="3xl" style="margin-top: var(--basalt-space-4)"><ul>
+        <li><a class="link-tab" href="#main" aria-current="page"><span>Everything</span><span class="link-tab-line" aria-hidden="true"></span></a></li>
+        <li><a class="link-tab" href="#main"><span>Protein</span><span class="link-tab-line" aria-hidden="true"></span></a></li>
+      </ul><div class="link-tabs-select"><span class="select"><span class="link-tabs-select-label" aria-hidden="true">Go to</span><select class="input" data-size="lg" aria-label="Go to Everything"><option value="#main" selected>Everything</option><option value="#main">Protein</option></select></span></div></nav>
+      <fieldset class="option-chips" style="margin-top: var(--basalt-space-4)">
+        <legend class="option-chips-legend">Flavour<span class="option-chips-count" aria-hidden="true">3</span></legend>
+        <div class="option-chips-list">
+          <label class="option-chip"><input class="option-chip-input" type="radio" name="flavour" value="v" checked><span class="option-chip-seat" aria-hidden="true"><span data-glyph="check"></span></span><span>Vanilla</span></label>
+          <label class="option-chip"><input class="option-chip-input" type="radio" name="flavour" value="c"><span class="option-chip-seat" aria-hidden="true"><span data-glyph="check"></span></span><span>Chocolate</span></label>
+          <label class="option-chip"><input class="option-chip-input" type="radio" name="flavour" value="b" aria-disabled="true"><span class="option-chip-seat" aria-hidden="true"><span data-glyph="check"></span></span><span>Berry</span><span class="option-chip-note"><span aria-hidden="true"> · </span><span class="visually-hidden">, </span>sold out at the brand</span></label>
+        </div>
+      </fieldset>
     </div>
     <div style="margin-top: var(--basalt-space-4)">
       <button class="disclosure" data-disclosure aria-expanded="true" aria-controls="d1">Open disclosure</button>

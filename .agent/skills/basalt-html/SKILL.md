@@ -36,11 +36,13 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
+- **link-tabs** `.link-tabs`: a `nav` of links, `aria-current="page"` on one; not a tablist.
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
 - **still-table** `data-fixed`, `data-sortable`: a `<col>` for each column, one with no width; never size a column from content.
 - **filter** `.filter`: write only labelled checkboxes, the script builds the control; one `.filter-result` for each list.
+- **option-chips** `.option-chips`: native radios, eight at most; an unavailable one is `aria-disabled`, not `disabled`.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.

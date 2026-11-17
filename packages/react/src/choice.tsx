@@ -186,6 +186,12 @@ export interface SelectProps {
   controlSize?: ControlSize;
   /** The trigger's accessible name when the select isn't inside a `Field`. */
   "aria-label"?: string;
+  /**
+   * A short label drawn before the value inside the trigger, in secondary ink, on the trigger's one line ("Go to": a Select whose choice goes somewhere). The
+   * form is the multi-select trigger's, a label then its value. The visible words are part of the trigger's name: it reads the prefix, then the value, and
+   * `aria-label` is not used (WCAG 2.5.3). The trigger's height and the value's place do not change with it.
+   */
+  valuePrefix?: string;
   className?: string;
 }
 
@@ -193,14 +199,22 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, ...props }: SelectProps) {
+  const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
     <BaseSelect.Root {...props} items={items}>
-      <BaseSelect.Trigger aria-label={ariaLabel} data-size={controlSize} className={join("basalt-select-trigger", className)}>
-        <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+      <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
+        {valuePrefix ? (
+          <span className="basalt-select-lead">
+            <span id={ids.prefix} className="basalt-select-prefix">{valuePrefix}</span>
+            <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
+          </span>
+        ) : (
+          <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+        )}
         <BaseSelect.Icon className="basalt-select-icon">
           <Icon icon={CaretUpDownIcon} size={16} />
         </BaseSelect.Icon>
