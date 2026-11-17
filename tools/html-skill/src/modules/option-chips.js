@@ -18,12 +18,14 @@
     chip.toggleAttribute('data-focus', input.matches(':focus-visible'));
   }
 
+  // A form's reset checks the radios again without a change event, so the drawn state is read again once the browser has done it (the reset event
+  // comes first, the reset after it): two chips drawn chosen came from this attribute going stale, not from the CSS that reads it.
   function init() {
+    document.addEventListener('reset', function () { setTimeout(function () { document.querySelectorAll('.option-chip').forEach(sync); }); });
     document.querySelectorAll('.option-chips').forEach(function (group) {
       if (group.__bhChips) return;
       group.__bhChips = true;
-      var chips = function () { return group.querySelectorAll('.option-chip'); };
-      var resync = function () { chips().forEach(sync); };
+      var resync = function () { group.querySelectorAll('.option-chip').forEach(sync); };
       resync();
       // A change in one radio unchecks its siblings without telling them, so the whole group is read again; focus moves one chip at a time.
       group.addEventListener('change', resync);

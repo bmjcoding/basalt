@@ -79,7 +79,7 @@ export interface ShortcutsState {
   keyshortcuts: (key: string) => { "aria-keyshortcuts": string };
 }
 
-const EDITABLE = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"], [role="combobox"], [role="searchbox"], [role="spinbutton"]';
+const EDITABLE = 'input, textarea, select, [role="textbox"], [role="combobox"], [role="searchbox"], [role="spinbutton"]';
 
 /**
  * Binds single keys at the app level. A key with Command, Control or Alt held is not a single key and is left to the browser and to the
@@ -96,7 +96,8 @@ export function useShortcuts(bindings: readonly ShortcutBinding[], { enabled = t
     const handle = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest(EDITABLE) || target?.closest("[data-own-keys]")) return;
+      // `isContentEditable` is the element's real editing state: it covers `plaintext-only` and an editing state inherited from an ancestor.
+      if (target?.closest(EDITABLE) || (target instanceof HTMLElement && target.isContentEditable) || target?.closest("[data-own-keys]")) return;
       const binding = latest.current.find((b) => b.key === event.key);
       if (!binding) return;
       event.preventDefault();
