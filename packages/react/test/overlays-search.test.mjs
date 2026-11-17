@@ -745,7 +745,7 @@ for (const theme of ["dark", "light"]) {
       await page.close();
       const above = await open(TALL(`defaultValue="o2"`), { theme });
       await settle(above.page);
-      await above.page.locator(".basalt-listbox").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+      await above.page.locator(".basalt-listbox-scroll").evaluate((el) => { el.scrollTop = el.scrollHeight; });
       assert.equal(await inView(above.page, "Option 2"), false);
       await above.page.locator(".basalt-listbox").focus();
       assert.equal(await inView(above.page, "Option 2"), true, "script focus: scrolled up to it");
@@ -755,13 +755,13 @@ for (const theme of ["dark", "light"]) {
     test("a list whose option is already in view does not scroll, and a press on an option does not scroll the list under the pointer", async () => {
       const { page } = await open(TALL(`defaultValue="o1"`), { theme });
       await settle(page);
-      const top = () => page.locator(".basalt-listbox").evaluate((el) => el.scrollTop);
+      const top = () => page.locator(".basalt-listbox-scroll").evaluate((el) => el.scrollTop);
       assert.equal(await top(), 0);
       await page.locator("#before").focus();
       await page.keyboard.press("Tab");
       assert.equal(await top(), 0, "already in view: no scroll");
       await page.locator("#before").focus();
-      await page.locator(".basalt-listbox").evaluate((el) => { el.scrollTop = 200; });
+      await page.locator(".basalt-listbox-scroll").evaluate((el) => { el.scrollTop = 200; });
       const target = page.getByRole("option", { name: /Option 12$/ });
       await target.scrollIntoViewIfNeeded();
       const before = await top();
@@ -806,6 +806,100 @@ for (const theme of ["dark", "light"]) {
       await page.keyboard.press("ArrowDown");
       await page.keyboard.press("ArrowDown");
       assert.deepEqual(await page.evaluate(() => window.__chosen), ["o1", "o2"], "keys choose, and a disabled option is skipped");
+      await page.close();
+    });
+  });
+}
+
+// ---- The listbox's ring: radius 8 on the list's own box (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2) ----
+
+const RING = (extra = "") => `<div style={{ padding: 24, width: 320 }}><B.Listbox label="Ring" defaultValue="o0" ${extra} style={{ height: 120 }}>{Array.from({ length: 30 }, (_, i) => <B.ListboxOption key={i} value={"o" + i}>Option {i}</B.ListboxOption>)}</B.Listbox></div>`;
+
+/** The colours painted at `points` of the page as it is now, from a screenshot (one pixel to a CSS pixel). */
+const painted = async (page, points) => {
+  const png = (await page.screenshot()).toString("base64");
+  return page.evaluate(async ([png, points]) => {
+    const img = await new Promise((resolve) => { const i = new Image(); i.onload = () => resolve(i); i.src = `data:image/png;base64,${png}`; });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width; canvas.height = img.height;
+    const g = canvas.getContext("2d");
+    g.drawImage(img, 0, 0);
+    return points.map(([x, y]) => [...g.getImageData(Math.floor(x), Math.floor(y), 1, 1).data].slice(0, 3));
+  }, [png, points]);
+};
+const apart = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) > 60;
+
+for (const [mode, theme, forced] of [["dark", "dark", false], ["light", "light", false], ["forced colours", "dark", true]]) {
+  describe(`the listbox's ring (${mode})`, () => {
+    const focusedList = async (extra) => {
+      const { page } = await open(RING(extra), { theme, viewport: { width: 500, height: 400 } });
+      await page.evaluate(() => { document.body.style.background = "var(--basalt-surface-page)"; document.body.style.margin = "0"; });
+      if (forced) await page.emulateMedia({ forcedColors: "active" });
+      await settle(page);
+      await page.locator(".basalt-listbox").focus();
+      await page.keyboard.press("Shift+Tab");
+      await page.keyboard.press("Tab");
+      return page;
+    };
+
+    test("the ring is 2px at +2 with corners of radius 8: outside the rounded ring is the page, and the ring runs round the corner", async () => {
+      const page = await focusedList();
+      const list = page.locator(".basalt-listbox");
+      assert.deepEqual(await style(list, "borderTopLeftRadius", "borderBottomRightRadius", "outlineWidth", "outlineOffset", "outlineStyle"), { borderTopLeftRadius: "8px", borderBottomRightRadius: "8px", outlineWidth: "2px", outlineOffset: "2px", outlineStyle: "solid" });
+      const b = await box(list);
+      const r = Math.SQRT1_2 * 11;
+      const [bg, edge, outer, diagonal, outerFar] = await painted(page, [[b.x - 12, b.y - 12], [b.x + b.width / 2, b.y - 3], [b.x - 3.5, b.y - 3.5], [b.x + 8 - r, b.y + 8 - r], [b.x + b.width + 3.5, b.y + b.height + 3.5]]);
+      assert.ok(apart(edge, bg), "the ring is painted along the top edge");
+      assert.ok(!apart(outer, bg), "the outer corner of the ring's box is the page, not the ring: the ring is rounded");
+      assert.ok(!apart(outerFar, bg), "and so is the bottom right");
+      assert.ok(apart(diagonal, bg), "the ring is painted round the corner, on the 45° line");
+      await page.close();
+    });
+
+    test("the flush ring keeps the same radius, drawn inside at −2: its outer curve is the box's corner, 8, and the page shows outside it", async () => {
+      const page = await focusedList("flush");
+      const list = page.locator(".basalt-listbox");
+      assert.deepEqual(await style(list, "borderTopLeftRadius", "outlineOffset", "outlineWidth"), { borderTopLeftRadius: "8px", outlineOffset: "-2px", outlineWidth: "2px" });
+      const b = await box(list);
+      const r = Math.SQRT1_2 * 7;
+      const [bg, corner, diagonal, edge] = await painted(page, [[b.x - 6, b.y - 6], [b.x + 0.5, b.y + 0.5], [b.x + 8 - r, b.y + 8 - r], [b.x + b.width / 2, b.y + 1]]);
+      assert.ok(!apart(corner, bg), "the very corner is outside the rounded ring");
+      assert.ok(apart(diagonal, bg), "the ring turns the corner inside the box");
+      assert.ok(apart(edge, bg), "and runs along the edge");
+      await page.close();
+    });
+
+    test("nothing at rest differs: unfocused, the list draws the same with radius 8 as with none, scrolled so a plate sits in the top corners, and has no fill, border or ring of its own", async () => {
+      const { page } = await open(RING(), { theme, viewport: { width: 500, height: 400 } });
+      await page.evaluate(() => { document.body.style.background = "var(--basalt-surface-page)"; document.body.style.margin = "0"; });
+      if (forced) await page.emulateMedia({ forcedColors: "active" });
+      await settle(page);
+      await page.locator(".basalt-listbox-scroll").evaluate((el) => { el.scrollTop = 3; });
+      const list = page.locator(".basalt-listbox");
+      const own = await style(list, "backgroundColor", "borderTopWidth", "boxShadow", "outlineStyle");
+      assert.match(own.backgroundColor, /, 0\)$/, "transparent");
+      assert.deepEqual({ ...own, backgroundColor: "" }, { backgroundColor: "", borderTopWidth: "0px", boxShadow: "none", outlineStyle: "none" });
+      const b = await box(list);
+      const region = { x: b.x - 12, y: b.y - 12, width: b.width + 24, height: b.height + 24 };
+      const grab = async () => (await page.screenshot({ clip: region })).toString("base64");
+      const rounded = await grab();
+      await list.evaluate((el) => { el.style.borderRadius = "0"; });
+      const square = await grab();
+      assert.equal(rounded, square, "0 pixels differ");
+      // Rows pass under the corners as the list scrolls: the radius clips none of them, because the box that scrolls is inside the one that is rounded.
+      assert.equal(await list.evaluate((el) => getComputedStyle(el).overflowY), "visible");
+      assert.equal(await page.locator(".basalt-listbox-scroll").evaluate((el) => getComputedStyle(el).borderTopLeftRadius), "0px");
+      await page.close();
+    });
+
+    test("the list still scrolls with the page keys now that the box that scrolls is inside the focused one", async () => {
+      const page = await focusedList();
+      const top = () => page.locator(".basalt-listbox-scroll").evaluate((el) => el.scrollTop);
+      assert.equal(await top(), 0);
+      await page.keyboard.press("PageDown");
+      assert.ok((await top()) > 50, "PageDown scrolls the list");
+      await page.keyboard.press("PageUp");
+      assert.equal(await top(), 0);
       await page.close();
     });
   });

@@ -921,7 +921,7 @@ implementation hasn't been reviewed.
   the arrow keys; the chosen option has a chevron in its gutter and primary ink, and its weight does not change. Rows that open have the name as a button stretched
   over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
   non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
-  (radius 8), by the drawn-box rule. Focus is the control ring at +2, with the list 6px from a clipping edge, or −2 where the list is flush.
+  (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.
 - **The notice bar** is a full-width band above the header, in the level-1 fill with a `border-divider` under it (no majority, the first option stands), `text-sm`
   secondary with its first words primary at 600; it is a named region, not a live region, and under 720 it keeps 6px more above its line.
 

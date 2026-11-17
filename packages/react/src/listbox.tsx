@@ -33,8 +33,9 @@ const OPTIONS = '[role="option"]:not([aria-disabled="true"])';
 /**
  * A single-select list with one tab stop. ↑ and ↓, Home and End move the choice and scroll it into view; clicking an option chooses it.
  * Options may be grouped under a label (`ListboxGroup`). The chosen option is marked by a chevron in its gutter and by primary ink, with a
- * plate behind it; a row's weight never changes. Focus is the control ring at +2, with the list keeping 6px from a clipping edge; set `flush`
- * where it has none.
+ * plate behind it; a row's weight never changes. Focus is the control ring on the list's own box: 2px at +2 with radius 8 (DECISIONS 159, the owner,
+ * on a 2 to 2 deadlock in DECISIONS 157, Q2), the list keeping 6px from a clipping edge; set `flush` where it has none, and the same ring is drawn
+ * inside at −2. The rows scroll in a box inside the list, so the rounded corners clip nothing and nothing at rest differs from a square box.
  */
 export function Listbox({ label, value, defaultValue, onValueChange, flush = false, className, children, onKeyDown, ...props }: ListboxProps) {
   const [inner, setInner] = React.useState(defaultValue);
@@ -91,6 +92,13 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
         onKeyDown={(event) => {
           onKeyDown?.(event);
           if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+          // The box that scrolls is inside the focused one, so the page keys are given to it.
+          const scroller = root.current?.querySelector<HTMLElement>(".basalt-listbox-scroll");
+          if ((event.key === "PageDown" || event.key === "PageUp") && scroller) {
+            event.preventDefault();
+            scroller.scrollBy({ top: (event.key === "PageDown" ? 1 : -1) * scroller.clientHeight * 0.9 });
+            return;
+          }
           const options = [...(root.current?.querySelectorAll<HTMLElement>(OPTIONS) ?? [])];
           if (!options.length) return;
           const at = options.findIndex((option) => option.getAttribute("aria-selected") === "true");
@@ -102,7 +110,8 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           if (option?.dataset.value !== undefined && option.dataset.value !== chosen) choose(option.dataset.value);
         }}
       >
-        {children}
+        {/* The list's own box carries the focus ring and its rounded corners and clips nothing; the rows scroll in the box inside it. */}
+        <div className="basalt-listbox-scroll">{children}</div>
       </div>
     </ListboxState.Provider>
   );

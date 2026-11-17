@@ -3620,7 +3620,9 @@
 
   /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with a chevron in its gutter and
      a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
-  .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; padding: var(--basalt-space-1-5); overflow-y: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
+  .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
+  /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
+  .basalt-listbox-scroll { box-sizing: border-box; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: var(--basalt-space-1-5); overflow-y: auto; }
   .basalt-listbox:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-listbox[data-flush]:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   .basalt-listbox-group + .basalt-listbox-group { margin-top: var(--basalt-space-2); }

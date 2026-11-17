@@ -294,7 +294,7 @@ function ListboxDemo({ state }: { state: string }) {
         const opts = [...document.querySelectorAll<HTMLElement>("[role=option]")];
         const chosen = document.querySelector("[role=option][aria-selected=true]");
         const rest = opts.find((o) => o.getAttribute("aria-selected") !== "true");
-        return [`heights ${opts.map((o) => Math.round(o.getBoundingClientRect().height)).join(", ")}`, `radius: two-line ${css(opts[0], "borderTopLeftRadius")}, one-line ${css(rest, "borderTopLeftRadius")}`, `chosen weight ${getComputedStyle(chosen as Element).fontWeight}, other ${getComputedStyle(rest as Element).fontWeight}`, `aria-activedescendant names the option "${parts(document.getElementById(document.querySelector(".basalt-listbox")?.getAttribute("aria-activedescendant") ?? ""))}" (its parts, in the order the tree reads them: name, trailing word, second line)`];
+        return [`heights ${opts.map((o) => Math.round(o.getBoundingClientRect().height)).join(", ")}`, `radius: two-line ${css(opts[0], "borderTopLeftRadius")}, one-line ${css(rest, "borderTopLeftRadius")}`, `chosen weight ${getComputedStyle(chosen as Element).fontWeight}, other ${getComputedStyle(rest as Element).fontWeight}`, `the list's own box: ${css(document.querySelector(".basalt-listbox"), "borderTopLeftRadius", "outlineWidth", "outlineOffset", "outlineStyle")} (radius 8 round a ring of 2px at +2, DECISIONS 159; the outline shows while the list holds focus)`, `aria-activedescendant names the option "${parts(document.getElementById(document.querySelector(".basalt-listbox")?.getAttribute("aria-activedescendant") ?? ""))}" (its parts, in the order the tree reads them: name, trailing word, second line)`];
       }} />
     </div>
   );
@@ -461,7 +461,8 @@ export const ROUND_42: Round = {
       states: ["focus", "hover", ...media],
       decisions: [
         "Ported as approved: the chevron in a gutter that marks the chosen row, two-line options, the arrow keys that choose, aria-activedescendant.",
-        "Changed: the chosen name stays at weight 400 (the prototype went to 500; there is no weight change), the header rows are labelled groups (not role=presentation children of the listbox), and the list shows the control ring at +2 (the prototype removed it). B3: flush draws it inside at −2 where the list meets a clipping edge.",
+        "Changed: the chosen name stays at weight 400 (the prototype went to 500; there is no weight change), the header rows are labelled groups (not role=presentation children of the listbox), and the list shows the control ring at +2 with radius 8 (the prototype removed it). B3: flush draws it inside at −2 where the list meets a clipping edge.",
+        "The ring is radius 8 on the list's own box, 2px at +2 (DECISIONS 159: the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2); it is no longer square. The list has no fill, so nothing at rest changes (0 pixels, in both themes, scrolled, with a plate in the corners), and the rows scroll in a box inside it so the corners clip nothing. flush keeps the radius on its inset ring: the outer curve is the box's corner, 8, the inner 6.",
         "R10 and R11 (by the drawn-box rule, DECISIONS 138 E): rows are 24 and two lines 48; the plate's radius is 6 on a 24px row and 8 on a row drawn at 44 or more (a coarse pointer's 44).",
       ],
       tryIt: ["Tab to the list, then ↓ ↑ Home End: the choice moves with the keys."],
