@@ -56,6 +56,9 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **progress** `.progress`: `role="progressbar"`, a label, `--value`, and an empty `<span>` that paints the fill.
 - **meter** `.meter`: not `.progress`; `--value` and `--target` are percentages; write `aria-valuetext`.
 - **dlist** `.dlist`: a `dl` of `div` rows, never in a panel; no value writes `Not observed`.
+- **captioned** `.captioned`: a `dl` of `div`s (`dt` head, `dd` sentence); `data-size` always; the page counts `data-columns`.
+- **app-tile** `.app-tile`: `aria-hidden`, the company's name beside it in words; never ship a company's icon file.
+- **period** `.period`: two ghost icon buttons round `.period-label`; at an end `aria-disabled`, never `disabled`.
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).

@@ -46,6 +46,7 @@ export {
   ChoiceCardGroup,
   Table,
   TableBody,
+  TableCall,
   TableCell,
   TableContainer,
   TableEmpty,
@@ -57,7 +58,7 @@ export {
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCallProps, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
 export { MultiSelect } from "./filter";
 export type { MultiSelectOption, MultiSelectProps } from "./filter";
 export { FilterResult, StatusLine } from "./filter-result";
@@ -208,3 +209,10 @@ export { FramedArt } from "./framed-art";
 export type { FramedArtAspect, FramedArtProps } from "./framed-art";
 export { Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "./toolbar";
 export type { ToolbarButtonProps, ToolbarGroupProps, ToolbarIconButtonProps, ToolbarInputProps, ToolbarProps, ToolbarSeparatorProps } from "./toolbar";
+
+export { AppTile } from "./app-tile";
+export type { AppTileProps, AppTileSize } from "./app-tile";
+export { CaptionedColumn, CaptionedColumns } from "./captioned-columns";
+export type { CaptionedColumnProps, CaptionedColumnsProps, CaptionedColumnsSize } from "./captioned-columns";
+export { PeriodStepper } from "./period-stepper";
+export type { PeriodStepperProps } from "./period-stepper";

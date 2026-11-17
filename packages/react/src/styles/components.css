@@ -2096,6 +2096,14 @@
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
 
+  /* The flat form (DECISIONS 162, D18b): a table in a Card has the card's one box, so its own frame draws nothing (no border, radius, fill or shadow) and sets no level. The
+     header band keeps its fill. Its cells are padded space-2 above and below, so a two-line cell (TableCall) has air. */
+  .basalt-table-container[data-flat] { border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .basalt-table-container[data-flat] .basalt-table :is(td, tbody th[scope="row"]) { padding-block: var(--basalt-space-2); }
+  /* A call over what it changes: 500 in primary over 400 in secondary, space-0-5 apart. It wraps inside its column (a still table's cells do not). */
+  .basalt-table-call { display: grid; gap: var(--basalt-space-0-5); white-space: normal; }
+  .basalt-table-call-main { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-table-call-detail { color: var(--basalt-text-secondary); }
   .basalt-table-container[data-row-density="compact"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-control-md); }
   .basalt-table-container[data-row-density="comfortable"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
   /* A touch row is 44px whatever the density: this matches the density rules' specificity and comes after them. */
@@ -5042,6 +5050,8 @@
      and print all keep it (opaque where the smoked bar is). Clear uses no filter, so without backdrop-filter it still works at
      the top, and the scrolled state is the opaque surface-page fallback above. */
   :root { --basalt-stage-headroom: calc(var(--basalt-size-stage-headroom) + var(--_inset-top)); }
+  /* A closing block's bottom padding: the art's room to the floor, which the app sets (on the block, or on any ancestor). None by default. */
+  :root { --basalt-stage-room: var(--basalt-space-0); }
 
   :root:has(.basalt-stage[data-headroom]) .basalt-site-header:not([data-solid]) {
     transition: background-color var(--basalt-duration-base) var(--basalt-ease-out), border-bottom-color var(--basalt-duration-base) var(--basalt-ease-out);
@@ -5078,6 +5088,13 @@
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
   }
+  /* The closing block (DECISIONS 162, vote 2): the stage's second form, at the page's end. There is no bar above it, so no pull-up and no headroom: it sits a section gap below
+     what is above and starts its content a section gap down. Its bottom padding is the art's room to the floor (--basalt-stage-room, the app's). */
+  .basalt-stage[data-closing] {
+    margin-top: var(--basalt-section-gap);
+    padding-top: var(--basalt-section-gap);
+    padding-bottom: var(--basalt-stage-room);
+  }
   /* The art comes after the content in the markup (so on a slow link the words arrive first and the stage is not painted short and grown), and sits behind it by
      z-index inside a stacking context of its own: paint order is what it was when the art came first. */
   .basalt-stage-art { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; }
@@ -5099,11 +5116,13 @@
     /* Decorative art is not drawn, and the stage is Canvas: a picture behind system colours would undo the mode. */
     .basalt-stage { background-color: Canvas; }
     .basalt-stage-art { display: none; }
+    .basalt-stage[data-closing] { padding-bottom: var(--basalt-space-16); }
   }
   @media print {
     /* Decorative stage art does not print, and the bar is not over it, so the stage takes its place in the flow. */
     .basalt-stage { margin-top: 0; padding-top: 0; background: none; }
     .basalt-stage-art { display: none; }
+    .basalt-stage[data-closing] { padding-bottom: var(--basalt-space-16); }
   }
 
   /* Framed art: a distinct object, so a panel's geometry. The rim is a real border outside the art; the frame reserves its box from
@@ -5180,9 +5199,62 @@
     animation: basalt-ambient calc(var(--basalt-duration-loop-ambient) * var(--_k, 1)) var(--basalt-ease-in-out) calc(var(--basalt-duration-loop-ambient) * var(--_k, 1) * var(--_ph, 0) * -1) infinite;
   }
   :root[data-loops="held"] [data-ambient] { animation: none; }
+  /* A closing block's art is held still (DECISIONS 162, vote 2): a mark in it is drawn at full opacity, and the page's one loop is the top stage's. */
+  .basalt-stage[data-closing] [data-ambient] { animation: none; }
   @media (prefers-reduced-motion: reduce) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
   @media (forced-colors: active) { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } .basalt-ambient-mark { background: CanvasText; forced-color-adjust: none; } }
   @media print { :is(.basalt-stage-art, .basalt-framed-frame) [data-ambient] { animation: none; } }
+
+  /* ---- The app tile (DECISIONS 162, votes 5 and 6) ----
+     The picture an app gives, clipped to a superellipse of exponent 5 (the shape takes no radius), flat on the page: no shadow, and one solid hairline round it
+     that follows the shape, drawn over the picture and half a pixel outside it. The box is square and reserved, so nothing moves when the picture arrives. Nothing is drawn over
+     the picture. Not drawn in forced colours: the company's name beside it carries the meaning. */
+  .basalt-app-tile { position: relative; display: block; flex: none; box-sizing: border-box; width: var(--_tile, 100%); height: var(--_tile, auto); aspect-ratio: 1; user-select: none; }
+  .basalt-app-tile[data-size="20"] { --_tile: var(--basalt-size-icon-md); }
+  .basalt-app-tile[data-size="32"] { --_tile: var(--basalt-size-control-md); }
+  .basalt-app-tile[data-size="36"] { --_tile: var(--basalt-size-control-lg); }
+  .basalt-app-tile[data-size="40"] { --_tile: var(--basalt-size-control-xl); }
+  .basalt-app-tile[data-size="44"] { --_tile: var(--basalt-size-control-2xl); }
+  .basalt-app-tile[data-size="48"] { --_tile: var(--basalt-size-control-3xl); }
+  .basalt-app-tile[data-size="52"] { --_tile: var(--basalt-size-control-4xl); }
+  .basalt-app-tile > img { display: block; width: 100%; height: 100%; }
+  .basalt-app-tile-defs { position: absolute; }
+  .basalt-app-tile-rim { position: absolute; inset: calc(-0.5 * var(--basalt-size-hairline)); width: calc(100% + var(--basalt-size-hairline)); height: calc(100% + var(--basalt-size-hairline)); overflow: visible; }
+  .basalt-app-tile-rim path { fill: none; stroke: var(--basalt-border-hairline); stroke-width: var(--basalt-size-hairline); vector-effect: non-scaling-stroke; }
+  @media (forced-colors: active) { .basalt-app-tile { display: none; } }
+
+  /* ---- Captioned columns (DECISIONS 162, vote 4) ----
+     A short head over a sentence, in columns the app counts (data-columns). Large (the home page's list): a divider on top of each item and space-6 above and below it, the head text-xl at 600,
+     space-3 above a text-md sentence. Small (a drawing's captions): one rule over the whole list and space-5 under it, space-6 between rows, the head text-base at 500, space-1 above a
+     text-base sentence. The gutter is size-gutter in both. */
+  .basalt-captioned { display: grid; grid-template-columns: repeat(var(--_columns, 1), minmax(0, 1fr)); column-gap: var(--basalt-size-gutter); margin: 0; padding: 0; color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-sans); }
+  .basalt-captioned[data-columns="2"] { --_columns: 2; }
+  .basalt-captioned[data-columns="3"] { --_columns: 3; }
+  .basalt-captioned[data-columns="4"] { --_columns: 4; }
+  .basalt-captioned-item { min-width: 0; }
+  .basalt-captioned-head { margin: 0; color: var(--basalt-text-primary); }
+  .basalt-captioned-body { margin: 0; text-wrap: pretty; }
+  .basalt-captioned[data-size="large"] { row-gap: var(--basalt-space-0); }
+  .basalt-captioned[data-size="large"] > .basalt-captioned-item { padding-block: var(--basalt-space-6); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-captioned[data-size="large"] .basalt-captioned-head { margin-block-end: var(--basalt-space-3); font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
+  .basalt-captioned[data-size="large"] .basalt-captioned-body { font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); }
+  .basalt-captioned[data-size="small"] { row-gap: var(--basalt-space-6); padding-block-start: var(--basalt-space-5); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-captioned[data-size="small"] .basalt-captioned-head { margin-block-end: var(--basalt-space-1); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-captioned[data-size="small"] .basalt-captioned-body { font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+
+  /* ---- The period stepper (DECISIONS 162, D19b) ----
+     Two icon buttons round a label, space-1 apart. The label is 500 at text-base, centred and tabular, on one line, in a seat of at least space-32; the whole-span view hides the buttons
+     and keeps their room. Narrower than 640px of the app's container (size-breakpoint-container-lg) the stepper takes its own row: full width, buttons at the ends, 52px tall, a hairline
+     above, each button at least 44 by 44. */
+  .basalt-period-stepper { display: flex; align-items: center; gap: var(--basalt-space-1); }
+  .basalt-period-stepper[data-whole] .basalt-button { visibility: hidden; }
+  .basalt-period-label { margin: 0; min-width: var(--basalt-space-32); color: var(--basalt-text-primary); text-align: center; font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-period-stepper { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline); }
+    .basalt-period-stepper .basalt-button { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); }
+  }
 
   /* ---- LoopsToggle's settings row ---- */
   .basalt-loops-switch { display: grid; gap: var(--basalt-space-1); justify-items: start; }

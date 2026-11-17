@@ -197,6 +197,12 @@ export interface TableContainerProps extends React.ComponentProps<"div"> {
    * role, because a region with no name is not a landmark; give every table a name. A table that fits is none of this.
    */
   label?: string;
+  /**
+   * The flat form (DECISIONS 162, D18b): the frame draws no border, radius, fill or shadow, so a panel that holds the table (a `Card`) has one
+   * box and not two. It adds no level of its own: the table sits at the card's. The header band keeps its fill. Put it in a `Card`; on the
+   * page it would be a table with no frame at all.
+   */
+  flat?: boolean;
 }
 
 /**
@@ -205,7 +211,7 @@ export interface TableContainerProps extends React.ComponentProps<"div"> {
  * (`data-scrolled`), which is what shows the divider beside a pinned column. While the table overflows, the frame is a
  * named keyboard stop (see `label`).
  */
-export function TableContainer({ density = "default", label, className, children, ref, ...props }: TableContainerProps) {
+export function TableContainer({ density = "default", label, flat = false, className, children, ref, ...props }: TableContainerProps) {
   // Its own attribute: `data-density` would also reset the size of every control in the table.
   const level = usePanelLevel();
   const node = React.useRef<HTMLDivElement | null>(null);
@@ -242,6 +248,8 @@ export function TableContainer({ density = "default", label, className, children
   );
   const named = Boolean(label || props["aria-label"] || props["aria-labelledby"]);
   const region = overflows ? { tabIndex: 0, role: named ? "region" : undefined, "aria-label": label } : {};
+  // The flat form is no box, so it is no level: what it holds keeps the card's, and the card's fill reaches the pinned cells.
+  if (flat) return <div {...region} {...props} ref={setRef} data-row-density={density} data-flat="" className={join("basalt-table-container", className)}>{children}</div>;
   return <div {...region} {...props} ref={setRef} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;
 }
 
@@ -422,6 +430,21 @@ export const TableCell: React.NamedExoticComponent<TableCellProps> = /* @__PURE_
     </td>
   );
 });
+
+export interface TableCallProps extends Omit<React.ComponentProps<"span">, "children"> {
+  /** The call: what the row says, in primary at 500. */
+  call: React.ReactNode;
+  /** What changes, or its reason: under the call, in secondary at 400. */
+  detail: React.ReactNode;
+}
+
+/**
+ * A two-line cell's content (DECISIONS 162, D18b): a call in primary at 500 over what it changes in secondary, `space-0-5` apart. Put it
+ * in a `TableCell`; it wraps within its column, so the row grows to hold both lines and no column moves.
+ */
+export function TableCall({ call, detail, className, ...props }: TableCallProps) {
+  return <span {...props} className={join("basalt-table-call", className)}><span className="basalt-table-call-main">{call}</span><span className="basalt-table-call-detail">{detail}</span></span>;
+}
 
 export interface TableScrollHintProps extends Omit<React.ComponentProps<"p">, "children"> {
   /** The line, from the table's column count. Default "Scroll sideways to see all 6 columns". */

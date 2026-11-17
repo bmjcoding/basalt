@@ -15,6 +15,7 @@
   "AmbientMark": 569,
   "AppHeader": 488,
   "AppShell": 99997,
+  "AppTile": 1112,
   "ArrowDownGlyph": 2868,
   "ArrowLeftGlyph": 2869,
   "ArrowRightGlyph": 2859,
@@ -31,6 +32,8 @@
   "COPIED_MS": 115,
   "CalendarGlyph": 2974,
   "Callout": 11777,
+  "CaptionedColumn": 350,
+  "CaptionedColumns": 285,
   "Card": 488,
   "CardContent": 247,
   "CardDescription": 249,
@@ -52,7 +55,7 @@
   "Columns": 265,
   "ColumnsItem": 257,
   "Combobox": 163266,
-  "CommandBlock": 4731,
+  "CommandBlock": 4843,
   "CommandList": 117838,
   "CommandMenu": 169756,
   "CopyButton": 16731,
@@ -162,6 +165,7 @@
   "Pagination": 21226,
   "PairedArt": 462,
   "PauseGlyph": 2819,
+  "PeriodStepper": 15961,
   "PhaseChart": 49643,
   "PlanGlyph": 2966,
   "PlayGlyph": 2838,
@@ -237,10 +241,10 @@
   "SourcesGlyph": 2938,
   "Sparkline": 4585,
   "Spinner": 1529,
-  "Stage": 1168,
+  "Stage": 1219,
   "Stat": 1556,
   "Stats": 314,
-  "StatusBar": 5226,
+  "StatusBar": 5364,
   "StatusLine": 504,
   "Stepper": 25144,
   "Switch": 16549,
@@ -258,8 +262,9 @@
   "TabBarMore": 86106,
   "Table": 6977,
   "TableBody": 143,
+  "TableCall": 391,
   "TableCell": 347,
-  "TableContainer": 1219,
+  "TableContainer": 1349,
   "TableEmpty": 331,
   "TableHead": 6767,
   "TableHeader": 143,
@@ -333,11 +338,11 @@
   "useToast": 2987
  },
  "package": {
-  "bytes": 708086,
-  "gzip": 233821
+  "bytes": 711005,
+  "gzip": 234077
  },
  "styles": {
-  "bytes": 276801,
-  "gzip": 36043
+  "bytes": 281677,
+  "gzip": 36694
  }
 }

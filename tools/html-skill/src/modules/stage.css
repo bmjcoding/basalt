@@ -39,14 +39,23 @@
   .paired-art[data-art="dark"] { display: var(--_art-dark); }
   .paired-art[data-art="light"] { display: var(--_art-light); }
 
+  /* The closing block (React's Stage closing; DECISIONS 162, vote 2): the stage's second form at a page's end. There is no bar above it, so no pull-up and no headroom: it sits a section gap
+     below what is above and starts its content a section gap down (128, 96 or 64 by width, as the page's sections do: --basalt-section-gap, which the type-layout module sets, and a page
+     with data-closing brings it). Its bottom padding is the art's room to the floor, --basalt-stage-room (the page's). Its art is held still: a data-ambient mark in it is drawn at full
+     opacity and does not loop, because the page's one loop is the top stage's. */
+  .stage[data-closing] { margin-top: var(--basalt-section-gap); padding-top: var(--basalt-section-gap); padding-bottom: var(--basalt-stage-room, var(--basalt-space-0)); }
+  .stage[data-closing] [data-ambient] { animation: none; }
+
   @media (forced-colors: active) {
     /* Decorative art is not drawn, and the stage is Canvas: a picture behind system colours would undo the mode. */
     .stage { background-color: Canvas; }
     .stage-art { display: none; }
+    .stage[data-closing] { padding-bottom: var(--basalt-space-16); }
   }
   @media print {
     /* Decorative stage art does not print, and the bar is not over it, so the stage takes its place in the flow. */
     .stage { margin-top: 0; padding-top: 0; background: none; }
     .stage-art { display: none; }
+    .stage[data-closing] { padding-bottom: var(--basalt-space-16); }
   }
 }

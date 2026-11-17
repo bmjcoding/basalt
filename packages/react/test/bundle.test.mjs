@@ -341,6 +341,18 @@ for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stat
   });
 }
 
+// The panels, art and parts (DECISIONS 162): the app tile, the captioned columns and the table call are plain markup, so they load no Base UI, no Phosphor and no Shiki;
+// the period stepper is two IconButtons, a status line and the core chevrons, so it carries a Button and nothing else of Base UI.
+for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 17_500, false]]) {
+  test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
+    if (plain) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), []);
+    else assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter)\//.test(f)), "an unrelated Base UI part is in a PeriodStepper-only bundle");
+  });
+}
+
 test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki", async () => {
   const { bytes, inputs } = await bundle("Meter");
   assert.ok(bytes < 14_000, `Meter bundle is ${bytes} bytes`);

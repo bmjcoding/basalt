@@ -26,7 +26,15 @@ export interface StageProps extends Omit<React.ComponentProps<"section">, "child
    * time, so the declaration is as good as the test behind it.
    */
   headroom?: boolean;
-  /** The words and panels on the art. They start below the headroom. Ink goes only in a quiet zone (`data-quiet`); a panel is solid, at level 1, with its rim. */
+  /**
+   * The closing block at the page's end (DECISIONS 162, vote 2): a second form of the stage, level 0 on `art-field`, with no headroom and no
+   * pull-up (no bar is above it): the air above it and its top padding are `--basalt-section-gap`, and its bottom padding is the art's room to the
+   * floor, `--basalt-stage-room` (set by the app; `space-16` in forced colours and print, where the art is not drawn). Its art is held still: a
+   * mark that carries `data-ambient` is drawn at full opacity and does not loop, because a page has one ambient loop and it is the top stage's.
+   * Words and actions sit in `data-quiet` zones, which `checkHeadroom` reads. One at most, after the page's last section. `headroom` has no effect.
+   */
+  closing?: boolean;
+  /** The words and panels on the art. They start below the headroom (below the top padding, in a closing block). Ink goes only in a quiet zone (`data-quiet`); a panel is solid, at level 1, with its rim. */
   children?: React.ReactNode;
 }
 
@@ -35,12 +43,12 @@ export interface StageProps extends Omit<React.ComponentProps<"section">, "child
  * Its height is its content's (the hero's), and while the art loads it shows `art-field`, the page colour, which meets the headroom
  * by definition.
  */
-export function Stage({ art, fit, anchor, headroom = false, className, children, ...props }: StageProps) {
+export function Stage({ art, fit, anchor, headroom = false, closing = false, className, children, ...props }: StageProps) {
   // `slice` by default, as FramedArt's (DECISIONS 146 F); a drawing's own preserveAspectRatio stands unless a fit or an anchor is passed.
   const drawn = fitArt(art, fit, anchor, fit !== undefined || anchor !== undefined);
   return (
-    <section {...props} data-headroom={headroom ? "" : undefined} className={join("basalt-stage", className)}>
-      <span className="basalt-stage-headroom" data-basalt-headroom="" aria-hidden="true" />
+    <section {...props} data-headroom={headroom && !closing ? "" : undefined} data-closing={closing ? "" : undefined} className={join("basalt-stage", className)}>
+      {closing ? null : <span className="basalt-stage-headroom" data-basalt-headroom="" aria-hidden="true" />}
       <div className="basalt-stage-content">{children}</div>
       {/* After the content, so on a slow link the words arrive before the art and the stage is not painted short and then grown; it is
           absolutely placed and behind the content by z-index, so paint order and focus order are what they were. */}
