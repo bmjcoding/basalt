@@ -16,6 +16,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { inlineScript } from "../inline-script.mjs";
+import { launchOptions } from "../../scripts/chromium-launch.mjs";
 import { compose } from "../../.agent/skills/basalt-html/compose.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -31,9 +32,58 @@ const out = path.resolve(outAt >= 0 ? args[outAt + 1] : path.join(repo, ".review
 // --still: shoot with every transition and animation at zero length and every loop held, so two builds of the same code give the same pixels
 // (tools/review/pixel-proof.mjs compares them). It changes only the tooling's own clock: a shot of a mid-motion state is the end of that motion.
 const still = args.includes("--still");
+// What a still takes out of a shot: the CSS transitions and animations (zero length); the JS glides, which read the duration tokens off the root (a number that rolls, a
+// line that travels to its new value: 1ms, not zero, because a glide divides by it); a text caret, which blinks; and then, just before the shot, whatever finite animation
+// is still running is finished, so a transition that began after the page loaded (a focus ring, a plate) is at its end and not near it.
 const holdStill = async (page) => {
-  await page.addStyleTag({ content: "*, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }" });
+  await page.addStyleTag({ content: "*, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; caret-color: transparent !important; caret-animation: manual !important; } :root { --basalt-duration-fast: 1ms !important; --basalt-duration-base: 1ms !important; --basalt-duration-slow: 1ms !important; --basalt-duration-slower: 1ms !important; }" });
   await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+};
+const finishStill = (page) => page.evaluate(async () => {
+  const frames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await frames();
+  for (const a of document.getAnimations()) if (a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity) a.finish();
+  await frames();
+});
+
+// A readout the page writes from a timer ("Measured on this page", "measuring…", "Hover or focus the part" turning into what moved) is not there when the shot is taken if
+// the shot only waits a fixed time: on a loaded machine the timer has not run, and on another it has. So the page's own short timers (up to one second: the readouts', not a
+// toast's five) are counted from before it loads, and a shot waits until none is pending and the page's markup has held still for five frames. The wait is for the state, not for a length of
+// time; it gives up after ten seconds and says so, so a page that never goes quiet is seen and not hung on. `--audit-gate` prints each still the wait changed.
+const QUIET_SCRIPT = `(() => {
+  const pending = new Set();
+  const set = window.setTimeout.bind(window);
+  const clear = window.clearTimeout.bind(window);
+  window.setTimeout = function (handler, delay, ...rest) {
+    if (typeof handler !== "function" || !(Number(delay || 0) <= 1000)) return set(handler, delay, ...rest);
+    const id = set(function (...inner) { pending.delete(id); return handler.apply(this, inner); }, delay, ...rest);
+    pending.add(id);
+    return id;
+  };
+  window.clearTimeout = function (id) { pending.delete(id); return clear(id); };
+  // A glide the page runs itself (a number that rolls, a line that travels) changes the page on every frame it runs, so a page whose markup has not changed for five frames has
+  // finished them; the markup is watched from the first frame, and a change anywhere in it, an attribute, a style or a character, starts the count again.
+  let changes = 0;
+  const watch = () => new MutationObserver(() => { changes += 1; }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+  if (document.documentElement) watch(); else document.addEventListener("DOMContentLoaded", watch, { once: true });
+  window.__BASALT_QUIET__ = () => new Promise((resolve) => {
+    let calm = 0;
+    let seen = changes;
+    const tick = () => { calm = pending.size || changes !== seen ? 0 : calm + 1; seen = changes; if (calm >= 5) resolve(true); else requestAnimationFrame(tick); };
+    tick();
+  });
+})();`;
+const audit = args.includes("--audit-gate");
+const gateWarnings = [];
+/** Install the timer count on a page, before it loads. */
+const watchTimers = (page) => page.addInitScript(QUIET_SCRIPT);
+/** Wait for the page's own short timers to be done; with --audit-gate, say whether the page's text changed while waiting. */
+const untilQuiet = async (page, label) => {
+  const text = () => page.evaluate(() => document.body.innerText);
+  const before = audit ? await text() : null;
+  const done = await page.evaluate(() => Promise.race([window.__BASALT_QUIET__?.() ?? true, new Promise((resolve) => window.setTimeout(() => resolve(false), 10000))]));
+  if (!done) { gateWarnings.push(label); console.warn(`${label}: the page still had timers pending after 10s; shot anyway`); }
+  if (audit && before !== (await text())) console.log(`GATE CHANGED ${label}`);
 };
 const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1));
 fs.mkdirSync(out, { recursive: true });
@@ -214,7 +264,7 @@ async function measureGhostPress(page) {
   return frames;
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(launchOptions());
 for (const id of rounds) {
   const dir = path.join(out, `basalt-round-${id}-screenshots`);
   fs.rmSync(dir, { recursive: true, force: true });
@@ -226,10 +276,12 @@ for (const id of rounds) {
   for (const theme of ["dark", "light"]) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
     page.on("pageerror", (e) => errors.push(e.message));
+    await watchTimers(page);
     await page.goto(url({ theme }));
     if (still) await holdStill(page);
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(300);
+    await untilQuiet(page, `round ${id}/00-walkthrough/${theme}`);
     await page.screenshot({ path: path.join(dir, `00-walkthrough-${theme}.png`), fullPage: true });
     await page.close();
   }
@@ -270,13 +322,15 @@ for (const id of rounds) {
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
           const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34") && /^Unsafe attempt to load URL file:/.test(text);
-          // Round 34 draws the skill's page with the script off, in a frame that may not run scripts: the browser says so, once for each script it blocked.
-          const scriptsOff = (text) => id === "34" && /^Blocked script execution in 'about:srcdoc'/.test(text);
+          // Round 34 draws the skill's page with the script off, in a frame that may not run scripts: the browser says so, once for each script it blocked (the timer count this file installs in every frame is one of them, in the frame's `about:blank` first).
+          const scriptsOff = (text) => id === "34" && /^Blocked script execution in 'about:(srcdoc|blank)'/.test(text);
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
           page.on("console", (m) => m.type() === "error" && !inspectorNoise(m.text()) && !scriptsOff(m.text()) && !refused(m.text()) && errors.push(`${step.id}/${state}/${theme}: ${m.text()}`));
+          await watchTimers(page);
           await page.goto(url({ step: step.id, theme, state, shot: "1" }));
           // The states that hold a motion part-way are timed by what they show: they are left running (and say so in the proof).
-          if (still && !/-glide$|-fade$|-opening|^centre-travel|^nav-|^film$|^ghost$/.test(state)) await holdStill(page);
+          const stilled = still && !/-glide$|-fade$|-opening|^centre-travel|^nav-|^film$|^ghost$/.test(state);
+          if (stilled) await holdStill(page);
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(overlay ? 700 : 300);
           // A step that measures (round 32's list) sets window.__BASALT_READY__ to a promise and the shot waits for it.
@@ -310,9 +364,16 @@ for (const id of rounds) {
           // "press-menu" opens the site header's narrow menu and "press-more" the tab bar's More, by a real click;
           // "press-menu-opening" holds the sheet 50ms into its unroll, the real transitions, paused.
           if (state.startsWith("press-")) {
+            // "-opening" holds the unroll 50ms in. The page's animation timeline is stopped (the DevTools protocol's Animation.setPlaybackRate, at 0) before the click,
+            // so every transition the open starts stays at its first instant however long this machine takes to get to it; then the shot waits for the state itself (the
+            // popup open, its starting style gone, two frames) and sets every finite animation to 50ms. Waiting a fixed 25ms and pausing what had started by then caught the
+            // trigger's glyph at a different frame each time.
+            const opening = state.includes("-opening");
+            if (opening) { const client = await page.context().newCDPSession(page); await client.send("Animation.enable"); await client.send("Animation.setPlaybackRate", { playbackRate: 0 }); }
             await page.locator(state.startsWith("press-more") ? ".basalt-tabbar-more" : ".basalt-site-menu-trigger").click();
-            if (state.includes("-opening")) {
-              await page.waitForTimeout(25);
+            if (opening) {
+              await page.waitForFunction(() => document.querySelector(".basalt-sheet[data-open]:not([data-starting-style]), .basalt-menu[data-open]:not([data-starting-style])"));
+              await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
               await page.evaluate(() => { for (const a of document.getAnimations()) { if (a.effect?.getComputedTiming().iterations === Infinity) continue; a.pause(); a.currentTime = 50; } });
             } else await page.waitForTimeout(700);
           }
@@ -447,6 +508,8 @@ for (const id of rounds) {
           if (state === "print") { await page.emulateMedia({ media: "print" }); await page.waitForTimeout(100); }
           if (state === "film") await seekFilmstrip(page);
           if (state === "ghost") await measureGhostPress(page);
+          await untilQuiet(page, `round ${id}/${step.id}/${state}/${theme}/${width}`);
+          if (stilled) await finishStill(page);
           const name = `${String(n).padStart(2, "0")}-${step.id}${stateFull === "default" ? "" : `-${state}`}${tag}${scale === 1 ? "-1x" : ""}-${theme}.png`;
           await page.screenshot({ path: path.join(dir, name), fullPage: !overlay });
           await page.close();

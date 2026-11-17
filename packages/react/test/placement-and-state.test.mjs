@@ -381,11 +381,13 @@ describe("StatusLine: a polite status line that says a repeated message again", 
     new MutationObserver(() => window.__log.push(document.getElementById("line").textContent)).observe(document.getElementById("line"), { childList: true, characterData: true, subtree: true });`;
 
   test("it speaks its text once it has held still for the delay, and not before", async () => {
-    const { page } = await fixturePage(browser, fixture, { theme: "dark" });
+    // On the frozen clock: the delay is 80ms of the page's own time, which only moves when the test runs it, so a loaded machine cannot let it pass before the read.
+    const { page } = await fixturePage(browser, fixture, { theme: "dark", clock: true });
     await page.locator("#saved").click();
-    await page.waitForTimeout(20);
-    assert.equal(await page.locator("#line").textContent(), "", "not yet");
-    await page.waitForFunction(() => document.getElementById("line").textContent === "Saved");
+    await page.clock.runFor(79);
+    assert.equal(await page.locator("#line").textContent(), "", "not yet, a millisecond short of the delay");
+    await page.clock.runFor(1);
+    assert.equal(await page.locator("#line").textContent(), "Saved", "spoken at the delay");
     assert.deepEqual(await page.evaluate(() => window.__log), ["Saved"]);
     await page.close();
   });
@@ -404,10 +406,11 @@ describe("StatusLine: a polite status line that says a repeated message again", 
   });
 
   test("sends in a quick row are one announcement, the last", async () => {
-    const { page } = await fixturePage(browser, fixture, { theme: "dark" });
+    const { page } = await fixturePage(browser, fixture, { theme: "dark", clock: true });
     await page.evaluate(() => { for (const id of ["saved", "deleted", "saved"]) document.getElementById(id).click(); });
-    await page.waitForFunction(() => document.getElementById("line").textContent === "Saved");
-    await page.waitForTimeout(200);
+    await page.clock.runFor(80);
+    assert.equal(await page.locator("#line").textContent(), "Saved");
+    await page.clock.runFor(200);
     assert.deepEqual(await page.evaluate(() => window.__log.filter(Boolean)), ["Saved"]);
     await page.close();
   });

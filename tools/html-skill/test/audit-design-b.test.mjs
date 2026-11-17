@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { fixturePage, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
+import { fixturePage, freezeAnimations, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
 let skillBrowser;
@@ -106,9 +106,9 @@ for (const theme of THEMES) {
 // ---- B1: a cut cell can be read ----
 
 const ROWS = [
-  ["build-0141", "Passed", "Pin the toolchain to the version the release uses", "Ana Reyes"],
-  ["nightly-migration-backfill", "Failed", "Backfill the ledger in batches of five thousand rows so the replica keeps up", "Rowan Achterberg"],
-  ["lint-0388", "Passed", "Lint", "Theo Park"],
+  ["build-0141", "Passed", "Pin the toolchain to the version the release uses", "Owner one"],
+  ["nightly-migration-backfill", "Failed", "Backfill the ledger in batches of five thousand rows so the replica keeps up", "Owner two, longer"],
+  ["lint-0388", "Passed", "Lint", "Owner ten"],
 ];
 const SKILL_TABLE = `<div class="panel table-wrap" role="region" aria-label="Runs table" tabindex="0" style="margin: 16px"><table data-fixed style="min-width: 640px"><colgroup><col style="width: 160px"><col style="width: 110px"><col style="width: 220px"><col></colgroup><thead><tr><th>Run</th><th>Status</th><th>Message</th><th>Owner</th></tr></thead><tbody>${ROWS.map((r) => `<tr><th scope="row">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody></table></div><button id="after">After</button>`;
 const peek = (page) => page.evaluate(() => { const p = document.querySelector(".cell-peek"); if (!p) return null; const r = p.getBoundingClientRect(); const s = getComputedStyle(p); return { open: p.hasAttribute("data-open"), focus: p.hasAttribute("data-focus"), text: p.textContent, left: r.left, top: r.top, right: r.right, bottom: r.bottom, hidden: p.getAttribute("aria-hidden"), radius: s.borderRadius, shadow: s.boxShadow !== "none" }; });
@@ -158,9 +158,12 @@ test("B1 the skill's plate is never past the viewport at 390, hover opens it aft
   await frames(page);
   const target = page.locator("[data-cut]", { hasText: "Backfill the ledger" });
   const b = await target.boundingBox();
+  // The wait is read on the frozen clock: 150ms of the page's own time after the pointer arrives it is not open, on any machine at any load.
+  const clock = await freezeAnimations(page);
   await page.mouse.move(b.x + 20, b.y + 20);
-  await page.waitForTimeout(150);
+  await clock.advance(150);
   assert.equal((await peek(page))?.open ?? false, false, "not at once");
+  await clock.thaw();
   await page.waitForFunction(() => document.querySelector(".cell-peek")?.hasAttribute("data-open"), null, { timeout: 3000 });
   await page.mouse.move(b.x + 60, b.y + 20);
   await page.waitForTimeout(400);

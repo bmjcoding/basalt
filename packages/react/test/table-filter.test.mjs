@@ -7,7 +7,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 import { measureHeaders, runsFixture } from "./runs-fixture.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -181,7 +181,7 @@ describe("the sort control: the whole header cell is the button", () => {
       assert.equal(rest.ink, secondary);
       assert.equal(rest.caret, 0, "nothing at rest on a fine pointer");
       await head(page, "Region").hover();
-      await page.waitForTimeout(250);
+      await settle(page);
       const hover = await read("Region");
       assert.equal(hover.ink, primary, "hover lifts the ink");
       assert.equal(hover.caret, 1, "and shows the caret");
@@ -192,7 +192,7 @@ describe("the sort control: the whole header cell is the button", () => {
       await page.mouse.move(2, 2);
       await pressCell(page, "Region");
       await page.mouse.move(2, 2);
-      await page.waitForTimeout(250);
+      await settle(page);
       const sorted = await read("Region");
       assert.equal(sorted.ink, primary);
       assert.equal(sorted.up, 1);
@@ -307,7 +307,7 @@ describe("pinned columns at 390", () => {
       assert.equal(rest.cells[2].position, "static");
       assert.ok(rest.cells.slice(0, 2).every((c) => c.divider === 0 || !c.hasAfter), "no divider before it is scrolled");
       await frame.evaluate((f) => { f.scrollLeft = 200; });
-      await page.waitForTimeout(100);
+      await settle(page);
       const scrolled = await state();
       assert.equal(scrolled.scrolled, true);
       // Pinned: the select cell stays at the start edge and the name right after it.
@@ -318,7 +318,7 @@ describe("pinned columns at 390", () => {
       assert.equal(scrolled.cells[1].divider, 1);
       assert.equal(scrolled.cells[0].divider, 0);
       await frame.evaluate((f) => { f.scrollLeft = 0; });
-      await page.waitForTimeout(100);
+      await settle(page);
       assert.equal((await state()).cells[1].divider, 0, "and goes with the scroll");
       // Selected: opaque, with the wash over the panel's fill as one cell background.
       await frame.evaluate((f) => { f.scrollLeft = 200; });
@@ -377,7 +377,7 @@ describe("pinned columns at 390", () => {
     for (const scheme of THEMES) {
       const { page } = await open({ theme: scheme, colorScheme: scheme, forcedColors: "active", ...PHONE });
       await page.locator(".basalt-table-container").evaluate((f) => { f.scrollLeft = 200; });
-      await page.waitForTimeout(100);
+      await settle(page);
       const r = await page.evaluate(() => {
         const probe = (c) => { const d = document.createElement("div"); d.style.color = c; document.body.append(d); const v = getComputedStyle(d).color; d.remove(); return v; };
         const td = document.querySelector("tbody tr > td:nth-child(2)");
@@ -413,7 +413,7 @@ describe("the multi-select: chips", () => {
       assert.equal(off.transition, "0.1s", "duration-fast");
       await chip.click();
       await page.mouse.move(2, 2);
-      await page.waitForTimeout(200);
+      await settle(page);
       const on = await read();
       assert.deepEqual([on.plus, on.check, on.checked], [0, 1, "true"], "the glyph's shape changes: never colour alone");
       assert.deepEqual([on.w, on.h, on.x], [off.w, off.h, off.x], "turning it on moves nothing");
@@ -515,7 +515,9 @@ describe("the multi-select: chips", () => {
   });
 
   test("the result line is one polite, atomic announcement, spoken once after the toggling settles; the visible copy is not live", async () => {
+    // On the frozen clock: the result line speaks after 400ms of the page's own time, which moves only when the test runs it.
     const { page } = await open({ ...DESKTOP });
+    const clock = await freezeAnimations(page);
     const live = page.locator("[role=status]");
     assert.equal(await live.getAttribute("aria-live"), "polite");
     assert.equal(await live.getAttribute("aria-atomic"), "true");
@@ -526,8 +528,9 @@ describe("the multi-select: chips", () => {
     for (let i = 0; i < 3; i++) await chips.nth(i).click();
     const visible = await page.locator(".basalt-filter-result > span[aria-hidden]").textContent();
     assert.match(visible, /^Showing 18 of 24 runs$/, "the visible text is current at once");
+    await clock.advance(399);
     assert.equal(await live.textContent(), "Showing 24 of 24 runs", "the spoken copy waits");
-    await page.waitForTimeout(700);
+    await clock.advance(1);
     assert.equal(await live.textContent(), "Showing 18 of 24 runs");
     assert.deepEqual(await page.evaluate(() => window.__says), ["Showing 18 of 24 runs"], "one announcement for three toggles");
   });
@@ -539,7 +542,7 @@ describe("the multi-select: chips", () => {
       await chip.click();
       await page.getByRole("checkbox", { name: "Running" }).hover();
       await chip.hover();
-      await page.waitForTimeout(250);
+      await settle(page);
       const r = await chip.evaluate((el) => {
         const probe = (c) => { const d = document.createElement("div"); d.style.color = c; document.body.append(d); const v = getComputedStyle(d).color; d.remove(); return v; };
         const label = getComputedStyle(el.querySelector(".basalt-chip-label")).color;
@@ -571,12 +574,12 @@ describe("the multi-select: chips", () => {
     const s = () => chip.evaluate((el) => { const cs = getComputedStyle(el); return { ink: cs.color, border: cs.borderTopColor, bg: cs.backgroundColor, transform: cs.transform }; });
     const rest = await s();
     await chip.hover();
-    await page.waitForTimeout(100);
+    await settle(page);
     const hover = await s();
     assert.notEqual(hover.ink, rest.ink);
     assert.notEqual(hover.border, rest.border);
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page);
     const pressed = await s();
     await page.mouse.up();
     assert.notEqual(pressed.bg, hover.bg, "a press is a colour step");

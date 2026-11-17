@@ -210,7 +210,7 @@ describe("the glide", () => {
     await frames(page);
     assert.ok(await page.evaluate(() => window.__live) > 0, "the glide listens to the pointer while open");
     await page.locator(".palette input").fill("zzz");
-    await page.waitForTimeout(80);
+    await frames(page);
     const gone = await plateOf(page);
     assert.equal(gone.state, "off");
     assert.equal(await page.locator(".palette .plate").evaluate((el) => getComputedStyle(el).transitionProperty), "opacity");

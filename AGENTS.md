@@ -239,6 +239,11 @@ package went unchecked. It prints the Node version it runs on beside the one `ci
 when their major versions differ: run it on the pinned major before relying on the result. It runs on macOS, not CI's Ubuntu runner, so text measured in a
 behaviour test uses different fallback fonts: keep a test's margins clear of a font's width.
 
+`npm run lint`, `npm test`, `npm run check` and `npm run ci:local` run every step and fail at the end, ending in one line a step (passed or failed, and for a failed
+test step the files that failed), so one failing file does not hide the steps after it. The steps print in order, each under its own header: the first failing section
+of the log is the first failure, and the summary marks it. `ci.yml`'s own steps are unchanged. Renders and browser tests launch Chromium through
+`scripts/chromium-launch.mjs` (overlay scrollbars and full raster), so a docked laptop and an undocked one draw the same pixels.
+
 `npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
 every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, change it in
 a PR that says why.

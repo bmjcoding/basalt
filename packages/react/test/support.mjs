@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 export const pkg = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const css = () => fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
 
@@ -70,7 +72,7 @@ export async function bundleFixtureFromScratch(body) {
 }
 
 export async function launch() {
-  return chromium.launch();
+  return chromium.launch(launchOptions());
 }
 
 /**

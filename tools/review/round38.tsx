@@ -40,7 +40,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /**
  * Reads the boxes `selectors` name inside `root` now and again once a pointer or focus has settled, and prints how far each moved and how far
- * `arrow` travelled. The "before" is taken on mount; the "after" 400ms after the first pointer or focus event on the root.
+ * `arrow` travelled. The "before" is taken once the fonts are in; the "after" 400ms after the first pointer or focus event on the root.
  */
 function Moves({ root, selectors, arrow }: { root: React.RefObject<HTMLElement | null>; selectors: string[]; arrow?: string }) {
   const [text, setText] = React.useState("Hover or focus the part: this line then says what moved.");
@@ -48,11 +48,14 @@ function Moves({ root, selectors, arrow }: { root: React.RefObject<HTMLElement |
     const el = root.current;
     if (!el) return undefined;
     const read = () => selectors.map((s) => rect(el.querySelector(s)));
-    const before = read();
+    // The "before" is the part at rest once the fonts are in: read at mount, it is the fallback face's boxes, and every part then "moved" (the width of its words) when Geist arrived.
+    let before: ReturnType<typeof read> = [];
+    const rested = document.fonts.ready.then(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => { before = read(); resolve(); }))));
     let timer = 0;
     const measure = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
+      timer = window.setTimeout(async () => {
+        await rested;
         const after = read();
         const moved = selectors.map((s, i) => `${s}: ${same(before[i], after[i]) ? "0px" : "MOVED"}`);
         const a = arrow ? el.querySelector(arrow) : null;

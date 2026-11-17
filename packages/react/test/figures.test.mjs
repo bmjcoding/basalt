@@ -913,13 +913,13 @@ describe("Terminal: live", () => {
     const before = [await box(page.locator("[data-before]")), await box(page.locator("[data-after]")), await box(page.locator("figure"))];
     // the reader scrolls up: following stops, and the reader's place is kept
     await pre.evaluate((el) => { el.scrollTop = 40; });
-    await page.waitForTimeout(50);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))); // the scroll event has run
     await grow(40);
     assert.equal(await pre.evaluate((el) => el.scrollTop), 40, "the reader's place is kept");
     assert.equal(await atEnd(), false);
     // the reader returns to the end: following resumes
     await pre.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-    await page.waitForTimeout(50);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))); // the scroll event has run
     await grow(60);
     assert.ok(await atEnd());
     const after = [await box(page.locator("[data-before]")), await box(page.locator("[data-after]")), await box(page.locator("figure"))];

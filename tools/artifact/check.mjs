@@ -10,6 +10,8 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import { launchOptions } from "../../scripts/chromium-launch.mjs";
+
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { chromium } = createRequire(path.join(repo, "packages/react/package.json"))("playwright");
 const project = path.join(repo, ".artifact", "project");
@@ -18,7 +20,7 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-check-"));
 
 const comps = fs.readdirSync(path.join(project, "components")).filter((d) => fs.existsSync(path.join(project, "components", d, "preview.html")));
 const api = JSON.parse(fs.readFileSync(path.join(project, "components/api.json"), "utf8"));
-const browser = await chromium.launch();
+const browser = await chromium.launch(launchOptions());
 let failed = 0;
 // The bundled third-party code travels with its licence texts (A5-12).
 const notices = path.join(project, "components", "THIRD-PARTY-NOTICES.txt");

@@ -66,14 +66,14 @@ const wait = (ms: number, then: () => void) => { const id = window.setTimeout(th
 // ---- 1. A cut cell that can be read ----
 
 const RUNS = [
-  ["build-0141", "Passed", "main", "Nov 14, 10:13 PM", "5m 12s", "Pin the toolchain to the version the release uses", "Ana Reyes"],
-  ["nightly-migration-backfill", "Failed", "release/2026.11", "Nov 14, 9:58 PM", "41m 07s", "Backfill the ledger in batches of five thousand rows so the replica keeps up", "Rowan Achterberg"],
-  ["build-0140", "Running", "feature/stable-columns", "Nov 14, 9:41 PM", "2m 30s", "Hold the header still while rows load", "Mei Lindqvist"],
-  ["lint-0388", "Passed", "main", "Nov 14, 8:02 PM", "48s", "Lint", "Theo Park"],
-  ["deploy-preview-2291", "Cancelled", "fix/notification-touch-target", "Nov 13, 11:47 PM", "1m 03s", "Give a one-line notification entry a 44px target on touch", "Ana Reyes"],
-  ["e2e-0519", "Passed", "main", "Nov 13, 10:20 PM", "18m 55s", "Run the browser suite against the packed package", "Oluwaseun Adeyemi-Clarke"],
+  ["build-0141", "Passed", "main", "Nov 14, 10:13 PM", "5m 12s", "Pin the toolchain to the version the release uses", "Owner one"],
+  ["nightly-migration-backfill", "Failed", "release/2026.11", "Nov 14, 9:58 PM", "41m 07s", "Backfill the ledger in batches of five thousand rows so the replica keeps up", "Owner two, longer"],
+  ["build-0140", "Running", "feature/stable-columns", "Nov 14, 9:41 PM", "2m 30s", "Hold the header still while rows load", "Owner seven"],
+  ["lint-0388", "Passed", "main", "Nov 14, 8:02 PM", "48s", "Lint", "Owner ten"],
+  ["deploy-preview-2291", "Cancelled", "fix/notification-touch-target", "Nov 13, 11:47 PM", "1m 03s", "Give a one-line notification entry a 44px target on touch", "Owner one"],
+  ["e2e-0519", "Passed", "main", "Nov 13, 10:20 PM", "18m 55s", "Run the browser suite against the packed package", "Owner whose name is long."],
   ["build-0139", "Queued", "dependabot/npm_and_yarn/shiki-3.4.2", "Nov 13, 9:05 PM", "0s", "Bump shiki from 3.4.1 to 3.4.2", "dependabot"],
-  ["bench-0042", "Passed", "perf/table-tick", "Nov 13, 7:31 PM", "6m 44s", "Memoise the row so ticking one box repaints one row", "Mei Lindqvist"],
+  ["bench-0042", "Passed", "perf/table-tick", "Nov 13, 7:31 PM", "6m 44s", "Memoise the row so ticking one box repaints one row", "Owner seven"],
 ];
 
 function CutCellDemo({ state }: { state: string }) {

@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../scripts/chromium-launch.mjs";
+
 import { compose } from "../../.agent/skills/basalt-html/compose.mjs";
 import { skillDir } from "./build.mjs";
 
@@ -19,7 +21,7 @@ for (const [name, file] of Object.entries(pages)) {
   fs.writeFileSync(path.join(out, file), compose(fs.readFileSync(path.join(skillDir, "examples", `${name}.body.html`), "utf8")).html);
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(launchOptions());
 for (const [name, file] of Object.entries(pages)) {
   for (const [label, viewport, mobile] of [["1440", { width: 1440, height: 900 }, false], ["390", { width: 390, height: 844 }, true]]) {
     for (const scheme of ["dark", "light"]) {

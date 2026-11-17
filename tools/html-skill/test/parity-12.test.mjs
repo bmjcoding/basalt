@@ -90,6 +90,12 @@ describe("an ambient mark, against the skill's", () => {
 
 // ---- The entrance: the same marks with the same timing ----
 const RECORD = `(() => { const real = Element.prototype.animate; window.__anims = []; Element.prototype.animate = function (k, o) { const a = real.call(this, k, o); window.__anims.push({ props: [...new Set(k.flatMap((f) => Object.keys(f)).filter((x) => !["offset", "easing", "composite"].includes(x)))].join(","), duration: o.duration, delay: Math.round((o.delay || 0) * 100) / 100, fill: o.fill }); return a; }; })();`;
+// A chart starts its entrance when it is first seen (an IntersectionObserver reports after the svg is in the page), so the svg being there is not the entrance having begun, and on a
+// busy machine the two are some time apart. Wait for the entrance itself (its first transform animation, which every bar starts in the same effect), then a frame, before reading it.
+const entranceBegun = async (page) => {
+  await page.waitForFunction(() => window.__anims.some((a) => a.props === "transform"));
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+};
 const DAYS = Array.from({ length: 12 }, (_, i) => `2026-11-${String(i + 1).padStart(2, "0")}`);
 const VALUES = [48, 52, 61, 40, 55, 70, 38, 49, 60, 66, 44, 51];
 
@@ -108,12 +114,14 @@ describe("the chart's entrance, against React's", () => {
     const rp = await reactCtx.newPage();
     await rp.goto("https://basalt.test/");
     await rp.waitForSelector(".basalt-chart-svg");
+    await entranceBegun(rp);
     const reactAnims = (await rp.evaluate(() => window.__anims)).filter((a) => a.props === "transform");
     await reactCtx.close();
     const body = `<figure class="chart"><script type="application/json" data-chart>${JSON.stringify({ title: "Training", kind: "bar", unit: "min", summary: "Training averaged 54 min a day.", days: DAYS, entrance: true, series: [{ id: "t", name: "Training", values: VALUES }], format: { suffix: " min", maximumFractionDigits: 0 } })}</script></figure>`;
     const html = compose(`<title>x</title><div style="width: 800px; padding: 16px">${body}</div>`, { fonts: false }).html.replace("</head>", `<script>${RECORD}</script></head>`);
     const skill = await openHtml(browser, html, { scheme: "dark", width: 1440 }).catch(() => null);
     assert.ok(skill, "the skill page opens");
+    await entranceBegun(skill.page);
     const skillAnims = (await skill.page.evaluate(() => window.__anims)).filter((a) => a.props === "transform");
     // The skill draws the svg a second time when it is first observed, and each draw starts its marks: compare one draw's worth.
     const one = skillAnims.slice(-reactAnims.length);
@@ -143,6 +151,7 @@ describe("a data change mid-entrance, against React's (DECISIONS 143, item 8)", 
     const rp = await reactCtx.newPage();
     await rp.goto("https://basalt.test/");
     await rp.waitForSelector(".basalt-chart-svg");
+    await entranceBegun(rp);
     await rp.evaluate(() => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = 120; } });
     const mark = (await rp.evaluate(() => window.__anims)).length;
     await rp.click("#swap");
@@ -155,6 +164,7 @@ describe("a data change mid-entrance, against React's (DECISIONS 143, item 8)", 
     const body = (values) => JSON.stringify({ title: "Training", kind: "bar", unit: "min", summary: "Training averaged 54 min a day.", days: DAYS, entrance: true, series: [{ id: "t", name: "Training", values }], format: { suffix: " min", maximumFractionDigits: 0 } });
     const html = compose(`<title>x</title><div style="width: 800px; padding: 16px"><figure class="chart" id="c"><script type="application/json" data-chart>${body(VALUES)}</script></figure></div>`, { fonts: false }).html.replace("</head>", `<script>window.__pause = true;</script><script>${PAUSE_RECORD}</script></head>`);
     const skill = await openHtml(browser, html, { scheme: "dark", width: 1440 });
+    await entranceBegun(skill.page);
     await skill.page.evaluate(() => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = 120; } });
     const skillMark = (await skill.page.evaluate(() => window.__anims)).length;
     await skill.page.evaluate((options) => Basalt.chart(document.getElementById("c"), options), JSON.parse(body(OTHER)));
@@ -242,6 +252,10 @@ describe("a line and its markers glide from their drawn geometry, against React'
     const reactCtx = await reactBrowser.newContext({ viewport: { width: 900, height: 700 }, colorScheme: "dark" });
     await reactCtx.addInitScript(`window.__pause = true;`);
     await reactCtx.addInitScript(PAUSE_RECORD);
+    // React's data glide is a JS interpolation on animation frames, which `getAnimations()` cannot pause. So the page's clock is frozen (Playwright's fake clock, paused before
+    // anything loads): a frame of the glide runs only when the test runs one, and a loaded machine cannot let several pass between the click and the read.
+    await reactCtx.clock.install({ time: 0 });
+    await reactCtx.clock.pauseAt(10_000);
     await reactCtx.route("https://basalt.test/**", async (route) => {
       const { bundleFixture, pkg } = await import("../../../packages/react/test/support.mjs");
       const fs = await import("node:fs");
@@ -257,9 +271,10 @@ describe("a line and its markers glide from their drawn geometry, against React'
     const reactBefore = await probe(rp);
     await rp.click("#swap");
     await rp.evaluate(() => { for (const a of document.getAnimations()) if (a.effect.getComputedTiming().duration === 200) { a.pause(); a.currentTime = 0; } });
+    // The change is drawn once, from what was drawn (progress 0), and no frame of the glide has run: the page's clock does not move until the test moves it.
     const reactAfter = await probe(rp);
     await reactCtx.close();
-    // React's data glide is a JS interpolation that starts from what is drawn: its first frame may already have moved a frame's worth; compare with a tolerance of one frame of the glide.
+    // React's data glide is a JS interpolation that starts from what is drawn (progress 0): with its clock frozen no frame has run at the change, so it is compared like the skill's.
     const body = (values) => JSON.stringify({ title: "Training", kind: "line", unit: "min", summary: "Two days.", days: DAYS, entrance: true, series: [{ id: "a", name: "A", values }], format: { suffix: " min", maximumFractionDigits: 0 } });
     const html = compose(`<title>x</title><div style="width: 800px; padding: 16px"><figure class="chart" id="c"><script type="application/json" data-chart>${body(ALT)}</script></figure></div>`, { fonts: false }).html.replace("</head>", `<script>window.__pause = true;</script><script>${PAUSE_RECORD}</script></head>`);
     const skill = await openHtml(browser, html, { scheme: "dark", width: 1440 });
@@ -271,7 +286,7 @@ describe("a line and its markers glide from their drawn geometry, against React'
     await skill.context.close();
     assert.ok(worst(skillBefore.mark, skillAfter.mark) <= 1, `skill marker jumped ${worst(skillBefore.mark, skillAfter.mark)}px`);
     assert.ok(worst(skillBefore.line, skillAfter.line) <= 1, `skill line jumped ${worst(skillBefore.line, skillAfter.line)}px`);
-    assert.ok(worst(reactBefore.mark, reactAfter.mark) <= 20, `React marker moved ${worst(reactBefore.mark, reactAfter.mark)}px in its first frame`);
+    assert.ok(worst(reactBefore.mark, reactAfter.mark) <= 1, `React marker moved ${worst(reactBefore.mark, reactAfter.mark)}px at the change, before any frame of the glide`);
     // Both glide a line (a duration-slow animation on the path's draw) and its markers (opacity at least).
     void reactAfter;
   });

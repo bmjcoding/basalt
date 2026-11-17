@@ -294,21 +294,20 @@ describe("Sparkline", () => {
   });
 
   test("a new peak widens the scale at once, so it is never clipped", async () => {
-    const { page } = await fixturePage(browser, fixture);
-    await settle(page);
+    const { page } = await fixturePage(browser, fixture, { clock: true });
     await page.evaluate(() => window.set([10, 20, 400]));
-    await page.waitForTimeout(30);
+    await flushReact(page);
+    await page.clock.runFor(16); // one frame of the page's own clock: "at once" is the first frame, on any machine at any load
     assert.equal(await axis(page), "400");
     await page.close();
   });
 
   test("reduced motion snaps the line, the scale and the labels", async () => {
-    const { page } = await fixturePage(browser, fixture);
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await settle(page);
+    const { page } = await fixturePage(browser, fixture, { clock: true, reducedMotion: "reduce" });
     const before = await shownPoints(page);
     await page.evaluate(() => window.set([10, 20, 20]));
-    await page.waitForTimeout(40);
+    await flushReact(page);
+    await page.clock.runFor(16);
     assert.equal(await axis(page), "20");
     assert.notEqual(await shownPoints(page), before);
     assert.equal(await page.locator(".basalt-sparkline-head .basalt-ticker-text").textContent(), "20", "the headline is the plain target");

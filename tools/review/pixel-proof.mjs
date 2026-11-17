@@ -21,6 +21,8 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { launchOptions } from "../../scripts/chromium-launch.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(path.join(here, "..", "..", "packages", "react", "package.json"));
 const { chromium } = require("playwright");
@@ -39,7 +41,7 @@ async function demo(repo, out) {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(launchOptions());
   for (const theme of ["dark", "light"]) {
     for (const width of [1440, 390]) {
      // The page at rest, and again in Windows forced colours (the page's own palette, so each theme is shot as the dark and light forced palettes).
@@ -62,7 +64,7 @@ async function demo(repo, out) {
 
 async function compare(dirA, dirB) {
   const names = [...new Set([...fs.readdirSync(dirA), ...fs.readdirSync(dirB)])].filter((f) => f.endsWith(".png")).sort();
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(launchOptions());
   const page = await browser.newPage();
   let bad = 0;
   let same = 0;

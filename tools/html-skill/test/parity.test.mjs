@@ -1066,9 +1066,15 @@ const CHIP_HOVER_BLUR = [["hover", ".basalt-chip[role=checkbox]:not([data-checke
 const hoverOf = (react, skill) => ({ hover: [react, skill] });
 const parkPointer = async (page) => { await page.mouse.move(0, 0); };
 const markTrigger = { react: (p) => p.evaluate(() => document.querySelector(".basalt-filter-trigger")?.setAttribute("data-parity-trigger", "")), skill: (p) => p.evaluate(() => document.querySelector(".filter-trigger")?.setAttribute("data-parity-trigger", "")) };
-// The popup lights its first row when it takes focus, and a pointer leaving a row clears it: on a busy machine the focus can land after the pointer was parked, so the
-// pointer goes over the first row and away again on each page, and the rows are read at rest whichever came first.
-const openTrigger = { react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await p.locator(".basalt-filter-row").first().hover(); await parkPointer(p); }, skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await p.locator(".filter-row").first().hover(); await parkPointer(p); } };
+// The popup lights its first row when it takes focus, and a pointer leaving a row clears it. React's popup takes its focus after it is mounted, so on a busy machine the focus can
+// land after the pointer was parked and light the first row again. So each page is opened by waiting for the state itself: the focus is inside the popup, then the pointer goes over
+// the first row and away, then no row is lit. The rows are read at rest whichever came first, and no wait is a length of time.
+const popupHoldsFocus = (selector) => (p) => p.waitForFunction((sel) => document.querySelector(sel)?.contains(document.activeElement), selector);
+const noRowLit = (selector) => (p) => p.waitForFunction((sel) => !document.querySelector(sel)?.querySelector("[data-highlighted]"), selector);
+const openTrigger = {
+  react: async (p) => { await markTrigger.react(p); await p.locator(".basalt-filter-trigger").click(); await p.waitForSelector(".basalt-filter-popup"); await popupHoldsFocus(".basalt-filter-popup")(p); await p.locator(".basalt-filter-row").first().hover(); await parkPointer(p); await noRowLit(".basalt-filter-popup")(p); },
+  skill: async (p) => { await markTrigger.skill(p); await p.locator(".filter-trigger").click(); await p.waitForSelector(".filter-popup:popover-open"); await popupHoldsFocus(".filter-popup")(p); await p.locator(".filter-row").first().hover(); await parkPointer(p); await noRowLit(".filter-popup")(p); },
+};
 const POPUP_BOX = ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "gapBelow", "startOffset"];
 const ROW = [...BOXRECT, "paddingLeft", "paddingRight", "display", "alignItems", "gap", "color", "backgroundColor", ...TYPE];
 const TABLES = [

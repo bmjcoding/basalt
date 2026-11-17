@@ -14,6 +14,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 import { bundleFixture, fixturePage, freezeAnimations, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -351,7 +353,7 @@ describe("the change to smoked", () => {
       // A smooth anchor is animated only where the browser animates scrolls: with smooth scrolling off it is a scroll the browser does not animate.
       const jump = typeof decided === "function" ? decided(smooth) : decided;
       test(`${mode}: ${name} ${jump ? "switches at once, the fill full on the first frame after the report" : "gets the decided fade"}`, async () => {
-        const own = await chromium.launch({ args });
+        const own = await chromium.launch(launchOptions({ args }));
         try {
           const { page: p } = await fixturePage(own, page(), { theme: "dark", viewport: { width: 1440, height: 800 } });
           await settle(p); await frames(p);
@@ -374,7 +376,7 @@ describe("the change to smoked", () => {
     // The pointer and the click are Playwright's own (they wait on real frames), so they come before the clock stops; the wheel and the key are input.
     for (const [name, steps] of [["a wheel burst", { prepare: (p) => p.mouse.move(700, 400), run: async (p) => { for (let i = 0; i < 6; i++) await p.mouse.wheel(0, 200); } }], ["Page Down", { prepare: (p) => p.locator("body").click({ position: { x: 700, y: 600 } }), run: (p) => p.keyboard.press("PageDown") }]]) {
       test(`${mode}: ${name} follows the same rule frame by frame: the first report decides, and it ends smoked`, async () => {
-        const own = await chromium.launch({ args });
+        const own = await chromium.launch(launchOptions({ args }));
         try {
           const { page: p } = await fixturePage(own, page(), { theme: "dark", viewport: { width: 1440, height: 800 } });
           await settle(p); await frames(p);

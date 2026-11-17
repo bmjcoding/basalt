@@ -309,7 +309,7 @@ describe("a social link: the glyph, the name, the ink and the underline", () => 
       assert.equal(hover.line, primary, "the underline brightens to currentColor");
       assert.deepEqual([hover.weight, hover.bg, hover.w], [rest.weight, rest.bg, rest.w], "no weight change, no wash, no shift");
       await page.mouse.down();
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal((await read()).transform, "none", "no press scale on a link");
       await page.mouse.up();
       await page.mouse.move(0, 0);
@@ -427,7 +427,7 @@ ${render(`<div style={{ padding: 16 }}><SocialLinks id="marks" iconOnly aria-lab
     const b = await target.boundingBox();
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page);
     const press = await target.evaluate((el) => getComputedStyle(el).transform);
     assert.equal(press, "matrix(0.98, 0, 0, 0.98, 0, 0)", "IconButton's .98 press");
     await page.mouse.up();
