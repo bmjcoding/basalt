@@ -21,13 +21,29 @@ const render = (jsx, before = "") => `${before}\ncreateRoot(document.getElementB
 const THEMES = ["light", "dark"];
 const WIDTHS = [1440, 390];
 const frames = (page) => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+/**
+ * Wait until a toast has finished entering: two frames, then every CSS transition that is running has ended (the entrance is a fade and a rise from its starting style), then one
+ * more frame. Axe reads the colour a part is drawn in right now, so one that reads the action halfway through the fade finds a colour that is not the toast's. The toast's drain
+ * line runs for seconds and is not a transition, so this does not wait it out (`settle` would).
+ */
+const entered = async (page) => {
+  // The entrance begins when the toast's starting style is taken off, a frame or more after it is in the page: until then there is no transition to wait for, and a wait for "none running" passes at once.
+  await page.waitForFunction(() => { const toasts = [...document.querySelectorAll(".basalt-toast")]; return toasts.length > 0 && toasts.every((toast) => !toast.hasAttribute("data-starting-style")); });
+  await settled(page);
+};
+const settled = (page) => page.evaluate(async () => {
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {})));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+});
 
-async function axe(page) {
-  // Audit the settled state, not a popup halfway through its entrance fade: wait for each finite animation to end (a loop is left).
-  await page.evaluate(async () => {
+async function axe(page, { transitionsOnly = false } = {}) {
+  // Audit the settled state, not a popup halfway through its entrance fade: wait for each finite animation to end (a loop is left). A toast's drain line is a finite animation
+  // of seconds that ends with the toast leaving, so a page with a toast waits for its transitions only (`transitionsOnly`) and keeps the toast from timing out instead.
+  await page.evaluate(async (onlyTransitions) => {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})));
-  });
+    await Promise.all(document.getAnimations().filter((a) => (onlyTransitions ? a instanceof CSSTransition : a.effect?.getComputedTiming().iterations !== Infinity)).map((a) => a.finished.catch(() => {})));
+  }, transitionsOnly);
   // The fixture page has no page surface of its own: give it the one an app has, so contrast is read on the real ground.
   await page.evaluate(() => { document.title = "Basalt"; document.documentElement.lang = "en"; document.body.style.cssText = "background: var(--basalt-surface-page); color: var(--basalt-text-primary); margin: 0"; });
   await page.addScriptTag({ content: axeSource });
@@ -283,10 +299,11 @@ for (const theme of THEMES) {
       test(`axe finds nothing with a toast with an action showing, at ${width}`, async () => {
         const { page } = await fixturePage(browser, TOASTS, { theme, viewport: { width, height: 700 } });
         try {
-          await show(page, { title: "Sandbox deleted", action: { label: "Undo" }, home: "centre" });
+          // The toast stays for the whole audit (its default five seconds would run out under load, and axe would read it leaving), and it is read once it has entered.
+          await show(page, { title: "Sandbox deleted", action: { label: "Undo" }, home: "centre", timeout: 120_000 });
           await page.locator(".basalt-toast-action").waitFor();
-          await frames(page);
-          assert.deepEqual(await axe(page), []);
+          await entered(page);
+          assert.deepEqual(await axe(page, { transitionsOnly: true }), []);
         } finally { await page.close(); }
       });
     }

@@ -11,6 +11,8 @@ import { after, before, describe, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 import { build, moduleNames, skillDir } from "../build.mjs";
 import { iconData } from "../icons.mjs";
 import { freezeAnimations, settle } from "../../../packages/react/test/support.mjs";
@@ -26,7 +28,7 @@ const composed = (file, options = {}) => examplePage(exampleName(file), options)
 const pages = Object.fromEntries(TEMPLATES.map((name) => [name, composed(name)]));
 
 let browser;
-before(async () => { browser = await chromium.launch(); });
+before(async () => { browser = await chromium.launch(launchOptions()); });
 after(async () => { await browser?.close(); });
 
 describe("the skill files", () => {
@@ -360,7 +362,7 @@ describe("the palette", () => {
     for (const href of hrefs) {
       await page.evaluate((h) => window.Basalt.openPalette({ groups: [{ items: [{ label: "Untrusted", href: h }] }] }), href);
       await page.keyboard.press("Enter");
-      await page.waitForTimeout(30);
+      await page.locator(".palette").waitFor({ state: "detached" });
       assert.equal(await page.evaluate(() => window.__executed ?? false), false, href);
       assert.equal(await page.locator(".palette").count(), 0, "the palette closed");
       assert.equal(page.url(), "https://basalt.test/", href);

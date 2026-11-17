@@ -8,6 +8,9 @@ import { after, before, describe, test } from "node:test";
 
 import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
 
+// The focus guards hand focus back a task later: a task and a frame, not a length of time.
+const afterTask = (page) => page.evaluate(() => new Promise((resolve) => setTimeout(() => requestAnimationFrame(() => resolve()), 0)));
+
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
 before(async () => { browser = await launch(); });
@@ -185,7 +188,7 @@ describe("the site header: the bar", () => {
       const wash = await resolve(page, "var(--basalt-state-selected)");
       const pillBox = await box(page, ".basalt-site-pill", 2);
       await page.mouse.move(pillBox.x + pillBox.w / 2, pillBox.y + pillBox.h / 2);
-      await page.waitForTimeout(400);
+      await settle(page);
       const plate = await page.locator(".basalt-site-links > .basalt-plate").evaluate((el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return { x: r.x, y: r.y, w: r.width, h: r.height, bg: s.backgroundColor, display: s.display, opacity: s.opacity }; });
       assert.equal(plate.bg, wash);
       assert.equal(plate.opacity, "1");
@@ -230,7 +233,7 @@ describe("the site header: the bar", () => {
       const page = await open(site(), { width: options.isMobile ? 800 : 1100, ...options });
       const b = await box(page, ".basalt-site-pill", 1);
       if (!options.hasTouch) await page.mouse.move(b.x + b.w / 2, b.y + b.h / 2);
-      await page.waitForTimeout(300);
+      await settle(page);
       assert.equal(await css(page, ".basalt-site-links > .basalt-plate", "display"), "none");
       if (options.forcedColors) {
         const hovered = await page.locator(".basalt-site-pill").nth(1).evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, color: s.color }; });
@@ -303,7 +306,7 @@ describe("the narrow menu", () => {
     assert.equal(await trigger.getAttribute("aria-haspopup"), "dialog");
     assert.equal(await trigger.getAttribute("aria-expanded"), "false");
     await trigger.click();
-    await page.waitForTimeout(500);
+    await settle(page);
     assert.equal(await trigger.getAttribute("aria-expanded"), "true");
     const controls = await trigger.getAttribute("aria-controls");
     assert.ok(controls, "aria-controls names the dialog");
@@ -318,23 +321,23 @@ describe("the narrow menu", () => {
     await page.keyboard.press("Tab");
     for (let i = 0; i < 6 && !(await page.evaluate(() => document.activeElement?.classList.contains("basalt-site-menu-trigger"))); i++) await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(500);
+    await settle(page);
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains("basalt-site-menu-close")), "focus is on Close");
     const close = await box(page, ".basalt-site-menu-close");
     near(close.x, trigger.x, "x", 0.5); near(close.y, trigger.y, "y", 0.5); near(close.w, trigger.w, "width", 0.5); near(close.h, trigger.h, "height", 0.5);
     for (let i = 0; i < 14; i++) {
       await page.keyboard.press("Tab");
-      await page.waitForTimeout(40); // the focus guards hand focus back a task later
+      await afterTask(page); // the focus guards hand focus back a task later
       assert.ok(await page.evaluate(() => !!document.activeElement?.closest(".basalt-site-menu")), `Tab ${i + 1} stays inside the menu`);
     }
     for (let i = 0; i < 14; i++) {
       await page.keyboard.press("Shift+Tab");
-      await page.waitForTimeout(40);
+      await afterTask(page);
       assert.ok(await page.evaluate(() => !!document.activeElement?.closest(".basalt-site-menu")), `Shift+Tab ${i + 1} stays inside the menu`);
     }
     assert.equal(await page.evaluate(() => document.querySelector("main").closest("[inert], [aria-hidden='true']") !== null), true, "the page under the menu is inert or hidden");
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(500);
+    await page.locator(".basalt-site-menu").waitFor({ state: "detached" });
     assert.equal(await page.locator(".basalt-site-menu").count(), 0);
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains("basalt-site-menu-trigger")), "focus is back on Menu");
     await page.close();
@@ -343,17 +346,17 @@ describe("the narrow menu", () => {
   test("the scrim and a link close it; the page under it does not scroll while it is open", async () => {
     const page = await open(site(), { width: 390, height: 700 });
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(500);
+    await settle(page);
     await page.mouse.wheel(0, 600);
     await page.waitForTimeout(100);
     assert.equal(await page.evaluate(() => window.scrollY), 0, "the page does not scroll");
     await page.mouse.click(200, 650);
-    await page.waitForTimeout(500);
+    await page.locator(".basalt-site-menu").waitFor({ state: "detached" });
     assert.equal(await page.locator(".basalt-site-menu").count(), 0, "the scrim closes it");
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(500);
+    await settle(page);
     await page.locator(".basalt-site-menu .basalt-nav-item").nth(1).click();
-    await page.waitForTimeout(500);
+    await page.locator(".basalt-site-menu").waitFor({ state: "detached" });
     assert.equal(await page.locator(".basalt-site-menu").count(), 0, "a link closes it");
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains("basalt-site-menu-trigger")));
     await page.close();
@@ -362,7 +365,7 @@ describe("the narrow menu", () => {
   test("the menu is level 1 with shadow-modal and bottom corners of 16; its rows are Nav rows without a glyph: a 48 pill at 20/28, the current one at 600, 6 from the edge", async () => {
     const page = await open(site({ current: "docs" }), { width: 390 });
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(600);
+    await settle(page);
     const sheet = await page.locator(".basalt-site-menu").evaluate((el) => { const s = getComputedStyle(el); return { level: el.dataset.level, radius: [s.borderBottomLeftRadius, s.borderBottomRightRadius, s.borderTopLeftRadius], shadow: s.boxShadow, bg: s.backgroundColor, over: s.overscrollBehaviorY, side: el.dataset.side }; });
     assert.equal(sheet.level, "1");
     assert.deepEqual(sheet.radius, ["16px", "16px", "0px"]);
@@ -388,13 +391,13 @@ describe("the narrow menu", () => {
   test("the menu is as tall as its content, and scrolls inside at the viewport's height", async () => {
     let page = await open(site(), { width: 390, height: 900 });
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(600);
+    await settle(page);
     const tall = await box(page, ".basalt-site-menu");
     assert.ok(tall.h < 900 - 100, `${tall.h} tall at 900`);
     await page.close();
     page = await open(site(), { width: 390, height: 360 });
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(600);
+    await settle(page);
     const short = await page.locator(".basalt-site-menu").evaluate((el) => ({ h: el.getBoundingClientRect().height, scroll: el.scrollHeight, client: el.clientHeight, y: getComputedStyle(el).overflowY }));
     near(short.h, 360, "no taller than the viewport", 1);
     assert.ok(short.scroll > short.client && short.y === "auto", "it scrolls inside");
@@ -404,27 +407,29 @@ describe("the narrow menu", () => {
   test("widening past 720 closes it and focuses the current link in the bar", async () => {
     const page = await open(site({ current: "docs" }), { width: 390 });
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(500);
+    await settle(page);
     await page.setViewportSize({ width: 900, height: 800 });
-    await page.waitForTimeout(700);
+    await page.locator(".basalt-site-menu").waitFor({ state: "detached" });
     assert.equal(await page.locator(".basalt-site-menu").count(), 0);
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-current") + ":" + document.activeElement?.className), "page:basalt-site-link");
     await page.close();
   });
 
   test("it unrolls beneath the band as a clip over duration-slower on ease-out, and leaves at 0.75 on ease-in", async () => {
+    // On the frozen clock: the unroll is read 40ms in, not "about 40ms after a busy machine got there", and the leave 30ms in.
     const page = await open(site(), { width: 390 });
+    const clock = await freezeAnimations(page);
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(40);
+    await clock.advance(40);
     const during = await page.locator(".basalt-site-menu").evaluate((el) => ({ clip: getComputedStyle(el).clipPath, running: el.getAnimations().map((a) => ({ p: a.transitionProperty, d: a.effect.getTiming().duration, e: a.effect.getTiming().easing })) }));
     const unroll = during.running.find((a) => a.p === "clip-path");
     assert.ok(unroll, `a clip-path transition runs: ${JSON.stringify(during)}`);
     assert.equal(unroll.d, 300);
     assert.equal(unroll.e, "cubic-bezier(0.16, 1, 0.3, 1)");
     assert.ok(!during.running.some((a) => a.p === "transform"), "it never slides");
-    await page.waitForTimeout(500);
+    await clock.advance(500);
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(30);
+    await clock.advance(30);
     const leaving = await page.locator(".basalt-site-menu").evaluate((el) => el.getAnimations().map((a) => ({ p: a.transitionProperty, d: a.effect.getTiming().duration, e: a.effect.getTiming().easing })).find((a) => a.p === "clip-path"));
     near(leaving.d, 225, "0.75 of duration-slower", 0.01);
     assert.equal(leaving.e, "cubic-bezier(0.4, 0, 1, 1)");
@@ -433,8 +438,9 @@ describe("the narrow menu", () => {
 
   test("under reduced motion it is opacity only", async () => {
     const page = await open(site(), { width: 390, reducedMotion: "reduce" });
+    const clock = await freezeAnimations(page);
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(30);
+    await clock.advance(30);
     const running = await page.locator(".basalt-site-menu").evaluate((el) => ({ clip: getComputedStyle(el).clipPath, props: el.getAnimations().map((a) => a.transitionProperty), property: getComputedStyle(el).transitionProperty }));
     assert.equal(running.clip, "none");
     assert.equal(running.property, "opacity");
@@ -446,7 +452,7 @@ describe("the narrow menu", () => {
     const page = await open(site(), { width: 390 });
     assert.equal(await page.locator(".basalt-site-menu-trigger svg").getAttribute("data-icon"), "menu");
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(500);
+    await settle(page);
     assert.equal(await page.locator(".basalt-site-menu-close svg").getAttribute("data-icon"), "close");
     assert.equal(await page.locator(".basalt-site-menu-close svg").evaluate((s) => s.getBoundingClientRect().width), 16, "IconButton's own 16");
     await page.close();
@@ -457,7 +463,7 @@ describe("the narrow menu", () => {
     const brand = await box(page, ".basalt-site-header .basalt-site-brand");
     const toggle = await box(page, ".basalt-site-header .basalt-bar-actions .basalt-button", 0);
     await page.locator(".basalt-site-menu-trigger").click();
-    await page.waitForTimeout(600);
+    await settle(page);
     const brand2 = await box(page, ".basalt-site-menu .basalt-site-brand");
     const toggle2 = await box(page, ".basalt-site-menu .basalt-bar-actions .basalt-button", 0);
     for (const [a, b, name] of [[brand, brand2, "brand"], [toggle, toggle2, "toggle"]]) { near(a.x, b.x, `${name} x`, 0.5); near(a.y, b.y, `${name} y`, 0.5); }
@@ -514,7 +520,7 @@ describe("the app shell", () => {
     const page = await open(shell(), { width: 1440, height: 700 });
     await page.mouse.move(800, 400);
     await page.mouse.wheel(0, 900);
-    await page.waitForTimeout(200);
+    await settle(page);
     const facts = await page.evaluate(() => ({
       y: window.scrollY,
       side: document.querySelector(".basalt-app-sidebar").getBoundingClientRect().top,
@@ -596,7 +602,9 @@ describe("the phone tab bar", () => {
   test("toasts sit above the tab bar at phone widths", async () => {
     const page = await open(`${shell()}\n`.replace("<p>Synthetic page.</p>", "<p>Synthetic page.</p><ToastButton />").replace("document.body.style.margin", "const ToastButton = () => { const t = B.useToast(); return <button id=\"t\" onClick={() => t.show({ title: \"Saved\", home: \"page\", timeout: 600000 })}>toast</button>; }; document.body.style.margin"), { width: 390, height: 700 });
     await page.click("#t");
-    await page.waitForTimeout(600);
+    // A toast's drain line runs for seconds, so it is not settled: its transitions are awaited, and it is read at rest.
+    await page.locator(".basalt-toast").waitFor();
+    await page.evaluate(async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); await Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {}))); });
     const toast = await box(page, ".basalt-toast");
     const bar = await box(page, ".basalt-tabbar");
     assert.ok(toast.bottom <= bar.y - 15, `the toast ends at ${toast.bottom}, the bar starts at ${bar.y}`);
@@ -654,19 +662,19 @@ describe("the phone tab bar", () => {
     const wash = await resolve(page, "var(--basalt-state-selected)");
     const cell = await box(page, ".basalt-tabbar-item", 1);
     await page.mouse.move(cell.x + cell.w / 2, cell.y + cell.h / 2);
-    await page.waitForTimeout(250);
+    await settle(page);
     const circle = () => page.locator(".basalt-tabbar-glyph").nth(1).evaluate((el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return { bg: s.backgroundColor, w: r.width, h: r.height, radius: s.borderTopLeftRadius }; });
     let c = await circle();
     assert.deepEqual([c.bg, c.w, c.h], [wash, 32, 32]);
     assert.ok(Number.parseFloat(c.radius) >= 16);
     await page.keyboard.press("Tab");
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.ok(await page.locator(".basalt-tabbar").evaluate((el) => el.hasAttribute("data-keys")), "the first key marks the bar");
     c = await circle();
     assert.equal(c.bg, "rgba(0, 0, 0, 0)", "hidden by the first key");
     await page.mouse.move(5, 5);
     await page.mouse.move(cell.x + cell.w / 2, cell.y + cell.h / 2);
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.equal((await circle()).bg, wash, "the next pointer move brings it back");
     await page.mouse.move(5, 5);
     await page.keyboard.press("Tab");
@@ -694,13 +702,13 @@ describe("the phone tab bar", () => {
     assert.equal(await more.count(), 1);
     assert.equal(await page.locator(".basalt-tabbar-item").count(), 5);
     await more.click();
-    await page.waitForTimeout(600);
+    await settle(page);
     const sheet = page.getByRole("dialog", { name: "More" });
     assert.equal(await sheet.getAttribute("data-side"), "bottom");
     assert.equal(await sheet.locator(".basalt-nav-item").count(), 2);
     assert.equal(await sheet.locator(".basalt-nav-pill").first().evaluate((p) => p.getBoundingClientRect().height), 48);
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(500);
+    await settle(page);
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains("basalt-tabbar-more")), "focus returns to More");
     await page.close();
   });
@@ -742,12 +750,12 @@ describe("accessibility, both themes", () => {
     for (const [name, fixture, options, then] of [
       ["the site header at 1440", site(), { width: 1440 }],
       ["the site header at 390", site(), { width: 390 }],
-      ["the narrow menu open", site({ current: "docs" }), { width: 390 }, async (page) => { await page.locator(".basalt-site-menu-trigger").click(); await page.waitForTimeout(600); }],
+      ["the narrow menu open", site({ current: "docs" }), { width: 390 }, async (page) => { await page.locator(".basalt-site-menu-trigger").click(); await settle(page); }],
       ["the opaque site header", site({ solid: true }), { width: 1440 }],
       ["the app shell at 1440", shell(), { width: 1440 }],
       ["the rail at 900", shell(), { width: 900 }],
       ["the tab bar at 390", shell({ more: true, current: "settings" }), { width: 390 }],
-      ["More open", shell({ more: true }), { width: 390 }, async (page) => { await page.getByRole("button", { name: "More" }).click(); await page.waitForTimeout(600); }],
+      ["More open", shell({ more: true }), { width: 390 }, async (page) => { await page.getByRole("button", { name: "More" }).click(); await settle(page); }],
     ]) {
       test(`axe: ${name} (${theme})`, async () => {
         const page = await open(fixture, { ...options, theme });
@@ -760,7 +768,7 @@ describe("accessibility, both themes", () => {
   }
   for (const [name, options] of [["forced colours", { forcedColors: "active" }], ["reduced motion", { reducedMotion: "reduce" }]]) {
     test(`axe under ${name}: the header, the menu and the shell`, async () => {
-      for (const [fixture, width, then] of [[site(), 1440], [site(), 390, async (page) => { await page.locator(".basalt-site-menu-trigger").click(); await page.waitForTimeout(400); }], [shell(), 390]]) {
+      for (const [fixture, width, then] of [[site(), 1440], [site(), 390, async (page) => { await page.locator(".basalt-site-menu-trigger").click(); await settle(page); }], [shell(), 390]]) {
         const page = await open(fixture, { width, ...options });
         if (then) await then(page);
         // The system's colours are the reader's, and axe cannot measure them: forced colours is proved by the computed-style tests above.

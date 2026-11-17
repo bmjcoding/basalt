@@ -7,7 +7,8 @@
 //                                    or any ignored file in this checkout cannot decide the result. The worktree is removed afterwards.
 //                                    It checks the commit, not uncommitted changes. Combine it with --web-only.
 //
-// It runs ci.yml's own commands in ci.yml's order and stops at the first failure, as CI does. It reads ci.yml first and refuses to
+// It runs ci.yml's own commands in ci.yml's order and runs every one of them even when an earlier one fails (CI stops a job at its first failure, but a laptop
+// run that stops there hides the later steps' results behind one flaky file); it ends with one line a step and exits 1 if any failed. It reads ci.yml first and refuses to
 // run if the two have drifted apart, so a step added to CI can't be skipped here unnoticed. It also prints the Node version it runs on
 // beside the one ci.yml pins, and warns when their major versions differ: a result on another major is not CI's result.
 import { spawnSync } from "node:child_process";
@@ -15,6 +16,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { runStep, summaryLines } from "./run-steps.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -60,7 +63,7 @@ function fail(message) {
   process.exit(1);
 }
 
-function main() {
+async function main() {
   const webOnly = process.argv.includes("--web-only");
   const fresh = process.argv.includes("--fresh");
   const workflow = fs.readFileSync(path.join(repo, ".github/workflows/ci.yml"), "utf8");
@@ -110,16 +113,22 @@ function main() {
   console.log(`ci:local on ${head}${fresh ? ", from a fresh worktree" : dirty ? ", with uncommitted changes: this result is for the working tree, not the commit" : ""}`);
   if (fresh && dirty) console.log("WARNING: this checkout has uncommitted changes, and --fresh does not include them: commit them first to check them.");
   const started = Date.now();
+  // Every step runs, as in CI's own job steps one after another, but the run does not stop at the first failure: a flaky file in `npm test` must not hide the
+  // artifact, typecheck, package and Swift results. The summary names each step and, for a failed one, the test files that failed (scripts/run-steps.mjs).
+  const results = [];
   for (const [job, steps] of jobs) {
-    for (const step of steps) {
-      console.log(`\n── ${job}: ${step}`);
-      const env = step === "swift test" ? { ...process.env, BASALT_SNAPSHOT_DIR: snapshots } : process.env;
-      const t = Date.now();
-      const { status } = spawnSync(step, { cwd, env, shell: true, stdio: "inherit" });
-      if (status !== 0) fail(`${job} job failed at \`${step}\` (exit ${status}) on ${head}${fresh ? " (fresh worktree)" : ""}.`);
-      console.log(`── ${job}: ${step} passed in ${((Date.now() - t) / 1000).toFixed(0)}s`);
+    for (const command of steps) {
+      const env = command === "swift test" ? { ...process.env, BASALT_SNAPSHOT_DIR: snapshots } : process.env;
+      const label = `${job}: ${command}`;
+      console.log(`\n── ${label}`);
+      const result = await runStep(command, { cwd, env });
+      console.log(`── ${label} ${result.status === 0 ? "passed" : `FAILED (exit ${result.status})`} in ${result.seconds.toFixed(0)}s`);
+      results.push({ ...result, label });
     }
   }
+  const failed = results.filter((r) => r.status !== 0);
+  console.log(`\nci:local on ${head}${fresh ? " (fresh worktree)" : ""}: ${results.length - failed.length} of ${results.length} steps passed${failed.length ? `, ${failed.length} failed` : ""}\n${summaryLines(results).join("\n")}`);
+  if (failed.length) fail(`${failed.length} step${failed.length === 1 ? "" : "s"} failed on ${head}${fresh ? " (fresh worktree)" : ""}; the first was \`${failed[0].label}\`. Every step ran: the lines above say which passed.`);
 
   const minutes = ((Date.now() - started) / 60000).toFixed(1);
   console.log(`\nci:local passed on ${head}${fresh ? " (fresh worktree)" : dirty ? " (working tree)" : ""} in ${minutes} min: the web job${webOnly ? " only; the macOS job was not run" : " and the macOS job"}.${node.warn ? `\nWARNING: ${node.text}` : ""}`);
@@ -127,4 +136,4 @@ function main() {
 }
 
 // Importable for its tests; run only as a script.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

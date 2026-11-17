@@ -142,6 +142,16 @@ const provider = (children = "<Probe/>", props = "") => render(`<B.ToastProvider
  * On a frozen clock (freezeAnimations) a toast mounts on a frame: run frames until `locator` is visible (the check
  * `waitFor()` makes: attached, with a box, not hidden), and fail loudly if it never is.
  */
+/**
+ * Wait until what the page just did has come to rest: two frames, then every CSS transition that is running has ended. A toast's drain line runs for seconds, so `settle`
+ * (which waits for every finite animation) is the wrong wait on a page with a toast; this one leaves the drain alone. It replaces a fixed wait before a read of a toast or a stack.
+ */
+const atRest = (page) => page.evaluate(async () => {
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {})));
+  await new Promise((resolve) => requestAnimationFrame(resolve)); // the frame in which a finished exit unmounts
+});
+
 const appears = async (page, clock, locator) => {
   for (let tries = 0; tries < 100; tries += 1) {
     if (await locator.isVisible()) return;
@@ -247,19 +257,19 @@ describe("Toast: running work", () => {
     assert.equal(await page.locator('.basalt-toast-seat .basalt-spinner[data-variant="braille"]').count(), 1, "braille in the mark seat");
     const running = await titleX(page);
     await page.evaluate((id) => window.t.update(id, { title: "Publishing, step 2 of 4", description: "Uploading assets", running: true }), id);
-    await page.waitForTimeout(150);
+    await atRest(page);
     assert.equal(await titleX(page), running, "a step changes no x");
     await page.evaluate((id) => window.t.update(id, { title: "Published", status: "success" }), id);
-    await page.waitForTimeout(250);
+    await atRest(page);
     assert.equal(await page.locator(".basalt-toast-seat .basalt-spinner").count(), 0, "braille is gone");
     assert.equal(await page.locator(".basalt-toast-seat svg").count(), 1, "the mark took its seat");
     assert.equal(await titleX(page), running, "the result's mark takes braille's seat: 0px");
     // the same toast again, resolving to an unmarked result: the seat stays, empty
     const other = await show(page, { title: "Exporting", running: true });
-    await page.waitForTimeout(150);
+    await atRest(page);
     const before = await page.evaluate(() => { const toast = document.querySelectorAll(".basalt-toast")[0]; return toast.querySelector(".basalt-toast-title").getBoundingClientRect().left - toast.getBoundingClientRect().left; });
     await page.evaluate((id) => window.t.update(id, { title: "Cancelled", home: "page" }), other);
-    await page.waitForTimeout(250);
+    await atRest(page);
     const after = await page.evaluate(() => { const toast = document.querySelectorAll(".basalt-toast")[0]; return { x: toast.querySelector(".basalt-toast-title").getBoundingClientRect().left - toast.getBoundingClientRect().left, seat: !!toast.querySelector(".basalt-toast-seat"), mark: !!toast.querySelector(".basalt-toast-seat svg") }; });
     assert.equal(after.x, before, "an unmarked result keeps the seat");
     assert.equal(after.seat, true);
@@ -271,11 +281,11 @@ describe("Toast: running work", () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     const id = await show(page, { title: "Publishing", running: true });
     await page.evaluate((id) => window.t.update(id, { title: "Publishing, step 3 of 4", running: true }), id);
-    await page.waitForTimeout(150);
+    await atRest(page);
     const live = () => page.evaluate(() => [...document.querySelectorAll('[role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]')].map((el) => el.textContent).join("|"));
     assert.ok(!/Publishing/.test(await live()), `a running toast was announced: ${await live()}`);
     await page.evaluate((id) => window.t.update(id, { title: "Published", status: "success" }), id);
-    await page.waitForTimeout(100);
+    await atRest(page);
     assert.equal((await live()).match(/Published/g)?.length, 1, "the result is announced once");
     await page.close();
   });
@@ -300,10 +310,10 @@ describe("Toast: running work", () => {
   test("update ends running unless told otherwise, and a result is a new statement: the running toast's action does not carry over", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     const id = await show(page, { title: "Publishing", running: true, action: { label: "Cancel" } });
-    await page.waitForTimeout(150);
+    await atRest(page);
     assert.equal(await page.getByRole("button", { name: "Cancel" }).count(), 1);
     await page.evaluate((id) => window.t.update(id, { title: "Published" }), id);
-    await page.waitForTimeout(250);
+    await atRest(page);
     assert.equal(await page.locator(".basalt-toast-seat .basalt-spinner").count(), 0, "no longer running");
     assert.equal(await page.getByRole("button", { name: "Cancel" }).count(), 0, "Cancel is gone with the running state");
     await page.close();
@@ -424,7 +434,7 @@ describe("Toast: the stack", () => {
   test("limit 3: a fourth toast closes the oldest one that is not the only copy", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     for (const name of ["one", "two", "three", "four"]) await show(page, { title: name, home: "page", timeout: 60_000 });
-    await page.waitForTimeout(500);
+    await atRest(page);
     assert.deepEqual((await titles(page)).sort(), ["four", "three", "two"]);
     await page.close();
   });
@@ -433,7 +443,7 @@ describe("Toast: the stack", () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     for (const name of ["a", "b", "c"]) await show(page, { title: name, action: { label: "Undo" } });
     await show(page, { title: "d" });
-    await page.waitForTimeout(400);
+    await atRest(page);
     assert.deepEqual((await titles(page)).sort(), ["a", "b", "c"], "all three only-copies are still there, and the fourth is not");
     await toasts(page).first().hover();
     await page.waitForTimeout(400);
@@ -447,10 +457,10 @@ describe("Toast: the stack", () => {
   test("a focused toast is not removed by the limit: the oldest one that is not focused goes instead", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     for (const name of ["one", "two", "three"]) await show(page, { title: name, home: "page", timeout: 60_000 });
-    await page.waitForTimeout(300);
+    await atRest(page);
     await page.locator(".basalt-toast", { hasText: "one" }).focus();
     await show(page, { title: "four", home: "page", timeout: 60_000 });
-    await page.waitForTimeout(500);
+    await atRest(page);
     assert.deepEqual((await titles(page)).sort(), ["four", "one", "three"], "focus kept the oldest; the next oldest went");
     await page.close();
   });
@@ -463,7 +473,7 @@ describe("Toast: the stack", () => {
     await toasts(page).first().hover();
     await page.waitForTimeout(400);
     await page.locator(".basalt-toast", { hasText: "a" }).getByRole("button", { name: "Dismiss" }).click();
-    await page.waitForTimeout(500);
+    await atRest(page);
     assert.deepEqual((await titles(page)).sort(), ["b", "c"], "d never came in");
     await page.close();
   });
@@ -471,7 +481,7 @@ describe("Toast: the stack", () => {
   test("repeats group: the same group shows once as ×3, restarts its clock, and is announced with its count", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     for (let i = 0; i < 3; i++) await show(page, { title: "Draft saved", group: "draft", home: "page" });
-    await page.waitForTimeout(300);
+    await atRest(page);
     assert.equal(await toasts(page).count(), 1);
     assert.equal(await page.locator(".basalt-toast-count").textContent(), "×3");
     assert.match(await page.locator(".basalt-toast-title").textContent(), /Draft saved.*×3.*3 times/);
@@ -484,7 +494,7 @@ describe("Toast: the stack", () => {
     await show(page, { title: "Failed", status: "danger", group: "run" });
     await show(page, { title: "Failed", status: "danger", group: "run" });
     await show(page, { title: "Ok", status: "success", group: "run" });
-    await page.waitForTimeout(300);
+    await atRest(page);
     assert.equal(await toasts(page).count(), 3);
     assert.equal(await page.locator(".basalt-toast-count").count(), 0);
     await page.close();
@@ -495,7 +505,7 @@ describe("Toast: the stack", () => {
     await show(page, { title: "Short one" });
     await show(page, { title: "Short two" });
     await show(page, { title: "A long one", description: "This toast has a description that runs to a second line and then a third, so it is taller than the two behind it.".repeat(2) });
-    await page.waitForTimeout(500);
+    await atRest(page);
     const read = await toasts(page).evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { index: Number(el.style.getPropertyValue("--toast-index")), top: r.top, bottom: r.bottom, height: r.height, scale: new DOMMatrix(getComputedStyle(el).transform).a }; }).sort((a, b) => a.index - b.index));
     assert.equal(read.length, 3);
     assert.ok(read[0].height > 70, "the front toast is tall");
@@ -536,7 +546,7 @@ describe("Toast: swipe, placement and motion", () => {
     await toasts(page).first().waitFor();
     await settle(page);
     await drag(page, 30);
-    await page.waitForTimeout(400);
+    await atRest(page);
     assert.equal(await toasts(page).count(), 1, "30px is under the threshold");
     await drag(page, 56);
     await toasts(page).first().waitFor({ state: "detached", timeout: 2000 });
@@ -597,7 +607,7 @@ describe("Toast: swipe, placement and motion", () => {
     await show(page, { title: "Publishing", running: true });
     await show(page, { title: "Saved", home: "page" });
     await toasts(page).first().waitFor();
-    await page.waitForTimeout(300);
+    await atRest(page);
     const read = await toasts(page).evaluateAll((els) => els.map((el) => ({ property: getComputedStyle(el).transitionProperty, drain: el.querySelector(".basalt-toast-drain") ? getComputedStyle(el.querySelector(".basalt-toast-drain")).display : "absent", dots: [...el.querySelectorAll(".basalt-spinner-dot")].map((d) => getComputedStyle(d).animationName) })));
     for (const toast of read) {
       assert.equal(toast.property, "opacity");
@@ -760,7 +770,7 @@ describe("NotificationCentre", () => {
         assert.equal(row.spoken.startsWith("Unread: "), row.unread, "unread is also said in words");
       }
       await page.getByRole("button", { name: "Mark all as read" }).click();
-      await page.waitForTimeout(250);
+      await atRest(page);
       const after = await snapshot();
       assert.deepEqual(after.map((r) => r.unread), [false, false, false, false]);
       for (const [i, row] of after.entries()) {
@@ -796,7 +806,7 @@ describe("NotificationCentre", () => {
     const plate = () => page.locator(".basalt-notification").nth(1).evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
     assert.equal(await plate(), "rgba(0, 0, 0, 0)");
     await page.locator(".basalt-notification").nth(1).hover();
-    await page.waitForTimeout(150);
+    await atRest(page);
     const level = await page.locator(".basalt-notifications").getAttribute("data-level");
     assert.equal(level, "1");
     assert.deepEqual(await rgbOf(page, await plate()), await rgbOf(page, "color-mix(in srgb, white 9%, #111111)"), "level 1's plate: the next level plus the wash");
@@ -874,7 +884,7 @@ describe("NotificationCentre", () => {
     await mark.focus();
     const before = await mark.boundingBox();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
+    await atRest(page);
     assert.equal(await mark.evaluate((el) => el === document.activeElement), true, "focus stays on it");
     assert.equal(await mark.getAttribute("aria-disabled"), "true");
     assert.deepEqual(await mark.boundingBox(), before, "and it did not move");
@@ -903,7 +913,7 @@ describe("NotificationCentre", () => {
     const bellDot = await page.getByRole("button", { name: /Notifications/ }).evaluate((el) => { const s = getComputedStyle(el, "::after"); return [s.borderTopWidth, s.borderTopStyle]; });
     assert.deepEqual(bellDot, ["3px", "solid"]);
     await page.locator(".basalt-notification").nth(1).hover();
-    await page.waitForTimeout(120);
+    await atRest(page);
     const lit = await page.locator(".basalt-notification").nth(1).evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el.querySelector(".basalt-notification-title")).color, time: getComputedStyle(el.querySelector(".basalt-notification-time")).color }));
     assert.deepEqual(lit, { bg: await sys("Highlight", "backgroundColor"), ink: await sys("HighlightText"), time: await sys("HighlightText") });
     // the mark keeps its shape

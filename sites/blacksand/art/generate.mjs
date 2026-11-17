@@ -103,7 +103,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     writeAll(fixed);
     for (const name of ["stars-side.svg", "stars-below.svg"]) if (!fs.existsSync(path.join(here, name))) fs.writeFileSync(path.join(here, name), "");
     const page = buildPage(path.join(siteDir, "index.body.html"));
-    const browser = await chromium.launch();
+    const { launchOptions } = await import("../../../scripts/chromium-launch.mjs");
+    const browser = await chromium.launch(launchOptions());
     let zones;
     try { zones = await measureAll(browser, page.html); } finally { await browser.close(); }
     fs.writeFileSync(zonesPath, JSON.stringify(zones, null, 1) + "\n");

@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 import { freezeAnimations } from "./support.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -34,7 +36,7 @@ before(async () => {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${server.address().port}/`;
-  browser = await chromium.launch();
+  browser = await chromium.launch(launchOptions());
 });
 
 after(async () => {

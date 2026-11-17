@@ -6,11 +6,13 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 const dist = (file) => fs.readFileSync(new URL(`../dist/${file}`, import.meta.url), "utf8");
 const sheet = dist("css/tokens.css") + dist("css/shadcn.css");
 
 let browser;
-before(async () => { browser = await chromium.launch(); });
+before(async () => { browser = await chromium.launch(launchOptions()); });
 after(async () => { await browser?.close(); });
 
 /** `alias` (a shadcn name) and `basalt` (the token it maps to), painted as a background inside `inner`, on a page of `outer`. */

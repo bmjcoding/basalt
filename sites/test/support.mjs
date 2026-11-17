@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../scripts/chromium-launch.mjs";
+
 import { buildPage, findPages, repoRoot, sitesDir } from "../build.mjs";
 
 export { buildPage, repoRoot, sitesDir };
@@ -30,7 +32,7 @@ export function buildAll(pages = allPages()) {
 }
 
 export async function launch() {
-  return chromium.launch();
+  return chromium.launch(launchOptions());
 }
 
 export const HOST = "https://basalt.test/";

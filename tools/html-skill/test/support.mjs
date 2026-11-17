@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+import { launchOptions } from "../../../scripts/chromium-launch.mjs";
+
 import { skillDir } from "../build.mjs";
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 
@@ -22,7 +24,7 @@ export function examplePage(name, { edit = (body) => body, ...options } = {}) {
 }
 
 export async function launch() {
-  return chromium.launch();
+  return chromium.launch(launchOptions());
 }
 
 /** Opens html in a new context; returns { page, context, errors }. */

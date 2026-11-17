@@ -157,22 +157,22 @@ describe("external links: the new-tab cue", () => {
     test(`${theme}: a link's arrow is secondary at rest and lifts to the link's ink on hover and focus; a Button's is its own ink`, async () => {
       const { page } = await open(LINKS, { theme, ...DESKTOP });
       const ink = (id) => page.locator(`${id} .basalt-external`).evaluate((el) => ({ glyph: getComputedStyle(el).color, link: getComputedStyle(el.parentElement).color }));
-      await page.waitForTimeout(150);
+      await settle(page);
       const rest = await ink("#a-new");
       assert.equal(rest.glyph, await colourOf(page, "var(--basalt-text-secondary)"));
       assert.equal(rest.link, await colourOf(page, "var(--basalt-text-primary)"));
       await page.locator("#a-new").hover();
-      await page.waitForTimeout(250);
+      await settle(page);
       let lit = await ink("#a-new");
       assert.equal(lit.glyph, lit.link, "hover lifts the arrow to the link's ink");
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal((await ink("#a-new")).glyph, rest.glyph);
       await page.keyboard.press("Tab");
       await page.locator("#a-new").focus();
       await page.keyboard.press("Shift+Tab");
       await page.keyboard.press("Tab");
-      await page.waitForTimeout(250);
+      await settle(page);
       lit = await ink("#a-new");
       assert.equal(lit.glyph, lit.link, "focus lifts it too");
       const button = await ink("#b-new");
@@ -184,7 +184,7 @@ describe("external links: the new-tab cue", () => {
   test("forced colours: the arrow is LinkText in a link and the Button's own colour in a Button", async () => {
     const { page } = await open(LINKS, { theme: "light", ...DESKTOP });
     await page.emulateMedia({ forcedColors: "active" });
-    await page.waitForTimeout(150);
+    await settle(page);
     const colours = await page.evaluate(() => Object.fromEntries(["#a-new", "#b-new"].map((id) => { const el = document.querySelector(id); const glyph = el.querySelector(".basalt-external"); return [id, [getComputedStyle(glyph).color, getComputedStyle(el).color]]; })));
     for (const [id, [glyph, own]] of Object.entries(colours)) assert.equal(glyph, own, `${id}: the arrow follows its link or button through currentColor`);
     assert.equal(colours["#a-new"][1], await colourOf(page, "LinkText"));
@@ -246,7 +246,7 @@ describe("table: row headers, not observed, the scroll hint", () => {
       assert.equal(await page.locator("#r1 th .basalt-sort").count(), 0, "a row header does not sort");
       // the hover wash runs through the row header: it paints no fill of its own, so the row's wash is what shows
       await page.locator("#r1").hover();
-      await page.waitForTimeout(150);
+      await settle(page);
       assert.equal(await page.locator("#r1 th").evaluate((el) => getComputedStyle(el).backgroundColor), "rgba(0, 0, 0, 0)");
       assert.equal(await page.locator("#r1").evaluate((el) => getComputedStyle(el).backgroundColor), await fillOf(page, "var(--basalt-state-hover)"));
       await page.close();
@@ -255,12 +255,12 @@ describe("table: row headers, not observed, the scroll hint", () => {
     test(`${theme}: pinned, the row header is the pinned column and opaque at rest, hovered and selected`, async () => {
       const { page } = await open(TABLE("pinned narrow"), { theme, ...DESKTOP });
       await page.locator("#frame").evaluate((el) => { el.scrollLeft = 200; });
-      await page.waitForTimeout(100);
+      await settle(page);
       const opaque = (colour) => !/\/\s*[\d.]+%?\s*\)/.test(colour) && !/^rgba\(.*,\s*0?\.\d+\)$/.test(colour) && colour !== "rgba(0, 0, 0, 0)";
       for (const row of ["#r1", "#r3"]) {
         for (const hover of [false, true]) {
           if (hover) await page.locator(row).hover({ position: { x: 40, y: 10 } }); else await page.mouse.move(0, 0);
-          await page.waitForTimeout(150);
+          await settle(page);
           const bg = await page.locator(`${row} th`).evaluate((el) => { const s = getComputedStyle(el); return { position: s.position, colour: s.backgroundColor, left: el.getBoundingClientRect().left, frame: el.closest(".basalt-table-container").getBoundingClientRect().left }; });
           assert.equal(bg.position, "sticky");
           assert.ok(opaque(bg.colour), `${row} hover ${hover}: ${bg.colour}`);
@@ -281,7 +281,7 @@ describe("table: row headers, not observed, the scroll hint", () => {
       assert.equal(await cell("#r3", 2).textContent(), "", "an empty string stays blank");
       assert.equal(await colour("#r3", 1), await colourOf(page, "var(--basalt-text-secondary)"), "on the selected wash it lifts");
       await page.locator("#r2").hover();
-      await page.waitForTimeout(150);
+      await settle(page);
       assert.equal(await colour("#r2", 0), await colourOf(page, "var(--basalt-text-secondary)"), "on the hover wash it lifts");
       // no mark: the cell holds the words and nothing else
       assert.equal(await cell("#r2", 0).evaluate((el) => el.children.length), 0);
@@ -378,7 +378,7 @@ describe("the choice card", () => {
       await page.locator(`${card("plan-a")} .basalt-card-description`).click();
       assert.equal(await page.locator("#plan-a").isChecked(), true);
       assert.equal(await page.locator("#plan-b").isChecked(), false, "one of many");
-      await page.waitForTimeout(200);
+      await settle(page);
       assert.deepEqual(await snapshot("plan-a"), before, "choosing moves no title, and changes no rim, level, radius, title ink or weight");
       // any of many: independent
       await page.locator(`${card("reg-a")} .basalt-card-title`).click();
@@ -400,11 +400,11 @@ describe("the choice card", () => {
       assert.notEqual(rest.bg, chosen.bg);
       assert.equal(chosen.veil, "0");
       await page.locator(card("plan-a")).hover({ position: { x: 20, y: 60 } });
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal((await paint("plan-a")).veil, "1", "hover on an unselected card is the hover wash");
       assert.equal((await paint("plan-a")).bg, rest.bg, "and nothing else changes");
       await page.locator(card("plan-b")).hover({ position: { x: 20, y: 60 } });
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal((await paint("plan-b")).veil, "0", "a selected card takes no further step");
       assert.equal((await paint("plan-b")).bg, chosen.bg);
       // no press scale
@@ -413,7 +413,7 @@ describe("the choice card", () => {
       await page.mouse.up();
       // tertiary content steps to secondary on the fill
       await page.locator(card("plan-a")).click({ position: { x: 20, y: 10 } });
-      await page.waitForTimeout(200);
+      await settle(page);
       assert.equal(await page.locator(`${card("plan-a")} .basalt-text`).evaluate((el) => getComputedStyle(el).color), await colourOf(page, "var(--basalt-text-secondary)"));
       await page.close();
     });
@@ -451,7 +451,7 @@ describe("the choice card", () => {
   test("forced colours: the wash drops, the card keeps Canvas with a CanvasText edge, and the checked box is Highlight", async () => {
     const { page } = await open(CARDS, { theme: "dark", ...DESKTOP });
     await page.emulateMedia({ forcedColors: "active" });
-    await page.waitForTimeout(200);
+    await settle(page);
     const state = await page.locator(card("plan-b")).evaluate((el) => { const s = getComputedStyle(el); const box = getComputedStyle(el.querySelector(".basalt-choice-card-box")); const dot = getComputedStyle(el.querySelector(".basalt-choice-card-dot")); return { bg: s.backgroundColor, edge: s.borderTopColor, veil: getComputedStyle(el, "::before").display, box: box.backgroundColor, dot: dot.backgroundColor, dotOpacity: dot.opacity }; });
     assert.equal(state.bg, await fillOf(page, "Canvas"));
     assert.equal(state.edge, await colourOf(page, "CanvasText"));
@@ -516,7 +516,7 @@ describe("the pressed toggle", () => {
         assert.equal(before.width, ref.width);
         await page.locator(on).click();
         await page.mouse.move(0, 0);
-        await page.waitForTimeout(250);
+        await settle(page);
         assert.equal(await page.locator(on).getAttribute("aria-pressed"), "true");
         assert.equal((await rect(page, on)).width, before.width, `${on}: pressing moves no width`);
         assert.equal((await rect(page, on)).height, before.height);
@@ -536,7 +536,7 @@ describe("the pressed toggle", () => {
       assert.equal(ghostOff.colour, await colourOf(page, "var(--basalt-text-secondary)"));
       await page.locator("#t-sec").click();
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(250);
+      await settle(page);
       const sec = await paint("#t-sec");
       const ghost = await paint("#t-ghost");
       for (const [name, on, off] of [["secondary", sec, secOff], ["ghost", ghost, ghostOff]]) {
@@ -552,7 +552,7 @@ describe("the pressed toggle", () => {
       // the momentary press stays Button's: .98 while held, and the fill stays the plate
       await page.locator("#t-sec").hover();
       await page.mouse.down();
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.equal(await el(page, "#t-sec", (n) => getComputedStyle(n).transform), "matrix(0.98, 0, 0, 0.98, 0, 0)");
       assert.equal((await paint("#t-sec")).bg, sec.plate);
       await page.mouse.up();
@@ -565,7 +565,7 @@ describe("the pressed toggle", () => {
       const off = await glyph("#t-ib");
       await page.locator("#t-sec").click();
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(250);
+      await settle(page);
       assert.notEqual(await glyph("#t-ib"), off, "the glyph's selected form is drawn");
       assert.equal(await el(page, "#t-ib-ghost", (n) => getComputedStyle(n).color), await colourOf(page, "var(--basalt-text-primary)"));
       await page.close();
@@ -604,15 +604,15 @@ describe("the pressed toggle", () => {
     };
     await page.locator("#t-sec").click();
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(250);
+    await settle(page);
     for (const id of ["#t-sec", "#t-ghost", "#t-ib", "#t-icon"]) await check(id, "after a click");
-    for (const id of ["#t-sec", "#t-ghost"]) { await page.locator(id).hover(); await page.waitForTimeout(250); await check(id, "hovered"); }
+    for (const id of ["#t-sec", "#t-ghost"]) { await page.locator(id).hover(); await settle(page); await check(id, "hovered"); }
     // an unpressed toggle is not Highlight
     assert.notEqual(await el(page, "#t-sec-off", (n) => getComputedStyle(n).backgroundColor), await fillOf(page, "Highlight"));
     // and on first render
     const fresh = await open(TOGGLES.replace("useState(false)", "useState(true)"), { theme: "light", ...DESKTOP });
     await fresh.page.emulateMedia({ forcedColors: "active" });
-    await fresh.page.waitForTimeout(150);
+    await settle(fresh.page);
     assert.equal(await el(fresh.page, "#t-sec", (n) => getComputedStyle(n).backgroundColor), await fillOf(fresh.page, "Highlight"));
     await fresh.page.close();
     await page.close();
@@ -624,7 +624,7 @@ describe("the pressed toggle", () => {
     assert.equal(await page.locator("#t-sec .basalt-button-check .basalt-icon").evaluate((n) => getComputedStyle(n).transitionDuration), "0.1s");
     await page.locator("#t-sec").hover();
     await page.mouse.down();
-    await page.waitForTimeout(250);
+    await settle(page);
     assert.equal(await el(page, "#t-sec", (n) => getComputedStyle(n).transform), "none");
     await page.mouse.up();
     await page.close();
@@ -663,7 +663,7 @@ describe("badges: pending, and two on one object", () => {
   test("forced colours: the pending ring survives as a CanvasText border", async () => {
     const { page } = await open(BADGES(600), { theme: "dark", ...DESKTOP });
     await page.emulateMedia({ forcedColors: "active" });
-    await page.waitForTimeout(100);
+    await settle(page);
     const ring = await page.locator("#pend .basalt-badge-dot").evaluate((n) => { const s = getComputedStyle(n); return { colour: s.borderTopColor, width: s.borderTopWidth, style: s.borderTopStyle }; });
     assert.deepEqual(ring, { colour: await colourOf(page, "CanvasText"), width: "1px", style: "solid" });
     await page.close();
