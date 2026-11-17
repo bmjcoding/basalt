@@ -52,7 +52,7 @@ public struct BasaltBadge: View {
 
   public var body: some View {
     HStack(spacing: Basalt.Space.s1_5) {
-      if let status { Circle().fill(status.color).frame(width: 6, height: 6).accessibilityHidden(true) }
+      if let status { Circle().fill(status.color).frame(width: Basalt.Size.dot, height: Basalt.Size.dot).accessibilityHidden(true) }
       Text(title).basaltType(Basalt.TypeScale.xs, weight: .medium).foregroundStyle(Basalt.Colors.textSecondary.color)
     }
     .padding(.horizontal, plain ? 0 : Basalt.Space.s2)
@@ -146,7 +146,7 @@ public struct BasaltProgressStyle: ProgressViewStyle {
           Capsule().fill(Basalt.Colors.borderInput.color)
             .overlay(alignment: .leading) { Capsule().fill(Basalt.Colors.actionPrimary.color).frame(width: geometry.size.width * min(1, max(0, fraction))) }
         }
-        .frame(height: 4)
+        .frame(height: Basalt.Size.track)
       } else {
         ProgressView().progressViewStyle(.circular).controlSize(.small).tint(Basalt.Colors.textSecondary.color)
       }

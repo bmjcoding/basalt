@@ -44,6 +44,10 @@ function cssColor(value) {
 
 const unit = (v) => (typeof v === "object" ? `${v.value}${v.unit}` : String(v));
 
+// A letter-spacing step (text.<step>.tracking) is a plain number in the source: DTCG's dimension has only px and rem, and tracking is in em, a size that
+// follows the text. The build writes the em, and every output still calls the token a dimension.
+const isTracking = (token) => token.path[0] === "text" && token.path.at(-1) === "tracking";
+
 function cssValue(token) {
   const v = token.$value;
   switch (token.$type) {
@@ -57,8 +61,9 @@ function cssValue(token) {
     case "fontFamily":
       return v.map((f) => (/\s/.test(f) ? `"${f}"` : f)).join(", ");
     case "fontWeight":
-    case "number":
       return String(v);
+    case "number":
+      return isTracking(token) ? `${v}em` : String(v);
     case "shadow":
       return v
         .map((s) => [s.inset ? "inset" : "", unit(s.offsetX), unit(s.offsetY), unit(s.blur), unit(s.spread), cssColor(s.color)].filter(Boolean).join(" "))
@@ -228,7 +233,7 @@ const entry = (token) => {
     const c = toColor(token.$value);
     return { type: "color", oklch: cssColor(token.$value), hex: c.alpha === 1 ? formatHex(c) : formatHex8(c) };
   }
-  return { type: token.$type, css: cssValue(token) };
+  return { type: isTracking(token) ? "dimension" : token.$type, css: cssValue(token) };
 };
 const json = {
   primitives: Object.fromEntries(primitives.map((t) => [varName(t.path).slice(PREFIX.length + 3), entry(t)])),
@@ -376,7 +381,10 @@ ${byPrefix("aspect").map((t) => `${doc(t, "    ")}    public static let ${t.path
   public enum TypeScale {
 ${textSteps
   .map((k) => {
-    const v = (part) => primitives.find((t) => t.path.join(".") === `text.${k}.${part}`).$value.value;
+    const v = (part) => {
+      const value = primitives.find((t) => t.path.join(".") === `text.${k}.${part}`).$value;
+      return typeof value === "object" ? value.value : value; // tracking is a number; the size and the line height are { value, unit }
+    };
     return `    public static let ${stepName(k)} = TypeStyle(size: ${v("size")}, lineHeight: ${v("line-height")}, tracking: ${v("tracking")})`;
   })
   .join("\n")}

@@ -9,6 +9,7 @@
      the link's own ink with the underline; a button keeps its own ink; through currentColor it is LinkText in forced colours. The drop sits
      the arrow's ink on the capitals; the negative margin keeps it from growing the line. */
   .ext { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* stylelint-disable-next-line unit-disallowed-list -- an optical alignment of the new-tab arrow with the text beside it, in that text's own em */
   .ext > svg { display: inline-block; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
   a:is(:hover, :focus-visible) .ext { color: inherit; }
   .btn > .ext { display: inline-flex; align-items: center; color: inherit; }

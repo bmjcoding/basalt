@@ -20,6 +20,7 @@
     overflow: visible;
   }
   .tooltip:popover-open { display: flex; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a zero duration that duration-instant would write: the token takes this module 16 bytes over its own cap (3,200, modules.json), and raising a cap is the owner's */
   .tooltip[data-instant] { transition-duration: 0ms; }
   .tooltip .kbd-group { margin-inline-start: var(--basalt-space-2); }
   @media (forced-colors: active) { .tooltip { border-color: CanvasText; } }

@@ -2,6 +2,7 @@
 // (dist), open it in Chromium with the real stylesheet, and drive it.
 import fs from "node:fs";
 import path from "node:path";
+import { after } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import * as esbuild from "esbuild";
@@ -10,16 +11,60 @@ import { chromium } from "playwright";
 export const pkg = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const css = () => fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
 
+/**
+ * The style sheet as it is written: the tokens, the components and the accent classes, with their comments and whitespace, as `dist/styles.css` was before the
+ * build took those out of it (build.mjs; test/audit-fix-c3.test.mjs proves the shipped sheet is exactly this one without them). For a test that reads the
+ * sheet's text by its layout (a selector with its quotes, a rule on one line); a test that draws the sheet reads `dist/styles.css`, as an app does.
+ */
+export const sourceStyles = () => {
+  const tokens = path.join(pkg, "..", "tokens", "dist", "css");
+  return `${fs.readFileSync(path.join(tokens, "tokens.css"), "utf8")}\n${fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8")}\n${fs.readFileSync(path.join(tokens, "accents.css"), "utf8")}`;
+};
+
+// A fixture is bundled against the built package (dist) with React, as before, but through one esbuild context for the whole test process: a rebuild
+// re-parses only what changed (the fixture's own body, a virtual module) and reuses the parsed package and React, which a bundle from nothing parsed again
+// for each of 340 fixture pages (330 ms and 5,500 files each). The output is the same text a build from nothing writes (test/audit-fix-c3.test.mjs checks it).
+// Rebuilds of one context cannot overlap, so they queue.
+const define = { "process.env.NODE_ENV": '"production"' };
+const PRELUDE = `import * as React from "react"; import { createRoot } from "react-dom/client"; import { flushSync } from "react-dom"; import * as B from "./dist/index.js"; `;
+let fixtureContext;
+let fixtureBody = "";
+let fixtureQueue = Promise.resolve();
+// An open context keeps the process alive: let go of it when the test file that imported this module has run. (Registered here, outside any test, so it is
+// the file's own `after`.)
+after(async () => { await fixtureQueue; await (await fixtureContext)?.dispose(); });
+
+function context() {
+  fixtureContext ??= esbuild.context({
+    entryPoints: ["basalt-fixture"],
+    plugins: [{
+      name: "fixture-body",
+      setup(build) {
+        build.onResolve({ filter: /^basalt-fixture$/ }, () => ({ path: "basalt-fixture", namespace: "fixture" }));
+        build.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ contents: `${PRELUDE}${fixtureBody}`, resolveDir: pkg, loader: "tsx" }));
+      },
+    }],
+    bundle: true, format: "iife", write: false, jsx: "automatic", platform: "browser", logLevel: "silent", define,
+  });
+  return fixtureContext;
+}
+
 /** Bundle `body` (TSX) with the whole package imported as `B`, React as `React`, and `createRoot`. */
-export async function bundleFixture(body) {
+export function bundleFixture(body) {
+  const built = fixtureQueue.then(async () => {
+    const ctx = await context();
+    fixtureBody = body;
+    return (await ctx.rebuild()).outputFiles[0].text;
+  });
+  fixtureQueue = built.catch(() => {});
+  return built;
+}
+
+/** The same bundle, built from nothing in a context of its own: what `bundleFixture` must equal. */
+export async function bundleFixtureFromScratch(body) {
   const result = await esbuild.build({
-    stdin: {
-      contents: `import * as React from "react"; import { createRoot } from "react-dom/client"; import { flushSync } from "react-dom"; import * as B from "./dist/index.js"; ${body}`,
-      resolveDir: pkg,
-      loader: "tsx",
-    },
-    bundle: true, format: "iife", write: false, jsx: "automatic", platform: "browser", logLevel: "silent",
-    define: { "process.env.NODE_ENV": '"production"' },
+    stdin: { contents: `${PRELUDE}${body}`, resolveDir: pkg, loader: "tsx" },
+    bundle: true, format: "iife", write: false, jsx: "automatic", platform: "browser", logLevel: "silent", define,
   });
   return result.outputFiles[0].text;
 }

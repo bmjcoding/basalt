@@ -25,6 +25,7 @@
   .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-5xl); }
   .link-tabs:is([data-size="3xl"], [data-size="5xl"]) .link-tab { padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; font-size: var(--basalt-text-md-size); }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
     .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   }
@@ -56,6 +57,7 @@
   /* The select says where choosing goes (DECISIONS 158, Q2): "Go to", in secondary ink, drawn at the start of the select's own box before the value, on its one line, so the
      height does not change. The select's start padding clears the label's width, which the script measures (--_lead) and an estimate holds until it has. The words are the
      label's text (replace them there) and are in the select's accessible name, which the script keeps as the words and the chosen page's name. */
+  /* stylelint-disable-next-line unit-disallowed-list -- an estimate of the label's width in characters of the select's own font, held until the script measures it; no token holds a width in characters */
   .link-tabs-select .select { --_lead: 4ch; }
   .link-tabs-select-label { position: absolute; inset-block: 0; inset-inline-start: var(--basalt-space-2-5); display: flex; align-items: center; color: var(--basalt-text-secondary); font-size: var(--basalt-text-base-size); line-height: 1; white-space: nowrap; pointer-events: none; }
   .link-tabs-select select.input { padding-inline-start: calc(var(--basalt-space-2-5) + var(--_lead) + var(--basalt-space-1-5)); }

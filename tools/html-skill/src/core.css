@@ -51,6 +51,7 @@
     padding: var(--basalt-size-hairline) var(--basalt-space-1);
     border-radius: var(--basalt-radius-xs);
     background: var(--basalt-surface-kbd);
+    /* stylelint-disable-next-line unit-disallowed-list -- inline code is a fixed ratio of the text around it, whatever size that is; the type scale has no relative step */
     font: var(--basalt-font-weight-regular) 0.92em / 1 var(--basalt-font-family-mono);
   }
 
@@ -106,6 +107,7 @@
 
   .page { width: 100%; max-width: var(--basalt-size-page-width); margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-gutter) var(--basalt-space-16); }
   /* A raw length on purpose: 46rem is a narrower data page, and no layout token names it (size-prose-width is a text measure). A token would be a design decision, so it stays a length of its own. */
+  /* stylelint-disable-next-line unit-disallowed-list -- the narrow page's measure in rem, so it follows the reader's text size as size-prose-width does; no token holds this one */
   .page.narrow { max-width: 46rem; }
   @media (width < %bp-md%) { .page { padding-block: var(--basalt-space-6) var(--basalt-space-12); } }
   .stack { display: flex; flex-direction: column; gap: var(--gap, var(--basalt-space-4)); min-width: 0; }

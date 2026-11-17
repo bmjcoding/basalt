@@ -2,7 +2,7 @@
 
 SwiftPM exposes two products: `BasaltTokens` for platform-neutral design values and
 `BasaltUI` for native SwiftUI controls. Deployment targets are iOS 17, macOS 14 and
-visionOS 1. Add the local package during this review; the new product is not on main yet.
+visionOS 1. Add the package from this repository: both products are on main.
 
 ```swift
 import SwiftUI

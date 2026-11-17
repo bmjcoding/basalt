@@ -8,6 +8,7 @@
   .number-field:has(> .input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .number-field:has(> .input[aria-invalid="true"]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .number-field:has(> .input:disabled) { background: var(--basalt-surface-sunken); }
+  /* stylelint-disable-next-line unit-disallowed-list -- room for six digits of the field's own font, so it follows the text size; no token holds a width in characters */
   .number-field > .input { flex: none; width: calc(6ch + 2 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); border-radius: 0; background: transparent; box-shadow: inset var(--basalt-size-hairline) 0 0 var(--basalt-border-hairline), inset calc(-1 * var(--basalt-size-hairline)) 0 0 var(--basalt-border-hairline); text-align: center; font-variant-numeric: tabular-nums; }
   .number-field > .input:focus-visible { outline: none; }
   /* The steppers are ghost icon buttons that keep the colour step and never scale. */

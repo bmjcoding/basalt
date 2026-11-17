@@ -728,7 +728,8 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
 - **Component sizes are tokens too:** the tab underline (2), tracks (4), dots (6), choice boxes,
   the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
   popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
-  lengths; Stylelint enforces it, with the screen-reader clip as the one exception.
+  lengths; Stylelint enforces it. Where a raw value is right (a breakpoint in a container query, which cannot read a token; a size that follows the window or
+  the text, in a viewport or font-relative unit; the screen-reader clip) it carries a lint exception on the line before, with its reason.
 - **Controls:** 24, 28, 32, 36 and 40px tall, and from DECISIONS 154 44, 48, 52 and 56 (`size-control-2xl` to `-5xl`; 64, `-6xl`, is the least height of a
   two-line button); 32 is the app default, and
   `data-density="compact"` moves controls down one step (24px is the floor; 56 to 52, 52 to 48, 48 to 44, 44 to 40) and uses 13px
@@ -1824,6 +1825,34 @@ The SwiftPM `BasaltUI` product implements a core native layer over `BasaltTokens
 native entry controls and reusable button/toggle/progress styles. Desktop keeps the token
 size scale; iOS and visionOS controls use a 44-point target floor. macOS appearance renders
 are verified; runtime checks on other Apple platforms remain app integration work.
+
+## Browser support
+
+The floor, decided by the owner (DECISIONS 140, "browsers are fine"): **Chrome 123, Safari 17.5 and Firefox 121** for the React package and
+the tokens (the stylesheets they ship). The HTML skill's floor is Chrome 123, Safari 17.5 and **Firefox 125**, because its menu, toast,
+tooltip, combobox and notification list call the Popover API (`showPopover`, `hidePopover`, `:popover-open`) with no feature test; below
+those versions they throw instead of opening. Browsers older than the floor are not supported.
+
+The version that sets each number, as the built CSS uses the feature:
+
+| Number | Feature that sets it |
+|---|---|
+| Chrome 123 | `light-dark()`, which the stylesheet uses for its theme-dependent colours (a few plates also carry an `@supports not` fallback) |
+| Safari 17.5 | `light-dark()` and `text-wrap: balance` |
+| Firefox 121 | `:has()` (choice cards, the headroom header and field states) |
+
+Other features the CSS relies on sit below those numbers: `oklch()` and `color-mix()` (Chrome 111, Safari 16.2, Firefox 113), `@layer`
+(99, 15.4, 97), container queries (106, 16.0, 110), range media queries, `subgrid`, the `lh` unit and the viewport units `dvh` and `svh`.
+`packages/react/test/browser-floor.test.mjs` reads the built CSS and fails when it uses a feature a browser of the floor gained later.
+
+Three uses above the floor are known and listed in that test with their reasons: `scrollbar-gutter` (Safari before 18.2 has overlay
+scrollbars, which take no room), `text-wrap: pretty` (a hint; the browser wraps as it always did) and the `round()` function in the plain
+badge's dot margin (Chrome 123 and 124 drop that one declaration, so the dot sits in its seat to the half pixel and not on whole pixels).
+
+**Reduced transparency.** "Falls back to opaque `surface-page` under reduced transparency" holds in the browsers that evaluate
+`prefers-reduced-transparency`: Chromium from 118. Safari and Firefox do not evaluate it (Firefox only behind a flag), so there the sticky header
+stays smoked with the setting on. It is a comfort and not a legibility matter: text on the bar holds 4.5:1 over any backdrop. The audit (A5-16a)
+read this from compatibility data and did not check it in Safari with the setting on.
 
 ## How these were decided
 

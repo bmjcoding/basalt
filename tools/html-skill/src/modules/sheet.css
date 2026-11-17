@@ -25,6 +25,7 @@
   .sheet[data-side="right"], .sheet[data-side="left"] { top: 0; bottom: 0; width: min(var(--basalt-size-sheet-width), 100%); }
   .sheet[data-side="right"] { inset-inline: auto 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(100%); }
   .sheet[data-side="left"] { inset-inline: 0 auto; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(-100%); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .sheet[data-side="bottom"] { inset: auto 0 0 0; width: auto; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); transform: translateY(100%); }
   .sheet[open] { transform: none; }
   @starting-style { dialog.sheet[open] { opacity: 1; transform: translateX(100%); } }
@@ -37,6 +38,7 @@
     --_bin: var(--basalt-duration-slower);
     inset: 0 0 auto 0;
     width: auto;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     max-height: 100dvh;
     padding: 0;
     padding-top: var(--_safe-top);

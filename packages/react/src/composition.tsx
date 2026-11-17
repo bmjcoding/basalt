@@ -88,7 +88,7 @@ export interface TextProps extends React.ComponentProps<"p"> {
   tabular?: boolean;
 }
 
-export function Text({ as = "p", size = "base", tone = "primary", weight, mono = false, tabular = false, className, style, ...props }: TextProps) {
+export function Text({ as = "p", size = "base", tone = "primary", weight, mono = false, tabular = false, className, style, ...props }: TextProps): React.JSX.Element {
   const display = DISPLAY.includes(size);
   // Display type is 600, as it is through Heading and as the skill's .text-6xl and .text-7xl are: a weight that is asked for still wins.
   return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, "data-display": display ? "" : undefined, className: join("basalt-text", tabular && "basalt-tabular", className), style: { ...typeStyle(size, weight ?? (display ? "semibold" : "regular")), ...style } });
@@ -106,7 +106,7 @@ export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
 }
 
 /** Heading level is document structure; size is its visual role. */
-export function Heading({ level = 2, size = "2xl", className, style, ...props }: HeadingProps) {
+export function Heading({ level = 2, size = "2xl", className, style, ...props }: HeadingProps): React.JSX.Element {
   return React.createElement(`h${level}`, { ...props, "data-display": DISPLAY.includes(size) ? "" : undefined, className: join("basalt-heading", className), style: { ...typeStyle(size, "semibold"), ...style } });
 }
 

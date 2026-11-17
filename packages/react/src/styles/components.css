@@ -353,6 +353,7 @@
   .basalt-button-note { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); min-width: 0; }
   .basalt-button[data-lines][data-disabled] .basalt-button-note { color: inherit; }
   /* size-breakpoint-container-sm (340px) and size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-sm (340px) and size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (340px <= width < 480px) {
     .basalt-button[data-lines] { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); padding-block: var(--basalt-space-2); }
     .basalt-button[data-lines] > .basalt-button-lines { display: flex; flex: 1; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-3); }
@@ -690,6 +691,7 @@
   /* A menu with a described row is as wide as its content, up to the popover maximum; the descriptions are cut beyond it. */
   .basalt-menu:has(.basalt-menu-item[data-described]) {
     width: max-content;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4)));
   }
 
@@ -725,7 +727,9 @@
     top: 50%;
     left: 50%;
     z-index: var(--basalt-layer-dialog);
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-dialog-width), calc(100vw - 2 * var(--basalt-space-4)));
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     max-height: calc(100dvh - 2 * var(--basalt-space-4));
     overflow-y: auto;
     padding: var(--basalt-space-6);
@@ -755,6 +759,7 @@
   }
 
   /* A wide dialog (D10a; 992px decided in DECISIONS 158, Q1): a reference dialog of columns and tables, capped by the viewport. Basalt's padding and scroll. */
+  /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .basalt-dialog[data-size="wide"] { width: min(var(--basalt-size-dialog-width-wide), calc(100vw - 2 * var(--basalt-space-4))); }
   /* A title takes focus from script (a wide dialog's first focus, a sheet's next step). Nothing operates it, so it draws no ring. */
   .basalt-dialog-title:focus { outline: none; }
@@ -880,6 +885,7 @@
     font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
   }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
     .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
   }
@@ -891,6 +897,7 @@
   .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel { grid-area: 1 / 1; min-width: 0; }
   .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: block; visibility: hidden; }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
     .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: none; }
   }
@@ -932,6 +939,7 @@
     font-size: var(--_basalt-control-font, var(--basalt-text-md-size));
   }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
     .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
   }
@@ -1487,6 +1495,7 @@
     top: 0;
     left: 0;
     right: 0;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     max-height: 100dvh;
     padding: 0;
     padding-top: var(--_inset-top);
@@ -1539,6 +1548,7 @@
      On the page at level 0: no fill, no rim, no shadow. One 1px divider the width of the row (never full-bleed), half a section gap above it (64 from 1024, 48 from 720, 32
      under) and `space-8` inside. The brand, a sentence and the social links are the identity; the links are a line (one unlabelled list beside the brand) or labelled groups;
      the base is the legal line and the theme choice. Under 720 a labelled group is a disclosure once script has run; without script every group is open, two a row. */
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .basalt-site-page { display: flex; flex-direction: column; min-height: 100svh; }
   .basalt-site-page > main { flex: 1 0 auto; }
   .basalt-site-footer {
@@ -1650,6 +1660,7 @@
   .basalt-app-shell {
     display: grid;
     grid-template-columns: var(--basalt-size-sidebar-width) minmax(0, 1fr);
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     min-height: 100dvh;
   }
   .basalt-app-column { min-width: 0; }
@@ -1660,6 +1671,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     height: 100dvh;
     padding-inline: var(--basalt-space-3);
     overflow-y: auto;
@@ -1849,7 +1861,7 @@
   .basalt-tooltip[data-starting-style],
   .basalt-tooltip[data-ending-style] { opacity: 0; transform: scale(0.98); }
   .basalt-tooltip[data-ending-style] { transition-duration: calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
-  .basalt-tooltip[data-instant] { transition-duration: 0ms; }
+  .basalt-tooltip[data-instant] { transition-duration: var(--basalt-duration-instant); }
   .basalt-tooltip-shortcut { margin-inline-start: var(--basalt-space-2); }
 
   /* ---- Kbd ---- */
@@ -2044,6 +2056,7 @@
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) :is(.basalt-choice-card-mark, .basalt-choice-card-dot) { opacity: 1; }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) .basalt-choice-card-box { opacity: 0.5; }
   /* The grid keeps space-4 between cards, which holds each +2 focus ring clear of its neighbours; the app keeps at least space-1-5 to any clipping edge. */
+  /* stylelint-disable-next-line unit-disallowed-list -- the narrowest a choice card gets before the grid wraps, in rem so it follows the reader's text size; no token holds this measure */
   .basalt-choice-card-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--basalt-space-4); }
 
   /* ---- Table ---- */
@@ -2183,7 +2196,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility 0s linear calc(var(--basalt-duration-base) * 0.75);
+    transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-base) * 0.75);
   }
   .basalt-cell-peek[data-open] {
     opacity: 1;
@@ -2711,6 +2724,7 @@
     right: max(var(--basalt-space-4), env(safe-area-inset-right));
     bottom: max(var(--basalt-space-4), env(safe-area-inset-bottom));
     z-index: var(--basalt-layer-toast);
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
   }
   .basalt-toast-viewport:focus { outline: none; }
@@ -2822,6 +2836,7 @@
   .basalt-popover.basalt-notifications {
     display: flex;
     flex-direction: column;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--basalt-space-4)));
     max-width: none;
     max-height: var(--available-height);
@@ -2938,7 +2953,9 @@
   /* ---- Command menu ---- */
 
   .basalt-dialog.basalt-command {
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     top: 20vh;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4)));
     padding: 0;
     overflow: hidden;
@@ -2981,6 +2998,7 @@
      empty), so the input is the same width in both and nothing moves when loading ends. */
   .basalt-command-slot { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .basalt-command-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .basalt-command-list { position: relative; max-height: min(var(--basalt-size-popup-max-height), 50vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .basalt-command-list:empty { display: none; }
   .basalt-command-empty { padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font-size: var(--basalt-text-sm-size); color: var(--basalt-text-secondary); }
@@ -3076,11 +3094,13 @@
      with no line between them. It answers its own width, not the viewport's: side by side from the list, the gap and one container
      breakpoint, so the pane is never narrow beside the list; under that, a push. */
   /* 816px is size-list-width (320) + space-4 (16) + size-breakpoint-container (480): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-list-width (320px) + space-4 (16px) + size-breakpoint-container (480px), where the pane sits beside the list; a container query cannot read a custom property */
   @container (width >= 816px) {
     .basalt-command-split { grid-template-columns: var(--basalt-size-list-width) minmax(0, 1fr); }
     .basalt-command-split .basalt-command-pane { contain: size; overflow: auto; }
   }
   /* 816px is size-list-width + space-4 + size-breakpoint-container, as above */
+  /* stylelint-disable-next-line basalt/container-length -- size-list-width (320px) + space-4 (16px) + size-breakpoint-container (480px), where the pane sits beside the list; a container query cannot read a custom property */
   @container (width < 816px) {
     .basalt-command-split:not([data-mode]) > .basalt-command-pane { display: none; }
     .basalt-command-split:not([data-mode]) .basalt-menu-item-chevron { display: block; }
@@ -3236,6 +3256,7 @@
     position: absolute;
     left: 0;
     width: 30%;
+    /* stylelint-disable-next-line unit-disallowed-list -- the indeterminate bar's loop period: a token for a loop duration is the council's to decide (a new token is design), so the literal stays until then */
     animation: basalt-indeterminate 1.4s var(--basalt-ease-in-out) infinite;
   }
 
@@ -3410,21 +3431,25 @@
   @media (prefers-reduced-motion: reduce), (forced-colors: active) {
     .basalt-ticker > .basalt-ticker-visual { display: none; }
     .basalt-ticker > .basalt-ticker-text { display: inline; width: auto; color: inherit; forced-color-adjust: auto; }
+    /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
     .basalt-sparkline-head > .basalt-ticker > .basalt-ticker-text { display: inline-block; height: 1em; overflow: clip; line-height: 1; }
   }
   /* The strips are built of inline boxes only: a block or a flex container inside what a selection skips adds a line break to the copy. A strip is as wide as its widest digit
      (min-content, one digit to a line) and as tall as ten lines of 1em, shown through a window of 1em. */
+  /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
   .basalt-ticker-digit { display: inline-block; height: 1em; overflow: hidden; line-height: 1; vertical-align: top; }
   .basalt-ticker-strip {
     display: inline-block;
     width: min-content;
     vertical-align: top;
     white-space: normal;
+    /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
     transform: translateY(calc(var(--_d, 0) * -1em));
     transition: transform var(--basalt-duration-slow) var(--basalt-ease-out);
   }
   /* A gliding ticker is already easing its value in script; the strip follows that clock and never starts its own. */
   .basalt-ticker[data-glide] .basalt-ticker-strip { transition: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
   .basalt-ticker-strip > span { display: inline-block; height: 1em; line-height: 1; vertical-align: top; }
   .basalt-ticker-char { line-height: 1; vertical-align: top; }
   .basalt-tabular { font-variant-numeric: tabular-nums; }
@@ -3435,6 +3460,7 @@
     display: block;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-placeholder);
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period: a token for a loop duration is the council's to decide (a new token is design), so the literal stays until then */
     animation: basalt-skeleton 2s var(--basalt-ease-in-out) infinite alternate;
   }
 
@@ -3536,6 +3562,7 @@
     .basalt-description-details a { display: inline-flex; align-items: center; min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2)); }
   }
   /* size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (width < 480px) {
     .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
     /* several values stay space-1 apart: the row gap is already space-0-5 */
@@ -3606,6 +3633,7 @@
   /* Stats: figures on the page, never boxed. One dl; each stat is a div with a dt (the label) and dds (the figure, the note, the
      source). The skill's look (tools/html-skill .stats), with the dl's margins reset. The source is pinned to the foot of the stat's
      cell, so sources line up across a row even when one stat has no note. */
+  /* stylelint-disable-next-line unit-disallowed-list -- the narrowest a stat gets before the row wraps (the `min` default), in rem so it follows the reader's text size; no token holds it */
   .basalt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 10rem), 100%), 1fr)); gap: var(--basalt-space-6); width: 100%; min-width: min(var(--min, 10rem), 100%); margin: 0; padding: 0; font-family: var(--basalt-font-family-sans); }
   .basalt-stat { display: flex; flex-direction: column; gap: var(--basalt-space-1); min-width: 0; margin: 0; padding: 0; }
   .basalt-stat-label { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
@@ -3620,6 +3648,7 @@
      so the text of every line starts on one edge, even beside a longer prompt such as "PS>". */
   .basalt-code-lines { display: grid; grid-template-columns: minmax(calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)), max-content) auto; width: max-content; min-width: 100%; }
   .basalt-code-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; min-height: var(--basalt-size-code-line-height); }
+  /* stylelint-disable-next-line unit-disallowed-list -- one character of the code font between the line numbers and the code, so it follows the font; no token holds a width in characters */
   .basalt-code-gutter { padding-inline-end: 1ch; color: var(--basalt-text-tertiary); -webkit-user-select: none; user-select: none; }
   .basalt-code-text { min-width: 0; }
   .basalt-terminal-mark { display: block; margin-block: calc((var(--basalt-size-code-line-height) - var(--basalt-size-icon-sm)) / 2); }
@@ -3637,6 +3666,7 @@
   .basalt-terminal-head { flex-wrap: wrap; column-gap: var(--basalt-space-3); }
   .basalt-terminal-actions .basalt-terminal-copy-compact { display: none; }
   /* size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (width < 480px) {
     .basalt-terminal-actions .basalt-terminal-copy { display: none; }
     .basalt-terminal-actions .basalt-terminal-copy-compact { display: inline-flex; }
@@ -3766,6 +3796,7 @@
     .basalt-chart-table tbody th { height: var(--basalt-size-tap-min); }
   }
   /* size-breakpoint-container (480px): a container query cannot read a token */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (width < 480px) {
     .basalt-chart-legend { column-gap: var(--basalt-space-4); }
   }
@@ -4094,6 +4125,7 @@
   .basalt-number-group[data-disabled] { background: var(--basalt-surface-sunken); }
   .basalt-input.basalt-number-input {
     flex: none;
+    /* stylelint-disable-next-line unit-disallowed-list -- room for six digits of the field's own font, so it follows the text size; no token holds a width in characters */
     width: calc(6ch + 2 * var(--basalt-space-2));
     padding-inline: var(--basalt-space-2);
     border-radius: 0;
@@ -4145,6 +4177,7 @@
   /* A sheet's rim is its inner edge only, the one that meets the page: the others are the viewport's. */
   .basalt-sheet[data-side="right"] { right: 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
   .basalt-sheet[data-side="left"] { left: 0; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom)); }
   .basalt-sheet[data-side="right"][data-starting-style], .basalt-sheet[data-side="right"][data-ending-style] { transform: translateX(100%); }
   .basalt-sheet[data-side="left"][data-starting-style], .basalt-sheet[data-side="left"][data-ending-style] { transform: translateX(-100%); }
@@ -4277,6 +4310,7 @@
   .basalt-dialog.basalt-search {
     display: flex;
     flex-direction: column;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4)));
     padding: 0;
     overflow: hidden;
@@ -4490,6 +4524,7 @@
      it is LinkText or ButtonText in forced colours. The drop sits the arrow's ink on the capitals; the negative margin keeps it
      from growing the line. */
   .basalt-external { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* stylelint-disable-next-line unit-disallowed-list -- an optical alignment of the new-tab arrow with the text beside it, in that text's own em */
   .basalt-external > .basalt-icon { display: inline-block; vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
   .basalt-link:is(:hover, :focus-visible) > .basalt-external { color: inherit; }
   /* Beside text of 20px and up the arrow is 20px: Text and Heading at xl or larger set --_external-size for what they hold. It is
@@ -4578,7 +4613,7 @@
   [data-reveal] { --_reveal-rows: 0fr; --_reveal-ms: calc(var(--basalt-duration-slow) * 0.75); --_reveal-ease: var(--basalt-ease-in); }
   [data-reveal][data-open] { --_reveal-rows: 1fr; --_reveal-ms: var(--basalt-duration-slow); --_reveal-ease: var(--basalt-ease-out); }
   .basalt-reveal-panel { display: grid; grid-template-rows: var(--_reveal-rows); transition: grid-template-rows var(--_reveal-ms) var(--_reveal-ease); }
-  .basalt-reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--_reveal-ms); }
+  .basalt-reveal-clip { min-height: 0; margin-inline: calc(-1 * var(--basalt-space-2)); padding-inline: var(--basalt-space-2); overflow: hidden; visibility: hidden; transition: visibility var(--basalt-duration-instant) linear var(--_reveal-ms); }
   [data-reveal][data-open] .basalt-reveal-clip { visibility: visible; transition: none; }
   [data-reveal][data-settled] .basalt-reveal-clip { overflow: visible; }
   /* A directory row after the cut draws its rule inside its clip, so a closed row is no height at all. */
@@ -4694,6 +4729,7 @@
   .basalt-empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-8) var(--basalt-space-4); text-align: center; font-family: var(--basalt-font-family-sans); }
   .basalt-empty-state-icon { color: var(--basalt-text-secondary); margin-bottom: var(--basalt-space-2); }
   .basalt-empty-state-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  /* stylelint-disable-next-line unit-disallowed-list -- the description's measure in characters of its own font, so it follows the text size; no token holds a width in characters */
   .basalt-empty-state-description { margin: 0; max-width: 42ch; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
   .basalt-empty-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--basalt-space-2); margin-top: var(--basalt-space-3); }
 
@@ -4703,6 +4739,7 @@
   .basalt-text[data-tone="inherit"] { color: inherit; }
   .basalt-text[data-mono] { font-family: var(--basalt-font-family-mono); }
   [data-selected] .basalt-text[data-tone="tertiary"], [data-highlighted] .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- inline code is a fixed ratio of the text around it, whatever size that is; the type scale has no relative step */
   .basalt-inline-code { padding: var(--basalt-space-0-5) var(--basalt-space-1); border-radius: var(--basalt-radius-xs); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); font-family: var(--basalt-font-family-mono); font-size: 0.9em; font-weight: var(--basalt-font-weight-regular); line-height: inherit; }
 
   /* ---- Display type, the lead and the page (DECISIONS 137, approved in 139) ----

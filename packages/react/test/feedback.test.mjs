@@ -571,7 +571,7 @@ describe("Toast: swipe, placement and motion", () => {
     const box = await page.locator(".basalt-toast-viewport").evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: window.innerWidth - r.right, bottom: window.innerHeight - r.bottom }; });
     assert.deepEqual(box, { left: 16, right: 16, bottom: 16 });
     const css = await page.evaluate(() => [...document.styleSheets].flatMap((s) => [...s.cssRules]).map((r) => r.cssText).join("\n"));
-    assert.match(css, /bottom: max\(var\(--basalt-space-4\), env\(safe-area-inset-bottom\)\)/, "the bottom inset yields to the safe area");
+    assert.match(css, /bottom: max\(var\(--basalt-space-4\),\s*env\(safe-area-inset-bottom\)\)/, "the bottom inset yields to the safe area");
     await page.close();
   });
 

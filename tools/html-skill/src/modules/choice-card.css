@@ -67,6 +67,7 @@
   .choice-card:has(> .choice-card-input:checked) .choice-card-box::before { opacity: 1; }
   .choice-card:has(> .choice-card-input:disabled) .choice-card-box { opacity: 0.5; }
   /* The grid keeps space-4 between cards, which holds each +2 focus ring clear of its neighbours; the page keeps at least space-1-5 to any clipping edge. */
+  /* stylelint-disable-next-line unit-disallowed-list -- the narrowest a choice card gets before the grid wraps, in rem so it follows the reader's text size; no token holds this measure */
   .choice-card-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--basalt-space-4); }
 
   /* Forced colours: a card keeps Canvas with a CanvasText edge (its panel border): the wash drops. Its box is ButtonText off and Highlight with HighlightText on. */

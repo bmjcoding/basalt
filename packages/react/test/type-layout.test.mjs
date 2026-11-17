@@ -132,7 +132,7 @@ describe("the display steps and the roles", () => {
   });
 
   test("no type rule is fluid: no clamp, no viewport or container unit in a size, and no breakpoint but 720 and 1024 in a rule about the roles", () => {
-    const components = fs.readFileSync(path.join(pkg, "dist", "components.css"), "utf8");
+    const components = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8");
     const block = components.slice(components.indexOf("Display type, the lead and the page"), components.indexOf("@media (pointer: coarse) {\n    .basalt-page-link"));
     assert.ok(block.length > 3000, "found the section");
     assert.doesNotMatch(block, /clamp\(|\d(?:vw|vh|svh|dvh|cqw|cqi|vi)\b/);

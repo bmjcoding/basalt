@@ -16,12 +16,14 @@
   .sparkline-text { display: inline-block; width: 0; color: transparent; forced-color-adjust: none; }
   .sparkline-value > [aria-hidden] { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
   .sparkline-value > [aria-hidden]::before { content: "\200b"; }
+  /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
   .sparkline-value [data-d] { display: inline-block; height: 1em; overflow: hidden; line-height: 1; vertical-align: top; }
   .sparkline-value [aria-hidden] > span { line-height: 1; vertical-align: top; }
   /* In forced colours the strips go and the number is its own text, in the sentence's line: the system paints one selection band and its selected-text colour on the digits (React's ticker does the same). The head keeps its 1em box. */
   @media (forced-colors: active) {
     .sparkline-value > [aria-hidden] { display: none; }
     .sparkline-text { display: inline; width: auto; color: inherit; forced-color-adjust: auto; }
+    /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
     .sparkline-head > .sparkline-value > .sparkline-text { display: inline-block; height: 1em; overflow: clip; line-height: 1; }
   }
   .sparkline svg { width: 100%; height: var(--basalt-space-16); color: var(--basalt-text-secondary); }

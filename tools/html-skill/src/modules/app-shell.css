@@ -10,6 +10,7 @@
   .app-shell {
     display: grid;
     grid-template-columns: var(--basalt-size-sidebar-width) minmax(0, 1fr);
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     min-height: 100dvh;
   }
   .app-column { min-width: 0; }
@@ -20,6 +21,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     height: 100dvh;
     padding-inline: var(--basalt-space-3);
     overflow-y: auto;

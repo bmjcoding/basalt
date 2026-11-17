@@ -8,6 +8,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
+import { MARGIN, TABLE, measureExport, measurePackage, measureStyles, runtimeExports } from "./export-sizes.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.join(here, "..");
 
@@ -419,3 +421,72 @@ for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_00
     assert.deepEqual(inputs.filter((f) => /@base-ui\/react\/(menu|dialog|select|popover|tooltip|accordion|tabs)\//.test(f)), []);
   });
 }
+
+// What every export costs, held to a recorded table (A1-16). `test/export-sizes.json` has the minified size of each runtime export alone, of the
+// whole package up front (the entry and every chunk it imports statically) and of `styles.css`, minified and gzipped, as `npm run sizes -w
+// packages/react` measured them; each may grow by 5% and no more. A rise is a decision: run the script, read the diff it prints (what moved, in
+// bytes and per cent), and commit the new table with the change that explains it. The limits above stay as they were: where one is tighter than
+// the table's rule it still guards, and where it is looser the table does.
+const recorded = () => JSON.parse(nodeFs.readFileSync(TABLE, "utf8"));
+const ceiling = (bytes) => Math.ceil(bytes * (1 + MARGIN));
+const ADVICE = "run `npm run sizes -w packages/react`, read the diff it prints, and commit the new table with the change that explains it";
+
+test("the size table names every runtime export of the package, and nothing that is not one", async () => {
+  const table = Object.keys(recorded().exports).sort();
+  const exported = await runtimeExports();
+  assert.deepEqual(exported.filter((name) => !table.includes(name)), [], `exports with no recorded size: ${ADVICE}`);
+  assert.deepEqual(table.filter((name) => !exported.includes(name)), [], `recorded sizes for exports that are gone: ${ADVICE}`);
+});
+
+test("every runtime export alone stays within 5% of its recorded minified size", async () => {
+  const { exports } = recorded();
+  const names = Object.keys(exports);
+  const over = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    for (let i = next++; i < names.length; i = next++) {
+      const { bytes } = await measureExport(names[i]);
+      if (bytes > ceiling(exports[names[i]])) over.push(`${names[i]}: ${bytes} bytes against ${exports[names[i]]} recorded (limit ${ceiling(exports[names[i]])})`);
+    }
+  }));
+  assert.deepEqual(over.sort(), [], `an export grew past its recorded size: ${ADVICE}`);
+});
+
+test("the whole package up front and styles.css, minified and gzipped, stay within 5% of their recorded sizes", async () => {
+  const table = recorded();
+  const whole = await measurePackage();
+  const styles = measureStyles();
+  for (const [label, now, was] of [["the whole package, minified", whole.bytes, table.package.bytes], ["the whole package, gzipped", whole.gzip, table.package.gzip], ["styles.css as shipped", styles.bytes, table.styles.bytes], ["styles.css, gzipped", styles.gzip, table.styles.gzip]]) {
+    assert.ok(now <= ceiling(was), `${label}: ${now} bytes against ${was} recorded (limit ${ceiling(was)}); ${ADVICE}`);
+  }
+  // The style sheets ship minified: no comment is left in them (a /*! legal comment would be the one kept).
+  assert.ok(!/\/\*(?!!)/.test(nodeFs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8")), "styles.css still holds a comment");
+  assert.ok(!/\/\*(?!!)/.test(nodeFs.readFileSync(path.join(pkg, "dist", "components.css"), "utf8")), "components.css still holds a comment");
+});
+
+// Loading a module does nothing, for every file in dist (the lazy command panel apart: it loads on first open, and the Maps it builds are Phosphor's icon
+// tables, bundled in). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
+// formatter that the file itself allocates while it loads (the frame that called `new` is in this package's dist) is counted against it, and so is any throw.
+test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const dist = path.join(pkg, "dist");
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js").sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  assert.ok(files.length > 200, `${files.length} files in dist`);
+  const script = `
+    import { pathToFileURL } from "node:url";
+    await import("react"); await import("react/jsx-runtime");
+    let current = "";
+    const offenders = [];
+    const count = (key, Base) => class extends Base { constructor(...args) { super(...args); if ((new Error().stack.split("\\n")[2] ?? "").includes(dist + "/")) offenders.push(current + ": new " + key); } };
+    for (const key of ["Set", "Map", "WeakMap", "WeakSet"]) globalThis[key] = count(key, globalThis[key]);
+    for (const key of ["NumberFormat", "DateTimeFormat"]) Intl[key] = count("Intl." + key, Intl[key]);
+    const [dist, ...files] = process.argv.slice(1);
+    for (const file of files) {
+      current = file;
+      try { await import(pathToFileURL(dist + "/" + file).href); } catch (error) { offenders.push(file + ": threw " + error.message); }
+    }
+    console.log(JSON.stringify(offenders));
+  `;
+  const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, dist, ...files], { encoding: "utf8", cwd: pkg, maxBuffer: 1 << 24 });
+  assert.deepEqual(JSON.parse(out.trim().split("\n").at(-1)), []);
+});

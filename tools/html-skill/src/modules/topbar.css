@@ -135,6 +135,7 @@
   /* The site footer (React's SiteFooter, DECISIONS 146 A): on the page at level 0, no fill, rim or shadow. One 1px divider the width of the row, half a section gap above it.
      The brand, a sentence and the links' groups (or one line of up to six); then the legal line and the theme choice. Under 720 a labelled group is a disclosure once the
      script has run (data-wired); without it every group is open, two a row. The page is a column at least 100svh tall (.site-page) so a short page keeps it at the foot. */
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .site-page { display: flex; flex-direction: column; min-height: 100svh; }
   .site-page > main { flex: 1 0 auto; }
   .site-footer {

@@ -7,7 +7,7 @@ import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { ALLOWED, readers } from "../../tokens/test/accent-readers.mjs";
-import { fixturePage, launch, pkg } from "./support.mjs";
+import { fixturePage, launch, pkg, sourceStyles } from "./support.mjs";
 
 const tokens = JSON.parse(fs.readFileSync(path.join(pkg, "..", "tokens", "dist", "json", "tokens.json"), "utf8"));
 const COBALT = { light: tokens.light["accent-cobalt"].oklch, dark: tokens.dark["accent-cobalt"].oklch };
@@ -131,12 +131,12 @@ describe("accent classes: no class, none and unknown names are ink", () => {
   });
 
   test("the built stylesheet: only Badge's accent dot reads the accent, directly or through an alias, and only as its background", () => {
-    const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+    const css = sourceStyles();
     assert.deepEqual(readers(css).map(({ selector, property }) => ({ selector, property })), ALLOWED);
   });
 
   test("the built stylesheet gates every class rule behind @supports and keeps the reset outside it", async () => {
-    const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+    const css = sourceStyles();
     assert.match(css, /@supports \(color: light-dark\(white, black\)\) \{\s*\[data-accent="cobalt"\]/);
     assert.match(css, /\[data-accent="none"\], \[data-accent\]:not\(\[data-accent="cobalt"\]\) \{ --basalt-accent-ink: initial; \}/);
   });

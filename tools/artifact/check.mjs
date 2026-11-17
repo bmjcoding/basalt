@@ -20,6 +20,14 @@ const comps = fs.readdirSync(path.join(project, "components")).filter((d) => fs.
 const api = JSON.parse(fs.readFileSync(path.join(project, "components/api.json"), "utf8"));
 const browser = await chromium.launch();
 let failed = 0;
+// The bundled third-party code travels with its licence texts (A5-12).
+const notices = path.join(project, "components", "THIRD-PARTY-NOTICES.txt");
+const noticeText = fs.existsSync(notices) ? fs.readFileSync(notices, "utf8") : "";
+const unnamed = ["react", "react-dom", "@base-ui/react", "@phosphor-icons/react", "shiki", "cmdk", "@floating-ui/dom"].filter((name) => !new RegExp(`^${name.replace(/[/@.]/g, "\\$&")} \\d`, "m").test(noticeText));
+if (!noticeText || unnamed.length || !/Permission is hereby granted/.test(noticeText)) {
+  failed++;
+  console.log(`FAIL third-party notices — ${noticeText ? `missing ${unnamed.join(", ") || "the licence text"}` : "components/THIRD-PARTY-NOTICES.txt was not written"}`);
+}
 for (const theme of ["dark", "light"]) {
   for (const c of comps) {
     const src = fs.readFileSync(path.join(project, "components", c, "preview.html"), "utf8");

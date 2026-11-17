@@ -1237,11 +1237,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": 0.01,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": 0.01
       }
     },
     "sm": {
@@ -1260,11 +1257,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": 0,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": 0
       }
     },
     "base": {
@@ -1283,11 +1277,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": 0,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": 0
       }
     },
     "md": {
@@ -1306,11 +1297,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.005,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.005
       }
     },
     "lg": {
@@ -1329,11 +1317,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.01,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.01
       }
     },
     "xl": {
@@ -1352,11 +1337,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.015,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.015
       }
     },
     "2xl": {
@@ -1375,11 +1357,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.02,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.02
       }
     },
     "3xl": {
@@ -1398,11 +1377,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.025,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.025
       }
     },
     "4xl": {
@@ -1421,11 +1397,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.03,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.03
       }
     },
     "5xl": {
@@ -1444,11 +1417,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.035,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.035
       }
     },
     "6xl": {
@@ -1468,11 +1438,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.04,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.04
       }
     },
     "7xl": {
@@ -1492,11 +1459,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.045,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.045
       }
     },
     "hero-narrow": {
@@ -1516,11 +1480,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.03,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.03
       }
     },
     "display-narrow": {
@@ -1540,11 +1501,8 @@
         }
       },
       "tracking": {
-        "$type": "dimension",
-        "$value": {
-          "value": -0.025,
-          "unit": "em"
-        }
+        "$type": "number",
+        "$value": -0.025
       }
     }
   },

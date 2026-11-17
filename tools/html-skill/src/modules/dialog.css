@@ -33,6 +33,7 @@
   @starting-style { dialog.modal[open]::backdrop { opacity: 0; } }
   html:has(dialog.modal[open]) { overflow: hidden; }
 
+  /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .dialog { width: min(var(--basalt-size-dialog-width), calc(100vw - 2 * var(--basalt-space-4))); max-height: calc(100dvh - 2 * var(--basalt-space-4)); padding: var(--basalt-space-6); transform: scale(0.98); }
   .dialog[open] { transform: none; }
   @starting-style { .dialog[open] { transform: scale(0.98); } }
