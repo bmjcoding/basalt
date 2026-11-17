@@ -349,7 +349,7 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 
 // The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
 // Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
-// CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465.
+// CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465. The short bar plot (`compact`, DECISIONS 160) added 120 bytes to TimeChart (46,973 to 47,093); PhaseChart is 49,643.
 for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["CoverageStrip", 2_000], ["MarksRow", 1_200]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await bundle(name);
@@ -357,6 +357,11 @@ for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["Cover
     assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
   });
 }
+
+test("the short bar plot's `compact` prop adds under 400 bytes to TimeChart (it was 46,973 before the prop)", async () => {
+  const { bytes } = await bundle("TimeChart");
+  assert.ok(bytes < 46_973 + 400, `TimeChart bundle is ${bytes} bytes; the prop may add 400`);
+});
 
 test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no Shiki; TimeChart and PhaseChart load no Shiki or cmdk", async () => {
   const meter = await bundle("RangeMeter");
