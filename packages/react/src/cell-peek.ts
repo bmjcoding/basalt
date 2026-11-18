@@ -229,6 +229,14 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
     const styles = new win.MutationObserver(schedule);
     styles.observe(doc.head, { childList: true, subtree: true, characterData: true });
     styles.observe(doc.documentElement, { attributes: true, attributeFilter: ["style", "class", "lang", "dir"] });
+    // A style sheet need not be in `<head>`: a user-style extension appends a `<style>` to `<html>`, and a sheet can arrive as a `<link>` that loads later. Any
+    // style or link that comes, goes, changes its text or loads sets the cells to be measured again (WCAG 1.4.12); other mutations of the page are none of its business.
+    const sheetNode = (node: Node | null) => { const element = node instanceof win.Element ? node : node?.parentElement; return Boolean(element?.closest("style, link[rel~='stylesheet']")); };
+    const sheets = new win.MutationObserver((records) => {
+      if (records.some((record) => sheetNode(record.target) || [...record.addedNodes, ...record.removedNodes].some((node) => sheetNode(node)))) schedule();
+    });
+    sheets.observe(doc.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["media", "disabled", "href"] });
+    doc.addEventListener("load", schedule, true);
     void doc.fonts?.ready.then(schedule);
     win.addEventListener("resize", schedule);
     mark();
@@ -247,6 +255,8 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
       resize.disconnect();
       mutation.disconnect();
       styles.disconnect();
+      sheets.disconnect();
+      doc.removeEventListener("load", schedule, true);
       plate?.remove();
       for (const cell of root.querySelectorAll("[data-cut]")) {
         cell.removeAttribute("data-cut");

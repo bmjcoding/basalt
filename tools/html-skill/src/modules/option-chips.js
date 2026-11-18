@@ -50,6 +50,8 @@
         all[to].focus();
         if (!unavailable(all[to])) all[to].click();
       }, true);
+      // From here a click on an unavailable chip is the script's to keep from choosing (above); until then the style sheet does not let one through.
+      group.setAttribute('data-ready', '');
     });
   }
 

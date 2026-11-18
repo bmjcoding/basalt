@@ -191,12 +191,19 @@ public struct BasaltTextField: View {
         .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(error == nil ? Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast) : Basalt.Colors.statusDanger.color))
         .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
         .accessibilityLabel(Text(title))
-        .accessibilityHint(Text(error ?? help ?? ""))
+        .accessibilityHint(Text(Self.hint(help: help, error: error) ?? ""))
       if let message = error ?? help {
+        // The message is an element of its own, read after the field. An error is never the field's hint: a hint says what the control does.
         Text(message).basaltType(Basalt.TypeScale.xs).foregroundStyle(error == nil ? Basalt.Colors.textSecondary.color : Basalt.Colors.statusDanger.color)
       }
     }
+    // A new error is said when it arrives (the field and its message are not together on the screen reader's cursor).
+    .onChange(of: error) { _, new in if let new { AccessibilityNotification.Announcement(new).post() } }
   }
+
+  /// What the field's accessibility hint says: its help text. An error is not a hint (Apple's guidance: a hint describes the result of acting on the
+  /// control); it is the message element below the field, and is announced when it arrives.
+  static func hint(help: String?, error: String?) -> String? { error == nil ? help : nil }
 }
 
 public struct BasaltTextEditor: View {

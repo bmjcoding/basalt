@@ -61,10 +61,21 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the message's identity; `message` itself is a new object each render
   }, [key, logged]);
   // The bar tells the page it is there, so the page's bottom offset and the toasts can clear it under 720 (the style sheet reads the root's attribute, never `:root:has()`).
+  // Under 720 the message is a band stacked above the bar, so the page's bottom offset must count it too (WCAG 2.4.11): the bar measures the band and writes its
+  // height on the root as `--basalt-status-band`, which the style sheet adds to the offset (0 when no message shows, and from 720, where the band is in the flow).
+  const band = React.useRef<HTMLParagraphElement>(null);
   React.useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-status-bar", "");
-    return () => root.removeAttribute("data-status-bar");
+    const target = band.current;
+    let observer: ResizeObserver | undefined;
+    if (target && typeof ResizeObserver !== "undefined") {
+      const write = () => root.style.setProperty("--basalt-status-band", `${target.offsetHeight}px`);
+      observer = new ResizeObserver(write);
+      observer.observe(target);
+      write();
+    }
+    return () => { observer?.disconnect(); root.style.removeProperty("--basalt-status-band"); root.removeAttribute("data-status-bar"); };
   }, []);
   // The assertive region: in the page already, then given the error's words a moment later.
   const [alert, setAlert] = React.useState("");
@@ -80,7 +91,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
     <footer {...props} aria-label={label} className={join("basalt-status-bar", className)}>
       {start ? <div className="basalt-status-bar-start">{start}</div> : null}
       {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
-      <p className="basalt-status-bar-message" aria-hidden="true" data-status={message?.status} data-empty={message ? undefined : ""}>
+      <p ref={band} className="basalt-status-bar-message" aria-hidden="true" data-status={message?.status} data-empty={message ? undefined : ""}>
         {error ? <span className="basalt-status-bar-seat"><Icon icon={XCircleIcon} size={16} /></span> : null}
         <span className="basalt-status-bar-text">{message?.text}</span>
       </p>

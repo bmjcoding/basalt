@@ -975,7 +975,7 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
-    test("filtering leaves every row where it is: a row that does not match steps to tertiary ink, hides its cells and second line, and the cursor skips it; 0px moves", async () => {
+    test("filtering leaves every row where it is: a row that does not match takes the disabled ink, hides its cells and second line, and the cursor skips it; 0px moves", async () => {
       const { page } = await open(OPEN_LIST(), { theme, viewport: { width: 900, height: 700 } });
       await settle(page);
       const rects = () => page.locator(".basalt-open-row").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }));
@@ -987,7 +987,7 @@ for (const theme of ["dark", "light"]) {
       assert.deepEqual(await rects(), before, "no row moved or changed size");
       assert.deepEqual(await cells(), beforeCells, "no column moved");
       const alpha = page.locator("[data-open-row=alpha]");
-      assert.equal((await style(alpha.locator(".basalt-open-button"), "color")).color, await resolve(page, "text-tertiary", "color"));
+      assert.equal((await style(alpha.locator(".basalt-open-button"), "color")).color, await resolve(page, "text-disabled", "color"), "unavailable to every input (DECISIONS 168): the disabled ink");
       assert.equal((await style(alpha.locator(".basalt-open-part"), "visibility")).visibility, "hidden");
       assert.equal((await style(alpha.locator(".basalt-open-detail"), "visibility")).visibility, "hidden");
       assert.equal(await alpha.locator(".basalt-open-gutter svg").count(), 0, "the cursor left it");
