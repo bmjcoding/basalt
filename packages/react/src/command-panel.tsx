@@ -27,6 +27,23 @@ export function commandFilter(value: string, search: string, keywords?: string[]
   return keywords?.length ? defaultFilter(value, search, keywords) / 2 : 0;
 }
 
+/**
+ * The groups in the order a search gives, and in their own order when there is none. cmdk sorts what it keeps by moving nodes in the page, and two things
+ * go wrong with that here: its sort of the groups looks each one up by an id that React 19's ids do not survive, so a group with the better match stays
+ * below one with the worse (typing "dep" lit "Duplicate sandbox" above "Deploy", and Enter ran it), and nothing sorts the rows back when the search is
+ * cleared, so they stayed in the order the last search left them. The order is React's instead: rows by score, groups by their best row, ties in the
+ * order given. cmdk still hides the rows that do not match, with the same scorer, and has nothing left to move.
+ */
+export function orderGroups(groups: CommandGroup[], search: string): CommandGroup[] {
+  if (!search) return groups;
+  const scored = groups.map((group) => {
+    const rows = group.commands.map((command) => ({ command, score: commandFilter(commandValue(command), search, keywordsOf(command)) }));
+    const best = rows.reduce((top, row) => Math.max(top, row.score), 0);
+    return { group: { ...group, commands: [...rows].sort((a, b) => b.score - a.score).map((row) => row.command) }, best };
+  });
+  return scored.sort((a, b) => b.best - a.best).map((entry) => entry.group);
+}
+
 const keywordsOf = (command: CommandItem) => (command.description ? [...(command.keywords ?? []), command.description] : command.keywords);
 
 /**
@@ -80,7 +97,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, initial
       <Command.List ref={list} className="basalt-command-list" label="Commands">
         <GlidePlate />
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
-        {groups.map((group) => (
+        {orderGroups(groups, search).map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
             {group.commands.map((command) => {
               const keys = command.shortcut ? shortcutKeys(command.shortcut) : [];
@@ -369,7 +386,7 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
           onPointerLeave={() => setHovered(false)}
         >
           <GlidePlate />
-          {groups.map((group) => (
+          {orderGroups(groups, search).map((group) => (
             <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
               {group.commands.map(row)}
             </Command.Group>

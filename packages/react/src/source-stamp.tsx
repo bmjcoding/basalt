@@ -4,7 +4,7 @@ import { StatusLine } from "./filter-result";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { TextButton } from "./text-button";
-import { formatStamp } from "./time";
+import { formatStamp } from "./time-format";
 import { join } from "./utils";
 
 // ---- Where a figure came from, and what a source says while it has nothing (DECISIONS 162, D14b: V5, V6, R8, B8) ----

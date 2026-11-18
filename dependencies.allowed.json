@@ -1,5 +1,5 @@
 {
-  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies are not listed: they are not installed with the package. One of them, geist, is copied into dist as the font files, under its own licence (dist/fonts/OFL.txt).",
+  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies are not listed: they are not installed with the package. One of them, geist, is copied into dist as the font files, under its own licence (dist/fonts/OFL.txt). Every version is exact (scripts/check-deps.mjs fails on a range, a tag, an alias or a URL) except those listed in $ranges, the host app's own React, which a package cannot pin.",
   "packages/react": {
     "@base-ui/react": "Accessible unstyled primitives under every component (foundations: Primitives).",
     "cmdk": "Command menu filtering and keyboard selection (MIT, pacocoursey/cmdk). Bailey approved it for the Benji primitives.",
@@ -8,6 +8,12 @@
     "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
     "react": "Peer: the host app's React.",
     "react-dom": "Peer: the host app's React DOM."
+  },
+  "$ranges": {
+    "packages/react": {
+      "react": ">=19",
+      "react-dom": ">=19"
+    }
   },
   "packages/tokens": {},
   "Package.swift": {}

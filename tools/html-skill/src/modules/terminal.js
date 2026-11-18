@@ -82,6 +82,8 @@
       var count = code.querySelectorAll('.terminal-line').length;
       if (shown < count) { code.textContent = ''; count = 0; }
       for (var i = count; i < shown; i++) code.appendChild(lineNode(lines[i], prompt));
+      // It is a log only while lines arrive; before the first line it is a named group, because a named element with no role and no text is not valid ARIA; otherwise a named region, as React's is (a scrollable stop that has a name needs a role).
+      pre.setAttribute('role', replay && state === 'running' ? 'log' : replay && !shown ? 'group' : 'region');
       if (replay) {
         var hint = code.querySelector('.terminal-hint');
         if (state === 'idle' && shown === 0) { if (!hint) { hint = document.createElement('span'); hint.className = 'terminal-hint'; hint.textContent = 'Press Play to start'; code.appendChild(hint); } } else if (hint) hint.remove();
@@ -89,8 +91,6 @@
         root.querySelector('.terminal-state').setAttribute('data-state', state);
         show(stateEl, state, STATES);
         show(controlEl, state === 'idle' ? 'Play' : state === 'running' ? 'Pause' : state === 'paused' ? 'Resume' : 'Replay', CONTROL);
-        // It is a log only while lines arrive; before the first line it is a named group, because a named element with no role and no text is not valid ARIA.
-        if (state === 'running') pre.setAttribute('role', 'log'); else if (shown === 0) pre.setAttribute('role', 'group'); else pre.removeAttribute('role');
         if (atEnd) pre.scrollTop = pre.scrollHeight;
       }
     }
@@ -119,7 +119,7 @@
         compact.setAttribute('aria-label', 'Copied');
         live.textContent = 'Copied';
         clearTimeout(reset);
-        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, 1500);
+        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
       });
     }
     root.querySelector('.terminal-copy').addEventListener('click', copy);

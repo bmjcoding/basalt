@@ -40,7 +40,9 @@ The theme follows the operating system. To pin it, set `data-theme="dark"` or
 
 ## Use the tokens in SwiftUI
 
-Add the package (`https://github.com/bmjcoding/basalt`), then:
+Basalt is not released, and its packages are private and `UNLICENSED`, with no `LICENSE` file: it is the owner's to use, not
+yet open to anyone else. In the owner's own apps, add the package (`https://github.com/bmjcoding/basalt`, which needs access to
+the repository), then:
 
 ```swift
 import BasaltTokens

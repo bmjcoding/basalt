@@ -191,12 +191,19 @@ public struct BasaltTextField: View {
         .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(error == nil ? Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast) : Basalt.Colors.statusDanger.color))
         .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
         .accessibilityLabel(Text(title))
-        .accessibilityHint(Text(error ?? help ?? ""))
+        .accessibilityHint(Text(Self.hint(help: help, error: error) ?? ""))
       if let message = error ?? help {
+        // The message is an element of its own, read after the field. An error is never the field's hint: a hint says what the control does.
         Text(message).basaltType(Basalt.TypeScale.xs).foregroundStyle(error == nil ? Basalt.Colors.textSecondary.color : Basalt.Colors.statusDanger.color)
       }
     }
+    // A new error is said when it arrives (the field and its message are not together on the screen reader's cursor).
+    .onChange(of: error) { _, new in if let new { AccessibilityNotification.Announcement(new).post() } }
   }
+
+  /// What the field's accessibility hint says: its help text. An error is not a hint (Apple's guidance: a hint describes the result of acting on the
+  /// control); it is the message element below the field, and is announced when it arrives.
+  static func hint(help: String?, error: String?) -> String? { error == nil ? help : nil }
 }
 
 public struct BasaltTextEditor: View {
@@ -232,13 +239,17 @@ public struct BasaltTextEditor: View {
 
 public struct BasaltToggleStyle: ToggleStyle {
   public init() {}
-  public func makeBody(configuration: Configuration) -> some View { ToggleSurface(configuration: configuration) }
+  /// For the tests, which render the increased mode with it (see `BasaltCallout`). Internal, so no app sees it.
+  var contrastOverride: ColorSchemeContrast?
+  public func makeBody(configuration: Configuration) -> some View { ToggleSurface(configuration: configuration, contrastOverride: contrastOverride) }
 
   private struct ToggleSurface: View {
     let configuration: ToggleStyleConfiguration
+    let contrastOverride: ColorSchemeContrast?
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
-    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorSchemeContrast) private var systemContrast
+    private var contrast: ColorSchemeContrast { contrastOverride ?? systemContrast }
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -250,7 +261,7 @@ public struct BasaltToggleStyle: ToggleStyle {
             .fill(configuration.isOn ? Basalt.Colors.actionPrimary.color : Basalt.Colors.surfaceRaised.color)
             .frame(width: Basalt.Size.switchWidth, height: Basalt.Size.switchHeight)
             .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
+            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color(contrast, increased: Basalt.Colors.inkContrast)).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
             .opacity(enabled ? 1 : 0.5)
         }
         .frame(minHeight: BasaltControlSize.md.minimumHeight)

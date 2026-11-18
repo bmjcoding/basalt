@@ -68,7 +68,7 @@ extension Basalt {
     /// Code comments; quiet, but still at least 4.5:1 on the code surface. No italic font is required.
     public static let syntaxComment = ThemedColor(
       light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
-      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+      dark: RGBA(red: 0.590479, green: 0.590479, blue: 0.590479, alpha: 1)
     )
 
     /// Level 0, the page. A depth is one of four levels; a panel is one level above what it sits on, and level 3 is the cap.
@@ -164,25 +164,25 @@ extension Basalt {
     /// Body text, headings and labels, on every surface.
     public static let textPrimary = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
-      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+      dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
     )
 
     /// Descriptions, metadata, unselected tabs and icons by default. Also the focus colour.
     public static let textSecondary = ThemedColor(
       light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
     )
 
     /// Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead.
     public static let textTertiary = ThemedColor(
       light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
-      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+      dark: RGBA(red: 0.590479, green: 0.590479, blue: 0.590479, alpha: 1)
     )
 
     /// Disabled controls only (exempt from WCAG contrast); never for readable content.
     public static let textDisabled = ThemedColor(
       light: RGBA(red: 0.639248, green: 0.639248, blue: 0.639248, alpha: 1),
-      dark: RGBA(red: 0.360806, green: 0.360806, blue: 0.360806, alpha: 1)
+      dark: RGBA(red: 0.422087, green: 0.422087, blue: 0.422087, alpha: 1)
     )
 
     /// Text on action-primary fills.
@@ -236,7 +236,7 @@ extension Basalt {
     /// The 2px focus outline, offset 2px, on every focusable control.
     public static let borderFocus = ThemedColor(
       light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
     )
 
     /// Hover wash over any surface.
@@ -278,13 +278,13 @@ extension Basalt {
     /// Every observed series in a chart: lines, markers, bars and the outline of a day that is not yet final.
     public static let chartObserved = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
-      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+      dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
     )
 
     /// A chart's plan: the stroke, and the edges of a band. Never a series.
     public static let chartPlan = ThemedColor(
       light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
     )
 
     /// A plan band's fill between its two edges. Decorative; the edges carry it.
@@ -314,7 +314,7 @@ extension Basalt {
     /// A chart's axis labels and the words for a gap.
     public static let chartAxis = ThemedColor(
       light: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1),
-      dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+      dark: RGBA(red: 0.590479, green: 0.590479, blue: 0.590479, alpha: 1)
     )
 
     /// The lightest stop of a lit mark's vertical gradient, at the top of the plot, and a lit line's one stroke. 3:1 on levels 0 to 3 and on the picked day's plate (DECISIONS 153, vote 1).
@@ -368,7 +368,7 @@ extension Basalt {
     /// The strongest point drawn art may reach. It is text-primary, so art never outshouts the words.
     public static let artMark = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
-      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+      dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
     )
 
     /// In a quiet zone no pixel is lighter (dark) or darker (light) than this: the stage's headroom under the bar, and each data-quiet zone. Primary and secondary text and the focus ring hold their contrast on it.
@@ -386,13 +386,13 @@ extension Basalt {
     /// More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour.
     public static let inkContrast = ThemedColor(
       light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
     )
 
-    /// More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour.
+    /// More contrast, a field's boundary: border-field is drawn as text-secondary, 7.4:1 or better on every surface. An alias, no new colour.
     public static let fieldContrast = ThemedColor(
       light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
-      dark: RGBA(red: 0.631373, green: 0.631373, blue: 0.631373, alpha: 1)
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
     )
 
     /// Behind modal dialogs and sheets.

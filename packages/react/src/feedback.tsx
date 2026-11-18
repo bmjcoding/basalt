@@ -19,7 +19,7 @@ import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
-import { CONFIRM_MS } from "./confirm";
+import { CONFIRM_MS } from "./constants";
 
 // ---- Textarea ----
 

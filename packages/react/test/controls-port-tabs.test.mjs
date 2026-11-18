@@ -254,6 +254,8 @@ describe("D12, A15: under 720 the row is a Select of the same links (3 to 1)", (
         await page.keyboard.press("ArrowDown");
         await page.getByRole("option").first().waitFor();
         await page.keyboard.press("ArrowDown");
+        // Enter acts on the highlighted option: wait for the highlight to move to the second option, not for a fixed time.
+        await page.locator('[role="option"][data-highlighted]', { hasText: "Protein" }).waitFor();
         await page.keyboard.press("Enter");
       }
       await settle(page);

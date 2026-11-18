@@ -908,10 +908,14 @@ createRoot(document.getElementById("root")).render(<main><B.Clock id="clock" tim
     await page.close();
   });
 
-  test("a finished countdown says its completed wording in the same cell: 0px of width change", async () => {
-    const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<main><B.Countdown id="a" to={Date.UTC(2026, 10, 17, 12, 0, 5)} now={Date.UTC(2026, 10, 17, 12, 0, 0)} done="Open" /><br /><B.Countdown id="b" to={Date.UTC(2026, 10, 17, 12, 0, 0)} now={Date.UTC(2026, 10, 17, 12, 0, 5)} done="Open" /></main>);`);
+  test("a finished countdown says its completed wording in the same cell: 0px of width change, and what sits beside it does not move", async () => {
+    const page = await open(`document.body.style.margin = "0"; const root = createRoot(document.getElementById("root")); window.draw = (now) => flushSync(() => root.render(<main><B.Countdown id="a" to={Date.UTC(2026, 10, 17, 12, 0, 5)} now={Date.UTC(2026, 10, 17, 12, 0, now)} done="Open" /><span id="next">Next</span></main>)); window.draw(0);`);
+    const boxes = () => page.evaluate(() => ["a", "next"].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [r.x, r.width]; }));
     assert.equal((await page.locator("#a").innerText()).trim(), "00:00:05");
-    assert.equal((await page.locator("#b").innerText()).trim(), "Open");
+    const running = await boxes();
+    await page.evaluate(() => window.draw(6));
+    assert.equal((await page.locator("#a").innerText()).trim(), "Open");
+    assert.deepEqual(await boxes(), running, "the countdown's box and the word after it are where they were");
     await page.close();
   });
 });

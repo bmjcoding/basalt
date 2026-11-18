@@ -1,13 +1,11 @@
 import * as React from "react";
 
 import { IconButton } from "./button";
+import { LOOPS_TOGGLE_NAME } from "./constants";
 import { PauseGlyph } from "./glyphs/pause";
 import { useLoops } from "./loops";
 
 // The icon form of `LoopsToggle`, in a module of its own so a site's header loads the icon button and the hold and nothing else (the settings row's `Switch` is in another module).
-
-/** The control's fixed name, in every form and in every state: it is the toggle's name, and "pressed" says it is on. */
-export const LOOPS_TOGGLE_NAME = "Pause animations";
 
 // `IconButton` names itself from its `label` (`aria-label`). This control is named by its `title` alone, so a screen reader hears the name once (a `title` beside an `aria-label`
 // of the same words is also read as the description). The swap is made here, on the element it renders, so no other IconButton carries it.

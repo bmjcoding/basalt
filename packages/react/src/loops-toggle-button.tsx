@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { useLoops } from "./loops";
-import { LOOPS_TOGGLE_NAME } from "./loops-toggle-icon";
+import { LOOPS_TOGGLE_NAME } from "./constants";
 
 export interface LoopsToggleButtonProps {
   className?: string;

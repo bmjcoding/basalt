@@ -1,6 +1,7 @@
 import * as React from "react";
 
-import { glideTiming } from "./motion";
+import { REFLOW_BOUND } from "./constants";
+import { glideTiming } from "./motion-timing";
 import { join } from "./utils";
 
 // Items that move to their places (DECISIONS 136 D; docs/motion.md, "Items that move to their places"). A list or a grid that is filtered or
@@ -9,9 +10,6 @@ import { join } from "./utils";
 // leaver is the same element, out of the flow where it stood, inert and painted under the movers, fading over 0.75 of `duration-fast` on
 // `ease-in`; a second change starts every item from where it is drawn, opacity included; and the box's height glides on the same clock.
 // No item is ever replaced: every item stays mounted, and an item that is not shown is `hidden`. Nothing here runs at import.
-
-/** Past this many items that would move on screen, a change lands at once. A chosen limit, not a measured budget. */
-export const REFLOW_BOUND = 48;
 
 type Phase = "in" | "leaving" | "out";
 

@@ -67,6 +67,11 @@ public struct BasaltCallout<Actions: View>: View {
   private let description: String?
   private let status: BasaltStatus
   private let actions: Actions
+  @Environment(\.colorSchemeContrast) private var systemContrast
+  /// For the tests, which render the increased mode with it: SwiftUI's own value is read-only, and a hosted view does not take it from its appearance.
+  /// Internal, so no app sees it.
+  var contrastOverride: ColorSchemeContrast?
+  private var contrast: ColorSchemeContrast { contrastOverride ?? systemContrast }
 
   public init(_ title: String, description: String? = nil, status: BasaltStatus = .info, @ViewBuilder actions: () -> Actions) {
     self.title = title; self.description = description; self.status = status; self.actions = actions()
@@ -74,7 +79,7 @@ public struct BasaltCallout<Actions: View>: View {
 
   public var body: some View {
     HStack(alignment: .top, spacing: Basalt.Space.s3) {
-      Image(systemName: status.symbol).font(.system(size: 16, weight: .semibold)).foregroundStyle(status.color).accessibilityHidden(true)
+      Image(systemName: status.symbol).basaltScaledSymbol(16, weight: .semibold).foregroundStyle(status.color).accessibilityHidden(true)
       VStack(alignment: .leading, spacing: Basalt.Space.s1) {
         Text(title).basaltType(Basalt.TypeScale.sm, weight: .medium).foregroundStyle(status == .danger ? Basalt.Colors.statusDanger.color : Basalt.Colors.textPrimary.color)
         if let description { Text(description).basaltType(Basalt.TypeScale.sm).foregroundStyle(Basalt.Colors.textSecondary.color) }
@@ -89,8 +94,10 @@ public struct BasaltCallout<Actions: View>: View {
     .overlay(RoundedRectangle(cornerRadius: Basalt.Radius.md).strokeBorder(rim))
   }
 
+  /// Info's neutral hairline steps to `line-contrast` under Increase Contrast, as every other Basalt line does. The status rims are one solid colour
+  /// already, mixed from the status colour, and do not step (foundations, "More contrast": status does not change).
   private var rim: Color {
-    guard let rim = status.rim else { return Basalt.Colors.borderHairline.color }
+    guard let rim = status.rim else { return Basalt.Colors.borderHairline.color(contrast, increased: Basalt.Colors.lineContrast) }
     return rim.color
   }
 }
@@ -166,7 +173,7 @@ public struct BasaltEmptyState<Actions: View>: View {
 
   public var body: some View {
     VStack(spacing: Basalt.Space.s2) {
-      if let symbol { Image(systemName: symbol).font(.system(size: 24)).foregroundStyle(Basalt.Colors.textSecondary.color).accessibilityHidden(true) }
+      if let symbol { Image(systemName: symbol).basaltScaledSymbol(24).foregroundStyle(Basalt.Colors.textSecondary.color).accessibilityHidden(true) }
       Text(title).basaltType(Basalt.TypeScale.lg, weight: .medium).foregroundStyle(Basalt.Colors.textPrimary.color).accessibilityAddTraits(.isHeader)
       Text(description).basaltType(Basalt.TypeScale.base).foregroundStyle(Basalt.Colors.textSecondary.color)
       actions.padding(.top, Basalt.Space.s3)

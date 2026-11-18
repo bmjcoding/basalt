@@ -404,7 +404,7 @@ describe("the terminal", () => {
     const { page, context } = await open();
     const pre = page.locator("#static pre");
     assert.equal(await pre.getAttribute("aria-label"), "Deploy preview, transcript");
-    assert.equal(await pre.getAttribute("role"), null, "not a log");
+    assert.equal(await pre.getAttribute("role"), "region", "not a log, but a named region as React's is (A3-08)");
     assert.equal(await pre.getAttribute("tabindex"), "0");
     assert.equal(await page.locator("#static .terminal-line").count(), 6);
     assert.equal(await page.locator("#static .terminal-line[data-kind=command] .terminal-gutter [aria-hidden=true]").first().innerText(), "$");
@@ -463,7 +463,7 @@ describe("the terminal", () => {
     await page.locator("#replay .terminal-control").click();
     assert.equal(await word(".terminal-state"), "Paused");
     assert.equal(await word(".terminal-control"), "Resume");
-    assert.equal(await role(), null, "a paused transcript is not a log");
+    assert.equal(await role(), "region", "a paused transcript is not a log, and keeps its role as a named region (A3-08)");
     await clock.advance(3000);
     assert.equal(await lines(), 2, "paused holds");
     await page.locator("#replay .terminal-control").click();
@@ -471,7 +471,7 @@ describe("the terminal", () => {
     assert.equal(await lines(), 3);
     assert.equal(await word(".terminal-state"), "Done");
     assert.equal(await word(".terminal-control"), "Replay");
-    assert.equal(await role(), null);
+    assert.equal(await role(), "region", "a finished transcript keeps its role (A3-08)");
     await page.locator("#replay .terminal-control").click();
     await clock.advance(32);
     assert.equal(await lines(), 1, "Replay starts over");

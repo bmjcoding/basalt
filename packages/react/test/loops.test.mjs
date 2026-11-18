@@ -24,7 +24,8 @@ let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
-const { loopsBootstrap, useLoops } = await import(pathToFileURL(path.join(pkg, "dist", "loops.js")).href);
+const { useLoops } = await import(pathToFileURL(path.join(pkg, "dist", "loops.js")).href);
+const { loopsBootstrap } = await import(pathToFileURL(path.join(pkg, "dist", "loops-bootstrap.js")).href);
 
 /**
  * A page on a real (fake-host) origin, so localStorage works, survives a reload and is shared with another page of the same

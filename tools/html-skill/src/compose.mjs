@@ -5,7 +5,7 @@
 //
 // The body is the part of the page you write: HTML for inside <body>, which may also carry
 //   <title>…</title>                          the page title (default: the first <h1>, else "Untitled page")
-//   <style>…</style>                          your own CSS (moved into the head, after Basalt's)
+//   <style>…</style>                          your own CSS (moved into the head, after Basalt's; its `media` is kept, any other attribute is refused)
 //   <meta name="description"|property="og:…"|name="twitter:…" content>, <link rel="icon"|"apple-touch-icon" href="data:…">, <link rel="canonical" href>
 //                                             the page's description, share card and icon (moved into the head, after the title; any other meta or link is refused)
 //   <!-- basalt:use palette tabs -->          names of modules to add by hand (a class built only at run time)
@@ -18,6 +18,7 @@
 // --all adds every module and every icon (for a page that builds markup at run time, and for measuring). No dependencies.
 // After the page, it prints the one-line warning of each module it added (the module's line in SKILL.md's index), to stdout; a module
 // the body never uses itself, which is in only because another module's script builds it, says so instead.
+// Then one warning listing each src, href, data or url() the body has that leaves the file (a page is one file with no network).
 // --usage core NAME ... prints each one's usage text, the usage of each module it requires (unless its script builds that module's markup
 // itself: then one line says so), and for each the classes, attributes and tags that bring it in (read from the manifest, the same
 // file detection reads); NAME is `core` or a module. --usage alone prints SKILL.md's index
@@ -26,7 +27,7 @@
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -273,7 +274,7 @@ export function readBody(body, stats = {}) {
         const e = textEnd(body, name, tag.end);
         if (e === -1) throw never(`\`<${name}>\``);
         const end = tagAt(e).end;
-        if (!stack.length) hold(name === "style" || name === "title" ? name : "raw", i, end, body.slice(tag.end, e));
+        if (!stack.length) hold(name === "style" || name === "title" ? name : "raw", i, end, body.slice(tag.end, e), tag.attrs);
         i = cursor = end;
       } else {
         if (!stack.length) {
@@ -286,10 +287,15 @@ export function readBody(body, stats = {}) {
             if (!microdata) hold("head", i, tag.end, null, tag.attrs);
           }
           else if (name === "h1" && !h1) h1 = { text: "", open: true };
+          else if (name === "img" && h1?.open) h1.text += tag.attrs.find(([key]) => key === "alt")?.[1] ?? ""; // an image in the heading is read by its words
         }
         i = cursor = tag.end;
       }
-    } else i++;
+    } else {
+      // A `<` that starts no tag is text: the text before it was added at the top of the loop, so the next addition starts here, and nothing is counted twice.
+      cursor = i;
+      i++;
+    }
   }
   if (stack.length) throw never(`\`<${stack[0].name}>\``);
   out += body.slice(at);
@@ -442,8 +448,55 @@ export function detect(text, manifest, iconNames, { all = false, use = [], glyph
 }
 
 /**
+ * A `<style>`'s `media` (the one attribute kept, as written, so a print-only or dark-only rule stays that on the page), or undefined. compose.mjs writes the
+ * style itself, so any other attribute would be lost without a word: it is refused by name instead.
+ */
+function styleMedia(attrs) {
+  const other = attrs.find(([key]) => key !== "media");
+  if (other) throw new Error(`\`<style ${other[0]}>\` is not accepted: compose.mjs keeps a style's \`media\` and no other attribute, because it writes the style into the head itself`);
+  return attrs.find(([key]) => key === "media")?.[1]; // the first of a repeated attribute wins, as in a browser
+}
+
+/** Whether a URL stays in the page: a fragment, an inline `data:` or `blob:` document, `about:` or a script URL, or `mailto:` and `tel:`, which load nothing. */
+const staysInFile = (url) => /^(?:#|(?:data|blob|about|javascript|mailto|tel):)/i.test(url.trim()) || url.trim() === "";
+
+/**
+ * Every `src`, `href`, `data` (and `srcset`, `poster`, `xlink:href`) on a tag and every `url()` and `@import` in a style that leaves the file, as a line each:
+ * a page is one file with no network, and the composer refused only a `link` or `meta` that said otherwise. A `link rel="canonical"` names the page's own address and loads
+ * nothing; an `<a href>` is a link the reader follows, not a load, but it too leaves the file and is listed (the warning says which). Each is listed once.
+ */
+function externalReferences(held, markup) {
+  const found = new Set();
+  const tags = (text) => {
+    for (let at = text.indexOf("<"); at !== -1; at = text.indexOf("<", at + 1)) {
+      if (!isAlpha(text[at + 1] ?? "")) continue;
+      const tag = readTag(text, at);
+      if (!tag.terminated) continue;
+      const rel = tag.attrs.find(([key]) => key === "rel")?.[1].toLowerCase().trim();
+      for (const [key, value] of tag.attrs) {
+        if (tag.name === "link" && rel === "canonical" && key === "href") continue;
+        if (key === "style") for (const url of cssUrls(value)) found.add(`<${tag.name} style> url(${url})`);
+        if (!["src", "href", "xlink:href", "data", "poster", "srcset"].includes(key)) continue;
+        const urls = key === "srcset" ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]) : [value];
+        for (const url of urls) if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+      }
+      at = tag.end - 1;
+    }
+  };
+  const cssUrls = (css) => [...stripCssComments(css).matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s]*))\s*\)|@import\s+(?:"([^"]*)"|'([^']*)')/gi)].map((m) => m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]).filter((url) => url && !staysInFile(url));
+  tags(markup);
+  for (const item of held.saved) {
+    if (item.kind === "style") for (const url of cssUrls(item.inner)) found.add(`<style> url(${url})`);
+    else if (item.kind === "script") { const src = item.attrs?.find(([key]) => key === "src")?.[1]; if (src && !staysInFile(src)) found.add(`<script src="${src}">`); }
+    else if (item.kind === "head") continue; // refused unless a data: icon or a canonical address
+    else if (item.kind !== "comment" && item.kind !== "title") tags(item.text);
+  }
+  return [...found];
+}
+
+/**
  * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts).
- * Returns { html, modules, icons, glyphs, built, bytes } (built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
+ * Returns { html, modules, icons, glyphs, built, external, bytes } (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
  */
 export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts") } = {}) {
   if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) throw new Error(`"${lang}" is not a language code`);
@@ -460,8 +513,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   const headTags = [];
   let title = null;
   markup = markup.replace(held.placeholder, (all$, i, ws) => {
-    const { kind, text, inner } = held.saved[Number(i)];
-    if (kind === "style") { styles.push(inner.trim()); return ""; }
+    const { kind, text, inner, attrs } = held.saved[Number(i)];
+    if (kind === "style") { styles.push({ css: inner.trim(), media: styleMedia(attrs) }); return ""; }
     if (kind === "title" && title === null) { title = inner.trim(); return ""; }
     if (kind === "head") { headTags.push(headTag(text.trim(), held.saved[Number(i)].attrs)); return ""; }
     const directive = kind === "comment" && text.match(/^<!--\s*basalt:use\s+([\s\S]*?)-->$/);
@@ -472,10 +525,10 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   for (const name of use) if (!(name in manifest.modules)) throw new Error(`basalt:use names "${name}", which is not a module (modules: ${Object.keys(manifest.modules).join(", ")})`);
 
   const content = held.restore(markup).replace(/^\s+/, "");
-  title ??= held.h1 || "Untitled page";
+  title ||= held.h1 || "Untitled page"; // an empty <title> names nothing: the heading does
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
-  const code = `${held.restore(markup, true)}\n${styles.map(stripCssComments).join("\n")}`;
+  const code = `${held.restore(markup, true)}\n${styles.map((style) => stripCssComments(style.css)).join("\n")}`;
   const chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
   // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
   const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
@@ -509,7 +562,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     ...(chosen.modules.includes("loops") ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
     `<style>${css}</style>`,
-    ...styles.map((s) => `<style>${s}</style>`),
+    ...styles.map((style) => `<style${style.media === undefined ? "" : ` media="${style.media.replaceAll('"', "&quot;")}"`}>${style.css}</style>`),
     `<script>${inlineScript(script)}</script>`,
     "</head>",
     "<body>",
@@ -519,7 +572,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), bytes: Buffer.byteLength(html) };
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */
@@ -584,7 +637,9 @@ function usage() {
   process.exit(2);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Run as a script, also when started through a symlink (on macOS /tmp and /var are links): Node gives the module's URL as a real path and process.argv[1] as written.
+const isMain = (() => { try { return Boolean(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url)); } catch { return false; } })();
+if (isMain) {
   const args = process.argv.slice(2);
   const options = { fonts: true, lang: "en", all: false };
   let input = null;
@@ -637,6 +692,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         const say = (l) => (l.name in result.built ? `  ${l.name}: built by the ${result.built[l.name]}; nothing to check.` : `  ${l.name}: ${l.warning}`);
         if (warnings.length) console.log(`Check before you hand it over (the full text of one: --usage NAME):\n${warnings.map(say).join("\n")}`);
       }
+      // After the page and the modules' lines: what the body references that is not in the file. The page is written; the warning is for the one who handed it over.
+      if (result.external.length) console.log(`Warning: ${result.external.length} reference${result.external.length === 1 ? "" : "s"} leave${result.external.length === 1 ? "s" : ""} the file, and a page is one file with no network (nothing loads offline; a link is the reader's to follow):\n${result.external.map((line) => `  ${line}`).join("\n")}`);
     } catch (e) {
       console.error(`compose.mjs: ${e.message}`);
       process.exit(1);

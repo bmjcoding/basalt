@@ -38,7 +38,7 @@
   }
 
   /* The form with words (DECISIONS 152, X8): data-copy-words="Copied" keeps the button's own words and holds both in one cell, so its width never
-     changes. It says the words only after the write succeeded, for 1500ms (as CodeBlock and Terminal), and a refused clipboard leaves it as it was.
+     changes. It says the words only after the write succeeded, for `duration-confirm` (as CodeBlock and Terminal), and a refused clipboard leaves it as it was.
      The page's live region says "Copied to clipboard" (or data-copy-status). */
   function wireWords(button) {
     var rest = button.innerHTML;
@@ -70,7 +70,7 @@
         show(true);
         announce(button.getAttribute('data-copy-status') || 'Copied to clipboard');
         clearTimeout(button.__bhTimer);
-        button.__bhTimer = setTimeout(function () { show(false); }, 1500);
+        button.__bhTimer = setTimeout(function () { show(false); }, %duration-confirm%);
       });
     });
   }

@@ -47,7 +47,7 @@ The sources stay readable, with their comments. `build.mjs` minifies each file w
    that uses the module). Keep each line short and `SKILL.md` within its byte budget. The test checks that every class in the index and
    in the usage texts belongs to the core or to one module, that a usage names only its own module's classes (or the modules it
    requires, or a mention listed in the test), and that using one brings its module.
-   A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI. A module's script can write `%glyph:name%` for the path of a core glyph (the drawn set, `packages/react/glyphs/source.mjs`): `links.js` draws the new-tab arrow from `external` this way.
+   A source stylesheet can write `%icon:X%` inside a `url("…")` for a mask: the build puts the Phosphor Bold glyph there as a data URI. A module's script can write `%glyph:name%` for the path of a core glyph (the drawn set, `packages/react/glyphs/source.mjs`): `links.js` draws the new-tab arrow from `external` this way. A source stylesheet writes a container or media width as `%bp-md%`, `%bp-lg%`, `%bp-container%`, `%bp-container-sm%` or `%bp-container-lg%`, and a script writes the confirmation's hold as `%duration-confirm%`: the build reads each from the tokens package, so no source carries the number.
 5. `npm run build`, then `npm run test:html-skill`. Rendered output must match React: add the component to `test/parity.test.mjs`.
 
 ## Parity with React
@@ -86,6 +86,17 @@ two templates, byte for byte. A PR that changes a pixel on purpose re-records th
 `node tools/html-skill/test/record-baseline.mjs`. The diff of the fixtures then shows what moved, and the PR shows a before and after of every
 region that differs. It does not delete or loosen the test. (Fonts stay out of the fixtures: each has a `<!-- basalt:fonts -->` placeholder.)
 
+## What compose.mjs does with a style, a title and a reference
+
+A body's `<style>` moves to the head after Basalt's, with its `media` kept as written (so print-only CSS stays print-only); any other attribute on it
+(`type`, `nonce`, `blocking`, `title`) is refused by name, because compose.mjs writes the style itself and would lose it. The page's title is the body's
+non-empty `<title>`, else its first `<h1>` read as text (an image in it by its `alt`), else "Untitled page". After the page's own line and the modules'
+warnings, it prints one warning listing each `src`, `href`, `data`, `srcset` or `poster` on a tag, and each `url()` or `@import` in a style, that leaves
+the file (not a `#fragment`, a `data:` or `blob:` URL, `mailto:` or `tel:`, nor a `link rel="canonical"`): a page is one file with no network, so each is
+something that will not load offline. An `<a href>` is listed too, marked "(a link)", since it is the reader's to follow and not a load. The page is still
+written and the exit is still 0. `compose()` returns the same list as `external`. A chart that throws while it is drawn (a `locale` the browser
+rejects) leaves that figure empty and the charts after it drawn, with the reason in the console.
+
 ## What a composed page needs from a Content-Security-Policy
 
 A page is one file with no network, so a policy can allow almost nothing. Measured on the two examples and the Blacksand page (no `on*=""` handler, no `eval` or `new Function`, no URL that leaves the file), the least policy that gives no violation is:
@@ -116,5 +127,8 @@ The toast region follows the focused modal (a native dialog or sheet, or the pal
 
 ## Budgets
 
-In `src/modules.json`: `skillMd` (the context an agent pays, never above what it was), `core`, `everything` (core, every module and
-every icon), a `budget` per module, and a `usage` cap per usage text (the context an agent pays for one module, on demand). They are tested. Raising one needs the owner's approval, as the old 80 KiB cap did.
+In `src/modules.json`: `budgets.skillMd` (the context an agent pays for `SKILL.md`: a cap, 11,950 bytes as this is written, that has been raised with
+the owner's approval each time the index grew), `budgets.core` (the CSS and script of every page), a `budget` per module, and a `usage` cap per usage
+text (the context an agent pays for one module, on demand). There is no cap on the page with every module: the tests bound it by the sum of the parts'
+caps, the icons, the glyphs and the page shell, so no byte can arrive that a part's own cap does not govern. They are tested. Raising one needs the
+owner's approval, as the old 80 KiB cap did.

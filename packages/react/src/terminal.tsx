@@ -14,7 +14,7 @@ import { usePanelLevel } from "./layers";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
-import { CONFIRM_MS } from "./confirm";
+import { CONFIRM_MS } from "./constants";
 
 /** What a line is: a command, what came back, or a result (done, a warning, an error). */
 export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error";
@@ -156,10 +156,12 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     })
   );
 
+  // The figure is named by its title alone: its caption also holds the state and the buttons, which are not its name.
+  const captionId = React.useId();
   return (
-    <figure className={join("basalt-code basalt-terminal", className)} data-titled="" data-level={level} data-live={live ? "" : undefined}>
+    <figure aria-labelledby={captionId} className={join("basalt-code basalt-terminal", className)} data-titled="" data-level={level} data-live={live ? "" : undefined}>
       <figcaption className="basalt-code-title basalt-terminal-head">
-        <span className="basalt-terminal-title">{title}</span>
+        <span id={captionId} className="basalt-terminal-title">{title}</span>
         <span className="basalt-terminal-actions">
           {words ? <span className="basalt-terminal-state" data-state={state}>{words}</span> : null}
           {control ? (

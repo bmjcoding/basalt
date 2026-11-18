@@ -4,6 +4,7 @@
 import * as React from "react";
 
 import { useReducedMotion } from "./motion";
+import { glideTiming } from "./motion-timing";
 import { join } from "./utils";
 
 interface SharedPlacement {
@@ -52,9 +53,11 @@ export function SharedElement({ layoutId, className, children }: { layoutId: str
     const dx = previous.left - next.left;
     const dy = previous.top - next.top;
     if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+      // The tokens' own `duration-slow` and `ease-out`, read when the move starts, so the reduced-motion override of the tokens reaches it.
+      const { duration, curve } = glideTiming();
       element.animate(
         [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
-        { duration: 200, easing: "cubic-bezier(0.16, 1, 0.3, 1)" } // slow, ease-out,
+        { duration, easing: `cubic-bezier(${curve.join(", ")})` },
       );
     }
     return forget;

@@ -8,6 +8,7 @@ import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, D
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
 import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
+import { useScrollStop } from "./scroll-stop";
 import type { PartProps } from "./types";
 import { join, withClass, withStyle } from "./utils";
 
@@ -117,9 +118,15 @@ export function SheetHeader({ closeLabel, className, children, ...props }: Sheet
   );
 }
 
-/** The part of a sheet that scrolls, between its head and its foot. Give it a `tabIndex={0}` if it holds nothing focusable, so a keyboard can scroll it. */
-export function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div {...props} className={join("basalt-sheet-body", className)} />;
+/**
+ * The part of a sheet that scrolls, between its head and its foot. A body that overflows and holds nothing focusable is a keyboard stop of its
+ * own, a region named by the sheet's title (or by your own `aria-label`) with Basalt's ring, so a keyboard can scroll it (WCAG 2.1.1); when it
+ * fits, or holds a control, nothing changes. There is no `tabIndex` to add.
+ */
+export function SheetBody({ className, ref, ...props }: React.ComponentProps<"div">) {
+  const named = Boolean(props["aria-label"] || props["aria-labelledby"]);
+  const body = useScrollStop<HTMLDivElement>({ named, labelledBy: (box) => box.closest('[role="dialog"]')?.getAttribute("aria-labelledby") ?? undefined }, ref);
+  return <div {...body.attributes} {...props} ref={body.ref} className={join("basalt-sheet-body", className)} />;
 }
 
 /** The foot band, fixed under the body on a divider, whatever the body's length. It keeps the bottom safe area. */

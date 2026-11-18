@@ -1,4 +1,5 @@
 // `npm test`: every suite, one after another, none skipped because an earlier one failed. See scripts/run-steps.mjs for the summary.
+import { isMain } from "./is-main.mjs";
 import { runSteps } from "./run-steps.mjs";
 
 export const SUITES = [
@@ -9,4 +10,4 @@ export const SUITES = [
   { label: "sites", command: "npm run test:sites" },
 ];
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) await runSteps(SUITES, { title: "npm test" });
+if (isMain(import.meta.url)) await runSteps(SUITES, { title: "npm test" });

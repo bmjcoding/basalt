@@ -21,9 +21,11 @@ try {
     archives.push(path.join(out, packed.filename));
     packedPackages.push({ packed, manifest: JSON.parse(fs.readFileSync(path.join(repo, workspace, "package.json"), "utf8")) });
     const files = new Set(packed.files.map((file) => file.path));
-    for (const required of workspace.endsWith("react") ? ["dist/index.js", "dist/index.d.ts", "dist/testing/headroom.js", "dist/testing/headroom.d.ts", "dist/tooling/phosphor.js", "dist/tooling/phosphor.d.ts", "dist/styles.css", "dist/fonts.css", "dist/fonts/OFL.txt", "dist/fonts/Geist-Variable.woff2", "dist/fonts/GeistMono-Variable.woff2"] : ["dist/css/tokens.css", "dist/css/accents.css", "dist/css/shadcn.css", "dist/js/tokens.js", "dist/js/tokens.d.ts", "dist/json/tokens.json"]) assert.ok(files.has(required), `${packed.name} is missing ${required}`);
+    for (const required of workspace.endsWith("react") ? ["dist/index.js", "dist/index.d.ts", "dist/testing/headroom.js", "dist/testing/headroom.d.ts", "dist/tooling/phosphor.js", "dist/tooling/phosphor.d.ts", "dist/styles.css", "dist/fonts.css", "dist/fonts/OFL.txt", "dist/fonts/Geist-Variable.woff2", "dist/fonts/GeistMono-Variable.woff2"] : ["dist/css/tokens.css", "dist/css/accents.css", "dist/css/shadcn.css", "dist/js/tokens.js", "dist/js/tokens.d.ts", "dist/js/breakpoints.js", "dist/js/durations.js", "dist/js/durations.d.ts", "dist/json/tokens.json"]) assert.ok(files.has(required), `${packed.name} is missing ${required}`);
   }
-  const manifest = { name: "basalt-consumer-check", version: "0.0.0", private: true, type: "module", dependencies: { "@srasyndicate/basalt-tokens": `file:${archives[0]}`, "@srasyndicate/basalt": `file:${archives[1]}`, react: "19.1.10", "react-dom": "19.1.10", "@types/react": "19.3.0", "@types/react-dom": "19.3.0" } };
+  // Next.js is in the lockfile (geist's peer), so the server-component check below installs the version the repository already resolves, offline.
+  const nextVersion = JSON.parse(fs.readFileSync(path.join(repo, "package-lock.json"), "utf8")).packages["node_modules/next"].version;
+  const manifest = { name: "basalt-consumer-check", version: "0.0.0", private: true, type: "module", dependencies: { "@srasyndicate/basalt-tokens": `file:${archives[0]}`, "@srasyndicate/basalt": `file:${archives[1]}`, next: nextVersion, react: "19.1.10", "react-dom": "19.1.10", "@types/react": "19.3.0", "@types/react-dom": "19.3.0" } };
   fs.writeFileSync(path.join(consumer, "package.json"), JSON.stringify(manifest));
   // Reuse the exact tested dependency resolution and cached tarballs, not workspace links or
   // mutable registry metadata. The installed Basalt packages themselves come from their .tgz.
@@ -85,10 +87,45 @@ const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase(
   assert.deepEqual(foreign, [], `a Button-only consumer compiles ${foreign.length} third-party declaration files`);
   assert.ok(loaded.length < 400, `a Button-only consumer compiles ${loaded.length} files`);
   fs.writeFileSync(path.join(consumer, "smoke.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs'; import { createElement } from 'react'; import { renderToStaticMarkup } from 'react-dom/server'; import { Button, CodeBlock, Pagination, Avatar, MorphIcon, CloseGlyph, preloadCodeLanguages } from '@srasyndicate/basalt'; import { tokens, accents } from '@srasyndicate/basalt-tokens';
-assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex, '#77a2fc'); assert.equal(accents.cobalt.light.oklch, 'oklch(0.47 0.17 264)'); assert.match(renderToStaticMarkup(createElement(Button, null, 'Deploy')), /Deploy/); assert.doesNotMatch(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); await preloadCodeLanguages(['ts']); assert.match(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); for (const f of fs.readdirSync(new URL('.', import.meta.resolve('@srasyndicate/basalt')))) if (f.endsWith('.js')) assert.doesNotMatch(fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^import[^;]*from\s*"shiki/m, f + ' imports Shiki statically'); const pages = renderToStaticMarkup(createElement(Pagination, {page:500000,pageCount:1000000})); assert.ok(pages.length < 10000); assert.match(renderToStaticMarkup(createElement(Avatar,{name:'Bailey Jones'})), /BJ/); assert.match(renderToStaticMarkup(createElement(MorphIcon,{glyph:CloseGlyph})), /data-icon="close"/); for (const name of ['styles.css','components.css','fonts.css']) assert.ok(fs.statSync(import.meta.resolve('@srasyndicate/basalt/'+name).replace('file://','')).size > 0); assert.match(fs.readFileSync(new URL(import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^"use client"/); const testing = await import('@srasyndicate/basalt/testing'); assert.equal(typeof testing.checkHeadroom, 'function'); assert.equal(typeof testing.measureHeadroom, 'function'); assert.equal('checkHeadroom' in await import('@srasyndicate/basalt'), false, 'the headroom helper is not in the root export');
+assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex, '#77a2fc'); assert.equal(accents.cobalt.light.oklch, 'oklch(0.47 0.17 264)'); assert.match(renderToStaticMarkup(createElement(Button, null, 'Deploy')), /Deploy/); assert.doesNotMatch(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); await preloadCodeLanguages(['ts']); assert.match(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); for (const f of fs.readdirSync(new URL('.', import.meta.resolve('@srasyndicate/basalt')))) if (f.endsWith('.js')) assert.doesNotMatch(fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^import[^;]*from\s*"shiki/m, f + ' imports Shiki statically'); const pages = renderToStaticMarkup(createElement(Pagination, {page:500000,pageCount:1000000})); assert.ok(pages.length < 10000); assert.match(renderToStaticMarkup(createElement(Avatar,{name:'Bailey Jones'})), /BJ/); assert.match(renderToStaticMarkup(createElement(MorphIcon,{glyph:CloseGlyph})), /data-icon="close"/); for (const name of ['styles.css','components.css','fonts.css']) assert.ok(fs.statSync(import.meta.resolve('@srasyndicate/basalt/'+name).replace('file://','')).size > 0); const read = (f) => fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'); assert.doesNotMatch(read('index.js'), /^"use client"/, 'the entry is a barrel: a Server Component imports plain values from it'); assert.match(read('button.js'), /^"use client"/); assert.match(read('menu.js'), /^"use client"/); assert.doesNotMatch(read('time-format.js'), /^"use client"/); const testing = await import('@srasyndicate/basalt/testing'); assert.equal(typeof testing.checkHeadroom, 'function'); assert.equal(typeof testing.measureHeadroom, 'function'); assert.equal('checkHeadroom' in await import('@srasyndicate/basalt'), false, 'the headroom helper is not in the root export');
 const phosphor = await import('@srasyndicate/basalt/phosphor'); assert.deepEqual(phosphor.BASALT_PHOSPHOR_WEIGHTS, ['bold', 'fill']); assert.throws(() => phosphor.phosphorWeightsEsbuild({}), /weights/); assert.equal(phosphor.phosphorWeightsRollup({ weights: ['bold'] }).transform('x', '/a/b.js'), null);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
+  // A React Server Component, built by Next.js (A5-18): what the package holds that is neither a component nor a hook must be callable on the server. Each
+  // page is static, so a call that throws ("Attempted to call formatStamp() from the server but formatStamp is on the client") fails the build, and a constant
+  // that arrives as a client reference (CONFIRM_MS / 1000 is NaN, with no error) shows in the page's HTML. The components still come through as components.
+  // The real path: the temporary folder is behind a symlink on macOS, and Turbopack's root must be the folder it finds, not a link to it.
+  const root = fs.realpathSync(consumer);
+  const rsc = path.join(root, "rsc");
+  fs.mkdirSync(path.join(rsc, "app"), { recursive: true });
+  fs.writeFileSync(path.join(rsc, "next.config.mjs"), `export default { turbopack: { root: ${JSON.stringify(root)} }, outputFileTracingRoot: ${JSON.stringify(root)}, typescript: { ignoreBuildErrors: true }, devIndicators: false };\n`);
+  fs.writeFileSync(path.join(rsc, "app", "layout.jsx"), `import { themeBootstrap, loopsBootstrap } from "@srasyndicate/basalt";
+export default function RootLayout({ children }) {
+  return <html lang="en"><head><script id="theme" dangerouslySetInnerHTML={{ __html: themeBootstrap }} /><script id="loops" dangerouslySetInnerHTML={{ __html: loopsBootstrap }} /></head><body>{children}</body></html>;
+}
+`);
+  fs.writeFileSync(path.join(rsc, "app", "page.jsx"), `import { Button, CodeBlock, CONFIRM_MS, COPIED_MS, STATUS_MESSAGE_MS, REFLOW_BOUND, AMBIENT_MAX, LOOPS_TOGGLE_NAME, ambient, ambientTiming, formatAge, formatClock, formatCountdown, formatDay, formatStamp, formatStatTime, shareOf, trailingMean, entranceStep, travelLeg, TRAVEL_MIN_LEG, preloadCodeLanguages } from "@srasyndicate/basalt";
+export default async function Page() {
+  await preloadCodeLanguages(["ts"]);
+  const at = new Date(0);
+  return (
+    <main>
+      <p id="confirm">Held for {CONFIRM_MS / 1000} seconds, copied for {COPIED_MS / 1000}, status for {STATUS_MESSAGE_MS / 1000}</p>
+      <p id="numbers">{REFLOW_BOUND} {AMBIENT_MAX} {TRAVEL_MIN_LEG} {LOOPS_TOGGLE_NAME}</p>
+      <p id="stamp">{formatStamp(at, { timeZone: "UTC" }).dateTime} {formatClock(at, { timeZone: "UTC" }).dateTime} {formatDay(at, { timeZone: "UTC", now: at }).dateTime} {formatStatTime(at, { timeZone: "UTC", now: at }).dateTime} {formatCountdown(60000, 0).text} {formatAge(0, 3600000)}</p>
+      <p id="plain">{shareOf([1, 1]).join("+")} {trailingMean([1, 2, 3, 4], { window: 3, min: 3 }).join(",")} {entranceStep(5, 20, 100)} {travelLeg(100)} {ambientTiming(0).period.toFixed(2)} {ambient(0)?.["data-ambient"] === "" ? "marked" : "unmarked"}</p>
+      <Button>Deploy</Button>
+      <CodeBlock code="const answer = 42;" language="ts" />
+    </main>
+  );
+}
+`);
+  run("env", ["NEXT_TELEMETRY_DISABLED=1", path.join(root, "node_modules", ".bin", "next"), "build"], rsc);
+  // React writes a comment between two adjacent text nodes; the words are what is compared.
+  const html = fs.readFileSync(path.join(rsc, ".next", "server", "app", "index.html"), "utf8").replaceAll("<!-- -->", "");
+  for (const expected of ["Held for 1.5 seconds, copied for 1.5, status for 5", "48 24 100 Pause animations", "1970-01-01T00:00:00 1970-01-01T00:00 1970-01-01 1970-01-01T00:00 00:01:00 60 minutes ago", "50+50 ,,2,3 20 300 1.09 marked", "Deploy"]) assert.ok(html.includes(expected), `a Server Component's page lacks "${expected}"`);
+  assert.doesNotMatch(html, /NaN|from the server but/, "a Server Component read a client reference as a value");
+  assert.ok(html.includes("basalt-loops") && html.includes("basalt-theme"), "the head scripts did not reach the document's head");
   console.log(`Installable archives: ${out}`);
 } catch (error) {
   if (error.stdout) process.stderr.write(error.stdout);

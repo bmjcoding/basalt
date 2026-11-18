@@ -10,7 +10,7 @@ A search dialog on the dialog's rules (`--usage dialog`): `<dialog class="panel 
       <input class="search-input" type="search" placeholder="A brand, whey" autocomplete="off" enterkeyhint="search"></label>
     <button type="button" class="btn search-close" data-variant="ghost" data-icon-only aria-label="Close search" data-dialog-close><span data-glyph="close"></span></button>
   </form>
-  <p class="search-count">2 products</p>
+  <p class="search-count" role="status">2 products</p>
   <ul class="search-results">
     <li><a class="search-result" href="#a"><span class="search-media"><img src="a.png" alt=""></span><span class="search-name"><span class="search-title">Whey</span><span class="search-detail">Brand · 2 lb</span></span><span class="search-trailing">$39</span></a></li>
   </ul>
@@ -19,5 +19,5 @@ A search dialog on the dialog's rules (`--usage dialog`): `<dialog class="panel 
 
 - `.search-results` has a fixed height, a full result's: 3 logo rows, 5 picture rows and a "See all" row. It never changes with the results, so the field and the count never move; it scrolls inside. Fewer rows leave it empty.
 - A row is as tall as its `.search-media` plus 6px each side: 72 for a pack (the default, 48 by 60), 60 for a logo (`data-shape="logo"`, 96 by 48), 48 at least with none. A row of its own words, centred: `data-centered` on the link.
-- The count is one line you rewrite after a pause, not per keystroke; for a spoken one, a visually hidden `role="status"` beside it.
+- The count is one line, a `role="status"` (spoken when you rewrite it), that you rewrite after a pause, not per keystroke; change only its text.
 - One close button: the browser's clear × is hidden. The title is read on opening and never drawn.

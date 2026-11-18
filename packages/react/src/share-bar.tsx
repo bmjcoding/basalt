@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { shareOf } from "./share-of";
 import { join } from "./utils";
 
 // A share bar (DECISIONS 153, votes 12 and 13): parts of a whole as one bar, N1's form without its gloss. Every part is one ink and a gap apart, the parts are told
@@ -19,19 +20,6 @@ export interface ShareBarProps extends Omit<React.ComponentProps<"ul">, "childre
   size?: "sm" | "md";
   /** How a part's share is written, from the share in whole percent. Default "40%". */
   format?: (share: number, part: SharePart) => string;
-}
-
-/** Whole-percent shares that add to exactly 100 (the largest remainders take the rounding). A part of nothing is 0, and no parts at all is no shares. */
-export function shareOf(values: ReadonlyArray<number>): number[] {
-  const positive = values.map((value) => (Number.isFinite(value) && value > 0 ? value : 0));
-  const total = positive.reduce((sum, value) => sum + value, 0);
-  if (total <= 0) return positive.map(() => 0);
-  const exact = positive.map((value) => (value / total) * 100);
-  const floors = exact.map(Math.floor);
-  let left = 100 - floors.reduce((sum, value) => sum + value, 0);
-  const order = exact.map((value, index) => ({ index, rest: value - Math.floor(value) })).sort((a, b) => b.rest - a.rest || a.index - b.index);
-  for (const { index } of order) { if (left <= 0) break; if (positive[index]! > 0) { floors[index]! += 1; left -= 1; } }
-  return floors;
 }
 
 /**

@@ -36,7 +36,8 @@ export function coverageWords(days: ReadonlyArray<CoverageDay>, { locale = "en-G
     if (day.recorded) return;
     const last = runs[runs.length - 1];
     const before = days[i - 1];
-    if (last && before && !before.recorded) { last.to = day; if (last.why !== (day.why ?? null)) last.why = null; } else runs.push({ from: day, to: day, why: day.why ?? null });
+    // A run is adjacent missing days with the same reason (none is a reason): each day keeps the reason it was given.
+    if (last && before && !before.recorded && last.why === (day.why ?? null)) last.to = day; else runs.push({ from: day, to: day, why: day.why ?? null });
   });
   if (!runs.length) return lead;
   const list = runs.map(({ from, to, why }) => {

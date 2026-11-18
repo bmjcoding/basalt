@@ -21,7 +21,7 @@ before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
 const travel = await import(pathToFileURL(path.join(pkg, "dist", "travel.js")).href);
-const ambient = await import(pathToFileURL(path.join(pkg, "dist", "ambient.js")).href);
+const ambient = await import(pathToFileURL(path.join(pkg, "dist", "ambient-timing.js")).href);
 
 async function open(body, { theme = "dark", viewport = { width: 1440, height: 900 }, reducedMotion, forcedColors, hasTouch = false, media, stored = false, context } = {}) {
   context ??= await browser.newContext({ viewport, reducedMotion, forcedColors, hasTouch, colorScheme: theme });
