@@ -3,7 +3,8 @@
 // here, tested, in case a component does.
 import * as React from "react";
 
-import { glideTiming, useReducedMotion } from "./motion";
+import { useReducedMotion } from "./motion";
+import { glideTiming } from "./motion-timing";
 import { join } from "./utils";
 
 interface SharedPlacement {
