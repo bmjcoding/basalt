@@ -3,6 +3,8 @@ import * as React from "react";
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
+import { useFloatingLayer } from "./layers";
+import { usePeekPlate } from "./use-peek";
 import { join } from "./utils";
 
 // ---- OpenList: rows that open ----
@@ -25,10 +27,12 @@ const ROWS = "[data-open-row]:not([data-off])";
 /**
  * A list of rows that open, one cursor row with the tab stop. ↓ or j and ↑ or k move it, Home or g to the first row, End or G to the last,
  * and Enter on the row opens it. The cursor skips rows `off` filtering left in place. Say how many match with a `FilterResult` outside the
- * list: the list does not count, speak or highlight.
+ * list: the list does not count, speak or highlight. A row whose name, cells or second line are cut keeps its ellipsis and shows them whole on a plate
+ * (DECISIONS 168 and 170): see peek-plate.ts. On touch a long press opens it.
  */
 export function OpenList({ label, className, children, onKeyDown, ...props }: OpenListProps) {
   const root = React.useRef<HTMLDivElement>(null);
+  usePeekPlate(root, "open", { zIndex: useFloatingLayer()?.zIndex });
   const [cursor, setCursor] = React.useState<string | undefined>();
   // The cursor is always a row that is on: after a filter turns it off, or on the first render, it goes to the first row that is on.
   React.useEffect(() => {

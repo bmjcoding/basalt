@@ -6,11 +6,11 @@ import * as React from "react";
 // focus have both left. A cell that is not cut is not a stop and opens nothing. Nothing here runs when the module loads; the plate is
 // made on first use and removed with the table.
 
-/** The tooltip's wait before it opens on hover, and the grace after one closes in which the next opens at once. */
-const WAIT = 600;
-const GRACE = 400;
+/** The tooltip's wait before it opens on hover, and the grace after one closes in which the next opens at once. Exported: the list and status plates (peek-plate.ts) keep the same timings. */
+export const WAIT = 600;
+export const GRACE = 400;
 /** How long the pointer may be off the cell and the plate before the plate leaves: the time it takes to cross the 1px rim between them. */
-const LEAVE = 100;
+export const LEAVE = 100;
 
 const COPIED = ["fontFamily", "fontSize", "fontWeight", "fontVariantNumeric", "letterSpacing", "wordSpacing", "lineHeight", "color"] as const;
 
