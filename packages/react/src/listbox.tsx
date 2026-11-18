@@ -42,7 +42,12 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
   const chosen = value !== undefined ? value : inner;
   const root = React.useRef<HTMLDivElement>(null);
   const base = React.useId();
-  const idOf = React.useCallback((option: string) => `${base}-${option.replace(/\s+/g, "_")}`, [base]);
+  // One id per value: the value, written so that no two values give one id (encodeURIComponent is one to one; "a b" and "a_b" shared one).
+  const idOf = React.useCallback((option: string) => `${base}-${encodeURIComponent(option)}`, [base]);
+  // An option given its own `id` keeps it, so the reference names the id the chosen option really carries, read once it is drawn.
+  const optionOf = React.useCallback((option: string) => [...(root.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find((o) => o.dataset.value === option), []);
+  const [carried, setCarried] = React.useState<string | undefined>();
+  React.useLayoutEffect(() => setCarried(chosen === undefined ? undefined : optionOf(chosen)?.id || undefined));
   const choose = React.useCallback((next: string) => {
     if (value === undefined) setInner(next);
     onValueChange?.(next);
@@ -65,7 +70,7 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
         role="listbox"
         tabIndex={0}
         aria-label={label}
-        aria-activedescendant={chosen !== undefined ? idOf(chosen) : focused ? first : undefined}
+        aria-activedescendant={chosen !== undefined ? (carried ?? idOf(chosen)) : focused ? first : undefined}
         data-flush={flush ? "" : undefined}
         className={join("basalt-listbox", className)}
         onPointerDown={(event) => {
@@ -81,8 +86,7 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           setFirst(root.current?.querySelector<HTMLElement>(OPTIONS)?.id || undefined);
           // The active option is brought into view when focus arrives, as a key does; one already in view does not move the list.
           if (press) return;
-          const id = chosen !== undefined ? idOf(chosen) : root.current?.querySelector<HTMLElement>(OPTIONS)?.id;
-          const option = id ? [...(root.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find((o) => o.id === id) : undefined;
+          const option = chosen !== undefined ? optionOf(chosen) : root.current?.querySelector<HTMLElement>(OPTIONS) ?? undefined;
           option?.scrollIntoView({ block: "nearest" });
         }}
         onBlur={(event) => {

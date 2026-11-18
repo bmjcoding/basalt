@@ -87,6 +87,16 @@ function subscribe(listener: (now: number) => void) {
   };
 }
 
+// ---- hydration
+// A running part reads the wall clock where it is drawn, so the server's text and the client's differ whenever time passes between the
+// two (a minute for a clock, a second for a countdown). The part says so (`suppressHydrationWarning`: React keeps the server's
+// text for that pass and reports nothing), and once the client has drawn it the element is replaced under a new key, so what stays is
+// the client's time, never the server's stale one. A page the client draws alone has no such pass and no replacement.
+const quiet = () => () => {};
+function useDrawn() {
+  return React.useSyncExternalStore(quiet, () => true, () => false);
+}
+
 /**
  * The current time, ticking by the `every` second or minute. `data-loops="held"` freezes it at the value it shows, and releasing the hold
  * writes the current time at once. Nothing here is a live region: the element's own text is the value. With `now` given, it is that, and
@@ -117,7 +127,9 @@ export interface ClockProps extends Omit<React.ComponentProps<"time">, "children
 export function Clock({ timeZone, locale, now: fixed, className, ...props }: ClockProps) {
   const now = useNow("minute", fixed);
   const { text, dateTime } = formatClock(now, { timeZone, locale });
-  return <time {...props} dateTime={dateTime} className={join("basalt-time", className)}>{text}</time>;
+  const drawn = useDrawn();
+  const running = fixed === undefined;
+  return <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} dateTime={dateTime} className={join("basalt-time", className)}>{text}</time>;
 }
 
 export interface CountdownProps extends Omit<React.ComponentProps<"time">, "children" | "dateTime"> {
@@ -136,9 +148,14 @@ export interface CountdownProps extends Omit<React.ComponentProps<"time">, "chil
 export function Countdown({ to, done = "Now", now: fixed, className, ...props }: CountdownProps) {
   const now = useNow("second", fixed);
   const left = formatCountdown(to, now);
+  // Once it has run, its last reading stays in the cell after it completes, so the cell keeps the room the time took and the width does not change.
+  const last = React.useRef("");
+  if (left) last.current = left.text;
+  const drawn = useDrawn();
+  const running = fixed === undefined;
   return (
-    <time {...props} dateTime={left?.dateTime ?? "PT0S"} className={join("basalt-time basalt-countdown", className)}>
-      <Reserve show={left ? "left" : "done"} alternatives={{ left: left?.text ?? "", done }} />
+    <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} dateTime={left?.dateTime ?? "PT0S"} className={join("basalt-time basalt-countdown", className)}>
+      <Reserve live={running} suppressHydrationWarning={running || undefined} show={left ? "left" : "done"} alternatives={{ left: left?.text ?? last.current, done }} />
     </time>
   );
 }
@@ -161,10 +178,13 @@ export function DateAge({ time, timeZone, locale, now: nowProp, short = false, c
   const [fallback] = React.useState(() => Date.now());
   const now = nowProp ?? fallback;
   const day = formatDay(time, { now, timeZone, locale });
+  const drawn = useDrawn();
+  const running = nowProp === undefined;
+  const quietly = running || undefined;
   return (
-    <span {...props} className={join("basalt-date-age", className)}>
-      <time dateTime={day.dateTime} className="basalt-time">{day.text}</time>
-      <span className="basalt-date-age-age"><span aria-hidden="true">·</span><span className="basalt-visually-hidden">, </span>{short ? <Reserve className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
+    <span key={running && !drawn ? "server" : "client"} {...props} className={join("basalt-date-age", className)}>
+      <time dateTime={day.dateTime} className="basalt-time" suppressHydrationWarning={quietly}>{day.text}</time>
+      <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><span aria-hidden="true">·</span><span className="basalt-visually-hidden">, </span>{short ? <Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
     </span>
   );
 }

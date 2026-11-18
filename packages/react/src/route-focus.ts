@@ -20,15 +20,19 @@ export interface UseRouteFocusOptions {
  * aloud through one `StatusLine`; this moves focus and the title only. It skips the first render.
  */
 export function useRouteFocus({ key, title, target, fromControl = false }: UseRouteFocusOptions): void {
-  const first = React.useRef(true);
+  // The key the page was last settled on. Only a different key is a page change: a target ref that is a new object on every render is not.
+  const seen = React.useRef(key);
+  const aim = React.useRef(target);
+  aim.current = target;
   const control = React.useRef(fromControl);
   control.current = fromControl;
   const heading = React.useRef(title);
   heading.current = title;
   React.useEffect(() => {
-    if (first.current) { first.current = false; return; }
+    if (Object.is(seen.current, key)) return;
+    seen.current = key;
     window.scrollTo(0, 0);
     document.title = heading.current;
-    if (!control.current) target.current?.focus({ preventScroll: true });
-  }, [key, target]);
+    if (!control.current) aim.current.current?.focus({ preventScroll: true });
+  }, [key]);
 }
