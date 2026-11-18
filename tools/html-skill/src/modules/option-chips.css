@@ -21,7 +21,7 @@
     min-height: var(--basalt-size-control-2xl);
     margin: 0;
     padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
-    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
     color: var(--basalt-text-secondary);

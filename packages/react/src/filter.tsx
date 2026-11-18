@@ -137,10 +137,10 @@ interface ChecklistRowProps {
  */
 const ChecklistRow = /* @__PURE__ */ React.memo(function ChecklistRow({ option: o, checked, lit, setLit }: ChecklistRowProps) {
   return (
-    // No `inputRef={markMirror}` here, on purpose: the rows' hidden inputs stay as Base UI draws them (fixed). In the open checklist popup, absolute
-    // inputs move the AA of the popup's two left corners by 1 to 5 levels (compositing: each fixed input is a layer under the popup), and Basalt changes
-    // no rendered pixel for a performance fix. test/audit-fix-c6.test.mjs holds this; marking the rows is a visual decision for the council.
+    // The rows' hidden inputs take Basalt's mirror mark (DECISIONS 167, Q9j: the council took the fix). In the open checklist popup the absolute inputs move the AA of
+    // the popup's two left corners by 1 to 5 of 255 levels (each fixed input was a layer under the popup), and a long list ticks in half the time or less.
     <BaseCheckbox.Root
+      inputRef={markMirror}
       value={o.value}
       disabled={o.disabled}
       render={<div />}

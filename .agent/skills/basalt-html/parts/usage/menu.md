@@ -5,7 +5,7 @@ A popup of actions: the opener is a `popovertarget` button, the menu comes right
 ```html
 <button class="btn" popovertarget="m">Options</button>
 <div class="panel float menu" popover id="m">
-  <button class="menu-item" role="menuitem"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
+  <button class="menu-item" role="menuitem"><span data-glyph="copy"></span><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
   <div class="menu-separator" role="separator"></div>
   <div role="group" aria-labelledby="g1">
     <div class="menu-group-label" id="g1">Sort by</div>

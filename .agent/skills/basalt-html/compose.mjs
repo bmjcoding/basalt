@@ -436,7 +436,7 @@ export function detect(text, manifest, iconNames, { all = false, use = [], glyph
     for (const name of [...wanted]) for (const need of manifest.modules[name].requires ?? []) if (!wanted.has(need)) { wanted.add(need); grew = true; }
   }
   const modules = Object.keys(manifest.modules).filter((n) => wanted.has(n));
-  // An icon is in when its name sits in quotes in the body (data-icon="Copy", icon: 'Trash') or a module in use draws it.
+  // An icon is in when its name sits in quotes in the body (data-icon="Trash", icon: 'Trash') or a module in use draws it.
   const named = new Set();
   for (const name of iconNames) if (all || new RegExp(`["'\`]${name}["'\`]`).test(text)) named.add(name);
   for (const m of modules) for (const name of manifest.modules[m].icons ?? []) named.add(name);

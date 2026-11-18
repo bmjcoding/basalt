@@ -683,6 +683,14 @@ export function TimeChart({
           format={format} formatPlan={formatPlan} formats={formats} stamps={stamps} idBase={id}
         />
       )}
+      {framed && series.some((s) => s.values.some((v) => v == null)) ? (
+        // The headline frame has no legend rows, so a chart with a gap says what the hatch is in a key of its own above the plot, as the series charts do (DECISIONS 167, Q11a).
+        <div className="basalt-chart-key" data-gap-key="">
+          <ul className="basalt-chart-legend" aria-label="Key">
+            <NotObservedEntry idBase={id} />
+          </ul>
+        </div>
+      ) : null}
       {lane ? (
         <div className="basalt-chart-body">
           {layout ? <i className="basalt-chart-span" aria-hidden="true" style={{ left: layout.x0 + lane.span[0] * layout.slot, width: (lane.span[1] - lane.span[0] + 1) * layout.slot, top: layout.top - layout.metrics.s1 }} /> : null}
@@ -819,11 +827,16 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
           <li className="basalt-chart-entry"><Swatch kind="so-far" index={0} idBase={idBase} bar={bar} /><span className="basalt-chart-name">{partialLabel}</span></li>
         ) : null}
         {hasGap ? (
-          <li className="basalt-chart-entry"><Swatch kind="missing" index={0} idBase={idBase} /><span className="basalt-chart-name">{NOT_OBSERVED}</span></li>
+          <NotObservedEntry idBase={idBase} />
         ) : null}
       </ul>
     </div>
   );
+}
+
+/** The legend entry for a day that was not observed: the hatch swatch and the words. */
+function NotObservedEntry({ idBase }: { idBase: string }) {
+  return <li className="basalt-chart-entry"><Swatch kind="missing" index={0} idBase={idBase} /><span className="basalt-chart-name">{NOT_OBSERVED}</span></li>;
 }
 
 type SwatchKind = "series" | "bar" | "value" | "band" | "so-far" | "missing";

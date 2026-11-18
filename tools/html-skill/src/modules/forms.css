@@ -34,7 +34,7 @@
   .input[type="number"] { appearance: textfield; }
   .input[type="number"]::-webkit-inner-spin-button, .input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
   /* The search field's clear button is Basalt's X (Phosphor Bold) in secondary ink, a 24px target (44px on touch). */
-  .input[type="search"]::-webkit-search-cancel-button { appearance: none; width: var(--basalt-size-control-xs); height: var(--basalt-size-control-xs); margin: 0; background: var(--basalt-text-secondary); mask: url("%icon:X%") center / var(--basalt-size-icon-sm) no-repeat; cursor: pointer; }
+  .input[type="search"]::-webkit-search-cancel-button { appearance: none; width: var(--basalt-size-control-xs); height: var(--basalt-size-control-xs); margin: 0; background: var(--basalt-text-secondary); mask: url("%glyph-mask:close%") center / var(--basalt-size-icon-sm) no-repeat; cursor: pointer; }
   @media (pointer: coarse) { .input[type="search"]::-webkit-search-cancel-button { width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); } }
   /* A file input is a secondary button and its file name in secondary ink. */
   input[type="file"] { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-base); }

@@ -10,7 +10,7 @@
   .period-label { margin: 0; min-width: calc(var(--basalt-space-16) * 2); color: var(--basalt-text-primary); text-align: center; font: var(--basalt-font-weight-medium) var(--bh-base); font-variant-numeric: tabular-nums; white-space: nowrap; }
   /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
   @container (width < %bp-container-lg%) {
-    .period { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline); }
+    .period { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
     .period .btn { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); }
   }
 }

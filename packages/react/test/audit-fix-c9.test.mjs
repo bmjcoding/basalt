@@ -239,11 +239,11 @@ describe("A4-22: a horizontal Tab, a SourceStamp button and an event line drawn 
       await page.close();
     });
 
-    test(`${theme}, 1440: the 36px tab's top corners and the 24px lines keep their 6 (the council's, not decided here)`, async () => {
+    test(`${theme}, 1440: the 36px tab's top corners are 8 (DECISIONS 167, Q9d) and the 24px lines keep their 6`, async () => {
       const page = await open(PARTS, DESKTOP, theme);
       const tab = page.getByRole("tab", { name: "One" });
       assert.equal((await box(tab)).height, 36);
-      assert.equal(await css(tab, "borderTopLeftRadius"), "6px");
+      assert.equal(await css(tab, "borderTopLeftRadius"), "8px");
       assert.equal(await css(page.locator("button#stamp"), "borderTopLeftRadius"), "6px");
       assert.equal(await css(page.locator("#e1"), "borderTopLeftRadius"), "6px");
       await page.close();

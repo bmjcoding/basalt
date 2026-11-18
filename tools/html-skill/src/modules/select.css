@@ -100,7 +100,7 @@
     select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover) .option-description,
     select.input[data-input="key"] option:hover:not(:focus-visible) .option-description { color: var(--basalt-text-tertiary); }
     /* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */
-    select.input option::checkmark { content: ""; grid-area: 1 / 1; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-primary); mask: url("%icon:Check%") center / contain no-repeat; }
+    select.input option::checkmark { content: ""; grid-area: 1 / 1; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-primary); mask: url("%glyph-mask:check%") center / contain no-repeat; }
     select.input option:not(:checked)::checkmark { visibility: hidden; }
     /* A second line: the description runs from the text's edge to the row's end, 13/18 in tertiary (secondary on the lit row), cut with an ellipsis. */
     select.input option:has(> .option-description) {

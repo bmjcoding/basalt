@@ -799,7 +799,7 @@
     padding: 0 var(--basalt-space-2);
     margin: 0;
     border: 0;
-    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)) var(--_basalt-control-lg-radius, var(--basalt-radius-md)) 0 0;
     background: transparent;
     color: var(--basalt-text-secondary);
     font-size: var(--basalt-text-sm-size);
@@ -925,7 +925,7 @@
     align-items: center;
     height: var(--_h);
     padding: 0 var(--basalt-space-2);
-    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)) var(--_basalt-control-lg-radius, var(--basalt-radius-md)) 0 0;
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
     text-decoration: none;
@@ -2098,6 +2098,10 @@
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
 
+  /* A checkbox in a cell is centred in its row (DECISIONS 167, Q9e). It is a block of its own (16px wide, the cell's middle alignment centres it exactly) and not a box on
+     a text baseline, which left it 1 to 2.5px off the centre by the font's metrics. It still does not move when ticked: a block has no baseline to move. */
+  .basalt-table :is(td, th) .basalt-checkbox { display: flex; }
+
   /* The flat form (DECISIONS 162, D18b): a table in a Card has the card's one box, so its own frame draws nothing (no border, radius, fill or shadow) and sets no level. The
      header band keeps its fill. Its cells are padded space-2 above and below, so a two-line cell (TableCall) has air. */
   .basalt-table-container[data-flat] { border: 0; border-radius: 0; background: none; box-shadow: none; }
@@ -2419,7 +2423,7 @@
     min-height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl));
     margin: 0;
     padding: var(--basalt-space-1-5) var(--basalt-space-3) var(--basalt-space-1-5) var(--basalt-space-2);
-    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
     color: var(--basalt-text-secondary);
@@ -2435,8 +2439,8 @@
   .basalt-switch-row-tile { display: block; flex: none; width: var(--basalt-size-control-lg); height: var(--basalt-size-control-lg); }
   .basalt-switch-row-tile > * { display: block; width: 100%; height: 100%; }
   .basalt-switch-row-text { display: grid; min-width: 0; }
-  .basalt-switch-row-name { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
-  .basalt-switch-row-kind { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-name { position: relative; overflow-wrap: anywhere; font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-switch-row-kind { overflow-wrap: anywhere; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-switch-row-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-switch-row-seat > .basalt-icon { position: absolute; inset: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-switch-row-check, .basalt-switch-row[data-checked] .basalt-switch-row-plus { opacity: 0; }
@@ -2481,7 +2485,7 @@
     min-height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl));
     margin: 0;
     padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
-    border: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
     color: var(--basalt-text-secondary);
@@ -2540,7 +2544,8 @@
   .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   .basalt-filter-foot .basalt-filter-clear { margin-inline-start: 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
-  .basalt-filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }
+  /* position: relative, so each row's hidden input (marked, so absolute at its place in the flow; DECISIONS 167, Q9j) is contained by the rows and scrolls with them: with the popup as its containing block the inputs made the popup itself scroll. */
+  .basalt-filter-rows { position: relative; max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }
   /* The search band, from ten values: the command band's recipe at a popup row's size. 40px, the next level's fill, a divider below,
      the −2 inset ring (the popup has other stops), 14/20 text (16 on touch, so a phone doesn't zoom). */
   .basalt-filter-band {
@@ -2966,8 +2971,11 @@
   /* ---- Command menu ---- */
 
   .basalt-dialog.basalt-command {
+    /* The skill's top and height cap (DECISIONS 167, Q7c): 12% of the window, never under 16px, and the panel no taller than 480px or what the window leaves under it. */
     /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-    top: 20vh;
+    top: max(var(--basalt-space-4), 12vh);
+    /* stylelint-disable-next-line unit-disallowed-list -- 480px is the command panel's height cap, as the skill's palette has it; the nearest tokens (popup max-height plus the input band) would shift it */
+    max-height: min(480px, calc(100dvh - max(var(--basalt-space-4), 12vh) - var(--basalt-space-4)));
     /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4)));
     padding: 0;
@@ -3544,6 +3552,8 @@
      style, so the override takes !important. If a Base UI release stops passing `inputRef` to this input, nothing matches and nothing is exposed (the input is
      as hidden as Base UI makes it); a test fails when the rule matches nothing. */
   [data-basalt-mirror] { position: absolute !important; inset: auto !important; }
+  /* In the checklist's rows the inputs sit at the rows' own top start, so they add nothing to the rows' scrollable height (DECISIONS 167, Q9j). */
+  .basalt-filter-rows > [data-basalt-mirror] { top: 0 !important; left: 0 !important; }
 
   /* ---- Figures: the description list, the meter, the stat, and the gutter and terminal that CodeBlock shares ---- */
 
@@ -4333,7 +4343,7 @@
   @media (hover: hover) { .basalt-search-trigger:hover { background: var(--basalt-state-hover); } }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the trigger is a field-shaped button with the word */
   @media (width >= 720px) {
-    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-input); color: var(--basalt-text-secondary); }
+    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-field); color: var(--basalt-text-secondary); }
     .basalt-search-trigger-word { display: inline; }
     @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
   }
@@ -4435,7 +4445,7 @@
   .basalt-search-media[data-shape="logo"] { width: var(--basalt-size-search-logo-width); height: var(--basalt-size-search-logo-height); }
   .basalt-search-media[data-shape="pack"] { width: var(--basalt-size-search-pack-width); height: var(--basalt-size-search-pack-height); }
   .basalt-search-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .basalt-search-title, .basalt-search-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-search-title, .basalt-search-detail { overflow-wrap: anywhere; }
   .basalt-search-detail { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-weight: var(--basalt-font-weight-regular); color: var(--basalt-text-tertiary); }
   .basalt-search-trailing { flex: none; font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; }
   .basalt-search-result[data-centered] { justify-content: center; }
@@ -4455,7 +4465,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the line does not wrap and has no extra space above */
   @media (width >= 720px) { .basalt-notice-bar-in { flex-wrap: nowrap; padding-block-start: 0; } }
 
-  /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with a chevron in its gutter and
+  /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with the core check in its gutter and
      a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
   .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
   /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
@@ -4765,6 +4775,9 @@
   .basalt-empty-state-description { margin: 0; max-width: 42ch; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
   .basalt-empty-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--basalt-space-2); margin-top: var(--basalt-space-3); }
 
+  /* A b or strong inside any Basalt part (Text, Prose, a callout, the header and the rest that hold an app's words) is 600, as the HTML skill's core draws it: the
+     browser's own bolder would reach 700, outside the three weights (DECISIONS 167, Q5). Zero specificity: a class an app or a part sets on the tag still wins. */
+  :where([class*="basalt-"]) :where(b, strong) { font-weight: var(--basalt-font-weight-semibold); }
   .basalt-text, .basalt-heading { margin: 0; font-family: var(--basalt-font-family-sans); font-size: var(--_basalt-type-size); line-height: var(--_basalt-type-line); letter-spacing: var(--_basalt-type-tracking); font-weight: var(--_basalt-type-weight); color: var(--basalt-text-primary); overflow-wrap: anywhere; }
   .basalt-text[data-tone="secondary"] { color: var(--basalt-text-secondary); }
   .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-tertiary); }
@@ -5276,7 +5289,7 @@
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
-    .basalt-period-stepper { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline); }
+    .basalt-period-stepper { flex: 1 0 100%; box-sizing: border-box; justify-content: space-between; min-height: var(--basalt-size-control-4xl); padding-inline: var(--basalt-space-2); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
     .basalt-period-stepper .basalt-button { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); }
   }
 
@@ -5347,6 +5360,8 @@
      colour. On is Highlight with HighlightText for the row, its name and its check, with no outline as a state mark; focus is the ordinary ring.
      The amount is full ink: an opacity is an author colour. The current link tab's underline is Highlight. Unavailable and disabled are GrayText. */
   @media (forced-colors: active) {
+    /* A skeleton's fill is dropped, so its box is a 1px ButtonBorder edge inside its own size and no fill (DECISIONS 167, Q4). */
+    .basalt-skeleton { box-sizing: border-box; border: var(--basalt-size-hairline) solid ButtonBorder; }
     .basalt-button-count { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
     .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: 1; }
     .basalt-switch-row,
@@ -5435,7 +5450,7 @@
   .basalt-event-text { min-width: 0; overflow-wrap: anywhere; }
   .basalt-event-verb { color: var(--basalt-text-secondary); }
   .basalt-event-object { color: var(--basalt-text-primary); }
-  .basalt-event-detail { display: block; min-width: 0; overflow: hidden; color: var(--basalt-text-tertiary); text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-event-detail { display: block; min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-tertiary); }
   .basalt-event-rule { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-xs); margin: 0; padding-inline: var(--basalt-space-2); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-event-rule-line { flex: 1 1 0; height: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   /* The session log: the Listbox's own rows, with a leading time cell between the gutter and the name. */
@@ -5471,8 +5486,7 @@
   .basalt-status-bar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .basalt-status-bar-seat { display: inline-flex; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-status-danger); }
   .basalt-status-bar-message[data-status="error"] .basalt-status-bar-text { color: var(--basalt-status-danger); }
-  /* The sources button is a ghost sm Button (28, radius 6); its open plate is surface-raised. */
-  .basalt-status-bar .basalt-button[aria-expanded="true"] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); }
+  /* The sources button is a ghost sm Button (28, radius 6) with no open look of its own (DECISIONS 167, Q9b): the open state is aria-expanded and the drawer it opens. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the bar is fixed at the foot */
   @media (width < 720px) {
     .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-left)) max(var(--basalt-gutter), var(--_inset-right)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2); }

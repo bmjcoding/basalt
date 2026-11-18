@@ -66,6 +66,22 @@ for (const theme of THEMES) {
     for (const t of ["status-success", "status-warning", "status-danger"]) atLeast(theme, t, 3);
   });
 
+  // DECISIONS 167 (Q9g, A5-16b): light status-warning is oklch(0.60 0.142 62). On the selected wash over the sunken area it measured 2.975:1, and over the
+  // stronger sunken 2.847:1 at L 0.62, with no test on either. The warning mark is asserted on every surface and on both washes over every surface.
+  test(`${theme}: the warning mark meets 3:1 on every surface and on the hover and selected washes over every surface`, () => {
+    const washed = surfaces(theme).flatMap(([n, s]) => ["state-hover", "state-selected"].map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
+    atLeast(theme, "status-warning", 3);
+    atLeast(theme, "status-warning", 3, washed);
+  });
+
+  test(`${theme}: the two pairs the second audit measured (the warning mark on a selected row over sunken and over sunken-strong) are asserted by name`, () => {
+    for (const surface of ["surface-sunken", "surface-sunken-strong"]) {
+      const bg = over(color(theme, "state-selected"), color(theme, surface));
+      const r = ratio(color(theme, "status-warning"), bg);
+      assert.ok(r >= 3, `${theme}: status-warning on state-selected over ${surface} is ${fmt(r)}:1, needs 3:1`);
+    }
+  });
+
   test(`${theme}: on hover and selected washes, secondary and primary text still meet 4.5:1`, () => {
     // Tertiary text is promoted to secondary on a wash; this proves the promotion is enough.
     const washed = surfaces(theme).flatMap(([n, s]) => ["state-hover", "state-selected"].map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
@@ -496,7 +512,8 @@ for (const theme of THEMES) {
     test(`${theme}, level ${level}: the 45% status rim is pinned to what the council measured, and is decorative: under 3:1 on its own fill`, () => {
       const drawn = {
         dark: { 1: [2.563, 2.758, 2.171], 2: [2.584, 2.786, 2.189], 3: [2.572, 2.777, 2.18] },
-        light: { 1: [1.891, 1.744, 2.27], 2: [1.891, 1.744, 2.27], 3: [1.891, 1.744, 2.27] },
+        // light warning: 1.744 before DECISIONS 167 (Q9g) took light status-warning to oklch(0.60 0.137 62): 1.790 on every level, still decoration
+        light: { 1: [1.891, 1.79, 2.27], 2: [1.891, 1.79, 2.27], 3: [1.891, 1.79, 2.27] },
       }[theme][level];
       STATUS_NAMES.forEach((name, i) => {
         const rim = over({ ...color(theme, name), alpha: 0.45 }, panel);

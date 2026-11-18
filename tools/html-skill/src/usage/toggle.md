@@ -4,7 +4,7 @@ A pressed toggle is a `.btn` with `aria-pressed`. Only the secondary (default) a
 
 ```html
 <button class="btn" aria-pressed="false"><span class="btn-check" aria-hidden="true"></span>Pause animations</button>
-<button class="btn" data-variant="ghost" data-icon-only aria-pressed="false" aria-label="Expand"><i data-icon="Plus"></i></button>
+<button class="btn" data-variant="ghost" data-icon-only aria-pressed="false" aria-label="Expand"><span data-glyph="plus"></span></button>
 ```
 
 - A text toggle has the 16px `.btn-check` seat first (it shows a check while pressed, so both states are one width); an icon-only toggle has none.

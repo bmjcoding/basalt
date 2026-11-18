@@ -9,7 +9,7 @@
       <a href="#ks-nav-h">Navigation</a>
     </nav>
     <span class="spacer"></span>
-    <button class="btn" data-open-palette><i data-icon="MagnifyingGlass"></i><span>Commands</span><span data-kbd="⌘ K"></span></button>
+    <button class="btn" data-open-palette><span data-glyph="search"></span><span>Commands</span><span data-kbd="⌘ K"></span></button>
     <button class="btn" data-variant="ghost" data-icon-only data-theme-toggle></button>
     <a class="btn topbar-action" data-variant="primary" href="#ks-nav-h">Go</a>
   </div>
@@ -33,7 +33,7 @@
       <button class="btn" data-variant="danger">Danger</button>
       <button class="btn" data-size="sm">Small</button>
       <button class="btn" data-size="lg">Large</button>
-      <button class="btn" data-icon-only aria-label="Add"><i data-icon="Plus"></i></button>
+      <button class="btn" data-icon-only aria-label="Add"><span data-glyph="plus"></span></button>
       <button class="btn" disabled>Disabled</button>
       <button class="btn" data-variant="primary" disabled>Disabled</button>
       <button class="btn" aria-busy="true"><span>Busy</span></button>
@@ -94,11 +94,11 @@
     <div class="section-head"><h2>Lists, rows and tabs</h2></div>
     <div class="split">
       <div class="panel">
-        <div class="input-row"><i data-icon="MagnifyingGlass"></i><input aria-label="Search" placeholder="Search"></div>
+        <div class="input-row"><span data-glyph="search"></span><input aria-label="Search" placeholder="Search"></div>
         <div class="rows">
           <div class="row-group">Group</div>
           <a class="row" href="#main"><i data-icon="ArrowRight"></i><span class="row-label">A row</span><span class="row-hint">hint</span></a>
-          <a class="row" href="#main" data-active><i data-icon="Copy"></i><span class="row-label">The active row</span><span data-kbd="⌘ C"></span></a>
+          <a class="row" href="#main" data-active><span data-glyph="copy"></span><span class="row-label">The active row</span><span data-kbd="⌘ C"></span></a>
           <a class="row" href="#main" data-danger><i data-icon="Trash"></i><span class="row-label">A danger row</span></a>
         </div>
       </div>
@@ -145,7 +145,7 @@
       </table>
     </div>
     <div class="code" style="margin-top: var(--basalt-space-4)">
-      <div class="code-head"><span>sample.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#code1"><i data-icon="Copy"></i><span>Copy</span></button></div>
+      <div class="code-head"><span>sample.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#code1"><span data-glyph="copy"></span><span>Copy</span></button></div>
 <pre class="code-body" tabindex="0"><code id="code1">{ <span class="tok-k">"key"</span>: <span class="tok-s">"value"</span>, <span class="tok-n">1</span>, <span class="tok-f">f</span>() <span class="tok-c">// note</span> }</code></pre>
     </div>
     <div class="stats" style="margin-top: var(--basalt-space-4)">
@@ -207,13 +207,13 @@
       <button class="btn" data-dialog-open="#ks-sheet">Sheet</button>
       <button class="btn" popovertarget="ks-popover">Popover</button>
       <button class="btn" popovertarget="ks-menu">Menu</button>
-      <button class="btn" data-variant="ghost" data-icon-only aria-label="Copy" data-tooltip="Copy" data-tooltip-keys="⌘ C"><i data-icon="Copy"></i></button>
+      <button class="btn" data-variant="ghost" data-icon-only aria-label="Copy" data-tooltip="Copy" data-tooltip-keys="⌘ C"><span data-glyph="copy"></span></button>
       <button class="btn" id="ks-toast">Toast</button>
       <span id="ks-bell"></span>
     </div>
     <div class="panel float popover" popover id="ks-popover"><h2 class="popover-title">Region</h2><p class="popover-description">Where it runs.</p></div>
     <div class="panel float menu" popover id="ks-menu">
-      <button class="menu-item" role="menuitem"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
+      <button class="menu-item" role="menuitem"><span data-glyph="copy"></span><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
       <div class="menu-separator" role="separator"></div>
       <div role="group" aria-labelledby="ks-sort"><div class="menu-group-label" id="ks-sort">Sort by</div>
         <button class="menu-item" role="menuitemradio" aria-checked="true"><span class="menu-item-label">Name</span></button>

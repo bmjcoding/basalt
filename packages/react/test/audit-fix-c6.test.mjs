@@ -283,10 +283,10 @@ describe("A1-01: server rendering and hydration", () => {
   });
 });
 
-// ---- A1-01: the checklist's rows are left as Base UI draws them (a pixel) ----------------------------------------------------------
+// ---- A1-01 and DECISIONS 167 (Q9j): the checklist's rows take the mark, and the council accepted the corner pixels it moves ---------------------
 for (const theme of ["light", "dark"]) {
   describe(`A1-01: the open checklist popup (${theme})`, () => {
-    test("its portalled rows are not marked, and the popup draws the same pixels with the rule and without it", async () => {
+    test("its portalled rows are marked, and the popup differs from the unmarked one by at most 5 of 255 levels, on its corners only", async () => {
       const tree = `(B, h) => h("div", { style: { padding: 24 } }, h(B.MultiSelect, { label: "Tags", defaultValue: ["v1", "v2"], options: Array.from({ length: 40 }, (_, i) => ({ value: "v" + i, label: "Option " + i })) }))`;
       const shot = async (rule) => {
         const { page } = await treePage(tree, { rule, theme, deviceScaleFactor: 2 });
@@ -296,7 +296,7 @@ for (const theme of ["light", "dark"]) {
           await settle(page);
           const inPopup = await page.evaluate(() => [...document.querySelectorAll(".basalt-filter-popup input")].map((i) => [i.type, i.hasAttribute("data-basalt-mirror"), getComputedStyle(i).position]));
           assert.ok(inPopup.length >= 40, `${inPopup.length} inputs in the popup`);
-          assert.deepEqual(kinds(inPopup.filter(([type]) => type === "checkbox").map(([, marked, position]) => `${marked}:${position}`)), ["false:fixed"], "the rows' inputs are as Base UI draws them");
+          assert.deepEqual(kinds(inPopup.filter(([type]) => type === "checkbox").map(([, marked, position]) => `${marked}:${position}`)), [rule ? "true:absolute" : "true:fixed"], "the rows' inputs carry the mark (and take the rule when it is on)");
           const rows = page.locator(".basalt-filter-rows");
           await rows.evaluate((el) => { el.scrollTop = 99999; });
           await nextFrames(page, 2);
@@ -305,7 +305,22 @@ for (const theme of ["light", "dark"]) {
         } finally { await page.close(); }
       };
       const [withRule, without] = [await shot(true), await shot(false)];
-      assert.ok(withRule.equals(without), "the popup's pixels do not depend on the rule");
+      const probe = await treePage(`(B, h) => h("div")`, { theme });
+      try {
+        const diff = await probe.page.evaluate(async ([x, y]) => {
+          const load = (b64) => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = `data:image/png;base64,${b64}`; });
+          const [i, j] = await Promise.all([load(x), load(y)]);
+          if (i.width !== j.width || i.height !== j.height) return { size: false };
+          const data = (img) => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); return g.getImageData(0, 0, img.width, img.height).data; };
+          const p = data(i), q = data(j);
+          let max = 0, count = 0;
+          for (let k = 0; k < p.length; k += 4) { const d = Math.max(Math.abs(p[k] - q[k]), Math.abs(p[k + 1] - q[k + 1]), Math.abs(p[k + 2] - q[k + 2])); if (d) count++; if (d > max) max = d; }
+          return { size: true, max, count };
+        }, [withRule.toString("base64"), without.toString("base64")]);
+        assert.equal(diff.size, true, "the two captures are the same size");
+        assert.ok(diff.max <= 5, `no pixel moves by more than 5 of 255 levels (moved by ${diff.max})`);
+        assert.ok(diff.count <= 400, `only the popup's corners and edge move (${diff.count} pixels)`);
+      } finally { await probe.page.close(); }
     });
   });
 }

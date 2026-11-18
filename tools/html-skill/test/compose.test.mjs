@@ -167,8 +167,8 @@ describe("what a body gets", () => {
   });
 
   test("the example bodies get the modules their markup needs", () => {
-    assert.deepEqual(used(EXAMPLES.static), ["topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
-    assert.deepEqual(used(EXAMPLES.interactive), ["topbar", "kbd", "forms", "number", "select", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.static), ["glyph", "topbar", "kbd", "disclosure", "table", "code", "status", "stats", "progress", "copy", "theme"]);
+    assert.deepEqual(used(EXAMPLES.interactive), ["glyph", "topbar", "kbd", "forms", "number", "select", "rows", "glide", "tabs", "disclosure", "table", "code", "stats", "palette", "copy", "theme"]);
   });
 });
 

@@ -6,7 +6,7 @@ const chart = { title: "T" + p(1), source: "S" + p(2), kind: "bar", unit: "u" + 
   format: { suffix: " m" + p(8), spoken: " min" + p(9), prefix: p(42) }, partial: 2, partialLabel: "pl" + p(43), partialSuffix: "ps" + p(44), locale: "en-GB" };
 const line = { ...chart, kind: "line", series: [{ id: "x", name: "L1" + p(45), values: [1, 2, 3] }, { id: "y", name: "L2" + p(46), values: [3, null, 1], reasons: [null, "r" + p(47), null] }] };
 const spark = { label: "Req" + p(10), data: [1, 2, 3] }; const sparkEmpty = { label: "E" + p(48), data: [], empty: "none" + p(11) };
-const commands = { groups: [{ label: "G" + p(29), items: [{ id: "i" + a(49), label: "New" + p(30), icon: "Plus", description: "D" + p(31), keys: ["⌘", "N" + p(28)], keywords: ["k" + p(50)], hint: "h" + p(25) }, { id: "r", label: "Ren", href: "#r" + a(51), icon: "Nope" + a(27) }] }] };
+const commands = { groups: [{ label: "G" + p(29), items: [{ id: "i" + a(49), label: "New" + p(30), icon: "TerminalWindow", description: "D" + p(31), keys: ["⌘", "N" + p(28)], keywords: ["k" + p(50)], hint: "h" + p(25) }, { id: "r", label: "Ren", href: "#r" + a(51), icon: "Nope" + a(27) }] }] };
 export const hostileBody = () => `<title>xss probe</title>
 <script>window.__hits=[];window.__x=function(n){window.__hits.push(n)};</script>
 <h1>Probe</h1>
@@ -16,9 +16,9 @@ export const hostileBody = () => `<title>xss probe</title>
 <div class="sparkline"><script type="application/json" data-sparkline>${JSON.stringify(sparkEmpty)}</script></div>
 <span id="bell"></span>
 <div class="command-list" data-label='Console${a(32).replace(/"/g, "&quot;")}' data-noun='cmd${a(33).replace(/"/g, "&quot;")}' data-placeholder='ph${a(34).replace(/"/g, "&quot;")}'><script type="application/json" data-commands>${JSON.stringify(commands)}</script></div>
-<script type="application/json" data-palette>${JSON.stringify({ groups: [{ label: "PG" + p(60), items: [{ label: "Save" + p(24), icon: "Check", keys: ["⌘", "S"], hint: "H" + p(61), description: "PD" + p(26), keywords: ["a" + p(62)] }, { label: "Go", href: "#x" + a(63), danger: true }] }] })}</script>
+<script type="application/json" data-palette>${JSON.stringify({ groups: [{ label: "PG" + p(60), items: [{ label: "Save" + p(24), icon: "ArrowRight", keys: ["⌘", "S"], hint: "H" + p(61), description: "PD" + p(26), keywords: ["a" + p(62)] }, { label: "Go", href: "#x" + a(63), danger: true }] }] })}</script>
 <button class="btn" data-open-palette>Open</button>
-<p><span data-kbd='⌘ ${p(35).replace(/ /g, "&#9;")}' data-doc></span> <i data-icon="Copy" data-label='lbl${a(36).replace(/"/g, "&quot;")}'></i> <button class="btn" data-tooltip='tip${p(37)}'>Tip</button></p>
+<p><span data-kbd='⌘ ${p(35).replace(/ /g, "&#9;")}' data-doc></span> <i data-icon="Download" data-label='lbl${a(36).replace(/"/g, "&quot;")}'></i> <button class="btn" data-tooltip='tip${p(37)}'>Tip</button></p>
 <div class="field"><label for="region">Region</label><div class="combobox" data-empty='No${p(64)}'><input class="input" id="region" name="region"><ul><li data-value='eu${a(65).replace(/"/g, "&quot;")}' data-description='desc${p(66)}'>Frank&lt;img src=x onerror=__x(67)&gt;</li><li data-value="us">Ashburn</li></ul></div></div>
 <div class="filter" data-label='Status${p(68)}' data-for="runs" data-column="1"><label><input type="checkbox" value='p${a(69).replace(/"/g, "&quot;")}'> Passed&lt;img src=x onerror=__x(38)&gt;</label><label><input type="checkbox" value="failed"> Failed</label></div>
 <p class="filter-result" data-for="runs" data-noun='runs${p(70)}'>Showing</p>

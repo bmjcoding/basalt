@@ -35,7 +35,7 @@ const PLATE = {
 };
 
 const ITEMS = `{ groups: [{ label: "Group", items: [
-  { label: "First", icon: "Copy", hint: "a hint", keys: ["⌘", "D"] }, { label: "Second", icon: "ArrowRight" }, { label: "Third" }, { label: "Danger", icon: "Trash", danger: true }] }] }`;
+  { label: "First", icon: "Download", hint: "a hint", keys: ["⌘", "D"] }, { label: "Second", icon: "ArrowRight" }, { label: "Third" }, { label: "Danger", icon: "Trash", danger: true }] }] }`;
 
 /** A page with a trigger; the palette is opened from the test. */
 async function palette(options = {}) {
@@ -339,7 +339,7 @@ describe("the segment's pill", () => {
 
 describe("a tab's icon", () => {
   test("sits on the label's centre line, 6px before it, and the underline stays horizontal", async () => {
-    const { page, context } = await open(`<div data-tabs><div class="tabs" role="tablist" aria-label="V"><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><i data-icon="Copy"></i>With icon</button><button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false">Plain</button></div>
+    const { page, context } = await open(`<div data-tabs><div class="tabs" role="tablist" aria-label="V"><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><i data-icon="Download"></i>With icon</button><button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false">Plain</button></div>
       <div class="tabpanel" id="p1">A</div><div class="tabpanel" id="p2" hidden>B</div></div>`);
     const out = await page.locator("#t1").evaluate((tab) => {
       const c = getComputedStyle(tab), svg = tab.querySelector("svg").getBoundingClientRect(), box = tab.getBoundingClientRect();
