@@ -35,7 +35,7 @@ const BODY = `<main class="page stack">
     <button class="btn" id="open-t" data-dialog-open="#sheet-t">Top</button>
     <button class="btn" id="open-pop" popovertarget="pop">Details</button>
     <button class="btn" id="open-menu" popovertarget="menu">Options</button>
-    <button class="btn" id="tip" data-variant="ghost" data-icon-only aria-label="Copy" data-tooltip="Copy" data-tooltip-keys="⌘ C"><i data-icon="Copy"></i></button>
+    <button class="btn" id="tip" data-variant="ghost" data-icon-only aria-label="Copy" data-tooltip="Copy" data-tooltip-keys="⌘ C"><i data-icon="Download"></i></button>
     <button class="btn" id="plain">Plain</button>
     <span id="bell"></span>
   </div>
@@ -45,7 +45,7 @@ const BODY = `<main class="page stack">
   <div class="panel float popover" popover id="pop"><h2 class="popover-title">Region</h2><p class="popover-description">Where it runs.</p><button class="btn" id="pop-btn">Go</button></div>
 
   <div class="panel float menu" popover id="menu">
-    <button class="menu-item" role="menuitem" id="m-dup"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
+    <button class="menu-item" role="menuitem" id="m-dup"><i data-icon="Download"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button>
     <div class="menu-separator" role="separator"></div>
     <div role="group" aria-labelledby="g1">
       <div class="menu-group-label" id="g1">Sort by</div>

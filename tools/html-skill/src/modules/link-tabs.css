@@ -14,7 +14,7 @@
     align-items: center;
     height: var(--_h);
     padding: 0 var(--basalt-space-2);
-    border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0;
+    border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
     text-decoration: none;

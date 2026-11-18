@@ -5,7 +5,7 @@ A search field over a list of commands, set in the page: a level-1 panel in the 
 ```
 <div class="command-list" data-label="Console" data-noun="command">
   <script type="application/json" data-commands>{ "groups": [ { "label": "Sandbox", "items": [
-    { "id": "new", "label": "New sandbox", "icon": "Plus", "description": "Create a fresh environment", "keys": ["⌘", "N"] },
+    { "id": "new", "label": "New sandbox", "icon": "TerminalWindow", "description": "Create a fresh environment", "keys": ["⌘", "N"] },
     { "id": "rename", "label": "Rename", "href": "#rename" } ] } ] }</script>
 </div>
 ```

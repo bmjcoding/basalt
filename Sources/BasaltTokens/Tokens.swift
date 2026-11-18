@@ -37,7 +37,7 @@ extension Basalt {
 
     /// A warning or in-progress dot, always beside a word.
     public static let statusWarning = ThemedColor(
-      light: RGBA(red: 0.757548, green: 0.43506, blue: 0.010186, alpha: 1),
+      light: RGBA(red: 0.724309, green: 0.415757, blue: 0.015117, alpha: 1),
       dark: RGBA(red: 0.999125, green: 0.64163, blue: 0.003499, alpha: 1)
     )
 

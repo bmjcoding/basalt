@@ -24,7 +24,7 @@ export interface ShareBarProps extends Omit<React.ComponentProps<"ul">, "childre
 
 /**
  * Parts of a whole as one bar: a part is as long as its share, in one ink with a gap between parts, with its share and its name under it. The bar is decoration and
- * the words are the content, so a screen reader reads each part once ("40%, Protein"). A part of nothing draws no bar and is left out; a part that is more than nothing and rounds to 0 reads "<1%" to the eye and "less than 1%" to assistive technology (DECISIONS 157, Q4), and every other share is a whole number.
+ * the words are the content, so a screen reader reads each part once ("40%, Protein"). A part of nothing draws no bar and is left out; a part that is more than nothing and rounds to 0 reads "<1%" to the eye and "less than 1%" to assistive technology (DECISIONS 157, Q4); a part that rounds to 100 beside a part that is not empty reads ">99%" and is spoken "more than 99 percent" (DECISIONS 167, Q11b), since "100%" would say the rest is nothing; every other share is a whole number.
  */
 export function ShareBar({ parts, size = "sm", format, className, ...props }: ShareBarProps) {
   const kept = parts.filter((part) => Number.isFinite(part.value) && part.value > 0);
@@ -35,7 +35,7 @@ export function ShareBar({ parts, size = "sm", format, className, ...props }: Sh
       {kept.map((part, index) => (
         <li key={part.id ?? part.name} className="basalt-share-part" style={{ "--_share": (part.value / total) * 100 } as React.CSSProperties}>
           <span className="basalt-share-bar" aria-hidden="true" />
-          <b className="basalt-share-value">{format ? format(shares[index]!, part) : shares[index] === 0 ? <><span aria-hidden="true">&lt;1%</span><span className="basalt-visually-hidden">less than 1%</span></> : `${shares[index]}%`}</b>
+          <b className="basalt-share-value">{format ? format(shares[index]!, part) : shares[index] === 0 ? <><span aria-hidden="true">&lt;1%</span><span className="basalt-visually-hidden">less than 1%</span></> : shares[index] === 100 && kept.length > 1 ? <><span aria-hidden="true">&gt;99%</span><span className="basalt-visually-hidden">more than 99 percent</span></> : `${shares[index]}%`}</b>
           <span className="basalt-share-name">{part.name}</span>
         </li>
       ))}

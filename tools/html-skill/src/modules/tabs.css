@@ -4,7 +4,7 @@
      label's centre line, 6px before it, as it does in a button. ---- */
 
   .tabs { display: flex; gap: var(--basalt-space-1); overflow-x: auto; box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider); }
-  .tab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-sm) var(--basalt-radius-sm) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .tab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; border: 0; border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   /* The selected tab is its label at 600 in primary ink (400 in secondary at rest), each reserving the 600's width (see segment), with the underline. */
   .tab[aria-selected="true"] { color: var(--basalt-text-primary); }
   /* The 600 is on the label, not on the tab (decision 149): words the script did not reserve keep their weight and move nothing. */

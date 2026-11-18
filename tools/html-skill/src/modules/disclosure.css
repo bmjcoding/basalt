@@ -6,10 +6,10 @@
   /* The browser's own marker (a triangle) gives way to the chevron. */
   details > summary { list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
-  /* stylelint-disable-next-line unit-disallowed-list -- the chevron is drawn with two borders; its size, stroke and nudge have no token */
-  .disclosure::after, details > summary::after { content: ""; margin-inline-start: auto; width: 7px; height: 7px; border-inline-end: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
-  /* stylelint-disable-next-line unit-disallowed-list -- the open chevron's nudge; no token */
-  .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+  /* The chevron is the core set's, 16px, drawn as a mask in the ink of the row, and turned 180 degrees when open, as React's accordion does (DECISIONS 167, Q7a). */
+  .disclosure::after, details > summary::after { content: ""; flex: none; margin-inline-start: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: currentColor; mask: url("%glyph-mask:chevron-down%") center / contain no-repeat; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: rotate(180deg); }
+  @media (forced-colors: active) { .disclosure::after, details > summary::after { forced-color-adjust: none; } }
   @media (pointer: coarse) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
   /* ---- Show all (DECISIONS 152, D6): the rest of a list opens in place ----

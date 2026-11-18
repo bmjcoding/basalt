@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { ChevronRightGlyph } from "./glyphs/chevron-right";
+import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
 import { join } from "./utils";
 
@@ -32,7 +32,7 @@ const OPTIONS = '[role="option"]:not([aria-disabled="true"])';
 
 /**
  * A single-select list with one tab stop. ↑ and ↓, Home and End move the choice and scroll it into view; clicking an option chooses it.
- * Options may be grouped under a label (`ListboxGroup`). The chosen option is marked by a chevron in its gutter and by primary ink, with a
+ * Options may be grouped under a label (`ListboxGroup`). The chosen option is marked by the core check in its gutter (DECISIONS 167, Q9c) and by primary ink, with a
  * plate behind it; a row's weight never changes. Focus is the control ring on the list's own box: 2px at +2 with radius 8 (DECISIONS 159, the owner,
  * on a 2 to 2 deadlock in DECISIONS 157, Q2), the list keeping 6px from a clipping edge; set `flush` where it has none, and the same ring is drawn
  * inside at −2. The rows scroll in a box inside the list, so the rounded corners clip nothing and nothing at rest differs from a square box.
@@ -171,7 +171,7 @@ export function ListboxOption({ value, children, detail, trailing, leading, disa
         if (!event.defaultPrevented && !disabled) state?.choose(value);
       }}
     >
-      <span className="basalt-listbox-gutter" aria-hidden="true">{selected ? <Icon icon={ChevronRightGlyph} size={16} /> : null}</span>
+      <span className="basalt-listbox-gutter" aria-hidden="true">{selected ? <Icon icon={CheckGlyph} size={16} /> : null}</span>
       {leading ? <span className="basalt-listbox-leading">{leading}</span> : null}
       <span className="basalt-listbox-name">{children}</span>
       {trailing ? <span className="basalt-listbox-trailing">{trailing}</span> : null}

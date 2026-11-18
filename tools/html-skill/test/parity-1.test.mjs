@@ -182,15 +182,15 @@ describe("the range", () => {
 });
 
 describe("native chrome", () => {
-  test("the search clear button is Basalt's X in secondary ink: a mask of the Phosphor glyph, 24px (44px on touch)", async () => {
+  test("the search clear button is Basalt's X in secondary ink: a mask of the core set's close glyph (DECISIONS 167, Q6), 24px (44px on touch)", async () => {
     const css = read(skillDir, "parts", "forms.css");
-    assert.match(css, /::-webkit-search-cancel-button\{[^}]*mask:url\("data:image\/svg\+xml,%3Csvg[^"]*M208\.49,191\.51/, "the mask is the glyph from the icon data");
+    assert.match(css, /::-webkit-search-cancel-button\{[^}]*mask:url\("data:image\/svg\+xml,%3Csvg[^"]*viewBox='0 0 24 24'[^"]*stroke-width='2\.25'/, "the mask is the core set's close glyph (the 24 grid, the 2.25 stroke)");
     const { page: p, context } = await page('<input class="input" id="s" type="search" value="query" style="width: 200px">');
     assert.match(css, /::-webkit-search-cancel-button\{appearance:none;width:var\(--basalt-size-control-xs\);height:var\(--basalt-size-control-xs\)/);
     assert.match(css, /@media\(pointer:coarse\)\{\.input\[type=search\]::-webkit-search-cancel-button\{width:var\(--basalt-size-tap-min\)/);
     await p.locator("#s").hover();
     const png = (await p.locator("#s").screenshot()).toString("base64");
-    // the glyph is drawn at the right end: its ink box is 10 or 11px (Phosphor's X is 161 of 256 units at 16px) and it is not the browser's own
+    // the glyph is drawn at the right end: its ink box is 8 or 9px (the core close is 9.9 of 24 units across and a 2.25 stroke, at 16px) and it is not the browser's own
     const box = await p.evaluate(async (b64) => {
       const img = new Image(); await new Promise((r) => { img.onload = r; img.src = `data:image/png;base64,${b64}`; });
       const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0);
@@ -198,7 +198,7 @@ describe("native chrome", () => {
       for (let y = 4; y < img.height - 4; y++) for (let x = img.width - 36; x < img.width - 4; x++) { const d = g.getImageData(x, y, 1, 1).data; if (Math.abs(d[0] - bg[0]) > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } }
       return [x1 - x0 + 1, y1 - y0 + 1];
     }, png);
-    assert.ok(box[0] >= 9 && box[0] <= 12 && box[1] >= 9 && box[1] <= 12, `the X is drawn ${box.join("x")}`);
+    assert.ok(box[0] >= 7 && box[0] <= 10 && box[1] >= 7 && box[1] <= 10, `the X is drawn ${box.join("x")}`);
     await context.close();
   });
 

@@ -333,7 +333,7 @@ describe("the icon helper", () => {
   });
 
   test("an unknown icon name warns once, draws nothing, and never stops Basalt.init", async () => {
-    const { page, context, errors } = await open("template-interactive.html", { transform: (html) => html.replace('data-icon="MagnifyingGlass"', 'data-icon="Sparkles"').replace('data-icon="Copy"', 'data-icon="Sparkles"') });
+    const { page, context, errors } = await open("template-interactive.html", { transform: (html) => html.replace('data-glyph="search"', 'data-icon="Sparkles"').replace('data-glyph="copy"', 'data-icon="Sparkles"') });
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /unknown icon "Sparkles"/);
     assert.equal(await page.locator("[data-icon]").count(), 0, "the element is replaced by nothing");
@@ -523,7 +523,7 @@ describe("the copy button", () => {
     const { page, context } = await open("template-interactive.html", { permissions: ["clipboard-read", "clipboard-write"] });
     await page.locator("#tab-json").click();
     await page.evaluate(() => {
-      document.querySelector("main").insertAdjacentHTML("beforeend", '<button class="btn" id="icon-copy" data-icon-only data-copy-text="x" aria-label="Copy payload"><i data-icon="Copy"></i></button>');
+      document.querySelector("main").insertAdjacentHTML("beforeend", '<button class="btn" id="icon-copy" data-icon-only data-copy-text="x" aria-label="Copy payload"><i data-icon="Download"></i></button>');
       window.Basalt.init();
     });
     const rest = await page.evaluate(() => [document.querySelector("[data-copy]").innerHTML, document.querySelector("#icon-copy").innerHTML]);
@@ -1339,7 +1339,7 @@ describe("the active row in forced colours", () => {
     const { page, context } = await open("template-interactive.html");
     await page.emulateMedia({ forcedColors: "active" });
     await page.evaluate(() => window.Basalt.openPalette({ groups: [{ label: "G", items: [
-      { label: "Copy", icon: "Copy", hint: "a hint", keys: ["⌘", "C"] }, { label: "Danger", icon: "Copy", danger: true, hint: "bad" }, { label: "Plain" }] }] }));
+      { label: "Copy", icon: "Download", hint: "a hint", keys: ["⌘", "C"] }, { label: "Danger", icon: "Download", danger: true, hint: "bad" }, { label: "Plain" }] }] }));
     await page.locator(".palette input").waitFor();
     const highlight = await resolveCss(page, "Highlight", "background-color");
     const text = await resolveCss(page, "HighlightText", "color");

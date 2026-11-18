@@ -298,8 +298,8 @@ const PAD = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const ENTRY = ["firstTransitionDuration", "firstTransitionTimingFunction"];
 const SIDES = ["right", "left", "bottom", "top"];
 const MENU_ROWS = {
-  react: `import { CopyIcon, TrashIcon } from "@phosphor-icons/react";`,
-  menuReact: `<MenuItem icon={CopyIcon} shortcut="⌘D">Duplicate</MenuItem><MenuSeparator /><MenuGroup><MenuGroupLabel>Sort by</MenuGroupLabel><MenuRadioGroup defaultValue="name"><MenuRadioItem value="name">Name</MenuRadioItem><MenuRadioItem value="date" description="Newest first">Date</MenuRadioItem></MenuRadioGroup></MenuGroup><MenuCheckboxItem defaultChecked>Show hidden</MenuCheckboxItem><MenuItem icon={TrashIcon} danger>Delete</MenuItem>`,
+  react: `import { DownloadIcon, TrashIcon } from "@phosphor-icons/react";`,
+  menuReact: `<MenuItem icon={DownloadIcon} shortcut="⌘D">Duplicate</MenuItem><MenuSeparator /><MenuGroup><MenuGroupLabel>Sort by</MenuGroupLabel><MenuRadioGroup defaultValue="name"><MenuRadioItem value="name">Name</MenuRadioItem><MenuRadioItem value="date" description="Newest first">Date</MenuRadioItem></MenuRadioGroup></MenuGroup><MenuCheckboxItem defaultChecked>Show hidden</MenuCheckboxItem><MenuItem icon={TrashIcon} danger>Delete</MenuItem>`,
 };
 const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }]`;
 const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'");
@@ -427,7 +427,7 @@ const OVERLAYS = [
     uses: "Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator, MenuGroup, MenuGroupLabel, MenuRadioGroup, MenuRadioItem, MenuCheckboxItem, Button",
     react: `flushSync(() => createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><Menu defaultOpen><MenuTrigger render={<Button data-parity-trigger>Options</Button>} /><MenuContent>${MENU_ROWS.menuReact}</MenuContent></Menu></div>));`,
     skill: `<div style="padding: 16px"><button class="btn" id="b" popovertarget="m" data-parity-trigger>Options</button><div class="panel float menu" popover id="m">
-      <button class="menu-item" role="menuitem"><i data-icon="Copy"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button><div class="menu-separator" role="separator"></div>
+      <button class="menu-item" role="menuitem"><i data-icon="Download"></i><span class="menu-item-label">Duplicate</span><span data-kbd="⌘ D"></span></button><div class="menu-separator" role="separator"></div>
       <div role="group" aria-labelledby="g"><div class="menu-group-label" id="g">Sort by</div><button class="menu-item" role="menuitemradio" aria-checked="true"><span class="menu-item-label">Name</span></button><button class="menu-item" role="menuitemradio" aria-checked="false"><span class="menu-item-label">Date</span><span class="menu-item-description">Newest first</span></button></div>
       <button class="menu-item" role="menuitemcheckbox" aria-checked="true"><span class="menu-item-label">Show hidden</span></button><button class="menu-item" role="menuitem" data-danger><i data-icon="Trash"></i><span class="menu-item-label">Delete</span></button></div></div>`,
     open: "document.getElementById('m').showPopover({ source: document.getElementById('b') })",
@@ -1316,8 +1316,8 @@ const TABLES = [
 const CMD_LONG = "A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap";
 const CMD_GROUPS = [
   ["Sandbox", [
-    { id: "new", label: "New sandbox", icon: "Plus", description: "Create a fresh environment", keys: ["⌘", "N"] },
-    { id: "dup", label: "Duplicate", icon: "Copy", description: "Copy the current one" },
+    { id: "new", label: "New sandbox", icon: "TerminalWindow", description: "Create a fresh environment", keys: ["⌘", "N"] },
+    { id: "dup", label: "Duplicate", icon: "Download", description: "Copy the current one" },
     { id: "rename", label: "Rename" },
     { id: "del", label: "Delete sandbox", icon: "Trash", danger: true, description: "Remove it for good" },
   ]],
@@ -1329,7 +1329,7 @@ const CMD_GROUPS = [
   ]],
 ];
 const CMD_IDS = CMD_GROUPS.flatMap(([, items]) => items.map((item) => item.id));
-const CMD_IMPORTS = `import { CopyIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";\nconst { CommandList } = B;`;
+const CMD_IMPORTS = `import { DownloadIcon, TerminalWindowIcon, TrashIcon } from "@phosphor-icons/react";\nconst { CommandList } = B;`;
 const cmdReactGroups = `[${CMD_GROUPS.map(([label, items]) => `{ label: ${JSON.stringify(label)}, commands: [${items.map((c) => `{ id: ${JSON.stringify(c.id)}, label: ${JSON.stringify(c.label)}${c.icon ? `, icon: ${c.icon}Icon` : ""}${c.description ? `, description: ${JSON.stringify(c.description)}` : ""}${c.keys ? `, shortcut: ${JSON.stringify(c.keys.join(""))}` : ""}${c.danger ? ", danger: true" : ""}, onSelect() {} }`).join(", ")}] }`).join(", ")}]`;
 const CMD_DETAIL_REACT = `detail={(c) => <div style={{ height: 96 }}><h3 style={{ margin: 0, font: "inherit" }}>{c.label}</h3><p style={{ margin: 0 }}>{c.description ?? "No description"}</p><div><button>Run {c.label}</button></div></div>}`;
 const cmdSkillData = (preview) => `<script type="application/json" data-commands>${JSON.stringify({ groups: CMD_GROUPS.map(([label, items]) => ({ label, items })) })}</script>${preview ? CMD_IDS.map((id) => { const c = CMD_GROUPS.flatMap(([, items]) => items).find((x) => x.id === id); return `<template data-detail="${id}"><div style="height: 96px"><h3 style="margin: 0; font: inherit">${c.label}</h3><p style="margin: 0">${c.description ?? "No description"}</p><div><button>Run ${c.label}</button></div></div></template>`; }).join("") : ""}`;

@@ -280,13 +280,13 @@
   }
 
   @keyframes bh-spin { to { transform: rotate(360deg); } }
-  @keyframes bh-fade { 50% { opacity: 0.4; } }
+  @keyframes bh-fade { 50% { opacity: 0.55; } }
 
   /* ---- Motion: durations come from the tokens (0, 100, 150, 200, 300ms). Reduced motion: opacity only. ---- */
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .btn[aria-busy="true"]::after { animation: bh-fade var(--basalt-duration-loop-fade) ease-in-out infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+    .btn[aria-busy="true"]::after { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
     /* A press keeps its colour step and its scale is 1. Same specificity as the press rule, and later; transform leaves the
        transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
     .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
