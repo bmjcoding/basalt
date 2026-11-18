@@ -27,7 +27,7 @@ export interface InlineFieldProps extends Omit<PartProps<"div">, "children"> {
 
 /**
  * One row: a label in `size-field-label-inline` (80px), then the field. At least 44px tall (`size-tap-min`), and a textarea grows its row. Text
- * entry is 16px on touch. The row's bottom line is `border-input`, 3:1 against the page.
+ * entry is 16px on touch. The row's bottom line is `border-field`, 3:1 against the page (the strongest line under more contrast). A one-line row is the field's touch target, whole.
  */
 export function InlineField({ label, multiline = false, className, children, ...props }: InlineFieldProps) {
   return (

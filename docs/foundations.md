@@ -137,8 +137,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   composites it touches the inset ring is 8.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
   selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
-  only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of tabs that
-  scrolls, a sortable header cell and a phone tab bar cell.
+  only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge (the search dialog's
+  band, a flush listbox, an inline-label row), a row of tabs that scrolls, a sortable header cell, a phone tab bar cell, and a cut cell of a
+  still table (a focus stop, which shows its own ring after Esc has closed its plate).
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
@@ -293,7 +294,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **The flat table and the two-line cell** (DECISIONS 162, D18b). A `TableContainer` with `flat` draws no border, radius, fill or shadow and adds no level, so a
   panel that holds the table (a `Card`) has one box and not two: what it holds keeps the card's level, and the card's own `space-4` padding is the table's
   inset (the slab's 20 to 32px went with the slab, D18a). The header band keeps its fill (`surface-sunken-strong`); how a square band reads inside a rounded
-  card is for the owner's review. A flat table's cells are padded `space-2` above and below. `TableCall` is a two-line cell's content: a call in primary at
+  card the owner has seen and approved (DECISIONS 163: "yep these are fine"). A flat table's cells are padded `space-2` above and below. `TableCall` is a two-line cell's content: a call in primary at
   500 over what it changes in secondary at 400, `space-0-5` (2px) apart, wrapping inside its column, so the row grows and no column moves. The panel's head
   (a title and a count on one line, `gap` `space-1` by `space-4`, `space-5` below) and its note (`text-sm` tertiary, `space-4` above) are the app's markup; the
   count's dot is the accent `Badge` dot, `size-dot`, never an 8px brass fill (consent row 4). Line heights are each size's token (consent row 3). Status: the
@@ -755,7 +756,7 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
 - **Radius by role,** by the size a box is drawn at (so a 32px control drawn at 44 on touch is 8, and a `NumberField`
-  group drawn at 40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8 (controls 36px and up, code
+  group drawn at 40 is 8): 2 (a coverage strip's cells, `radius-2xs`), 4 (badges, checkboxes), 6 (controls up to 32px, inputs included), 8 (controls 36px and up, code
   blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height
   side sheets are square), full (whatever is a circle or a capsule by meaning: avatars, dots, the navigation hover pill, the
   switch, the radio, the slider's track and thumb, progress, meter, and the tab bar's circle). A nested radius is the outer
@@ -916,7 +917,7 @@ below, one level up, no rim or radius of its own.
 A pattern on the in-page list (`detail`), not a new surface: the list, and a pane the app renders for the active command.
 
 - **Two level-1 panels `space-4` apart**: the list a fixed `size-list-width` (320px), the pane the rest, equal in height, with no line
-  between (Basalt allows one vertical line, at a scrolled pinned table edge; space groups these). The pane scrolls inside if it is taller.
+  between (Basalt allows only the vertical lines it names under [Vertical lines](#vertical-lines); space groups these). The pane scrolls inside if it is taller.
 - **It answers its own width, not the viewport's**: side by side from `size-list-width` + `space-4` + `size-breakpoint-container`
   = 816px of its container's content width, so the pane is never narrow beside the list (and what is in it, a description list or a
   chart, never goes to its narrow form); below that, the push. The container query writes the number, because it can't read a token,
@@ -1164,7 +1165,7 @@ is in).
   start-aligned. Its **opaque form** is the same bar without the layer (`solid`): only one
   smoked surface per viewport, ever.
 - **Safe areas:** the page's viewport meta needs `viewport-fit=cover` for `env(safe-area-inset-*)` to work; without it the insets
-  read 0 on a phone. (The HTML skill's compose does not emit it yet; that is batch 7.)
+  read 0 on a phone. (The HTML skill's compose writes `viewport-fit=cover` into the page's viewport meta whenever the page uses a module that needs the insets, such as the phone tab bar.)
 
 ### The phone tab bar
 
@@ -1420,7 +1421,9 @@ because no whole set had two of three votes; the owner is asked to look at them 
 | `size-display-measure` | 13em | The widest line of display type, in the headline's own em |
 | `size-breakpoint-md` | 720px | Below it: the phone (tab bar, the menu sheet, the narrow gutter) |
 | `size-breakpoint-lg` | 1024px | From it, the sidebar; below it, down to md, the rail |
+| `size-breakpoint-container-sm` | 340px | A component's own width: from it up to `size-breakpoint-container` a two-line `Button`'s note shares the label's line |
 | `size-breakpoint-container` | 480px | A component's own width: a description list stacks and a chart goes narrow |
+| `size-breakpoint-container-lg` | 640px | A component's own width: under it the 56px tabs step to 48, stacked panels turn off and the period stepper takes its own row |
 | `size-description-label` | 160px | The description list's label column |
 | `size-list-width` | 320px | The list column of a list with a preview pane; the pane is pushed instead below this + `space-4` + `size-breakpoint-container` (816px) |
 
@@ -1473,7 +1476,7 @@ because no whole set had two of three votes; the owner is asked to look at them 
   `ColumnsItem` warns in development when it holds a display or hero heading in a `span` under 7, and `Columns` does the same for the items a named
   layout makes under 7 tracks from 1024 (every item of `2`, `3` and `4`, the 5 of `7-5` and `5-7`, the 4 of `8-4` and `4-8`); the heading is drawn as written
   and the warning costs a production build nothing. Columns are a page's: a component lays out its own items by its own width (the auto-fit grid).
-- **Layout changes at 720 and 1024 only,** on the viewport, and a component at 480 on its own width. The display roles, the lead, the section
+- **Layout changes at 720 and 1024 only,** on the viewport, and a component at 340, 480 or 640 on its own width. The display roles, the lead, the section
   gap and the columns change at those two widths, so a page has three shapes to check. **No new breakpoint:** 900 and 1280 are not adopted
   (the row is already 672 to 975 wide at 900, and past 1152 nothing has room to change at 1280). A site's art may answer its own measures as a
   container query on the art.
@@ -1600,7 +1603,7 @@ on `ease-out` while pressed, and back, on `:active` only, never when disabled or
 else (no row, card, menu item, command row or the parts of a field; there is no `basalt-press` utility). A popup (Menu, Select,
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
-quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
+quarters of that on `ease-in`. A Dialog enters the same way from its own centre (it grows from no opener), in `duration-slow`, and leaves at three quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
 `duration-slow` `ease-out`; the panel never remounts. Two kinds of thing loop, and nothing else: a mark that says work is running
 (the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
 one ambient loop, opacity only, in its art; `data-loops="held"` stops both.
@@ -1815,7 +1818,7 @@ broke a rule, and each change is named.
   `Select` is Basalt's own, drawn at Castle's 44 for Castle's 48 row (36 for the 36 row, 48 for the 56 row, the bar's narrow height; a 36 Select is 44 on a coarse pointer, as Basalt's is; what is below moves across 720 by the row's height less the Select's: 0, 4 and 8px), and its value is the current link's `href`, always the row's `aria-current`. **It navigates at once and says so first** (DECISIONS 158, Q2, 3 to 1: WCAG 3.2.2's own exception for a change of context the user has been advised of): a "Go to" label (`goToLabel`; in the skill, the text of `.link-tabs-select-label`) is drawn before the current page's name inside the trigger, in secondary ink on the Select's one line (the multi-select trigger's form, a label then its value, so the height does not change and nothing moves at 390), and its words start the Select's accessible name ("Go to Everything"; WCAG 2.5.3, Label in Name), so the nav's name alone is not enough. **Only a real choice navigates:** a choice from the open list (a click, or Enter on the highlighted option). No key on the closed `Select` does: a typed letter changes the value and fires `change` on a native select and calls Base UI's `onValueChange` (reason `none`) on the closed trigger, and both are held, so the value stays the current page's; the arrow keys open the list in React and navigate nowhere. Navigating is `onNavigate(href)` for an app's router, else `window.location.assign`. With `onNavigate` (or the skill's cancelled `linktabsnavigate`) routing in place, focus stays on the `Select`; on the default a new page loads and focus starts over there. The prototype's route effect that moved focus to the page's heading is X10 and is not ported. `Tabs` takes the same `size`. A link tab takes the selected state a `Tab` takes (DECISIONS 138
   A, 145, 149; the ballot's D12 row): the current link's label is 600 in primary ink and a resting one 400 in secondary, every label reserves its 600 width and
   starts at the same edge, so choosing a page moves no link and no word (`LinkTab`'s label takes `ChosenLabel`; the skill's link tabs draw the label before the
-  underline through `reserve()`). Castle's own row is 500 at rest; Basalt's rule wins where the two differ. Status: built in the combined tree; the owner has not seen it yet.
+  underline through `reserve()`). Castle's own row is 500 at rest; Basalt's rule wins where the two differ. Status: built; the owner approved it (DECISIONS 161: "a link tab is 400 at rest and 600 when current").
 - **Panels that share one seat (X6).** `TabsPanels stacked`: every panel stays mounted in one grid cell, so the view is as tall as its tallest panel and
   a change of tab moves nothing under it; the panels not shown are `visibility: hidden` and inert. It turns off under 640 (its own width), and it is off
   by default.
@@ -1884,7 +1887,7 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   is a title (18/26 at 600) over its text (16/24 secondary, 2px under), 20px between entries, no divider. `form="three"` is term, thing, detail. `DescriptionColumns` lays whole lists out in
   columns of at least 480px. The facts' column gap is 32 (the prototype's 4ch is about 34).
 - **Inline-label rows** (`InlineFields`, `InlineField`; V10, R12): V10 had no majority, so option (a) stands. A label in `size-field-label-inline` (80), then a bare field; each row's bottom line is
-  `border-input`; on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
+  `border-field` (equal to `border-input` outside more contrast, so a field's boundary steps with the others); on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
 - **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
 - **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field and anything inside
   `[data-own-keys]`, plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.

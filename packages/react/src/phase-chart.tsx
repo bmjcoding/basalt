@@ -80,10 +80,12 @@ function PhaseSteps({ geometry, calls, week, onWeekChange }: Omit<LaneProps, "la
   return (
     <div className="basalt-phase-steps">
       <div className="basalt-phase-step-buttons">
-        <button type="button" className="basalt-button" data-variant="secondary" data-size="sm" aria-disabled={week <= 0 ? true : undefined} onClick={() => go(week - 1)}>
+        {/* At the first or last week a button looks and behaves disabled (`data-disabled`, which every disabled, hover and press rule keys on, with `aria-disabled`) and stays
+            focusable, as `Button` with `focusableWhenDisabled` and the period stepper's do. They are written by hand, not `Button`, so a chart does not carry Base UI's button (about 16KB). */}
+        <button type="button" className="basalt-button" data-variant="secondary" data-size="sm" aria-disabled={week <= 0 ? true : undefined} data-disabled={week <= 0 ? "" : undefined} onClick={() => go(week - 1)}>
           <span className="basalt-button-label">Previous week</span>
         </button>
-        <button type="button" className="basalt-button" data-variant="secondary" data-size="sm" aria-disabled={week >= calls.length - 1 ? true : undefined} onClick={() => go(week + 1)}>
+        <button type="button" className="basalt-button" data-variant="secondary" data-size="sm" aria-disabled={week >= calls.length - 1 ? true : undefined} data-disabled={week >= calls.length - 1 ? "" : undefined} onClick={() => go(week + 1)}>
           <span className="basalt-button-label">Next week</span>
         </button>
       </div>

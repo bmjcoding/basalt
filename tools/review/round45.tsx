@@ -324,7 +324,8 @@ function StepperDemo({ state }: { state: string }) {
     if (state === "at-end") { const t = window.setTimeout(() => (document.querySelector("[data-wt-bar] .basalt-period-stepper .basalt-button:last-child") as HTMLElement | null)?.focus(), 150); return () => window.clearTimeout(t); }
     return undefined;
   }, [state]);
-  const labels = ["", "", "", "", "", "", "", "", "28 Sept to 4 Oct", "5 to 11 Oct", "12 to 18 Oct", "19 to 25 Oct", "26 Oct to 1 Nov"];
+  // labels[n] is week n's (there is no week 0): every week the buttons can reach has one, so pressing "The week before" never blanks the label.
+  const labels = ["", "10 to 16 Aug", "17 to 23 Aug", "24 to 30 Aug", "31 Aug to 6 Sept", "7 to 13 Sept", "14 to 20 Sept", "21 to 27 Sept", "28 Sept to 4 Oct", "5 to 11 Oct", "12 to 18 Oct", "19 to 25 Oct", "26 Oct to 1 Nov"];
   const bar = (key: string, isWhole: boolean) => (
     <div style={{ containerType: "inline-size", border: "1px solid var(--basalt-border-divider)", borderRadius: 12 }} data-wt-bar={key}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "stretch", justifyContent: "space-between", minHeight: 56, paddingInline: "var(--basalt-space-1)", borderBottom: "1px solid var(--basalt-border-divider)" }}>
