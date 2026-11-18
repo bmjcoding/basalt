@@ -988,6 +988,17 @@ implementation hasn't been reviewed.
   over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
   non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
   (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.
+  **Cut text is read whole on a plate (DECISIONS 168 and 170; `peek-plate.ts`).** A listbox option or an open-list row whose name or second line is cut shows it whole on the row
+  itself, raised to level 3: the rim, `shadow-overlay`, radius 8, the row's own inline edges. Every word that was showing stays on its pixel (the check or chevron, the name's first line,
+  the trailing word or the cells, the `↵` chip), and only the cut text carries on: the name runs on under the cells across the row's width, then the detail whole. It grows downward, and its foot
+  never ends inside a line of text (where it would, it runs on to the end of that line, at most one). It keeps the row's state: the chosen option, or the cursor row while the list holds focus,
+  keeps its chosen fill. It is the still table's cut cell in behaviour: it opens on hover after the tooltip's wait (600ms, then at once within 400ms of another) or at once on keyboard focus,
+  Esc closes it and moves neither the pointer nor focus, it stays while the pointer is on it or focus stays (WCAG 1.4.13), it fades over `duration-base` and never scales (opacity only under
+  reduced motion), and it is `aria-hidden` because the row holds the words. A press on it is a press on its row (it chooses the option, or opens the row), and the listbox takes focus
+  without the keyboard ring, as a press on an option does. Opened by the keyboard on the open list it carries the control ring at +2 round the plate and the row's own ring gives way; the
+  listbox keeps its ring on the list. A part whose text is not cut opens nothing. The open list keeps its "…" at rest. On touch the listbox has no hover, so its options wrap at rest (the
+  name and detail wrap, the mark and the trailing word sit on the first line; the 44px floor holds) and none is cut, and the open list opens its plate on a 500ms long press: the release opens
+  nothing, and a touch elsewhere closes it. Right to left mirrors the plate's edges and seats, and in forced colours it is `Canvas` with a `CanvasText` rim.
 - **The notice bar** is a full-width band above the header, in the level-1 fill with a `border-divider` under it (no majority, the first option stands), `text-sm`
   secondary with its first words primary at 600; it is a named region, not a live region, and under 720 it keeps 6px more above its line.
 
@@ -1889,6 +1900,12 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
   line. **A page has one foot**: the status bar and a phone tab bar do not share it; a product that needs both is a later vote.
+  **A cut message is read whole on a plate lifted clear of the bar (DECISIONS 168 and 170, from 720).** The bar keeps its one truncated line and its 44px. The plate is level 3 (the rim,
+  `shadow-overlay`, radius 8), the slot's width, its foot `space-2` above the bar's top border, in the page above the bar and over none of its controls; an error's XCircle sits before its first
+  line, in the danger ink. It opens on hover after the tooltip's wait or at once on focus, closes on Esc (the first Esc closes the plate and the second clears the message), stays while the
+  pointer is on it or focus stays, fades and never scales, and is `aria-hidden`. The message is a focus stop only while it is cut (`role="note"`, named by its words, its ring the control ring at
+  +2, which gives way to the plate's); the visible words are hidden from assistive technology as before, and once the live regions have said the words they let go of them, so a screen reader meets
+  them in one place. Under 720 the message is the band above the bar, wrapped, so nothing is cut and nothing opens.
 - **Description-list forms** (V8, V9, R9 to R11): the list as it ships (160px label, 40px rows, dividers between rows only; the page's record keeps its own rule round it). `form="stacked"`
   is a title (18/26 at 600) over its text (16/24 secondary, 2px under), 20px between entries, no divider. `form="three"` is term, thing, detail. `DescriptionColumns` lays whole lists out in
   columns of at least 480px. The facts' column gap is 32 (the prototype's 4ch is about 34).

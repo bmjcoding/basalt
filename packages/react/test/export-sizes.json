@@ -116,7 +116,7 @@
   "LinkTab": 3764,
   "LinkTabs": 142132,
   "LinkTile": 4463,
-  "Listbox": 2256,
+  "Listbox": 15449,
   "ListboxGroup": 405,
   "ListboxOption": 4052,
   "LivePreview": 43177,
@@ -155,7 +155,7 @@
   "NotificationsGlyph": 3066,
   "NumberField": 42303,
   "NumberTicker": 2587,
-  "OpenList": 1065,
+  "OpenList": 14254,
   "OpenListGroup": 476,
   "OpenListRow": 13549,
   "OptionChips": 38433,
@@ -244,7 +244,7 @@
   "Stage": 1219,
   "Stat": 1556,
   "Stats": 314,
-  "StatusBar": 5623,
+  "StatusBar": 18997,
   "StatusLine": 504,
   "Stepper": 25161,
   "Switch": 16766,
@@ -260,7 +260,7 @@
   "TabBar": 1102,
   "TabBarItem": 1109,
   "TabBarMore": 86085,
-  "Table": 7401,
+  "Table": 7538,
   "TableBody": 143,
   "TableCall": 391,
   "TableCell": 347,
@@ -338,11 +338,11 @@
   "useToast": 2987
  },
  "package": {
-  "bytes": 716036,
-  "gzip": 234165
+  "bytes": 717341,
+  "gzip": 235052
  },
  "styles": {
-  "bytes": 283471,
-  "gzip": 36970
+  "bytes": 286051,
+  "gzip": 37270
  }
 }
