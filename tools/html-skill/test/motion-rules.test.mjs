@@ -181,7 +181,7 @@ describe("the ambient loop", () => {
   test("the same periods and phases as React's marks, mark for mark", async () => {
     const { page } = await open(STAGE);
     const list = await ambients(page);
-    const react = await import("../../../packages/react/dist/ambient.js");
+    const react = await import("../../../packages/react/dist/ambient-timing.js");
     list.forEach((a, i) => {
       const t = react.ambientTiming(i);
       assert.ok(Math.abs(a.period - 6000 * Number(t.period.toFixed(3))) < 1, `period ${i}`);

@@ -13,12 +13,6 @@ const HELD = "held";
 let subscribers: Set<() => void> | undefined;
 let installed = false;
 
-/**
- * A line for the document's head, beside the theme's, so a stored hold applies before the first frame. The app inlines it
- * as a script in `<head>`: `<script dangerouslySetInnerHTML={{ __html: loopsBootstrap }} />`.
- */
-export const loopsBootstrap = `(function(){try{if(localStorage.getItem("${KEY}")==="${HELD}")document.documentElement.setAttribute("data-loops","${HELD}")}catch(e){}})();`;
-
 const isHeld = () => document.documentElement.getAttribute("data-loops") === HELD;
 
 /**

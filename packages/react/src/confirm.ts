@@ -1,11 +1,6 @@
 import * as React from "react";
 
-/**
- * How long a confirmation holds before it returns to rest, in milliseconds: the value of the `duration-confirm` token (1500). A
- * hold is not an animation, so reduced motion does not change it. A script cannot read a CSS token, so the number is written
- * here once, and the copy buttons and `IconButton`'s `done` state share it (DECISIONS 154, D11c).
- */
-export const CONFIRM_MS = 1500;
+import { CONFIRM_MS } from "./constants";
 
 /**
  * A confirmation that clears itself. `confirmed` is true for `CONFIRM_MS` after `confirm()` is called, and calling it again

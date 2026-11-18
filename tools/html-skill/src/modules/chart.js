@@ -819,7 +819,8 @@
       var data;
       try { data = JSON.parse(script.textContent); } catch (e) { console.warn('Basalt: a chart\'s data is not valid JSON (' + e.message + ')'); return; }
       script.remove();
-      chart(figure, data);
+      // One chart that cannot be drawn (a `locale` the browser rejects throws from Intl) must not stop the charts after it: it stays an empty figure, and says why.
+      try { chart(figure, data); } catch (e) { console.warn('Basalt: chart not drawn: ' + e.message); }
     });
   }
 

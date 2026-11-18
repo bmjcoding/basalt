@@ -111,8 +111,8 @@ describe("compose.mjs on bodies it used to get wrong (A5-03, A5-09)", () => {
     const fo = page('<h1>x</h1><svg><foreignObject><script>var a = "</svg>";</script><style>.in{color:red}</style></foreignObject></svg><style>.out{color:blue}</style>').html;
     assert.ok(head(fo).includes(".out{color:blue}") && !head(fo).includes(".in{color:red}"), "an html integration point reads its children as html: a script there is raw text");
     assert.ok(bodyOf(page('<h1>x</h1><script type="text/template"><svg><style>.t{}</style><title>T</title></script>').html).includes("<svg><style>.t{}</style><title>T</title>"), "a script of another type is still raw text");
-    const style = page('<h1>x</h1><style data-label="a>b">p{color:red}</style>').html;
-    assert.ok(head(style).includes("<style>p{color:red}</style>"), "a style's opening tag is read whole when an attribute holds a >");
+    const style = page('<h1>x</h1><style media="(width>1px)">p{color:red}</style>').html;
+    assert.ok(head(style).includes('<style media="(width>1px)">p{color:red}</style>'), "a style's opening tag is read whole when an attribute holds a > (its media is kept; any other attribute is refused, A5-21)");
   });
 
   test("an HTML integration point in MathML (annotation-xml with encoding text/html or application/xhtml+xml) holds HTML: a script in it is raw text, and a style in it stays", () => {
@@ -1220,7 +1220,7 @@ describe("the documented composer contract over every regression body (A5-09)", 
     "", "<h1>x</h1>", '<h1>Report</h1><p data-example="<script>">Text</p>', "<title>Using <svg> in HTML</title><h1>Guide</h1>", "<h1>Guide</h1><textarea><script></textarea>",
     '<h1>Guide</h1><template><script>const example="</template>";</script><style>.inside{color:red}</style><title>Inside</title></template>', "<h1>Guide</h1><svg><![CDATA[</svg><style>.inside{fill:red}</style>]]></svg>",
     '<h1>Before</h1><math><annotation-xml encoding="text/html"><script type="text/plain">"</math>"</script><style>.inside{color:red}</style></annotation-xml></math>', '<math><annotation-xml encoding="application/x-tex"><script>x</annotation-xml></math>',
-    "<noscript><style>body{display:none}</style></noscript><h1>After</h1>", "<noscript><svg></noscript><h1>After</h1>", '<style data-label="a>b">p{color:red}</style><p>x</p>', '<script>var s = "<!-- not a comment"; var t = "--> neither";</script><p>after</p>',
+    "<noscript><style>body{display:none}</style></noscript><h1>After</h1>", "<noscript><svg></noscript><h1>After</h1>", '<style media="(width>1px)">p{color:red}</style><p>x</p>', '<script>var s = "<!-- not a comment"; var t = "--> neither";</script><p>after</p>',
     '<script>var a = "<!--<script>"; var b = "</script>";</script>', "<TITLE>Loud</TITLE><H1>x</H1><STYLE>.a{}</STYLE>", "﻿<h1>Report</h1>", '<svg><foreignObject><script>var a = "</svg>";</script></foreignObject></svg>', '<script type="text/template"><svg><style>.t{}</style></script>',
     "<script>var a = 1;</script\t><style>.a{}</style\f><p>x</p>", "<xmp><script></xmp><iframe><style></iframe><noembed><!--</noembed>", '<meta name="description" content="x"><h1>x</h1>', "<h1>Report</h1><!-- note --><p>x</p>", "<svg/><template><p>x</p></template><p>y</p>",
     // Sol's second re-check: accepted (and the init runs once) or refused

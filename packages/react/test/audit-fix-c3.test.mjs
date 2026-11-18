@@ -70,10 +70,10 @@ test("dist has no bare import of one of its own chunks, every chunk is still imp
 
 test("the build's bare-import cleanup would catch a chunk that holds code and nothing imports", () => {
   // The rule in build.mjs: after the bare imports go, a chunk with code that no file imports by name is an error. Keep the test of the test honest:
-  // a chunk that is only its directive is the one thing the build removes.
-  const onlyDirective = (source) => source.replace(/"use client";|\/\/.*|\s/g, "") === "";
-  assert.ok(onlyDirective('"use client";\n'));
-  assert.ok(!onlyDirective('"use client";\nvar x = 1;\nexport { x };\n'));
+  // a chunk that is only comments (a source file of types alone) is the one thing the build removes.
+  const onlyComments = (source) => source.replace(/\/\/.*|\s/g, "") === "";
+  assert.ok(onlyComments("// src/types.ts\n"));
+  assert.ok(!onlyComments("// src/x.ts\nvar x = 1;\nexport { x };\n"));
 });
 
 // ---- A4-07: the README names every export ----

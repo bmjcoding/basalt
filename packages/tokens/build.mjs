@@ -7,7 +7,8 @@
 //   dist/css/shadcn.css   the shadcn/ui variable names, mapped onto Basalt's
 //   dist/css/breakpoints.css  the breakpoints as @custom-media rules, for apps that build with PostCSS
 //   dist/js/tokens.js     resolved values per theme, and the accent classes, for TypeScript and charts
-//   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024 and 480 of the media and container queries)
+//   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024, 480, 340 and 640 of the media and container queries)
+//   dist/js/durations.js   the duration numbers alone, in milliseconds (a confirmation's hold)
 //   dist/json/tokens.json resolved values with sRGB hex and OKLCH, for native generators
 //
 // Style Dictionary parses the DTCG files and resolves references; the transforms and the
@@ -250,11 +251,19 @@ write("css/shadcn.css", shadcn);
 
 // The breakpoints. A media query cannot read a custom property, so CSS writes the number (range syntax, with a lint exception that
 // names the token); apps that build with PostCSS can use these named queries from the same source instead, and a script reads the numbers.
-const BREAKPOINTS = ["md", "lg", "container"];
+// The key is the token's name after `size-breakpoint-`, in camelCase: `container-sm` is `containerSm`.
+const BREAKPOINTS = ["md", "lg", "container", "container-sm", "container-lg"];
+const breakpointKey = (name) => name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 const breakpointPx = Object.fromEntries(BREAKPOINTS.map((name) => {
   const token = primitives.find((t) => t.path.join(".") === `size.breakpoint-${name}`);
   if (!token || token.$value.unit !== "px") throw new Error(`size-breakpoint-${name} must be a px token`);
-  return [name, token.$value.value];
+  return [breakpointKey(name), token.$value.value];
+}));
+// The durations, in milliseconds, for a script that holds a timer (a confirmation's hold) so it never carries the number. Every
+// `duration` token with a name of its own (the loops are groups) is here; a duration must be in ms for the number to be a count of them.
+const durationMs = Object.fromEntries(primitives.filter((t) => t.path[0] === "duration" && t.path.length === 2).map((t) => {
+  if (t.$value.unit !== "ms") throw new Error(`duration-${t.path[1]} must be a ms token`);
+  return [t.path[1], t.$value.value];
 }));
 const breakpointsCss = [
   header,
@@ -269,13 +278,18 @@ write("css/breakpoints.css", breakpointsCss);
 write("css/accents.css", accents);
 write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 const accentsJson = Object.fromEntries(accentClasses.map((c) => [c.name, { light: entry({ $type: "color", $value: c.light }), dark: entry({ $type: "color", $value: c.dark }) }]));
-write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\n/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\nexport default tokens;\n`);
+write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\n/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\n/** The durations in milliseconds, so a script that holds a timer never carries the number: setTimeout(done, duration.confirm). */\nexport const duration = ${JSON.stringify(durationMs, null, 2)};\nexport default tokens;\n`);
 // The breakpoints alone, so a component or a page script can import them without the whole token table.
 write("js/breakpoints.js", `${header}/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\n`);
-write("js/breakpoints.d.ts", `${header}export declare const breakpoint: { ${BREAKPOINTS.map((n) => `readonly ${n}: ${breakpointPx[n]}`).join("; ")} };\n`);
+// The durations alone, for the same reason.
+// Each also as a constant of its own (`durationConfirm`), so a bundler that keeps one drops the rest: a property of an object is not known to be free of side effects.
+const durationConst = (name) => `duration${name[0].toUpperCase()}${name.slice(1)}`;
+write("js/durations.js", `${header}${Object.entries(durationMs).map(([n, ms]) => `/** The \`duration-${n}\` token in milliseconds. */\nexport const ${durationConst(n)} = ${ms};`).join("\n")}\n/** The durations in milliseconds, so a script that holds a timer never carries the number: setTimeout(done, duration.confirm). */\nexport const duration = { ${Object.keys(durationMs).map((n) => `${JSON.stringify(n)}: ${durationConst(n)}`).join(", ")} };\n`);
+write("js/durations.d.ts", `${header}${Object.entries(durationMs).map(([n, ms]) => `export declare const ${durationConst(n)}: ${ms};`).join("\n")}\nexport declare const duration: { ${Object.entries(durationMs).map(([n, ms]) => `readonly ${n}: ${ms}`).join("; ")} };\n`);
+write("js/breakpoints.d.ts", `${header}export declare const breakpoint: { ${Object.entries(breakpointPx).map(([n, px]) => `readonly ${n}: ${px}`).join("; ")} };\n`);
 write(
   "js/tokens.d.ts",
-  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport type AccentClass = ${accentClasses.map((c) => JSON.stringify(c.name)).join(" | ")};\nexport interface AccentColors { light: ColorToken; dark: ColorToken }\nexport declare const accents: Record<AccentClass, AccentColors>;\nexport declare const breakpoint: { ${BREAKPOINTS.map((n) => `readonly ${n}: ${breakpointPx[n]}`).join("; ")} };\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
+  `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport type AccentClass = ${accentClasses.map((c) => JSON.stringify(c.name)).join(" | ")};\nexport interface AccentColors { light: ColorToken; dark: ColorToken }\nexport declare const accents: Record<AccentClass, AccentColors>;\nexport declare const breakpoint: { ${Object.entries(breakpointPx).map(([n, px]) => `readonly ${n}: ${px}`).join("; ")} };\nexport declare const duration: { ${Object.entries(durationMs).map(([n, ms]) => `readonly ${n}: ${ms}`).join("; ")} };\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
 );
 // ---- Swift: the tokens for the Apple apps, committed so SwiftPM can consume the repository.
 

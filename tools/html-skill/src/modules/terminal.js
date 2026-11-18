@@ -119,7 +119,7 @@
         compact.setAttribute('aria-label', 'Copied');
         live.textContent = 'Copied';
         clearTimeout(reset);
-        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, 1500);
+        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
       });
     }
     root.querySelector('.terminal-copy').addEventListener('click', copy);

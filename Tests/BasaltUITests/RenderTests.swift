@@ -3,7 +3,7 @@ import AppKit
 import SwiftUI
 import XCTest
 import BasaltTokens
-import BasaltUI
+@testable import BasaltUI
 
 @MainActor
 final class RenderTests: XCTestCase {
@@ -73,6 +73,82 @@ final class RenderTests: XCTestCase {
       if let dir = ProcessInfo.processInfo.environment["BASALT_SNAPSHOT_DIR"] {
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         try data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("swiftui-callouts-\(name).png"))
+      }
+    }
+  }
+
+  /// A bitmap of `view` drawn under a named appearance (aqua and dark aqua), and the scale of the bitmap to the view's points.
+  private func render<V: View>(_ view: V, appearance name: NSAppearance.Name) throws -> (rep: NSBitmapImageRep, size: CGSize, scale: CGFloat) {
+    Basalt.Fonts.register()
+    var png: Data?
+    var size = CGSize.zero
+    let appearance = try XCTUnwrap(NSAppearance(named: name))
+    appearance.performAsCurrentDrawingAppearance {
+      let host = NSHostingView(rootView: view)
+      host.appearance = appearance
+      host.frame = NSRect(origin: .zero, size: host.fittingSize)
+      host.layoutSubtreeIfNeeded()
+      size = host.bounds.size
+      if let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+        host.cacheDisplay(in: host.bounds, to: rep)
+        png = rep.representation(using: .png, properties: [:])
+      }
+    }
+    let rep = try XCTUnwrap(NSBitmapImageRep(data: try XCTUnwrap(png)))
+    return (rep, size, CGFloat(rep.pixelsWide) / size.width)
+  }
+
+  /// A colour as three sRGB components (BasaltTokens' own RGBA cannot be made outside its module).
+  private struct Rgb { var red: Double, green: Double, blue: Double }
+
+  /// The pixel at a point of the view, in sRGB.
+  private func pixel(_ image: (rep: NSBitmapImageRep, size: CGSize, scale: CGFloat), x: CGFloat, y: CGFloat) throws -> Rgb {
+    let color = try XCTUnwrap(image.rep.colorAt(x: Int(x * image.scale), y: Int(y * image.scale))?.usingColorSpace(.sRGB))
+    return Rgb(red: color.redComponent, green: color.greenComponent, blue: color.blueComponent)
+  }
+
+  private func rgb(_ color: Basalt.RGBA) -> Rgb { Rgb(red: color.red, green: color.green, blue: color.blue) }
+
+  private func assertColor(_ got: Rgb, _ want: Rgb, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertEqual(got.red, want.red, accuracy: 0.03, message, file: file, line: line)
+    XCTAssertEqual(got.green, want.green, accuracy: 0.03, message, file: file, line: line)
+    XCTAssertEqual(got.blue, want.blue, accuracy: 0.03, message, file: file, line: line)
+  }
+
+  /// A5-20: under Increase Contrast every Basalt line steps to `line-contrast` and tertiary ink to `ink-contrast` (foundations, "More contrast").
+  /// The info callout's edge and a switch's off thumb were the two that did not. Each is read off a real render, in both appearances and both
+  /// modes (the increased mode through the views' internal `contrastOverride`: SwiftUI's `colorSchemeContrast` is read-only, and a hosted view,
+  /// even in a window, does not take it from a high-contrast appearance).
+  func testIncreaseContrastStepsTheInfoCalloutEdgeAndTheSwitchThumb() throws {
+    let padding = Basalt.Space.s6
+    for (name, dark) in [(NSAppearance.Name.aqua, false), (.darkAqua, true)] {
+      for increased in [false, true] {
+        let label = "\(dark ? "dark" : "light"), \(increased ? "increased" : "standard") contrast"
+        let contrast: ColorSchemeContrast? = increased ? .increased : nil
+        // The info callout: its edge is the straight left side, a point in from the page's padding, halfway down.
+        var callout = BasaltCallout("Heads up", description: "Runs stop at midnight UTC.", status: .info)
+        callout.contrastOverride = contrast
+        let drawn = try render(callout.padding(padding).frame(width: 420).background(Basalt.Colors.surfacePage.color), appearance: name)
+        // What an edge of that colour looks like at that place, drawn the plain way (a stroke of the token's colour over the callout's level), so the
+        // blend of a translucent line over the level is the renderer's, not this test's arithmetic.
+        let line = increased ? Basalt.Colors.lineContrast : Basalt.Colors.borderHairline
+        let reference = try render(
+          RoundedRectangle(cornerRadius: Basalt.Radius.md).fill(Basalt.Colors.surfaceRaised.color).overlay(RoundedRectangle(cornerRadius: Basalt.Radius.md).strokeBorder(line.color))
+            .frame(width: drawn.size.width - 2 * padding, height: drawn.size.height - 2 * padding).padding(padding).frame(width: 420).background(Basalt.Colors.surfacePage.color),
+          appearance: name)
+        assertColor(try pixel(drawn, x: padding + 0.5, y: drawn.size.height / 2), try pixel(reference, x: padding + 0.5, y: drawn.size.height / 2), "info callout's edge, \(label)")
+        // The switch, off: the thumb sits at the track's start, which is the view's trailing end.
+        var style = BasaltToggleStyle()
+        style.contrastOverride = contrast
+        let toggle = try render(Toggle("Verbose logs", isOn: .constant(false)).toggleStyle(style).padding(padding).frame(width: 320).background(Basalt.Colors.surfacePage.color), appearance: name)
+        let ink = increased ? Basalt.Colors.inkContrast : Basalt.Colors.textTertiary
+        let thumbX = 320 - padding - Basalt.Size.switchWidth / 2 - 7
+        assertColor(try pixel(toggle, x: thumbX, y: toggle.size.height / 2), rgb(dark ? ink.dark : ink.light), "off thumb, \(label)")
+        if increased {
+          // And the two are not the standard ones: a render that ignored the mode would pass the lines above only if the tokens were equal.
+          XCTAssertNotEqual(Basalt.Colors.lineContrast, Basalt.Colors.borderHairline)
+          XCTAssertNotEqual(Basalt.Colors.inkContrast, Basalt.Colors.textTertiary)
+        }
       }
     }
   }

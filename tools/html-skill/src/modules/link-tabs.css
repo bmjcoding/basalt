@@ -24,9 +24,8 @@
   .link-tabs[data-size="3xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-5xl); }
   .link-tabs:is([data-size="3xl"], [data-size="5xl"]) .link-tab { padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; font-size: var(--basalt-text-md-size); }
-  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
-  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
-  @container (width < 640px) {
+  /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
+  @container (width < %bp-container-lg%) {
     .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   }
   .link-tabs > ul > li:first-child > .link-tab { padding-inline-start: 0; }

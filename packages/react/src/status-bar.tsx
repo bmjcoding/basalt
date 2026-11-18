@@ -1,6 +1,7 @@
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
+import { STATUS_MESSAGE_MS } from "./constants";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
 import { join } from "./utils";
@@ -8,9 +9,6 @@ import { join } from "./utils";
 // ---- The status bar (DECISIONS 162, D14b: V7, R6, R7, B7) ----
 // A foot of 44px from 720 in the page's layout, and fixed under 720 (56px plus the safe area). The name `StatusLine` is the announcer's
 // (a polite line heard and not seen), so this part is the bar.
-
-/** How long a message the app has also written to its log stays: the toast's own timer. */
-export const STATUS_MESSAGE_MS = 5000;
 
 export interface StatusMessage {
   /** The words. */

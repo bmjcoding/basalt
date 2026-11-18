@@ -128,16 +128,24 @@ const iconUri = (name) => {
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
 /**
- * `%bp-md%`, `%bp-lg%` and `%bp-container%` in a source stylesheet are the layout tokens' breakpoints (size-breakpoint-md, -lg, -container, DECISIONS 101), read
- * from the generated tokens package and written as range syntax in a media query (`@media (width < %bp-md%)`), so no source carries the number (foundations, "Layout").
+ * `%bp-md%`, `%bp-lg%`, `%bp-container%`, `%bp-container-sm%` and `%bp-container-lg%` in a source stylesheet are the layout tokens' breakpoints (size-breakpoint-md, -lg,
+ * -container, -container-sm, -container-lg, DECISIONS 101), read from the generated tokens package and written as range syntax in a media or container query
+ * (`@media (width < %bp-md%)`), so no source carries the number (foundations, "Layout"). `%duration-confirm%` in a script is the `duration-confirm` token in
+ * milliseconds, the hold of a confirmation, so a timer never carries the number either.
  */
 async function breakpoints() {
   tokensFile("breakpoints"); // fails with the plain message when the tokens are not built
   const { breakpoint } = await import(pathToFileURL(require.resolve("@srasyndicate/basalt-tokens/breakpoints")).href);
-  return { md: `${breakpoint.md}px`, lg: `${breakpoint.lg}px`, container: `${breakpoint.container}px` };
+  return { md: `${breakpoint.md}px`, lg: `${breakpoint.lg}px`, container: `${breakpoint.container}px`, "container-sm": `${breakpoint.containerSm}px`, "container-lg": `${breakpoint.containerLg}px` };
+}
+async function durations() {
+  tokensFile("durations");
+  const { duration } = await import(pathToFileURL(require.resolve("@srasyndicate/basalt-tokens/durations")).href);
+  return { confirm: String(duration.confirm) };
 }
 const BREAKPOINTS = await breakpoints();
-const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
+const DURATIONS = await durations();
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%bp-(md|lg|container-sm|container-lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
 
 /**
  * `%glyph:name%` in a module's source is the path of a core glyph (packages/react/glyphs/source.mjs, the drawn set), read from the set and never copied
@@ -211,7 +219,7 @@ const glyphSvg = (name) => {
   if (!GLYPHS[name] || GLYPHS[name].board) throw new Error(`html-skill: "${name}" is not a core glyph the page can draw`);
   return `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" focusable="false">${glyphMarkup(name, false)}</svg>`;
 };
-const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container)%/g, (_, name) => BREAKPOINTS[name]), "js");
+const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container-sm|container-lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%duration-(confirm)%/g, (_, name) => DURATIONS[name]), "js");
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {

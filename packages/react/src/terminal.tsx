@@ -14,7 +14,7 @@ import { usePanelLevel } from "./layers";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
-import { CONFIRM_MS } from "./confirm";
+import { CONFIRM_MS } from "./constants";
 
 /** What a line is: a command, what came back, or a result (done, a warning, an error). */
 export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error";
