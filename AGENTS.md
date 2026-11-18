@@ -239,6 +239,13 @@ package went unchecked. It prints the Node version it runs on beside the one `ci
 when their major versions differ: run it on the pinned major before relying on the result. It runs on macOS, not CI's Ubuntu runner, so text measured in a
 behaviour test uses different fallback fonts: keep a test's margins clear of a font's width.
 
+**One heavy run per Mac.** Other agents share this machine, and two suites at once slow each other
+and break timed tests: the fast `ci:local` runs were the ones that ran alone. Before `npm test`,
+`npm run check`, `npm run ci:local` or a browser benchmark, run
+`pgrep -fl '[n]ode --test|[c]hrome-headless-shell|[s]wift-build'` (the brackets stop it matching its
+own shell). If it lists anything, wait for it to end rather than start beside it. A timing taken while another run was going is not a measurement:
+say so if you report one.
+
 `npm run lint`, `npm test`, `npm run check` and `npm run ci:local` run every step and fail at the end, ending in one line a step (passed or failed, and for a failed
 test step the files that failed), so one failing file does not hide the steps after it. The steps print in order, each under its own header: the first failing section
 of the log is the first failure, and the summary marks it. `ci.yml`'s own steps are unchanged. Renders and browser tests launch Chromium through
