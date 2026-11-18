@@ -14,6 +14,7 @@ import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-contex
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
 import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails, PartProps, PopupActions, SubmitDetails, ValidateActions } from "./types";
+import { useMirrorRef } from "./mirror";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 
@@ -104,7 +105,8 @@ export interface ComboboxProps {
 }
 
 /** A searchable Select. The chosen value must come from the supplied options. Label it with Field. */
-export function Combobox({ options, placeholder = "Search…", emptyMessage = "No options match.", controlSize = "md", className, inputProps, modal = false, "aria-label": label, ...props }: ComboboxProps) {
+export function Combobox({ options, placeholder = "Search…", emptyMessage = "No options match.", controlSize = "md", className, inputProps, modal = false, inputRef, "aria-label": label, ...props }: ComboboxProps) {
+  const mirror = useMirrorRef(inputRef);
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const byValue = new Map(options.map((option) => [option.value, option]));
@@ -117,7 +119,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
     return `${option?.label ?? value}`.toLowerCase().includes(needle) || (option?.description?.toLowerCase().includes(needle) ?? false);
   };
   return (
-    <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
+    <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} inputRef={mirror} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
       <BaseCombobox.InputGroup className={join("basalt-combobox", className)}>
         <BaseCombobox.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} placeholder={placeholder} data-size={controlSize} className="basalt-input basalt-combobox-input" />
         <BaseCombobox.Trigger render={<IconButton icon={CaretUpDownIcon} label="Show options" size={controlSize} />} className="basalt-combobox-trigger" />
@@ -176,9 +178,10 @@ export interface NumberFieldProps extends PartProps<"div", "onChange" | "default
 }
 
 /** Numeric entry with locale-aware formatting and bounded keyboard/button stepping. */
-export function NumberField({ controlSize = "md", className, inputProps, "aria-label": label, decrementLabel = "Decrease value", incrementLabel = "Increase value", ...props }: NumberFieldProps) {
+export function NumberField({ controlSize = "md", className, inputProps, "aria-label": label, decrementLabel = "Decrease value", incrementLabel = "Increase value", inputRef, ...props }: NumberFieldProps) {
+  const mirror = useMirrorRef(inputRef);
   return (
-    <BaseNumberField.Root {...props} className={withClass("basalt-number", className)}>
+    <BaseNumberField.Root {...props} inputRef={mirror} className={withClass("basalt-number", className)}>
       <BaseNumberField.Group className="basalt-number-group" data-size={controlSize}>
         <BaseNumberField.Decrement aria-label={decrementLabel} render={<IconButton icon={MinusGlyph} label={decrementLabel} size={controlSize} />} />
         <BaseNumberField.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} className="basalt-input basalt-number-input" data-size={controlSize} />

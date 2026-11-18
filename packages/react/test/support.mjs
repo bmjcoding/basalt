@@ -101,17 +101,24 @@ export async function fixturePage(browser, body, { theme = "light", clock = fals
   return { page, errors };
 }
 
-/** Wait for every finite animation and transition on the page to finish. */
+/**
+ * A toast's drain line is its clock: it runs for the toast's whole life (five seconds by default) and ends as the toast leaves. It is not an entrance,
+ * so `settle` does not wait for it, or a page with a timed toast would be read after the toast had begun to go. (A toast with no `home` has no drain and stays;
+ * so does one the test gave `timeout: 0`.) React draws `.basalt-toast-drain`, the HTML skill `.toast-drain`.
+ */
+const DRAIN = ".basalt-toast-drain, .toast-drain";
+
+/** Wait for every finite animation and transition on the page to finish, except a toast's drain (it ends with the toast). */
 export async function settle(page) {
   // Under a frozen clock (see freezeAnimations) nothing finishes by itself: run it out, and say so if something cannot end.
   if (page.animationClock?.frozen) {
     await page.animationClock.runOut();
     return;
   }
-  await page.evaluate(async () => {
+  await page.evaluate(async (drain) => {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})));
-  });
+    await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity && !a.effect?.target?.closest?.(drain)).map((a) => a.finished.catch(() => {})));
+  }, DRAIN);
 }
 
 /**
@@ -145,7 +152,7 @@ export async function freezeAnimations(page) {
   await page.clock.install({ time: now });
   await page.clock.pauseAt(now + 1000);
   await client.send("Animation.setPlaybackRate", { playbackRate: 0 });
-  await page.evaluate(() => {
+  await page.evaluate((drain) => {
     // Only what is running moves, at its own rate. A paused animation, or one with no rate, stays where it is.
     window.__advanceAnimations = (ms) => {
       for (const a of document.getAnimations()) if (a.playState === "running") a.currentTime = Number(a.currentTime ?? 0) + ms * a.playbackRate;
@@ -156,6 +163,7 @@ export async function freezeAnimations(page) {
       for (const a of document.getAnimations()) {
         const timing = a.effect?.getComputedTiming();
         if (!timing || timing.iterations === Infinity) continue;
+        if (a.effect.target?.closest?.(drain)) continue; // a toast's clock ends with the toast
         const name = a.transitionProperty ?? a.animationName ?? a.constructor.name;
         if (a.playState === "paused") throw new Error(`settle: the ${name} animation is paused and would never finish`);
         if (!(a.playbackRate > 0)) throw new Error(`settle: the ${name} animation has playback rate ${a.playbackRate} and would never finish`);
@@ -163,7 +171,7 @@ export async function freezeAnimations(page) {
       }
       return left;
     };
-  });
+  }, DRAIN);
   const clock = {
     frozen: true,
     async advance(ms) {

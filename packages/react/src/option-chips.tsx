@@ -6,6 +6,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import type { ChangeDetails, PartProps } from "./types";
+import { markMirror } from "./mirror";
 import { withClass } from "./utils";
 
 export interface OptionChip {
@@ -87,6 +88,7 @@ export function OptionChips({ legend, options, value, defaultValue, onValueChang
         {options.map((option) => (
           <BaseRadio.Root
             key={option.value}
+            inputRef={markMirror}
             value={option.value}
             // Unavailable is not disabled: it stays reachable so its words are heard, and read-only so nothing chooses it.
             readOnly={option.unavailable ? true : undefined}

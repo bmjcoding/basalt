@@ -375,10 +375,17 @@ when they open. None of them draws only what is in view: find-in-page and a scre
 So the length of the list is the app's to bound. Measured in Chrome on an Apple M3 Max with the CPU slowed four times (the usual
 stand-in for a mid-range phone), against the 200 ms that Core Web Vitals calls a good response:
 
-- **A table of runs** (seven columns, a checkbox in each row, sortable headings, a filter field). Ticking a row, filtering, sorting and
-  selecting all each take time that grows with the row count; no figures are given here yet. When the app keeps each row's props and children the same between renders (`TableRow`,
-  `TableRowHead` and `TableCell` are memoised, so an unchanged row is not rendered again) a tick or a filter renders only the rows
-  that changed. Page a table that can grow past a few hundred rows with `Pagination`, and keep each page's rows stable.
+- **A table of runs** (seven columns, a checkbox in each row, sortable headings, a filter field; the audit's harness). Measured at 100,
+  1,000 and 5,000 rows, in milliseconds (Event Timing, median of 5; the 1-minute load was 3 to 5 at 100 and 1,000 rows): ticking one row
+  48, 216 and 848; filtering by one key 56, 624 and 29,320; sorting 104, 1,720 and 49,504; selecting all 96, 640 and 2,736. When the
+  app keeps each row's props and children the same between renders (`TableRow`, `TableRowHead` and `TableCell` are memoised, so an
+  unchanged row is not rendered again) ticking is 32, 72 and 296, filtering 32, 544 and 38,680, sorting 80, 1,632 and 82,080 and selecting
+  all 96, 592 and 2,672. At 5,000 rows the load was 4 to 11 and not under 8 in every run (ticking 9.4, selecting all 10.4, sorting with
+  stable rows 7.4, filtering 5.7 and, with stable rows, 6.4), so those five figures are a guide to the size and not exact. Sorting and filtering are the slow
+  ones here: they cost 3 to 8 times what a tick does at 1,000 rows, and a stable row does not help them (a sort moves every row). Estimated,
+  from a straight line between the nearest measured sizes and so not measured: ticking crosses 200 ms at about 900 rows (about 3,000 with
+  stable rows), selecting all at about 300, filtering at about 300 (about 400 with stable rows) and sorting at about 150 (about 170).
+  Page a table that can grow past a few hundred rows with `Pagination`, and keep each page's rows stable.
 - **`Select`, `Combobox` and `CommandMenu`** open in 85 to 110 ms with 30 items and 270 to 310 ms with 1,000, a cost that grows with
   the count (measured at 30 and 1,000 items; between them it is close to a straight line, which puts 200 ms at about 500 items).
   Open comfortably up to a few hundred items. Past that, search on the server and send the first matches (and say how many more
@@ -386,7 +393,13 @@ stand-in for a mid-range phone), against the 200 ms that Core Web Vitals calls a
 - **A `MultiSelect` checklist** opens in 640 ms with 1,000 options and a tick takes 470 ms. The highlight following the pointer is
   cheap at any length; opening and ticking are not. A few hundred options is the comfortable limit.
 
-These are the numbers on the day they were measured (the 1-minute load was 3 to 6), not a promise; they tell an app where to start
+A control's hidden form input is a layer of its own in Chrome when Base UI fixes it to the viewport. `Checkbox`, `Switch`, `Radio`,
+`Select`, `Combobox`, `NumberField`, `SwitchRow`, `OptionChips` and the chips of `MultiSelect` mark their own input (through `inputRef`) and the
+stylesheet makes that input absolute at its place in the flow, so a table with a checkbox in each of 1,000 rows is 5 layers, not 1,000. The mark is set
+by the browser's script, so a server-rendered page keeps Base UI's styles until it hydrates. The rows of an open `MultiSelect` checklist are not marked (it
+would change the popup's corner pixels), so a checklist of 1,000 options still has a layer a row.
+
+These are the numbers on the day they were measured (the 1-minute load was 3 to 11, as said above), not a promise; they tell an app where to start
 paging. `docs/foundations.md` states no list-length budget.
 
 ## Test

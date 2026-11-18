@@ -1,6 +1,6 @@
 /* Basalt HTML script, glyph module: Basalt's own glyphs (the core set, packages/react/glyphs/source.mjs), drawn from <span data-glyph="home"></span>.
    A glyph is eight cubic strokes on a 24 grid, 2.25 units wide at every size. At rest it has an opening; inside the current page (an ancestor with
-   aria-current, or data-current) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. In a segment or a tab it follows the item's choice. data-size is 16
+   aria-current, or data-current; drawn again when a page that routes itself moves the mark) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. In a segment or a tab it follows the item's choice. data-size is 16
    (the default), 20 or 24. The drawings are worked out at build time (build.mjs), and a page carries only the glyphs it names, plus the ones a module draws itself
    (compose.mjs adds them with Basalt._.addGlyphs). Used by the sheet's Menu and Close, the navigation's glyphs and the tab bar.
    Source: tools/html-skill/src/modules/glyph.js (do not edit the copy in the skill folder). */
@@ -27,14 +27,48 @@
     return '<svg class="icon" viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" aria-hidden="true" focusable="false">' + inner + '</svg>';
   }
 
+  var CURRENT = '[aria-current]:not([aria-current="false"]), [data-current]';
+  // In a segment, a tab or a link tab the glyph draws both forms in one box, and the item's own state shows the one that matches (the segment and tabs modules' CSS), so it follows the choice.
+  var PAIRED = '.segment, [role="tab"], .link-tab';
+  // A page that routes itself moves the current mark between the items of a list without a reload: the lists that hold glyphs are watched, and nothing else.
+  var ITEMS = 'nav, [role="navigation"], [role="tablist"], [role="menu"], ul, ol, table, .segment, .tab-bar';
+  var drawn = [];
+  var observer;
+
+  /** The glyph drawn in place of `el`: its settled form, or both in one box where the item's own state shows the one that matches. Returns the new node. */
+  function put(el, name, size, selected) {
+    var svg = glyph(name, { size: size, selected: selected });
+    if (!svg) return null;
+    var t = document.createElement('template');
+    t.innerHTML = !selected && el.closest(PAIRED) ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
+    var node = t.content.firstChild;
+    el.replaceWith(node);
+    return node;
+  }
+
+  /** A current mark moved: each followed glyph under it takes the form its ancestors now give it. */
+  function moved(records) {
+    drawn.forEach(function (d) {
+      var selected = !!d.node.closest(CURRENT);
+      if (selected === d.selected || !records.some(function (r) { return r.target.contains(d.node); })) return;
+      var node = put(d.node, d.name, d.size, selected);
+      if (node) { d.selected = selected; d.node = node.tagName === 'svg' ? node : null; }
+    });
+    drawn = drawn.filter(function (d) { return d.node && d.node.isConnected; });
+  }
+
   /** Draws every [data-glyph] under root. Selected inside aria-current or data-current, or with data-selected. */
   function hydrate(root) {
     (root || document).querySelectorAll('[data-glyph]').forEach(function (el) {
-      var selected = el.hasAttribute('data-selected') || !!el.closest('[aria-current]:not([aria-current="false"]), [data-current]');
+      var own = el.hasAttribute('data-selected');
+      var selected = own || !!el.closest(CURRENT);
       var name = el.getAttribute('data-glyph'), size = Number(el.getAttribute('data-size')) || 16;
-      var svg = glyph(name, { size: size, selected: selected });
-      // In a segment, a tab or a link tab the glyph draws both forms in one box, and the item's own state shows the one that matches (the segment and tabs modules' CSS), so it follows the choice.
-      if (svg) el.outerHTML = !selected && el.closest('.segment, [role="tab"], .link-tab') ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
+      var node = put(el, name, size, selected);
+      var scope = node && !own && node.tagName === 'svg' && node.closest(ITEMS);
+      if (!scope) return;
+      drawn.push({ node: node, name: name, size: size, selected: selected });
+      observer = observer || new MutationObserver(moved);
+      observer.observe(scope, { attributes: true, attributeFilter: ['aria-current', 'data-current'], subtree: true });
     });
   }
 
