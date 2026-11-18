@@ -573,7 +573,7 @@ describe("the period stepper (D19b)", () => {
     await page.close();
   });
 
-  test("narrower than 640px of the app's container it takes its own row: full width, buttons at the ends, 52px, a hairline above, buttons 44 by 44", async () => {
+  test("narrower than 640px of the app's container it takes its own row: full width, buttons at the ends, 52px, a divider line above, buttons 44 by 44", async () => {
     for (const theme of THEMES) {
       const { page } = await fixturePage(browser, render(BAR(390)), { theme, viewport: { width: 390, height: 800 } });
       const s = page.locator("[data-testid=s]");
@@ -585,7 +585,7 @@ describe("the period stepper (D19b)", () => {
       assert.ok(b.y >= tabs.bottom, "under the tabs, on its own row");
       const st = await style(s, "justifyContent", "borderTopWidth", "borderTopColor", "paddingLeft");
       assert.deepEqual([st.justifyContent, st.borderTopWidth, st.paddingLeft], ["space-between", "1px", "8px"]);
-      assert.equal(st.borderTopColor, await token(page, "border-hairline"));
+      assert.equal(st.borderTopColor, await token(page, "border-divider"), "the narrow row's line is a divider (DECISIONS 167, Q9a)");
       const first = await box(s.locator("button").first());
       const last = await box(s.locator("button").last());
       assert.ok(first.width >= 44 && first.height >= 44 && last.width >= 44 && last.height >= 44);

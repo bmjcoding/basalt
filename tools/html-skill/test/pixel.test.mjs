@@ -18,6 +18,10 @@
 // footer's "Top" link in the every-component page antialiases one grey level differently (27 pixels, 222 against 223), and the baselines were re-recorded in the same commit; nothing else moved.
 // The site-parts PR (DECISIONS 146 E): the smoke's midpoint (dark 92.5%, light 96%, from 85% and 92%) moves the pixels under the bar by a few grey levels, so the baselines were re-recorded in the same
 // commit from the new pages; the bar's own box, ink and line, and every region below it, did not move.
+// The audit-2-design PR (DECISIONS 167, Q6, Q7a, Q9a, Q9d, Q9f): the checkbox's check and dash, the choice card's and the select option's check and the search clear mark are the core set's
+// strokes; the disclosure chevron is the core chevron at 16, turned a half turn when open; the tabs are radius 8 on top; the option chip's edge and the period stepper's line moved
+// in the more-contrast mode and in dark; the two examples and the kitchen sink name the core glyphs (copy, search, plus) where they named Phosphor's. The baselines were re-recorded
+// from the new pages in the same commit, and the regions that changed are the ones named here.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 

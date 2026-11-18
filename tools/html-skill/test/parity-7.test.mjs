@@ -79,8 +79,10 @@ describe("a .topbar written before this step still composes and renders as the s
     test(`the ${name} example: the bar is 56px, its brand a 44px target, no links, no Menu button and none of the links' parts`, async () => {
       const result = compose(EXAMPLES[name], { fonts: false });
       assert.ok(result.modules.includes("topbar"));
-      assert.ok(!result.modules.includes("topbar-nav") && !result.modules.includes("sheet") && !result.modules.includes("glyph"), `a bar with no links carries only the bar: ${result.modules.join(", ")}`);
+      // The page may bring the glyph module for its own core glyphs (DECISIONS 167 Q6 moved the examples onto them); the bar itself must draw none.
+      assert.ok(!result.modules.includes("topbar-nav") && !result.modules.includes("sheet"), `a bar with no links carries only the bar: ${result.modules.join(", ")}`);
       const { page: p, context } = await openHtml(browser, result.html, { scheme: "dark" });
+      assert.equal(await p.locator(".topbar [data-glyph]").count(), 0, "the bar draws no glyph of its own");
       assert.equal((await box(p, ".topbar")).h, 56);
       assert.equal((await box(p, ".brand")).h, 44);
       assert.equal(await p.locator(".topbar-menu-trigger, dialog.topbar-menu").count(), 0, "no menu is built for a bar with no links or action");

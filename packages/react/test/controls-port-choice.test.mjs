@@ -122,13 +122,14 @@ describe("D9a: the switch row", () => {
     assert.equal((await css(on.locator(".basalt-switch-row-plus"), "opacity")).opacity, "0");
   });
 
-  test("the name ends in an ellipsis and the full name is the row's accessible name", async () => {
+  test("the name wraps (DECISIONS 167, Q1.1) and the full name is the row's accessible name", async () => {
     const { page } = await open(WITH_HEADING(ROWS()), DESKTOP);
     const long = page.getByRole("checkbox", { name: /A source with a name long enough/ });
     assert.equal(await long.count(), 1);
-    const n = await css(long.locator(".basalt-switch-row-name"), "textOverflow", "whiteSpace", "overflow");
-    assert.deepEqual([n.textOverflow, n.whiteSpace, n.overflow], ["ellipsis", "nowrap", "hidden"]);
-    assert.ok(await long.locator(".basalt-switch-row-name").evaluate((el) => el.scrollWidth > el.clientWidth));
+    const n = await css(long.locator(".basalt-switch-row-name"), "textOverflow", "whiteSpace");
+    assert.deepEqual([n.textOverflow, n.whiteSpace], ["clip", "normal"]);
+    assert.ok(await long.locator(".basalt-switch-row-name").evaluate((el) => el.scrollWidth <= el.clientWidth), "no part of the name is cut");
+    assert.ok((await long.evaluate((el) => el.getBoundingClientRect().height)) > 52, "the row grew with its own content");
   });
 
   test("disabled takes the chip's disabled look and cannot be changed; focus is the control ring at +2, outside", async () => {

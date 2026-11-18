@@ -9,6 +9,6 @@
   .btn .spinner, .palette .spinner { color: inherit; }
 
   @media (prefers-reduced-motion: reduce) {
-    .spinner { animation: bh-fade var(--basalt-duration-loop-fade) ease-in-out infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+    .spinner { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
   }
 }

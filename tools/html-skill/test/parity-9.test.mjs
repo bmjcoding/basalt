@@ -32,8 +32,8 @@ const axeViolations = async (page) => {
 const LONG = "A description that is far too long for one line of this list, so it has to be cut with an ellipsis and never wrap";
 const GROUPS = [
   { label: "Sandbox", items: [
-    { id: "new", label: "New sandbox", icon: "Plus", description: "Create a fresh environment", keys: ["⌘", "N"], href: "#ran-new" },
-    { id: "dup", label: "Duplicate", icon: "Copy", description: "Copy the current one", href: "#ran-dup" },
+    { id: "new", label: "New sandbox", icon: "TerminalWindow", description: "Create a fresh environment", keys: ["⌘", "N"], href: "#ran-new" },
+    { id: "dup", label: "Duplicate", icon: "Download", description: "Copy the current one", href: "#ran-dup" },
     { id: "rename", label: "Rename", href: "#ran-rename" },
     { id: "del", label: "Delete sandbox", icon: "Trash", danger: true, description: "Remove it for good", href: "#ran-del" },
   ] },
@@ -585,7 +585,7 @@ describe("rows: two lines, the plate between them, and the palette's description
     });
 
     test(`a described palette row is two lines with its description searched, and a hint is still the inline one (${theme})`, async () => {
-      const palette = { groups: [{ label: "Go", items: [{ label: "Save", icon: "Check", keys: ["⌘", "S"], description: "Writes the draft" }, { label: "Plain", hint: "inline" }, { label: "Bare" }] }] };
+      const palette = { groups: [{ label: "Go", items: [{ label: "Save", icon: "ArrowRight", keys: ["⌘", "S"], description: "Writes the draft" }, { label: "Plain", hint: "inline" }, { label: "Bare" }] }] };
       const { page, context, errors } = await open({ scheme: theme, body: `<button class="btn" data-open-palette>Open</button><script type="application/json" data-palette>${JSON.stringify(palette)}</script>` });
       await page.locator("button[data-open-palette]").click();
       await page.locator(".palette .row").first().waitFor();

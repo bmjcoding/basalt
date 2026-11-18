@@ -94,6 +94,7 @@ fs.mkdirSync(out, { recursive: true });
 const skillPages = {
   ...(!wanted.length || wanted.includes("32") ? (await import("./round32-skill.mjs")).skillPages() : {}),
   ...(!wanted.length || wanted.includes("39") ? (await import("./round39-skill.mjs")).skillPages39() : {}),
+  ...(!wanted.length || wanted.includes("47") ? (await import("./round47-skill.mjs")).skillPages47() : {}),
 };
 
 const bundle = await esbuild.build({
@@ -310,7 +311,7 @@ for (const id of rounds) {
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : mode.endsWith("more-contrast") ? { contrast: "more" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch", ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch", isMobile: id === "48" && state === "touch", ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
           if (id === "25") {
@@ -398,6 +399,17 @@ for (const id of rounds) {
             walk(root);
             for (const kind of ["hover", "focus"]) for (const nodeId of marked[kind]) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : ["focus", "focus-visible"] });
             await page.waitForTimeout(300);
+          }
+          // Round 48 (the peek plate), "touch": a phone is emulated (build.mjs turns `isMobile` on, so the page has a coarse pointer and no hover), and a finger is put down on the row that
+          // marks itself `data-wt-hold` and held for 800ms, longer than the 500ms the open list waits before it opens its plate. The release is left to the page: it opens nothing.
+          if (id === "48" && state === "touch") {
+            const hold = page.locator("[data-wt-hold]");
+            if (await hold.count()) {
+              const box = await hold.first().boundingBox();
+              const client = await page.context().newCDPSession(page);
+              await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + 60, y: box.y + 12 }] });
+              await page.waitForTimeout(800);
+            }
           }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
           if (/^((tab|open)-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {

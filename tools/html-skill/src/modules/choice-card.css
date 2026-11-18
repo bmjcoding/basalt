@@ -61,7 +61,7 @@
   .choice-card:has(> input[type="radio"]) .choice-card-box { border-radius: var(--basalt-radius-full); }
   /* The mark: the check for any-of-many, the dot for one-of-many. */
   .choice-card-box::before { content: ""; opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .choice-card:has(> input[type="checkbox"]) .choice-card-box::before { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); background: currentColor; mask: url("%icon:Check%") center / contain no-repeat; }
+  .choice-card:has(> input[type="checkbox"]) .choice-card-box::before { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); background: currentColor; mask: url("%glyph-mask:check%") center / contain no-repeat; }
   .choice-card:has(> input[type="radio"]) .choice-card-box::before { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
   .choice-card:has(> .choice-card-input:checked) .choice-card-box { background: var(--basalt-action-primary); box-shadow: none; }
   .choice-card:has(> .choice-card-input:checked) .choice-card-box::before { opacity: 1; }

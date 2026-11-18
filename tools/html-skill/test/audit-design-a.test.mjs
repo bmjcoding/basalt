@@ -184,9 +184,9 @@ describe("A: a label that is not plain text reserves its 600 width in the skill 
   const TABS_OF = (inner) => `<div data-tabs><div class="tabs" role="tablist" aria-label="Views">${["Inbox", "Drafts", "Archived"].map((l, i) => `<button class="tab" role="tab" id="t${i}" aria-controls="p${i}" aria-selected="${i === 1}">${inner(l)}</button>`).join("")}</div>${[0, 1, 2].map((i) => `<div class="tabpanel" id="p${i}" role="tabpanel" aria-labelledby="t${i}"${i !== 1 ? " hidden" : ""}>Panel ${i}</div>`).join("")}</div>`;
   const CASES = {
     "segments with labels in spans": [SEG((l) => `<span>${l}</span>`), "#g button", (page, i) => press(page, i)],
-    "segments with an icon beside words in a span": [SEG((l) => `<i data-icon="Copy"></i><span>${l}</span>`), "#g button", (page, i) => press(page, i)],
+    "segments with an icon beside words in a span": [SEG((l) => `<i data-icon="Trash"></i><span>${l}</span>`), "#g button", (page, i) => press(page, i)],
     "tabs with labels in spans": [TABS_OF((l) => `<span>${l}</span>`), ".tab", (page, i) => pick(page, i)],
-    "tabs with an icon beside words in a span": [TABS_OF((l) => `<i data-icon="Copy"></i><span>${l}</span>`), ".tab", (page, i) => pick(page, i)],
+    "tabs with an icon beside words in a span": [TABS_OF((l) => `<i data-icon="Trash"></i><span>${l}</span>`), ".tab", (page, i) => pick(page, i)],
   };
   for (const scheme of ["dark", "light"]) {
     for (const [name, [body, items, choose]] of Object.entries(CASES)) {
@@ -232,7 +232,7 @@ describe("A: a label that is not plain text reserves its 600 width in the skill 
 
 describe("A: a segment's icon sits on its label's centre line, 6px before it, as a tab's does", () => {
   test("a core glyph and a Phosphor icon, each beside words", async () => {
-    const { page, context } = await open('<div class="segment" role="group" aria-label="V"><button type="button" aria-pressed="true"><span data-glyph="home"></span>Home</button><button type="button" aria-pressed="false"><i data-icon="Copy"></i>Copy</button></div>', { scheme: "dark" });
+    const { page, context } = await open('<div class="segment" role="group" aria-label="V"><button type="button" aria-pressed="true"><span data-glyph="home"></span>Home</button><button type="button" aria-pressed="false"><i data-icon="Trash"></i>Copy</button></div>', { scheme: "dark" });
     await frames(page);
     for (const which of [0, 1]) {
       const out = await page.locator("#g, .segment button").nth(which).evaluate((el) => {
@@ -307,8 +307,8 @@ describe("A: an icon and its words share one centre line, 6px apart, whatever ho
   const TAB = (inner) => `<div data-tabs><div class="tabs" role="tablist" aria-label="V"><button class="tab" role="tab" id="t0" aria-controls="p0" aria-selected="true">${inner("Home")}</button><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="false">${inner("Other")}</button></div><div class="tabpanel" id="p0" role="tabpanel" aria-labelledby="t0">a</div><div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1" hidden>b</div></div>`;
   const SHAPES = {
     "a core glyph beside plain words": (l) => `<span data-glyph="home"></span>${l}`,
-    "a Phosphor icon beside words in a span": (l) => `<i data-icon="Copy"></i><span>${l}</span>`,
-    "an icon inside the span that holds the words": (l) => `<span><i data-icon="Copy"></i>${l}</span>`,
+    "a Phosphor icon beside words in a span": (l) => `<i data-icon="Trash"></i><span>${l}</span>`,
+    "an icon inside the span that holds the words": (l) => `<span><i data-icon="Trash"></i>${l}</span>`,
     "a core glyph beside words in a span": (l) => `<span data-glyph="home"></span><span>${l}</span>`,
   };
   for (const [where, options] of MODES) {

@@ -127,7 +127,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   and Combobox popups, Dialog, AlertDialog, CommandMenu, Sheet (its inner edge), Toast and
   Tooltip. Never on a control, chip, badge or pill.
 - **Divider:** rules between table rows, menu groups and card sections: 6% white in dark, 8% black
-  in light, never brighter than the rim (the header bar's line is the one exception; see
+  in light, never brighter than the rim (the header bar's line and the phone tab bar's top hairline are the exceptions; see
   [Chrome](#chrome-the-smoked-header)).
 - **Input boundary:** 38% white or 45% black, 3.4:1 or better on every surface (WCAG 1.4.11).
   Vercel's inputs measure 1.35:1, and Linear's borders 1.3:1; neither passes.
@@ -193,7 +193,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   plate). A hint (a host, a region, a count) lifts from tertiary to secondary on the plate (in light tertiary
   falls under 4.5:1 there; in dark it holds 4.76:1 or better, and the step is kept as a rule, DECISIONS 166); a shortcut chip lifts to primary. There is no weight change: the active row is where the
   keyboard is, not a choice, and a weight that followed the arrow keys would flicker (a chosen item, whose 600 width is
-  reserved, is a different state and does take weight); the chosen value is the check. There is no bar, no inset outline and no ↵ chip: the owner ruled the vertical bar and the outline AI
+  reserved, is a different state and does take weight); the chosen value is the check. There is no bar, no inset outline and no ↵ chip, except the opening list's cursor row, which keeps one (DECISIONS 155, V6): the owner ruled the vertical bar and the outline AI
   tells (9 Nov 2026), and the plate with the ink step is the cue that does not rest on colour (1.4.1) and says where
   focus is (2.4.7). A chosen value (a Select option, a checked item) is a check in primary ink at the row's start, in a
   16px slot every row reserves so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
@@ -204,7 +204,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   a real `CanvasText` border. With a fine pointer the plate is one shared element that glides between rows (see
   [Motion](#motion)); each row's own plate is the fallback.
 - **Tabs and segments.** Horizontal tabs keep a 2px underline that slides under the active tab: it is horizontal, not the
-  vertical line the owner ruled out. Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
+  vertical line the owner ruled out. A horizontal tab (and a link tab) is radius 8 on its top corners from 36px, as a 36px control is; compact (32) keeps 6 (DECISIONS 167). Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
   12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider. The
   chosen tab's pill slides as the segmented control's does (see [Motion](#motion)). The segmented control keeps its
   horizontal size (28px segments in a track of padding 2 and radius 8) and takes the dark pill fill above. In all four
@@ -224,7 +224,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
   badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes; light `#ba1d27`). There is no filled red button:
   a destructive action is red text on a red hairline, quieter than the primary action, with
-  focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row.
+  focus starting on Cancel. In tables a status is a plain dot and word, not a pill per row. Light warning is `oklch(0.60 0.137 62)` (DECISIONS 167, Q9g): 3.22:1 and 3.08:1 on a selected row over `surface-sunken` and `surface-sunken-strong`, where the old 0.62 measured 2.98:1 and 2.85:1. The council named the same chroma, 0.142, which is outside sRGB at that lightness, so the chroma is the largest the gamut holds (0.138, taken down to 0.137 for a margin); hue is unchanged.
 - **Disabled** keeps its control's shape with the disabled text colour and a fainter line.
 - **Selected rows** (a table) are the selected wash as a band, edge to edge (on every cell of the row, pinned columns included), with no bar and no edge mark, in
   forced colours too. The state is carried by the row's checked box and by a count in words, not by the wash
@@ -494,7 +494,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     copies what has arrived; with nothing to copy the button is off and never says "Copied". The title row's hairline, in a
     terminal and a `CodeBlock`, is a real `CanvasText` border in forced colours.
 - **Loading:** progress tracks are filled with the input-boundary colour (3:1); skeletons use
-  `surface-placeholder` and a calm 2s pulse. Two spinners, one job each. The ring is for a wait: it
+  `surface-placeholder` and a calm 2s pulse; in forced colours a skeleton is a 1px `ButtonBorder` edge inside its own box and no fill (DECISIONS 167). Two spinners, one job each. The ring is for a wait: it
   is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
   a spinner stands without a visible word. Braille is for a status: work that runs while a word
   beside it says so, in a table, a list row, a toast or a log line; never in a button, and never
@@ -553,7 +553,7 @@ When a person asks for more contrast (`prefers-contrast: more` on the web; Incre
 as `colorSchemeContrast == .increased`), Basalt answers with three aliases and no new colour, and one role token that carries a
 field's. **Lines** (the hairline, the divider, the rim and its top edge, and the pill's hairline) are drawn as `border-input`
 (`line-contrast`): 3:1 or better on every surface, and on every side one solid colour. **Tertiary ink** is drawn as `text-secondary`
-(`ink-contrast`). **A field's boundary** (an input, a select, a number field, a choice box, a switch, a choice card's box) is
+(`ink-contrast`). **A field's boundary** (an input, a select, a number field, a choice box, a switch, a choice card's box, an option chip's edge, a switch row's edge and the search trigger's) is
 `border-field`, which equals `border-input` outside the mode and is drawn as `text-secondary` (`field-contrast`) inside it, 7.4:1 or better on every surface,
 so a field keeps the strongest line; it is a role token of its own so that `border-input` itself does not step, and the progress and
 slider tracks, a link's underline and a chart's baseline stay on it (stepping it would take a progress indicator against its track from
@@ -655,7 +655,7 @@ original source. Comments stay upright, by choice.
 
 ### Interface type
 
-Geist Sans and Geist Mono (SIL OFL 1.1), variable fonts, at three weights: 400, 500, 600.
+Geist Sans and Geist Mono (SIL OFL 1.1), variable fonts, at three weights: 400, 500, 600. A `b` or `strong` inside a Basalt part (`Text`, `Prose`, a callout, the header and the rest that hold an app's words) is 600, as the HTML skill's core draws it (DECISIONS 167).
 In-between weights such as 510 or 590 were considered: SwiftUI and Compose map only whole
 steps, so they'd render differently on native.
 
@@ -747,7 +747,7 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   `data-density="default"` restores regular sizes. A popup row (Menu, Select, Combobox) is a 36px plate (`size-menu-row`, which is
   `size-control-lg`) in a 40px hit area, and a command menu row a 40px plate in a 44px hit area; compact steps the plates to 32
   and 36; on touch a hit area is at least 44px, and a combobox's text entry is 16px. All shared control targets stay at least 44px on
-  touch regardless of density. A notification entry is at least 44 tall on touch, its line centred (a one-line entry is 40 otherwise
+  touch regardless of density, except a chart's day, which is reached by drag and by the keys (a press lands on the nearest day, the keys reach every day, and "View as table" holds every value, so the day is not a target of its own); the phase lane's marks keep 44px. A notification entry is at least 44 tall on touch, its line centred (a one-line entry is 40 otherwise
   and its plate stays 40; a two-line entry is 58 already). A `Link` on a line of its own has a 44px hit box on touch with no change
   to layout and no change to its look (its block margin takes back what the box adds, the underline stays and no wash is drawn); a link in a
   sentence (a paragraph, a list item, prose, a hint, an error, a callout's text) keeps its line, as WCAG 2.5.8 allows, because a taller
@@ -899,7 +899,7 @@ below, one level up, no rim or radius of its own.
   stays ringless.
 - **The plate shows only while the list is in use**: while the field has focus or the pointer is over the list. It fades, as Menu's
   does, when neither is true, and while the field has focus it stays when the pointer leaves, because it marks what ↵ will run. A page
-  at rest with one row lit reads as a selection that isn't there. (The modal's plate is always lit: the modal exists only while it is used.)
+  at rest with one row lit reads as a selection that isn't there, except the opening list, whose cursor row is lit at rest because the cursor is its state. (The modal's plate is always lit: the modal exists only while it is used.)
 - **The list holds its unfiltered height**, up to `size-popup-max-height` (360), and scrolls inside. Filtering never changes it, so
   what is below it never moves: the still table's rule, applied to a list.
 - **A foot band** shows the count at the start ("9 commands", "3 of 9") and the key legend at the end (`data-kbd-hint`, hidden on touch). The
@@ -907,6 +907,7 @@ below, one level up, no rim or radius of its own.
   is one centred sentence ("Nothing matches “zzz”.") and a ghost "Clear search", in the held area and outside the listbox, so the button is valid.
 - **Until cmdk arrives** the rows are drawn as they will be and what is typed is kept, then becomes the first search. cmdk stays behind
   its dynamic import, loaded when the list first mounts.
+- **Where the modal command menu sits** (DECISIONS 167, Q7c): its top is `max(16px, 12vh)` and its height is capped at 480px or what the window leaves under it, as the skill's palette is.
 - **⌘K belongs to one command surface per page.** A page with a modal `CommandMenu` gives ⌘K to the modal, and its list has no
   shortcut of its own. A page whose command surface is in the page gives ⌘K to that list (`bindShortcut`): focus the field, select its
   text and scroll it into view, and that page has no modal. The component offers the binding; the app chooses which surface owns it.
@@ -976,17 +977,28 @@ implementation hasn't been reviewed.
 - **The drawer** is a region in the flow with two titled halves: no portal, scrim, level reset, sheet motion, shadow, fill, rim or corner radius. Its top is a
   `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
   replaces the record, with a Back button, its halves stacked on a divider.
-- **Search.** The trigger is a button shaped like a field from 720 (`size-search-trigger` 200 by 44, a 1px `border-input` edge, radius 8, the word `aria-hidden`) and a
+- **Search.** The trigger is a button shaped like a field from 720 (`size-search-trigger` 200 by 44, a 1px `border-field` edge, radius 8, the word `aria-hidden`) and a
   44px icon button under it. The dialog is centred at `size-command-width` (560) and its results area is a fixed height, a full result's, that scrolls inside, so the
   field and the count never move (4 to 0). A result is a link sized to its picture with 6px above and below: 72 for a 48 by 60 pack, 60 for a 96 by 48 logo, 48 at
   least (the 48 is a floor, not a size). Results are links and tab stops, each with the control ring at +2, 8px from the panel's edge, and a hover wash that runs
   full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
   round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
 - **The listbox and the opening list.** A listbox is a single choice that stays in the page, with one tab stop, `aria-activedescendant`, and a choice that follows
-  the arrow keys; the chosen option has a chevron in its gutter and primary ink, and its weight does not change. Rows that open have the name as a button stretched
+  the arrow keys; the chosen option has the core check in its gutter (the open list keeps its cursor chevron; DECISIONS 167) and primary ink, and its weight does not change. Rows that open have the name as a button stretched
   over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
   non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
   (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.
+  **Cut text is read whole on a plate (DECISIONS 168 and 170; `peek-plate.ts`).** A listbox option or an open-list row whose name or second line is cut shows it whole on the row
+  itself, raised to level 3: the rim, `shadow-overlay`, radius 8, the row's own inline edges. Every word that was showing stays on its pixel (the check or chevron, the name's first line,
+  the trailing word or the cells, the `↵` chip), and only the cut text carries on: the name runs on under the cells across the row's width, then the detail whole. It grows downward, and its foot
+  never ends inside a line of text (where it would, it runs on to the end of that line, at most one). It keeps the row's state: the chosen option, or the cursor row while the list holds focus,
+  keeps its chosen fill. It is the still table's cut cell in behaviour: it opens on hover after the tooltip's wait (600ms, then at once within 400ms of another) or at once on keyboard focus,
+  Esc closes it and moves neither the pointer nor focus, it stays while the pointer is on it or focus stays (WCAG 1.4.13), it fades over `duration-base` and never scales (opacity only under
+  reduced motion), and it is `aria-hidden` because the row holds the words. A press on it is a press on its row (it chooses the option, or opens the row), and the listbox takes focus
+  without the keyboard ring, as a press on an option does. Opened by the keyboard on the open list it carries the control ring at +2 round the plate and the row's own ring gives way; the
+  listbox keeps its ring on the list. A part whose text is not cut opens nothing. The open list keeps its "…" at rest. On touch the listbox has no hover, so its options wrap at rest (the
+  name and detail wrap, the mark and the trailing word sit on the first line; the 44px floor holds) and none is cut, and the open list opens its plate on a 500ms long press: the release opens
+  nothing, and a touch elsewhere closes it. Right to left mirrors the plate's edges and seats, and in forced colours it is `Canvas` with a `CanvasText` rim.
 - **The notice bar** is a full-width band above the header, in the level-1 fill with a `border-divider` under it (no majority, the first option stands), `text-sm`
   secondary with its first words primary at 600; it is a named region, not a live region, and under 720 it keeps 6px more above its line.
 
@@ -1274,6 +1286,7 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 - **The reason in words** goes in the reserved lane above the plot, 12/16 tertiary, from where the gap starts: the full words if they
   fit ("Watch not observed · not worn, travel"), then "Watch not observed", then "Not observed". Only the last gap may step back to
   fit, and never over an earlier one. The reason is always also in the summary, the readout and the table.
+  **The headline chart** has no legend rows, so whenever it has a gap it shows a "Not observed" key above the plot, the hatch swatch and the words, as the series charts' legend does (DECISIONS 167, Q11a, 4 to 0); a gap whose lane words do not fit is then never a hatch with no word.
 - **The table** says "Not observed" in tertiary with no mark (DECISIONS 95), and the reason in its Note column.
 
 ### The legend is the readout
@@ -1367,7 +1380,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   phase read (DECISIONS 157, consent row C6).
 - **The share bar** (`ShareBar`, votes 12 and 13): N1's form without its gloss: 8px (a plan) or 12px (a tally, each part at least 12px long and as wide as its own words, taken from the other parts so the bar keeps its width) tall, a 4px gap, full radius,
   one ink for every part (`chart-observed`), each part's share and name under it in words. The shares are whole percents that add to 100. The bar is decoration; a part of
-  nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed); every other share is a whole number.
+  nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed), and a part that rounds to 100 beside a part that is not empty reads ">99%" (spoken "more than 99 percent", DECISIONS 167, Q11b, 4 to 0), because "100%" would say the rest is nothing; every other share is a whole number.
 - **The coverage strip** (`CoverageStrip`, vote 14, consent rows 6 to 8): a cell a day, lit when recorded and Basalt's hatch when not (no dashed edge), 48px tall with a
   2px gap and a 2px corner (`radius-2xs`) as a strip of slivers (84 days is a quarter), or seven squares with a 4px gap and `radius-sm` for a week. The cells are hidden from
   assistive technology; the words ("78 of 84 days recorded. Not recorded: 31 Aug to 2 Sept (watch not worn).") are built from the cells.
@@ -1476,7 +1489,7 @@ because no whole set had two of three votes; the owner is asked to look at them 
   `ColumnsItem` warns in development when it holds a display or hero heading in a `span` under 7, and `Columns` does the same for the items a named
   layout makes under 7 tracks from 1024 (every item of `2`, `3` and `4`, the 5 of `7-5` and `5-7`, the 4 of `8-4` and `4-8`); the heading is drawn as written
   and the warning costs a production build nothing. Columns are a page's: a component lays out its own items by its own width (the auto-fit grid).
-- **Layout changes at 720 and 1024 only,** on the viewport, and a component at 340, 480 or 640 on its own width. The display roles, the lead, the section
+- **Layout changes at 720 and 1024 only,** on the viewport, and a component answers its own container at 340, 480 and 640 (`size-breakpoint-container-sm`, `size-breakpoint-container` and `size-breakpoint-container-lg`). The display roles, the lead, the section
   gap and the columns change at those two widths, so a page has three shapes to check. **No new breakpoint:** 900 and 1280 are not adopted
   (the row is already 672 to 975 wide at 900, and past 1152 nothing has room to change at 1280). A site's art may answer its own measures as a
   container query on the art.
@@ -1799,7 +1812,7 @@ broke a rule, and each change is named.
   has no pressed state: a choice between two is a `SegmentedControl`. On touch one on a line of its own has a 44px hit box that changes no layout; one
   in a sentence keeps its line. It takes no `Button` box and no .98 press.
 - **The switch row (D9a, A2, A3).** `SwitchRow` in a `SwitchRowGroup`: one checkbox drawn as a row, an optional tile, a name and a kind, and a 16px
-  seat where a plus and a check cross over in 100ms (kept under reduced motion). The edge is `border-input` at rest and checked; hover lifts the ink to
+  seat where a plus and a check cross over in 100ms (kept under reduced motion). The edge is `border-field` at rest and checked (`border-input` outside more contrast); hover lifts the ink to
   primary and the edge to `text-secondary` (not `border-hover`, which is fainter than the boundary and would drop it under 3:1). On is the selected
   wash and primary ink. It is 52 tall from 720 wide with a 36px tile and a 14/20 name, and 48 under 720 with a 32px tile and a 13/18 name: the
   council could not draw the ballot's 48 (a 36px tile, 12px of padding and two edges make 50) and kept the approved prototype's values. The row is not
@@ -1856,8 +1869,12 @@ fallback when the picture is missing.
 **At the first or last period the button stops but keeps focus** (`aria-disabled`, `focusableWhenDisabled`), so a keyboard user is not dropped. **With no periods** (the
 whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and a polite
 status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. **Under 640px of
-the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a hairline above, each button at
+the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a `border-divider` line above (DECISIONS 167), each button at
 least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
+
+## What the HTML skill does not draw
+
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
@@ -1883,6 +1900,12 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
   line. **A page has one foot**: the status bar and a phone tab bar do not share it; a product that needs both is a later vote.
+  **A cut message is read whole on a plate lifted clear of the bar (DECISIONS 168 and 170, from 720).** The bar keeps its one truncated line and its 44px. The plate is level 3 (the rim,
+  `shadow-overlay`, radius 8), the slot's width, its foot `space-2` above the bar's top border, in the page above the bar and over none of its controls; an error's XCircle sits before its first
+  line, in the danger ink. It opens on hover after the tooltip's wait or at once on focus, closes on Esc (the first Esc closes the plate and the second clears the message), stays while the
+  pointer is on it or focus stays, fades and never scales, and is `aria-hidden`. The message is a focus stop only while it is cut (`role="note"`, named by its words, its ring the control ring at
+  +2, which gives way to the plate's); the visible words are hidden from assistive technology as before, and once the live regions have said the words they let go of them, so a screen reader meets
+  them in one place. Under 720 the message is the band above the bar, wrapped, so nothing is cut and nothing opens.
 - **Description-list forms** (V8, V9, R9 to R11): the list as it ships (160px label, 40px rows, dividers between rows only; the page's record keeps its own rule round it). `form="stacked"`
   is a title (18/26 at 600) over its text (16/24 secondary, 2px under), 20px between entries, no divider. `form="three"` is term, thing, detail. `DescriptionColumns` lays whole lists out in
   columns of at least 480px. The facts' column gap is 32 (the prototype's 4ch is about 34).

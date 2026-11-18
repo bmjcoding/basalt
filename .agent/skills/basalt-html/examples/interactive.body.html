@@ -7,7 +7,7 @@
     <a class="brand" href="#top">Egress planner</a>
     <span class="spacer"></span>
     <button class="btn" data-open-palette>
-      <i data-icon="MagnifyingGlass"></i>
+      <span data-glyph="search"></span>
       <span>Commands</span>
       <span data-kbd="⌘ K"></span>
     </button>
@@ -88,7 +88,7 @@
 
         <div class="tabpanel" style="padding-top: var(--basalt-space-4)" id="view-json" role="tabpanel" aria-labelledby="tab-json" hidden>
           <div class="code">
-            <div class="code-head"><span>estimate.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#json"><i data-icon="Copy"></i><span>Copy</span></button></div>
+            <div class="code-head"><span>estimate.json</span><span class="spacer"></span><button class="btn" data-variant="ghost" data-size="sm" data-copy="#json"><span data-glyph="copy"></span><span>Copy</span></button></div>
             <pre class="code-body" tabindex="0"><code id="json"></code></pre>
           </div>
         </div>
@@ -183,9 +183,9 @@
             { label: 'Show JSON', icon: 'ArrowRight', onSelect: function () { showTab('tab-json'); } }
           ] },
           { label: 'Actions', items: [
-            { label: 'Copy JSON', icon: 'Copy', keywords: ['clipboard'], onSelect: function () { Basalt.copyText($('json').textContent).then(function () { Basalt.announce('Copied to clipboard'); }); } },
+            { label: 'Copy JSON', icon: 'Download', keywords: ['clipboard'], onSelect: function () { Basalt.copyText($('json').textContent).then(function () { Basalt.announce('Copied to clipboard'); }); } },
             { label: 'Recalculate', icon: 'ArrowRight', onSelect: recalculate },
-            { label: 'Reset inputs', icon: 'X', danger: true, onSelect: reset },
+            { label: 'Reset inputs', icon: 'ArrowClockwise', danger: true, onSelect: reset },
             { label: 'Switch theme', icon: 'Sun', keywords: ['dark', 'light'], onSelect: function () { Basalt.toggleTheme(); } }
           ] }
         ]

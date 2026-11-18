@@ -4,11 +4,15 @@ import * as React from "react";
 import { STATUS_MESSAGE_MS } from "./constants";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
+import { usePeekPlate } from "./use-peek";
 import { join } from "./utils";
 
 // ---- The status bar (DECISIONS 162, D14b: V7, R6, R7, B7) ----
 // A foot of 44px from 720 in the page's layout, and fixed under 720 (56px plus the safe area). The name `StatusLine` is the announcer's
 // (a polite line heard and not seen), so this part is the bar.
+
+/** How long the live regions keep a message's words after saying them, when the message is a focus stop that holds them itself. */
+const SPOKEN_MS = 2000;
 
 export interface StatusMessage {
   /** The words. */
@@ -46,6 +50,10 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
  * The foot of an app. A message is spoken once through regions that are in the page before any text: a polite one, and an assertive one for
  * an error. The visible words are hidden from assistive technology so they are not said twice. A page has one foot: the status bar and a
  * phone tab bar do not share it.
+ *
+ * From 720 the message keeps one truncated line. While its words are cut it is a focus stop (`role="note"`, named by the words) and shows them whole on a plate
+ * lifted into the page above the bar (DECISIONS 168 and 170; peek-plate.ts). The stop holds the words, so the live regions let go of them once they have said
+ * them, and a screen reader meets them in one place.
  */
 export function StatusBar({ label = "Status", start, sources, message, onMessageClear, end, className, ...props }: StatusBarProps) {
   const clear = React.useRef(onMessageClear);
@@ -64,6 +72,8 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
   // Under 720 the message is a band stacked above the bar, so the page's bottom offset must count it too (WCAG 2.4.11): the bar measures the band and writes its
   // height on the root as `--basalt-status-band`, which the style sheet adds to the offset (0 when no message shows, and from 720, where the band is in the flow).
   const band = React.useRef<HTMLParagraphElement>(null);
+  const [cut, setCut] = React.useState(false);
+  usePeekPlate(band, "status", { onCut: setCut });
   React.useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-status-bar", "");
@@ -80,6 +90,16 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
   // The assertive region: in the page already, then given the error's words a moment later.
   const [alert, setAlert] = React.useState("");
   const error = message?.status === "error";
+  // While the message is a stop it holds the words, so the regions empty themselves once they have said them.
+  const [said, setSaid] = React.useState(false);
+  React.useEffect(() => {
+    setSaid(false);
+    if (!cut || !message) return;
+    const timer = window.setTimeout(() => setSaid(true), SPOKEN_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the message's identity
+  }, [key, cut]);
+  const held = cut && said;
   React.useEffect(() => {
     setAlert("");
     if (!error || !message) return;
@@ -91,13 +111,23 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
     <footer {...props} aria-label={label} className={join("basalt-status-bar", className)}>
       {start ? <div className="basalt-status-bar-start">{start}</div> : null}
       {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
-      <p ref={band} className="basalt-status-bar-message" aria-hidden="true" data-status={message?.status} data-empty={message ? undefined : ""}>
-        {error ? <span className="basalt-status-bar-seat"><Icon icon={XCircleIcon} size={16} /></span> : null}
-        <span className="basalt-status-bar-text">{message?.text}</span>
+      <p
+        ref={band}
+        className="basalt-status-bar-message"
+        aria-hidden={cut ? undefined : "true"}
+        role={cut ? "note" : undefined}
+        aria-label={cut ? message?.text : undefined}
+        tabIndex={cut ? 0 : undefined}
+        data-cut={cut ? "" : undefined}
+        data-status={message?.status}
+        data-empty={message ? undefined : ""}
+      >
+        {error ? <span className="basalt-status-bar-seat" aria-hidden={cut ? "true" : undefined}><Icon icon={XCircleIcon} size={16} /></span> : null}
+        <span className="basalt-status-bar-text" aria-hidden={cut ? "true" : undefined}>{message?.text}</span>
       </p>
       {end ? <div className="basalt-status-bar-end">{end}</div> : null}
-      <StatusLine sendId={message?.id}>{message && !error ? message.text : ""}</StatusLine>
-      <span role="alert" aria-live="assertive" aria-atomic="true" className="basalt-visually-hidden">{alert}</span>
+      <StatusLine sendId={message?.id}>{message && !error && !held ? message.text : ""}</StatusLine>
+      <span role="alert" aria-live="assertive" aria-atomic="true" className="basalt-visually-hidden">{held ? "" : alert}</span>
     </footer>
   );
 }

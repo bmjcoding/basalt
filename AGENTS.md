@@ -152,7 +152,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
   Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  targets stay at least 44px whatever the density, except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout; a link in a sentence keeps its line.
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
   light.
@@ -183,8 +183,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   1024, 96 from 720, 64 under it), the first half a gap below the bar, a head half a gap above its body, a gap above the footer; no section is given the
   window's height. The first line of the next section's headline shows on the first screen; that test yields when a reader enlarges text or spacing and is
   never met by shrinking type, clipping or fixing a height. `Columns` are twelve tracks (`2`, `3`, `4`, `7-5`, `5-7`, `8-4`, `4-8`, or an item's own span):
-  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component at 340, 480 or 640 on
-  its own width); 900 and 1280 are not adopted.
+  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component answers its own container at 340, 480 and 640:
+  `size-breakpoint-container-sm`, `size-breakpoint-container` and `size-breakpoint-container-lg`); 900 and 1280 are not adopted.
 
 ## Engineering rules
 
