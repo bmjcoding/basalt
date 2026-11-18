@@ -193,8 +193,9 @@ export interface TableContainerProps extends React.ComponentProps<"div"> {
    * The name of the table's scroll region ("Runs table"): what a screen reader says when the container takes focus. While
    * the table is wider than its box the container is a keyboard stop (`tabindex="0"`) with `role="region"` and this name,
    * and shows the focus ring, so someone with no pointer can scroll it sideways. An `aria-label` or `aria-labelledby` of
-   * your own works the same way. With no name the container is still a stop (the scroll must be reachable) but gets no
-   * role, because a region with no name is not a landmark; give every table a name. A table that fits is none of this.
+   * your own works the same way. With none of the three the stop is named by the table's `caption`, and with no caption
+   * "Scrollable table" (a region with no name is not a landmark, and a stop with no name is a div to a screen reader), so
+   * give every table a name of its own. A table that fits is none of this.
    */
   label?: string;
   /**
@@ -216,6 +217,7 @@ export function TableContainer({ density = "default", label, flat = false, class
   const level = usePanelLevel();
   const node = React.useRef<HTMLDivElement | null>(null);
   const [overflows, setOverflows] = React.useState(false);
+  const [caption, setCaption] = React.useState("");
   React.useEffect(() => {
     const frame = node.current;
     if (!frame) return undefined;
@@ -230,7 +232,7 @@ export function TableContainer({ density = "default", label, flat = false, class
     // Chromium's has no name and its own ring. Measured from the box and its table, so a resize or a new column counts.
     const frame = node.current;
     if (!frame) return undefined;
-    const measure = () => setOverflows(frame.scrollWidth > frame.clientWidth);
+    const measure = () => { setOverflows(frame.scrollWidth > frame.clientWidth); setCaption(frame.querySelector("caption")?.textContent?.trim() ?? ""); };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(frame);
@@ -247,7 +249,8 @@ export function TableContainer({ density = "default", label, flat = false, class
     [ref],
   );
   const named = Boolean(label || props["aria-label"] || props["aria-labelledby"]);
-  const region = overflows ? { tabIndex: 0, role: named ? "region" : undefined, "aria-label": label } : {};
+  // The stop always has a role and a name: the app's own, else the table's caption, else a default (WCAG 4.1.2).
+  const region = overflows ? { tabIndex: 0, role: "region", "aria-label": label || (named ? undefined : caption || "Scrollable table") } : {};
   // The flat form is no box, so it is no level: what it holds keeps the card's, and the card's fill reaches the pinned cells.
   if (flat) return <div {...region} {...props} ref={setRef} data-row-density={density} data-flat="" className={join("basalt-table-container", className)}>{children}</div>;
   return <div {...region} {...props} ref={setRef} data-row-density={density} data-level={level} className={join("basalt-table-container", className)}>{inLevel(level, children)}</div>;

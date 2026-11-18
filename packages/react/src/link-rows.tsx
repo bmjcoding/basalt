@@ -44,7 +44,7 @@ export function DirectoryRow({ name, description, state, newTabLabel, className,
   );
   // A row that opens in place is a list item whose own track grows, so the rest stays in the one list. Its rule is drawn inside its clip.
   return rest ? (
-    <li className="basalt-directory-item basalt-reveal-panel" data-rest="">
+    <li className="basalt-directory-item basalt-reveal-panel" data-rest="" inert={!rest.open}>
       <div className="basalt-reveal-clip" data-reveal-clip="" inert={!rest.open}>{link}</div>
     </li>
   ) : (

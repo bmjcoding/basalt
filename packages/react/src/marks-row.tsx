@@ -19,23 +19,31 @@ export interface MarksRowProps extends Omit<React.ComponentProps<"div">, "childr
   label?: string;
   /** The row's height in px; `size-chart-row` (56px) by default. */
   height?: number;
+  /** A reading in words, for the description a screen reader has (the values, oldest first). Default the number as it is. */
+  format?: (value: number) => string;
+  /** The words for a day nobody recorded, in the description. Default "not recorded". */
+  unrecordedLabel?: string;
 }
 
 const finite = (value: number | null | undefined): value is number => typeof value === "number" && Number.isFinite(value);
 
 /** A row of marks, one cell a day. */
-export function MarksRow({ kind, values, cap, label, height, className, style, ...props }: MarksRowProps) {
+export function MarksRow({ kind, values, cap, label, height, format = String, unrecordedLabel = "not recorded", className, style, ...props }: MarksRowProps) {
+  const description = React.useId();
   const size = (value: number) => Math.max(0, Math.min(1, cap > 0 ? value / cap : 0));
   return (
     <div
       {...props}
       role={label ? "img" : undefined}
       aria-label={label}
+      aria-describedby={label ? description : undefined}
       aria-hidden={label ? undefined : true}
       className={join("basalt-marks", className)}
       data-kind={kind}
       style={{ ...style, "--_n": values.length, ...(height ? { "--_row": `${height}px` } : {}) } as React.CSSProperties}
     >
+      {/* The values, which the marks draw and an image does not say: the row's description, in the order drawn. */}
+      {label ? <span id={description} hidden>{values.map((value) => (finite(value) ? format(value) : unrecordedLabel)).join(", ")}</span> : null}
       {values.map((value, index) => (
         <i key={index} className="basalt-marks-cell">
           {!finite(value) ? <i className="basalt-marks-seat" /> : value === 0 ? <i className="basalt-marks-rest" /> : <i className="basalt-marks-mark" style={{ "--_v": size(value) } as React.CSSProperties} />}

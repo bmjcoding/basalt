@@ -3,6 +3,7 @@ import * as React from "react";
 import { Button } from "./button";
 import type { ButtonProps } from "./button";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
+import { useScrollStop } from "./scroll-stop";
 import { join } from "./utils";
 
 export interface DrawerProps extends Omit<React.ComponentProps<"section">, "title"> {
@@ -49,17 +50,22 @@ export interface DrawerSectionProps extends Omit<React.ComponentProps<"div">, "t
   actions?: React.ReactNode;
 }
 
-/** One half of a drawer: a title with its actions on one line, then a body that scrolls. */
+/**
+ * One half of a drawer: a title with its actions on one line, then a body that scrolls. A body that overflows and holds nothing focusable is a
+ * keyboard stop of its own, a region named by the title with Basalt's ring, so a keyboard can scroll it (WCAG 2.1.1); when it fits, or holds a
+ * control, nothing changes.
+ */
 export function DrawerSection({ title, level = 2, actions, className, children, ...props }: DrawerSectionProps) {
   const id = React.useId();
   const Heading = `h${level}` as const;
+  const body = useScrollStop<HTMLDivElement>({ labelledBy: id });
   return (
     <div {...props} role="group" aria-labelledby={id} className={join("basalt-drawer-section", className)}>
       <div className="basalt-drawer-head">
         <Heading id={id} className="basalt-drawer-title">{title}</Heading>
         {actions ? <div className="basalt-drawer-actions">{actions}</div> : null}
       </div>
-      <div className="basalt-drawer-body">{children}</div>
+      <div {...body.attributes} ref={body.ref} className="basalt-drawer-body">{children}</div>
     </div>
   );
 }

@@ -12,6 +12,6 @@
 
 A transcript of a terminal session on the code block's frame (it also needs `.code`; the script adds the gutter, the title row and the copy button). Each line is a `span[data-kind]`: `command` (primary ink, the prompt in the gutter), `output` (secondary), `done`, `warning` or `error` (a mark in the gutter; only an error's text is danger ink). No syntax colour.
 
-- **Static by default:** a named `pre` and no live region. `tabindex="0"` goes on the `pre`. Copy copies the commands only.
+- **Static by default:** a named `pre` (the script makes it a `region`) and no live region. `tabindex="0"` goes on the `pre`. Copy copies the commands only.
 - `data-replay` plays the lines back one at a time with Play, Pause, Resume and Replay; `data-interval` is the milliseconds between lines (600). The transcript is a fixed-height `role="log"` only while lines arrive. `data-exit-code` is said beside a failed result ("Failed, exit 1"); a replay that ends on an error is failed.
 - `data-prompt` changes the prompt (`$`). Wire a terminal you add later with `Basalt.terminal(figure)`.

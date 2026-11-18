@@ -11,6 +11,8 @@ import { join } from "./utils";
 // `Stepper` (back and next through a short flow) and not `Pagination` (numbered pages).
 
 export interface PeriodStepperProps extends Omit<React.ComponentProps<"div">, "children" | "role"> {
+  /** The group's name, which `aria-label` sets in the app's language. Default "Period". `aria-labelledby` of your own works too. */
+  "aria-label"?: string;
   /** The stretch of time shown, in the app's words ("28 Sept to 4 Oct"). It is drawn at 500, tabular, on one line, in a seat of at least 128px (`space-32`). */
   label: string;
   /** Said before `label` and not drawn: "Week 6, build, ". It ends with the separator it needs. */
@@ -42,7 +44,7 @@ export interface PeriodStepperProps extends Omit<React.ComponentProps<"div">, "c
  */
 export function PeriodStepper({ label, spokenPrefix = "", previousLabel, nextLabel, onPrevious, onNext, atStart = false, atEnd = false, whole = false, delay, className, ...props }: PeriodStepperProps) {
   return (
-    <div {...props} role="group" data-whole={whole ? "" : undefined} className={join("basalt-period-stepper", className)}>
+    <div aria-label={props["aria-labelledby"] ? undefined : "Period"} {...props} role="group" data-whole={whole ? "" : undefined} className={join("basalt-period-stepper", className)}>
       <IconButton icon={ChevronLeftGlyph} label={previousLabel} disabled={atStart} focusableWhenDisabled onClick={() => { if (!atStart) onPrevious?.(); }} />
       <p className="basalt-period-label">
         <span aria-hidden="true">{label}</span>

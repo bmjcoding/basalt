@@ -1,13 +1,14 @@
 import * as React from "react";
 
 import { TimeChart } from "./chart";
+import { StatusLine } from "./filter-result";
 import type { ChartLaneGeometry, ChartSeries, TimeChartProps } from "./chart";
 import { join } from "./utils";
 
 // The phase chart (DECISIONS 153, votes 11, 16 and 17): a long trend with a lane of choices under it on the same axis, one a week, and the open week's plate behind both.
 // It is a `TimeChart` (one series, its trailing mean as the lit line, the 96px plot, Basalt's gridlines and gutter) with the lane in its own slot. A press on a day, or
 // Enter on the focused day, opens that day's week; the days stay images with a roving tab stop. There is no live region. Where twelve 44px choices do not fit (a phone), the
-// lane is marks, and previous and next controls step through the weeks, with the open week in words. Nothing here runs when the module loads.
+// lane is marks, and previous and next controls step through the weeks, with the open week in words, shown at once and spoken once through a polite status line. Nothing here runs when the module loads.
 
 /** One week's choice in the lane: a word ("Hold", "Raise") and the sentence for it. */
 export interface PhaseCall {
@@ -89,7 +90,9 @@ function PhaseSteps({ geometry, calls, week, onWeekChange }: Omit<LaneProps, "la
       </div>
       <p className="basalt-phase-open">
         {calls.map((call, index) => <span key={index} className="basalt-chart-reserve" aria-hidden="true">{line(call, index)}</span>)}
-        <span>{line(calls[week], week)}</span>
+        <span aria-hidden="true">{line(calls[week], week)}</span>
+        {/* The sentence is shown at once and spoken once, after it has held still, as `PeriodStepper` does; a press on a week's button changes it and the buttons say nothing. */}
+        <StatusLine>{calls[week] ? `Week ${week + 1} ${calls[week]?.word}: ${calls[week]?.text}` : ""}</StatusLine>
       </p>
     </div>
   );

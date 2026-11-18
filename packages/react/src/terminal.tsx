@@ -156,10 +156,12 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     })
   );
 
+  // The figure is named by its title alone: its caption also holds the state and the buttons, which are not its name.
+  const captionId = React.useId();
   return (
-    <figure className={join("basalt-code basalt-terminal", className)} data-titled="" data-level={level} data-live={live ? "" : undefined}>
+    <figure aria-labelledby={captionId} className={join("basalt-code basalt-terminal", className)} data-titled="" data-level={level} data-live={live ? "" : undefined}>
       <figcaption className="basalt-code-title basalt-terminal-head">
-        <span className="basalt-terminal-title">{title}</span>
+        <span id={captionId} className="basalt-terminal-title">{title}</span>
         <span className="basalt-terminal-actions">
           {words ? <span className="basalt-terminal-state" data-state={state}>{words}</span> : null}
           {control ? (

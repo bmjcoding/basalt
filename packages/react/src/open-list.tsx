@@ -64,22 +64,22 @@ export function OpenList({ label, className, children, onKeyDown, ...props }: Op
   );
 }
 
-export interface OpenListGroupProps extends Omit<React.ComponentProps<"section">, "title"> {
+export interface OpenListGroupProps extends Omit<React.ComponentProps<"div">, "title"> {
   /** The group's label, drawn as a heading above its rows. */
   label: string;
   /** Heading level (3 by default). */
   level?: 2 | 3 | 4;
 }
 
-/** A labelled group of rows. */
+/** A labelled group of rows: a named `group`, not a landmark (the list around it is already the named group). */
 export function OpenListGroup({ label, level = 3, className, children, ...props }: OpenListGroupProps) {
   const id = React.useId();
   const Heading = `h${level}` as const;
   return (
-    <section {...props} aria-labelledby={id} className={join("basalt-open-list-group", className)}>
+    <div {...props} role="group" aria-labelledby={id} className={join("basalt-open-list-group", className)}>
       <Heading id={id} className="basalt-open-list-label">{label}</Heading>
       <ul className="basalt-open-list-rows">{children}</ul>
-    </section>
+    </div>
   );
 }
 
@@ -98,8 +98,9 @@ export interface OpenListRowProps extends Omit<React.ComponentProps<"li">, "id" 
   /** A second line under the name. The row is two lines tall (48) with one. */
   detail?: React.ReactNode;
   /**
-   * Filtering left this row in place, and it does not match: its ink steps down to tertiary, its cells and second line are hidden, and the
-   * cursor skips it. Nothing moves.
+   * Filtering left this row in place, and it does not match: it is unavailable to every input (DECISIONS 168). `aria-disabled`, a press does
+   * not open it, the cursor skips it, its name takes the disabled ink and its cells and second line are hidden, and it has no hover step and
+   * shows a `not-allowed` cursor. Nothing moves.
    */
   off?: boolean;
 }
@@ -122,8 +123,9 @@ export function OpenListRow({ id, name, onOpen, opens, part, state, detail, off 
           className="basalt-open-button"
           tabIndex={cursor ? 0 : -1}
           aria-keyshortcuts={cursor ? "Enter" : undefined}
+          aria-disabled={off ? true : undefined}
           onFocus={() => list?.setCursor(id)}
-          onClick={onOpen}
+          onClick={off ? undefined : onOpen}
         >
           {name}
           {opens ? <span className="basalt-visually-hidden">: opens its {opens}</span> : null}
