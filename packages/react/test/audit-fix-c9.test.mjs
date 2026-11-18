@@ -88,13 +88,13 @@ describe("A4-17: the phase chart's Previous and Next week, at the ends, are disa
       assert.equal(await css(previous, "cursor"), "not-allowed");
       assert.equal(await next.getAttribute("aria-disabled"), null);
       assert.notEqual(await css(next, "color"), await resolve(page, "var(--basalt-text-disabled)"));
-      const before = await page.locator(".basalt-phase-open > span:last-child").textContent();
+      const before = await page.locator(".basalt-phase-open > span[aria-hidden]:not(.basalt-chart-reserve)").textContent();
       await previous.click({ force: true });
-      assert.equal(await page.locator(".basalt-phase-open > span:last-child").textContent(), before, "a disabled press changes no week");
+      assert.equal(await page.locator(".basalt-phase-open > span[aria-hidden]:not(.basalt-chart-reserve)").textContent(), before, "a disabled press changes no week");
       await previous.focus();
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Previous week", "it stays focusable");
       await next.click();
-      assert.notEqual(await page.locator(".basalt-phase-open > span:last-child").textContent(), before, "the enabled one steps");
+      assert.notEqual(await page.locator(".basalt-phase-open > span[aria-hidden]:not(.basalt-chart-reserve)").textContent(), before, "the enabled one steps");
       assert.equal(await previous.getAttribute("aria-disabled"), null, "and the first button is enabled again");
       await page.close();
     });
