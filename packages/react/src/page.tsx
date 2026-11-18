@@ -22,7 +22,7 @@ export interface PageRowProps extends React.ComponentProps<"div"> {
  * The page row: `size-page-width` with the gutter inside, the site header's row exactly, so a headline, a lead, a table and a chart start under
  * the brand. It is the row of a first screen too; art that wants more is full-bleed in a `Stage`, never a wider row.
  */
-export function PageRow({ as = "div", className, ...props }: PageRowProps) {
+export function PageRow({ as = "div", className, ...props }: PageRowProps): React.JSX.Element {
   return React.createElement(as, { ...props, className: join("basalt-page-row", className) });
 }
 
@@ -35,7 +35,7 @@ export interface PageSectionsProps extends React.ComponentProps<"main"> {
  * A page's sections, one section gap apart (128 from 1024, 96 from 720, 64 under it). The first starts half a gap below the bar and the page
  * ends a full gap above its footer. No section is given the window's height: the widest empty band on a page is one gap.
  */
-export function PageSections({ as = "main", className, ...props }: PageSectionsProps) {
+export function PageSections({ as = "main", className, ...props }: PageSectionsProps): React.JSX.Element {
   return React.createElement(as, { ...props, className: join("basalt-page-sections", className) });
 }
 

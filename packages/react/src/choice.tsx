@@ -53,7 +53,8 @@ export function Checkbox({ children, className, disabled, inputRef, ...props }: 
         className="basalt-checkbox-indicator"
         keepMounted
         render={(p, state) => (
-          <span {...p}>{state.indeterminate ? <Icon icon={MinusGlyph} size={16} /> : <Icon icon={CheckGlyph} size={16} />}</span>
+          // An unchecked box draws no glyph (the indicator is `display: none` until it is checked, so nothing shows either way): it is made when the box is checked, on the server and in the browser.
+          <span {...p}>{state.indeterminate ? <Icon icon={MinusGlyph} size={16} /> : state.checked ? <Icon icon={CheckGlyph} size={16} /> : null}</span>
         )}
       />
     </BaseCheckbox.Root>

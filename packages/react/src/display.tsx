@@ -107,7 +107,7 @@ export interface CardTitleProps extends React.ComponentProps<"h3"> {
   level?: 2 | 3 | 4 | 5 | 6;
 }
 
-export function CardTitle({ level = 3, className, ...props }: CardTitleProps) {
+export function CardTitle({ level = 3, className, ...props }: CardTitleProps): React.JSX.Element {
   return React.createElement(`h${level}`, { ...props, className: join("basalt-card-title", className) });
 }
 

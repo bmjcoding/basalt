@@ -125,10 +125,12 @@
       var only = cell.children.length === 1 && cell.childNodes.length === 1 ? cell.children[0] : null;
       return only && getComputedStyle(only).display === 'block' && getComputedStyle(only).overflowX !== 'visible' ? only : cell;
     }
+    // One Range for the table, pointed at each cell in turn: the document adjusts every live Range on every insertion and removal, so a dropped Range per cell made a sort of 1,000 rows several times slower.
+    var r = null;
     function isCut(cell) {
       var b = box(cell), cs = getComputedStyle(b);
       if (b.scrollWidth > b.clientWidth) return true;
-      var r = document.createRange();
+      r = r || document.createRange();
       r.selectNodeContents(b);
       return r.getBoundingClientRect().width > b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 0.5;
     }

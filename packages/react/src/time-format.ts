@@ -4,9 +4,26 @@
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+// A formatter costs about 30 µs to make and under 1 µs to use, and a column of dates writes one for each cell on every render. So each is made once for its
+// locale and options and kept. The map is made on first use, not when the module loads, and holds at most `KEPT` (a page with a zone for every row of a table
+// would otherwise grow it for as long as the page lives; past that it starts again).
+const KEPT = 64;
+let formatters: Map<string, Intl.DateTimeFormat> | undefined;
+function formatter(locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions) {
+  const key = JSON.stringify([locale ?? null, options]);
+  formatters ??= new Map();
+  let found = formatters.get(key);
+  if (!found) {
+    if (formatters.size >= KEPT) formatters.clear();
+    found = new Intl.DateTimeFormat(locale, options);
+    formatters.set(key, found);
+  }
+  return found;
+}
+
 function parts(date: Date, locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions) {
   const out: Record<string, string> = {};
-  for (const part of new Intl.DateTimeFormat(locale, options).formatToParts(date)) out[part.type] = part.value;
+  for (const part of formatter(locale, options).formatToParts(date)) out[part.type] = part.value;
   return out;
 }
 
@@ -20,14 +37,14 @@ export interface TimeOptions {
 export function formatStamp(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const hour = p.hour === "24" ? "00" : p.hour;
-  const text = new Intl.DateTimeFormat(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(time));
+  const text = formatter(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(time));
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}` };
 }
 
 /** A clock to the minute ("09:39") and its machine form. */
 export function formatClock(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const text = new Intl.DateTimeFormat(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(new Date(time));
+  const text = formatter(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(new Date(time));
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}` };
 }
 
@@ -35,7 +52,7 @@ export function formatClock(time: Date | number, { timeZone, locale }: TimeOptio
 export function formatDay(time: Date | number, { now = new Date(), timeZone, locale = "en-GB" }: TimeOptions & { now?: Date | number } = {}) {
   const at = new Date(time);
   const year = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric" }).year;
-  const text = new Intl.DateTimeFormat(locale, { timeZone, day: "numeric", month: "short", ...(year(at) === year(new Date(now)) ? {} : { year: "numeric" }) }).format(at);
+  const text = formatter(locale, { timeZone, day: "numeric", month: "short", ...(year(at) === year(new Date(now)) ? {} : { year: "numeric" }) }).format(at);
   const p = parts(at, "en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
   return { text, dateTime: `${p.year}-${p.month}-${p.day}` };
 }
@@ -72,12 +89,12 @@ export function formatAge(time: Date | number, now: Date | number = new Date(), 
 export function formatStatTime(time: Date | number, { now = new Date(), timeZone, locale }: { now?: Date | number; timeZone?: string; locale?: string | string[] } = {}) {
   const at = new Date(time);
   const base: Intl.DateTimeFormatOptions = { timeZone, hourCycle: "h23" };
-  const clock = new Intl.DateTimeFormat(locale, { ...base, hour: "2-digit", minute: "2-digit" }).format(at);
+  const clock = formatter(locale, { ...base, hour: "2-digit", minute: "2-digit" }).format(at);
   const day = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
   const [then, today] = [day(at), day(new Date(now))];
   const sameDay = then.year === today.year && then.month === today.month && then.day === today.day;
   const sameYear = then.year === today.year;
-  const date = new Intl.DateTimeFormat(locale, { timeZone, month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) }).format(at);
+  const date = formatter(locale, { timeZone, month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) }).format(at);
   const stamp = parts(at, "en-US", { ...base, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   return {
     text: sameDay ? clock : `${date}, ${clock}`,
