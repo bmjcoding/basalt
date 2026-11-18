@@ -9,4 +9,10 @@
   .select-col { box-sizing: border-box; width: var(--basalt-size-control-md); padding-inline: var(--basalt-space-2); }
   /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. */
   .select-col input[type="checkbox"] { display: flex; }
+  /* A tap lands on the box over the cell's 44px, as React's checkbox does: a box around the 16px glyph that draws nothing (a percentage on an offset reads the glyph's own
+     size, so it grows only the missing amount). */
+  @media (pointer: coarse) {
+    .select-col input[type="checkbox"] { position: relative; }
+    .select-col input[type="checkbox"]::after { content: ""; position: absolute; inset: calc((var(--basalt-size-choice) - var(--basalt-size-tap-min)) / 2); }
+  }
 }

@@ -50,10 +50,10 @@ for (const theme of THEMES) {
       await page.close();
     });
 
-    test("with no name it is still a stop (the scroll must be reachable) but has no role; aria-label works as a name", async () => {
+    test("with no name it is still a stop (the scroll must be reachable), a region named \"Scrollable table\" (A3-01's gap, batch c10); aria-label works as a name", async () => {
       const { page } = await fixturePage(browser, TABLE(""), { theme });
       await page.waitForFunction(() => document.querySelector(".basalt-table-container").tabIndex === 0);
-      assert.equal(await page.evaluate(() => document.querySelector(".basalt-table-container").getAttribute("role")), null);
+      assert.deepEqual(await page.evaluate(() => { const el = document.querySelector(".basalt-table-container"); return { role: el.getAttribute("role"), label: el.getAttribute("aria-label") }; }), { role: "region", label: "Scrollable table" });
       await page.close();
       const named = await fixturePage(browser, TABLE('aria-label="Fleet"'), { theme });
       await named.page.waitForFunction(() => document.querySelector(".basalt-table-container").tabIndex === 0);

@@ -12,7 +12,7 @@ export interface SpinnerProps {
    * Inside a plain `Badge` braille takes the badge's `size` instead, so the two cannot disagree.
    */
   size?: 16 | 20 | 24;
-  /** What is loading, announced to screen readers. Omit when a visible label beside it already says so. */
+  /** What is loading, announced to screen readers: its text is in the spinner's status. Omit when a visible label beside it already says so. */
   label?: string;
   className?: string;
   /**
@@ -71,24 +71,25 @@ export function Spinner({ size: sizeProp = 16, label, className, variant = "ring
   const ref = React.useRef<HTMLSpanElement>(null);
   useSharedClock(ref);
   const status = label ? ({ role: "status" as const, "aria-label": label }) : ({ "aria-hidden": true as const });
-  if (variant === "braille") {
-    const scale = BRAILLE_SCALE[size];
-    return (
-      <span ref={ref} {...status} data-variant="braille" data-size={size} className={join("basalt-spinner", className)}>
+  const braille = variant === "braille";
+  const scale = BRAILLE_SCALE[size];
+  // One element for both variants, so a label is written once. A status that has a label has it twice: as its name, and as its text, because a polite region is
+  // read for what is inside it and not for a name it carries.
+  return (
+    <span ref={ref} {...status} data-variant={variant} data-size={braille ? size : undefined} className={join("basalt-spinner", className)} style={braille ? undefined : { width: size, height: size }}>
+      {braille ? (
         <svg viewBox="0 0 6 10" width={6 * scale} height={10 * scale} aria-hidden="true">
           {DOTS.map(({ dot, x, y }) => (
             <circle key={dot} className="basalt-spinner-dot" data-dot={dot} data-lit={FIRST_FRAME.includes(dot) ? "" : undefined} cx={x} cy={y} r={1} />
           ))}
         </svg>
-      </span>
-    );
-  }
-  return (
-    <span ref={ref} {...status} data-variant="ring" className={join("basalt-spinner", className)} style={{ width: size, height: size }}>
-      <svg viewBox="0 0 16 16" width={size} height={size} fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" />
-        <path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
+      ) : (
+        <svg viewBox="0 0 16 16" width={size} height={size} fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" />
+          <path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+      {label ? <span className="basalt-visually-hidden">{label}</span> : null}
     </span>
   );
 }

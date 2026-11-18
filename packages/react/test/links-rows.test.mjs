@@ -616,7 +616,9 @@ describe("CopyButton (X8)", () => {
     await press(page, "#copy");
     assert.deepEqual(await page.evaluate(() => window.__written), ["hello@example.invalid"]);
     assert.equal(await words(page), "Copied");
-    assert.equal(await page.getByRole("button", { name: "Copied" }).count(), 1);
+    // One voice (A3-25, batch c10): the status says it was copied and the button keeps its name, so a reader that announces a focused button's name changing does not say it twice.
+    assert.equal(await page.getByRole("button", { name: "Copied" }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: "Copy address" }).count(), 1);
     assert.equal(await status(page), "Address copied");
     assert.deepEqual(await box(page, "#copy"), before, "0px: the width and the position do not change");
     await page.clock.runFor(1499);

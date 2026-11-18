@@ -79,7 +79,7 @@ public struct BasaltCallout<Actions: View>: View {
 
   public var body: some View {
     HStack(alignment: .top, spacing: Basalt.Space.s3) {
-      Image(systemName: status.symbol).font(.system(size: 16, weight: .semibold)).foregroundStyle(status.color).accessibilityHidden(true)
+      Image(systemName: status.symbol).basaltScaledSymbol(16, weight: .semibold).foregroundStyle(status.color).accessibilityHidden(true)
       VStack(alignment: .leading, spacing: Basalt.Space.s1) {
         Text(title).basaltType(Basalt.TypeScale.sm, weight: .medium).foregroundStyle(status == .danger ? Basalt.Colors.statusDanger.color : Basalt.Colors.textPrimary.color)
         if let description { Text(description).basaltType(Basalt.TypeScale.sm).foregroundStyle(Basalt.Colors.textSecondary.color) }
@@ -173,7 +173,7 @@ public struct BasaltEmptyState<Actions: View>: View {
 
   public var body: some View {
     VStack(spacing: Basalt.Space.s2) {
-      if let symbol { Image(systemName: symbol).font(.system(size: 24)).foregroundStyle(Basalt.Colors.textSecondary.color).accessibilityHidden(true) }
+      if let symbol { Image(systemName: symbol).basaltScaledSymbol(24).foregroundStyle(Basalt.Colors.textSecondary.color).accessibilityHidden(true) }
       Text(title).basaltType(Basalt.TypeScale.lg, weight: .medium).foregroundStyle(Basalt.Colors.textPrimary.color).accessibilityAddTraits(.isHeader)
       Text(description).basaltType(Basalt.TypeScale.base).foregroundStyle(Basalt.Colors.textSecondary.color)
       actions.padding(.top, Basalt.Space.s3)
