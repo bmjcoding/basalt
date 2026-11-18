@@ -5,7 +5,8 @@ import type { Drawing } from "./glyph";
 import type { GlyphIcon } from "./glyph";
 import { createMorph, endpointOf, keyOf } from "./glyph-motion";
 import type { MorphController } from "./glyph-motion";
-import { glideTiming, bezier, useReducedMotion } from "./motion";
+import { useReducedMotion } from "./motion";
+import { glideTiming, bezier } from "./motion-timing";
 import { join } from "./utils";
 
 /**

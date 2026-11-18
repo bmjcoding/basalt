@@ -242,7 +242,11 @@ behaviour test uses different fallback fonts: keep a test's margins clear of a f
 `npm run lint`, `npm test`, `npm run check` and `npm run ci:local` run every step and fail at the end, ending in one line a step (passed or failed, and for a failed
 test step the files that failed), so one failing file does not hide the steps after it. The steps print in order, each under its own header: the first failing section
 of the log is the first failure, and the summary marks it. `ci.yml`'s own steps are unchanged. Renders and browser tests launch Chromium through
-`scripts/chromium-launch.mjs` (overlay scrollbars and full raster), so a docked laptop and an undocked one draw the same pixels.
+`scripts/chromium-launch.mjs` (overlay scrollbars and full raster), so a docked laptop and an undocked one draw the same pixels. Three
+tests that look at classic scrollbars (`tools/html-skill/test/parity-4.test.mjs` and `parity-8.test.mjs`, and
+`packages/react/test/table-filter.test.mjs`) launch with the module's `ignoreDefaultArgs` removed on purpose. The brand test
+(`brand/test/brand.test.mjs`) launches Chromium without the module: nothing in `brand/` is edited alongside the tooling, so it has not been moved
+to the module, and should be the next time `brand/` is changed.
 
 `npm install` points git at `.githooks/`, so the pre-commit hook runs `npm run lint` on
 every commit. Don't bypass it with `--no-verify`. If a lint rule is wrong, change it in

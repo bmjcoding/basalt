@@ -1,76 +1,15 @@
 import * as React from "react";
 
+import { formatAge, formatClock, formatCountdown, formatDay, formatStamp } from "./time-format";
+import type { TimeOptions } from "./time-format";
 import { useLoops } from "./loops";
 import { Reserve } from "./reserve";
 import { join } from "./utils";
 
 // ---- Time parts (DECISIONS 162, X11; V13 and V14) ----
-// Formatters that draw nothing, and the three elements that stand on them: a clock that ticks by the minute, a countdown that ticks by
+// The three elements that stand on the formatters in `time-format.ts` (which draw nothing and carry no `"use client"`): a clock that ticks by the minute, a countdown that ticks by
 // the second, and a date with its age beside it. Each is a `time` element with a machine `datetime`, in tabular figures, so a changing
 // value never changes its width. The zone is an argument, never a place.
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function parts(date: Date, locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions) {
-  const out: Record<string, string> = {};
-  for (const part of new Intl.DateTimeFormat(locale, options).formatToParts(date)) out[part.type] = part.value;
-  return out;
-}
-
-export interface TimeOptions {
-  /** An IANA zone name. Defaults to the runtime's. */
-  timeZone?: string;
-  locale?: string | string[];
-}
-
-/** A moment as a log writes it ("14:49:07") and as a machine reads it ("2026-11-17T14:49:07"), in the zone given. */
-export function formatStamp(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
-  const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  const hour = p.hour === "24" ? "00" : p.hour;
-  const text = new Intl.DateTimeFormat(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(time));
-  return { text, dateTime: `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}` };
-}
-
-/** A clock to the minute ("09:39") and its machine form. */
-export function formatClock(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
-  const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const text = new Intl.DateTimeFormat(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(new Date(time));
-  return { text, dateTime: `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}` };
-}
-
-/** A day ("1 Nov"), with the year only when it is not the year of `now` ("4 Jan 2025"), and its machine form ("2026-11-01"). */
-export function formatDay(time: Date | number, { now = new Date(), timeZone, locale = "en-GB" }: TimeOptions & { now?: Date | number } = {}) {
-  const at = new Date(time);
-  const year = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric" }).year;
-  const text = new Intl.DateTimeFormat(locale, { timeZone, day: "numeric", month: "short", ...(year(at) === year(new Date(now)) ? {} : { year: "numeric" }) }).format(at);
-  const p = parts(at, "en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
-  return { text, dateTime: `${p.year}-${p.month}-${p.day}` };
-}
-
-/** The time left to a moment: "18d 09:10:51", "09:10:51" under a day, and `null` once it has passed. Never negative. */
-export function formatCountdown(to: Date | number, now: Date | number = new Date()) {
-  const s = Math.max(0, Math.floor((new Date(to).getTime() - new Date(now).getTime()) / 1000));
-  if (!s) return null;
-  const d = Math.floor(s / 86400);
-  const clock = `${pad(Math.floor((s % 86400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
-  return { text: d > 0 ? `${d}d ${clock}` : clock, dateTime: `P${d}DT${Math.floor((s % 86400) / 3600)}H${Math.floor((s % 3600) / 60)}M${s % 60}S`, days: d };
-}
-
-/**
- * A relative age, coarse on purpose: "just now" under 90 seconds, then minutes, hours, days to 45, months to 548 days, years. DECISIONS
- * 162 V13: it is written only beside its absolute date, never alone and never in a `Stat`'s source line (that stays absolute). `short` is the
- * narrow column's form: "now", "11d", "3mo", "6y".
- */
-export function formatAge(time: Date | number, now: Date | number = new Date(), { short = false }: { short?: boolean } = {}) {
-  const s = Math.max(0, Math.round((new Date(now).getTime() - new Date(time).getTime()) / 1000));
-  const say = (n: number, unit: string, abbr: string) => (short ? `${n}${abbr}` : `${n} ${unit}${n === 1 ? "" : "s"} ago`);
-  if (s < 90) return short ? "now" : "just now";
-  if (s < 3600 * 1.5) return say(Math.round(s / 60), "minute", "m");
-  if (s < 86400 * 1.5) return say(Math.round(s / 3600), "hour", "h");
-  if (s < 86400 * 45) return say(Math.round(s / 86400), "day", "d");
-  if (s < 86400 * 548) return say(Math.round(s / (86400 * 30.44)), "month", "mo");
-  return say(Math.round(s / (86400 * 365.25)), "year", "y");
-}
 
 // ---- one shared timer
 // Every clock and countdown on a page shares one interval, created by the first subscriber and cleared with the last: nothing runs at

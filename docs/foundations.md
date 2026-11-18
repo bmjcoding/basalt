@@ -1440,8 +1440,10 @@ because no whole set had two of three votes; the owner is asked to look at them 
   719/719.98 pair to keep in step and no gap on a fractional viewport. Components answer their **own** width (`@container`); pages
   answer the viewport.
 - **For apps with PostCSS,** the tokens package generates `breakpoints.css` (`@custom-media --basalt-phone (width < 720px)`, `-md`,
-  `-lg`, `-rail`). **In script,** `@srasyndicate/basalt-tokens/breakpoints` exports `breakpoint.md`, `.lg` and `.container`, so
-  ``matchMedia(`(width >= ${breakpoint.md}px)`)`` never carries the number.
+  `-lg`, `-rail`). **In script,** `@srasyndicate/basalt-tokens/breakpoints` exports `breakpoint.md`, `.lg`, `.container`, `.containerSm` and `.containerLg`, so
+  ``matchMedia(`(width >= ${breakpoint.md}px)`)`` never carries the number, and `@srasyndicate/basalt-tokens/durations` exports `duration` (every
+  named duration in milliseconds: `duration.confirm`), so a timer never carries one either. The HTML skill reads both at build time
+  (`%bp-container-lg%`, `%duration-confirm%`), and `packages/tokens/test/repeated-numbers.test.mjs` holds every number written in a query to its token.
 - **A prose page** (`Prose`) has a column of `size-prose-width` on the row's **start edge**, never centred: its first letter lines up
   with the brand above it and with every chart and table. A data page fills the row.
 - **On Apple platforms** the sidebar width is `navigationSplitViewColumnWidth(Basalt.Size.sidebarWidth)`, the system's bars stay native,
@@ -1929,8 +1931,8 @@ are verified; runtime checks on other Apple platforms remain app integration wor
 
 The floor, decided by the owner (DECISIONS 140, "browsers are fine"): **Chrome 123, Safari 17.5 and Firefox 121** for the React package and
 the tokens (the stylesheets they ship). The HTML skill's floor is Chrome 123, Safari 17.5 and **Firefox 125**, because its menu, toast,
-tooltip, combobox and notification list call the Popover API (`showPopover`, `hidePopover`, `:popover-open`) with no feature test; below
-those versions they throw instead of opening. Browsers older than the floor are not supported.
+tooltip, combobox, notification list, command palette, theme menu and `popover` module call the Popover API (`showPopover`,
+`hidePopover`, `:popover-open`) with no feature test; below those versions they throw instead of opening. Browsers older than the floor are not supported.
 
 The version that sets each number, as the built CSS uses the feature:
 
@@ -1947,6 +1949,11 @@ Other features the CSS relies on sit below those numbers: `oklch()` and `color-m
 Three uses above the floor are known and listed in that test with their reasons: `scrollbar-gutter` (Safari before 18.2 has overlay
 scrollbars, which take no room), `text-wrap: pretty` (a hint; the browser wraps as it always did) and the `round()` function in the plain
 badge's dot margin (Chrome 123 and 124 drop that one declaration, so the dot sits in its seat to the half pixel and not on whole pixels).
+
+The same test reads the HTML skill's stylesheet parts (`.agent/skills/basalt-html/parts`) against the skill's floor. It lists the same
+`scrollbar-gutter`, `prefers-reduced-transparency` and `text-wrap: pretty` uses and two more that are the skill's alone: `@starting-style`
+and `transition-behavior: allow-discrete` (Firefox 129), which the dialog, the sheet, the popover and the select's list use for their
+opening and closing motion. Below Firefox 129 those four open and close with no animation, and still open and close.
 
 **Reduced transparency.** "Falls back to opaque `surface-page` under reduced transparency" holds in the browsers that evaluate
 `prefers-reduced-transparency`: Chromium from 118. Safari and Firefox do not evaluate it (Firefox only behind a flag), so there the sticky header

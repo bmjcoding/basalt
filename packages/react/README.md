@@ -24,8 +24,12 @@ import { CopyIcon, PlayIcon } from "@phosphor-icons/react";
 
 Styles sit in `@layer basalt`, so an app's own CSS overrides them without `!important`.
 Every component takes `className`; Base UI parts also accept a function of their state.
-The package entry declares `"use client"` for React Server Component consumers. Import the
-styles and font sheet once in your application's root layout.
+Every module that draws a component or holds state declares `"use client"` for React Server
+Component consumers, and the package entry itself does not: what is neither a component nor a hook
+(`formatStamp` and the other formatters, `CONFIRM_MS` and the other constants, `themeBootstrap`,
+`loopsBootstrap`, `preloadCodeLanguages`, `shareOf`, `trailingMean`, `ambient`, the entrance and travel
+helpers) is plain code that a Server Component can call and read. Import the styles and font sheet
+once in your application's root layout.
 
 Set `data-density="compact"` on `<html>` to move controls down one size (24px minimum).
 Portalled menus inherit it too; a nested `data-density="default"` restores regular sizing.

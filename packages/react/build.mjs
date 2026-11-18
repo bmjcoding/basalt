@@ -62,7 +62,8 @@ await esbuild.build({
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
   // The core glyphs are modules of their own (src/glyphs), so an app that imports HomeGlyph bundles only HomeGlyph.
   entryPoints: [
-    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx").map((f) => path.join(here, "src", f)),
+    // index.ts is not bundled: it is a barrel of `export { … } from "./module"` and is written as one, below, so each export comes from the module that holds it.
+    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx" && f !== "index.ts").map((f) => path.join(here, "src", f)),
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
     // Development tooling (the headroom check): its own entry under dist/testing, imported by no component and not exported from the root.
     ...fs.readdirSync(path.join(here, "src", "testing")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "testing", f)),
@@ -79,12 +80,17 @@ await esbuild.build({
   format: "esm",
   platform: "neutral",
   target: "es2022",
-  // A published component boundary must retain this for React Server Component consumers.
-  banner: { js: '"use client";' },
+  // The "use client" directive is added after the build, to the modules that need it (below).
   jsx: "automatic",
   external,
   logLevel: "warning",
 });
+
+// The package entry is a barrel with no directive of its own, so a React Server Component can import a function or a constant from it: each export is
+// re-exported from the module that holds it, and that module is a client module (it has the directive) only if it draws or holds state. Bundled, the
+// entry would hold every component's code and have to be one client module whole. Written as it is in src/index.ts, with the extensions Node and bundlers need.
+const barrel = await esbuild.transform(fs.readFileSync(path.join(here, "src", "index.ts"), "utf8"), { loader: "ts", format: "esm", target: "es2022" });
+fs.writeFileSync(path.join(dist, "index.js"), barrel.code.replace(/\bfrom "(\.\/[^"]+)"/g, 'from "$1.js"'));
 
 // With code splitting, esbuild leaves a bare `import "./chunk-….js";` in a file whose chunk it imported and then used nothing from (a
 // component's helper that only another entry draws). The package declares its JavaScript free of side effects, so an app's bundler drops
@@ -100,9 +106,27 @@ for (const file of built) {
 const imported = built.map((file) => fs.readFileSync(path.join(dist, file), "utf8")).join("\n");
 for (const chunk of built.filter((f) => f.startsWith("chunk-"))) {
   if (imported.includes(`"./${chunk}"`)) continue;
-  // The one chunk nothing imports by name is a source file with no runtime code (types only): it holds just the directive, and goes.
-  if (fs.readFileSync(path.join(dist, chunk), "utf8").replace(/"use client";|\/\/.*|\s/g, "") !== "") throw new Error(`${chunk} holds code and is imported by no file once its bare imports are gone`);
+  // The one chunk nothing imports by name is a source file with no runtime code (types only): it holds nothing but comments, and goes.
+  if (fs.readFileSync(path.join(dist, chunk), "utf8").replace(/\/\/.*|\s/g, "") !== "") throw new Error(`${chunk} holds code and is imported by no file once its bare imports are gone`);
   fs.rmSync(path.join(dist, chunk));
+}
+
+// A React Server Component can use what a module exports only if the module is not a client module: a function or a constant imported from one is a
+// reference there (`formatStamp()` throws, `CONFIRM_MS / 1000` is NaN). So `"use client"` goes on the modules that draw or hold state, and only on them: a module
+// whose own code, and the shared chunks it imports, import none of React, Base UI, Phosphor or cmdk holds no component and no hook, and carries none. A chunk
+// never carries it (an app reaches a chunk only through a module). Another module a file imports decides for itself. The package's "index" is a barrel that
+// imports React nowhere, so it has none: every component it re-exports comes from a module that has it. Which modules those are is checked by the packed
+// consumer (scripts/verify-packages.mjs) and by test/server-modules.test.mjs.
+const clientImport = /^(react|react-dom|@base-ui|@phosphor-icons|cmdk)(\/|$)/;
+const staticImports = (source) => [...source.matchAll(/(?:\bfrom|^import)\s*"([^"]+)"/gm)].map((match) => match[1]);
+const needsClient = (file, seen = new Set()) => {
+  if (seen.has(file)) return false;
+  seen.add(file);
+  return staticImports(fs.readFileSync(path.join(dist, file), "utf8")).some((specifier) => clientImport.test(specifier) || (/^\.\/chunk-/.test(specifier) && needsClient(specifier.slice(2), seen)));
+};
+for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && f !== "command-panel.js")) {
+  const code = fs.readFileSync(path.join(dist, file), "utf8");
+  if (needsClient(file)) fs.writeFileSync(path.join(dist, file), `"use client";\n${code}`);
 }
 
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });

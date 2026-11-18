@@ -59,7 +59,7 @@ test("the breakpoints are generated as @custom-media rules, and exported as numb
   assert.match(media, /@custom-media --basalt-lg \(width >= 1024px\);/);
   assert.match(media, /@custom-media --basalt-rail \(720px <= width < 1024px\);/);
   const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
-  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480 });
+  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640 });
   const all = await import(new URL("../dist/js/tokens.js", import.meta.url));
   assert.deepEqual({ ...all.breakpoint }, { ...breakpoint });
 });
@@ -145,9 +145,9 @@ test("font-family-sans is Geist, then Geist Fallback, then the system chain; the
   assert.match(css, /--basalt-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;/);
 });
 
-test("the breakpoints are still 720, 1024 and 480: no 900 and no 1280 token", async () => {
+test("the breakpoints are still 720, 1024 and 480, with the two container widths 340 and 640 (A5-25): no 900 and no 1280 token", async () => {
   const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
-  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480 });
+  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640 });
   assert.doesNotMatch(css, /breakpoint-(?:900|1280)|--basalt-size-breakpoint-xl/);
 });
 

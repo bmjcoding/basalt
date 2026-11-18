@@ -232,13 +232,17 @@ public struct BasaltTextEditor: View {
 
 public struct BasaltToggleStyle: ToggleStyle {
   public init() {}
-  public func makeBody(configuration: Configuration) -> some View { ToggleSurface(configuration: configuration) }
+  /// For the tests, which render the increased mode with it (see `BasaltCallout`). Internal, so no app sees it.
+  var contrastOverride: ColorSchemeContrast?
+  public func makeBody(configuration: Configuration) -> some View { ToggleSurface(configuration: configuration, contrastOverride: contrastOverride) }
 
   private struct ToggleSurface: View {
     let configuration: ToggleStyleConfiguration
+    let contrastOverride: ColorSchemeContrast?
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
-    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorSchemeContrast) private var systemContrast
+    private var contrast: ColorSchemeContrast { contrastOverride ?? systemContrast }
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -250,7 +254,7 @@ public struct BasaltToggleStyle: ToggleStyle {
             .fill(configuration.isOn ? Basalt.Colors.actionPrimary.color : Basalt.Colors.surfaceRaised.color)
             .frame(width: Basalt.Size.switchWidth, height: Basalt.Size.switchHeight)
             .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
+            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color(contrast, increased: Basalt.Colors.inkContrast)).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
             .opacity(enabled ? 1 : 0.5)
         }
         .frame(minHeight: BasaltControlSize.md.minimumHeight)

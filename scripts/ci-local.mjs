@@ -17,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { isMain } from "./is-main.mjs";
 import { runStep, summaryLines } from "./run-steps.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -58,6 +59,19 @@ export function nodeReport(running, pinned) {
   return { warn: false, text: `Node ${running} here, Node ${pinned} in ci.yml.` };
 }
 
+/**
+ * Runs `cleanup` once when this process ends. Node runs an "exit" listener when the process exits by itself, by `process.exit` or by an uncaught error, and
+ * never when a signal ends it (SIGINT from Ctrl-C, SIGTERM from a timeout, SIGHUP from a closed terminal), so those three run it too and then exit with
+ * the status a shell reports for the signal (128 plus its number). A step still running may keep running without its folder: it is a child of the shell
+ * that sent the signal as much as of this script.
+ */
+export function runAtEnd(cleanup, { signals = { SIGINT: 2, SIGTERM: 15, SIGHUP: 1 } } = {}) {
+  let done = false;
+  const once = () => { if (!done) { done = true; cleanup(); } };
+  process.on("exit", once);
+  for (const [signal, number] of Object.entries(signals)) process.on(signal, () => { once(); process.exit(128 + number); });
+}
+
 function fail(message) {
   console.error(`\nci:local: ${message}`);
   process.exit(1);
@@ -89,7 +103,7 @@ async function main() {
   const node = nodeReport(process.version, pinnedNodeMajor(workflow));
   console.log(`${node.warn ? "WARNING: " : ""}${node.text}`);
 
-  // --fresh: a new worktree of HEAD, removed again when this process ends, however it ends.
+  // --fresh: a new worktree of HEAD, removed again when this process ends: when it exits, and when it is interrupted (Ctrl-C), terminated or hung up on.
   let cwd = repo;
   let worktree = null;
   if (fresh) {
@@ -97,7 +111,7 @@ async function main() {
     const added = spawnSync("git", ["worktree", "add", "--detach", worktree, "HEAD"], { cwd: repo, stdio: "inherit" });
     if (added.status !== 0) fail("could not create a worktree of HEAD.");
     cwd = worktree;
-    process.on("exit", () => {
+    runAtEnd(() => {
       spawnSync("git", ["worktree", "remove", "--force", worktree], { cwd: repo, stdio: "ignore" });
       fs.rmSync(worktree, { recursive: true, force: true });
     });
@@ -136,4 +150,4 @@ async function main() {
 }
 
 // Importable for its tests; run only as a script.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+if (isMain(import.meta.url)) await main();

@@ -1,14 +1,12 @@
 import * as React from "react";
 
 import { LoopsToggleButton } from "./loops-toggle-button";
-import { LoopsToggleIcon, LOOPS_TOGGLE_NAME } from "./loops-toggle-icon";
-import { LOOPS_TOGGLE_DESCRIPTION, LoopsToggleSwitch } from "./loops-toggle-switch";
+import { LoopsToggleIcon } from "./loops-toggle-icon";
+import { LoopsToggleSwitch } from "./loops-toggle-switch";
 
 // The control for the hold on every loop (DECISIONS 136 C3, 143): one component on `useLoops`, in the three forms the places need, with one fixed name. Nothing is announced
 // when the hold changes: the control speaks its own state (`aria-pressed`, or the switch's `checked`). Each form is a module of its own (`LoopsToggleIcon`,
 // `LoopsToggleButton`, `LoopsToggleSwitch`), so a page that draws only the icon, as a site's header does, loads none of the others.
-
-export { LOOPS_TOGGLE_DESCRIPTION, LOOPS_TOGGLE_NAME };
 
 interface Common {
   className?: string;

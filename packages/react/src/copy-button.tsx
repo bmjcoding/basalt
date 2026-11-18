@@ -4,11 +4,9 @@ import * as React from "react";
 
 import { Button } from "./button";
 import type { ButtonVariant, ControlSize } from "./button";
+import { COPIED_MS } from "./constants";
 import { Reserve } from "./reserve";
 import { join } from "./utils";
-
-/** How long "Copied" stays, in milliseconds: the same as `CodeBlock` and `Terminal` (DECISIONS 152, vote 6). */
-export const COPIED_MS = 1500;
 
 export interface CopyButtonProps extends Omit<React.ComponentProps<"button">, "children" | "onClick" | "type" | "color"> {
   /** What is copied. */

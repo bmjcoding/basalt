@@ -1,4 +1,4 @@
-import { glideTiming } from "./motion";
+import { glideTiming } from "./motion-timing";
 
 // The entrance (DECISIONS 136 A; docs/motion.md, "The entrance"). One figure on a page's first screen may draw its marks once, at load,
 // on a first visit: each mark over `duration-figure` on `ease-out`, `duration-stagger` apart, the step shrunk so every start falls within

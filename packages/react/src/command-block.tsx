@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
-import { formatStamp } from "./time";
+import { formatStamp } from "./time-format";
 import { join } from "./utils";
 
 /** The command with a break opportunity after each dot and slash, so a narrow head wraps at a space or one of those and never inside a word. */

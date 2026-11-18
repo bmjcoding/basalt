@@ -15,6 +15,10 @@
       "types": "./dist/js/breakpoints.d.ts",
       "default": "./dist/js/breakpoints.js"
     },
+    "./durations": {
+      "types": "./dist/js/durations.d.ts",
+      "default": "./dist/js/durations.js"
+    },
     ".": {
       "types": "./dist/js/tokens.d.ts",
       "default": "./dist/js/tokens.js"

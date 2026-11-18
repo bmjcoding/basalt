@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { join } from "./utils";
+import { formatStatTime } from "./time-format";
 
 export interface StatsProps extends Omit<React.ComponentProps<"dl">, "children"> {
   /** The narrowest a stat gets before the row wraps: a CSS length, or a number of px. Default 10rem. */
@@ -34,32 +35,6 @@ export interface StatProps extends Omit<React.ComponentProps<"div">, "children">
   /** What counts as today, for the date to be left out of the time. Defaults to now. */
   now?: Date | number;
   locale?: string | string[];
-}
-
-function parts(date: Date, locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions) {
-  const out: Record<string, string> = {};
-  for (const part of new Intl.DateTimeFormat(locale, options).formatToParts(date)) out[part.type] = part.value;
-  return out;
-}
-
-/**
- * The time of a reading as the stat writes it, and its machine form: the clock alone for today ("04:41"), the date added for
- * another day ("Nov 7, 08:02"), and the year only when it differs from this one ("Nov 7, 2025, 08:02").
- */
-export function formatStatTime(time: Date | number, { now = new Date(), timeZone, locale }: { now?: Date | number; timeZone?: string; locale?: string | string[] } = {}) {
-  const at = new Date(time);
-  const base: Intl.DateTimeFormatOptions = { timeZone, hourCycle: "h23" };
-  const clock = new Intl.DateTimeFormat(locale, { ...base, hour: "2-digit", minute: "2-digit" }).format(at);
-  const day = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
-  const [then, today] = [day(at), day(new Date(now))];
-  const sameDay = then.year === today.year && then.month === today.month && then.day === today.day;
-  const sameYear = then.year === today.year;
-  const date = new Intl.DateTimeFormat(locale, { timeZone, month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) }).format(at);
-  const stamp = parts(at, "en-US", { ...base, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-  return {
-    text: sameDay ? clock : `${date}, ${clock}`,
-    dateTime: `${stamp.year}-${stamp.month}-${stamp.day}T${stamp.hour === "24" ? "00" : stamp.hour}:${stamp.minute}`,
-  };
 }
 
 /**

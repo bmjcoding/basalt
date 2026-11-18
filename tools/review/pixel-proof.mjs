@@ -13,7 +13,7 @@
 //   node tools/review/build.mjs 20 21 22 23 24 25 26 --out /tmp/rounds-main     (in main's checkout; again in the branch's, --out /tmp/rounds-branch)
 //   node tools/review/pixel-proof.mjs compare /tmp/rounds-main/basalt-round-20 /tmp/rounds-branch/basalt-round-20     (and so on for each round)
 //
-// `compare` exits 1 if any image differs, differs in size, or has no partner. A pixel differs when any channel differs at all.
+// `compare` exits 1 if any image differs, differs in size or has no partner, and if it compared no image at all. A pixel differs when any channel differs at all.
 
 import fs from "node:fs";
 import http from "node:http";
@@ -64,6 +64,12 @@ async function demo(repo, out) {
 
 async function compare(dirA, dirB) {
   const names = [...new Set([...fs.readdirSync(dirA), ...fs.readdirSync(dirB)])].filter((f) => f.endsWith(".png")).sort();
+  // Two folders with no image in them prove nothing: "0 differing pixels" would read as a pass for a mistyped path.
+  if (!names.length) {
+    console.error(`pixel-proof: compared no images: ${dirA} and ${dirB} hold no .png file between them`);
+    process.exitCode = 1;
+    return;
+  }
   const browser = await chromium.launch(launchOptions());
   const page = await browser.newPage();
   let bad = 0;
