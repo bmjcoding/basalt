@@ -58,7 +58,7 @@ make no design decision yourself. You never vote, and you never write a member's
 | --- | --- | --- |
 | `opus` | `{providerInstanceId: "claudeAgent", model: "claude-opus-5-5", options: {effort: "xhigh"}}` | Designer and voter |
 | `muse` | `{providerInstanceId: "muse", model: "muse-wonder-full-1.0", options: {reasoningEffort: "xhigh"}}` | Designer and voter |
-| `sol` | `{providerInstanceId: "codex", model: "gpt-6.1-sol", options: {reasoningEffort: "xhigh", serviceTier: "priority"}}` | Voter on every item; leads performance and correctness evidence |
+| `sol` | Votes and reviews: `{providerInstanceId: "codex", model: "gpt-6.2-astra", options: {reasoningEffort: "xhigh", serviceTier: "priority"}}`. Its other work (audits, measurements, correctness evidence): `{providerInstanceId: "codex", model: "gpt-6.2-sol", options: {reasoningEffort: "xhigh", serviceTier: "priority"}}` | Voter on every item; leads performance and correctness evidence. One seat and one vote with two models: Astra, for deeper reasoning, casts the votes and writes the reviews (the performance reviews `sol` does alone included); GPT-6.2 Sol does the rest |
 | `grok` | `{providerInstanceId: "grok", model: "grok-4.7", options: {reasoningEffort: "xhigh"}}` | Designer and voter; does the research crawls and judges against X's designers |
 | builder | `{providerInstanceId: "claudeAgent", model: "claude-sonnet-5-5", options: {effort: "high"}}` | Writes the code once the council has decided; not a member |
 
