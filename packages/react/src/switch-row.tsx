@@ -6,6 +6,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { PlusGlyph } from "./glyphs/plus";
 import { Icon } from "./icon";
 import type { ChangeDetails, PartProps } from "./types";
+import { useMirrorRef } from "./mirror";
 import { withClass } from "./utils";
 
 export interface SwitchRowGroupProps extends PartProps<"div", "defaultValue" | "value" | "onChange"> {
@@ -38,6 +39,8 @@ export interface SwitchRowProps extends PartProps<"span", "children" | "value" |
   name?: string;
   form?: string;
   onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
+  /** The row's hidden form input, as `Checkbox` has it (it was passed through before; now it is typed). */
+  inputRef?: React.Ref<HTMLInputElement>;
   /**
    * What the row is of: an app's icon or a logo, 36px square (32 under 720px wide), drawn by the app. It is decorative: the name says it.
    * Without one the row starts with its name.
@@ -56,9 +59,10 @@ export interface SwitchRowProps extends PartProps<"span", "children" | "value" |
  * switches things on and each carries more than a word (a device, a source, a plan); one value among words alone is a chip
  * (`MultiSelect`), and a setting that applies at once is a `Switch`.
  */
-export function SwitchRow({ tile, kind, children, className, ...props }: SwitchRowProps) {
+export function SwitchRow({ tile, kind, children, className, inputRef, ...props }: SwitchRowProps) {
+  const mirror = useMirrorRef(inputRef);
   return (
-    <BaseCheckbox.Root {...props} nativeButton render={<button type="button" />} data-tile={tile ? "" : undefined} className={withClass("basalt-switch-row", className)}>
+    <BaseCheckbox.Root {...props} inputRef={mirror} nativeButton render={<button type="button" />} data-tile={tile ? "" : undefined} className={withClass("basalt-switch-row", className)}>
       {tile ? <span className="basalt-switch-row-tile" aria-hidden="true">{tile}</span> : null}
       <span className="basalt-switch-row-text">
         {/* The comma is the name's, so the row's name reads "Name, Kind" whatever the two blocks' spacing. */}

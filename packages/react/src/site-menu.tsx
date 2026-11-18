@@ -3,6 +3,7 @@ import * as React from "react";
 
 import { CloseGlyph } from "./glyphs/close";
 import { MenuGlyph } from "./glyphs/menu";
+import { holdTab } from "./hold-tab";
 import { LoopsToggleButton } from "./loops-toggle-button";
 import { MorphIcon } from "./morph-icon";
 import { Nav, NavItem } from "./nav";
@@ -68,6 +69,7 @@ export function SiteMenu({ brand, links = [], tools, themeToggle, loops = false,
       <SheetContent
         side="top"
         className="basalt-site-menu"
+        onKeyDown={holdTab}
         initialFocus={() => close.current ?? true}
         finalFocus={() => (wideNow.current ? barLink() ?? true : trigger.current ?? true)}
       >

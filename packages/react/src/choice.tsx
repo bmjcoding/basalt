@@ -11,6 +11,7 @@ import { MinusGlyph } from "./glyphs/minus";
 import type { ControlSize } from "./button";
 import type { ChangeDetails, ChoiceValue, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { useFieldsetDisabled } from "./fieldset-context";
+import { useMirrorRef } from "./mirror";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
 import { join, withClass } from "./utils";
@@ -43,10 +44,11 @@ export interface CheckboxProps extends PartProps<"span", "onChange" | "defaultCh
 }
 
 /** An on/off choice that takes effect when a form is submitted, or one of several independent options. */
-export function Checkbox({ children, className, disabled, ...props }: CheckboxProps) {
+export function Checkbox({ children, className, disabled, inputRef, ...props }: CheckboxProps) {
   const fieldsetDisabled = useFieldsetDisabled();
+  const mirror = useMirrorRef(inputRef);
   const box = (
-    <BaseCheckbox.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-checkbox", className)}>
+    <BaseCheckbox.Root {...props} inputRef={mirror} disabled={disabled || fieldsetDisabled} className={withClass("basalt-checkbox", className)}>
       <BaseCheckbox.Indicator
         className="basalt-checkbox-indicator"
         keepMounted
@@ -87,10 +89,11 @@ export interface SwitchProps extends PartProps<"span", "onChange" | "defaultChec
 }
 
 /** A setting that takes effect immediately, on or off. */
-export function Switch({ children, className, disabled, ...props }: SwitchProps) {
+export function Switch({ children, className, disabled, inputRef, ...props }: SwitchProps) {
   const fieldsetDisabled = useFieldsetDisabled();
+  const mirror = useMirrorRef(inputRef);
   const control = (
-    <BaseSwitch.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-switch", className)}>
+    <BaseSwitch.Root {...props} inputRef={mirror} disabled={disabled || fieldsetDisabled} className={withClass("basalt-switch", className)}>
       <BaseSwitch.Thumb className="basalt-switch-thumb" />
     </BaseSwitch.Root>
   );
@@ -138,11 +141,12 @@ export interface RadioProps extends PartProps<"span", "children" | "defaultValue
   children: React.ReactNode;
 }
 
-export function Radio({ children, className, disabled, ...props }: RadioProps) {
+export function Radio({ children, className, disabled, inputRef, ...props }: RadioProps) {
   const fieldsetDisabled = useFieldsetDisabled();
+  const mirror = useMirrorRef(inputRef);
   return (
     <label className="basalt-choice">
-      <BaseRadio.Root {...props} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio", className)}>
+      <BaseRadio.Root {...props} inputRef={mirror} disabled={disabled || fieldsetDisabled} className={withClass("basalt-radio", className)}>
         <BaseRadio.Indicator className="basalt-radio-indicator" />
       </BaseRadio.Root>
       <span className="basalt-choice-label">{children}</span>
@@ -199,13 +203,14 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, inputRef, ...props }: SelectProps) {
+  const mirror = useMirrorRef(inputRef);
   const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
-    <BaseSelect.Root {...props} items={items}>
+    <BaseSelect.Root {...props} inputRef={mirror} items={items}>
       <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         {valuePrefix ? (
           <span className="basalt-select-lead">

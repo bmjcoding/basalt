@@ -3521,6 +3521,17 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the standard screen-reader-only clip; not a design length */
   .basalt-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+  /* The hidden form input of Basalt's own controls (see src/mirror.ts). Base UI fixes it to the viewport with an inline style, and Chrome gives
+     every fixed element a layer of its own: with a checkbox in each row of a 1,000-row table that was 47% of the time to tick a row (88% at 5,000).
+     Absolute at the place it has in the flow (no offsets) it is as invisible, with the same 1px box, clip-path and overflow, and is not a layer;
+     Base UI already sets exactly this on an input that has a `name`. The rule matches only the attribute Basalt sets, through `inputRef`, on the
+     input its own control rendered: not an input beside the control (a foreign component's own, passed through `render`; the focus guards an open
+     Select inserts; the `uncheckedValue` input), not the Slider's range input (a real focus target, and already inside its transformed thumb, so
+     not a layer), and not the checklist rows' inputs: in the open popup absolute inputs move the AA of its corners, which is a pixel. It is an inline
+     style, so the override takes !important. If a Base UI release stops passing `inputRef` to this input, nothing matches and nothing is exposed (the input is
+     as hidden as Base UI makes it); a test fails when the rule matches nothing. */
+  [data-basalt-mirror] { position: absolute !important; inset: auto !important; }
+
   /* ---- Figures: the description list, the meter, the stat, and the gutter and terminal that CodeBlock shares ---- */
 
   /* DescriptionList: a dl of div rows, on the page, with no rim and no level. The label column is a fixed width, never sized to

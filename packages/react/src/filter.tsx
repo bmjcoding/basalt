@@ -12,6 +12,7 @@ import { Icon } from "./icon";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { GlidePlate } from "./plate";
 import type { ChangeDetails } from "./types";
+import { markMirror } from "./mirror";
 import { join } from "./utils";
 
 // ---- MultiSelect: a filter that takes any number of its values ----
@@ -109,7 +110,7 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       </div>
       <BaseCheckboxGroup value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} className="basalt-filter-chips">
         {options.map((o) => (
-          <BaseCheckbox.Root key={o.value} value={o.value} disabled={o.disabled} nativeButton render={<button type="button" />} data-size={controlSize === "md" ? undefined : controlSize} className="basalt-chip">
+          <BaseCheckbox.Root key={o.value} inputRef={markMirror} value={o.value} disabled={o.disabled} nativeButton render={<button type="button" />} data-size={controlSize === "md" ? undefined : controlSize} className="basalt-chip">
             {/* One 16px seat on every chip, with both glyphs stacked in it: the plus and the check cross-fade, so turning a chip on moves nothing. */}
             <span className="basalt-chip-seat" aria-hidden="true">
               <Icon icon={PlusGlyph} className="basalt-chip-plus" />
@@ -136,6 +137,9 @@ interface ChecklistRowProps {
  */
 const ChecklistRow = /* @__PURE__ */ React.memo(function ChecklistRow({ option: o, checked, lit, setLit }: ChecklistRowProps) {
   return (
+    // No `inputRef={markMirror}` here, on purpose: the rows' hidden inputs stay as Base UI draws them (fixed). In the open checklist popup, absolute
+    // inputs move the AA of the popup's two left corners by 1 to 5 levels (compositing: each fixed input is a layer under the popup), and Basalt changes
+    // no rendered pixel for a performance fix. test/audit-fix-c6.test.mjs holds this; marking the rows is a visual decision for the council.
     <BaseCheckbox.Root
       value={o.value}
       disabled={o.disabled}
