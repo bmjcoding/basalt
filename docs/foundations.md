@@ -104,13 +104,14 @@ border at every level.
 
 | Role | Dark | Light | Worst case on any surface |
 |---|---|---|---|
-| `text-primary` | `#ededed` | `#171717` | 15.3:1 / 15.7:1 |
-| `text-secondary` | `#a1a1a1` | `#4d4d4d` | 6.9:1 / 7.4:1 |
-| `text-tertiary` | `#858585` | `#6b6b6b` | 4.86:1 / 4.68:1 |
-| `text-disabled` | `#5c5c5c` | `#a3a3a3` | Exempt (disabled controls only) |
+| `text-primary` | `#f4f4f4` | `#171717` | 16.2:1 / 15.7:1 |
+| `text-secondary` | `#bababa` | `#4d4d4d` | 9.27:1 / 7.4:1 |
+| `text-tertiary` | `#979797` | `#6b6b6b` | 6.11:1 / 4.68:1 |
+| `text-disabled` | `#6c6c6c` | `#a3a3a3` | Exempt (disabled controls only) |
 
-On a hover or selected wash, tertiary text becomes secondary; the wash would take it below
-4.5:1. Four text levels were considered and rejected: Linear's fourth (`#62666d`) is 3.0 to
+On a hover or selected wash, tertiary text becomes secondary. In light the wash takes tertiary
+below 4.5:1 (4.01:1 at worst); in dark the lifted tertiary holds 4.76:1 or better on a wash, and the step is
+kept as a rule so both themes behave alike (DECISIONS 166). Four text levels were considered and rejected: Linear's fourth (`#62666d`) is 3.0 to
 3.45:1, which fails AA.
 
 ### Lines, states and actions
@@ -130,10 +131,10 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   [Chrome](#chrome-the-smoked-header)).
 - **Input boundary:** 38% white or 45% black, 3.4:1 or better on every surface (WCAG 1.4.11).
   Vercel's inputs measure 1.35:1, and Linear's borders 1.3:1; neither passes.
-- **Focus:** a 2px outline with a 2px offset in the secondary text colour, 6.9:1 or better.
+- **Focus:** a 2px outline with a 2px offset in the secondary text colour, 7.4:1 or better.
   A field flush with a clipping edge takes the focus outline inset (offset −2px) around its visible
   band. A modal palette whose input is its only focus stop shows none. Against the fills and rim
-  composites it touches the inset ring is 6.0:1 or better in dark and 7.1:1 in light.
+  composites it touches the inset ring is 8.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
   selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
   only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of tabs that
@@ -156,7 +157,7 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   horizontal tab, the plate under the current page. Every label reserves its 600 width (as navigation's label does), so
   choosing moves nothing: every other item's box is exactly where it was. The weight is the cue that does not rest on
   colour (WCAG 1.4.1, technique G182): a wash alone is about 1.2:1, and the pill (1.14:1 in light, 1.35:1 in dark
-  against its track) and the ink step (2.1 to 2.2:1) support it without carrying it. The information that must reach
+  against its track) and the ink step (1.75:1 in dark, 2.12:1 in light) support it without carrying it. The information that must reach
   3:1 (1.4.11) is the label, which is text and holds 4.5:1 on its fill at every level. An icon in a chosen
   item draws its selected form (closed and filled), with a label beside it or without one, in the same box, so it moves nothing
   (decision 145), a 16 by 16 box at size 16, one centre line with the words, 6px apart, wherever the words sit (beside them, in a span, or with the icon inside
@@ -187,15 +188,15 @@ On a hover or selected wash, tertiary text becomes secondary; the wash would tak
   in dark the next level plus the wash, `#262626` on level 1 (1.31:1 against the panel) and `#2c2c2c` on level 2
   (1.35:1), and at the cap, which has no next level, the wash alone over `surface-3` (`#2c2c2c`, 1.28:1); in light
   the 7% wash (`#ededed` on white, 1.17:1). The lift is the ink: a rest row's label and glyph are secondary
-  (7.66:1 on level 1 in dark, 8.45:1 in light) and the active row's go to primary (12.86:1 and 15.33:1 on the
-  plate). A hint (a host, a region, a count) lifts from tertiary to secondary on the plate, because tertiary
-  falls under 4.5:1 there; a shortcut chip lifts to primary. There is no weight change: the active row is where the
+  (10.24:1 on level 1 in dark, 8.45:1 in light) and the active row's go to primary (13.64:1 and 15.33:1 on the
+  plate). A hint (a host, a region, a count) lifts from tertiary to secondary on the plate (in light tertiary
+  falls under 4.5:1 there; in dark it holds 4.76:1 or better, and the step is kept as a rule, DECISIONS 166); a shortcut chip lifts to primary. There is no weight change: the active row is where the
   keyboard is, not a choice, and a weight that followed the arrow keys would flicker (a chosen item, whose 600 width is
   reserved, is a different state and does take weight); the chosen value is the check. There is no bar, no inset outline and no ↵ chip: the owner ruled the vertical bar and the outline AI
   tells (9 Nov 2026), and the plate with the ink step is the cue that does not rest on colour (1.4.1) and says where
   focus is (2.4.7). A chosen value (a Select option, a checked item) is a check in primary ink at the row's start, in a
   16px slot every row reserves so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
-  4.80:1 on levels 2 and 3 in dark, 5.43:1 in light. Group labels are tertiary, 12/16, weight 500 (4.86:1 or better).
+  4.80:1 on levels 2 and 3 in dark, 5.43:1 in light. Group labels are tertiary, 12/16, weight 500 (5.33:1 or better).
   In forced colours the lit row is `Highlight` with `HighlightText` for its label, glyph, hint and chip text and border,
   `forced-color-adjust: none` on the row (Chromium otherwise paints a Canvas backplate behind forced text and the
   label renders as a black box), a solid plate, a danger row taking the same pairing, and the panel on `Canvas` with
@@ -552,7 +553,7 @@ as `colorSchemeContrast == .increased`), Basalt answers with three aliases and n
 field's. **Lines** (the hairline, the divider, the rim and its top edge, and the pill's hairline) are drawn as `border-input`
 (`line-contrast`): 3:1 or better on every surface, and on every side one solid colour. **Tertiary ink** is drawn as `text-secondary`
 (`ink-contrast`). **A field's boundary** (an input, a select, a number field, a choice box, a switch, a choice card's box) is
-`border-field`, which equals `border-input` outside the mode and is drawn as `text-secondary` (`field-contrast`) inside it, about 7:1,
+`border-field`, which equals `border-input` outside the mode and is drawn as `text-secondary` (`field-contrast`) inside it, 7.4:1 or better on every surface,
 so a field keeps the strongest line; it is a role token of its own so that `border-input` itself does not step, and the progress and
 slider tracks, a link's underline and a chart's baseline stay on it (stepping it would take a progress indicator against its track from
 5.3:1 to 2.2:1). **A hovered edge** (`border-hover`) is drawn as `text-secondary`, so a hovered edge is never fainter than the edge at
@@ -598,7 +599,7 @@ Basalt ships one class today, **cobalt**: `accent.cobalt` is `oklch(0.72 0.14 26
 
 A key is a chip: a fill (`surface-kbd`, 8% white or 6% black) with no border, 20px tall and at
 least 20 wide, 4px of padding either side, radius 4, in Geist Mono 400 at 12/16. One chip per
-key, 2px apart, so the keys of a shortcut read as one object. Text is `text-secondary` (5.59:1 or
+key, 2px apart, so the keys of a shortcut read as one object. Text is `text-secondary` (7.47:1 or
 better in dark, 6.50:1 in light, on the chip over every surface), and `text-primary` on a hover or
 selected wash. ⌘ ⌥ ⌃ have no glyph in Geist, so they are Phosphor's Command, Option and Control,
 Bold at 12px in the text colour (a mark inside the chip, which is 20px tall, `size-kbd`; the choice box's check and dash are the other 12px mark); "Esc" is the word; letters, ⇧ ↵ ⌫ ⇥ and the arrows stay in Geist
@@ -796,12 +797,12 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
   no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
 - **Ink.** Only `text-primary` and `text-secondary` may sit on it. Over a pure white plate the dark bar
-  holds secondary at 7.19:1 (tertiary 5.04:1), and over a pure black plate the light
-  bar holds it at 7.42:1 (tertiary 4.68:1); primary is 15.73:1 or better. Tertiary passes on the bare bar but still fails on the selected wash (4.0:1 in dark over white), so the rule keeps it off the bar anyway. The class sets primary ink and
+  holds secondary at 9.60:1 (tertiary 6.32:1), and over a pure black plate the light
+  bar holds it at 7.42:1 (tertiary 4.68:1); primary is 15.73:1 or better. Tertiary passes on the bare bar, and in dark it now passes on the selected wash too (5.00:1 over white; it was 4.0:1 before DECISIONS 166), but in light it still falls to 4.01:1 there, so the rule keeps it off the bar in both themes. The class sets primary ink and
   promotes tertiary text (`Text tone="tertiary"`, a Sparkline axis) to secondary inside it, and no Basalt
   part draws tertiary text on the bar without a fill of its own. An app does not put tertiary there.
 - **A pressed ghost Button takes primary ink.** Inside the bar only, a ghost Button held down shows `text-primary`
-  on the selected wash (secondary ink is 5.71:1 there since the midpoint, 4.40:1 before it; primary is 12.59:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
+  on the selected wash (secondary ink is 7.59:1 there in dark, 6.34:1 in light; it was 4.40:1 at 85%, before the midpoint; primary is 13.2:1 or better). The wash stays. The council decided this by majority (3-1); elsewhere a ghost keeps its ink.
 - **No danger Button on the bar.** Destructive actions don't belong in global chrome (the owner's rule). Danger
   text would now pass on the bar's washes at the midpoint (5.05:1 pressed in dark over white, 4.79:1 in light over black); the rule is the owner's.
 - **Under a dialog's scrim the bar stays filtered.** It is the one blurred surface and the scrim over it is
@@ -834,9 +835,9 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
   and never changes (art that does not fit the theme gets the smoked bar from the top, not a second ink). The focus ring is the standard
   ring.
 - **Why this holds AA without a scrim.** The art keeps the [headroom](#art) quiet: no pixel of it is lighter than `art-quiet-limit` in dark
-  or darker than it in light, so the weakest ink in the bar, `text-secondary` (links at rest), holds 4.5:1 on it (4.89:1 in dark, 4.60:1 in
-  light), and the focus ring and the icons hold 3:1. `text-primary` holds on the selected and hover washes over the limit (8.14:1 and
-  8.96:1 in dark, 8.42:1 and 8.97:1 in light, at worst). One tone further (tone 3) secondary falls to about 2:1, which is why the limit
+  or darker than it in light, so the weakest ink in the bar, `text-secondary` (links at rest), holds 4.5:1 on it (6.53:1 in dark, 4.60:1 in
+  light), and the focus ring and the icons hold 3:1. `text-primary` holds on the selected and hover washes over the limit (8.64:1 and
+  9.51:1 in dark, 8.42:1 and 8.97:1 in light, at worst). One tone further (tone 3) secondary falls to about 2.7:1, which is why the limit
   stops at tone 2. The contrast tests carry these pairs.
 - **The change.** From the first pixel of scroll the bar is the smoked bar again. One `IntersectionObserver` on a 1px sentinel at the
   document's top reports where the page is (there is no scroll handler, and the rubber band above the top counts as the top). The fill
@@ -946,7 +947,7 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
 | Command, compact | 40 / 36 | 56 / 52 |
 
 - **Type and ink.** The title is 14/20 at 400, secondary at rest and primary when lit. The description is 13/18 at 400, tertiary at rest
-  and secondary when lit (tertiary on the plate falls under 4.5:1), with no weight change; compact is 13/18 over 12/16. The 20 and 18
+  and secondary when lit (in light tertiary on the plate falls under 4.5:1; in dark the step is kept as a rule, DECISIONS 166), with no weight change; compact is 13/18 over 12/16. The 20 and 18
   line boxes touch, with no gap.
 - **Where things sit.** The glyph, a check seat, a key chip and a time sit on the title line, centred on it; the description runs from the
   text's edge to the row's end, under the chip's column too. Both lines truncate with an ellipsis and never wrap, so a row's height is known.
@@ -978,7 +979,7 @@ implementation hasn't been reviewed.
   44px icon button under it. The dialog is centred at `size-command-width` (560) and its results area is a fixed height, a full result's, that scrolls inside, so the
   field and the count never move (4 to 0). A result is a link sized to its picture with 6px above and below: 72 for a 48 by 60 pack, 60 for a 96 by 48 logo, 48 at
   least (the 48 is a floor, not a size). Results are links and tab stops, each with the control ring at +2, 8px from the panel's edge, and a hover wash that runs
-  full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
+  full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
   round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
 - **The listbox and the opening list.** A listbox is a single choice that stays in the page, with one tab stop, `aria-activedescendant`, and a choice that follows
   the arrow keys; the chosen option has a chevron in its gutter and primary ink, and its weight does not change. Rows that open have the name as a button stretched
@@ -1000,7 +1001,7 @@ labels, and `aria-current="page"` on the current link.
   below its pill, so neighbouring rows touch and a pointer crossing between them never leaves a row. The column keeps at
   least `space-1-5` of inline padding so the focus ring never clips.
 - **Hover** is the hugging pill at the selected wash (9% white, 7% black; `#171717` over the dark page and `#e8e8e8` over the
-  light one, about 1.17:1), never the column's width. The label stays primary on it (15.3:1 in dark, 14.6:1 in light). **Pressed**
+  light one, about 1.17:1), never the column's width. The label stays primary on it (16.2:1 in dark, 14.6:1 in light). **Pressed**
   is the same pill: hover already sits at the wash, so there is no further step, and on touch the pill is the press. Nothing
   scales.
 - **Current page** is the glyph's selected form and the label at 600, with no background, no bar and no outline. The label
@@ -1777,8 +1778,8 @@ broke a rule, and each change is named.
   primary ink; a press is the selected wash. It never toggles.
 - **The amount (D11b, A8).** `amount` after the label, in tabular figures, in a seat as wide as the widest amount named in `amountReserve`, so the
   label and the button never move. Its ink is the label's at `opacity-amount` (0.72) on primary, secondary and outline, where that holds 4.5:1 on every
-  fill and surface (the contrast test proves it), and the label's full ink on ghost and danger, where it would not (the council's consent row 11,
-  by the AA rule and not by vote). Full ink in forced colours.
+  fill and surface (the contrast test proves it), and the label's full ink on ghost and danger, where it would not in light (the council's consent row 11,
+  by the AA rule and not by vote; in dark the lifted secondary would hold, and the rule is kept, DECISIONS 166). Full ink in forced colours.
 - **The count pill (D11d, A11, A12).** `count` on a `Button`: an outlined pill 24 tall in `border-input`, the number 600, secondary at zero and
   primary above, never a fill and never a colour. It holds two tabular digits (0 to 99 never moves the button; no majority: reserve two digits stands,
   and a third digit widens it). It is `aria-hidden`; the button's name carries the count.

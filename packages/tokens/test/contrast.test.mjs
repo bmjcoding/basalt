@@ -90,7 +90,7 @@ for (const theme of THEMES) {
     // reserving its 600 width, so the information that must reach 3:1 is the label itself, which is text and holds 4.5:1 here. The
     // weight, the width reserved and the 0px every item moves are proved on the components (packages/react/test/audit-design-a.test.mjs).
     // The old guard asserted a ratio of two contrasts, which is not 1.4.11; it is gone. Neither the pill against its track (1.14:1 in
-    // light, 1.35:1 in dark) nor the ink step (about 2.1 to 2.2:1) is asserted as the pass: they are support, and they are reported below.
+    // light, 1.35:1 in dark) nor the ink step (1.75:1 in dark, 2.12:1 in light) is asserted as the pass: they are support, and they are reported below.
     const pill = theme === "dark" ? over({ ...color(theme, "neutral-100"), alpha: 0.09 }, color(theme, "surface-top")) : color(theme, "surface-top");
     const track = color(theme, "surface-sunken-strong");
     const fills = [["the pill", pill, "text-primary"], ["the track", track, "text-secondary"]];
@@ -130,9 +130,14 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`${theme}: ghost's secondary ink at opacity-amount does NOT hold 4.5:1 on every surface, which is why ghost and danger keep full ink`, () => {
-    const worst = Math.min(...surfaces(theme).map(([, s]) => ratio(over({ ...color(theme, "text-secondary"), alpha: AMOUNT }, s), s)));
-    assert.ok(worst < 4.5, `${theme}: secondary at the amount's opacity is ${fmt(worst)}:1 at worst; if this now passes, ghost may take the quiet amount`);
+  // DECISIONS 166: under the lifted dark inks secondary at the amount's opacity now holds 4.5:1 on its own, so the rule is no longer
+  // forced by contrast. It still stands (no pixel was voted on): the amount's quiet opacity is applied to primary, secondary and outline
+  // only, and ghost and danger keep full ink. This test asserts the rule is applied, not that contrast compels it.
+  test(`${theme}: ghost and danger keep full ink on the amount: full secondary ink holds 4.5:1 on every surface, and the quiet opacity is applied to primary, secondary and outline only`, () => {
+    atLeast(theme, "text-secondary", 4.5);
+    const css = fs.readFileSync(new URL("../../react/src/styles/components.css", import.meta.url), "utf8");
+    const rule = '.basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }';
+    assert.ok(css.includes(rule), `${theme}: the amount's opacity is no longer limited to primary, secondary and outline`);
   });
 
   // D9, A3: the switch row's and the option chip's edge is the input boundary (3:1). Its hover step is text-secondary, because border-hover is
@@ -202,9 +207,13 @@ for (const theme of THEMES) {
   test(`${theme}: tertiary text is promoted to secondary on a wash, and secondary holds 4.5:1 there at every level`, () => {
     const onWashes = [...rowSurfaces(theme), ...["surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)])].flatMap(([n, s]) => washes.map((w) => [`${w} over ${n}`, over(color(theme, w), s)]));
     atLeast(theme, "text-secondary", 4.5, onWashes);
-    // and the reason for the promotion: tertiary alone does not hold on at least one wash at level 3
-    const tertiary = onWashes.some(([, bg]) => ratio(over(color(theme, "text-tertiary"), bg), bg) < 4.5);
-    assert.ok(tertiary || theme === "light", `${theme}: tertiary holds on every wash, so the promotion is no longer needed`);
+    // DECISIONS 166: under the lifted dark inks tertiary holds 4.5:1 on every wash too (4.76 at worst), so contrast no longer forces the
+    // promotion. The rule stays (no pixel was voted on): the step to secondary is still a real lift on every wash. The components apply
+    // it (menus, command menu, table, header: see their behaviour tests).
+    for (const [n, bg] of onWashes) {
+      const lift = ratio(over(color(theme, "text-secondary"), bg), bg) / ratio(over(color(theme, "text-tertiary"), bg), bg);
+      assert.ok(lift > 1, `${theme}: secondary is no step above tertiary on ${n}, so the promotion has no effect`);
+    }
   });
 
   test(`${theme}: a primary press is a visible step from the hover fill, and is action-primary 85% toward the page`, () => {
@@ -247,8 +256,10 @@ for (const theme of THEMES) {
         const danger = ratio(over(color(theme, "status-danger"), bg), bg);
         assert.ok(danger >= 4.5, `${theme}: danger on ${name} at level ${level} is ${fmt(danger)}:1`);
       }
-      // the lift is a real step: rest rows are secondary on the panel, lit rows primary on the plate
-      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(color(theme, "text-secondary"), panel) >= 1.5, `${theme}: the lift is under 1.5x at level ${level}`);
+      // the lift is a real step: rest rows are secondary on the panel, lit rows primary on the plate. DECISIONS 166: the floor was 1.5x; the lifted
+      // dark inks (primary #f4f4f4, secondary #bababa) measure 1.332, 1.298 and 1.367 at levels 1 to 3 (light 1.7 or more), so it is that worst rounded
+      // down to two places, 1.29x, and any further dimming fails.
+      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(color(theme, "text-secondary"), panel) >= 1.29, `${theme}: the lift is under 1.29x at level ${level}`);
     });
 
     test(`${theme}, level ${level}: a group label is tertiary on the panel, and a hint lifts to secondary on the plate`, () => {
@@ -256,8 +267,10 @@ for (const theme of THEMES) {
       const group = ratio(over(color(theme, "text-tertiary"), panel), panel);
       assert.ok(group >= 4.5, `${theme}: tertiary on level ${level} is ${fmt(group)}:1`);
       assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) >= 4.5, `${theme}: a hint (secondary) on the plate at level ${level}`);
-      // why the lift exists: in dark tertiary falls under 4.5:1 on the plate at levels 1 and 2 (the council measured 4.08 and 3.79)
-      if (theme === "dark" && level < 3) assert.ok(ratio(over(color(theme, "text-tertiary"), plate), plate) < 4.5, `tertiary holds on the plate at level ${level}, so the hint lift is no longer needed`);
+      // the lift is a rule, applied on the plate (menus.test.mjs): the hint steps from tertiary to secondary, so secondary is a real step above
+      // tertiary there. DECISIONS 166: under the lifted dark inks tertiary holds 4.5:1 on the plate too (5.13, 4.76 and 4.76 at levels 1 to 3),
+      // so contrast no longer forces it, and the rule stays.
+      assert.ok(ratio(over(color(theme, "text-secondary"), plate), plate) > ratio(over(color(theme, "text-tertiary"), plate), plate), `${theme}: the hint lift on the plate at level ${level} is no step`);
     });
 
     test(`${theme}, level ${level}: a kbd chip on the plate holds 4.5:1 for its primary text, and on the panel for its secondary text`, () => {
@@ -399,9 +412,11 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`${theme}: at the midpoint primary and secondary hold 4.5:1 on the bare fill and on the selected wash, and tertiary holds only on the bare fill (DECISIONS 146 E)`, () => {
+  test(`${theme}: at the midpoint primary and secondary hold 4.5:1 on the bare fill and on the selected wash, and tertiary is kept off the bar (DECISIONS 146 E, 166)`, () => {
     // At 85% dark, secondary on the selected wash over white was 4.40:1, a failure. Every pair is composited in order: plate,
-    // bar fill, wash, ink. Tertiary would pass on the bare fill but still fails on the wash, so the rule keeps it off the bar.
+    // bar fill, wash, ink. Tertiary passes on the bare fill, and DECISIONS 166 (the lifted dark inks) makes it pass on the wash too (4.997:1 at
+    // worst), so contrast no longer forces the rule that keeps it off the bar. The rule stays: only primary and secondary sit on the bar, and
+    // tertiary inside it is promoted to secondary (press-and-chrome.test.mjs), a real step on the wash.
     const fill = color(theme, "surface-chrome");
     for (const [plate, under] of Object.entries(PLATES)) {
       const bar = over(fill, under);
@@ -414,8 +429,10 @@ for (const theme of THEMES) {
       }
       assert.ok(ratio(over(color(theme, "text-tertiary"), bar), bar) >= 4.5, `${theme}: tertiary on the bare fill over a ${plate} plate`);
     }
-    const onWash = Math.min(...Object.values(PLATES).map((under) => { const wash = over(color(theme, "state-selected"), over(fill, under)); return ratio(over(color(theme, "text-tertiary"), wash), wash); }));
-    assert.ok(onWash < 4.5, `${theme}: tertiary holds ${fmt(onWash)}:1 on the wash on every plate, so the rule against it is no longer needed`);
+    for (const [plate, under] of Object.entries(PLATES)) {
+      const wash = over(color(theme, "state-selected"), over(fill, under));
+      assert.ok(ratio(over(color(theme, "text-secondary"), wash), wash) > ratio(over(color(theme, "text-tertiary"), wash), wash), `${theme}: promoting tertiary to secondary on the wash over a ${plate} plate is no step`);
+    }
   });
 
   test(`${theme}: a focus ring in the header keeps 3:1 over both plates`, () => {
@@ -429,16 +446,16 @@ for (const theme of THEMES) {
   });
 }
 
-test("the header's worst cases are the ones the council measured at the midpoint: secondary 7.19:1 in dark over white and 7.42:1 in light over black; on the selected wash 5.71:1 and 6.34:1", () => {
+test("the header's worst cases are the ones the council measured at the midpoint: secondary 9.60:1 in dark over white (7.19 before DECISIONS 166) and 7.42:1 in light over black; on the selected wash 7.59:1 (5.71 before) and 6.34:1", () => {
   const dark = over(color("dark", "surface-chrome"), PLATES.white);
   const light = over(color("light", "surface-chrome"), PLATES.black);
   // The council rounded the composite to 8 bits; this one keeps it exact. They agree to the second decimal place.
   const secondary = (theme, bar) => ratio(over(color(theme, "text-secondary"), bar), bar);
-  assert.ok(Math.abs(secondary("dark", dark) - 7.19) <= 0.03, "dark secondary over white");
+  assert.ok(Math.abs(secondary("dark", dark) - 9.6) <= 0.03, "dark secondary over white");
   assert.ok(Math.abs(secondary("light", light) - 7.42) <= 0.03, "light secondary over black");
   const darkWash = over(color("dark", "state-selected"), dark);
   const lightWash = over(color("light", "state-selected"), light);
-  assert.ok(Math.abs(secondary("dark", darkWash) - 5.71) <= 0.05, `dark secondary on the selected wash over white ${secondary("dark", darkWash)}`);
+  assert.ok(Math.abs(secondary("dark", darkWash) - 7.59) <= 0.05, `dark secondary on the selected wash over white ${secondary("dark", darkWash)}`);
   assert.ok(Math.abs(secondary("light", lightWash) - 6.34) <= 0.05, `light secondary on the selected wash over black ${secondary("light", lightWash)}`);
   // The pair that failed before the midpoint: 4.40:1 at 85%.
   assert.ok(secondary("dark", darkWash) >= 4.5, "the 4.40:1 failure is gone");
@@ -712,8 +729,10 @@ for (const theme of THEMES) {
       const plate = solid(level);
       assert.ok(ratio(color(theme, "text-primary"), plate) >= 4.5, `${theme}: primary on the plate over level ${level}`);
       assert.ok(ratio(color(theme, "text-secondary"), plate) >= 4.5, `${theme}: secondary on the plate over level ${level}`);
-      // the ink step is the cue the plate alone (about 1.2:1) cannot carry: primary is a real step above the unpressed ghost's secondary
-      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(over(color(theme, "text-secondary"), surface(level)), surface(level)) >= 1.4, `${theme}: the ink step at level ${level}`);
+      // the ink step is the cue the plate alone (about 1.2:1) cannot carry: primary is a real step above the unpressed ghost's secondary.
+      // DECISIONS 166: the floor was 1.4x; the lifted dark inks measure 1.359 to 1.298 across the levels, so it is that worst rounded down to
+      // two places, 1.29x, and any further dimming fails.
+      assert.ok(ratio(color(theme, "text-primary"), plate) / ratio(over(color(theme, "text-secondary"), surface(level)), surface(level)) >= 1.29, `${theme}: the ink step at level ${level}`);
       assert.ok(ratio(plate, surface(level)) >= 1.1, `${theme}: the plate is a visible step from level ${level}`);
     }
   });

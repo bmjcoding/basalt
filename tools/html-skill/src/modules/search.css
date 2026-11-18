@@ -5,7 +5,7 @@
      results area of a fixed height that scrolls inside, so the field and the count never move however many results there are. Its height is
      that of a full result: three logo rows (60), five picture rows (72) and a "See all" row (48), with 4 above and 10 below. A result is a link and
      a tab stop, as tall as its picture plus 6px above and below (never under 48), with the control ring at +2 and a hover wash that runs to the
-     panel's edges (full bleed, not a plate; no ink lifts: a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 4.78:1 in dark and 4.88:1 in light, secondary 6.83:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed).). The field's mark is a real 2px outline at -2 round the form's band. */
+     panel's edges (full bleed, not a plate; no ink lifts: a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed).). The field's mark is a real 2px outline at -2 round the form's band. */
 
   .search { --_control-44: var(--basalt-size-control-2xl); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */

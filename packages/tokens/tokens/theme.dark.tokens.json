@@ -95,19 +95,19 @@
     },
     "text": {
       "primary": {
-        "$value": "{color.neutral.93}",
+        "$value": "{color.neutral.95-7}",
         "$description": "Body text, headings and labels, on every surface."
       },
       "secondary": {
-        "$value": "{color.neutral.63}",
+        "$value": "{color.neutral.73}",
         "$description": "Descriptions, metadata, unselected tabs and icons by default. Also the focus colour."
       },
       "tertiary": {
-        "$value": "{color.neutral.52}",
+        "$value": "{color.neutral.59}",
         "$description": "Placeholders, shortcuts and hashes. On a hover or selected wash, use text-secondary instead."
       },
       "disabled": {
-        "$value": "{color.neutral.36}",
+        "$value": "{color.neutral.42-4}",
         "$description": "Disabled controls only (exempt from WCAG contrast); never for readable content."
       },
       "inverse": {
@@ -145,7 +145,7 @@
         "$description": "A field's boundary (an input, a select, a number field, a choice box, a switch): the input boundary. Under more contrast it steps to text-secondary (field-contrast), so a field keeps the strongest line."
       },
       "focus": {
-        "$value": "{color.neutral.63}",
+        "$value": "{color.text.secondary}",
         "$description": "The 2px focus outline, offset 2px, on every focusable control."
       }
     },
@@ -268,12 +268,12 @@
       "$description": "More contrast, lines: a hairline, a divider, a rim and the pill's hairline are drawn in the input boundary's value (border-input), 3:1 or better on every surface. An alias, no new colour. Used only when a person asks for more contrast (prefers-contrast: more; colorSchemeContrast .increased)."
     },
     "ink-contrast": {
-      "$value": "{color.neutral.63}",
+      "$value": "{color.text.secondary}",
       "$description": "More contrast, ink: tertiary text is drawn as text-secondary. An alias, no new colour."
     },
     "field-contrast": {
-      "$value": "{color.neutral.63}",
-      "$description": "More contrast, a field's boundary: border-field is drawn as text-secondary, about 7:1 on every surface. An alias, no new colour."
+      "$value": "{color.text.secondary}",
+      "$description": "More contrast, a field's boundary: border-field is drawn as text-secondary, 7.4:1 or better on every surface. An alias, no new colour."
     },
     "scrim": {
       "$value": "{color.black.80}",
