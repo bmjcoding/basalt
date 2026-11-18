@@ -130,7 +130,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
   (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
 - **Radius by role,** by the size a box is drawn at (a 32px control drawn at 44 on touch is 8; a `NumberField` group drawn at
-  40 is 8): 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
+  40 is 8): 2 (a coverage strip's cells), 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
   dialogs), 16 (bottom sheets), full (avatars, dots, the navigation hover pill, the switch, the radio, the slider's track and
   thumb, progress, meter, and the tab bar's circle); an app tile is a superellipse of exponent 5 and takes no radius. A nested radius is the outer radius minus the padding.
 - **More contrast** (`prefers-contrast: more`; Increase Contrast on Apple platforms): three aliases and no new colour. Lines
@@ -183,7 +183,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   1024, 96 from 720, 64 under it), the first half a gap below the bar, a head half a gap above its body, a gap above the footer; no section is given the
   window's height. The first line of the next section's headline shows on the first screen; that test yields when a reader enlarges text or spacing and is
   never met by shrinking type, clipping or fixing a height. `Columns` are twelve tracks (`2`, `3`, `4`, `7-5`, `5-7`, `8-4`, `4-8`, or an item's own span):
-  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component at 480 on
+  from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component at 340, 480 or 640 on
   its own width); 900 and 1280 are not adopted.
 
 ## Engineering rules
