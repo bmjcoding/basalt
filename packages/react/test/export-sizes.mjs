@@ -22,11 +22,19 @@ export async function runtimeExports() {
   return Object.keys(await import(pathToFileURL(path.join(pkg, "dist", "index.js")).href)).sort();
 }
 
-/** One export alone, as one file, minified: bytes and gzipped bytes. */
+/** What loads on demand is not up front: esbuild writes a dynamic `import()` into the one file when it can, and this leaves it as the call it is (as `measurePackage` does). */
+const onDemand = {
+  name: "on-demand",
+  setup(build) {
+    build.onResolve({ filter: /.*/ }, (args) => (args.kind === "dynamic-import" ? { path: args.path, external: true } : undefined));
+  },
+};
+
+/** One export alone, as one file, minified: bytes and gzipped bytes. What it imports only when it is used (`CommandMenu`'s panel, `SiteHeader`'s narrow menu) is not in it. */
 export async function measureExport(name) {
   const result = await esbuild.build({
     stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
-    bundle: true, minify: true, format: "esm", write: false, external, logLevel: "silent",
+    bundle: true, minify: true, format: "esm", write: false, external, plugins: [onDemand], logLevel: "silent",
   });
   const bytes = result.outputFiles[0].contents;
   return { bytes: bytes.length, gzip: gzip(bytes) };

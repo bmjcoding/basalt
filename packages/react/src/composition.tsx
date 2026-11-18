@@ -123,6 +123,6 @@ export interface VisuallyHiddenProps extends React.ComponentProps<"span"> {
  * class, which an element can also carry itself). Use it for what the eye gets from layout, such as the word "to" between two
  * times; never for the only copy of a control's label that sighted people also need.
  */
-export function VisuallyHidden({ as = "span", className, ...props }: VisuallyHiddenProps) {
+export function VisuallyHidden({ as = "span", className, ...props }: VisuallyHiddenProps): React.JSX.Element {
   return React.createElement(as, { ...props, className: join("basalt-visually-hidden", className) });
 }

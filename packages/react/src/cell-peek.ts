@@ -23,12 +23,15 @@ function cutBox(cell: HTMLElement): HTMLElement {
   return cell;
 }
 
-/** Whether a cell's text is cut: its content is wider than its box. */
-function isCut(cell: HTMLElement): boolean {
+/**
+ * Whether a cell's text is cut: its content is wider than its box. `range` is the table's one Range, pointed at each cell in turn: the
+ * document adjusts every live Range on every insertion and removal anywhere on the page, so a Range per cell, dropped, would make each
+ * later DOM change (a sort moves every row) pay for all of them until the collector ran.
+ */
+function isCut(cell: HTMLElement, range: Range): boolean {
   const box = cutBox(cell);
   if (box.scrollWidth > box.clientWidth) return true;
   // A fractional overflow rounds away in scrollWidth: measure the text itself.
-  const range = cell.ownerDocument.createRange();
   range.selectNodeContents(box);
   const style = getComputedStyle(box);
   const inner = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
@@ -40,6 +43,13 @@ const ownsAStop = (cell: HTMLElement) => (cell.hasAttribute("tabindex") && !cell
 
 /** The cells that can be cut: data cells, row headers and plain column headers (a sortable header is a button with its own stop). */
 const cutCandidates = (table: HTMLTableElement) => [...table.querySelectorAll<HTMLElement>("tbody > tr:not([data-empty]) > :is(td, th), thead > tr > th:not([data-sortable])")];
+
+/** The cells of one row that can be cut (the same set `cutCandidates` finds, for one row). */
+const rowCandidates = (row: HTMLTableRowElement): HTMLElement[] => {
+  if (row.matches("tbody > tr:not([data-empty])")) return [...row.querySelectorAll<HTMLElement>(":scope > :is(td, th)")];
+  if (row.matches("thead > tr")) return [...row.querySelectorAll<HTMLElement>(":scope > th:not([data-sortable])")];
+  return [];
+};
 
 /**
  * Marks the cut cells of a still table (`data-cut`, and `tabindex="0"` so each is a stop) and opens the plate over one on hover or
@@ -55,16 +65,49 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
     const doc = root.ownerDocument;
 
     // ---- which cells are cut ----
+    // One Range for the table, made on first use. What is measured is what can have changed: every cell when the table's width, the fonts, a style
+    // sheet or the root's spacing change, and otherwise only the rows a mutation names (a row that only moved is not named: its cells are the
+    // cells they were, as the columns are fixed). Every cell is read before any is written, so the page recalculates its style once.
+    let range: Range | null = null;
     let frame = 0;
+    let all = false;
+    let width = -1;
+    const rows = new Set<HTMLTableRowElement>();
+    // The rows measured so far: a row that comes back to the table (a sort, a page) is not measured again unless the table was.
+    let seen = new WeakSet<HTMLTableRowElement>();
     const mark = () => {
       frame = 0;
-      for (const cell of cutCandidates(root)) {
+      let cells: HTMLElement[];
+      if (all) {
+        cells = cutCandidates(root);
+        seen = new WeakSet();
+        for (const row of root.rows) seen.add(row);
+      } else {
+        cells = [];
+        for (const row of rows) {
+          if (!root.contains(row)) continue;
+          seen.add(row);
+          cells.push(...rowCandidates(row));
+        }
+      }
+      all = false;
+      rows.clear();
+      width = root.getBoundingClientRect().width;
+      range ??= doc.createRange();
+      const reading = range;
+      const changes: Array<[HTMLElement, boolean]> = [];
+      for (const cell of cells) {
         if (ownsAStop(cell)) continue;
-        const cut = isCut(cell);
-        if (cut && !cell.hasAttribute("data-cut")) {
+        const cut = isCut(cell, reading);
+        if (cut !== cell.hasAttribute("data-cut")) changes.push([cell, cut]);
+      }
+      reading.setStart(doc, 0);
+      reading.collapse(true);
+      for (const [cell, cut] of changes) {
+        if (cut) {
           cell.setAttribute("data-cut", "");
           cell.setAttribute("tabindex", "0");
-        } else if (!cut && cell.hasAttribute("data-cut")) {
+        } else {
           cell.removeAttribute("data-cut");
           cell.removeAttribute("tabindex");
           if (current === cell) close();
@@ -72,6 +115,28 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
       }
     };
     const schedule = () => { if (!frame) frame = win.requestAnimationFrame(mark); };
+    const scheduleAll = () => { all = true; schedule(); };
+    // A mutation names the rows it changed: its target's row, or the new rows it added to a section. A row removed is not named.
+    const named = (records: MutationRecord[]) => {
+      for (const record of records) {
+        const target = record.target;
+        const at = target instanceof win.Element ? target : target.parentElement;
+        const row = at?.closest("tr");
+        if (row && root.contains(row)) {
+          rows.add(row);
+          continue;
+        }
+        for (const node of record.addedNodes) {
+          if (!(node instanceof win.Element)) continue;
+          if (node instanceof win.HTMLTableRowElement) {
+            if (!seen.has(node)) rows.add(node);
+          } else {
+            for (const inner of node.querySelectorAll("tr")) if (!seen.has(inner)) rows.add(inner);
+          }
+        }
+      }
+      if (rows.size) schedule();
+    };
 
     // ---- the plate ----
     let plate: HTMLDivElement | null = null;
@@ -220,25 +285,30 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
     win.addEventListener("scroll", onScroll, { capture: true, passive: true });
 
     // ---- when to measure again ----
-    // The table's box, its rows (a sort, a filter, a page, a load) and its text change which cells are cut; so do a user's own
-    // spacing (WCAG 1.4.12), which a style sheet or a root style sets without touching the table's box.
-    const resize = new win.ResizeObserver(schedule);
+    // The table's width (a height that only follows its rows is none of the cells' business), its rows, its text, and a user's own spacing
+    // (WCAG 1.4.12), which a style sheet or a root style sets without touching the table's box.
+    const resize = new win.ResizeObserver(() => {
+      const now = root.getBoundingClientRect().width;
+      if (width >= 0 && now !== width) scheduleAll();
+    });
     resize.observe(root);
-    const mutation = new win.MutationObserver(schedule);
+    const mutation = new win.MutationObserver(named);
     mutation.observe(root, { childList: true, subtree: true, characterData: true });
-    const styles = new win.MutationObserver(schedule);
-    styles.observe(doc.head, { childList: true, subtree: true, characterData: true });
-    styles.observe(doc.documentElement, { attributes: true, attributeFilter: ["style", "class", "lang", "dir"] });
+    const spacing = new win.MutationObserver(scheduleAll);
+    spacing.observe(doc.documentElement, { attributes: true, attributeFilter: ["style", "class", "lang", "dir"] });
     // A style sheet need not be in `<head>`: a user-style extension appends a `<style>` to `<html>`, and a sheet can arrive as a `<link>` that loads later. Any
-    // style or link that comes, goes, changes its text or loads sets the cells to be measured again (WCAG 1.4.12); other mutations of the page are none of its business.
+    // style or link that comes, goes, changes its text or loads sets the cells to be measured again (WCAG 1.4.12); other mutations of the page (the page's title
+    // among them) are none of its business.
     const sheetNode = (node: Node | null) => { const element = node instanceof win.Element ? node : node?.parentElement; return Boolean(element?.closest("style, link[rel~='stylesheet']")); };
     const sheets = new win.MutationObserver((records) => {
-      if (records.some((record) => sheetNode(record.target) || [...record.addedNodes, ...record.removedNodes].some((node) => sheetNode(node)))) schedule();
+      if (records.some((record) => sheetNode(record.target) || [...record.addedNodes, ...record.removedNodes].some((node) => sheetNode(node)))) scheduleAll();
     });
     sheets.observe(doc.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["media", "disabled", "href"] });
-    doc.addEventListener("load", schedule, true);
-    void doc.fonts?.ready.then(schedule);
-    win.addEventListener("resize", schedule);
+    doc.addEventListener("load", scheduleAll, true);
+    // A font that arrives later (the page's, or one a new line of text asks for) changes every width; fonts already loaded at mount need no second look.
+    doc.fonts?.addEventListener("loadingdone", scheduleAll);
+    win.addEventListener("resize", scheduleAll);
+    all = true;
     mark();
 
     return () => {
@@ -251,12 +321,13 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
       root.removeEventListener("focusout", onFocusOut);
       win.removeEventListener("keydown", onKey, true);
       win.removeEventListener("scroll", onScroll, true);
-      win.removeEventListener("resize", schedule);
+      win.removeEventListener("resize", scheduleAll);
       resize.disconnect();
       mutation.disconnect();
-      styles.disconnect();
+      spacing.disconnect();
       sheets.disconnect();
-      doc.removeEventListener("load", schedule, true);
+      doc.removeEventListener("load", scheduleAll, true);
+      doc.fonts?.removeEventListener("loadingdone", scheduleAll);
       plate?.remove();
       for (const cell of root.querySelectorAll("[data-cut]")) {
         cell.removeAttribute("data-cut");

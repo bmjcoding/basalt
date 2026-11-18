@@ -169,7 +169,10 @@ export function Reflow({ order, as: Tag = "div", layout = "grid", fallbackFocus,
     for (const animation of container.getAnimations()) animation.cancel();
     container.removeAttribute("data-moving");
 
-    // Leavers: out of the flow where they stood, inert, under the movers (the stylesheet does the painting).
+    // Leavers: out of the flow where they stood, inert, under the movers (the stylesheet does the painting). The border is read once, before the first is written: a read between
+    // two writes makes the browser lay the list out again for each leaver (two layouts for every item that leaves).
+    const insetLeft = container.clientLeft;
+    const insetTop = container.clientTop;
     const leaving: string[] = [];
     for (const [key, element] of elements.current) {
       if (nextSet.has(key)) {
@@ -179,8 +182,8 @@ export function Reflow({ order, as: Tag = "div", layout = "grid", fallbackFocus,
       const was = current.first.get(key);
       if (!was) { phases.current.set(key, "out"); continue; }
       if (!own.current.has(key)) own.current.set(key, [element.style.left, element.style.top, element.style.width, element.style.height]);
-      element.style.left = `${was.rect.left - current.box.left - container.clientLeft}px`;
-      element.style.top = `${was.rect.top - current.box.top - container.clientTop}px`;
+      element.style.left = `${was.rect.left - current.box.left - insetLeft}px`;
+      element.style.top = `${was.rect.top - current.box.top - insetTop}px`;
       element.style.width = `${was.rect.width}px`;
       element.style.height = `${was.rect.height}px`;
       leaving.push(key);
@@ -207,25 +210,37 @@ export function Reflow({ order, as: Tag = "div", layout = "grid", fallbackFocus,
       }
     }
 
-    // Last: where each item now belongs; and how many are on screen before or after.
+    // Last: where each item now belongs; and how many are on screen before or after. Past the bound the change lands at once, so counting stops where it is passed and nothing else is
+    // measured: an item's place is read the first time it is asked for.
     const last = new Map<string, DOMRect>();
-    for (const key of next) { const element = elements.current.get(key); if (element) last.set(key, element.getBoundingClientRect()); }
-    const height = container.getBoundingClientRect().height;
+    const placeOf = (key: string) => {
+      let rect = last.get(key);
+      if (!rect) {
+        const element = elements.current.get(key);
+        if (element) { rect = element.getBoundingClientRect(); last.set(key, rect); }
+      }
+      return rect;
+    };
     let onScreen = 0;
     // The bound counts what would move or fade on screen, not every item that is drawn there: an item that stays where it was is not one.
     for (const key of next) {
       const was = current.first.get(key);
-      const to = last.get(key);
+      const to = placeOf(key);
       if (!to || !((was && inView(was.rect)) || inView(to))) continue;
       if (!was || was.opacity < 1 || Math.abs(was.rect.left - to.left) > 0.5 || Math.abs(was.rect.top - to.top) > 0.5) onScreen++;
+      if (onScreen > REFLOW_BOUND) break;
     }
-    for (const key of leaving) if (inView((current.first.get(key) as { rect: DOMRect }).rect)) onScreen++;
+    for (const key of leaving) {
+      if (onScreen > REFLOW_BOUND) break;
+      if (inView((current.first.get(key) as { rect: DOMRect }).rect)) onScreen++;
+    }
     const atOnce = reduced || onScreen > REFLOW_BOUND;
     let moved = 0;
     let faded = 0;
     const animations: Animation[] = [];
 
     for (const key of next) {
+      if (onScreen > REFLOW_BOUND) break;
       const element = elements.current.get(key);
       const to = last.get(key);
       if (!element || !to) continue;
@@ -271,6 +286,7 @@ export function Reflow({ order, as: Tag = "div", layout = "grid", fallbackFocus,
     if (pending) redraw((n) => n + 1);
 
     // The box: its height glides on the same clock, clipped at its edge with a space-1-5 margin so a +2 ring stays whole.
+    const height = !reduced && !atOnce ? container.getBoundingClientRect().height : current.height;
     if (!reduced && !atOnce && Math.abs(height - current.height) > 0.5) {
       container.setAttribute("data-moving", "");
       const glide = container.animate([{ height: `${current.height}px` }, { height: `${height}px` }], { duration, easing: easeOut });
@@ -300,7 +316,7 @@ export function Reflow({ order, as: Tag = "div", layout = "grid", fallbackFocus,
 }
 
 /** One item of a `Reflow`: the same element for as long as the page lives. */
-export function ReflowItem({ itemKey, as: Tag = "div", className, ...props }: ReflowItemProps) {
+export function ReflowItem({ itemKey, as: Tag = "div", className, ...props }: ReflowItemProps): React.JSX.Element {
   const seat = React.useContext(SeatContext);
   const phase = seat?.phase(itemKey) ?? "in";
   const ref = React.useCallback((element: HTMLElement | null) => seat?.register(itemKey, element), [seat, itemKey]);
