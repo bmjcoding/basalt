@@ -330,7 +330,7 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,
-  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-GB", entrance = false, lit = false, headline = false, headlineFormat, trend, plotSize = "md", compact = false, lane, onDayActivate, activateHint, className, ...props
+  partial, partialLabel = "Today so far", partialSuffix = "so far", formatPlan, now, locale = "en-US", entrance = false, lit = false, headline = false, headlineFormat, trend, plotSize = "md", compact = false, lane, onDayActivate, activateHint, className, ...props
 }: TimeChartProps) {
   // The hint legend is hidden on touch until a hardware key is pressed; this asks for the same reveal the shortcut chips use.
   useShortcutsVisible();

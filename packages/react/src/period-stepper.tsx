@@ -13,7 +13,7 @@ import { join } from "./utils";
 export interface PeriodStepperProps extends Omit<React.ComponentProps<"div">, "children" | "role"> {
   /** The group's name, which `aria-label` sets in the app's language. Default "Period". `aria-labelledby` of your own works too. */
   "aria-label"?: string;
-  /** The stretch of time shown, in the app's words ("28 Sept to 4 Oct"). It is drawn at 500, tabular, on one line, in a seat of at least 128px (`space-32`). */
+  /** The stretch of time shown, in the app's words ("Sep 28 to Oct 4"). It is drawn at 500, tabular, on one line, in a seat of at least 128px (`space-32`). */
   label: string;
   /** Said before `label` and not drawn: "Week 6, build, ". It ends with the separator it needs. */
   spokenPrefix?: string;

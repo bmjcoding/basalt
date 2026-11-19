@@ -202,7 +202,7 @@ describe("A1-20: formatters are made once for a locale and its options", () => {
     assert.ok(first <= 6, `formatters made for 200 DateAge: ${first}`);
     assert.equal(await counting(column), 0, "formatters made for the same column again");
     assert.match(html, /60 minutes ago/);
-    assert.match(html, /dateTime="2026-11-16" class="basalt-time">16 Nov</);
+    assert.match(html, /dateTime="2026-11-16" class="basalt-time">Nov 16</);
     assert.match(html, /3 days ago/);
   });
 

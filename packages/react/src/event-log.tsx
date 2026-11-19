@@ -12,7 +12,7 @@ const WIDEST_STAMP = "00:00:00";
 const WIDEST_DAY_STAMP = "00 Mmm 00:00";
 
 export interface EventTimeProps extends Omit<React.ComponentProps<"time">, "children"> {
-  /** The time as the app writes it ("14:49:07", or "17 Nov 09:39" on the first line of a day). */
+  /** The time as the app writes it ("14:49:07", or "Nov 17 09:39" on the first line of a day). */
   children: string;
   /** The widest stamp this column can show, drawn unseen so the column is as wide as it, measured in the line's own font. Default "00:00:00". */
   widest?: string;
@@ -96,7 +96,7 @@ export function EventLog({ label, widest = WIDEST_DAY_STAMP, className, children
 }
 
 export interface EventLogRuleProps extends Omit<React.ComponentProps<"li">, "children"> {
-  /** A day ("17 Nov") or where new events begin ("New since you left"). */
+  /** A day ("Nov 17") or where new events begin ("New since you left"). */
   children: string;
 }
 

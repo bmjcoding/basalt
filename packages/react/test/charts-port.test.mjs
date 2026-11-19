@@ -39,7 +39,7 @@ function Scene() {
   switch (c.scene) {
     case "trend": return wrap(<B.TimeChart title="Weight" kind="line" days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} trend={c.trend ?? true} lit={c.lit ?? true} summary="Weight trended down over 28 days." entrance={c.entrance} locale={c.locale} {...common} />);
     case "bars": return wrap(<B.TimeChart title="Steps" kind="bar" days={lastDays(14)} series={[{ id: "s", name: "Steps", values: marksData("columns", 14) }]} lit={c.lit} headline={c.headline} unit="steps" format={(v) => String(Math.round(v))} summary="Steps over 14 days." now={NOW} locale={c.locale} />);
-    case "short": return wrap(<B.TimeChart title="Events a day" kind={c.kind ?? "bar"} plotSize={c.plotSize ?? "sm"} compact={c.compact} days={eventsDays()} series={c.series ?? [{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} locale="en-GB" now={Date.UTC(2026, 10, 16)} entrance={c.entrance} />);
+    case "short": return wrap(<B.TimeChart title="Events a day" kind={c.kind ?? "bar"} plotSize={c.plotSize ?? "sm"} compact={c.compact} days={eventsDays()} series={c.series ?? [{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} now={Date.UTC(2026, 10, 16)} entrance={c.entrance} />);
     case "flat": return wrap(<B.TimeChart title="Weight" kind="line" days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} summary="Weight." {...common} />);
     case "phase": return wrap(<B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={c.controlled ?? week} onWeekChange={(i) => { window.opened.push(i); setWeek(i); }} summary="Twelve weeks." {...common} />);
     case "share": return wrap(<div style={{ display: "grid", gap: 24 }}><B.ShareBar id="sm" aria-label="Plan" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="sm" /><B.ShareBar id="md" aria-label="Tally" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="md" /></div>);
@@ -600,7 +600,7 @@ for (const theme of THEMES) {
       assert.equal(await css(missing, "outlineStyle"), "none");
       assert.equal(await css(missing, "borderTopStyle"), "none", "no dashed edge");
       const words = await page.locator("#strip .basalt-coverage-words").innerText();
-      assert.equal(words, "78 of 84 days recorded. Not recorded: 31 Aug to 2 Sept (watch not worn), 28 Sept (no reading), 28 Oct to 29 Oct (no reading).".replace("2 Sept", "2 Sept"));
+      assert.equal(words, "78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn), Sep 28 (no reading), Oct 28 to Oct 29 (no reading).");
     });
 
     test("the seven-day form is seven squares with a 4px gap, and its words are built from the cells", async () => {
@@ -612,9 +612,9 @@ for (const theme of THEMES) {
       assert.ok(Math.abs(a.width - a.height) < 0.02, "squares");
       assert.ok(Math.abs(b.x - a.right - 4) < 0.02);
       assert.equal(await css(cells.nth(0), "borderTopLeftRadius"), "6px");
-      assert.match(await page.locator("#week .basalt-coverage-words").innerText(), /^6 of 7 days recorded\. Not recorded: \w+day 7 Nov \(watch not worn\)\.$/);
+      assert.match(await page.locator("#week .basalt-coverage-words").innerText(), /^6 of 7 days recorded\. Not recorded: \w+day, Nov 7 \(watch not worn\)\.$/);
       const words = await page.evaluate(() => [B.coverageWords([]), B.coverageWords([{ date: "2026-11-01", recorded: true }]), B.coverageWords([{ date: "2026-11-01", recorded: false }])]);
-      assert.deepEqual(words, ["0 of 0 days recorded.", "1 of 1 day recorded.", "0 of 1 day recorded. Not recorded: 1 Nov."]);
+      assert.deepEqual(words, ["0 of 0 days recorded.", "1 of 1 day recorded.", "0 of 1 day recorded. Not recorded: Nov 1."]);
     });
 
     test("the strip measures the same however many days are missing, and fits 390 with no overflow", async () => {
@@ -845,7 +845,7 @@ for (const theme of THEMES) {
       assert.equal(g.hatch[0].h, 96);
       assert.ok(g.texts.includes("Not observed"), "the lane says it in words");
       const days = page.locator(".basalt-chart-day");
-      assert.match(await days.nth(20).getAttribute("aria-label"), /Sunday 1 November.*not observed/i);
+      assert.match(await days.nth(20).getAttribute("aria-label"), /Sunday, November 1.*not observed/i);
       assert.match(await days.nth(0).getAttribute("aria-label"), /Events 0 events/);
       assert.equal(await page.locator(".basalt-chart-legend .basalt-chart-name", { hasText: "Not observed" }).count(), 1, "the legend keys it");
     });
@@ -871,7 +871,7 @@ for (const theme of THEMES) {
       assert.equal(await page.evaluate(() => Number(document.activeElement.dataset.i)), 29);
       await page.getByRole("button", { name: "View as table" }).click();
       assert.equal(await page.locator("tbody tr").count(), 30);
-      assert.equal(await page.locator("tbody tr").filter({ hasText: "Sun 1 Nov" }).getByText("Not observed").count(), 1);
+      assert.equal(await page.locator("tbody tr").filter({ hasText: "Sun, Nov 1" }).getByText("Not observed").count(), 1);
     });
 
     test("nothing moves: picking days and opening the table move neither the plot nor the legend", async () => {
