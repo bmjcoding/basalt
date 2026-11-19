@@ -834,8 +834,8 @@ describe("time parts (X11)", () => {
     assert.deepEqual(dist.formatStamp(at, { timeZone: "UTC" }), { text: "14:49:07", dateTime: "2026-11-17T14:49:07" });
     assert.deepEqual(dist.formatStamp(at, { timeZone: "Asia/Tokyo" }), { text: "23:49:07", dateTime: "2026-11-17T23:49:07" });
     assert.deepEqual(dist.formatClock(at, { timeZone: "UTC" }), { text: "14:49", dateTime: "2026-11-17T14:49" });
-    assert.deepEqual(dist.formatDay(Date.UTC(2026, 10, 1, 12), { now: at, timeZone: "UTC" }), { text: "1 Nov", dateTime: "2026-11-01" });
-    assert.equal(dist.formatDay(Date.UTC(2025, 0, 4, 12), { now: at, timeZone: "UTC" }).text, "4 Jan 2025", "the year when it is not this one");
+    assert.deepEqual(dist.formatDay(Date.UTC(2026, 10, 1, 12), { now: at, timeZone: "UTC" }), { text: "Nov 1", dateTime: "2026-11-01" });
+    assert.equal(dist.formatDay(Date.UTC(2025, 0, 4, 12), { now: at, timeZone: "UTC" }).text, "Jan 4, 2025", "the year when it is not this one");
     const left = dist.formatCountdown(at + (18 * 86400 + 9 * 3600 + 10 * 60 + 51) * 1000, at);
     assert.equal(left.text, "18d 09:10:51");
     assert.equal(dist.formatCountdown(at + 5000, at).text, "00:00:05");
@@ -864,9 +864,9 @@ describe("time parts (X11)", () => {
 
   test("V13: DateAge writes the age only beside its absolute date; the narrow form reserves 'the widest'", async () => {
     const page = await open(SHELL(`<B.DateAge id="long" time={Date.UTC(2026, 10, 1, 12)} now={Date.UTC(2026, 10, 12, 12)} timeZone="UTC" /><br /><B.DateAge id="short" short time={Date.UTC(2026, 10, 1, 12)} now={Date.UTC(2026, 10, 12, 12)} timeZone="UTC" />`));
-    assert.match((await page.locator("#long").innerText()).replace(/\s+/g, " "), /1 Nov\s*·\s*,?\s*11 days ago/);
+    assert.match((await page.locator("#long").innerText()).replace(/\s+/g, " "), /Nov 1\s*·\s*,?\s*11 days ago/);
     assert.equal(await page.locator("#long time").getAttribute("datetime"), "2026-11-01");
-    assert.match((await page.locator("#short").innerText()).replace(/\s+/g, " "), /1 Nov\s*·\s*,?\s*11d/);
+    assert.match((await page.locator("#short").innerText()).replace(/\s+/g, " "), /Nov 1\s*·\s*,?\s*11d/);
     assert.ok((await box(page, "#short .basalt-date-age-age")).w >= (await box(page, "#short .basalt-date-age-age .basalt-reserve > span:not([data-on])")).w - 0.5);
     assert.equal(await css(page, "#long .basalt-date-age-age", "fontSize"), "13px");
     assert.equal(await css(page, "#long .basalt-date-age-age", "color"), await resolve(page, "var(--basalt-text-tertiary)"));

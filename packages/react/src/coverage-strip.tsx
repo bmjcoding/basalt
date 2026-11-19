@@ -25,8 +25,8 @@ const parse = (iso: string) => {
   return Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1);
 };
 
-/** The words for what was not recorded, from the cells: "42 of 84 days recorded. Not recorded: 3 to 5 Nov (watch not worn), 9 Nov." */
-export function coverageWords(days: ReadonlyArray<CoverageDay>, { locale = "en-GB", week = false }: { locale?: string; week?: boolean } = {}): string {
+/** The words for what was not recorded, from the cells: "42 of 84 days recorded. Not recorded: Nov 3 to Nov 5 (watch not worn), Nov 9." */
+export function coverageWords(days: ReadonlyArray<CoverageDay>, { locale = "en-US", week = false }: { locale?: string; week?: boolean } = {}): string {
   const short = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
   const withDay = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" });
   const recorded = days.filter((day) => day.recorded).length;

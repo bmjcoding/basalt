@@ -22,6 +22,8 @@
 // strokes; the disclosure chevron is the core chevron at 16, turned a half turn when open; the tabs are radius 8 on top; the option chip's edge and the period stepper's line moved
 // in the more-contrast mode and in dark; the two examples and the kitchen sink name the core glyphs (copy, search, plus) where they named Phosphor's. The baselines were re-recorded
 // from the new pages in the same commit, and the regions that changed are the ones named here.
+// The US dates PR (DECISIONS 195): the chart module's default locale is en-US, so the every-component page's chart writes "Nov 10" for "10 Nov" in its axis, readout and table; the kitchen sink's
+// baseline was re-recorded in the same commit (the only fixture re-recorded), and no other region moved.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 

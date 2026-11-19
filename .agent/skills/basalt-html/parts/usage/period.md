@@ -3,7 +3,7 @@
 ```html
 <div class="period" role="group" aria-label="Week">
   <button class="btn" type="button" data-variant="ghost" data-icon-only aria-label="The week before"><span data-glyph="chevron-left"></span></button>
-  <p class="period-label" aria-live="polite"><span class="visually-hidden">Week 8, build, </span>28 Sept to 4 Oct</p>
+  <p class="period-label" aria-live="polite"><span class="visually-hidden">Week 8, build, </span>Sep 28 to Oct 4</p>
   <button class="btn" type="button" data-variant="ghost" data-icon-only aria-label="The week after"><span data-glyph="chevron-right"></span></button>
 </div>
 ```

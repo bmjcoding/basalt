@@ -213,7 +213,7 @@
     var days = o.days || [];
     var n = days.length;
     var plan = o.plan;
-    var locale = o.locale || 'en-GB';
+    var locale = o.locale || 'en-US';
     var wr = writers(o.format, locale);
     var format = typeof o.format === 'function' ? o.format : wr.write;
     var say = typeof o.spoken === 'function' ? o.spoken : typeof o.format === 'function' ? format : wr.say;

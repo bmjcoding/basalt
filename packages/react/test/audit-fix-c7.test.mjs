@@ -107,9 +107,9 @@ describe("A2-19: a countdown's box does not change when it completes", () => {
 describe("A2-20: the coverage words keep each missing day's reason", () => {
   test("adjacent missing days with different reasons are separate runs; the same reason still makes one", () => {
     const day = (date, why) => ({ date, recorded: false, why });
-    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "battery empty")]), "0 of 2 days recorded. Not recorded: 1 Nov (watch not worn), 2 Nov (battery empty).");
-    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "watch not worn"), day("2026-11-03", "battery empty")]), "0 of 3 days recorded. Not recorded: 1 Nov to 2 Nov (watch not worn), 3 Nov (battery empty).");
-    assert.equal(coverageWords([day("2026-11-01"), day("2026-11-02", null), day("2026-11-03", "no reading")]), "0 of 3 days recorded. Not recorded: 1 Nov to 2 Nov, 3 Nov (no reading).");
+    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "battery empty")]), "0 of 2 days recorded. Not recorded: Nov 1 (watch not worn), Nov 2 (battery empty).");
+    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "watch not worn"), day("2026-11-03", "battery empty")]), "0 of 3 days recorded. Not recorded: Nov 1 to Nov 2 (watch not worn), Nov 3 (battery empty).");
+    assert.equal(coverageWords([day("2026-11-01"), day("2026-11-02", null), day("2026-11-03", "no reading")]), "0 of 3 days recorded. Not recorded: Nov 1 to Nov 2, Nov 3 (no reading).");
   });
 });
 

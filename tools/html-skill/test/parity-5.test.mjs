@@ -98,7 +98,7 @@ describe("the chart", () => {
       }
       assert.equal(await page.locator("#bars h3.chart-title").innerText(), "Training");
       assert.equal(await page.locator("#bars .chart-source").innerText(), "Watch");
-      assert.equal(await readoutDate(page, "bars"), "Latest · Tue 10 Nov", "the legend opens on the latest day");
+      assert.equal(await readoutDate(page, "bars"), "Latest · Tue, Nov 10", "the legend opens on the latest day");
       assert.deepEqual(await readoutValues(page, "bars"), ["34 min so far", "45 min"]);
       assert.deepEqual(await page.locator("#bars .chart-entry .chart-name").allInnerTexts(), ["Training", "Goal", "Today so far", "Not observed"]);
       assert.deepEqual(errors, []);
@@ -122,10 +122,10 @@ describe("the chart", () => {
     assert.equal(await page.locator("#bars .chart-day[tabindex='-1']").count(), 9);
     const sentences = await page.locator("#bars .chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
     assert.equal(new Set(sentences).size, 10, "every day has its own name");
-    assert.match(sentences[9], /^Tuesday 10 November, today\. Training 34 minutes so far\. Goal 45 minutes\./, "the last day is today when `now` says so");
+    assert.match(sentences[9], /^Tuesday, November 10, today\. Training 34 minutes so far\. Goal 45 minutes\./, "the last day is today when `now` says so");
     assert.match(sentences[2], /Training not observed, not worn\./, "a gap day names its reason");
     const closed = (await page.locator("#lines .chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).at(-1);
-    assert.ok(closed.startsWith("Tuesday 10 November. ") && !closed.includes("today"), `a range that ended before today is never 'today': ${closed}`);
+    assert.ok(closed.startsWith("Tuesday, November 10. ") && !closed.includes("today"), `a range that ended before today is never 'today': ${closed}`);
     assert.match(closed, /Watch not observed, not worn, travel/);
     assert.equal(await page.locator("#bars .chart-days").getAttribute("aria-describedby"), `${await page.locator("#bars .chart-summary").getAttribute("id")} ${await page.locator("#bars .chart-days + .visually-hidden").getAttribute("id")}`);
     await context.close();
@@ -136,10 +136,10 @@ describe("the chart", () => {
       const { page, context } = await open({ scheme: theme });
       await page.locator("#lines .chart-day[tabindex='0']").focus();
       assert.equal(await activeIndex(page), 9);
-      assert.equal(await readoutDate(page, "lines"), "Tue 10 Oct".replace("Oct", "Nov"), "focus reads the focused day, not 'Latest'");
+      assert.equal(await readoutDate(page, "lines"), "Tue, Nov 10", "focus reads the focused day, not 'Latest'");
       await page.keyboard.press("ArrowLeft");
       assert.equal(await activeIndex(page), 8);
-      assert.equal(await readoutDate(page, "lines"), "Mon 9 Nov");
+      assert.equal(await readoutDate(page, "lines"), "Mon, Nov 9");
       assert.deepEqual(await readoutValues(page, "lines"), ["455 min".replace("455 min", "7 h 35 m"), "Not observed · not worn, travel", "7 h–9 h"], "the readout says why a day was not observed");
       await page.keyboard.press("PageUp");
       assert.equal(await activeIndex(page), 1, "a week earlier");
@@ -158,7 +158,7 @@ describe("the chart", () => {
       // the pointer elsewhere changes nothing while focus is inside
       const days = await dayBoxes(page, "lines");
       await page.mouse.move(days[2].x + days[2].width / 2, days[2].y + 30);
-      assert.equal(await readoutDate(page, "lines"), "Tue 10 Nov");
+      assert.equal(await readoutDate(page, "lines"), "Tue, Nov 10");
       assert.equal(await page.locator("#lines .chart-plate").count(), 1, "the picked day is a plate");
       await page.keyboard.press("Tab");
       assert.notEqual(await page.evaluate(() => document.activeElement.className), "chart-day", "Tab leaves; nothing is trapped");
@@ -169,7 +169,7 @@ describe("the chart", () => {
       const { page, context } = await open({ scheme: theme });
       const days = await dayBoxes(page, "bars");
       await page.mouse.move(days[2].x + days[2].width / 2, days[2].y + 30);
-      assert.equal(await readoutDate(page, "bars"), "Tue 3 Nov");
+      assert.equal(await readoutDate(page, "bars"), "Tue, Nov 3");
       assert.deepEqual(await readoutValues(page, "bars"), ["Not observed · not worn", "45 min"]);
       assert.equal(await page.locator("#bars [data-part=value][data-missing]").first().evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
       const plate = await page.locator("#bars .chart-plate").evaluate((el) => ({ x: +el.getAttribute("x"), w: +el.getAttribute("width"), fill: getComputedStyle(el).fill }));
@@ -177,7 +177,7 @@ describe("the chart", () => {
       assert.equal(plate.fill, await token(page, "state-selected"));
       assert.equal(await page.locator("#bars .chart-axis[data-active]").evaluate((el) => getComputedStyle(el).fill), await token(page, "text-primary"));
       await page.mouse.move(5, 5);
-      assert.equal(await readoutDate(page, "bars"), "Latest · Tue 10 Nov");
+      assert.equal(await readoutDate(page, "bars"), "Latest · Tue, Nov 10");
       assert.equal(await page.locator("#bars .chart-plate").count(), 0);
       await context.close();
     });
@@ -213,8 +213,8 @@ describe("the chart", () => {
     assert.equal(await region.getAttribute("aria-label"), "Training table");
     const rows = await page.locator("#bars .chart-table tbody tr").evaluateAll((els) => els.map((tr) => [...tr.children].map((c) => c.textContent)));
     assert.equal(rows.length, 10);
-    assert.deepEqual(rows[0].slice(0, 3), ["Tue 10 Nov", "34 min so far", "45 min"], "newest first");
-    const gap = rows.find((r) => r[0] === "Tue 3 Nov");
+    assert.deepEqual(rows[0].slice(0, 3), ["Tue, Nov 10", "34 min so far", "45 min"], "newest first");
+    const gap = rows.find((r) => r[0] === "Tue, Nov 3");
     assert.deepEqual([gap[1], gap[3]], ["Not observed", "Not worn"]);
     assert.equal(await page.locator("#bars .chart-not-observed").first().evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
     assert.equal(await page.locator("#bars .chart-not-observed").first().evaluate((el) => el.children.length), 0, "no mark");
@@ -270,21 +270,21 @@ describe("the chart", () => {
     await page.locator("#bars .chart-plot").scrollIntoViewIfNeeded();
     const days = await dayBoxes(page, "bars");
     await page.touchscreen.tap(days[4].x + days[4].width / 2, days[4].y + 30);
-    assert.equal(await readoutDate(page, "bars"), "Thu 5 Nov");
+    assert.equal(await readoutDate(page, "bars"), "Thu, Nov 5");
     await page.touchscreen.tap(days[6].x + days[6].width / 2, days[6].y + 30);
-    assert.equal(await readoutDate(page, "bars"), "Sat 7 Nov");
+    assert.equal(await readoutDate(page, "bars"), "Sat, Nov 7");
     // a finger moves only while it is down: it scrubs, and the day it reaches is held
     await page.locator("#bars .chart-plot").evaluate((plot, x) => {
       const at = (buttons) => new PointerEvent("pointermove", { pointerType: "touch", buttons, clientX: x, clientY: plot.getBoundingClientRect().top + 40, bubbles: true });
       plot.dispatchEvent(at(0));
     }, days[1].x + days[1].width / 2);
-    assert.equal(await readoutDate(page, "bars"), "Sat 7 Nov", "a touch pointer moving with no button down changes nothing");
+    assert.equal(await readoutDate(page, "bars"), "Sat, Nov 7", "a touch pointer moving with no button down changes nothing");
     await page.locator("#bars .chart-plot").evaluate((plot, x) => {
       plot.dispatchEvent(new PointerEvent("pointermove", { pointerType: "touch", buttons: 1, clientX: x, clientY: plot.getBoundingClientRect().top + 40, bubbles: true }));
     }, days[1].x + days[1].width / 2);
-    assert.equal(await readoutDate(page, "bars"), "Mon 2 Nov", "scrubbing to a day holds it");
+    assert.equal(await readoutDate(page, "bars"), "Mon, Nov 2", "scrubbing to a day holds it");
     await page.touchscreen.tap(195, 5);
-    assert.equal(await readoutDate(page, "bars"), "Latest · Tue 10 Nov", "a tap outside lets go");
+    assert.equal(await readoutDate(page, "bars"), "Latest · Tue, Nov 10", "a tap outside lets go");
     assert.equal(await page.locator("#bars .chart-hint").isVisible(), false, "the key hint is hidden on touch until a hardware key");
     await page.keyboard.press("Tab");
     assert.equal(await page.locator("#bars .chart-hint").isVisible(), true);

@@ -344,7 +344,7 @@ function ShortBarDemo({ state }: { state: string }) {
   useFocusState(root, state, ".basalt-chart-day", -6);
   const days = React.useMemo(() => eventsDays(), []);
   const chart = (compact: boolean) => (
-    <TimeChart title="Events a day" kind="bar" plotSize="sm" compact={compact} days={days} series={[{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} locale="en-GB" now={NOW} />
+    <TimeChart title="Events a day" kind="bar" plotSize="sm" compact={compact} days={days} series={[{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} now={NOW} />
   );
   return (
     <div ref={root} style={{ ...col, maxWidth: 560 }} data-wt-hover>

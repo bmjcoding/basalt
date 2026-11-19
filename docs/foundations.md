@@ -1383,7 +1383,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed), and a part that rounds to 100 beside a part that is not empty reads ">99%" (spoken "more than 99 percent", DECISIONS 167, Q11b, 4 to 0), because "100%" would say the rest is nothing; every other share is a whole number.
 - **The coverage strip** (`CoverageStrip`, vote 14, consent rows 6 to 8): a cell a day, lit when recorded and Basalt's hatch when not (no dashed edge), 48px tall with a
   2px gap and a 2px corner (`radius-2xs`) as a strip of slivers (84 days is a quarter), or seven squares with a 4px gap and `radius-sm` for a week. The cells are hidden from
-  assistive technology; the words ("78 of 84 days recorded. Not recorded: 31 Aug to 2 Sept (watch not worn).") are built from the cells.
+  assistive technology; the words ("78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn).") are built from the cells.
 - **The marks row** (`MarksRow`, vote 15, consent rows 9 to 11): one kind of reading across a run of days in the form of the thing measured: columns standing on the row's floor with
   8px top corners, pills, and blocks with 8px corners; a rest day is a 6px dot (`size-dot`), a missing day the hatch. It is 56px tall (`size-chart-row`, a default the app can
   set). **A written exception to "a bar is square at both ends"** (3 to 1). The marks glide to a new height over `duration-slow`.

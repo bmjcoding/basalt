@@ -48,8 +48,8 @@ export function formatClock(time: Date | number, { timeZone, locale }: TimeOptio
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}` };
 }
 
-/** A day ("1 Nov"), with the year only when it is not the year of `now` ("4 Jan 2025"), and its machine form ("2026-11-01"). */
-export function formatDay(time: Date | number, { now = new Date(), timeZone, locale = "en-GB" }: TimeOptions & { now?: Date | number } = {}) {
+/** A day ("Nov 1"), with the year only when it is not the year of `now` ("Jan 4, 2025"), and its machine form ("2026-11-01"). */
+export function formatDay(time: Date | number, { now = new Date(), timeZone, locale = "en-US" }: TimeOptions & { now?: Date | number } = {}) {
   const at = new Date(time);
   const year = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric" }).year;
   const text = formatter(locale, { timeZone, day: "numeric", month: "short", ...(year(at) === year(new Date(now)) ? {} : { year: "numeric" }) }).format(at);

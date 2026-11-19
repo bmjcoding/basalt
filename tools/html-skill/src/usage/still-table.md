@@ -8,7 +8,7 @@ A table whose header positions, column widths and alignment never move through a
   <colgroup><col><col style="width: 96px"><col style="width: 140px"></colgroup>
   <thead><tr><th data-sortable>Name</th><th data-sortable data-numeric>Duration</th><th data-sortable data-first-sort="descending">Started</th></tr></thead>
   <tbody>
-    <tr><th scope="row">build-0141</th><td data-numeric data-value="312">5m 12s</td><td data-value="2026-11-09T10:00">9 Nov, 10:00</td></tr>
+    <tr><th scope="row">build-0141</th><td data-numeric data-value="312">5m 12s</td><td data-value="2026-11-09T10:00">Nov 9, 10:00</td></tr>
     <tr data-empty hidden><td colspan="3"><div class="table-empty"><span>No runs match.</span><button class="btn" type="button">Clear filters</button></div></td></tr>
   </tbody>
 </table></div>

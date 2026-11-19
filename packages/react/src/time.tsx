@@ -110,7 +110,7 @@ export interface DateAgeProps extends Omit<React.ComponentProps<"span">, "childr
 }
 
 /**
- * A date with its age beside it: "1 Nov · 11 days ago". The age is never alone (DECISIONS 162, V13): the absolute date is always drawn,
+ * A date with its age beside it: "Nov 1 · 11 days ago". The age is never alone (DECISIONS 162, V13): the absolute date is always drawn,
  * and the age is tertiary beside it. Not for a `Stat`'s source line, which stays absolute.
  */
 export function DateAge({ time, timeZone, locale, now: nowProp, short = false, className, ...props }: DateAgeProps) {
