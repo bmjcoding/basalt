@@ -6,6 +6,7 @@ import { join } from "./utils";
 // its ring the control ring at +2, radius 6. The lockup by pixel density is a prop: `lockup={{ x1, x2 }}` takes the two drawings `brand/` ships (the files fitted to
 // whole pixels for a 1x and a 2x screen), each defined once as a `symbol` and drawn with `use`, so no file and no `id` repeats; the stylesheet shows the 1x drawing
 // and swaps to the 2x drawing from `min-resolution: 2dppx`, as `brand/README.md` says. It draws in the text colour (`currentColor`), so it stays in forced colours.
+// A drawing is `{ viewBox, d }`: `lockupDrawing(file)` reads it from the text of the brand file, whose `title` build note is never read into the page (`brand-svg.tsx`).
 
 /** One drawing from `brand/`: the `viewBox` of its `svg` and the `d` of its one outlined `path` (every brand drawing is a single path, filled with `currentColor`). */
 export interface LockupDrawing {
@@ -13,7 +14,7 @@ export interface LockupDrawing {
   d: string;
 }
 
-/** The two header drawings of a brand: `lockup-header-1x` and `lockup-header-2x`, which are not interchangeable. */
+/** The two header drawings of a brand: `lockup-header-1x` and `lockup-header-2x`, which are not interchangeable. Take each from the file with `lockupDrawing(file)`. */
 export interface SiteLockup {
   x1: LockupDrawing;
   x2: LockupDrawing;
@@ -77,7 +78,7 @@ export interface SiteBrandProps extends Omit<React.ComponentProps<"a">, "aria-la
   href?: string;
   /** The lockup by pixel density. Defined once per landmark and drawn with `use`; only the drawing fitted to the screen is rendered. */
   lockup?: SiteLockup;
-  /** The 32px lockup as a node, or anything drawn after the lockup (an app's own mark). */
+  /** The 32px lockup as a node, or anything drawn after the lockup (an app's own mark). A brand file goes in as `<BrandSvg source={file} />`, which hides it and drops its title. */
   children?: React.ReactNode;
 }
 

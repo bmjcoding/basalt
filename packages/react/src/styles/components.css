@@ -1372,6 +1372,8 @@
   .basalt-lockup-sprite { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
   .basalt-lockup { display: block; flex: none; max-width: none; pointer-events: none; }
   .basalt-lockup-2x { display: none; }
+  /* A brand file drawn inline with `BrandSvg`: hidden from assistive technology, no title, and no pointer, so the link round it is the only thing that is hovered or named. */
+  .basalt-brand-svg { pointer-events: none; }
   @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
     .basalt-lockup-1x { display: none; }
     .basalt-lockup-2x { display: block; }
@@ -3984,8 +3986,10 @@
 
   /* A share bar: parts of a whole, one ink, a 4px gap, full radius, each part's share and name under it. */
   .basalt-share { display: flex; gap: var(--basalt-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; font-family: var(--basalt-font-family-sans); }
-  /* A part is never narrower than its bar's floor (12px on a tally) or its own words, and it takes that width from the others (flex), so the parts and their gaps are always the bar's width. */
-  .basalt-share-part { display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: auto; }
+  /* A part is never narrower than its bar's floor (12px on a tally) or its own words, and it takes that width from the others (flex), so the parts and their gaps are always the bar's width. It is the containing block of the visually hidden space between its share and its name (no pixel moves). */
+  .basalt-share-part { position: relative; display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: auto; }
+  /* The hidden space is a 1px box at the part's own corner (the pattern's -1px margin would put it a pixel outside the bar). */
+  .basalt-share-part > .basalt-visually-hidden { margin: 0; }
   .basalt-share[data-size="md"] .basalt-share-bar { min-width: var(--basalt-space-3); }
   .basalt-share-bar { width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
   .basalt-share[data-size="md"] .basalt-share-bar { height: var(--basalt-space-3); }
@@ -5547,7 +5551,13 @@
   .basalt-countdown .basalt-reserve { display: inline-grid; }
   .basalt-date-age { display: inline-flex; align-items: baseline; gap: var(--basalt-space-2); }
   .basalt-date-age-age { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
-  .basalt-date-age-age > [aria-hidden] { margin-inline-end: var(--basalt-space-2); }
+  .basalt-date-age-age > .basalt-dot-sep { margin-inline-end: var(--basalt-space-2); }
+  /* A dot-separated line (DotSep, DotLine): the words are joined by a visually hidden ", " that is read, and the dot is drawn here, with an empty alternative so it is not. The second
+     declaration is the dot as a plain string for a browser that does not take the alternative; it keeps the first. `spaced` draws the spaces the words around it would have carried. */
+  .basalt-dot-sep::before { content: "·"; content: "·" / ""; }
+  /* The hidden ", " keeps its space where it ends the line's text, so the name reads "In design, Pilot planned" and not "In design,Pilot planned". */
+  .basalt-dot-sep > .basalt-visually-hidden { white-space: pre; }
+  .basalt-dot-sep[data-spaced]::before { content: " · "; content: " · " / ""; }
   .basalt-date-age-seat { justify-items: start; }
 
   /* ---- Status bar (D14b; V7, R6): a 44px foot from 720, fixed (56 plus the safe area) under it ---- */

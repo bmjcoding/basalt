@@ -2,6 +2,7 @@ import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import * as React from "react";
 
+import { DotSep } from "./dot-sep";
 import { CheckGlyph } from "./glyphs/check";
 import { useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
@@ -100,8 +101,7 @@ export function OptionChips({ legend, options, value, defaultValue, onValueChang
             <span className="basalt-option-chip-label">{option.label}</span>
             {option.unavailable ? (
               <span className="basalt-option-chip-note">
-                <span aria-hidden="true"> · </span>
-                <span className="basalt-visually-hidden">, </span>
+                <DotSep spaced />
                 {option.unavailable}
               </span>
             ) : null}

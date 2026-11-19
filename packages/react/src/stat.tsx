@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { DotSep } from "./dot-sep";
 import { join } from "./utils";
 import { formatStatTime } from "./time-format";
 
@@ -46,16 +47,15 @@ export function Stat({ label, value, note, source, time, timeZone, now, locale, 
   const stamp = source !== undefined && source !== null && time !== undefined ? formatStatTime(time, { now, timeZone, locale }) : null;
   return (
     <div {...props} className={join("basalt-stat", className)}>
-      <dt className="basalt-stat-label">{label}</dt>
-      <dd className="basalt-stat-value">{value}</dd>
-      {note ? <dd className="basalt-stat-note">{note}</dd> : null}
+      {/* The label, the figure and the note are separate elements with no space between them, so a text scan (and a name built from the content) would run them together: a hidden space ends each. */}
+      <dt className="basalt-stat-label">{label}<span className="basalt-visually-hidden"> </span></dt>
+      <dd className="basalt-stat-value">{value}<span className="basalt-visually-hidden"> </span></dd>
+      {note ? <dd className="basalt-stat-note">{note}<span className="basalt-visually-hidden"> </span></dd> : null}
       {source !== undefined && source !== null ? (
         <dd className="basalt-stat-source">
           {stamp ? (
             <>
-              <time dateTime={stamp.dateTime}>{stamp.text}</time>{" "}
-              <span aria-hidden="true">·</span>
-              <span className="basalt-visually-hidden">, </span>{" "}
+              <time dateTime={stamp.dateTime}>{stamp.text}</time><DotSep spaced />
             </>
           ) : null}
           {source}

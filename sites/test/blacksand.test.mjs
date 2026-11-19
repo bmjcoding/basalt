@@ -9,7 +9,7 @@ import { after, before, describe, test } from "node:test";
 
 import { brinkPolyline, silhouette, VIEW } from "../blacksand/art/art.mjs";
 import { artDir, artFiles, keyFor, measureZones, zonesPath } from "../blacksand/art/generate.mjs";
-import { buildPage, HOST, launch, openHtml, repoRoot, settled, sitesDir } from "./support.mjs";
+import { buildPage, HOST, inlinedText, launch, openHtml, repoRoot, settled, sitesDir } from "./support.mjs";
 
 const { checkHeadroom } = await import("@srasyndicate/basalt/testing");
 
@@ -371,7 +371,7 @@ describe("the mark and the brand", () => {
       assert.ok(Math.abs(x.letter - x.brand) <= 2.5, `${width}: the line's first letter is at ${x.letter}, the brand at ${x.brand}`);
     }
     for (const file of ["blacksand/hero.html", "blacksand/lockup-header-1x.svg", "blacksand/lockup-header-2x.svg", "motion/one-bridge.css"]) {
-      assert.ok(built.html.includes(fs.readFileSync(path.join(repoRoot, "brand", file), "utf8")), `brand/${file} is not in the page byte for byte`);
+      assert.ok(built.html.includes(inlinedText(file, fs.readFileSync(path.join(repoRoot, "brand", file), "utf8"))), `brand/${file} is not in the page byte for byte (a brand svg but for its root's three attributes and its title)`);
     }
   });
 

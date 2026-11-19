@@ -398,7 +398,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   kept for the result, even an unmarked one, and the clock starts at the result. In forced colours the marks keep their
   shapes (an icon, not a fill) in the system foreground.
   - **How long it lives.** A toast times out (5000ms, with the line) only when it is not the only copy of its information
-    or action. It names where the rest lives (`home`: the notification centre, the row in place, the app's own key, or
+    or action. It names where the rest lives (`home`: `"center"`, the notification center (`"centre"` is the older spelling and still works), `"row"`, the row in place, the app's own key, or
     "the page" when it only echoes a change the page already shows), and an action needs a home that is not the page.
     With no home it stays until it is dismissed, and the type does not let a `timeout` be set on it. The centre is the
     durable copy that lets a toast go. There is no ⌘Z chip on a toast's button: the app's key goes in
@@ -464,11 +464,18 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   - **Stat with provenance** (`Stats`, `Stat`). The skill's `.stat` look is unchanged (label 13/18 at 500 secondary, figure
     24/30 at 600 with tabular numerals, note 12/16 secondary, `space-1` between, on the page and never boxed), with one
     more slot after the note: the source line, sans 12/16 at 400 in tertiary ink with tabular numerals, the time, a middle
-    dot (`aria-hidden`, with a visually hidden comma) and the source ("04:41 · Scale"). It is pinned to the foot of the
+    dot and the source ("04:41 · Scale", read and scanned as "04:41, Scale": the dot is `DotSep`, below). It is pinned to the foot of the
     stat's grid cell, so sources line up across a row even when one stat has no note. The time is always absolute, in a
     `time` element with a `datetime`, never "2 min ago": the clock alone for today, the date added for another day ("Nov
     7, 08:02"), the year only when it differs. With no source the slot is left out. A row of stats is one `dl`; each stat
     is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
+  - **Words joined by a dot** (`DotSep`, `DotLine`; the skill's `.dot-sep`; the wording audit's W8). A status line is words with a middle dot between them ("In design · Pilot planned"). The dot is
+    drawn by the stylesheet (`::before`, with an empty alternative text, so it is not read; a plain `content` first for a browser that does not take the alternative), and the words are joined for a
+    screen reader and a text scan by a visually hidden ", " in the same element, so the text and the accessible name both read "In design, Pilot planned" and never "In design · , Pilot planned". The
+    drawing is as it was (the dot, and a space each side where `spaced` is set); `Stat`'s source line, `DateAge`'s age and `OptionChips`' unavailable note are built from the same `DotSep`.
+  - **A value, its unit and its label are words apart.** Where a number and its unit (or a label and its figure) are separate elements with no space between them, a visually hidden space ends the first, so the
+    text and the accessible name read "9,586 a day" and not "9,586a day": the `TimeChart`'s headline and its legend rows, `Stat`'s label, figure and note, a `Meter`'s unseen wording and a share bar's figure.
+    The hidden space takes no room, so nothing moves; in the skill a value and its unit have a space in the markup or a `.visually-hidden` one.
   - **Terminal transcript** (`Terminal`, and `CodeBlock`'s `prompt`). A sibling of `CodeBlock` on the same frame (well,
     level, radius 8, title row, copy button). Lines are Geist Mono 13/20. A command is primary with its prompt in the
     gutter in tertiary; output is secondary with an empty gutter; a result line carries the callout's mark in the gutter
@@ -1157,7 +1164,7 @@ Three states, System, Light and Dark, where System is nothing stored (DECISIONS 
 
 ### The brand's lockup
 
-`lockup={{ x1, x2 }}` on `SiteBrand` (and on `SiteHeader`) takes the two header drawings `brand/` ships (`lockup-header-1x` and `-2x`, each a `viewBox` and one path), each defined once as a `symbol` and drawn with `use`; the stylesheet shows the 1x drawing and swaps to the 2x drawing from `min-resolution: 2dppx`, so only one is rendered, no file or `id` repeats and no title makes a tooltip. It draws in the text colour, so it stays in forced colours. The quiet zone round a lockup on art is the headroom check's: it reads each `data-quiet` box grown by `space-1-5` on every side, so a zone needs no CSS. (DECISIONS 146 F; the implementation hasn't been reviewed.)
+`lockup={{ x1, x2 }}` on `SiteBrand` (and on `SiteHeader`) takes the two header drawings `brand/` ships (`lockup-header-1x` and `-2x`), each a `viewBox` and one path (`lockupDrawing(file)` reads them from the file's text; its `title` build note is never read into the page), each defined once as a `symbol` and drawn with `use`; the stylesheet shows the 1x drawing and swaps to the 2x drawing from `min-resolution: 2dppx`, so only one is rendered, no file or `id` repeats and no title makes a tooltip. It draws in the text colour, so it stays in forced colours. **A brand file has one way in** (the wording audit's W1): every file in `brand/` carries a `<title>` build note, which a browser shows as a tooltip inside a link and can announce, and the files are never edited. In React a file's text goes in as `<BrandSvg source={file} />` (or through `lockupDrawing(file)` for a lockup, above): its title is dropped when the text is read, and the drawing is `aria-hidden`, `focusable="false"` and `pointer-events: none`. In the HTML skill an `<svg data-brand>` is finished by `compose.mjs` the same way, and `sites/build.mjs` does it for every `brand/` svg it includes (`brandSvg`): the root takes `aria-hidden="true" focusable="false" data-brand` and the title is removed, and nothing else of the drawing changes. The link round it carries the name (`aria-label`). The quiet zone round a lockup on art is the headroom check's: it reads each `data-quiet` box grown by `space-1-5` on every side, so a zone needs no CSS. (DECISIONS 146 F; the implementation hasn't been reviewed.)
 
 ### The app shell
 

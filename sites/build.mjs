@@ -8,11 +8,11 @@
 //
 // The includes are HTML comments, replaced by text before compose sees the body:
 //
-//   <!-- @include FILE -->    the file, inlined by its type: .css as a <style>, .js as a <script>, .svg and .html as they are
+//   <!-- @include FILE -->    the file, inlined by its type: .css as a <style>, .js as a <script>, .svg and .html as they are (a brand/ .svg goes through the skill's brandSvg: aria-hidden, no title)
 //   <!-- @data FILE -->       the file as a data: URL, for an image (use it inside an attribute: <img src="<!-- @data ... -->">)
 //
-// FILE is looked up by its first part: `shared/…` is sites/shared (the stand-ins), `brand/…` is the repo's brand/ (used byte for byte:
-// the file is never read through anything that changes it), and anything else is relative to the page's own folder and must stay inside
+// FILE is looked up by its first part: `shared/…` is sites/shared (the stand-ins), `brand/…` is the repo's brand/ (used byte for byte, except that a brand .svg's root tag takes
+// aria-hidden, focusable="false" and data-brand and its title build note is dropped, which brandSvg does and nothing else), and anything else is relative to the page's own folder and must stay inside
 // its site. An include inside an included file is not resolved. The site header's short markup is finished at build time
 // (header-markup.mjs): the built page carries the final bar, so nothing in it changes when the script runs. A file that is missing fails the build, naming the page and the include.
 //
@@ -21,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { compose } from "../.agent/skills/basalt-html/compose.mjs";
+import { brandSvg, compose } from "../.agent/skills/basalt-html/compose.mjs";
 import { finishHeaders } from "./header-markup.mjs";
 
 export const sitesDir = path.dirname(fileURLToPath(import.meta.url));
@@ -67,7 +67,10 @@ export function resolveIncludes(body, context) {
       if (/<\/script/i.test(text)) throw new Error(`${context.bodyFile}: the include "${name}" holds a closing script tag and cannot be inlined`);
       return `<script>\n/* @include ${name} */\n${text}\n</script>`;
     }
-    if (ext === ".svg" || ext === ".html") return text;
+    // A brand svg goes in through the skill's one way (brandSvg): the drawing is hidden and unfocusable and its title build note is dropped, so the link round it carries the name. The
+    // file in brand/ is not touched, and nothing else of the drawing changes.
+    if (ext === ".svg") return name.startsWith("brand/") ? brandSvg(text) : text;
+    if (ext === ".html") return text;
     throw new Error(`${context.bodyFile}: the include "${name}" is a ${ext || "file with no extension"}; @include inlines .css, .js, .svg and .html, and @data inlines an image`);
   });
   return { body: out, includes };

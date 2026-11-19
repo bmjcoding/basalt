@@ -33,12 +33,12 @@ fails, naming the page and the include, when an included file is missing. The in
 |---|---|
 | `<!-- @include page.css -->` | the file as a `<style>` (`.js` as a `<script>`; `.svg` and `.html` as they are) |
 | `<!-- @include shared/NAME -->` | a stand-in from `sites/shared/`, the same way |
-| `<!-- @include brand/PATH -->` | a file from `brand/`, inlined **byte for byte** (an inline SVG, `hero.html`, `motion/logo-motion.js`, `motion/one-bridge.css`) |
+| `<!-- @include brand/PATH -->` | a file from `brand/`, inlined **byte for byte** (`hero.html`, `motion/logo-motion.js`, `motion/one-bridge.css`), except that a brand `.svg` goes through the skill's `brandSvg`: its root takes `aria-hidden="true" focusable="false" data-brand` and its `<title>` build note is dropped, so the link round it carries the name |
 | `<!-- @data brand/PATH -->` | an image as a `data:` URL, for an attribute: `<img alt="" src="<!-- @data brand/blacksand/png/favicon-32-on-dark.png -->">` |
 
 A path with no `shared/` or `brand/` in front is relative to the page and must stay inside its site. Nothing inside an included file is
 resolved. A built page has no path into the repo and makes no network request. The files in `brand/` are never redrawn, recoloured,
-cropped or edited, not even to drop an element (`brand/README.md`).
+cropped or edited (`brand/README.md`); the copy in a page loses only its title and takes the three attributes.
 
 **The header's markup is finished at build time** (`sites/header-markup.mjs`). A page writes the short form, as in
 `sites/test/fixtures/sample/index.body.html`:

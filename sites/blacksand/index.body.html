@@ -3,7 +3,7 @@
      the status words, the three header links, the two action labels and "How it works".
      Not verbatim, [confirm]:
      - the page title "Blacksand: the secure ground your AI agents run on" (the content file has none; made from the line and the name);
-     - the brand link's accessible name "Blacksand home" (the lockup is a drawing; its own title is kept from showing as a tooltip);
+     - the brand link's accessible name "Blacksand home" (the lockup is a drawing; the build hides it and drops its title build note, so the link's label is its only name);
      - the skip link "Skip to content" (the skill's own text);
      - the actions' and header links' targets, all "#" (pages and sections that don't exist yet): Quick start, Threat model, Docs, Security, GitHub.
      The stage's art is generated: art/art.mjs (the designer's, unchanged) by art/generate.mjs. See sites/blacksand/art/. -->
@@ -17,7 +17,7 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="basalt-chrome basalt-site-header">
   <div class="basalt-site-bar">
-    <a class="basalt-site-brand" href="#top" aria-label="Blacksand home"><span class="basalt-site-brand-mark"><span class="lockup-1x" aria-hidden="true"><!-- @include brand/blacksand/lockup-header-1x.svg --></span><span class="lockup-2x" aria-hidden="true"><!-- @include brand/blacksand/lockup-header-2x.svg --></span></span></a>
+    <a class="basalt-site-brand" href="#top" aria-label="Blacksand home"><span class="basalt-site-brand-mark"><span class="lockup-1x"><!-- @include brand/blacksand/lockup-header-1x.svg --></span><span class="lockup-2x"><!-- @include brand/blacksand/lockup-header-2x.svg --></span></span></a>
     <nav class="basalt-site-links" aria-label="Primary">
       <ul>
         <li><a href="#">Docs</a></li>

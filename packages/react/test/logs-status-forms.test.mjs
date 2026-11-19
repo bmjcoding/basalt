@@ -864,9 +864,11 @@ describe("time parts (X11)", () => {
 
   test("V13: DateAge writes the age only beside its absolute date; the narrow form reserves 'the widest'", async () => {
     const page = await open(SHELL(`<B.DateAge id="long" time={Date.UTC(2026, 10, 1, 12)} now={Date.UTC(2026, 10, 12, 12)} timeZone="UTC" /><br /><B.DateAge id="short" short time={Date.UTC(2026, 10, 1, 12)} now={Date.UTC(2026, 10, 12, 12)} timeZone="UTC" />`));
-    assert.match((await page.locator("#long").innerText()).replace(/\s+/g, " "), /Nov 1\s*·\s*,?\s*11 days ago/);
+    // The dot is drawn by the stylesheet (DotSep, the wording audit's W8), so it is not in the text: the words read "Nov 1, 11 days ago", and the dot is a ::before the text scan never sees.
+    assert.match((await page.locator("#long").innerText()).replace(/\s+/g, " "), /^Nov 1\s*,\s*11 days ago$/);
+    assert.match(await page.locator("#long .basalt-dot-sep").evaluate((el) => getComputedStyle(el, "::before").content), /·/);
     assert.equal(await page.locator("#long time").getAttribute("datetime"), "2026-11-01");
-    assert.match((await page.locator("#short").innerText()).replace(/\s+/g, " "), /Nov 1\s*·\s*,?\s*11d/);
+    assert.match((await page.locator("#short").innerText()).replace(/\s+/g, " "), /^Nov 1\s*,\s*11d$/);
     assert.ok((await box(page, "#short .basalt-date-age-age")).w >= (await box(page, "#short .basalt-date-age-age .basalt-reserve > span:not([data-on])")).w - 0.5);
     assert.equal(await css(page, "#long .basalt-date-age-age", "fontSize"), "13px");
     assert.equal(await css(page, "#long .basalt-date-age-age", "color"), await resolve(page, "var(--basalt-text-tertiary)"));
