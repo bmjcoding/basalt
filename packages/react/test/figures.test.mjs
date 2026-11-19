@@ -531,7 +531,7 @@ describe("Stat", () => {
     const { page } = await fixturePage(browser, stats(stat('label="Weight" value="81.4 kg" source="Scale" time={new Date("2026-11-10T04:41:00Z")}')), { theme: "dark" });
     const source = page.locator(".basalt-stat-source");
     assert.equal(await source.locator("time").getAttribute("datetime"), "2026-11-10T04:41");
-    assert.equal(await source.locator("time").textContent(), "4:41\u202fAM");
+    assert.equal(await source.locator("time").textContent(), "4:41\u00a0AM");
     // The dot is drawn by the stylesheet and is not in the text (the wording audit's W8); the comma is the words' own join.
     assert.equal(await source.locator("[aria-hidden=true]").count(), 0, "no aria-hidden dot beside a hidden comma");
     assert.equal(await source.locator(".basalt-dot-sep .basalt-visually-hidden").textContent(), ", ");
@@ -539,7 +539,7 @@ describe("Stat", () => {
     assert.equal(await source.evaluate((el) => el.textContent.replace(/\s+/g, " ")), "4:41 AM, Scale");
     // what is seen: the visually hidden comma takes no room, so the line is as wide as "4:41 AM · Scale" written out
     const seen = await source.evaluate((el) => { const probe = el.cloneNode(true); probe.style.cssText = "position:absolute;visibility:hidden;display:inline-block;white-space:nowrap"; el.parentElement.append(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; });
-    const spaced = await source.evaluate((el) => { const probe = el.cloneNode(false); probe.textContent = "4:41\u202fAM · Scale"; probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap"; el.parentElement.append(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; });
+    const spaced = await source.evaluate((el) => { const probe = el.cloneNode(false); probe.textContent = "4:41\u00a0AM · Scale"; probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap"; el.parentElement.append(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; });
     assert.ok(Math.abs(seen - spaced) < 1, `the line is ${seen}px wide, "4:41 AM · Scale" alone is ${spaced}px`);
     await page.close();
   });
@@ -551,7 +551,7 @@ describe("Stat", () => {
       stat('label="C" value="3" source="S" time={new Date("2025-11-07T08:02:00Z")}'),
     ), { theme: "dark" });
     const times = await page.locator(".basalt-stat-source time").evaluateAll((els) => els.map((el) => [el.textContent, el.getAttribute("datetime")]));
-    assert.deepEqual(times, [["4:41\u202fAM", "2026-11-10T04:41"], ["Nov 7, 8:02\u202fAM", "2026-11-07T08:02"], ["Nov 7, 2025, 8:02\u202fAM", "2025-11-07T08:02"]]);
+    assert.deepEqual(times, [["4:41\u00a0AM", "2026-11-10T04:41"], ["Nov 7, 8:02\u00a0AM", "2026-11-07T08:02"], ["Nov 7, 2025, 8:02\u00a0AM", "2025-11-07T08:02"]]);
     await page.close();
   });
 
@@ -562,7 +562,7 @@ describe("Stat", () => {
     ), { theme: "dark" });
     const times = await page.locator(".basalt-stat-source time").evaluateAll((els) => els.map((el) => [el.textContent, el.getAttribute("datetime")]));
     // 23:30 UTC on the 10th is 08:30 on the 11th in Tokyo, and 15:10 UTC on the 10th is 00:10 on the 11th: the same day there
-    assert.deepEqual(times, [["12:10\u202fAM", "2026-11-11T00:10"], ["12:00\u202fAM", "2026-11-10T00:00"]]);
+    assert.deepEqual(times, [["12:10\u00a0AM", "2026-11-11T00:10"], ["12:00\u00a0AM", "2026-11-10T00:00"]]);
     await page.close();
   });
 

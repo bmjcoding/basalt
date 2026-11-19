@@ -22,7 +22,7 @@ const THEMES = ["dark", "light"];
 const root = path.join(pkg, "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(root, ...parts), "utf8");
 const dist = await import(pathToFileURL(path.join(pkg, "dist", "index.js")).href);
-const NNBSP = "\u202f";
+const NBSP = "\u00a0";
 
 // ---- Q1: the period word is the product's ----
 
@@ -148,17 +148,17 @@ const MORNING = Date.UTC(2026, 10, 7, 8, 2, 0);
 
 describe("Q5 (W9): a clock a person reads follows the locale; a stamp to the second stays 24-hour", () => {
   test("the formatters: en-US by default, a numeric hour, ISO dateTime; formatStamp is 24-hour in every locale", () => {
-    assert.deepEqual(dist.formatClock(AT, { timeZone: "UTC" }), { text: `6:42${NNBSP}PM`, dateTime: "2026-11-17T18:42" });
-    assert.equal(dist.formatClock(Date.UTC(2026, 10, 17, 6, 42), { timeZone: "UTC" }).text, `6:42${NNBSP}AM`, "a numeric hour, not 06");
-    assert.equal(dist.formatClock(Date.UTC(2026, 10, 17, 0, 5), { timeZone: "UTC" }).text, `12:05${NNBSP}AM`);
+    assert.deepEqual(dist.formatClock(AT, { timeZone: "UTC" }), { text: `6:42${NBSP}PM`, dateTime: "2026-11-17T18:42" });
+    assert.equal(dist.formatClock(Date.UTC(2026, 10, 17, 6, 42), { timeZone: "UTC" }).text, `6:42${NBSP}AM`, "a numeric hour, not 06");
+    assert.equal(dist.formatClock(Date.UTC(2026, 10, 17, 0, 5), { timeZone: "UTC" }).text, `12:05${NBSP}AM`);
     assert.equal(dist.formatClock(AT, { timeZone: "UTC", locale: "en-GB" }).text, "18:42");
     assert.equal(dist.formatClock(Date.UTC(2026, 10, 17, 9, 5), { timeZone: "UTC", locale: "en-GB" }).text, "09:05");
     assert.equal(dist.formatClock(AT, { timeZone: "UTC", locale: "en-US-u-hc-h23" }).text, "18:42", "a product can ask for 24-hour");
     assert.deepEqual(dist.formatStamp(AT, { timeZone: "UTC" }), { text: "18:42:07", dateTime: "2026-11-17T18:42:07" });
     assert.equal(dist.formatStamp(AT, { timeZone: "UTC", locale: "en-US" }).text, "18:42:07");
     assert.equal(dist.formatStamp(AT, { timeZone: "UTC", locale: "en-GB" }).text, "18:42:07");
-    assert.deepEqual(dist.formatStatTime(MORNING, { now: MORNING, timeZone: "UTC" }), { text: `8:02${NNBSP}AM`, dateTime: "2026-11-07T08:02" });
-    assert.deepEqual(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC" }), { text: `Nov 7, 8:02${NNBSP}AM`, dateTime: "2026-11-07T08:02" });
+    assert.deepEqual(dist.formatStatTime(MORNING, { now: MORNING, timeZone: "UTC" }), { text: `8:02${NBSP}AM`, dateTime: "2026-11-07T08:02" });
+    assert.deepEqual(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC" }), { text: `Nov 7, 8:02${NBSP}AM`, dateTime: "2026-11-07T08:02" });
     assert.equal(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC", locale: "en-GB" }).text, "7 Nov, 08:02");
   });
 
@@ -179,9 +179,9 @@ describe("Q5 (W9): a clock a person reads follows the locale; a stamp to the sec
       const { page } = await fixturePage(browser, PARTS, { theme, viewport: { width, height: 1100 } });
       try {
         const time = (selector) => page.locator(selector).evaluate((el) => [el.textContent, el.getAttribute("datetime")]);
-        assert.deepEqual(await time("#clock-us time"), [`6:42${NNBSP}PM`, "2026-11-17T18:42"]);
+        assert.deepEqual(await time("#clock-us time"), [`6:42${NBSP}PM`, "2026-11-17T18:42"]);
         assert.deepEqual(await time("#clock-gb time"), ["18:42", "2026-11-17T18:42"]);
-        assert.deepEqual(await time(".basalt-stat-source time"), [`Nov 7, 8:02${NNBSP}AM`, "2026-11-07T08:02"]);
+        assert.deepEqual(await time(".basalt-stat-source time"), [`Nov 7, 8:02${NBSP}AM`, "2026-11-07T08:02"]);
         assert.deepEqual(await time("#source time"), ["18:42:07", "2026-11-17T18:42:07"]);
         assert.deepEqual(await time("#retry time"), ["18:42:07", "2026-11-17T18:42:07"]);
         assert.deepEqual(await time(".basalt-command-block-time"), ["18:42:07", "2026-11-17T18:42:07"]);

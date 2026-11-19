@@ -32,10 +32,10 @@ function parts(date: Date, locale: string | string[] | undefined, options: Intl.
 /** The hour as the locale writes it: numeric where it is 12-hour ("6:42 PM", never "06:42 PM"), two digits where it is 24-hour ("09:05"; a bare "9:05" is not how those locales write it). */
 const hourStyle = (locale: string | string[] | undefined): "numeric" | "2-digit" => (formatter(locale, { hour: "numeric" }).resolvedOptions().hour12 ? "numeric" : "2-digit");
 
-/** A clock in the locale's hour, its day period ("AM") set off by a narrow no-break space whichever the runtime's data writes (older ICU a plain space, newer U+202F), so a server and a browser agree and "6:42 PM" never breaks. */
+/** A clock in the locale's hour, its day period ("AM") set off by a no-break space (U+00A0, a full space as in the site-words example "6:42 PM"; DECISIONS 208) whichever the runtime's data writes (older ICU a plain space, newer U+202F), so a server and a browser agree and "6:42 PM" never breaks. */
 function clockText(locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions, at: Date) {
   const list = formatter(locale, options).formatToParts(at);
-  return list.map((part, i) => (part.type === "literal" && list[i + 1]?.type === "dayPeriod" ? "\u202f" : part.value)).join("");
+  return list.map((part, i) => (part.type === "literal" && list[i + 1]?.type === "dayPeriod" ? "\u00a0" : part.value)).join("");
 }
 
 export interface TimeOptions {

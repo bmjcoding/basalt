@@ -146,15 +146,15 @@ describe("A2-21: a running part hydrates when time passed between the server's r
       // 11:59 PM on the server, 12:01 AM (the next day) on the client: the hour changes from 11 to 12 and the day period from PM to AM
       const out = await hydrate("Clock", { timeZone: "UTC", locale: "en-US" }, { server: Date.UTC(2026, 10, 17, 23, 59), client: Date.UTC(2026, 10, 18, 0, 1), theme });
       assert.deepEqual(out.recovered, []);
-      assert.equal(out.text, "12:01\u202fAM");
+      assert.equal(out.text, "12:01\u00a0AM");
       assert.deepEqual(out.datetimes, ["2026-11-18T00:01"]);
       const morning = await hydrate("Clock", { timeZone: "UTC" }, { server: Date.UTC(2026, 10, 17, 6, 42), client: Date.UTC(2026, 10, 17, 6, 43), theme });
       assert.deepEqual(morning.recovered, []);
-      assert.equal(morning.text, "6:43\u202fAM", "en-US is the default, and the hour is numeric, not 06");
+      assert.equal(morning.text, "6:43\u00a0AM", "en-US is the default, and the hour is numeric, not 06");
     });
     test(`${theme}: a server's render and its hydration agree on the hour in en-US and en-GB`, async () => {
       const at = Date.UTC(2026, 10, 17, 18, 42);
-      for (const [locale, text] of [["en-US", "6:42\u202fPM"], ["en-GB", "18:42"]]) {
+      for (const [locale, text] of [["en-US", "6:42\u00a0PM"], ["en-GB", "18:42"]]) {
         const out = await hydrate("Clock", { timeZone: "UTC", locale, now: at }, { server: 0, client: 0, theme });
         assert.deepEqual(out.recovered, [], locale);
         assert.equal(out.text, text, locale);

@@ -6,7 +6,7 @@
     <span class="stat-label">Availability</span>
     <span class="stat-value">99.97%</span>
     <span class="stat-note">Target 99.95%</span>
-    <span class="stat-source"><time datetime="2026-11-10T04:41">4:41&#8239;AM</time><span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Probe</span>
+    <span class="stat-source"><time datetime="2026-11-10T04:41">4:41&#160;AM</time><span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Probe</span>
   </div>
 </div>
 ```
