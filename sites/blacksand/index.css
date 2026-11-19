@@ -13,12 +13,11 @@
 .hero { min-height: calc(100svh - var(--basalt-space-24)); }
 .hero-block { display: flex; flex-direction: column; align-items: flex-start; padding-top: var(--basalt-space-10); padding-bottom: var(--_room); }
 
-/* The brand's lockup in the header: the 1x file by default, the 2x file from 2dppx (brand/README.md). Each file's own title must not
-   show as a tooltip, and the files are not edited: the drawing takes no pointer, so the link's label is the only name. */
+/* The brand's lockup in the header: the 1x file by default, the 2x file from 2dppx (brand/README.md). The build hides each drawing and drops its title (the skill's brandSvg,
+   through the include), so the link's label is the only name. */
 .lockup-2x { display: none; }
 .lockup-1x, .lockup-2x { line-height: 0; }
 @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) { .lockup-1x { display: none; } .lockup-2x { display: block; } }
-.basalt-site-brand-mark svg { pointer-events: none; }
 
 /* The mark: brand/blacksand/hero.html as it is, 192 wide at every width. Its drawing sits inside a 48-unit box with 7 units of air on the
    start side and 8 above and below; the layout takes that air back, so the wall lines up with the brand's mark and the words' start edge. */

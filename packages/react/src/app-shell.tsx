@@ -11,7 +11,7 @@ import { join } from "./utils";
 // (size-sidebar-width, size-rail-width, size-header, size-tab-bar and the breakpoints; decision 101).
 
 export interface AppShellProps extends Omit<React.ComponentProps<"div">, "children"> {
-  /** The brand in the sidebar's 56px band: the lockup (mark and word). It links home and draws no line of its own. */
+  /** The brand in the sidebar's 56px band: the lockup (mark and word). It links home and draws no line of its own. A brand file goes in as `<BrandSvg source={file} />`, which hides it and drops its title; the link's name is `brandLabel`. */
   brand: React.ReactNode;
   /** The brand link's name, e.g. "Workbench home". */
   brandLabel: string;

@@ -26,6 +26,7 @@
   "BadgePair": 411,
   "BigLinkList": 257,
   "BigLinkRow": 4708,
+  "BrandSvg": 1084,
   "Breadcrumbs": 5630,
   "Button": 15229,
   "CONFIRM_MS": 31,
@@ -62,7 +63,7 @@
   "CopyGlyph": 2884,
   "Countdown": 2920,
   "CoverageStrip": 1364,
-  "DateAge": 2360,
+  "DateAge": 2527,
   "DescriptionColumns": 216,
   "DescriptionItem": 578,
   "DescriptionList": 258,
@@ -75,6 +76,8 @@
   "DialogTrigger": 69869,
   "DirectoryList": 17588,
   "DirectoryRow": 5065,
+  "DotLine": 584,
+  "DotSep": 337,
   "DownloadGlyph": 2853,
   "Drawer": 15777,
   "DrawerSection": 1884,
@@ -141,7 +144,7 @@
   "MenuSubmenuTrigger": 184749,
   "MenuTrigger": 181400,
   "MessagesGlyph": 2976,
-  "Meter": 9697,
+  "Meter": 9757,
   "MinusGlyph": 2800,
   "MoreGlyph": 2809,
   "MoreNavGlyph": 2918,
@@ -158,7 +161,7 @@
   "OpenList": 2045,
   "OpenListGroup": 476,
   "OpenListRow": 13549,
-  "OptionChips": 37533,
+  "OptionChips": 37714,
   "PageRow": 240,
   "PageSection": 227,
   "PageSections": 246,
@@ -166,7 +169,7 @@
   "PairedArt": 462,
   "PauseGlyph": 2819,
   "PeriodStepper": 15259,
-  "PhaseChart": 50498,
+  "PhaseChart": 50697,
   "PlanGlyph": 2966,
   "PlayGlyph": 2838,
   "PlusGlyph": 2825,
@@ -207,7 +210,7 @@
   "Select": 139869,
   "Separator": 4531,
   "SettingsGlyph": 3100,
-  "ShareBar": 1351,
+  "ShareBar": 1411,
   "Sheet": 69753,
   "SheetActions": 234,
   "SheetBody": 1682,
@@ -242,7 +245,7 @@
   "Sparkline": 4585,
   "Spinner": 1509,
   "Stage": 1219,
-  "Stat": 1655,
+  "Stat": 2009,
   "Stats": 314,
   "StatusBar": 6761,
   "StatusLine": 504,
@@ -282,7 +285,7 @@
   "Textarea": 25945,
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 203289,
-  "TimeChart": 47342,
+  "TimeChart": 47541,
   "ToastProvider": 89803,
   "Toolbar": 22915,
   "ToolbarButton": 29527,
@@ -313,6 +316,7 @@
   "formatDay": 635,
   "formatStamp": 677,
   "formatStatTime": 899,
+  "lockupDrawing": 1072,
   "loopsBootstrap": 164,
   "markEntranceSeen": 165,
   "markPageChange": 58,
@@ -338,11 +342,11 @@
   "useToast": 2987
  },
  "package": {
-  "bytes": 718372,
-  "gzip": 235504
+  "bytes": 720523,
+  "gzip": 236261
  },
  "styles": {
-  "bytes": 286051,
-  "gzip": 37270
+  "bytes": 286350,
+  "gzip": 37358
  }
 }

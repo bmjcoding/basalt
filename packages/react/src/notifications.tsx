@@ -33,7 +33,7 @@ export interface NotificationEntry {
 export interface NotificationCentreProps {
   /** The entries to list, newest first. The app owns the data and its persistence. */
   entries: readonly NotificationEntry[];
-  /** An entry was chosen. The centre closes after it. */
+  /** An entry was chosen. The center closes after it. */
   onSelect?: (entry: NotificationEntry) => void;
   /** "Mark all as read" was pressed. Update `unread` on your entries: the rows change ink and nothing moves. */
   onMarkAllRead?: () => void;
@@ -58,12 +58,12 @@ const MARKS: Record<Exclude<ToastStatus, "neutral">, IconComponent> = { success:
  * and "View all". It is presentational: the app owns the entries, their read state, persistence and the "View all" page.
  *
  * This is what lets a toast time out: a toast may close after five seconds when the information, and any action, also has a
- * home here (`home: "centre"` on the toast). Keep an entry's action reachable for as long as it is valid.
+ * home here (`home: "center"` on the toast). Keep an entry's action reachable for as long as it is valid.
  */
 export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCentreProps) {
   const unread = entries.reduce((count, entry) => count + (entry.unread ? 1 : 0), 0);
   const popup = React.useRef<PopupActions | null>(null);
-  // Choosing an entry, or View all, leaves the centre; Esc and an outside click close it before.
+  // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
   const leave = () => popup.current?.close();
   return (
     <Popover open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} actionsRef={popup}>

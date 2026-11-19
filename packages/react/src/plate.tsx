@@ -19,7 +19,7 @@ import * as React from "react";
 // Navigation is the second place the glide lives. A navigation list has no highlight of its own, so the glide marks the
 // item under the pointer `data-hovered` (an attribute, not state) and follows that; it hugs the item's pill, not its
 // row; and the first key hides it instead of moving it (the focus ring shows), until the next pointer move. The notification
-// centre's list is the third: its entries are links and buttons, so it follows the pointer the same way, with the entry's own
+// center's list is the third: its entries are links and buttons, so it follows the pointer the same way, with the entry's own
 // plate as its shape (40 or 58 tall, whatever the entry holds).
 
 /** What a glide follows: the host that holds the rows, which row is lit, and the shape to hug. */
@@ -239,13 +239,13 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
 export interface GlidePlateProps {
   /** Lay the glide on a navigation list (`.basalt-nav`, `.basalt-site-links`): it follows the item under the pointer and hides on the first key. */
   navigation?: boolean;
-  /** Lay the glide on the notification centre's list (`.basalt-notifications-scroll`). */
+  /** Lay the glide on the notification center's list (`.basalt-notifications-scroll`). */
   notifications?: boolean;
 }
 
 /**
  * The shared plate of a popup's rows. Render it inside the popup (Menu, Select, Combobox) or the command list, before
- * the rows; with `navigation`, render it as the first child of a navigation list; with `notifications`, in the notification centre's list. It is decoration: hidden from
+ * the rows; with `navigation`, render it as the first child of a navigation list; with `notifications`, in the notification center's list. It is decoration: hidden from
  * assistive technology, never hit by the pointer, and drawn only when the stylesheet and the input allow it.
  */
 export function GlidePlate({ navigation = false, notifications = false }: GlidePlateProps) {

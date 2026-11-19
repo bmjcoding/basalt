@@ -269,12 +269,12 @@
       var forms = [];
       for (var i = 0; i < n; i++) forms.push(shapeOf(valueOf(s, i)));
       if (s.values.some(function (v) { return v == null; })) forms.push(NOT_OBSERVED);
-      legend += '<li class="chart-entry">' + swatch(bar ? 'bar' : 'series', k, id) + '<span class="chart-name">' + esc(s.name) + '</span><span class="chart-value" data-series="' + esc(s.id) + '">' + reserves(forms) + '<span data-part="value"></span></span></li>';
+      legend += '<li class="chart-entry">' + swatch(bar ? 'bar' : 'series', k, id) + '<span class="chart-name">' + esc(s.name) + '</span><span class="visually-hidden"> </span><span class="chart-value" data-series="' + esc(s.id) + '">' + reserves(forms) + '<span data-part="value"></span></span></li>';
     });
     if (plan) {
       var pforms = [];
       for (var q = 0; q < n; q++) pforms.push(shapeOf(planValue(q)));
-      legend += '<li class="chart-entry">' + swatch(plan.kind, 0, id) + '<span class="chart-name">' + esc(planLabel) + '</span><span class="chart-value" data-series="plan">' + reserves(pforms) + '<span data-part="value"></span></span></li>';
+      legend += '<li class="chart-entry">' + swatch(plan.kind, 0, id) + '<span class="chart-name">' + esc(planLabel) + '</span><span class="visually-hidden"> </span><span class="chart-value" data-series="plan">' + reserves(pforms) + '<span data-part="value"></span></span></li>';
     }
     if (hasPartial) legend += '<li class="chart-entry">' + swatch('so-far', 0, id, bar) + '<span class="chart-name">' + esc(partialLabel) + '</span></li>';
     if (hasGap) legend += '<li class="chart-entry">' + swatch('missing', 0, id) + '<span class="chart-name">' + NOT_OBSERVED + '</span></li>';

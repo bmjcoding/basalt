@@ -80,7 +80,8 @@ export function Meter({ label, value, max, min = 0, target, targetLabel = "Targe
           show="now"
           alternativeClassNames={{ reserve: "basalt-meter-reserve", now: "basalt-meter-now" }}
           alternatives={{
-            reserve: <><span className="basalt-meter-value">{write(max)}</span> of {cap}</>,
+            // The unseen wording ends in a hidden space, so a text scan that reads both reads "2,000 min 1,240 of …" and not "2,000 min1,240 of …".
+            reserve: <><span className="basalt-meter-value">{write(max)}</span> of {cap}<span className="basalt-visually-hidden"> </span></>,
             now: <><span className="basalt-meter-value">{write(value)}</span> of {cap}</>,
           }}
         />

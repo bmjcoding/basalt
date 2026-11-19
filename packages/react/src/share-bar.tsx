@@ -36,6 +36,7 @@ export function ShareBar({ parts, size = "sm", format, className, ...props }: Sh
         <li key={part.id ?? part.name} className="basalt-share-part" style={{ "--_share": (part.value / total) * 100 } as React.CSSProperties}>
           <span className="basalt-share-bar" aria-hidden="true" />
           <b className="basalt-share-value">{format ? format(shares[index]!, part) : shares[index] === 0 ? <><span aria-hidden="true">&lt;1%</span><span className="basalt-visually-hidden">less than 1%</span></> : shares[index] === 100 && kept.length > 1 ? <><span aria-hidden="true">&gt;99%</span><span className="basalt-visually-hidden">more than 99 percent</span></> : `${shares[index]}%`}</b>
+          <span className="basalt-visually-hidden"> </span>
           <span className="basalt-share-name">{part.name}</span>
         </li>
       ))}

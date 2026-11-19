@@ -15,12 +15,12 @@ export type ToastStatus = "neutral" | "success" | "warning" | "danger";
  * Where the same information, and any action, stays after the toast has gone. A toast may time out only when it is
  * not the only copy, so naming a home is how a toast earns its five seconds:
  *
- * - `"centre"`: the app keeps an entry in the notification centre for as long as the action is valid.
+ * - `"center"`: the app keeps an entry in the notification center for as long as the action is valid. (`"centre"` is the older spelling of the same value and stays as an alias.)
  * - `"row"`: the thing itself shows it in place (a deleted row's restore control, a saved field's "Saved").
  * - `"key"`: the app binds a key that does the action (pass it as `action.keys` too).
  * - `"page"`: the toast only echoes a change the page already shows ("Copied"). It cannot stand for an action.
  */
-export type ToastHome = "centre" | "row" | "key" | "page";
+export type ToastHome = "center" | "centre" | "row" | "key" | "page";
 
 export interface ToastAction {
   /** What it does: "Undo", "Retry", "View". */

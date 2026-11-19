@@ -7,6 +7,7 @@ import path from "node:path";
 import { describe, test } from "node:test";
 
 import { buildPage, buildSites, findPages, repoRoot, resolveIncludes, sitesDir } from "../build.mjs";
+import { inlinedText } from "./support.mjs";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "basalt-sites-build-"));
 /** A root with the sites given as { "site/page": body, "site/file.css": text }. */
@@ -48,7 +49,7 @@ describe("the includes", () => {
     const names = ["brand/blacksand/mark-32.svg", "brand/blacksand/hero.html", "brand/sra-syndicate/hero.html", "brand/motion/logo-motion.js", "brand/motion/one-bridge.css"];
     const root = makeRoot({ "a/index.body.html": `<title>A</title>\n<h1>Hello</h1>\n${names.map((n) => `<!-- @include ${n} -->`).join("\n")}\n` });
     const [page] = buildSites({ root, outDir: path.join(root, "out") });
-    for (const name of names) assert.ok(page.html.includes(read(path.join(repoRoot, name))), `${name} is in the page byte for byte`);
+    for (const name of names) assert.ok(page.html.includes(inlinedText(name, read(path.join(repoRoot, name)))), `${name} is in the page byte for byte (a brand svg but for its root's three attributes and its title)`);
   });
 
   test("an image from brand/ is a data: URL, so a built page has no path into the repo", () => {

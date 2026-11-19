@@ -10,9 +10,25 @@ import { chromium } from "playwright";
 
 import { launchOptions } from "../../scripts/chromium-launch.mjs";
 
+import { brandSvg } from "../../.agent/skills/basalt-html/compose.mjs";
 import { buildPage, findPages, repoRoot, sitesDir } from "../build.mjs";
 
 export { buildPage, repoRoot, sitesDir };
+
+/**
+ * What a brand/ file is in a built page. Every file is in its page byte for byte except a brand .svg, whose root tag takes the three attributes of the skill's one way to inline it
+ * (`aria-hidden="true" focusable="false" data-brand`) and whose title build note is dropped. This checks that and nothing more has changed (the same text with those taken out is
+ * the file with its title taken out), and returns the text the page holds.
+ */
+export function inlinedText(name, text) {
+  if (!name.endsWith(".svg")) return text;
+  const inlined = brandSvg(text);
+  const without = inlined.replace(' aria-hidden="true" focusable="false" data-brand', "");
+  const titleless = text.replace(/<title\b[^>]*>[\s\S]*?<\/title\s*>/gi, "");
+  if (without !== titleless) throw new Error(`${name}: brandSvg changed more than the root's three attributes and the title`);
+  if (/<title\b/i.test(inlined)) throw new Error(`${name}: a title is left in the inlined file`);
+  return inlined;
+}
 export const here = path.dirname(fileURLToPath(import.meta.url));
 export const fixturesDir = path.join(here, "fixtures");
 export const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");

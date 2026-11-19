@@ -10,5 +10,8 @@
 - **Links on touch:** a standalone link (a nav link, a footer link, a link on its own line) gets a 44px hit box on touch with no change to layout; a link inside running text (`p`, `li`, `.prose`, `.small`, `.hint`) stays inline. A link already 44px tall in its part (the bar, a nav row) needs nothing. Add `.tap` to a link the CSS can't tell is standalone.
 - **Skip link:** `<a class="skip-link" href="#main">Skip to content</a>`, first in `<body>`: unseen until focus, then floating, 8px under a top bar's real edge.
 - **Print:** the script prints in the light theme and goes back after; the skip link, theme toggle and copy buttons are not printed (the top bar is: static and opaque).
+- **A dot between words:** `In design<span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Pilot planned` reads "In design, Pilot planned" and draws the dot; `data-spaced` draws a space each side. Never an `aria-hidden` dot beside a hidden comma.
+- **A brand SVG file** (from `brand/`): `data-brand` on its `<svg>`; compose hides it, drops its `<title>` and the CSS gives it no pointer. The link round it has `aria-label`.
+- **A value and its unit** in separate elements: a space between them in the markup, or `<span class="visually-hidden"> </span>`.
 - **Script:** `Basalt.announce(text)` speaks to screen readers.
 - **Icons:** `svg.icon` is what the script makes of an `<i data-icon>`; never write it yourself.

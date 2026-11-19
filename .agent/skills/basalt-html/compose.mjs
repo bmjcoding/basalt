@@ -494,6 +494,20 @@ function externalReferences(held, markup) {
   return [...found];
 }
 
+// A brand file (`brand/**/*.svg`) is never edited, and every one carries a `<title>` build note that shows as a tooltip and can be announced. `brandSvg` is the one way to inline one: the
+// root takes `aria-hidden="true"`, `focusable="false"` and `data-brand` (core.css gives it `pointer-events: none`), and every `title` is dropped from the copy in the page, so the link or
+// the element round it carries the name. A body marks a pasted file with `data-brand` on its `svg`; compose finishes it. sites/build.mjs calls it for every `brand/` svg it includes.
+const BRAND_ROOT = /^(\s*(?:<\?xml[\s\S]*?\?>\s*)?(?:<!--[\s\S]*?-->\s*)*)<svg((?:"[^"]*"|'[^']*'|[^>"'])*)>/i;
+const BRAND_TITLE = /<title\b[^>]*>[\s\S]*?<\/title\s*>|<title\b[^>]*\/>/gi;
+export function brandSvg(text) {
+  const root = BRAND_ROOT.exec(text);
+  if (!root) throw new Error("brandSvg takes the text of one SVG file: <svg …>…</svg>");
+  const kept = root[2].replace(/\s+(?:aria-hidden|focusable|data-brand)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>"']+))?/gi, "");
+  const selfClosed = kept.endsWith("/");
+  const attributes = selfClosed ? kept.slice(0, -1) : kept;
+  return `${root[1]}<svg${attributes} aria-hidden="true" focusable="false" data-brand${selfClosed ? "/" : ""}>${text.slice(root[0].length).replace(BRAND_TITLE, "")}`;
+}
+
 /**
  * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts).
  * Returns { html, modules, icons, glyphs, built, external, bytes } (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
@@ -517,6 +531,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     if (kind === "style") { styles.push({ css: inner.trim(), media: styleMedia(attrs) }); return ""; }
     if (kind === "title" && title === null) { title = inner.trim(); return ""; }
     if (kind === "head") { headTags.push(headTag(text.trim(), held.saved[Number(i)].attrs)); return ""; }
+    if (kind === "svg" && readTag(text, 0).attrs.some((a) => a[0] === "data-brand")) return brandSvg(text) + ws;
     const directive = kind === "comment" && text.match(/^<!--\s*basalt:use\s+([\s\S]*?)-->$/);
     if (!directive) return all$;
     use.push(...directive[1].split(/[\s,]+/).filter(Boolean));

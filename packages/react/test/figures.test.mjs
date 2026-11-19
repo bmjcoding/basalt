@@ -527,17 +527,18 @@ describe("Stat", () => {
     });
   }
 
-  test("the time is a time element with a datetime; the dot is aria-hidden with a visually hidden comma; the text reads \"04:41 · Scale\"", async () => {
+  test("the time is a time element with a datetime; the dot is DotSep (drawn, not read) with a visually hidden comma; the text reads \"04:41, Scale\" and the line draws \"04:41 · Scale\"", async () => {
     const { page } = await fixturePage(browser, stats(stat('label="Weight" value="81.4 kg" source="Scale" time={new Date("2026-11-10T04:41:00Z")}')), { theme: "dark" });
     const source = page.locator(".basalt-stat-source");
     assert.equal(await source.locator("time").getAttribute("datetime"), "2026-11-10T04:41");
     assert.equal(await source.locator("time").textContent(), "04:41");
-    const dot = source.locator("[aria-hidden=true]");
-    assert.equal(await dot.textContent(), "·");
-    assert.equal(await source.locator(".basalt-visually-hidden").textContent(), ", ");
-        assert.equal(await source.evaluate((el) => el.textContent.replace(/\s+/g, " ")), "04:41 ·, Scale");
-    // what is seen: the visually hidden comma takes no room, so the text reads "04:41 · Scale"
-    const seen = await source.evaluate((el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().width; });
+    // The dot is drawn by the stylesheet and is not in the text (the wording audit's W8); the comma is the words' own join.
+    assert.equal(await source.locator("[aria-hidden=true]").count(), 0, "no aria-hidden dot beside a hidden comma");
+    assert.equal(await source.locator(".basalt-dot-sep .basalt-visually-hidden").textContent(), ", ");
+    assert.match(await source.locator(".basalt-dot-sep").evaluate((el) => getComputedStyle(el, "::before").content), /·/);
+    assert.equal(await source.evaluate((el) => el.textContent.replace(/\s+/g, " ")), "04:41, Scale");
+    // what is seen: the visually hidden comma takes no room, so the line is as wide as "04:41 · Scale" written out
+    const seen = await source.evaluate((el) => { const probe = el.cloneNode(true); probe.style.cssText = "position:absolute;visibility:hidden;display:inline-block;white-space:nowrap"; el.parentElement.append(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; });
     const spaced = await source.evaluate((el) => { const probe = el.cloneNode(false); probe.textContent = "04:41 · Scale"; probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap"; el.parentElement.append(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; });
     assert.ok(Math.abs(seen - spaced) < 1, `the line is ${seen}px wide, "04:41 · Scale" alone is ${spaced}px`);
     await page.close();

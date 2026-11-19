@@ -744,7 +744,8 @@ function Headline({ value, unit, format, decimals, locale, forms, context, conte
           {forms.map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
           {value == null ? <span data-missing="">—</span> : <NumberTicker glide value={value} format={write} />}
         </span>
-        {unit ? <span className="basalt-chart-unit">{unit}</span> : null}
+        {/* The number and its unit are two elements with no space between them: a hidden space is the word boundary for a text scan and for a name built from the content. */}
+        {unit ? <><span className="basalt-visually-hidden"> </span><span className="basalt-chart-unit">{unit}</span></> : null}
       </p>
       <p className="basalt-chart-context">
         {contextForms.map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
@@ -807,6 +808,7 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
           <li key={s.id} className="basalt-chart-entry">
             <Swatch kind={bar ? "bar" : "series"} index={k} idBase={idBase} />
             <span className="basalt-chart-name">{s.name}</span>
+            <span className="basalt-visually-hidden"> </span>
             <span className="basalt-chart-value" data-series={s.id}>
               {reserveFor(s).map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
               <span data-missing={s.values[i] == null ? "" : undefined} data-part="value">{valueOf(s, i)}</span>
@@ -817,6 +819,7 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
           <li className="basalt-chart-entry">
             <Swatch kind={plan.kind} index={0} idBase={idBase} />
             <span className="basalt-chart-name">{plan.label ?? "Plan"}</span>
+            <span className="basalt-visually-hidden"> </span>
             <span className="basalt-chart-value" data-series="plan">
               {planForms().map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
               <span data-missing={p == null && !note ? "" : undefined} data-part="value">{p == null ? note ?? "None" : planText(plan, p, format, formatPlan)}</span>

@@ -7,7 +7,7 @@ import path from "node:path";
 import { after, before, describe, test } from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { allPages, axe, buildAll, HOST, launch, menuTrigger, openHtml, repoRoot, settled } from "./support.mjs";
+import { allPages, axe, buildAll, HOST, inlinedText, launch, menuTrigger, openHtml, repoRoot, settled } from "./support.mjs";
 
 const { checkHeadroom } = await import("@srasyndicate/basalt/testing");
 
@@ -56,7 +56,7 @@ describe("a built page is one file with no network and no way back into the repo
         const url = `base64,${bytes.toString("base64")}`;
         assert.ok(page.html.includes(url), `${include.name} is not in the page as a data URL, byte for byte`);
       } else {
-        assert.ok(page.html.includes(bytes.toString("utf8")), `${include.name} is not in the page byte for byte`);
+        assert.ok(page.html.includes(inlinedText(include.name, bytes.toString("utf8"))), `${include.name} is not in the page byte for byte (a brand svg but for its root's three attributes and its title)`);
         assert.equal(Buffer.from(bytes.toString("utf8"), "utf8").equals(bytes), true, `${include.name} is not valid UTF-8, so it cannot be a text include`);
       }
     }

@@ -25,9 +25,9 @@ import { join } from "./utils";
 export type { SiteHeaderLink };
 
 export interface SiteHeaderProps extends Omit<React.ComponentProps<"header">, "children"> {
-  /** The 32px header lockup the brand ships (`brand/`) as a node, or an app's own. It goes inside the link home, in a 44px target. Leave it out when `lockup` draws it. */
+  /** The 32px header lockup the brand ships (`brand/`) as a node, or an app's own. It goes inside the link home, in a 44px target. A brand file goes in as `<BrandSvg source={file} />`. Leave it out when `lockup` draws it. */
   brand?: React.ReactNode;
-  /** The lockup by pixel density, `{ x1, x2 }`: the two header drawings `brand/` ships, each defined once and drawn with `use` (DECISIONS 146 F). */
+  /** The lockup by pixel density, `{ x1, x2 }`: the two header drawings `brand/` ships, each defined once and drawn with `use` (DECISIONS 146 F). Take each from the brand file with `lockupDrawing(file)`: the file's title is not read. */
   lockup?: SiteLockup;
   /** The brand link's name, e.g. "Blacksand home". */
   brandLabel: string;

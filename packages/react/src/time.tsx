@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { formatAge, formatClock, formatCountdown, formatDay, formatStamp } from "./time-format";
 import type { TimeOptions } from "./time-format";
+import { DotSep } from "./dot-sep";
 import { useLoops } from "./loops";
 import { Reserve } from "./reserve";
 import { join } from "./utils";
@@ -123,7 +124,7 @@ export function DateAge({ time, timeZone, locale, now: nowProp, short = false, c
   return (
     <span key={running && !drawn ? "server" : "client"} {...props} className={join("basalt-date-age", className)}>
       <time dateTime={day.dateTime} className="basalt-time" suppressHydrationWarning={quietly}>{day.text}</time>
-      <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><span aria-hidden="true">·</span><span className="basalt-visually-hidden">, </span>{short ? <Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
+      <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><DotSep />{short ? <Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
     </span>
   );
 }

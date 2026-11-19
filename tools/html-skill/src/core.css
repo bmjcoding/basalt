@@ -81,6 +81,13 @@
   :focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   ::selection { background: var(--basalt-state-selected); }
   svg.icon { flex: none; }
+  /* A brand file inlined with data-brand: compose.mjs hides it and drops its title; it takes no pointer, so the link round it is what is hovered and named. */
+  svg[data-brand] { pointer-events: none; }
+  /* A dot-separated line (React's DotSep): the words are joined by a visually hidden ", " that is read, and the dot is drawn here with an empty alternative so it is not. The second
+     declaration is the plain string for a browser that does not take the alternative. data-spaced draws the spaces the words around it would have carried. */
+  .dot-sep::before { content: "·"; content: "·" / ""; }
+  .dot-sep[data-spaced]::before { content: " · "; content: " · " / ""; }
+  .dot-sep > .visually-hidden { white-space: pre; }
 
   /* ---- Type and rhythm ---- */
 
