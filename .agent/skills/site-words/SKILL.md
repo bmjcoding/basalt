@@ -5,8 +5,8 @@ description: Write, edit or review any words a person outside the team will read
 
 # Site words
 
-The rules the owner set for the words on his sites, learned in the wording audit of November 2026 (DECISIONS 174–195 in
-`MAIN/.review/council/DECISIONS.md`; the full record, with every ruling quoted and dated, is `MAIN/.review/words/RECORD.md`). Each site
+The rules the owner set for the words on his sites, learned in the wording audit of November 2026 (the wording-audit entries of DECISIONS 174–196 in
+`MAIN/.review/council/DECISIONS.md`, cited as "195 (wording)" where a number is shared with CIMIP's, see 197; the full record, with every ruling quoted and dated, is `MAIN/.review/words/RECORD.md`). Each site
 keeps its own voice; these rules hold on all of them. When a rule here and the owner's newer word disagree, his word wins: log it and fix
 this file.
 
@@ -24,7 +24,7 @@ this file.
 1. **Plain facts, no slogans.** Say what the thing is, where, when, and what you can do. No taglines written to sound good ("Frisco is
    getting a castle", "A local shop, not a warehouse": "gross AI slop"). Headings name their section.
 2. **No counts that can change** ("17 brands"): a number computed from data in a working place (a filter count, a cart) is fine.
-3. **Don't sell "AI".** "AI native" is overused; people are sceptical of AI coaching. Say what the AI does, and what the human does.
+3. **Don't sell "AI".** "AI native" is overused; people are skeptical of AI coaching. Say what the AI does, and what the human does.
 4. **Written, not spoken.** No run-ons, no repeated sentence openers, no conversational asides.
 5. **Don't over-explain the basics** of the reader's own field; it reads as if AI did the work.
 6. **No process scaffolding in public text.** Present tense, what is; never "organized by review round", "to be confirmed",
