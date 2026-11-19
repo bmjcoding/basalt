@@ -150,6 +150,9 @@ for (const theme of ["light", "dark"]) {
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("Performance.enable");
         const recalcs = async () => (await cdp.send("Performance.getMetrics")).metrics.find((m) => m.name === "RecalcStyleCount").value;
+        // The page's fonts arriving measure the whole table again (a font changes every cell's width), so wait for them before counting one measuring.
+        await page.evaluate(() => document.fonts.ready.then(() => undefined));
+        await frames(page, 2);
         const was = await cutCells(page);
         await page.evaluate(() => window.__reset());
         const before = await recalcs();
