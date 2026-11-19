@@ -316,7 +316,7 @@
   "formatDay": 635,
   "formatStamp": 685,
   "formatStatTime": 1118,
-  "lockupDrawing": 1072,
+  "lockupDrawing": 1008,
   "loopsBootstrap": 164,
   "markEntranceSeen": 165,
   "markPageChange": 58,
@@ -342,8 +342,8 @@
   "useToast": 2987
  },
  "package": {
-  "bytes": 721222,
-  "gzip": 236527
+  "bytes": 721214,
+  "gzip": 236529
  },
  "styles": {
   "bytes": 286350,
