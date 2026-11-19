@@ -348,7 +348,7 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - `useShortcuts` binds single keys only; the choice to turn them off is `useSingleKeys` (`basalt-keys`). Give the help dialog a visible opener that is not a single key.
 - `useNow`, `Clock` and `Countdown` share one lazy timer and hold under `data-loops="held"`. `formatAge` is for beside a date; never in a `Stat`.
 - Smaller parts: `LogFields` (the runs of a line) and `LogLine` (one line alone) draw the one log-line look; `LogSummary` is a four-line summary in a `pre`; `InlineValue` is a row that is a label and a value, not a field. A `CommandBlock`'s head sticks under a bar set with `--_basalt-block-top`.
-- The formatters draw nothing: `formatStamp` ("14:49:07"), `formatClock` ("14:49"), `formatDay` ("1 Nov"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime`, the zone an argument.
+- The formatters draw nothing: `formatStamp` ("14:49:07"), `formatClock` ("14:49"), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime`, the zone an argument.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
 
 ## Code

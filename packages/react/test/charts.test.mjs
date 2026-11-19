@@ -551,7 +551,7 @@ describe("Chart missing data", () => {
     const sentence = await page.locator(".basalt-chart-day").nth(missingDay).getAttribute("aria-label");
     assert.match(sentence, /Watch not observed, not worn, travel/);
     await page.getByRole("button", { name: "View as table" }).click();
-    const row = page.locator(".basalt-chart-table tbody tr").filter({ has: page.locator("th", { hasText: new RegExp(`^${await page.evaluate((i) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(window.D.sleep.days[i])), missingDay)}$`) }) });
+    const row = page.locator(".basalt-chart-table tbody tr").filter({ has: page.locator("th", { hasText: new RegExp(`^${await page.evaluate((i) => new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(window.D.sleep.days[i])), missingDay)}$`) }) });
     assert.equal(await row.locator(".basalt-chart-not-observed").innerText(), "Not observed");
     assert.equal(await row.locator(".basalt-chart-not-observed").evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
     assert.match(await row.locator("td").last().innerText(), /Watch not worn, travel/);
@@ -720,7 +720,7 @@ describe("Chart keyboard", () => {
     const { page } = await chartPage();
     const names = await page.locator(".basalt-chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
     const last = names.at(-1);
-    assert.match(last, /^Tuesday 10 November, today\. Ring \d+ hours? (\d+ minutes?)?\.? ?Watch .*\. Plan .* to .*\./);
+    assert.match(last, /^Tuesday, November 10, today\. Ring \d+ hours? (\d+ minutes?)?\.? ?Watch .*\. Plan .* to .*\./);
     assert.ok(/(inside the plan|under the plan|over the plan)\.$/.test(last), last);
     const gap = names.find((n) => /Watch not observed, not worn, travel/.test(n));
     assert.ok(gap, "a day with a reason is named with it");
@@ -732,11 +732,11 @@ describe("Chart keyboard", () => {
   test("the last day is 'today' only when it is today's date: `now` says what today is, and a range that ends before it is never 'today'", async () => {
     const lastName = async (page) => (await page.locator(".basalt-chart-day").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).at(-1);
     const { page } = await chartPage();
-    assert.match(await lastName(page), /^Tuesday 10 November, today\./, "the last day is today's UTC date");
+    assert.match(await lastName(page), /^Tuesday, November 10, today\./, "the last day is today's UTC date");
     await configure(page, { extra: { now: Date.UTC(2026, 10, 11, 12) } });
-    assert.match(await lastName(page), /^Tuesday 10 November\. /, "a day later it is yesterday, with no 'today'");
+    assert.match(await lastName(page), /^Tuesday, November 10\. /, "a day later it is yesterday, with no 'today'");
     await configure(page, { extra: { now: Date.UTC(2026, 10, 10, 0, 0, 1) } });
-    assert.match(await lastName(page), /^Tuesday 10 November, today\./, "the same UTC date from its first second");
+    assert.match(await lastName(page), /^Tuesday, November 10, today\./, "the same UTC date from its first second");
     await configure(page, { extra: { now: Date.UTC(2026, 10, 9, 23, 59, 59) } });
     assert.ok(!(await lastName(page)).includes("today"), "the day before is not today either");
     await configure(page, { chart: "train", data: "train", extra: { now: Date.UTC(2026, 10, 20) } });
@@ -869,8 +869,8 @@ describe("Chart table and summary", () => {
     assert.deepEqual(heads, ["Date", "Ring", "Watch", "Plan", "Note"]);
     const rows = await table.locator("tbody th[scope=row]").allInnerTexts();
     assert.equal(rows.length, 28);
-    assert.equal(rows[0], "Tue 10 Nov", "newest first");
-    assert.equal(rows.at(-1), "Wed 14 Oct");
+    assert.equal(rows[0], "Tue, Nov 10", "newest first");
+    assert.equal(rows.at(-1), "Wed, Oct 14");
     // numbers end-aligned
     assert.equal(await table.locator("tbody tr").first().locator("td").first().evaluate((el) => getComputedStyle(el).textAlign), "right");
     await page.close();
