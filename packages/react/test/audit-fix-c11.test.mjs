@@ -213,7 +213,9 @@ describe("A1-20: formatters are made once for a locale and its options", () => {
     const time = await load("time-format.js");
     const tokyo = time.formatClock(AT, { timeZone: "Asia/Tokyo" });
     const newYork = time.formatClock(AT, { timeZone: "America/New_York" });
-    assert.equal(tokyo.text, new Intl.DateTimeFormat(undefined, { timeZone: "Asia/Tokyo", hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(AT));
+    // A clock follows its locale (DECISIONS 207): en-US by default writes "11:49 PM"; a 24-hour locale writes what a new 24-hour formatter would.
+    assert.match(tokyo.text, /^11:49[\u00a0\u202f ]PM$/);
+    assert.equal(time.formatClock(AT, { timeZone: "Asia/Tokyo", locale: "en-GB" }).text, new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tokyo", hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(AT));
     assert.equal(tokyo.dateTime, "2026-11-17T23:49");
     assert.equal(newYork.dateTime, "2026-11-17T09:49");
     assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-GB" }).text, "17 Nov");
