@@ -1,6 +1,8 @@
 // Formatters that draw nothing: a moment as a log writes it, a clock, a day, a countdown, an age and a stat's time. They hold no component and no
 // hook, and import nothing, so they live in a module of their own that carries no `"use client"`: a React Server Component calls them. The zone is an
-// argument, never a place. `time.tsx` draws the elements that stand on them.
+// argument, never a place, and so is the locale: it defaults to `en-US`, never to the runtime's, so a server's render and the browser's agree on the hour
+// (DECISIONS 207). A clock a person reads (`formatClock`, `formatStatTime`) follows the locale, so 12-hour in `en-US` ("6:42 PM"), with a numeric hour; a stamp to
+// the second (`formatStamp`) is a log's and stays 24-hour whatever the locale. `time.tsx` draws the elements that stand on them.
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -27,24 +29,34 @@ function parts(date: Date, locale: string | string[] | undefined, options: Intl.
   return out;
 }
 
+/** The hour as the locale writes it: numeric where it is 12-hour ("6:42 PM", never "06:42 PM"), two digits where it is 24-hour ("09:05"; a bare "9:05" is not how those locales write it). */
+const hourStyle = (locale: string | string[] | undefined): "numeric" | "2-digit" => (formatter(locale, { hour: "numeric" }).resolvedOptions().hour12 ? "numeric" : "2-digit");
+
+/** A clock in the locale's hour, its day period ("AM") set off by a narrow no-break space whichever the runtime's data writes (older ICU a plain space, newer U+202F), so a server and a browser agree and "6:42 PM" never breaks. */
+function clockText(locale: string | string[] | undefined, options: Intl.DateTimeFormatOptions, at: Date) {
+  const list = formatter(locale, options).formatToParts(at);
+  return list.map((part, i) => (part.type === "literal" && list[i + 1]?.type === "dayPeriod" ? "\u202f" : part.value)).join("");
+}
+
 export interface TimeOptions {
   /** An IANA zone name. Defaults to the runtime's. */
   timeZone?: string;
+  /** The locale the time is written in. Default `en-US` (never the runtime's, so a server render and its hydration agree). */
   locale?: string | string[];
 }
 
-/** A moment as a log writes it ("14:49:07") and as a machine reads it ("2026-11-17T14:49:07"), in the zone given. */
-export function formatStamp(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
+/** A moment to the second as a log writes it ("14:49:07", always 24-hour) and as a machine reads it ("2026-11-17T14:49:07"), in the zone given. */
+export function formatStamp(time: Date | number, { timeZone, locale = "en-US" }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const hour = p.hour === "24" ? "00" : p.hour;
   const text = formatter(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(time));
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}` };
 }
 
-/** A clock to the minute ("09:39") and its machine form. */
-export function formatClock(time: Date | number, { timeZone, locale }: TimeOptions = {}) {
+/** A clock to the minute as a person reads it, in the locale's hour ("6:42 PM" in `en-US`, "18:42" in `en-GB`), and its machine form (ISO, 24-hour). */
+export function formatClock(time: Date | number, { timeZone, locale = "en-US" }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const text = formatter(locale, { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(new Date(time));
+  const text = clockText(locale, { timeZone, hour: hourStyle(locale), minute: "2-digit" }, new Date(time));
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}` };
 }
 
@@ -83,13 +95,13 @@ export function formatAge(time: Date | number, now: Date | number = new Date(), 
 }
 
 /**
- * The time of a reading as the stat writes it, and its machine form: the clock alone for today ("04:41"), the date added for
- * another day ("Nov 7, 08:02"), and the year only when it differs from this one ("Nov 7, 2025, 08:02").
+ * The time of a reading as the stat writes it, and its machine form: the clock alone for today ("4:41 AM" in `en-US`), the date added for
+ * another day ("Nov 7, 8:02 AM"), and the year only when it differs from this one ("Nov 7, 2025, 8:02 AM"). The hour follows the locale.
  */
-export function formatStatTime(time: Date | number, { now = new Date(), timeZone, locale }: { now?: Date | number; timeZone?: string; locale?: string | string[] } = {}) {
+export function formatStatTime(time: Date | number, { now = new Date(), timeZone, locale = "en-US" }: { now?: Date | number; timeZone?: string; locale?: string | string[] } = {}) {
   const at = new Date(time);
   const base: Intl.DateTimeFormatOptions = { timeZone, hourCycle: "h23" };
-  const clock = formatter(locale, { ...base, hour: "2-digit", minute: "2-digit" }).format(at);
+  const clock = clockText(locale, { timeZone, hour: hourStyle(locale), minute: "2-digit" }, at);
   const day = (d: Date) => parts(d, "en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
   const [then, today] = [day(at), day(new Date(now))];
   const sameDay = then.year === today.year && then.month === today.month && then.day === today.day;

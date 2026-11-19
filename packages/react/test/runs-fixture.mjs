@@ -31,7 +31,7 @@ function Runs() {
   const [page, setPage] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  window.runs = { setLoading, setPage, setQuery };
+  window.runs = { setLoading, setPage, setQuery, setStatus };
   const shown = RUNS
     .filter((r) => (status.length ? status.includes(r.status) : true) && (region.length ? region.includes(r.region) : true) && r.name.includes(query))
     .sort((a, b) => {
@@ -72,7 +72,9 @@ function Runs() {
                   <B.TableRow key={"s" + i}>{COLUMNS.map((c, j) => <B.TableCell key={j}><B.Skeleton style={{ width: j === 1 ? "60%" : 48, height: 12 }} /></B.TableCell>)}</B.TableRow>
                 ))
               : pageRows.length === 0
-                ? <B.TableEmpty colSpan={7} action={<B.Button size="sm" variant="secondary" onClick={() => { setStatus([]); setRegion([]); setQuery(""); }}>Clear filters</B.Button>}>No runs match these filters.</B.TableEmpty>
+                ? (status.length || region.length)
+                  ? <B.TableEmpty colSpan={7} action={<B.Button size="sm" variant="secondary" onClick={() => { setStatus([]); setRegion([]); setQuery(""); }}>Clear filters</B.Button>}>No runs match these filters.</B.TableEmpty>
+                  : <B.TableEmpty colSpan={7} action={<B.Button size="sm" variant="secondary" onClick={() => setQuery("")}>Clear search</B.Button>}>{"No runs match “" + query + "”."}</B.TableEmpty>
                 : pageRows.map((r) => (
                     <B.TableRow key={r.id} selected={picked.includes(r.id)}>
                       <B.TableCell><B.Checkbox aria-label={"Select " + r.name} checked={picked.includes(r.id)} onCheckedChange={(on) => setPicked((p) => (on ? [...p, r.id] : p.filter((x) => x !== r.id)))} /></B.TableCell>

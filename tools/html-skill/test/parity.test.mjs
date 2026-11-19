@@ -671,7 +671,7 @@ const FIGURES = [
   {
     id: "stat",
     react: `<div style={{ width: 640 }}><Stats><Stat label="Weight" value="78.4 kg" note="−0.6 kg this week" source="Scale" time={Date.UTC(2026, 10, 10, 4, 41)} timeZone="UTC" now={Date.UTC(2026, 10, 10, 12)} /><Stat label="Sleep" value="7 h 20 m" source="Ring" /></Stats></div>`,
-    skill: `<div style="width: 640px"><dl class="stats"><div class="stat"><dt class="stat-label">Weight</dt><dd class="stat-value">78.4 kg</dd><dd class="stat-note">−0.6 kg this week</dd><dd class="stat-source"><time datetime="2026-11-10T04:41">04:41</time> <span aria-hidden="true">·</span><span class="visually-hidden">, </span> Scale</dd></div><div class="stat"><dt class="stat-label">Sleep</dt><dd class="stat-value">7 h 20 m</dd><dd class="stat-source">Ring</dd></div></dl></div>`,
+    skill: `<div style="width: 640px"><dl class="stats"><div class="stat"><dt class="stat-label">Weight</dt><dd class="stat-value">78.4 kg</dd><dd class="stat-note">−0.6 kg this week</dd><dd class="stat-source"><time datetime="2026-11-10T04:41">4:41&#8239;AM</time> <span aria-hidden="true">·</span><span class="visually-hidden">, </span> Scale</dd></div><div class="stat"><dt class="stat-label">Sleep</dt><dd class="stat-value">7 h 20 m</dd><dd class="stat-source">Ring</dd></div></dl></div>`,
     pairs: [
       ["stats", ".basalt-stats", ".stats", ["boxWidth", "boxHeight", "display", "gridTemplateColumns", "gap", "marginTop", "paddingTop", "fontFamily"]],
       ["stat", ".basalt-stat:first-child", ".stat:first-child", ["boxWidth", "boxHeight", "display", "flexDirection", "gap", "marginTop", "paddingTop"]],

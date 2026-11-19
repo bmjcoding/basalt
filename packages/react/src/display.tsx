@@ -493,7 +493,10 @@ export function TableScrollHint({ label = defaultHint, className, ref, ...props 
 export interface TableEmptyProps extends Omit<React.ComponentProps<"td">, "colSpan"> {
   /** The number of columns, so the row spans them all and moves nothing. */
   colSpan: number;
-  /** The way out, e.g. a "Clear filters" button. */
+  /**
+   * The way out, named for what hid the rows (DECISIONS 207). A search alone: the sentence names the term (`No runs match “zzq”.`) and the action is "Clear search".
+   * A chosen filter: "Clear filters"; in the mixed case "Clear filters" clears the search too.
+   */
   action?: React.ReactNode;
 }
 

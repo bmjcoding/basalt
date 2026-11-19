@@ -73,7 +73,7 @@ describe("A4-17: the phase chart's Previous and Next week, at the ends, are disa
     const p = weightData(84);
     function Scene() {
       const [week, setWeek] = React.useState(${week});
-      return <div style={{ width: 358, margin: "0 auto", padding: 16 }}><B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={week} onWeekChange={setWeek} summary="Twelve weeks." now={Date.UTC(2026, 10, 10, 12)} format={lb} unit="lb" /></div>;
+      return <div style={{ width: 358, margin: "0 auto", padding: 16 }}><B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={week} onWeekChange={setWeek} laneLabel="Choose a week" previousLabel="Previous week" nextLabel="Next week" callName={(i) => "Week " + (i + 1)} statusLine={(i, c) => "Week " + (i + 1) + " " + c.word + ": " + c.text} activateHint="opens its week" summary="Twelve weeks." now={Date.UTC(2026, 10, 10, 12)} format={lb} unit="lb" /></div>;
     }
     document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)";
     createRoot(document.getElementById("root")).render(<Scene />);`;

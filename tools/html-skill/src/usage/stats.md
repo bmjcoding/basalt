@@ -6,7 +6,7 @@
     <span class="stat-label">Availability</span>
     <span class="stat-value">99.97%</span>
     <span class="stat-note">Target 99.95%</span>
-    <span class="stat-source"><time datetime="2026-11-10T04:41">04:41</time><span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Probe</span>
+    <span class="stat-source"><time datetime="2026-11-10T04:41">4:41&#8239;AM</time><span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Probe</span>
   </div>
 </div>
 ```
@@ -15,7 +15,7 @@
 
 Put each part of a `.stat` on its own line: the layout draws no space, and a text scan reads "Availability 99.97% Target 99.95%", not "Availability99.97%Target 99.95%".
 
-`.stat-source`: where the figure came from and when, tertiary, at the foot; the time is absolute in a `<time datetime>`, never "2 min ago". The dot is `.dot-sep` (`--usage core`): "04:41, Probe" to a screen reader.
+`.stat-source`: where the figure came from and when, tertiary, at the foot; the time is absolute in a `<time datetime>`, in the locale's hour, never "2 min ago". The dot is `.dot-sep` (`--usage core`): "4:41 AM, Probe" to a screen reader.
 
 A small `dl` of figures goes in `.stats.small.num`, one `<div><dt class="muted">…</dt><dd>…</dd></div>` for each.
 

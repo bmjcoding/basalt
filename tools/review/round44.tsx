@@ -115,8 +115,8 @@ function EventsDemo({ state }: { state: string }) {
       <div style={{ maxWidth: 520, ...col }}>
         <EventLog label="Activity">
           <EventLogRule>New since you left</EventLogRule>
-          <EventLine href="#a" verb="opened" object="the pricing page" detail="from the site map" time="09:39:11" unread {...(state === "hover" ? { "data-wt-hover": "" } : {})} />
-          <EventLine href="#b" verb="read" object="the notes" time="17 Nov 09:38" />
+          <EventLine href="#a" verb="opened" object="the pricing page" detail="from the site map" time="Nov 17 9:39 AM" unread {...(state === "hover" ? { "data-wt-hover": "" } : {})} />
+          <EventLine href="#b" verb="read" object="the notes" time="Nov 17 9:38 AM" />
           <EventLogRule>16 Nov</EventLogRule>
           <EventLine href="#c" verb="followed" object="a link" time="09:12:40" />
         </EventLog>

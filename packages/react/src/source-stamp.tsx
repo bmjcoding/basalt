@@ -20,6 +20,8 @@ export interface SourceStampProps extends Omit<React.ComponentProps<"span">, "ch
   at?: Date | number;
   /** The zone the time is written in: an IANA name. Defaults to the runtime's. */
   timeZone?: string;
+  /** The locale the time is written in (digits and separators; the hour stays 24-hour, a stamp to the second). Default `en-US`. */
+  locale?: string | string[];
   /** Makes the stamp a button that opens the request: "Source: github 18:52:07. Open the request." */
   onOpen?: () => void;
 }
@@ -42,8 +44,8 @@ function Mark({ state }: { state: SourceStatus }) {
  * word. Stale and unreachable are in secondary ink and the rest tertiary. One 8 by 10 seat holds every mark, so a state that changes moves
  * nothing, and `space-1-5` follows it. With `onOpen` it is a button, 24 tall (44 on a touch screen).
  */
-export function SourceStamp({ source, state, at, timeZone, onOpen, className, ...props }: SourceStampProps) {
-  const stamp = at !== undefined && (state === "answered" || state === "stale") ? formatStamp(at, { timeZone }) : null;
+export function SourceStamp({ source, state, at, timeZone, locale, onOpen, className, ...props }: SourceStampProps) {
+  const stamp = at !== undefined && (state === "answered" || state === "stale") ? formatStamp(at, { timeZone, locale }) : null;
   const time = stamp ? <time dateTime={stamp.dateTime} className="basalt-time">{stamp.text}</time> : null;
   const words =
     state === "asking" ? <>asking {source}</>
@@ -70,6 +72,8 @@ export interface SourceStateWordsProps extends Omit<React.ComponentProps<"p">, "
   tried?: Date | number;
   why?: string;
   timeZone?: string;
+  /** The locale the time is written in (digits and separators; the hour stays 24-hour, a stamp to the second). Default `en-US`. */
+  locale?: string | string[];
   /** "Ask again". */
   onRetry: () => void;
   /** A way to the same thing elsewhere, after the sentence: a link. */
@@ -83,8 +87,8 @@ const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
  * unreachable right now (tried 18:52:07: timed out)." with an "Ask again" button and a link elsewhere where there is one. Never a spinner or a
  * skeleton. Both sentences stand in one cell (`Reserve`), so the band keeps its height, and the failure is said once, politely.
  */
-export function SourceStateWords({ what, state, tried, why, timeZone, onRetry, alternative, className, ...props }: SourceStateWordsProps) {
-  const stamp = tried !== undefined ? formatStamp(tried, { timeZone }) : null;
+export function SourceStateWords({ what, state, tried, why, timeZone, locale, onRetry, alternative, className, ...props }: SourceStateWordsProps) {
+  const stamp = tried !== undefined ? formatStamp(tried, { timeZone, locale }) : null;
   const detail = stamp ? <> (tried <time dateTime={stamp.dateTime} className="basalt-time">{stamp.text}</time>{why ? `: ${why}` : ""})</> : why ? <> ({why})</> : null;
   return (
     <p {...props} className={join("basalt-source-state", className)} data-state={state}>

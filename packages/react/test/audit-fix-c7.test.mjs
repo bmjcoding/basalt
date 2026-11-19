@@ -108,8 +108,8 @@ describe("A2-20: the coverage words keep each missing day's reason", () => {
   test("adjacent missing days with different reasons are separate runs; the same reason still makes one", () => {
     const day = (date, why) => ({ date, recorded: false, why });
     assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "battery empty")]), "0 of 2 days recorded. Not recorded: Nov 1 (watch not worn), Nov 2 (battery empty).");
-    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "watch not worn"), day("2026-11-03", "battery empty")]), "0 of 3 days recorded. Not recorded: Nov 1 to Nov 2 (watch not worn), Nov 3 (battery empty).");
-    assert.equal(coverageWords([day("2026-11-01"), day("2026-11-02", null), day("2026-11-03", "no reading")]), "0 of 3 days recorded. Not recorded: Nov 1 to Nov 2, Nov 3 (no reading).");
+    assert.equal(coverageWords([day("2026-11-01", "watch not worn"), day("2026-11-02", "watch not worn"), day("2026-11-03", "battery empty")]), "0 of 3 days recorded. Not recorded: Nov 1 to 2 (watch not worn), Nov 3 (battery empty).");
+    assert.equal(coverageWords([day("2026-11-01"), day("2026-11-02", null), day("2026-11-03", "no reading")]), "0 of 3 days recorded. Not recorded: Nov 1 to 2, Nov 3 (no reading).");
   });
 });
 
@@ -141,6 +141,25 @@ describe("A2-21: a running part hydrates when time passed between the server's r
       assert.deepEqual(out.recovered, []);
       assert.equal(out.text, "00:02", "the client's time, not the server's");
       assert.deepEqual(out.datetimes, ["1970-01-01T00:02"]);
+    });
+    test(`${theme}: Clock in en-US across the hour, 12-hour with a numeric hour, and the server and the browser agree (DECISIONS 207)`, async () => {
+      // 11:59 PM on the server, 12:01 AM (the next day) on the client: the hour changes from 11 to 12 and the day period from PM to AM
+      const out = await hydrate("Clock", { timeZone: "UTC", locale: "en-US" }, { server: Date.UTC(2026, 10, 17, 23, 59), client: Date.UTC(2026, 10, 18, 0, 1), theme });
+      assert.deepEqual(out.recovered, []);
+      assert.equal(out.text, "12:01\u202fAM");
+      assert.deepEqual(out.datetimes, ["2026-11-18T00:01"]);
+      const morning = await hydrate("Clock", { timeZone: "UTC" }, { server: Date.UTC(2026, 10, 17, 6, 42), client: Date.UTC(2026, 10, 17, 6, 43), theme });
+      assert.deepEqual(morning.recovered, []);
+      assert.equal(morning.text, "6:43\u202fAM", "en-US is the default, and the hour is numeric, not 06");
+    });
+    test(`${theme}: a server's render and its hydration agree on the hour in en-US and en-GB`, async () => {
+      const at = Date.UTC(2026, 10, 17, 18, 42);
+      for (const [locale, text] of [["en-US", "6:42\u202fPM"], ["en-GB", "18:42"]]) {
+        const out = await hydrate("Clock", { timeZone: "UTC", locale, now: at }, { server: 0, client: 0, theme });
+        assert.deepEqual(out.recovered, [], locale);
+        assert.equal(out.text, text, locale);
+        assert.equal(renderToString(React.createElement(B.Clock, { timeZone: "UTC", locale, now: at })).replace(/<[^>]+>/g, ""), text, `${locale}: the server's markup`);
+      }
     });
     test(`${theme}: Countdown across a few seconds, and across its completing`, async () => {
       const running = await hydrate("Countdown", { to: 60000, done: "Open" }, { server: 0, client: 3000, theme });

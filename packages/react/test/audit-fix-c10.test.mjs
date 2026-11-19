@@ -414,7 +414,7 @@ const PHASE = `import { weightData, calls, lb } from "./test/fixtures/figure-dat
 const p = weightData(84);
 function Scene() {
   const [week, setWeek] = React.useState(11);
-  return <div id="host" style={{ width: window.innerWidth > 720 ? 900 : 340 }}><B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={week} onWeekChange={setWeek} summary="Twelve weeks." now={Date.UTC(2026, 10, 10, 12)} format={lb} unit="lb" /></div>;
+  return <div id="host" style={{ width: window.innerWidth > 720 ? 900 : 340 }}><B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={week} onWeekChange={setWeek} laneLabel="Choose a week" previousLabel="Previous week" nextLabel="Next week" callName={(i) => "Week " + (i + 1)} statusLine={(i, c) => "Week " + (i + 1) + " " + c.word + ": " + c.text} activateHint="opens its week" summary="Twelve weeks." now={Date.UTC(2026, 10, 10, 12)} format={lb} unit="lb" /></div>;
 }
 createRoot(document.getElementById("root")).render(<Scene />);`;
 

@@ -41,7 +41,7 @@ function Scene() {
     case "bars": return wrap(<B.TimeChart title="Steps" kind="bar" days={lastDays(14)} series={[{ id: "s", name: "Steps", values: marksData("columns", 14) }]} lit={c.lit} headline={c.headline} unit="steps" format={(v) => String(Math.round(v))} summary="Steps over 14 days." now={NOW} locale={c.locale} />);
     case "short": return wrap(<B.TimeChart title="Events a day" kind={c.kind ?? "bar"} plotSize={c.plotSize ?? "sm"} compact={c.compact} days={eventsDays()} series={c.series ?? [{ id: "events", name: "Events", values: EVENTS }]} summary={EVENTS_SUMMARY} format={events} now={Date.UTC(2026, 10, 16)} entrance={c.entrance} />);
     case "flat": return wrap(<B.TimeChart title="Weight" kind="line" days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} summary="Weight." {...common} />);
-    case "phase": return wrap(<B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={c.controlled ?? week} onWeekChange={(i) => { window.opened.push(i); setWeek(i); }} summary="Twelve weeks." {...common} />);
+    case "phase": return wrap(<B.PhaseChart title="Weight over twelve weeks" name="Weight" days={p.days} values={p.values} reasons={p.reasons} calls={calls()} week={c.controlled ?? week} onWeekChange={(i) => { window.opened.push(i); setWeek(i); }} summary="Twelve weeks." laneLabel="Choose a week" previousLabel="Previous week" nextLabel="Next week" callName={(i) => "Week " + (i + 1)} statusLine={(i, c) => "Week " + (i + 1) + " " + c.word + ": " + c.text} activateHint="opens its week" {...common} />);
     case "share": return wrap(<div style={{ display: "grid", gap: 24 }}><B.ShareBar id="sm" aria-label="Plan" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="sm" /><B.ShareBar id="md" aria-label="Tally" parts={c.parts ?? [{ name: "Protein", value: 120 }, { name: "Carbs", value: 260 }, { name: "Fat", value: 70 }]} size="md" /></div>);
     case "coverage": return wrap(<div style={{ display: "grid", gap: 24 }}><B.CoverageStrip id="strip" days={coverageDays()} /><B.CoverageStrip id="week" form="week" days={coverageDays(7, [3])} /></div>);
     case "marks": return wrap(<div style={{ display: "grid", gap: 24 }}>{["columns", "pills", "blocks"].map((k) => <B.MarksRow key={k} id={k} kind={k} values={c.marks?.[k] ?? marksData(k, 12)} cap={MARKS_CAP[k]} label={k + " row"} />)}</div>);
@@ -600,7 +600,7 @@ for (const theme of THEMES) {
       assert.equal(await css(missing, "outlineStyle"), "none");
       assert.equal(await css(missing, "borderTopStyle"), "none", "no dashed edge");
       const words = await page.locator("#strip .basalt-coverage-words").innerText();
-      assert.equal(words, "78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn), Sep 28 (no reading), Oct 28 to Oct 29 (no reading).");
+      assert.equal(words, "78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn), Sep 28 (no reading), Oct 28 to 29 (no reading).");
     });
 
     test("the seven-day form is seven squares with a 4px gap, and its words are built from the cells", async () => {

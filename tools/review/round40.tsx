@@ -154,6 +154,7 @@ function PhaseDemo({ state }: { state: string }) {
     <div ref={root} style={col} data-wt-hover>
       <PhaseChart
         title="Weight over twelve weeks" name="Weight" days={w84.days} values={w84.values} reasons={w84.reasons} calls={list} week={week} onWeekChange={setWeek}
+        laneLabel="Choose a week" previousLabel="Previous week" nextLabel="Next week" callName={(i) => `Week ${i + 1}`} statusLine={(i, c) => `Week ${i + 1} ${c.word}: ${c.text}`} activateHint="opens its week"
         format={lb} unit="lb" summary="Weight over twelve weeks, with the week's choice under each. Press a day, or Enter on it, to open its week." now={NOW}
       />
       <Probe

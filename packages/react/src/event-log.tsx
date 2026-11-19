@@ -9,10 +9,12 @@ import { join } from "./utils";
 // session log: `EventTime` and `EventText` are its parts, `ListboxOption`'s `leading` its time cell).
 
 const WIDEST_STAMP = "00:00:00";
-const WIDEST_DAY_STAMP = "00 Mmm 00:00";
+// A day and a clock to the minute reads in the locale's hour (DECISIONS 207): "Nov 7, 8:02 AM" in `en-US`. The widest it can be is "Mmm 00 00:00 PM" there and
+// "Mmm 00 00:00" where the hour is 24-hour, so the column reserves what it holds (in the log's mono font only the count of characters counts, so a day-first locale reserves the same).
+const widestDayStamp = (locale: string | string[]) => (new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hour12 ? "Mmm 00 00:00 PM" : "Mmm 00 00:00");
 
 export interface EventTimeProps extends Omit<React.ComponentProps<"time">, "children"> {
-  /** The time as the app writes it ("14:49:07", or "Nov 17 09:39" on the first line of a day). */
+  /** The time as the app writes it: to the second and 24-hour in a session log ("14:49:07"), or the day and the clock in the locale's hour ("Nov 17 9:39 AM"). */
   children: string;
   /** The widest stamp this column can show, drawn unseen so the column is as wide as it, measured in the line's own font. Default "00:00:00". */
   widest?: string;
@@ -39,13 +41,15 @@ export function EventText({ verb, object, className, ...props }: EventTextProps)
   return <span {...props} className={join("basalt-event-text", className)}><span className="basalt-event-verb">{verb}</span> <span className="basalt-event-object">{object}</span></span>;
 }
 
-const WidestContext = React.createContext(WIDEST_DAY_STAMP);
+const WidestContext = React.createContext("Mmm 00 00:00 PM");
 
 export interface EventLogProps extends Omit<React.ComponentProps<"ul">, "children"> {
   /** Names the list. */
   label: string;
-  /** The widest stamp a line can show ("00 Mmm 00:00", the day and the clock), so the time column holds it. */
+  /** The widest stamp a line can show, so the time column holds it. Default: a day and a clock in the locale's hour ("Mmm 00 00:00 PM" in `en-US`, "Mmm 00 00:00" for a 24-hour locale). */
   widest?: string;
+  /** The locale the lines' times are written in, which the default `widest` follows. Default `en-US`. */
+  locale?: string | string[];
   children: React.ReactNode;
 }
 
@@ -56,7 +60,7 @@ const LINES = "[data-event-line]";
  * (`EventLogRule`). The list keeps `space-1-5` from its own edge for the ring, which is the control ring at +2 outside each line. It does
  * not follow its tail: where the list scrolls, follow the end only while the reader is at it, as a `Terminal` does.
  */
-export function EventLog({ label, widest = WIDEST_DAY_STAMP, className, children, onKeyDown, onFocus, ...props }: EventLogProps) {
+export function EventLog({ label, locale = "en-US", widest = widestDayStamp(locale), className, children, onKeyDown, onFocus, ...props }: EventLogProps) {
   const root = React.useRef<HTMLUListElement>(null);
   // One tab stop: the line last focused, else the first. The attribute is set on the DOM, so the lines' own props never change.
   React.useLayoutEffect(() => {

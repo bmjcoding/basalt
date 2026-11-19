@@ -25,7 +25,19 @@ const parse = (iso: string) => {
   return Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1);
 };
 
-/** The words for what was not recorded, from the cells: "42 of 84 days recorded. Not recorded: Nov 3 to Nov 5 (watch not worn), Nov 9." */
+/**
+ * A range of days in words: the month once when both days share it, the locale's own order, and "to" where the locale puts its range mark.
+ * "Oct 20 to 21" and "Oct 31 to Nov 2" in `en-US`, "20 to 21 Oct" in `en-GB` (DECISIONS 200). Built from the formatter's range parts, never from a string.
+ */
+function dayRange(format: Intl.DateTimeFormat, from: number, to: number): string {
+  const parts = format.formatRangeToParts(from, to);
+  const last = parts.map((part) => part.source).lastIndexOf("startRange");
+  const next = parts.findIndex((part) => part.source === "endRange");
+  if (last < 0 || next < 0) return format.formatRange(from, to);
+  return parts.map((part, i) => (i <= last || i >= next ? part.value : i === last + 1 ? " to " : "")).join("");
+}
+
+/** The words for what was not recorded, from the cells: "42 of 84 days recorded. Not recorded: Nov 3 to 5 (watch not worn), Nov 9." */
 export function coverageWords(days: ReadonlyArray<CoverageDay>, { locale = "en-US", week = false }: { locale?: string; week?: boolean } = {}): string {
   const short = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
   const withDay = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" });
@@ -43,7 +55,7 @@ export function coverageWords(days: ReadonlyArray<CoverageDay>, { locale = "en-U
   const list = runs.map(({ from, to, why }) => {
     const a = parse(from.date);
     const b = parse(to.date);
-    const text = from === to ? (week ? withDay : short).format(a) : `${short.format(a)} to ${short.format(b)}`;
+    const text = from === to ? (week ? withDay : short).format(a) : dayRange(short, a, b);
     return why ? `${text} (${why})` : text;
   });
   return `${lead} Not recorded: ${list.join(", ")}.`;

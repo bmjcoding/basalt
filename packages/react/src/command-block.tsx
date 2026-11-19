@@ -23,6 +23,8 @@ export interface CommandBlockProps extends Omit<React.ComponentProps<"div">, "ch
   /** When it ran, to the second. */
   at?: Date | number;
   timeZone?: string;
+  /** The locale the time is written in (digits and separators; the hour stays 24-hour, a stamp to the second). Default `en-US`. */
+  locale?: string | string[];
   /** What it printed: lines (`LogLine`), tables, trees, links and buttons. */
   children?: React.ReactNode;
 }
@@ -34,9 +36,9 @@ export interface CommandBlockProps extends Omit<React.ComponentProps<"div">, "ch
  * `scroll-padding-bottom` on the scroller for a prompt the app docks; this part owns neither. It is a log of finished work, not a live
  * region: say a new block through a `StatusLine`. Each block is a named `group` (the command), not a landmark: a scrollback of fifty commands is not fifty regions.
  */
-export function CommandBlock({ command, status, refused = false, exit, at, timeZone, className, children, ...props }: CommandBlockProps) {
+export function CommandBlock({ command, status, refused = false, exit, at, timeZone, locale, className, children, ...props }: CommandBlockProps) {
   const id = React.useId();
-  const stamp = at !== undefined ? formatStamp(at, { timeZone }) : null;
+  const stamp = at !== undefined ? formatStamp(at, { timeZone, locale }) : null;
   return (
     <div {...props} role="group" aria-labelledby={id} className={join("basalt-command-block", className)}>
       <div className="basalt-command-block-head">

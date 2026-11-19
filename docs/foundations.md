@@ -24,6 +24,9 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   neutral rim. Under more contrast every side is the input boundary's value, one solid colour (see [More contrast](#more-contrast)). See [Elevation](#elevation).
 - **No ornament that signals "generated":** no gradient borders, no glow, no bounce, and no
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
+- **Default words follow the owner's rules for words.** A string a component ships (a label, a status, an empty state, an announcement, a key hint) is written in US English, in
+  sentence case, as a plain fact with no slogan, and a status names the step it is in. `.agent/skills/site-words/SKILL.md` has the rules and how a rewrite is approved. A word that
+  belongs to one product's rhythm or subject (such as a week, a check-in or a run) is not a default: the product sets it.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
   bar ([Chrome](#chrome-the-smoked-header)). Every dialog, sheet, menu, popover, toast and the
   command menu is solid. Use the class once per viewport; translucent layers never stack. Over art
@@ -260,7 +263,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   the `th`, only on the sorted column. A press cycles ascending then descending; a numeric column, or one with
   `firstSort="descending"` (a time), starts descending; there is no third, cleared state, and the table's default order
   is a sort on a named column. The header band is 32px, and 44 on touch. When no row matches, one row spans every
-  column under the unchanged header with a sentence and a Clear action (`TableEmpty`); it is outside the sticky rules.
+  column under the unchanged header with a sentence and an action that names what hid the rows (`TableEmpty`; DECISIONS 207): a search alone gets a sentence that names the term
+  (`No runs match “zzq”.`) and "Clear search"; a chosen filter gets "Clear filters", which in the mixed case clears the search too. It is outside the sticky rules.
   **At 390** the table scrolls and `pinned` leaves the name sticking, and the select column and the name when there is
   one. A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours: the row's wash is laid
   over the panel's fill as one cell background), and a focused header or action scrolls clear of the pinned columns
@@ -464,10 +468,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   - **Stat with provenance** (`Stats`, `Stat`). The skill's `.stat` look is unchanged (label 13/18 at 500 secondary, figure
     24/30 at 600 with tabular numerals, note 12/16 secondary, `space-1` between, on the page and never boxed), with one
     more slot after the note: the source line, sans 12/16 at 400 in tertiary ink with tabular numerals, the time, a middle
-    dot and the source ("04:41 · Scale", read and scanned as "04:41, Scale": the dot is `DotSep`, below). It is pinned to the foot of the
+    dot and the source ("4:41 AM · Scale", read and scanned as "4:41 AM, Scale": the dot is `DotSep`, below). It is pinned to the foot of the
     stat's grid cell, so sources line up across a row even when one stat has no note. The time is always absolute, in a
     `time` element with a `datetime`, never "2 min ago": the clock alone for today, the date added for another day ("Nov
-    7, 08:02"), the year only when it differs. With no source the slot is left out. A row of stats is one `dl`; each stat
+    7, 8:02 AM"), the year only when it differs. A clock a person reads follows the locale (12-hour in `en-US`, with a numeric hour, never "08:02 AM"; `locale` defaults to `en-US`
+    on every part that writes a time, so a server's render and the browser's agree). With no source the slot is left out. A row of stats is one `dl`; each stat
     is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
   - **Words joined by a dot** (`DotSep`, `DotLine`; the skill's `.dot-sep`; the wording audit's W8). A status line is words with a middle dot between them ("In design · Pilot planned"). The dot is
     drawn by the stylesheet (`::before`, with an empty alternative text, so it is not read; a plain `content` first for a browser that does not take the alternative), and the words are joined for a
@@ -1379,7 +1384,8 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   `duration-slow` when a day is picked (vote 9 had no majority; the glide, with the readable text the target, is the vote's option that stands), and its real value is in the
   text from the first frame. It takes one series, and the legend rows of a chart that does not set it are unchanged, with their reserved widths.
 - **The phase chart** (`PhaseChart`, votes 11, 16 and 17): a `TimeChart` with a trend, the one second plot height (`size-chart-plot-sm`, 96px, fixed at every width), and a
-  lane of one choice a week on the plot's own axis, with the open week's plate behind both. A press on a day, or Enter on the focused day, opens its week; the days stay images
+  lane of one choice a week (seven days a choice; lanes of other lengths are in the backlog) on the plot's own axis, with the open week's plate behind both. The chart ships no word for the period (DECISIONS 207):
+  the lane's name, the previous and next buttons, the numbered name (a function of the index), the status line and the Enter hint are required props, each a whole string the product writes, as `PeriodStepper`'s `previousLabel` and `nextLabel` are. A press on a day, or Enter on the focused day, opens its week; the days stay images
   with a roving tab stop, and there is no live region. The chosen call takes primary ink on the `state-selected` plate with no weight change, and the plate slides over
   `duration-slow` on `ease-out` (3 to 1; none under reduced motion; in forced colours it is a 1px `Highlight` outline). The lane's choices are 44px on touch. Where a week's
   slot is under 44px (twelve choices do not fit a phone), the lane is marks (a changed week's mark is larger) and previous and next controls step through the weeks, with the
@@ -1390,7 +1396,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed), and a part that rounds to 100 beside a part that is not empty reads ">99%" (spoken "more than 99 percent", DECISIONS 167, Q11b, 4 to 0), because "100%" would say the rest is nothing; every other share is a whole number.
 - **The coverage strip** (`CoverageStrip`, vote 14, consent rows 6 to 8): a cell a day, lit when recorded and Basalt's hatch when not (no dashed edge), 48px tall with a
   2px gap and a 2px corner (`radius-2xs`) as a strip of slivers (84 days is a quarter), or seven squares with a 4px gap and `radius-sm` for a week. The cells are hidden from
-  assistive technology; the words ("78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn).") are built from the cells.
+  assistive technology; the words ("78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn), Oct 28 to 29.") are built from the cells; a range of days writes the month once when both ends share it, in the locale's order ("Oct 20 to 21", "20 to 21 Oct" in `en-GB`).
 - **The marks row** (`MarksRow`, vote 15, consent rows 9 to 11): one kind of reading across a run of days in the form of the thing measured: columns standing on the row's floor with
   8px top corners, pills, and blocks with 8px corners; a rest day is a 6px dot (`size-dot`), a missing day the hatch. It is 56px tall (`size-chart-row`, a default the app can
   set). **A written exception to "a bar is square at both ends"** (3 to 1). The marks glide to a new height over `duration-slow`.
@@ -1900,9 +1906,10 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **The event log** (`EventLog`, `EventLine`, `EventLogRule`, `EventTime`, `EventText`, and `ListboxOption`'s `leading`; V3, V4, R5). Lines are links or buttons with one tab stop. The
   ring is the control ring at +2 outside each line, the list keeps `space-1-5` from its edge, the hover wash is full bleed, and focus adds no wash. A new line is
   a 6px dot in a seat every line keeps, with primary ink and a hidden "New: ": no weight change, no colour flash. Each time column is as wide as the widest stamp it can show,
-  measured in the line's own font (the session log "00:00:00"; the activity list its day and clock).
+  measured in the line's own font and following what the column holds (the session log, to the second and 24-hour: "00:00:00"; the activity list, a day and a clock in the locale's hour:
+  "Mmm 00 00:00 PM" in `en-US`).
 - **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
-  always; the "just landed" flash is dropped. Source first, time to the second, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
+  always; the "just landed" flash is dropped. Source first, time to the second and 24-hour, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
@@ -1923,7 +1930,9 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   `[data-own-keys]`, plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
 - **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top, set `document.title` and focus the page's title with no ring; a change that came from a control's own
   value leaves focus on the control (WCAG 3.2.2). The announcement is `StatusLine`.
-- **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14): a relative age is written only beside its absolute date, never alone and never in a
+- **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14; DECISIONS 207): a clock a person reads (`Clock`, `formatClock`, a `Stat`'s time, a day and a clock) follows the locale, so
+  12-hour in `en-US` ("6:42 PM", "Nov 7, 8:02 AM"), with a numeric hour; a stamp to the second (`formatStamp`, the session log, `SourceStamp`, `CommandBlock`'s time) is a log's and stays 24-hour ("18:42:07"). Every
+  formatter and part that writes a time takes `locale`, default `en-US`, so a server's render and the browser's agree on the hour; `dateTime` attributes stay ISO. A countdown is a length of time, not a clock. A relative age is written only beside its absolute date, never alone and never in a
   `Stat`'s source line. A countdown ticks by the second and a clock by the minute on one shared timer; `data-loops="held"` freezes both and releasing writes the current value; no live region; reduced motion does not stop them.
 - **Filter toolbar** (`FilterToolbar`): the kind select (phone only), the filter, `FilterResult` and the sort with the word "Sort" beside it (`aria-hidden`, and in the select's `aria-label`).
 

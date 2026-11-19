@@ -833,7 +833,8 @@ describe("time parts (X11)", () => {
     const at = Date.UTC(2026, 10, 17, 14, 49, 7);
     assert.deepEqual(dist.formatStamp(at, { timeZone: "UTC" }), { text: "14:49:07", dateTime: "2026-11-17T14:49:07" });
     assert.deepEqual(dist.formatStamp(at, { timeZone: "Asia/Tokyo" }), { text: "23:49:07", dateTime: "2026-11-17T23:49:07" });
-    assert.deepEqual(dist.formatClock(at, { timeZone: "UTC" }), { text: "14:49", dateTime: "2026-11-17T14:49" });
+    assert.deepEqual(dist.formatClock(at, { timeZone: "UTC" }), { text: "2:49\u202fPM", dateTime: "2026-11-17T14:49" }, "a clock a person reads follows the locale, en-US by default");
+    assert.deepEqual(dist.formatClock(at, { timeZone: "UTC", locale: "en-GB" }), { text: "14:49", dateTime: "2026-11-17T14:49" });
     assert.deepEqual(dist.formatDay(Date.UTC(2026, 10, 1, 12), { now: at, timeZone: "UTC" }), { text: "Nov 1", dateTime: "2026-11-01" });
     assert.equal(dist.formatDay(Date.UTC(2025, 0, 4, 12), { now: at, timeZone: "UTC" }).text, "Jan 4, 2025", "the year when it is not this one");
     const left = dist.formatCountdown(at + (18 * 86400 + 9 * 3600 + 10 * 60 + 51) * 1000, at);
