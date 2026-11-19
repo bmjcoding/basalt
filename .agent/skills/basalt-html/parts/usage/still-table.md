@@ -14,8 +14,8 @@ A table whose header positions, column widths and alignment never move through a
 </table></div>
 ```
 
-- Every `<col>` has a width except one, which takes the rest; `min-width` on the table is more than they add up to, so the region scrolls instead of squeezing. Never size a column from its content.
-- `th[data-sortable]`: write the words only, the script adds the button and the 16px seat. A press sorts ascending, then descending (a `data-numeric` column, or `data-first-sort="descending"` for a time, starts descending); there is no cleared state. `aria-sort` on the `th` is the state. Rows order by the cell's `data-value`, else its words; an empty or `data-not-observed` cell goes last both ways. To sort yourself, `preventDefault()` the `sortchange` event on the `th`.
-- `data-pinned="1|2|3"` keeps that many leading columns put while a narrow screen scrolls (the name, after a select column); a name is a `th scope="row"`.
-- `tr[data-empty]` is the one row for no match, `hidden` until a filter empties the table. To change rows, replace only `tbody`'s rows.
-- A cut cell is a focus stop (the script sets `data-cut` and `tabindex`) and opens its whole value in place on hover or focus; Esc closes it. Size a fixed-form column (a time, a status) and every header label under WCAG 1.4.12 spacing, so only free text is cut; a cut sortable header opens no plate.
+- Every `<col>` has a width but one, which takes the rest; `min-width` on the table exceeds their sum, so the region scrolls.
+- `th[data-sortable]`: write the words only, the script adds the button and a 16px seat. A press sorts ascending, then descending (a `data-numeric` column, or `data-first-sort="descending"` for a time, starts descending); there is no cleared state. `aria-sort` on the `th` is its state. Rows order by the cell's `data-value`, else its words; an empty or `data-not-observed` cell goes last both ways. To sort yourself, `preventDefault()` the `sortchange` event on the `th`.
+- `data-pinned="1|2|3"` keeps that many leading columns put as a narrow screen scrolls (select, then name); a name is a `th scope="row"`.
+- `tr[data-empty]` is the one row for no match, `hidden` until a filter empties the table. Its action names what hid the rows: "Clear filters" (it clears a search too), or for a search alone `No runs match “zzq”.` and "Clear search". Change rows by replacing only `tbody`'s rows.
+- A cut cell is a focus stop and shows its whole value on hover or focus; Esc closes it. Size a fixed-form column (a time, a status) and every header label for WCAG 1.4.12 spacing, so only free text is cut; a cut sortable header has no plate.

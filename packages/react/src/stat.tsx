@@ -29,7 +29,7 @@ export interface StatProps extends Omit<React.ComponentProps<"div">, "children">
   note?: React.ReactNode;
   /** Where the figure came from: "Scale". Without it the source line is left out. */
   source?: React.ReactNode;
-  /** When it was measured. Always written absolute ("04:41"), never "2 min ago". */
+  /** When it was measured. Always written absolute ("4:41 AM" in `en-US`), never "2 min ago". */
   time?: Date | number;
   /** The zone the time is written in: an IANA name. Defaults to the runtime's. */
   timeZone?: string;

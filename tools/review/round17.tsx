@@ -119,7 +119,9 @@ function Runs({ state }: { state: string }) {
                 <TableRow key={i}>{COLUMNS.map((_c, j) => <TableCell key={j}><Skeleton style={{ width: j === 1 ? "60%" : 48, height: 12 }} /></TableCell>)}</TableRow>
               ))
             ) : rows.length === 0 ? (
-              <TableEmpty colSpan={7} action={<Button size="sm" variant="secondary" onClick={() => { setStatus([]); setRegion([]); setQuery(""); }}>Clear filters</Button>}>No runs match these filters.</TableEmpty>
+              status.length || region.length
+                ? <TableEmpty colSpan={7} action={<Button size="sm" variant="secondary" onClick={() => { setStatus([]); setRegion([]); setQuery(""); }}>Clear filters</Button>}>No runs match these filters.</TableEmpty>
+                : <TableEmpty colSpan={7} action={<Button size="sm" variant="secondary" onClick={() => setQuery("")}>Clear search</Button>}>{`No runs match “${query}”.`}</TableEmpty>
             ) : (
               rows.map((r) => (
                 <TableRow key={r.id} selected={picked.includes(r.id)}>

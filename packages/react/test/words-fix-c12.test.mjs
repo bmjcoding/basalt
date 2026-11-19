@@ -207,10 +207,10 @@ describe("W8: a dot-separated line reads as words, and draws the dot", () => {
         assert.equal(await text(page, "#line"), "In design, Pilot planned");
         assert.equal(await nameOf(page, "#line"), "In design, Pilot planned");
         assert.equal(await text(page, "#line3"), "One, Two, Three", "an empty child draws no separator");
-        assert.equal(await nameOf(page, ".basalt-stat-source"), "04:40, Edge probes");
+        assert.equal(await nameOf(page, ".basalt-stat-source"), "4:40\u00a0AM, Edge probes");
         // The chip's label and note are flex items, and Chrome puts a space between two boxes: "Berry , Out of stock", the comma a pause either way.
         assert.equal((await nameOf(page, "#chips [data-unavailable]")).replace(/\s+,/g, ","), "Berry, Out of stock");
-        for (const [selector, expected] of [[".basalt-stat-source", /^04:40, Edge probes$/], ["#age", /^Nov 1, 11 days ago$/], ["#chips [data-unavailable]", /^Berry, Out of stock$/]]) {
+        for (const [selector, expected] of [[".basalt-stat-source", /^4:40\u00a0AM, Edge probes$/], ["#age", /^Nov 1, 11 days ago$/], ["#chips [data-unavailable]", /^Berry, Out of stock$/]]) {
           const value = await text(page, selector);
           assert.match(value, expected, `${selector}: ${JSON.stringify(value)}`);
           assert.doesNotMatch(value, /·/, `${selector} has no stray dot in its text`);

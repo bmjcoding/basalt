@@ -280,10 +280,19 @@ describe("the empty row", () => {
     assert.equal(e.span, 7);
     assert.ok(Math.abs(e.width - e.tableW) < 1.5);
     assert.equal(e.position, "static", "the spanning cell is not pinned");
-    assert.match(e.text, /No runs match these filters\.\s*Clear filters/);
+    assert.match(e.text, /No runs match “zzz”\.\s*Clear search/, "a search alone: the sentence names the term and the action is Clear search");
     assert.equal(e.headRows, 7);
-    await page.getByRole("button", { name: "Clear filters" }).tap();
+    await page.getByRole("button", { name: "Clear search" }).tap();
     assert.equal(await page.locator("tbody tr[data-empty]").count(), 0);
+  });
+
+  test("a chosen filter's action is Clear filters, and in the mixed case it clears the search too (DECISIONS 207)", async () => {
+    const { page } = await open({ ...PHONE });
+    await page.evaluate(() => { window.runs.setQuery("zzz"); window.runs.setStatus(["Failed"]); }); await frames(page);
+    assert.match(await page.locator("tbody tr[data-empty] td").textContent(), /No runs match these filters\.\s*Clear filters/);
+    assert.equal(await page.getByRole("button", { name: "Clear search" }).count(), 0);
+    await page.getByRole("button", { name: "Clear filters" }).tap();
+    assert.equal(await page.locator("tbody tr[data-empty]").count(), 0, "the empty row is gone: the filter and the search are both cleared");
   });
 });
 
