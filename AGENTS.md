@@ -208,6 +208,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Elsewhere the macOS CI job is the only check: push and read it before you call Swift work
   done.
 
+## Writing words
+
+Any agent that writes, edits or reviews words a visitor will read (the sites, the products, Basalt's own UI strings) reads
+`.agent/skills/site-words/SKILL.md` first: the owner's rules for copy, the research behind them, and how a rewrite is approved.
+
 ## Generating HTML
 
 Any agent (Claude, Codex or another) that writes a standalone HTML page, report, mockup or
