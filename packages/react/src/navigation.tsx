@@ -6,6 +6,7 @@ import { MoreGlyph } from "./glyphs/more";
 import { Button } from "./button";
 import { GoArrow } from "./go-arrow";
 import { Icon } from "./icon";
+import { Reserve } from "./reserve";
 import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
 
@@ -90,7 +91,7 @@ export interface PaginationProps extends Omit<React.ComponentProps<"nav">, "onCh
   maxPages?: number;
   /**
    * What sits between the arrows in the compact form, under `size-breakpoint-container-lg` (640px) of the nearest container (`container-type: inline-size`
-   * on an ancestor; `ListBand` is one): Previous, this and Next, with no numbers. Default "Page 3 of 22". At one page or none the arrows and numbers are
+   * on an ancestor; `ListBand` is one): Previous, this and Next, with no numbers. Default "Page 3 of 22", in a seat as wide as "Page 88 of 88" for the most pages the list can reach, so Next does not move. At one page or none the arrows and numbers are
    * hidden and a summary you pass stays; the default goes too.
    */
   summary?: React.ReactNode;
@@ -176,7 +177,7 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
           ))}
         </div>
       </div>
-      <span className="basalt-pagination-summary" data-default={summary === undefined ? "" : undefined}>{summary ?? `Page ${current} of ${Math.max(count, 1)}`}</span>
+      <span className="basalt-pagination-summary" data-default={summary === undefined ? "" : undefined}>{summary ?? <Reserve show="now" alternatives={{ now: `Page ${current} of ${Math.max(count, 1)}`, seat: `Page ${widest} of ${widest}` }} />}</span>
       {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current >= count)}
     </nav>
   );
