@@ -175,6 +175,13 @@ describe("Pagination: seven fixed slots", () => {
     await wide.close();
   });
 
+  test("a bare Pagination is its own container: at 390 on touch it is the compact form, one row, and the page does not scroll sideways", async () => {
+    const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><B.Pagination page={3} pageCount={20} onPageChange={() => {}} /></div>);`, { width: 390, height: 844, ...COARSE });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+    assert.equal(await page.locator(".basalt-pagination-pages").evaluate((el) => getComputedStyle(el).display), "none");
+    await page.close();
+  });
+
   test("the gap is the core `more` glyph, and the current page is 600 with tabular figures", async () => {
     const page = await open(PAGES(22));
     await page.getByRole("button", { name: "Page 5" }).click();

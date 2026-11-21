@@ -137,6 +137,16 @@
     user-select: none;
     pointer-events: none;
   }
+  /* A page also reserves the widest page number the list can reach, at 600 (DECISIONS 222): a second unseen line, pulled back over the first, so every slot is one width. */
+  :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-widest]::before {
+    content: attr(data-widest);
+    height: 1lh;
+    margin-block-end: -1lh;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
   /* Pagination keeps its centred numeral; a segment or tab puts the reserved slack at the end. */
   :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-label] { align-items: center; }
 
@@ -4875,7 +4885,8 @@
 
   /* Pagination (DECISIONS 222, the owner's pick of Opus's prototype): seven fixed slots, each as wide as the widest page number the list can reach (the hidden reserve row
      holds min(7, maxPages) of them, so the box never changes size and Previous and Next never move), Previous and Next always there, one row and never a wrap. */
-  .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); }
+  /* The nav is its own container, so it needs no ancestor to answer to: it fills its parent as a block does, and its numbers go under 640px of that width. In a flex row give it `flex: 1`. */
+  .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); container-type: inline-size; }
   .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-variant-numeric: tabular-nums; }
   .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
@@ -4915,7 +4926,8 @@
   .basalt-list-band-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
   .basalt-list-band-range { margin: 0; justify-self: start; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .basalt-list-band-range-seat { display: inline-grid; }
-  .basalt-list-band-row > .basalt-pagination { grid-column: 2; justify-self: center; }
+  /* The band is the container (the pager sits in an auto column, which a container of its own would collapse). */
+  .basalt-list-band-row > .basalt-pagination { grid-column: 2; justify-self: center; container-type: normal; }
   .basalt-list-band-size { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
   .basalt-list-band-size-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */

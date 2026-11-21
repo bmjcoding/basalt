@@ -34,7 +34,7 @@ export function FilterToolbar({ label, kind, search, filter, result, sort, sortL
     <div {...props} role="group" aria-label={label} className={join("basalt-filter-toolbar", className)}>
       {kind ? <div className="basalt-filter-toolbar-kind">{kind}</div> : null}
       {search ? <div className="basalt-filter-toolbar-search">{search}</div> : null}
-      {Array.isArray(filter) ? filter.map((one, index) => <div key={index} className="basalt-filter-toolbar-filter">{one}</div>) : filter ? <div className="basalt-filter-toolbar-filter">{filter}</div> : null}
+      {([] as React.ReactNode[]).concat(filter ?? []).map((one, index) => <div key={index} className="basalt-filter-toolbar-filter">{one}</div>)}
       {result ? <div className="basalt-filter-toolbar-result">{result}</div> : null}
       {sort ? (
         <div className="basalt-filter-toolbar-sort">

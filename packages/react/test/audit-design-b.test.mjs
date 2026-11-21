@@ -662,7 +662,7 @@ describe("E2 a component draws the core glyph where the core set has one", () =>
 
 describe("B2 the standalone-link rule leaves a page number, a breadcrumb and a table cell's link to their own rules", () => {
   test("on touch a Pagination of links and Breadcrumbs keep their own 44px boxes, with no negative margin of the standalone rule", async () => {
-    const page = await open(`document.body.style.margin = "0"; ${render(`<div style={{ padding: 16, width: 358 }}><B.Pagination page={2} pageCount={5} hrefForPage={(n) => "#p" + n} /><B.Breadcrumbs items={[{ label: "Home", href: "#" }, { label: "Runs", href: "#r" }, { label: "Run" }]} /></div>`)}`, { theme: "dark", width: 390, height: 844, ...COARSE });
+    const page = await open(`document.body.style.margin = "0"; ${render(`<div style={{ padding: 16, width: 700 }}><B.Pagination page={2} pageCount={5} hrefForPage={(n) => "#p" + n} /><B.Breadcrumbs items={[{ label: "Home", href: "#" }, { label: "Runs", href: "#r" }, { label: "Run" }]} /></div>`)}`, { theme: "dark", width: 390, height: 844, ...COARSE });
     await frames(page);
     const read = await page.evaluate(() => [...document.querySelectorAll(".basalt-pagination a, .basalt-breadcrumbs a")].map((a) => { const s = getComputedStyle(a); const r = a.getBoundingClientRect(); return { margin: s.marginTop, h: r.height }; }));
     assert.ok(read.length >= 5);

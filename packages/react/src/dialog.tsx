@@ -60,7 +60,7 @@ interface FormState {
   dirty: boolean;
   opened: "touch" | "keyboard" | undefined;
 }
-const DialogForm = React.createContext<FormState | null>(null);
+const DialogForm = /* @__PURE__ */ React.createContext<FormState | null>(null);
 
 /**
  * The input that opened a dialog, from the event that opened it: a touch or a pen tap is `touch`, an activation with no pointer (Enter or Space on a button: a

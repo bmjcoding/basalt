@@ -90,8 +90,8 @@ export interface PaginationProps extends Omit<React.ComponentProps<"nav">, "onCh
    */
   maxPages?: number;
   /**
-   * What sits between the arrows in the compact form, under `size-breakpoint-container-lg` (640px) of the nearest container (`container-type: inline-size`
-   * on an ancestor; `ListBand` is one): Previous, this and Next, with no numbers. Default "Page 3 of 22", in a seat as wide as "Page 88 of 88" for the most pages the list can reach, so Next does not move. At one page or none the arrows and numbers are
+   * What sits between the arrows in the compact form, under `size-breakpoint-container-lg` (640px) of its container (`container-type: inline-size`
+   * on an ancestor; `ListBand` is one, and a bare Pagination is its own: it fills its parent, so in a flex row give it `flex: 1`): Previous, this and Next, with no numbers. Default "Page 3 of 22", in a seat as wide as "Page 88 of 88" for the most pages the list can reach, so Next does not move. At one page or none the arrows and numbers are
    * hidden and a summary you pass stays; the default goes too.
    */
   summary?: React.ReactNode;
@@ -132,9 +132,9 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
   }, [current]);
   const control = (value: number, name: string, content: React.ReactNode, ended = false) => {
     const selected = value === current && name.startsWith("Page ");
-    // A page's number is 400 at rest and 600 on the current page, and carries a copy of the widest page number that the stylesheet lays out at 600, so every slot is as wide as
-    // the widest page the list can reach (the same as ChosenLabel does for a segment or a tab).
-    if (typeof content === "number") content = <span data-label={widest}>{content}</span>;
+    // A page's number is 400 at rest and 600 on the current page, and carries a copy of itself that the stylesheet lays out at 600 (the same as ChosenLabel does for a segment or a tab),
+    // and a copy of the widest page number the list can reach (`data-widest`), unseen, so every slot is as wide as the widest page. Both are attributes: the DOM holds the words once.
+    if (typeof content === "number") content = <span data-label={content} data-widest={widest}>{content}</span>;
     // An arrow that has nowhere to go stops but stays: `aria-disabled`, still focusable, as the period stepper's is.
     if (hrefForPage && !ended) return <Link href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link">{content}</Link>;
     // A page that is not there (before the first, after the last) keeps a link's box: a Button's is 4px wider, so reaching the first or last page would move every page after it.
