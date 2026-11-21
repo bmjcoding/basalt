@@ -1889,8 +1889,8 @@ least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not e
 
 **Status.** Picked by the owner from Opus's prototype (DECISIONS 224, 226), with no council vote. The implementation has not been reviewed. Three of the prototype's defects, found
 in Sol's ballot, are not copied (see "Defects" below). `Pagination` is fixed in place, `ListBand` and the form `Dialog` are new in this round, and a numeric `Select`, a toolbar
-`MultiSelect` that holds its width, and a `FilterToolbar` with a search are the parts of a filtered, paged list. The back-to-top button (DECISIONS 225) is still being prototyped:
-the band leaves room for it and draws none.
+`MultiSelect` that holds its width, and a `FilterToolbar` with a search are the parts of a filtered, paged list. Back to top (DECISIONS 225) was prototyped separately and is
+built here after the owner's word on Opus's second prototype (DECISIONS 227 and 228): Back to top and the list's foot, below. Their implementation has not been reviewed either.
 
 **The rule: tasks open in the center; columns open at their side.** A task, meaning anything with an end (a form, a confirmation, a choice that is applied), opens as a centered
 `Dialog` over the scrim from 720. Under 720 a task that holds text entry is a full-screen modal, and a decision stays a centered `AlertDialog`. A side `Sheet` is only the narrow
@@ -1918,6 +1918,35 @@ reader picks 50 per page, and leaves a keyboard's next Tab outside the new page.
 - **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go: Previous, the count and Next, with the page size after them; that is one row at
   390 (a 193px pager and a 132px page size in 358). Under `size-breakpoint-container-sm` (340), where one row would not fit (the 292px card), the page size is the end of a second row,
   so nothing overflows or wraps by its content.
+
+### Back to top and the list's foot
+
+**Back to top** (`BackToTop`, part of `ListBand`; DECISIONS 227 and 228, the owner's design: "someone is scrolling down and then the scroll back up to top appears at the top of the screen during
+scrolling, and if someone physically scrolls up the scroll back up to top goes away"). It replaces a corner button and its position-only rule.
+
+- **Where.** At the top of the screen, centred on the list, `space-2` under the bar, and from 720 `space-2` under the band where it is stuck. It sits in a dock of zero height right after the
+  band (the dock is `position: sticky`; from 720 the band's measured height is added to its top), so it floats over the rows and takes no room: nothing moves when it appears or leaves. It is
+  clear of the tab bar, the toasts and the bottom safe area (they are at the bottom), and of a room's "Jump to latest" (one floating scroll control a view).
+- **When.** It appears while the reader scrolls down, once the list's top is more than one window above the window's top (a page of 10 rows never reaches it), and it stays while they rest. It
+  leaves when they scroll up. The direction turns only after `space-2` (8px) of travel back from the furthest point reached, and the scroll position is held between the page's two ends, so an
+  overscroll's bounce is never a turn. It never leaves while it holds focus (it goes when focus leaves), and it is not drawn while a modal is open. One passive scroll listener, once a frame:
+  the header's phases are decided by position and never by direction, and this control is about direction, by the owner's design.
+- **Look.** A secondary `sm` Button with the core `arrow-up` and "Back to top", solid (the header is the one smoked surface), its own fill and hairline plus `shadow-overlay` because it floats,
+  level 1 like a toast, at every width: 28 tall with radius 6 on a fine pointer, 44 with radius 8 on touch (radius by role); no full radius, which would be a new role for one control. It is not a
+  second glass pill. In forced colours it is ButtonFace with a ButtonText border and no shadow.
+- **Motion.** It fades and never slides: opacity over `duration-fast` on `ease-out` in, 0.75 of that on `ease-in` out, visibility going at the end of the fade so a hidden button is never a focus stop.
+  Under reduced motion it is the same fade and `transform` leaves the transition list.
+- **A press** goes to the top at once, with and without reduced motion (the distance is screens long, and a smooth scroll would only stream rows past; a large moving area is a vestibular trigger),
+  and focuses the list's heading with `preventScroll` before the jump: the start of what the reader came back for, with the search, the filters and the band after it in the Tab order. Its name
+  is "Back to top": it names the place, not a mechanism.
+
+**The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
+DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
+("Incident pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
+under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
+
+**The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
+count keeps `space-1` more on each side: 8px between an arrow and the count, the ring clearing it by 4px.
 
 ### Pagination: seven fixed slots
 

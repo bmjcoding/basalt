@@ -95,6 +95,8 @@ export interface PaginationProps extends Omit<React.ComponentProps<"nav">, "onCh
    * hidden and a summary you pass stays; the default goes too.
    */
   summary?: React.ReactNode;
+  /** Always the compact form (Previous, the summary and Next), whatever the container's width: the list's foot under 720. */
+  compact?: boolean;
 }
 
 type PageItem = number | "gap";
@@ -116,7 +118,7 @@ const eights = (n: number) => String(Math.max(1, Math.floor(n))).replace(/\d/g, 
  * never wraps: under 640px of its container it is Previous, a summary and Next. The current page is its number at 600 on a plate. A press on a number moves focus to
  * the button that holds the current page.
  */
-export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPages, summary, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
+export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPages, summary, compact, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   const current = Math.max(1, Math.min(Math.max(count, 1), Math.floor(page) || 1));
   const whole = count <= 1;
@@ -163,20 +165,22 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
   };
   const items = whole ? [] : pageItems(current, count);
   return (
-    <nav {...props} ref={root} aria-label={label} data-whole={whole ? "" : undefined} className={join("basalt-pagination", className)}>
+    <nav {...props} ref={root} aria-label={label} data-whole={whole ? "" : undefined} data-compact={compact ? "" : undefined} className={join("basalt-pagination", className)}>
       {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current <= 1)}
-      <div className="basalt-pagination-pages">
-        <div className="basalt-pagination-reserve" aria-hidden="true">
-          {Array.from({ length: Math.min(7, reach) }, (_, i) => <span key={i} className="basalt-button" data-variant="ghost" data-size="sm"><span data-label={widest}>{widest}</span></span>)}
+      {compact ? null : (
+        <div className="basalt-pagination-pages">
+          <div className="basalt-pagination-reserve" aria-hidden="true">
+            {Array.from({ length: Math.min(7, reach) }, (_, i) => <span key={i} className="basalt-button" data-variant="ghost" data-size="sm"><span data-label={widest}>{widest}</span></span>)}
+          </div>
+          <div className="basalt-pagination-live">
+            {items.map((item, slot) => (
+              <React.Fragment key={slot}>
+                {typeof item === "number" ? control(item, `Page ${item}`, item) : <span className="basalt-pagination-gap" aria-hidden="true"><span className="basalt-pagination-gap-seat">{widest}</span><Icon icon={MoreGlyph} /></span>}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
-        <div className="basalt-pagination-live">
-          {items.map((item, slot) => (
-            <React.Fragment key={slot}>
-              {typeof item === "number" ? control(item, `Page ${item}`, item) : <span className="basalt-pagination-gap" aria-hidden="true"><span className="basalt-pagination-gap-seat">{widest}</span><Icon icon={MoreGlyph} /></span>}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
+      )}
       <span className="basalt-pagination-summary" data-default={summary === undefined ? "" : undefined}>{summary ?? <Reserve show="now" alternatives={{ now: `Page ${current} of ${Math.max(count, 1)}`, seat: `Page ${widest} of ${widest}` }} />}</span>
       {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current >= count)}
     </nav>

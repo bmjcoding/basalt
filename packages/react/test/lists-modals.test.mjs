@@ -55,15 +55,17 @@ function App() {
   const filtered = sev.length || status.length;
   return (
     <div id="app" style={{ padding: "96px 16px 0", minHeight: 4000 }}>
+      <h2 id="list-title" tabIndex={-1} style={{ margin: "0 0 12px" }}>Your incidents</h2>
       <B.FilterToolbar label="Filter incidents" search={<input id="q" className="basalt-input" aria-label="Search incidents" value={q} onChange={(e) => { setQ(e.target.value); back(); }} />}
         filter={[<B.MultiSelect key="s" toolbar label="Severity" options={${JSON.stringify(SEV.map((v) => ({ value: v, label: v })))}} value={sev} onValueChange={(v) => { setSev(v); back(); }} />,
           <B.MultiSelect key="t" toolbar label="Status" options={${JSON.stringify(STATUS.map((v) => ({ value: v, label: v })))}} value={status} onValueChange={(v) => { setStatus(v); back(); }} />]}
         result={<B.FilterResult>{"Showing " + shown.length + " of " + ALL.length + " incidents"}</B.FilterResult>} />
-      <B.ListBand id="band" total={shown.length} maxTotal={ALL.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents" />
+      <B.ListBand id="band" heading="list-title" footLabel="Incident pages, end of list" total={shown.length} maxTotal={ALL.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents">
       <div className="basalt-card" id="panel">
         {rows.length ? <ul id="rows" style={{ listStyle: "none", margin: 0, padding: 0 }}>{rows.map((r) => <li key={r.n}><a className="row" href={"#" + r.n} style={{ display: "block", padding: "12px 16px", height: 48, boxSizing: "border-box" }}>{r.sev} {r.title} {r.status}</a></li>)}</ul>
           : <div id="empty"><p>{filtered ? (q ? "No incidents match \\u201C" + q + "\\u201D with these filters." : "No incidents match these filters.") : "No incidents match \\u201C" + q + "\\u201D."}</p><B.Button id="clear" onClick={() => { setQ(""); setSev([]); setStatus([]); back(); }}>{filtered ? "Clear filters" : "Clear search"}</B.Button></div>}
       </div>
+      </B.ListBand>
       ${extra}
     </div>
   );
@@ -210,8 +212,8 @@ describe("The band, the filters and the list: nothing moves", () => {
       const first = await page.evaluate(() => window.__boxes());
       const problems = [];
       const check = async (what) => { for (const m of moved(first, await page.evaluate(() => window.__boxes()))) problems.push(`${what}: ${m}`); };
-      const next = page.getByRole("button", { name: "Next page" });
-      const prev = page.getByRole("button", { name: "Previous page" });
+      const next = page.locator(".basalt-list-band-row").getByRole("button", { name: "Next page" });
+      const prev = page.locator(".basalt-list-band-row").getByRole("button", { name: "Previous page" });
       const size = page.getByRole("combobox", { name: "Incidents per page" });
       for (const n of ["10", "50", "100", "25"]) {
         await size.click();
@@ -224,7 +226,7 @@ describe("The band, the filters and the list: nothing moves", () => {
       await size.click();
       await tap(page.getByRole("option", { name: "10", exact: true }));
       for (let p = 1; p <= 21; p += 1) {
-        const widths = await page.evaluate(() => [...document.querySelectorAll(".basalt-pagination-live > *")].map((el) => Math.round(el.getBoundingClientRect().width * 2)));
+        const widths = await page.evaluate(() => [...document.querySelectorAll(".basalt-list-band-row .basalt-pagination-live > *")].map((el) => Math.round(el.getBoundingClientRect().width * 2)));
         if (width >= 720) assert.equal(new Set(widths).size, 1, `slot widths at page ${p}: ${widths}`);
         await next.click();
         await check(`10 per page, page ${p + 1}`);
@@ -463,7 +465,7 @@ describe("The band: sticky, spoken once, compact", () => {
     assert.equal(await band.evaluate((el) => el.getBoundingClientRect().height), h);
     await page.locator("#q").fill("incident 150");
     assert.equal(await band.evaluate((el) => el.getBoundingClientRect().height), h);
-    assert.equal(await page.locator('[aria-label="Next page"]').evaluate((el) => getComputedStyle(el).visibility), "hidden");
+    assert.equal(await page.locator('.basalt-list-band-row [aria-label="Next page"]').evaluate((el) => getComputedStyle(el).visibility), "hidden");
     assert.match(await page.locator(".basalt-list-band-row > .basalt-list-band-range [data-on]").textContent(), /^1–1 of 1/);
     await page.close();
   });
@@ -709,4 +711,264 @@ describe("Dialog as a centred form modal", () => {
       }
     });
   }
+});
+
+// ---- Back to top and the list's foot (DECISIONS 227 and 228) ----
+const MODAL = `<B.Dialog><B.DialogTrigger id="open-modal">Open</B.DialogTrigger><B.DialogContent><B.DialogTitle>A modal</B.DialogTitle><B.DialogDescription>Over the page.</B.DialogDescription><B.DialogActions><B.DialogClose>Close</B.DialogClose></B.DialogActions></B.DialogContent></B.Dialog>`;
+const CASES = [[390, 844, COARSE], [768, 900, COARSE], [1440, 900, {}]];
+const goto = async (page, y) => { await page.evaluate((to) => window.scrollTo(0, to), y); await page.waitForTimeout(140); };
+const isShown = (page) => page.locator(".basalt-back-to-top").evaluate((el) => el.hasAttribute("data-shown"));
+const hundred = async (page) => { await page.getByRole("combobox", { name: "Incidents per page" }).click(); await tap(page.getByRole("option", { name: "100", exact: true })); await settle(page); };
+/** The scroll position where the list's top is one window above the window's top: where Back to top may first be drawn. */
+const threshold = (page) => page.evaluate(() => document.querySelector(".basalt-list-band-sentinel").getBoundingClientRect().top + scrollY + innerHeight);
+
+describe("Back to top", () => {
+  for (const [width, height, options] of CASES) {
+    test(`at ${width}: drawn while scrolling down past one window from the list's top; it leaves on an 8px turn up and comes back on 8px down`, async () => {
+      const page = await open(LIST(MODAL), { width, height, ...options });
+      await hundred(page);
+      assert.equal(await isShown(page), false, "not at the top");
+      const at = await threshold(page);
+      await goto(page, at - 200);
+      assert.equal(await isShown(page), false, "not before the list's top is a window above");
+      await goto(page, at + 300);
+      assert.equal(await isShown(page), true, "scrolling down past it");
+      await goto(page, at + 296);
+      assert.equal(await isShown(page), true, "4px up keeps it");
+      await goto(page, at + 300);
+      assert.equal(await isShown(page), true, "and 4px back down keeps it");
+      await goto(page, at + 288);
+      assert.equal(await isShown(page), false, "12px up takes it away");
+      await goto(page, at + 300);
+      assert.equal(await isShown(page), true, "12px down brings it back");
+      await goto(page, 0);
+      assert.equal(await isShown(page), false, "gone at the top");
+      // The page's ends hold the position: a scroll position past the end is not a turn.
+      await goto(page, 1_000_000);
+      assert.equal(await isShown(page), true, "at the end, arrived going down");
+      await page.close();
+    });
+  }
+
+  test("it is a secondary sm Button with the up arrow and its words: 28 tall on a pointer, 44 on touch, over the overlay shadow, solid", async () => {
+    for (const [width, height, options, h, radius] of [[1440, 900, {}, 28, "6px"], [390, 844, COARSE, 44, "8px"]]) {
+      const page = await open(LIST(), { width, height, ...options });
+      await hundred(page);
+      await goto(page, (await threshold(page)) + 300);
+      const b = await page.locator(".basalt-back-to-top").evaluate((el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return { h: r.height, radius: s.borderTopLeftRadius, shadow: s.boxShadow, bg: s.backgroundColor, text: el.textContent, svg: el.querySelector("svg") !== null, variant: el.getAttribute("data-variant"), size: el.getAttribute("data-size"), name: el.getAttribute("aria-label") }; });
+      assert.equal(Math.round(b.h), h);
+      assert.equal(b.radius, radius);
+      assert.notEqual(b.shadow, "none");
+      assert.notEqual(b.bg, "rgba(0, 0, 0, 0)");
+      assert.deepEqual([b.text, b.svg, b.variant, b.size], ["Back to top", true, "secondary", "sm"]);
+      await page.close();
+    }
+  });
+
+  for (const [width, height, options] of CASES) {
+    test(`at ${width}: centred on the list, space-2 under the bar (under the stuck band from 720), taking no room`, async () => {
+      const page = await open(LIST(), { width, height, ...options });
+      await hundred(page);
+      await goto(page, (await threshold(page)) + 300);
+      const r = await page.evaluate(() => {
+        const b = document.querySelector(".basalt-back-to-top").getBoundingClientRect();
+        const l = document.querySelector("#panel").getBoundingClientRect();
+        const band = document.querySelector(".basalt-list-band").getBoundingClientRect();
+        const dock = document.querySelector(".basalt-back-to-top-dock");
+        return { top: b.top, centre: b.left + b.width / 2, list: l.left + l.width / 2, bandBottom: band.bottom, stuck: getComputedStyle(document.querySelector(".basalt-list-band")).position === "sticky", dockHeight: dock.getBoundingClientRect().height, offset: parseFloat(getComputedStyle(document.querySelector(".basalt-list-band-sentinel")).scrollMarginTop) };
+      });
+      assert.ok(Math.abs(r.centre - r.list) < 0.6, `centre ${r.centre} vs list ${r.list}`);
+      assert.equal(r.dockHeight, 0, "the dock has no height");
+      if (r.stuck) assert.ok(Math.abs(r.top - (r.bandBottom + 8)) < 0.6, `${r.top} vs ${r.bandBottom + 8}`);
+      else assert.ok(Math.abs(r.top - (r.offset + 8)) < 0.6, `${r.top} vs ${r.offset + 8}`);
+      await page.close();
+    });
+  }
+
+  for (const [width, height, options] of CASES) {
+    test(`at ${width}: nothing moves when it appears or leaves: every part of the list measures 0px, shown or not, at one scroll position`, async () => {
+      const page = await open(LIST(), { width, height, ...options });
+      await hundred(page);
+      const at = (await threshold(page)) + 400;
+      const read = () => page.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; };
+        const q = (s) => document.querySelector(s);
+        return { scroll: scrollY, band: box(q(".basalt-list-band")), panel: box(q("#panel")), toolbar: box(q(".basalt-filter-toolbar")), search: box(q("#q")), foot: box(q(".basalt-list-band-foot")), rows: [...document.querySelectorAll("#rows li")].filter((_, i) => i % 7 === 0).map(box), pages: scrollY + innerHeight, doc: document.documentElement.scrollHeight };
+      });
+      // Arrived going down: drawn. Then arrived going up at the same position: not drawn.
+      await goto(page, at - 60);
+      await goto(page, at);
+      assert.equal(await isShown(page), true);
+      const shown = await read();
+      await goto(page, at + 60);
+      await goto(page, at);
+      assert.equal(await isShown(page), false);
+      const hidden = await read();
+      assert.deepEqual(hidden, { ...shown, pages: hidden.pages });
+      assert.equal(hidden.doc, shown.doc);
+      await page.close();
+    });
+  }
+
+  test("it never leaves while it holds focus, and goes when focus leaves it", async () => {
+    const page = await open(LIST(), { width: 1440, height: 900 });
+    await hundred(page);
+    const at = (await threshold(page)) + 400;
+    await goto(page, at);
+    await page.locator(".basalt-back-to-top").focus();
+    await goto(page, at - 100);
+    assert.equal(await isShown(page), true, "holds focus: it stays");
+    await page.locator(".basalt-back-to-top").evaluate((el) => el.blur());
+    await page.waitForTimeout(140);
+    assert.equal(await isShown(page), false, "focus left: it goes");
+    await page.close();
+  });
+
+  test("a press takes the window to the top at once and focuses the list's heading without scrolling to it; the button is gone", async () => {
+    for (const [width, height, options] of CASES) {
+      const page = await open(LIST(), { width, height, ...options });
+      await hundred(page);
+      await goto(page, 1_000_000);
+      assert.equal(await isShown(page), true);
+      await page.locator(".basalt-back-to-top").focus();
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(200);
+      assert.equal(await page.evaluate(() => scrollY), 0, `${width}: at the top`);
+      assert.equal(await page.evaluate(() => document.activeElement.id), "list-title");
+      assert.equal(await isShown(page), false);
+      await page.close();
+    }
+  });
+
+  test("it is not drawn while a modal is open over the page", async () => {
+    const page = await open(LIST(MODAL), { width: 1440, height: 900 });
+    await hundred(page);
+    await goto(page, (await threshold(page)) + 400);
+    assert.equal(await isShown(page), true);
+    await page.evaluate(() => document.getElementById("open-modal").click());
+    await page.locator('[role="dialog"]').waitFor();
+    await page.waitForTimeout(200);
+    assert.equal(await isShown(page), false, "hidden under a modal");
+    await page.keyboard.press("Escape");
+    await page.locator('[role="dialog"]').waitFor({ state: "detached" });
+    await goto(page, (await page.evaluate(() => scrollY)) - 60);
+    await goto(page, (await page.evaluate(() => scrollY)) + 60);
+    assert.equal(await isShown(page), true, "and back once the modal is gone and the reader scrolls down");
+    await page.close();
+  });
+
+  test("it fades and never slides: opacity over duration-fast in and 0.75 out, no transform in any motion setting; forced colours draw no shadow", async () => {
+    for (const reducedMotion of ["no-preference", "reduce"]) {
+      const page = await open(LIST(), { width: 1440, height: 900, reducedMotion });
+      await hundred(page);
+      const sel = ".basalt-back-to-top";
+      const hiddenTiming = await page.locator(sel).evaluate((el) => { const s = getComputedStyle(el); return { d: s.transitionDuration.split(", ")[0], props: s.transitionProperty, v: s.visibility, o: s.opacity }; });
+      assert.equal(hiddenTiming.d, "0.075s", "leaves at 0.75 of the entry");
+      assert.equal(hiddenTiming.v, "hidden");
+      assert.equal(hiddenTiming.o, "0");
+      await goto(page, (await threshold(page)) + 300);
+      const shownTiming = await page.locator(sel).evaluate((el) => { const s = getComputedStyle(el); return { d: s.transitionDuration.split(", ")[0], props: s.transitionProperty, t: s.transform }; });
+      assert.equal(shownTiming.d, "0.1s", "enters over duration-fast");
+      assert.equal(shownTiming.t, "none");
+      if (reducedMotion === "reduce") assert.equal(shownTiming.props.includes("transform"), false, "a fade only");
+      await page.close();
+    }
+    const forced = await open(LIST(), { width: 1440, height: 900, forcedColors: "active" });
+    assert.equal(await forced.locator(".basalt-back-to-top").evaluate((el) => getComputedStyle(el).boxShadow), "none");
+    await forced.close();
+  });
+
+  for (const theme of ["dark", "light"]) {
+    test(`axe finds no violation with Back to top drawn, in ${theme}`, async () => {
+      const page = await open(LIST(), { theme, width: 390, height: 844, ...COARSE });
+      await hundred(page);
+      await goto(page, (await threshold(page)) + 300);
+      assert.equal(await isShown(page), true);
+      assert.deepEqual(await axe(page), []);
+      await page.close();
+    });
+  }
+});
+
+describe("The list's foot", () => {
+  test("under 720 with more than one page: Previous, the count and Next under the rows, centred on the list, with nothing under it", async () => {
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    const foot = page.locator(".basalt-list-band-foot");
+    assert.equal(await foot.evaluate((el) => getComputedStyle(el).display), "block");
+    const r = await page.evaluate(() => {
+      const f = document.querySelector(".basalt-list-band-foot");
+      const nav = f.querySelector("nav");
+      const panel = document.querySelector("#panel").getBoundingClientRect();
+      const kids = [...nav.children].filter((c) => c.getClientRects().length).map((c) => c.getBoundingClientRect());
+      const left = Math.min(...kids.map((k) => k.left));
+      const right = Math.max(...kids.map((k) => k.right));
+      const prev = nav.querySelector('[aria-label="Previous page"]').getBoundingClientRect();
+      const range = nav.querySelector(".basalt-list-band-range-seat").getBoundingClientRect();
+      return { centre: (left + right) / 2, list: panel.left + panel.width / 2, after: f.nextElementSibling === null, belowRows: f.getBoundingClientRect().top >= panel.bottom - 1, name: nav.getAttribute("aria-label"), gap: range.left - prev.right, numbers: nav.querySelectorAll(".basalt-pagination-live").length };
+    });
+    assert.ok(Math.abs(r.centre - r.list) < 0.6, `centred: ${r.centre} vs ${r.list}`);
+    assert.equal(r.after, true, "nothing is drawn after the foot");
+    assert.equal(r.belowRows, true);
+    assert.equal(r.name, "Incident pages, end of list");
+    assert.equal(r.numbers, 0, "no numbers in the foot");
+    assert.ok(r.gap >= 7.9, `the range keeps space-1 more than the arrows' gap: ${r.gap}`);
+    await page.close();
+  });
+
+  test("the band's narrow form keeps the same 8px between an arrow and the count, so the +2 ring clears it", async () => {
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    const gap = await page.evaluate(() => { const nav = document.querySelector(".basalt-list-band-row .basalt-pagination"); return nav.querySelector(".basalt-pagination-summary").getBoundingClientRect().left - nav.querySelector('[aria-label="Previous page"]').getBoundingClientRect().right; });
+    assert.ok(gap >= 7.9, `${gap}`);
+    await page.close();
+  });
+
+  test("from 720 there is no foot; with one page or none it is not drawn", async () => {
+    const wide = await open(LIST(), { width: 1440, height: 900 });
+    assert.equal(await wide.locator(".basalt-list-band-foot").evaluate((el) => getComputedStyle(el).display), "none");
+    await wide.close();
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    await page.locator("#q").fill("incident 150");
+    assert.equal(await page.locator(".basalt-list-band-foot").evaluate((el) => el.hidden || getComputedStyle(el).display === "none"), true);
+    await page.locator("#q").fill("zzq");
+    assert.equal(await page.locator(".basalt-list-band-foot").evaluate((el) => getComputedStyle(el).display), "none");
+    await page.close();
+  });
+
+  test("a press on the foot's Next changes the page, returns the window to where the band rests, focuses the band's own Next, and Back to top goes", async () => {
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    await hundred(page);
+    await page.getByRole("combobox", { name: "Incidents per page" }).click();
+    await tap(page.getByRole("option", { name: "50", exact: true }));
+    await settle(page);
+    await goto(page, 1_000_000);
+    const foot = page.locator(".basalt-list-band-foot").getByRole("button", { name: "Next page" });
+    assert.equal(await isShown(page), true, "at the end, going down: drawn");
+    await foot.tap();
+    await page.waitForFunction(() => /^51–100/.test(document.querySelector(".basalt-list-band-row > .basalt-list-band-range [data-on]").textContent));
+    await page.waitForTimeout(250);
+    const r = await page.evaluate(() => {
+      const band = document.querySelector(".basalt-list-band").getBoundingClientRect();
+      const row = document.querySelector("#rows li").getBoundingClientRect();
+      return { bandTop: band.top, rowTop: row.top, bandBottom: band.bottom, offset: parseFloat(getComputedStyle(document.querySelector(".basalt-list-band-sentinel")).scrollMarginTop), focus: document.activeElement.getAttribute("aria-label"), inBand: document.activeElement.closest(".basalt-list-band-row") !== null };
+    });
+    assert.ok(Math.abs(r.bandTop - r.offset) < 1.5, `the band rests ${r.bandTop} under the top (the bar is ${r.offset})`);
+    assert.ok(r.rowTop >= r.bandBottom - 1 && r.rowTop < r.bandBottom + 3, `the first row is under the band: ${r.rowTop} vs ${r.bandBottom}`);
+    assert.deepEqual([r.focus, r.inBand], ["Next page", true], "focus is on the band's own Next");
+    assert.equal(await isShown(page), false, "the window moved up: Back to top goes");
+    await page.close();
+  });
+
+  test("the foot's Previous mirrors it, and an end keeps focus (aria-disabled)", async () => {
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    const prev = page.locator(".basalt-list-band-foot").getByRole("button", { name: "Previous page" });
+    assert.equal(await prev.getAttribute("aria-disabled"), "true");
+    await page.getByRole("button", { name: "Next page" }).first().tap();
+    await page.getByRole("button", { name: "Next page" }).first().tap();
+    await goto(page, 1_000_000);
+    await prev.tap();
+    await page.waitForTimeout(250);
+    assert.match(await page.locator(".basalt-list-band-row > .basalt-list-band-range [data-on]").textContent(), /^26–50/);
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Previous page");
+    await page.close();
+  });
 });
