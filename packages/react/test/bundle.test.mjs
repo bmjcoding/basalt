@@ -49,9 +49,35 @@ async function graph(name) {
   return { bytes: files.reduce((sum, file) => sum + outputs[file].bytes, 0), chunks: files.length, inputs, entryBytes: outputs[entry].bytes };
 }
 
+/**
+ * What an app fetches after its first paint for one import under splitting: every file reached only by a dynamic import (the glyph engine's file, and for
+ * a CodeBlock the grammars), counted once, with the files it shares with the static graph left out. `names` is the import list.
+ */
+async function lazyGraph(names, extra = "") {
+  const result = await esbuild.build({
+    stdin: { contents: `import { ${names} } from "./dist/index.js"; console.log(${names}); ${extra}`, resolveDir: pkg, loader: "js" },
+    bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, metafile: true,
+    external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+  });
+  const outputs = result.metafile.outputs;
+  const entry = Object.keys(outputs).find((file) => outputs[file].entryPoint === "<stdin>");
+  const seen = new Set();
+  const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+  visit(entry);
+  const lazy = new Set();
+  const visitLazy = (file) => { if (seen.has(file) || lazy.has(file)) return; lazy.add(file); for (const imported of outputs[file].imports) if (!imported.external) visitLazy(imported.path); };
+  for (const file of seen) for (const imported of outputs[file].imports) if (imported.kind === "dynamic-import" && !imported.external) visitLazy(imported.path);
+  const engine = [...lazy].filter((file) => Object.keys(outputs[file].inputs).some((input) => /glyph-flight/.test(input)));
+  return { bytes: engine.reduce((sum, file) => sum + outputs[file].bytes, 0), files: engine.length };
+}
+
+// DECISIONS 221 (the owner: "size limits can be raised yes"): Button 15,600 to 16,150 and Reveal 18,000 to 18,100 (here), the toolbar set 56,050 to 56,350, Terminal 26,600 to 27,000, Pagination
+// 21,600 to 21,750 and NotificationCentre 141,850 to 142,150 with the plugin (below and icons.test.mjs): the controls now draw a core glyph through the morph, and the part every control carries
+// (control-icon.tsx, about 780 bytes in Button) is in each one's static graph; the engine itself is lazy, with its own limit. Measured: Button 16,119, Reveal 18,076, the toolbar set 56,336,
+// Terminal 26,956, Pagination 21,719, NotificationCentre 142,101; each limit is the measurement rounded up to the next 50.
 // The whole static chunk graph, under splitting, for single imports. CommandMenu's lazy panel must not drag the
 // keyboard machinery, the icons or anything else into an import that never mentions it.
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 15_600], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 17_000]]) {
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 16_150], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 17_000]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -315,17 +341,18 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // so its limit is 146,000.
 for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 146_000]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
-    const { bytes, inputs } = await bundle(name);
+    // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
+    const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /shiki|cmdk/.test(f)), []);
   });
 }
 
 // The toolbar (DECISIONS 135): Base UI's toolbar and its roving focus, the direction provider, and Basalt's own controls as items, so
-// the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764. Combined in integration-nov15b: the controls batch's Button (DECISIONS 154) and the links batch's Link arrow (DECISIONS 152) both ride in the set, which measures 56,008, over the 56,000 each side kept, so the limit is 56,050 (the measured bytes rounded up to the next 50).
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 56_050]]) {
+// the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764. Combined in integration-nov15b: the controls batch's Button (DECISIONS 154) and the links batch's Link arrow (DECISIONS 152) both ride in the set, which measures 56,008, over the 56,000 each side kept, so the limit was 56,050 (the measured bytes rounded up to the next 50); DECISIONS 221 raised it to 56,350 for the glyph morphs' shell in Button and IconButton.
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 56_350]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
-    const { bytes, inputs } = await bundle(name);
+    const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /shiki|cmdk|@radix-ui/.test(f)), []);
   });
@@ -345,7 +372,7 @@ for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stat
 // the period stepper is two IconButtons, a status line and the core chevrons, so it carries a Button and nothing else of Base UI.
 for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 17_500, false]]) {
   test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
-    const { bytes, inputs } = await bundle(name);
+    const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
     if (plain) assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons/.test(f)), []);
@@ -391,11 +418,23 @@ test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no S
 });
 
 test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
-  const { bytes, inputs } = await bundle("Terminal");
+  const { bytes, inputs } = await graph("Terminal");
   assert.ok(bytes < 40_000, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
+
+// The glyph engine (src/glyph-flight.tsx) is the one lazy module a control loads: its own file, which carries its own copy of the glyph drawing and the
+// engine, so that no other module is re-split for it. What an app fetches for it, once, after its first paint: measured 7,568 bytes minified (3.4 KB gzipped); DECISIONS 221
+// alone; the limit is that rounded up to the next 50. An app that also uses MorphIcon fetches the same file (the overlap is lazy bytes, never up front).
+const ENGINE_LIMIT = 7_600;
+for (const [label, names] of [["a toggle", "Button"], ["a done seat", "IconButton"], ["navigation", "NavItem, TabBarItem"], ["the copy buttons", "CodeBlock, Terminal"], ["an app that already uses MorphIcon", "Button, IconButton, CopyGlyph, CheckGlyph, MorphIcon"]]) {
+  test(`the glyph engine is one lazy file of at most ${ENGINE_LIMIT} bytes that an eager control fetches: ${label}`, async () => {
+    const { bytes, files } = await lazyGraph(names);
+    assert.equal(files, 1, "one file, and no second engine");
+    assert.ok(bytes > 6_000 && bytes <= ENGINE_LIMIT, `the engine is ${bytes} bytes (limit ${ENGINE_LIMIT})`);
+  });
+}
 
 // The page's parts (DECISIONS 137) are plain elements and class names: each one alone is a few hundred bytes and loads no Base UI, no icon, no keyboard
 // machinery. Measured with splitting, the whole static graph (bytes, before this change in brackets): Lead 347, PageRow 374, PageSections 380, PageSection 361,
@@ -425,7 +464,7 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // Links and rows (DECISIONS 152). The cards, the rows and the back link are plain markup and the core arrow glyphs: no Base UI part, no Phosphor
 // and no Shiki. The three that carry a button (Reveal, DirectoryList's show all, CopyButton) carry Base UI's Button and nothing else.
 // Measured: LinkCard 5,174 bytes, LinkTile 4,597, BackLink 4,004, BigLinkList 391, DirectoryList 16,729, Reveal 16,328, CopyButton 15,495.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 19_000, true], ["Reveal", 18_000, true], ["CopyButton", 17_500, true]]) {
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 19_000, true], ["Reveal", 18_100, true], ["CopyButton", 17_500, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);

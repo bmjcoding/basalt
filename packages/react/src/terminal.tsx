@@ -7,6 +7,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { CopyGlyph } from "./glyphs/copy";
 import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
+import { loadFlight } from "./control-icon";
 import { Icon } from "./icon";
 import { LogFields } from "./log-fields";
 import type { LogFieldsInput } from "./log-fields";
@@ -123,6 +124,10 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     const t = setTimeout(() => setCopied(false), CONFIRM_MS);
     return () => clearTimeout(t);
   }, [copied]);
+  // The compact copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
+  React.useEffect(() => {
+    if (copyable) loadFlight();
+  }, [copyable]);
   const copy = async () => {
     if (!commands) return;
     try {
@@ -175,7 +180,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
               <Button className="basalt-terminal-copy" variant="ghost" size="sm" icon={CopyGlyph} onClick={copy} disabled={!commands}>
                 {swap(copied ? "Copied" : "Copy commands", { "Copy commands": "Copy commands", Copied: "Copied" })}
               </Button>
-              <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckGlyph : CopyGlyph} label={copied ? "Copied" : "Copy commands"} onClick={copy} disabled={!commands} />
+              <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckGlyph : CopyGlyph} label="Copy commands" onClick={copy} disabled={!commands} />
               <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
             </>
           ) : null}

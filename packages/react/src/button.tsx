@@ -2,6 +2,8 @@ import { Button as BaseButton } from "@base-ui/react/button";
 import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";
+import { ControlIcon, useGlyphSlot } from "./control-icon";
+import { glyphOf } from "./control-seat";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, newTabRender, newTabWords } from "./new-tab";
 import { Reserve } from "./reserve";
@@ -102,7 +104,7 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
         onClick?.(event);
       }}
     >
-      {icon ? <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} /> : null}
+      {icon ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
       {/* A text toggle's 16px seat holds the check while pressed and is empty while not, so both are one width. */}
       {toggles && !icon ? <span className="basalt-button-check" aria-hidden="true"><Icon icon={CheckGlyph} size={16} /></span> : null}
       {note ? (
@@ -137,9 +139,10 @@ export type IconButtonProps = BaseProps &
   Toggle & {
     icon: IconComponent;
     /**
-     * The "done" state: the glyph is replaced by `doneIcon` (the core check) in the button's own ink, with a 100ms crossfade that
-     * stays under reduced motion. No fill, no plate and no change of name: say what happened in a polite line outside the button (a
-     * `StatusLine`). Hold it for `CONFIRM_MS` with `useConfirm`. Both glyphs share one seat, so nothing moves.
+     * The "done" state: the glyph is replaced by `doneIcon` (the core check) in the button's own ink. A core pair the morphs allow (Copy and
+     * Check) morphs; any other pair crossfades over 100ms, which stays under reduced motion. No fill, no
+     * plate and no change of name: say what happened in a polite line outside the button (a `StatusLine`). Hold it for `CONFIRM_MS`
+     * with `useConfirm`. Both glyphs share one seat, so nothing moves.
      */
     done?: boolean;
     /** The glyph shown while `done`. Default: the core check. */
@@ -149,6 +152,31 @@ export type IconButtonProps = BaseProps &
     /** Required: an icon-only button has no visible text, so this is its name. Also shown as its tooltip by convention. For a button that opens a new tab, the words are added to it. */
     label: string;
   };
+
+interface DoneSeatProps {
+  icon: IconComponent;
+  doneIcon: IconComponent;
+  done: boolean;
+  size: 16 | 20;
+  selected: boolean;
+  fillSafe?: boolean;
+}
+
+/**
+ * The seat of `done`: rest and done share one cell of the glyph's size and swap by opacity (the stylesheet), so the button never changes. Both
+ * glyphs stay mounted whatever they are, which is what lets the stylesheet's crossfade run for a pair the morphs do not allow (core and
+ * long-tail, or any other). A pair they allow (Copy and Check) runs through the engine, whose frame is drawn over the cell, the glyphs out of sight.
+ */
+function DoneSeat({ icon, doneIcon, done, size, selected, fillSafe }: DoneSeatProps) {
+  const [Morph, from] = useGlyphSlot(done ? { icon: doneIcon, selected: false } : { icon, selected }, Boolean(glyphOf(icon) && glyphOf(doneIcon)));
+  return (
+    <span className="basalt-button-swap" aria-hidden="true">
+      <Icon icon={icon} size={size} selected={selected} fillSafe={fillSafe} />
+      <Icon icon={doneIcon} size={size} />
+      {Morph ? <Morph overlay icon={done ? doneIcon : icon} selected={done ? false : selected} size={size} from={from} /> : null}
+    </span>
+  );
+}
 
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
 export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading = false, disabled, onClick, className, newTabLabel, render, ...props }: IconButtonProps) {
@@ -181,13 +209,9 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, do
       }}
     >
       {done !== undefined ? (
-        // Rest and done share one cell of the glyph's size, and swap by opacity: the button never changes.
-        <span className="basalt-button-swap" aria-hidden="true">
-          <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
-          <Icon icon={doneIcon} size={iconSize(size)} />
-        </span>
+        <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
       ) : (
-        <Icon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
+        <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} />
       )}
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>

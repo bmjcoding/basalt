@@ -498,7 +498,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     too: the prompt's width plus 1ch, at least 24px, measured by the browser and never counted in characters, so `$` is exactly
     24px and a longer prompt ("PS>") or a wide glyph widens the column for every line and the text of every line starts on one
     edge. The terminal is the container for its own head: under 30rem of its own width (not the viewport's) the copy button is
-    the icon alone (Copy, swapping to Check, announcing "Copied") and keeps its name "Copy commands", so a live head is two rows
+    the icon alone (Copy, morphing to Check as drawn, announcing "Copied") and keeps its name "Copy commands", so a live head is two rows
     at 390. A finished run's head keeps the callout's marks in the 16px seat (CheckCircle in the success colour; XCircle with
     "Failed, exit 1" in danger ink) and "Done" in the head's secondary ink. A replay that hasn't started shows one sentence in the
     log's box, "Press Play to start", in tertiary ink, which leaves when the first line arrives; Play and Replay make the region a
@@ -1758,7 +1758,7 @@ A product's own logo is its own; the social marks are Phosphor's (below).
   download, both ways. Every other change swaps at once. A morph in flight keeps its identity: a
   request for where it is going does nothing, a request for where it came from runs it back, and a
   request for another member of its group turns on; anything else swaps at once. They run at
-  `slow` on `ease-out`, and reduced motion swaps at once.
+  `slow` on `ease-out`, and reduced motion swaps at once. Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
 - **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).

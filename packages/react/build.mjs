@@ -57,13 +57,32 @@ await esbuild.build({
   banner: { js: `"use client";\n/*! ${phosphorNotice}\n*/` },
 });
 
+// The glyph engine is the other lazy module (a control's glyph change loads it on first need, control-icon.tsx), built the same way and for the same reason:
+// every file it shares with an ordinary import would otherwise become a chunk of its own that the ordinary import then loads, and a core glyph's module
+// (HomeGlyph, 3 KB) would pay for the split. The few files it needs (the glyph's drawing, the engine's timing) are inlined, so it shares nothing with the
+// rest of the package and costs a second copy of them only when a glyph first changes. (It overlaps with `MorphIcon`'s static copy of the engine in an app that
+// uses both: lazy bytes after the first paint, and the trade for leaving every glyph module as it is.)
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/glyph-flight.tsx")],
+  outdir: dist,
+  external: external.filter((name) => !name.startsWith("@phosphor-icons")),
+  plugins: [{ name: "lazy-flight", setup(build) { build.onResolve({ filter: /^\.\/glyph-flight$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./glyph-flight.js", external: true } : undefined)); } }],
+  banner: { js: `"use client";` },
+});
+
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
   // The core glyphs are modules of their own (src/glyphs), so an app that imports HomeGlyph bundles only HomeGlyph.
   entryPoints: [
     // index.ts is not bundled: it is a barrel of `export { … } from "./module"` and is written as one, below, so each export comes from the module that holds it.
-    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx" && f !== "index.ts").map((f) => path.join(here, "src", f)),
+    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "command-panel.tsx" && f !== "glyph-flight.tsx" && f !== "index.ts").map((f) => path.join(here, "src", f)),
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
     // Development tooling (the headroom check): its own entry under dist/testing, imported by no component and not exported from the root.
     ...fs.readdirSync(path.join(here, "src", "testing")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "testing", f)),
@@ -71,7 +90,7 @@ await esbuild.build({
     ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
   define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice) },
-  plugins: [{ name: "lazy-panel", setup(build) { build.onResolve({ filter: /^\.\/command-panel$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./command-panel.js", external: true } : undefined)); } }],
+  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
   splitting: true,
@@ -124,7 +143,7 @@ const needsClient = (file, seen = new Set()) => {
   seen.add(file);
   return staticImports(fs.readFileSync(path.join(dist, file), "utf8")).some((specifier) => clientImport.test(specifier) || (/^\.\/chunk-/.test(specifier) && needsClient(specifier.slice(2), seen)));
 };
-for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && f !== "command-panel.js")) {
+for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && f !== "command-panel.js" && f !== "glyph-flight.js")) {
   const code = fs.readFileSync(path.join(dist, file), "utf8");
   if (needsClient(file)) fs.writeFileSync(path.join(dist, file), `"use client";\n${code}`);
 }

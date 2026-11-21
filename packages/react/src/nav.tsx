@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { Tooltip } from "./display";
-import { Icon } from "./icon";
+import { ControlIcon } from "./control-icon";
 import { GlidePlate } from "./plate";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
@@ -89,7 +89,7 @@ export function NavItem({ icon, children, current = false, count, dot, className
   const link = (
     <a {...props} aria-current={current ? "page" : props["aria-current"]} data-glyphless={icon ? undefined : ""} className={join("basalt-nav-item", className)}>
       <span className="basalt-nav-pill">
-        {icon ? <Icon icon={icon} size={24} selected={current} /> : null}
+        {icon ? <ControlIcon icon={icon} size={24} selected={current} eager={current} /> : null}
         <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-label"} data-label={collapsed ? undefined : children}>{children}</span>
         {count !== undefined ? <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-count"}><span className="basalt-visually-hidden">, </span>{count}</span> : null}
         {dot ? (

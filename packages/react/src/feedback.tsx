@@ -13,6 +13,7 @@ import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { CopyGlyph } from "./glyphs/copy";
 import { IconButton } from "./button";
 import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
+import { loadFlight } from "./control-icon";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import type { CodeToken } from "./syntax";
@@ -327,6 +328,10 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
     const t = setTimeout(() => setCopied(false), CONFIRM_MS);
     return () => clearTimeout(t);
   }, [copied]);
+  // The copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
+  React.useEffect(() => {
+    if (copyable) loadFlight();
+  }, [copyable]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -337,7 +342,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
   };
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label={copied ? "Copied" : "Copy code"} onClick={copy} />
+      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label="Copy code" onClick={copy} />
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>
   ) : null;
