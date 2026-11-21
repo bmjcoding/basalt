@@ -1,0 +1,152 @@
+import * as React from "react";
+
+import { Select } from "./choice";
+import { StatusLine } from "./filter-result";
+import { Pagination } from "./navigation";
+import { Reserve } from "./reserve";
+import { join } from "./utils";
+
+// The list's band (DECISIONS 222, the owner's pick of Opus's prototype): everything that pages a list, as one band above it. The count at the start, the pager in the centre,
+// the page size at the end. Only the rows below change, so nothing in the band can be pushed. From 720 it sticks under the app's bar, opaque in the page colour, with a divider
+// under it only while it is stuck. Nothing runs when this module loads.
+
+const DEFAULT_SIZES = [10, 25, 50, 100] as const;
+
+export interface ListBandProps extends Omit<React.ComponentProps<"div">, "children" | "onChange"> {
+  /** How many rows match now (after any search and filters). 0 blanks the count and hides the pager, keeping their room. */
+  total: number;
+  /**
+   * The most rows the list can ever hold (its unfiltered count). The count's seat is as wide as its widest form ("888–888 of 888") and the pager's slots as wide as the
+   * widest page number at the smallest size, so a filter that narrows the list moves nothing. Default `total`: give it whenever `total` can change.
+   */
+  maxTotal?: number;
+  /** The current page, from 1. */
+  page: number;
+  /** Rows on a page. */
+  pageSize: number;
+  /** The page sizes the reader can choose from. Default 10, 25, 50 and 100. */
+  pageSizes?: readonly number[];
+  onPageChange?: (page: number) => void;
+  /**
+   * Called with the size the reader chose. The band then calls `onPageChange` with the page that holds the reader's first row (page 3 of 25 becomes page 6 of 10), so
+   * set the size and take the page it gives; do not reset to page 1.
+   */
+  onPageSizeChange?: (pageSize: number) => void;
+  /** What the rows are, plural and capitalised, in the app's words: "Incidents". It names the page-size select ("Incidents per page") and is said in the announcement. */
+  noun: string;
+  /** The words after the page-size select. Default "per page". The select's name is `noun` then these. */
+  sizeLabel?: string;
+  /** The pager's name. Default "Pagination". */
+  pagerLabel?: string;
+  /** Milliseconds the page or size must hold still before it is spoken. Default 400. */
+  delay?: number;
+}
+
+const eights = (n: number) => String(Math.max(0, Math.floor(n))).replace(/\d/g, "8");
+
+/** The sentinel's top is where the band rests; a stuck band is under the bar. Scroll the window by the difference, so the band stays where it is and the new page starts under it. */
+function returnToRest(band: HTMLElement, sentinel: HTMLElement) {
+  window.scrollBy({ top: sentinel.getBoundingClientRect().top - band.getBoundingClientRect().top, behavior: "instant" });
+}
+
+/**
+ * The count, the pager and the page size of a list of rows or of a still table, above it. It does not hold the rows or the page: the app owns `page` and `pageSize`, filters
+ * and sorts, and returns to page 1 on a search, a filter or a sort. A page or size change is spoken once, after `delay` ms of stillness, by the band's own polite status line;
+ * a change of `total` (a search or a filter) clears it, since the filter's result line speaks that. When the page or size changes while the band is stuck, the window returns
+ * to where the band rests, so the new page's first row shows under the band and Next stays under the pointer. Under 640px of its own width the numbers go (Previous, the count and Next),
+ * and under 340px the page size moves to the end of a second row.
+ */
+export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, className, ...props }: ListBandProps) {
+  const count = Math.max(0, Math.floor(total) || 0);
+  const size = Math.max(1, Math.floor(pageSize) || 1);
+  const pages = Math.max(1, Math.ceil(count / size));
+  const current = Math.max(1, Math.min(pages, Math.floor(page) || 1));
+  const from = count ? (current - 1) * size + 1 : 0;
+  const to = Math.min(current * size, count);
+  const reach = Math.max(count, Math.floor(maxTotal ?? 0) || 0);
+  const smallest = Math.max(1, Math.min(...pageSizes));
+  const band = React.useRef<HTMLDivElement>(null);
+  const sentinel = React.useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = React.useState(false);
+  const rest = React.useRef(false);
+
+  // From 720 the band is `position: sticky`: a sentinel just above it says when it is stuck. A hidden sentinel, or a band that does not stick (under 720), is never stuck.
+  React.useEffect(() => {
+    const mark = band.current;
+    const above = sentinel.current;
+    if (!mark || !above || typeof IntersectionObserver === "undefined") return undefined;
+    let observer: IntersectionObserver | undefined;
+    const watch = () => {
+      observer?.disconnect();
+      const top = Number.parseFloat(getComputedStyle(mark).top);
+      if (getComputedStyle(mark).position !== "sticky" || !Number.isFinite(top)) { setStuck(false); return; }
+      observer = new IntersectionObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        if (entry) setStuck(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0) + 1);
+      }, { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0 });
+      observer.observe(above);
+    };
+    watch();
+    const wide = window.matchMedia("(width >= 720px)");
+    wide.addEventListener("change", watch);
+    return () => { observer?.disconnect(); wide.removeEventListener("change", watch); };
+  }, []);
+
+  // What the band says: a page or size change, once. A change of `total` is a filter or a search and clears what was said (FilterResult speaks that).
+  const last = React.useRef({ total: count, page: current, size });
+  const [said, setSaid] = React.useState({ text: "", id: 0 });
+  React.useLayoutEffect(() => {
+    const before = last.current;
+    last.current = { total: count, page: current, size };
+    if (before.total !== count) setSaid((now) => (now.text ? { text: "", id: now.id + 1 } : now));
+    else if (before.page !== current || before.size !== size) setSaid((now) => ({ text: `Page ${current} of ${pages}. ${noun} ${from} to ${to} of ${count}.`, id: now.id + 1 }));
+    if ((before.page !== current || before.size !== size) && rest.current && stuck && band.current && sentinel.current) returnToRest(band.current, sentinel.current);
+    rest.current = false;
+  }, [count, current, size, pages, noun, from, to, stuck]);
+
+  const widest = eights(reach);
+  const range = (
+    <Reserve
+      show={count ? "now" : "none"}
+      alternatives={{ now: `${from}–${to} of ${count}`, none: "", seat: `${widest}–${widest} of ${widest}` }}
+      className="basalt-list-band-range-seat"
+    />
+  );
+  return (
+    <>
+      <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
+      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} className={join("basalt-list-band", className)}>
+        <div className="basalt-list-band-row">
+          <p className="basalt-list-band-range">{range}</p>
+          <Pagination
+            aria-label={pagerLabel}
+            page={current}
+            pageCount={count ? pages : 0}
+            maxPages={Math.ceil(reach / smallest)}
+            summary={range}
+            onPageChange={(next) => { rest.current = true; onPageChange?.(next); }}
+          />
+          <div className="basalt-list-band-size">
+            <Select
+              numeric
+              aria-label={`${noun} ${sizeLabel}`}
+              options={pageSizes.map((n) => ({ value: String(n), label: String(n) }))}
+              value={String(size)}
+              onValueChange={(value) => {
+                const next = Number(value);
+                if (!value || !Number.isFinite(next) || next === size) return;
+                rest.current = true;
+                // The reader's first row stays in view: the page that holds it at the new size.
+                const first = (current - 1) * size;
+                onPageSizeChange?.(next);
+                onPageChange?.(Math.floor(first / next) + 1);
+              }}
+            />
+            <span className="basalt-list-band-size-label" aria-hidden="true">{sizeLabel}</span>
+          </div>
+        </div>
+        <StatusLine delay={delay} sendId={said.id}>{said.text}</StatusLine>
+      </div>
+    </>
+  );
+}

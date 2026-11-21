@@ -197,6 +197,11 @@ export interface SelectProps {
    * `aria-label` is not used (WCAG 2.5.3). The trigger's height and the value's place do not change with it.
    */
   valuePrefix?: string;
+  /**
+   * The options are numbers (a page size: 10, 25, 50, 100). The trigger is as wide as its widest option, below `size-select-min`, and does not follow the
+   * chosen value's width: every option is drawn in the trigger's one cell, unseen, so choosing moves nothing beside it.
+   */
+  numeric?: boolean;
   className?: string;
 }
 
@@ -204,7 +209,7 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, inputRef, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, inputRef, ...props }: SelectProps) {
   const mirror = useMirrorRef(inputRef);
   const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
@@ -212,11 +217,16 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
     <BaseSelect.Root {...props} inputRef={mirror} items={items}>
-      <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
+      <BaseSelect.Trigger data-numeric={numeric ? "" : undefined} aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         {valuePrefix ? (
           <span className="basalt-select-lead">
             <span id={ids.prefix} className="basalt-select-prefix">{valuePrefix}</span>
             <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
+          </span>
+        ) : numeric ? (
+          <span className="basalt-select-seat">
+            <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+            {options.map((o) => <span key={o.value} className="basalt-select-sizer" aria-hidden="true">{o.label}</span>)}
           </span>
         ) : (
           <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />

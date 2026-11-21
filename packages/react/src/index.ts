@@ -165,9 +165,11 @@ export type { AlertDialogProps, SheetContentProps, SheetHeaderProps, SheetSide }
 export { ProfileLink, ProfileLinks, SocialLink, SocialLinks } from "./social-links";
 export type { ProfileLinkProps, ProfileLinksProps, SocialLinkProps, SocialLinksProps, SocialService, SocialSize } from "./social-links";
 export { Breadcrumbs, Link, Pagination } from "./navigation";
+export { ListBand } from "./list-band";
 export { BackLink } from "./back-link";
 export type { BackLinkProps } from "./back-link";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
+export type { ListBandProps } from "./list-band";
 export { LinkCard, LinkTile } from "./link-card";
 export type { LinkCardProps, LinkTileProps } from "./link-card";
 export { BigLinkList, BigLinkRow, DirectoryList, DirectoryRow } from "./link-rows";
