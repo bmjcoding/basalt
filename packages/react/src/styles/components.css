@@ -794,11 +794,11 @@
   }
 
   /* A form dialog (DECISIONS 222; the owner's pick of Opus's prototype): a task opens in the center. The box is the dialog's, the parts are the sheet's head, body and foot
-     (DECISIONS 155): edge to edge, the head and foot held, the body scrolling. Its top is held where it opened (the script writes --basalt-dialog-top), so what grows grows
+     (DECISIONS 155): edge to edge, the head and foot held, the body scrolling. Its top is held where it opened (the script writes --_dialog-top), so what grows grows
      downward; the height is at most the window less space-4 above and below (the dialog's own max-height), and less its top once the top is held. */
   .basalt-dialog[data-form] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-  .basalt-dialog[data-form][data-held] { top: var(--basalt-dialog-top); max-height: calc(100dvh - var(--basalt-dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
+  .basalt-dialog[data-form][data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
   .basalt-dialog[data-form][data-held][data-starting-style],
   .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%) scale(0.98); }
   .basalt-dialog[data-form] .basalt-sheet-body { padding-block: var(--basalt-space-5); }

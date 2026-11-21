@@ -129,7 +129,7 @@ export function DialogContent({ className, style, children, ref, size = "default
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} onInput={(event) => { if (form && state) state.dirty = true; props.onInput?.(event); }} onChange={(event) => { if (form && state) state.dirty = true; props.onChange?.(event); }} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--basalt-dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} onInput={(event) => { if (form && state) state.dirty = true; props.onInput?.(event); }} onChange={(event) => { if (form && state) state.dirty = true; props.onChange?.(event); }} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

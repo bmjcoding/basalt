@@ -640,7 +640,8 @@ describe("Dialog as a centred form modal", () => {
     await page.locator("#opener").focus();
     await page.keyboard.press("Enter");
     await page.locator("#declare").waitFor();
-    assert.equal(await page.evaluate(() => document.activeElement.id), "what");
+    await settle(page);
+    await page.waitForFunction(() => document.activeElement.id === "what", null, { timeout: 3000 });
     await page.close();
   });
 
