@@ -783,6 +783,40 @@
     margin-top: var(--basalt-space-6);
   }
 
+  /* A form dialog (DECISIONS 222; the owner's pick of Opus's prototype): a task opens in the center. The box is the dialog's, the parts are the sheet's head, body and foot
+     (DECISIONS 155): edge to edge, the head and foot held, the body scrolling. Its top is held where it opened (the script writes --basalt-dialog-top), so what grows grows
+     downward; the height is at most the window less space-4 above and below (the dialog's own max-height), and less its top once the top is held. */
+  .basalt-dialog[data-form] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+  .basalt-dialog[data-form][data-held] { top: var(--basalt-dialog-top); max-height: calc(100dvh - var(--basalt-dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
+  .basalt-dialog[data-form][data-held][data-starting-style],
+  .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%) scale(0.98); }
+  .basalt-dialog[data-form] .basalt-sheet-body { padding-block: var(--basalt-space-5); }
+  /* The description opens the body, so the held head stays one line. */
+  .basalt-dialog[data-form] .basalt-sheet-body > .basalt-dialog-description:first-child { margin: 0 0 var(--basalt-space-5); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions { margin-top: 0; }
+  /* Under 720 a form is a full-screen modal: the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion. The
+     head takes the top safe area and the foot the bottom one; the foot's two actions are equal 44px buttons, Cancel first. An alert dialog stays centred at every width. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) {
+    .basalt-dialog[data-form], .basalt-dialog[data-form][data-held] {
+      inset: 0;
+      /* stylelint-disable-next-line unit-disallowed-list -- the window's height (a viewport unit); a fixed-length token cannot say it */
+      height: 100dvh;
+      width: 100%;
+      max-width: none;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+      transition-duration: var(--basalt-duration-slower);
+    }
+    .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 1; transform: translateY(100%); }
+    .basalt-dialog[data-form][data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > * { flex: 1 1 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--basalt-radius-md); min-height: var(--basalt-size-control-2xl); }
+  }
+
   /* ---- Tabs ---- */
 
   .basalt-tabs-list {
@@ -5464,6 +5498,12 @@
     .basalt-tooltip[data-ending-style] { transform: none; }
     .basalt-dialog[data-starting-style],
     .basalt-dialog[data-ending-style] { transform: translate(-50%, -50%); }
+    .basalt-dialog[data-form][data-held][data-starting-style],
+    .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%); }
+    /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+    @media (width < 720px) {
+      .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 0; transform: none; }
+    }
     .basalt-tabs-indicator { transition: none; }
     .basalt-switch-thumb { transition-property: background-color; }
     /* The stack sits at its final offsets: only opacity changes, and no height or position eases. */

@@ -484,3 +484,221 @@ describe("The band: sticky, spoken once, compact", () => {
     await page.close();
   });
 });
+
+// ---- The centred form modal ----
+const FORM = (extra = "") => `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+function Declare() {
+  const [open, setOpen] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  return (
+    <div style={{ padding: 16 }}>
+      <B.Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(false); }}>
+        <B.DialogTrigger id="opener" className="basalt-button" data-variant="primary">Declare incident</B.DialogTrigger>
+        <B.DialogContent form id="declare">
+          <B.SheetHeader closeLabel="Close declare incident"><B.DialogTitle>Declare an incident</B.DialogTitle></B.SheetHeader>
+          <B.SheetBody id="body">
+            <B.DialogDescription>Say what is happening. Everyone on the list is told.</B.DialogDescription>
+            <form id="f" onSubmit={(e) => { e.preventDefault(); setError(true); }} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <label>What is happening <input id="what" className="basalt-input" name="what" /></label>
+              {error ? <p id="err" role="alert" style={{ margin: 0 }}>Say what is happening, in at least three characters.</p> : null}
+              <label>ServiceNow ticket <input id="ticket" className="basalt-input" name="ticket" /></label>
+              ${extra}
+            </form>
+          </B.SheetBody>
+          <B.SheetFooter><B.DialogActions><B.DialogClose id="cancel" render={<B.Button variant="secondary" />}>Cancel</B.DialogClose><B.Button id="go" variant="primary" type="submit" form="f">Declare incident</B.Button></B.DialogActions></B.SheetFooter>
+        </B.DialogContent>
+      </B.Dialog>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<Declare />);`;
+const TALL = `<div style={{ height: 600 }}>Room for a long form.</div>`;
+const rectOf = (page, selector) => page.locator(selector).first().evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom }; });
+const openForm = async (page) => { await page.locator("#opener").click(); await page.locator("#declare").waitFor(); await settle(page); };
+
+describe("Dialog as a centred form modal", () => {
+  test("from 720: 480 wide, centred over the scrim, level 1, the rim, radius 12 and the modal shadow, with the sheet's head, body and foot", async () => {
+    const page = await open(FORM());
+    await openForm(page);
+    const style = await page.locator("#declare").evaluate((el) => { const s = getComputedStyle(el); const r = el.getBoundingClientRect(); return { level: el.getAttribute("data-level"), radius: s.borderTopLeftRadius, shadow: s.boxShadow, border: s.borderTopWidth, w: r.width, cx: r.x + r.width / 2, role: el.getAttribute("role"), pad: s.paddingTop }; });
+    assert.equal(style.w, 480);
+    assert.ok(Math.abs(style.cx - 720) < 1);
+    assert.equal(style.level, "1");
+    assert.equal(style.radius, "12px");
+    assert.notEqual(style.shadow, "none");
+    assert.equal(style.border, "1px");
+    assert.equal(style.pad, "0px");
+    assert.equal(style.role, "dialog");
+    assert.notEqual(await page.locator(".basalt-dialog-backdrop").evaluate((el) => getComputedStyle(el).backgroundColor), "rgba(0, 0, 0, 0)");
+    // The head holds the title and a 44px Close; the body opens with the description; the foot has Cancel, then the primary.
+    assert.equal(await page.locator("#declare .basalt-sheet-head .basalt-dialog-title").textContent(), "Declare an incident");
+    const close = await rectOf(page, ".basalt-sheet-close");
+    assert.equal(Math.round(close.h), 44);
+    assert.equal(await page.locator("#body > :first-child").getAttribute("class"), "basalt-dialog-description");
+    assert.deepEqual(await page.locator(".basalt-sheet-foot .basalt-dialog-actions > *").allTextContents(), ["Cancel", "Declare incident"]);
+    await page.close();
+  });
+
+  test("the height is at most the window less 16px above and below; the head and foot are held while the body scrolls", async () => {
+    const page = await open(FORM(TALL), { height: 560 });
+    await openForm(page);
+    const d = await rectOf(page, "#declare");
+    assert.ok(d.y >= 15.9 && d.b <= 560 - 15.9, `${d.y} ${d.b}`);
+    assert.ok(Math.abs(d.h - 528) < 1.5, `at 560 tall the dialog is 528: ${d.h}`);
+    const head = await rectOf(page, ".basalt-sheet-head");
+    const foot = await rectOf(page, ".basalt-sheet-foot");
+    const body = page.locator("#body");
+    assert.ok(await body.evaluate((el) => el.scrollHeight > el.clientHeight), "the body scrolls");
+    await body.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    assert.deepEqual(await rectOf(page, ".basalt-sheet-head"), head);
+    assert.deepEqual(await rectOf(page, ".basalt-sheet-foot"), foot);
+    assert.deepEqual(await rectOf(page, "#declare"), d, "the box does not move while the body scrolls");
+    await page.close();
+  });
+
+  test("its top is held where it opened and it grows downward; it re-centres only on a window resize", async () => {
+    const page = await open(FORM());
+    await openForm(page);
+    const before = await rectOf(page, "#declare");
+    const title = await rectOf(page, ".basalt-dialog-title");
+    assert.ok(Math.abs(before.y - (900 - before.h) / 2) < 1.5, "it opens centred");
+    await page.locator("#go").click();
+    await page.locator("#err").waitFor();
+    const after = await rectOf(page, "#declare");
+    assert.ok(after.h > before.h + 10, "the error grew it");
+    assert.equal(after.y, before.y, "its top did not move");
+    assert.equal((await rectOf(page, ".basalt-dialog-title")).y, title.y, "the title did not move");
+    await page.setViewportSize({ width: 1440, height: 700 });
+    await page.waitForFunction(() => { const r = document.querySelector("#declare").getBoundingClientRect(); return Math.abs(r.top - (innerHeight - r.height) / 2) < 2; });
+    await page.close();
+  });
+
+  test("a press on the scrim closes a form only while nothing has been entered; Esc, Close and Cancel always close it", async () => {
+    const page = await open(FORM());
+    await openForm(page);
+    await page.mouse.click(30, 450);
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await openForm(page);
+    await page.locator("#what").fill("Checkout is timing out");
+    await page.mouse.click(30, 450);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator("#declare").count(), 1, "a stray press does nothing once something is typed");
+    await page.keyboard.press("Escape");
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await openForm(page);
+    await page.locator("#what").fill("x");
+    await page.locator("#cancel").click();
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await openForm(page);
+    await page.locator("#what").fill("x");
+    await page.getByRole("button", { name: "Close declare incident" }).click();
+    await page.locator("#declare").waitFor({ state: "detached" });
+    // The next opening is pristine again.
+    await openForm(page);
+    assert.equal(await page.locator("#what").inputValue(), "");
+    await page.mouse.click(30, 450);
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await page.close();
+  });
+
+  test("focus on opening goes to the first field with a mouse or a key; focus returns to the opener on closing", async () => {
+    const page = await open(FORM());
+    await page.locator("#opener").click();
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement.id), "what");
+    await page.keyboard.press("Escape");
+    await page.locator("#declare").waitFor({ state: "detached" });
+    assert.equal(await page.evaluate(() => document.activeElement.id), "opener");
+    await page.keyboard.press("Enter");
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement.id), "what", "Enter on the opener");
+    // Tab and Shift+Tab wrap inside.
+    await page.keyboard.press("Shift+Tab");
+    assert.ok(await page.evaluate(() => document.getElementById("declare").contains(document.activeElement)));
+    await page.close();
+  });
+
+  test("a touch opens on the title, with no ring; Enter in touch emulation still goes to the first field", async () => {
+    const page = await open(FORM(), { width: 390, height: 844, ...COARSE });
+    await page.locator("#opener").tap();
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement.className), "basalt-dialog-title");
+    assert.equal(await page.locator(".basalt-dialog-title").evaluate((el) => getComputedStyle(el).outlineStyle), "none");
+    await page.keyboard.press("Escape");
+    await page.locator("#declare").waitFor({ state: "detached" });
+    // The last pointer was a touch, but this opening is a key press.
+    await page.locator("#opener").focus();
+    await page.keyboard.press("Enter");
+    await page.locator("#declare").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "what");
+    await page.close();
+  });
+
+  test("under 720 a form is a full-screen modal: square, no rim or shadow, level 1, the foot's two actions equal 44px buttons", async () => {
+    const page = await open(FORM(TALL), { width: 390, height: 844, ...COARSE });
+    await page.locator("#opener").tap();
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    const d = await page.locator("#declare").evaluate((el) => { const s = getComputedStyle(el); const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, radius: s.borderTopLeftRadius, shadow: s.boxShadow, border: s.borderTopWidth, level: el.getAttribute("data-level") }; });
+    assert.deepEqual([d.x, d.y, d.w, d.h], [0, 0, 390, 844]);
+    assert.deepEqual([d.radius, d.shadow, d.border, d.level], ["0px", "none", "0px", "1"]);
+    const [cancel, go] = await Promise.all(["#cancel", "#go"].map((s) => rectOf(page, s)));
+    assert.ok(cancel.h >= 43.9 && go.h >= 43.9, `${cancel.h} ${go.h}`);
+    assert.ok(Math.abs(cancel.w - go.w) < 1 && cancel.x < go.x);
+    // The held head and foot while the body scrolls: the foot is on screen at the bottom, the head at the top.
+    await page.locator("#body").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    assert.ok(Math.abs((await rectOf(page, ".basalt-sheet-foot")).b - 844) < 1.5);
+    assert.ok(Math.abs((await rectOf(page, ".basalt-sheet-head")).y) < 1.5);
+    await page.close();
+  });
+
+  test("an alert dialog stays centred at 390", async () => {
+    const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<B.AlertDialog><B.AlertDialogTrigger id="opener">Delete</B.AlertDialogTrigger><B.AlertDialogContent id="alert"><B.AlertDialogTitle>Delete this?</B.AlertDialogTitle><B.AlertDialogDescription>It cannot be undone.</B.AlertDialogDescription><B.AlertDialogActions><B.AlertDialogCancel>Keep</B.AlertDialogCancel><B.AlertDialogAction>Delete</B.AlertDialogAction></B.AlertDialogActions></B.AlertDialogContent></B.AlertDialog>);`, { width: 390, height: 844, ...COARSE });
+    await page.locator("#opener").tap();
+    await page.locator("#alert").waitFor();
+    await settle(page);
+    const r = await rectOf(page, "#alert");
+    assert.ok(r.w < 390 && r.h < 844 && Math.abs(r.x + r.w / 2 - 195) < 1 && Math.abs(r.y + r.h / 2 - 422) < 1, JSON.stringify(r));
+    assert.equal(await page.locator("#alert").evaluate((el) => getComputedStyle(el).borderTopLeftRadius), "12px");
+    await page.close();
+  });
+
+  test("the full-screen form rises from the bottom on the sheet's motion; under reduced motion it only fades", async () => {
+    for (const reduced of [false, true]) {
+      const page = await open(FORM(), { width: 390, height: 844, ...COARSE, reducedMotion: reduced ? "reduce" : "no-preference" });
+      const samples = page.evaluate(() => new Promise((resolve) => {
+        const out = [];
+        const obs = new MutationObserver(() => {
+          const el = document.getElementById("declare");
+          if (!el) return;
+          obs.disconnect();
+          let n = 0;
+          const tick = () => { const s = getComputedStyle(el); out.push({ t: s.transform, o: Number(s.opacity) }); if (++n < 6) requestAnimationFrame(tick); else resolve(out); };
+          tick();
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }));
+      await page.locator("#opener").tap();
+      const out = await samples;
+      if (reduced) assert.ok(out.every((s) => s.t === "none"), JSON.stringify(out));
+      else assert.ok(out.some((s) => s.t !== "none" && Number.parseFloat(s.t.split(",")[5]) > 0), `rises: ${JSON.stringify(out)}`);
+      await page.close();
+    }
+  });
+
+  for (const theme of ["dark", "light"]) {
+    test(`axe finds no violation in the open form, in ${theme}, wide and full-screen`, async () => {
+      for (const options of [{}, { width: 390, height: 844, ...COARSE }]) {
+        const page = await open(FORM(), { theme, ...options });
+        await page.locator("#opener").click();
+        await page.locator("#declare").waitFor();
+        await settle(page);
+        assert.deepEqual(await axe(page), []);
+        await page.close();
+      }
+    });
+  }
+});
