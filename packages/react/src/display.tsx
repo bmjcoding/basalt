@@ -9,6 +9,7 @@ import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { useCellPeek } from "./cell-peek";
 import { inLevel, useFloatingLayer, usePanelLevel } from "./layers";
+import { useApplePlatform } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import { StatusSizeContext } from "./status-size";
 import type { StatusSize } from "./status-size";
@@ -548,7 +549,8 @@ export function Tooltip({ content, children, side = "top", defaultOpen, shortcut
   const trigger = children as React.ReactElement<{ "aria-describedby"?: string }>;
   // The pinned primitive supplies neither a tooltip role nor its trigger description.
   const description = [trigger.props["aria-describedby"], open ? id : undefined].filter(Boolean).join(" ") || undefined;
-  const keys = shortcut ? shortcutKeys(shortcut) : [];
+  const apple = useApplePlatform();
+  const keys = shortcut ? shortcutKeys(shortcut, apple) : [];
   return (
     <BaseTooltip.Root open={open} onOpenChange={setOpen}>
       <BaseTooltip.Trigger render={React.cloneElement(trigger, { "aria-describedby": description, "aria-keyshortcuts": keys.length ? ariaShortcut(keys) : undefined } as object)} />

@@ -121,6 +121,8 @@ export { FilterToolbar } from "./filter-toolbar";
 export type { FilterToolbarProps } from "./filter-toolbar";
 export { ActionShortcut } from "./action-shortcut";
 export type { ActionShortcutProps } from "./action-shortcut";
+export { isApplePlatform, isModKey } from "./platform";
+export { useApplePlatform } from "./keyboard";
 export { ShortcutList, SingleKeysSwitch, useShortcuts, useSingleKeys } from "./shortcuts";
 export type { ShortcutBinding, ShortcutListProps, ShortcutsState, SingleKeysSwitchProps, SingleKeysState, UseShortcutsOptions } from "./shortcuts";
 export { useRouteFocus } from "./route-focus";

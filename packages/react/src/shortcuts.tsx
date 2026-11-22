@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { Switch } from "./choice";
 import { Kbd } from "./kbd";
+import { useApplePlatform } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
 
@@ -89,6 +90,7 @@ const EDITABLE = 'input, textarea, select, [role="textbox"], [role="combobox"], 
  */
 export function useShortcuts(bindings: readonly ShortcutBinding[], { enabled = true }: UseShortcutsOptions = {}): ShortcutsState {
   const { on } = useSingleKeys();
+  const apple = useApplePlatform();
   const latest = React.useRef(bindings);
   latest.current = bindings;
   React.useEffect(() => {
@@ -107,7 +109,7 @@ export function useShortcuts(bindings: readonly ShortcutBinding[], { enabled = t
     return () => document.removeEventListener("keydown", handle);
   }, [enabled, on]);
   const shortcuts = React.useMemo(() => bindings.map((b) => ({ keys: b.key, description: b.description })), [bindings]);
-  return { shortcuts, on, keyshortcuts: (key) => ({ "aria-keyshortcuts": ariaShortcut(shortcutKeys(key)) }) };
+  return { shortcuts, on, keyshortcuts: (key) => ({ "aria-keyshortcuts": ariaShortcut(shortcutKeys(key, apple)) }) };
 }
 
 export interface SingleKeysSwitchProps {

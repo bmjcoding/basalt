@@ -485,6 +485,17 @@
     color: var(--basalt-text-primary);
   }
 
+  /* A label with an action at the end of its row (`labelAction`): the label keeps its own width, the action sits at the row's end on the label's
+     baseline, outside the <label>. The row is what a form grid places on the label track, and it carries the label's gap to the control. */
+  .basalt-field-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--basalt-space-2);
+    min-width: 0;
+  }
+  .basalt-field-label-row > .basalt-field-label { align-self: baseline; min-width: 0; }
+
   /* "Required" or "Optional", directly after the label (not at the far end of its row): tertiary ink at text-xs, 400, hidden from
      assistive technology (the input's own `required` says it). Never an asterisk, a colour or a glyph alone. */
   .basalt-field-necessity {
@@ -1945,6 +1956,14 @@
     /* the browser gives a <kbd> its own monospace family, which beats inheritance: take the group's */
     font: inherit;
   }
+
+  /* A key that reads differently on Apple's systems and elsewhere (Mod: ⌘ or Ctrl, and ↵ or Enter beside it) draws both forms in one seat: the seat is
+     as wide as the wider, so the chip is the same width on the server, while it hydrates and on either machine, and nothing moves when the real
+     platform is known. The form that is not this machine's is hidden (and so is not read or copied). */
+  .basalt-kbd-key[data-swap] { display: inline-grid; justify-items: center; align-items: center; }
+  .basalt-kbd-key[data-swap] > [data-form] { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; }
+  .basalt-kbd-key[data-swap="apple"] > [data-form="other"],
+  .basalt-kbd-key[data-swap="other"] > [data-form="apple"] { visibility: hidden; }
 
   [data-highlighted] .basalt-kbd,
   [data-selected="true"] .basalt-kbd,
@@ -5887,16 +5906,18 @@
     .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > *,
     .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field > .basalt-choice { grid-row: 2; grid-column: 1; }
     .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field { display: contents; }
-    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-label {
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > :is(.basalt-field-label, .basalt-field-label-row) {
       grid-row: 1;
       justify-self: start;
       margin-block: calc(min(1, var(--_fg-row, 1) - 1) * var(--basalt-space-4)) var(--basalt-space-1-5);
     }
+    /* The label's row is the label track's whole width, so its action sits at the column's end. */
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-label-row { justify-self: stretch; }
     .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-description,
     .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field > .basalt-field-description { grid-row: calc(var(--_fg-rows, 1) * 4 - 1); margin-block-start: var(--basalt-space-1-5); }
     .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-error { grid-row: calc(var(--_fg-rows, 1) * 4); margin-block-start: var(--basalt-space-1-5); }
     /* A cell that spans rows: its control fills the tracks between its label and its hint (a text area gives way to them: its `rows` is the least it asks for). */
-    .basalt-form-grid > [data-span] > :not(.basalt-field-label, .basalt-field-description, .basalt-field-error, .basalt-visually-hidden) { grid-row: 2 / calc(var(--_fg-rows, 1) * 4 - 1); }
+    .basalt-form-grid > [data-span] > :not(.basalt-field-label, .basalt-field-label-row, .basalt-field-description, .basalt-field-error, .basalt-visually-hidden) { grid-row: 2 / calc(var(--_fg-rows, 1) * 4 - 1); }
     .basalt-form-grid > [data-span] > .basalt-textarea { align-self: stretch; min-block-size: 0; resize: none; }
     /* A switch row is a control's height, so it shares the track with the fields beside it, and the switch is centred in it. */
     .basalt-form-grid > .basalt-form-grid-item .basalt-switch-field > .basalt-choice,

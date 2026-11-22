@@ -636,6 +636,22 @@ a hidden chip: the row keeps its word, and a trigger is [icon][word][chip] on a 
 every device. The CommandMenu input carries `aria-describedby` for its footer only while the chips
 show; `aria-keyshortcuts` always stays. A hybrid device shows chips after its first hardware key.
 
+**One modifier across platforms.** **Status:** decided by the owner (DECISIONS 244: "we just need to add device detection and account for windows machines vs. macos (and I guess linux too lol)
+wth the keybindings like this", on the ⌘↵ chips beside Declare incident) and taken into Basalt without a vote; the implementation hasn't been reviewed. A shortcut is written once with `Mod`
+(`"Mod+Enter"`, `"Mod K"`): the platform's modifier, **Command on Apple's systems** (macOS, and iPadOS or iOS with a keyboard) and **Control on Windows, Linux and ChromeOS**. `Kbd`,
+`ActionShortcut`, `Menu` and `CommandMenu` rows, `Tooltip` and `useShortcuts` take it. The chips are ⌘ on Apple's systems and the word "Ctrl" elsewhere; beside `Mod`, Enter is ↵ on Apple's systems and "Enter"
+elsewhere ("Mod+Enter" is ⌘↵ or Ctrl Enter). `aria-keyshortcuts` is `Meta+Enter` or `Control+Enter`, and the words a screen reader says are "Command" or "Control" ("Command Return", "Control Enter").
+A string written the old way ("⌘K", "Ctrl Enter") reads exactly as before on every machine. The rule is one exported function, `isApplePlatform()`, which reads `navigator.userAgentData.platform`,
+else `navigator.platform`, else the user agent, and the key-event check that goes with it, `isModKey(event)`: the `Mod` key alone, with no stray Control or Meta (test Shift, Alt and the key yourself). An app
+binds with `isModKey` and writes the same shortcut as `Mod`, so the hint and the binding cannot disagree; `CommandList`'s `bindShortcut` is bound this way (⌘K on Apple's systems, Ctrl K elsewhere, and
+each is left alone on the other). `useApplePlatform()` is the same answer as a hook.
+
+The server and the render that hydrates it have no machine to ask, so they use one fixed answer ("not Apple's": Control), and the real one arrives after mount, with no mismatch warning. A key that
+reads differently on the two kinds of machine (Mod, and Enter beside it) draws both forms in one seat, the form that is not this machine's hidden, so the chip is as wide as the wider form (the
+word "Ctrl") whichever it shows: it never changes width when the real platform is known. The cost is that a `Mod` chip on a Mac is as wide as "Ctrl", not 20px; a string with no `Mod` is untouched.
+Without scripts a page keeps the server's answer (Control). The HTML skill's `kbd` module takes the same `Mod` (`data-kbd="Mod Enter"`, the same sources in the same order) and needs no seat: its chips
+are drawn after load.
+
 ## Type
 
 ### Code syntax
@@ -2011,7 +2027,11 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 - **A `Switch` description.** A line under the switch's row in a field description's style (`text-xs`, secondary), at the column's start edge, not indented past the switch, linked by `aria-describedby`.
 - **A field hint whose words change** (a `Reserve` in a `description` or an `error`) lays out as a block that wraps at the field's width, so the line holds its room and never moves the field.
 - **`ActionShortcut` in a form dialog's foot under 720.** The foot's two actions stay equal 44px buttons: the button inside the shortcut's wrapper takes the rule.
-- **Open.** The Title's text button on the label's row is not a Basalt slot yet (it is app layout in CIMIP), and a status callout on a segmented control is not decided.
+- **`Field`'s `labelAction`** (DECISIONS 241: the Title's "Generate a title" text button). A node at the end of the label's row, on the label track: the row (`basalt-field-label-row`) holds the `<label>` and the
+  action, the action's end on the column's end and its baseline on the label's. The action is not inside the `<label>`, so a press on it never focuses the control, and the label stays as wide as its words and "Required"
+  (DECISIONS 233: a press on the empty space between them does nothing). In a `FormGrid` the row is the label track, so it lines up with the fields beside it, 0px; a field with no `labelAction` draws no row. React's
+  alone. The implementation hasn't been reviewed.
+- **Open.** A status callout on a segmented control is not decided.
 
 ### Defects not copied
 
