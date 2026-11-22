@@ -1,0 +1,29 @@
+/* A page with a pane (React's PaneLayout): the page, and a size-sidebar-width column at its end that stays in view. A module: compose.mjs adds it when the
+   markup has a .pane-layout. The document stays the scroller; the pane is sticky under the bar, as the app sidebar is, and scrolls inside only when it is
+   taller than the window less the bar. Sticky is also the containing block for what is placed inside it, so a visually hidden label cannot escape it. It keeps
+   space-1-5 round its content (taken back by a negative margin) so a ring inside never clips. */
+
+@layer basalt {
+  /* Beside the page from 920px of the layout's own width (size-sidebar-width + size-gutter + size-breakpoint-container-lg);
+     below, in the flow after the page. */
+  .pane-layout { container-type: inline-size; min-width: 0; }
+  .pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
+  :is(.pane-page, .pane) { min-width: 0; }
+  .pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
+  @container (width >= 920px) {
+    .pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
+    .pane {
+      position: sticky;
+      top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-6) - var(--basalt-space-1-5));
+      box-sizing: border-box;
+      /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+      max-height: calc(100dvh - var(--basalt-sticky-offset, var(--basalt-space-0)) - 2 * (var(--basalt-space-6) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset, var(--basalt-space-0)));
+      margin: calc(-1 * var(--basalt-space-1-5));
+      padding: var(--basalt-space-1-5);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+  @media print { .pane { position: static; max-height: none; overflow: visible; } }
+}

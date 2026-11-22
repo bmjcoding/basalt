@@ -1,0 +1,1 @@
+(function(t){"use strict";var i=t._;i.step(56,"wirePanes",function(){typeof ResizeObserver>"u"||document.querySelectorAll(".pane").forEach(function(e){var c=function(){e.scrollHeight>e.clientHeight+1?e.tabIndex=0:e.removeAttribute("tabindex")},r=new ResizeObserver(c);r.observe(e),Array.prototype.forEach.call(e.children,function(n){r.observe(n)})})})})(window.Basalt);

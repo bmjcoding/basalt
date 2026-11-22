@@ -1120,6 +1120,12 @@ labels, and `aria-current="page"` on the current link.
   hovered item is `Highlight` with `HighlightText` and no backplate.
 - **Touch and density.** A row is at least 48 tall on touch. Compact steps the pill down to 40 (a 40px rail circle), with a
   floor of 44 on touch, so a row is still 48.
+- **The second size** (`Nav size="sm"`): a quieter list under the main one, such as recent items, saved views or a workspace's
+  projects. The same item, hover, glide, current page, ring and rail, a step smaller: a 32px pill (`size-control-md`), the label at
+  13/18 (`text-sm`), the glyph at 16, 8 before the glyph and 12 after the label (12 either side with no glyph), 8 between, and a count
+  at 12/16. Each row still carries 2px above and below its pill (a 36px row). Compact steps it to 28, and on touch it is 44. In the rail
+  it is a 32px circle on the same centre line. It is the main list's size that marks the main list: never two main lists, and never the
+  small size for the app's own destinations.
 
 ### Links and rows
 
@@ -1162,7 +1168,9 @@ round; the owner's ordering of the build is in DECISIONS 93). The components are
 lengths are tokens (see [Layout](#layout)), and the two breakpoints are written as numbers in range-syntax media queries, which cannot
 read a custom property, each with a lint exception that names its token.
 
-**Status:** decided by the council (DECISIONS 96); the implementation has not been reviewed.
+**Status:** decided by the council (DECISIONS 96); the implementation has not been reviewed. The capped shell, the pane, `Nav`'s second
+size, the primary kept under 720 and the facts under the title were decided by Opus on the no-council path (DECISIONS 226 and 265; found
+by CIMIP, cimip-gaps-2 batch B4); the code review is Astra's and the owner sees the pictures before merge.
 
 ### The site header
 
@@ -1247,8 +1255,9 @@ Three states, System, Light and Dark, where System is nothing stored (DECISIONS 
 
 ### The app shell
 
-One grid, and the document scrolls, never an inner pane. Pages set `scrollbar-gutter: stable` (the shell sets it on the document it
-is in).
+One grid, and the document scrolls: the page is never moved into an inner pane of its own. Pages set `scrollbar-gutter: stable` (the
+shell sets it on the document it is in). A page's own pane beside it (`PaneLayout`, below) is the sidebar's pattern, sticky and scrolling
+only what overflows it, and the document still scrolls the page.
 
 - **1024 and up:** a 256px sidebar on `surface-page`, edged by a 1px `border-divider`, sticky at `100dvh`, its list scrolling inside
   only when `Nav` overflows. Its brand band is the header's 56px, level with the header, and draws no line of its own. `Nav` with its
@@ -1258,10 +1267,32 @@ is in).
 - **Under 720:** no sidebar and no rail: the phone tab bar.
 - **The header** (`AppHeader`) spans the content column only, never the sidebar, and its line ends at the sidebar's edge. 56px,
   sticky, smoked by default. It holds the page title (the page's `h1`) at 18/26, 600, then the actions at its end. On a phone it spans
-  the full width with the same geometry, still sticky, and the header's one primary Button leaves the bar under 720, as the site
-  header's does (the app puts that action elsewhere). The page's main is capped at 72rem (the site header's row length) and
+  the full width with the same geometry, still sticky. The page's main is capped at 72rem (the site header's row length) and
   start-aligned. Its **opaque form** is the same bar without the layer (`solid`): only one
   smoked surface per viewport, ever.
+- **The primary under 720** stays in the bar with its words, 44 tall and radius 8 like the bar's other buttons; the title gives way to it
+  (the title is cut first, never the action). An app keeps the primary's words short. It does not go into the tab bar, which is
+  navigation, or a sheet, which would hide the page's main action behind a second press; the site header's moves into its narrow menu
+  because that menu exists, and an app's bar has none.
+- **Facts under the title** (`facts`): one line under the `h1` of what the page is about at a glance, such as a reference, a status (a
+  plain `Badge` with its `status`, so a word says it) and a time. 13/18 (`text-sm`) at 400 in secondary ink, joined by dots (`DotLine`:
+  drawn as dots, read as commas), cut with an ellipsis, never wrapped. The title (26) and the line (18) are 44 together, centred in the
+  56px bar at every width, so the bar never grows. Only primary and secondary ink sit on the smoked bar. The facts are not in the heading.
+- **The capped form** (`capped`): the whole shell, sidebar and page together, at most `--basalt-shell-width` and centred in the window,
+  so on a wide display the navigation and the page stay together and the space is shared by both sides. The width is
+  `size-sidebar-width` plus `size-page-width` (1408px at 16px text): **at the cap the page is exactly its own 72rem cap**, and under the
+  cap nothing differs from the uncapped shell. In the capped form the page fills its column, so an app that sets `--basalt-shell-width`
+  on the root for another cap widens the page with it. The header spans the content column as always and so ends at the shell's end;
+  the margins either side are the page. The skip link moves in with the brand. Under 1024 the window is narrower than any cap.
+- **A page with a pane** (`PaneLayout`): a column of `size-sidebar-width` at the page's end, the gutter between, that stays in view. It
+  is sticky `space-6` under the bar, at most the window less the bar and `space-6` above and below, and scrolls inside only when what
+  it holds is taller (`overscroll-behavior: contain`), as the sidebar does; while it overflows it is a tab stop so the keys can scroll it.
+  It keeps `space-1-5` round its content so a ring never clips, and it is positioned, so a visually hidden label inside cannot stretch
+  the page. It is a `region` named by the app (`paneLabel`), at level 0 with no fill or rim of its own: what it holds groups by space and
+  dividers. It answers its own width: beside the page from `size-sidebar-width` + `size-gutter` + `size-breakpoint-container-lg` =
+  920px, so the page beside it is never under 640; narrower, it follows the page in the flow with no height of its own. The page comes
+  first in the source, which is the reading order at every width. In print it is in the flow. It holds supporting content (a summary,
+  details, a checklist, an outline), never the page itself.
 - **Safe areas:** the page's viewport meta needs `viewport-fit=cover` for `env(safe-area-inset-*)` to work; without it the insets
   read 0 on a phone. (The HTML skill's compose writes `viewport-fit=cover` into the page's viewport meta whenever the page uses a module that needs the insets, such as the phone tab bar.)
 
@@ -1538,6 +1569,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
     `space-4` added it is the page's `scroll-padding-top`, so an anchor lands below the bar.
   - `--basalt-bottom-offset`: `size-tab-bar` plus `env(safe-area-inset-bottom)` under 720 in an app with a tab bar, else 0. It is the
     page's bottom padding and where the toast stack sits.
+  - `--basalt-shell-width`: `size-sidebar-width` plus `size-page-width`, the capped app shell's width. An app sets it on the root for
+    another cap.
 - **Breakpoints in CSS** are range syntax with the number written and a lint exception that names the token, because a media or
   container query cannot read a custom property: `@media (width < 720px)`, `@container (width < 480px)`. Range syntax means there is no
   719/719.98 pair to keep in step and no gap on a fractional viewport. Components answer their **own** width (`@container`); pages
@@ -2177,7 +2210,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 3,950 from 3,250), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,500), whose script makes an overflowing pane a tab stop. Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 

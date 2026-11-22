@@ -317,7 +317,7 @@
       "tags": [
         "details"
       ],
-      "budget": 3800,
+      "budget": 3950,
       "usage": 950
     },
     "table": {
@@ -1109,8 +1109,8 @@
       "requires": [
         "glide"
       ],
-      "budget": 4800,
-      "usage": 1700
+      "budget": 5350,
+      "usage": 1900
     },
     "topbar-nav": {
       "classes": [
@@ -1156,7 +1156,9 @@
         "app-header",
         "app-bar",
         "app-title",
-        "app-actions"
+        "app-actions",
+        "app-heading",
+        "app-facts"
       ],
       "requires": [
         "topbar",
@@ -1164,8 +1166,18 @@
         "tooltip"
       ],
       "viewportFit": true,
-      "budget": 3250,
-      "usage": 2100
+      "budget": 3950,
+      "usage": 2600
+    },
+    "pane": {
+      "classes": [
+        "pane-layout",
+        "pane-grid",
+        "pane-page",
+        "pane"
+      ],
+      "budget": 1500,
+      "usage": 1000
     },
     "tab-bar": {
       "classes": [

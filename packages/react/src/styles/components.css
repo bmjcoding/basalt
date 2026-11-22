@@ -1282,6 +1282,21 @@
   .basalt-nav[data-collapsed] .basalt-nav-pill { width: var(--_nav-height); padding-inline: 0; justify-content: center; }
   .basalt-nav[data-collapsed] .basalt-nav-item { justify-content: center; }
 
+  /* The second size (size="sm"): a quieter list under the main one. The same item, hover, glide, current page and ring, a step
+     smaller: a 32px pill (control-md, so compact gives 28 and touch 44), the label at 13/18 (text-sm), the glyph at 16, 8 before the
+     glyph and 12 after the label, 8 between; a count at 12/16. Each row still carries 2px above and below its pill. */
+  .basalt-nav[data-size="sm"] { --_nav-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  .basalt-nav[data-size="sm"] .basalt-nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
+  .basalt-nav[data-size="sm"] .basalt-nav-item[data-glyphless] .basalt-nav-pill { padding-inline: var(--basalt-space-3); }
+  .basalt-nav[data-size="sm"] .basalt-nav-label {
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-nav[data-size="sm"] .basalt-nav-count { margin-inline-start: 0; font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-nav[data-size="sm"] .basalt-nav-dot { margin-inline-start: 0; }
+  .basalt-nav[data-size="sm"][data-collapsed] .basalt-nav-pill { padding-inline: 0; }
+
   /* Hover, and pressed, are the hugging pill at the selected wash (9% white, 7% black): hover already sits at the wash,
      so a press has no further step, and on touch, where nothing hovers, the pill is the press. In at once, out over
      duration-fast. */
@@ -1304,6 +1319,7 @@
 
   @media (pointer: coarse) {
     .basalt-nav { --_nav-height: max(var(--_basalt-nav-row, var(--basalt-space-12)), var(--basalt-size-tap-min)); }
+    .basalt-nav[data-size="sm"] { --_nav-height: max(var(--_basalt-control-md, var(--basalt-size-control-md)), var(--basalt-size-tap-min)); }
   }
 
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current
@@ -1326,6 +1342,9 @@
      with a lint exception that names its token. */
   :root {
     --basalt-gutter: var(--basalt-size-gutter);
+    /* The capped app shell's width (AppShell capped): the sidebar plus the page's own cap, so at the cap the page is exactly
+       size-page-width. Derived, not a token: an app sets it on the root for another cap. */
+    --basalt-shell-width: calc(var(--basalt-size-sidebar-width) + var(--basalt-size-page-width));
     --_inset-top: env(safe-area-inset-top, var(--basalt-space-0));
     --_inset-left: env(safe-area-inset-left, var(--basalt-space-0));
     --_inset-right: env(safe-area-inset-right, var(--basalt-space-0));
@@ -1393,6 +1412,10 @@
   :root:has(.basalt-site-header) .basalt-skip-link {
     inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
   }
+  /* In a capped app shell the brand moves in with the shell, and so does the skip link. */
+  :root:has(.basalt-app-shell[data-capped]) .basalt-skip-link {
+    inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-shell-width)) / 2 + var(--_pad-left)));
+  }
   /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
   .basalt-skip-link:not(:focus) { box-shadow: none; }
   :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link:not(:focus) { clip-path: inset(50%); }
@@ -1442,6 +1465,24 @@
     font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
     letter-spacing: var(--basalt-text-lg-tracking);
   }
+  /* Facts under the title (AppHeader facts): one line at 13/18 in secondary ink, joined by dots and cut with an ellipsis. The title
+     and the line are 26 + 18 = 44 together, centred in the bar's row like a 44 target. Only primary and secondary ink sit on the
+     smoked bar. */
+  .basalt-app-heading { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; }
+  .basalt-app-facts {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: var(--basalt-text-sm-line-height);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  /* A fact in another face or box (inline code, a plain status badge) would set its own baseline and grow the line: each sits at the
+     line's top, so the line is 18 whatever it holds. */
+  .basalt-app-facts > .basalt-dot-line > * { vertical-align: top; }
 
   /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
      start, drawing nothing new). Identity, not a nav item: no wash. */
@@ -1771,6 +1812,10 @@
     /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     min-height: 100dvh;
   }
+  /* The capped form: the shell at most --basalt-shell-width and centred, so on a wide window the navigation and the page stay
+     together. The page then fills its column: at the default cap the column is exactly size-page-width, so the page's own cap and
+     the shell's meet, and under the cap nothing differs from the uncapped shell. */
+  .basalt-app-shell[data-capped] { max-width: var(--basalt-shell-width); margin-inline: auto; }
   .basalt-app-column { min-width: 0; }
   .basalt-app-sidebar {
     position: sticky;
@@ -1808,6 +1853,7 @@
     max-width: var(--basalt-size-page-width);
     padding: var(--basalt-space-6) var(--_pad-right) var(--basalt-space-16) var(--_pad-left);
   }
+  .basalt-app-shell[data-capped] .basalt-app-main { max-width: none; }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
   @media (width >= 720px) and (width < 1024px) {
@@ -1825,11 +1871,44 @@
   @media (width < 720px) {
     .basalt-app-shell { grid-template-columns: minmax(0, 1fr); }
     .basalt-app-sidebar { display: none; }
-    /* The header's one primary leaves the bar under 720, as the site header's does; the app puts it elsewhere. */
-    .basalt-app-header .basalt-button[data-variant="primary"] { display: none; }
+    /* The header's one primary stays in the bar under 720 with its words, 44 tall like the bar's other buttons (the rule above);
+       it never shrinks, and the title is what gives way. */
+    .basalt-app-header .basalt-bar-actions > .basalt-button[data-variant="primary"] { flex: none; }
     .basalt-app-shell[data-tabbar] .basalt-app-main { padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6)); }
     /* Toasts sit above the tab bar. */
     :root:has(.basalt-tabbar) .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
+  }
+
+  /* A page with a pane (PaneLayout): the page, and a size-sidebar-width column at its end, the gutter between. The pane is sticky under
+     the bar (space-6 below it, the main's own top padding), at most the window less the bar and space-6 above and below, and scrolls
+     inside only when it is taller; the document stays the scroller. Sticky is also the containing block for what is placed inside it,
+     so a visually hidden label cannot escape the box and stretch the page. It keeps space-1-5 round its content (and takes it back
+     with a negative margin), so a ring inside never clips. Beside the page from 920px of the layout's own width
+     (size-sidebar-width 256 + size-gutter 24 + size-breakpoint-container-lg 640), so the page is never under 640 beside it; below,
+     it follows the page in the flow with no height of its own. */
+  .basalt-pane-layout { container-type: inline-size; min-width: 0; }
+  .basalt-pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
+  .basalt-pane-page { min-width: 0; }
+  .basalt-pane { min-width: 0; }
+  .basalt-pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
+  @container (width >= 920px) {
+    .basalt-pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
+    .basalt-pane {
+      position: sticky;
+      /* The content's edge, not the box's, is space-6 under the bar and above the window's foot: the box reaches space-1-5 past it. */
+      top: calc(var(--basalt-sticky-offset) + var(--basalt-space-6) - var(--basalt-space-1-5));
+      box-sizing: border-box;
+      /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+      max-height: calc(100dvh - var(--basalt-sticky-offset) - 2 * (var(--basalt-space-6) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset));
+      margin: calc(-1 * var(--basalt-space-1-5));
+      padding: var(--basalt-space-1-5);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+  @media print {
+    .basalt-pane { position: static; max-height: none; overflow: visible; }
   }
 
   /* The phone tab bar: solid surface-page for every product, a hairline on top, no shadow and no blur. 56 with the hairline
