@@ -356,6 +356,64 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - The formatters draw nothing: `formatStamp` ("14:49:07", to the second and always 24-hour), `formatClock` ("2:49 PM" in `en-US`, "14:49" in `en-GB`: a clock a person reads follows the locale, with a numeric hour), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime` (ISO), the zone an argument and the `locale` too (default `en-US`, never the runtime's, so a server's render and the browser's agree). `Clock`, `Stat`, `SourceStamp`, `SourceStateWords` and `CommandBlock` take `locale` as well, and `EventLog` for the width its time column reserves.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
 
+## Loading in the page's own shape
+
+A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;
+`docs/foundations.md`, "Loading in the page's own shape").
+
+```tsx
+import { LoadingShape, Refreshing, fillIn, standIn, useRefreshing, useStaged } from "@srasyndicate/basalt";
+import type { StandInVariant } from "@srasyndicate/basalt";
+
+// Stand-ins take values from a different set in each variant, with the same rows and branches.
+const standInRoom = (variant: StandInVariant) => ({ owner: standIn(2, 14, variant), people: variant === 0 ? 3 : 4 });
+
+// Something known: the known fields are drawn as themselves at once, and only what the two drawings disagree on is a bone.
+<LoadingShape loading={!room} refreshing={fetchingAgain} label="Opening the room"
+  prefill={(variant) => <Facts room={fillIn({ incident }, standInRoom(variant))} />}>
+  {() => <Facts room={room!} />}
+</LoadingShape>
+
+// Nothing known: every word a bone but the known ones (a table's heads, the names of tabs, `data-bone="keep"`).
+<LoadingShape loading={!rows} shape={() => <Rows rows={standInRows} />}>{() => <Rows rows={rows!} />}</LoadingShape>
+
+// Phases: parts arriving within 250ms of the page's start land together; later ones within 120ms of each other. Let a region wait for every part it reads.
+const landed = useStaged({ people: Boolean(people), stream: Boolean(stream) });
+
+// A last copy being fetched again stays content; the mark shows after a second, in a seat kept for it.
+<Refreshing on={useRefreshing(fetchingAgain)} compact={phone} />
+```
+
+| Export | What it does |
+|---|---|
+| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`. |
+| `Bones` | The painting alone (`shown`, `keep`, `twin`), for a place a region can't wrap. |
+| `useStaged(ready, gap = 120, together = 250)` | Releases parts in phases. |
+| `useRefreshing(on, after = 1000)`, `Refreshing` | "Updating" for a refresh that takes more than a second: braille and its word, or the ring alone with `compact`. |
+| `useShapePhase(loading, showAfter, minShown)` | The timing alone: `"waiting"`, `"shown"`, `"content"`. |
+| `useInShape()` | 0 outside a shape, 1 in a drawn shape (a part that writes does nothing), 2 in the twin (a portal draws nothing). |
+| `PageWait` | A page whose code is still loading: nothing for 300ms, then the 20px ring, its label said once. |
+| `fillIn`, `standIn`, `rememberCount`, `rememberedCount`, `KEEP` | Plain helpers, safe on a server: the stand-in merged with what is known, stand-in words, a list's last count (`localStorage`, `basalt-shape:<key>`, the count and nothing else), the known-words selector. |
+| `holdFirstPaint(root, max = 250)`, `markPageStart()` | The reload rule: one paint when the data is quick, and the page's clock. |
+
+**A client-rendered app and its router.** Hold the first paint in the entry, and tell the clock when a move begins:
+
+```tsx
+const root = document.getElementById("app")!;
+holdFirstPaint(root);                 // before the first render: a reload whose data comes in 250ms paints once
+createRoot(root).render(<App />);
+
+// In the router, when a move between pages begins (back and forward too). `markPageChange` is the same call.
+markPageStart();
+// Gate the move on the next page's code: keep the page on screen until its module is here, then draw the new page. Never draw a lazy
+// fallback in its place. `PageWait` is only for a reload (or a cold first move) whose page code is late.
+await preload(nextPath);
+```
+
+A tab switch is not a move between pages: call nothing. The panel left goes at once and the new panel's regions count their 300ms from the switch; put
+everything the panel knows (a description) in its first paint, and what it doesn't as bones in their seats. A server-rendered shape has no bones until
+hydration. The HTML skill has no loading shape.
+
 ## Code
 
 ```tsx
