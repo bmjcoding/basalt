@@ -8,21 +8,43 @@ import { formGridPlacement } from "./form-grid";
 import type { FormGridPlacement } from "./form-grid";
 import type { ChangeDetails, PartProps, ValidateActions } from "./types";
 import { withClass } from "./utils";
+import { useJoinedRef, useWriting } from "./wait";
 
 export type InputProps = PartProps<"input"> & {
   /** Called with the new text, and why it changed. Prefer it to `onChange` inside a `Field`. */
   onValueChange?: (value: string, details: ChangeDetails) => void;
   /** Control height: 24 to 40px; md (32px) is the app default. */
   controlSize?: ControlSize;
+  /**
+   * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 257). It is read-only and `aria-busy` at
+   * once; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
+   * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
+   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
+   */
+  writing?: boolean;
 };
 
 // Whether the `Field` an input sits in is required: the input then carries `required`, which is what a screen reader says.
 const FieldRequiredContext = React.createContext(false);
 
 /** A text input. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
-export function Input({ controlSize = "md", className, required, ...props }: InputProps) {
+export function Input({ controlSize = "md", className, required, writing = false, value, readOnly, ref, ...props }: InputProps) {
   const inRequiredField = React.useContext(FieldRequiredContext);
-  return <BaseInput {...props} required={required ?? (inRequiredField || undefined)} data-size={controlSize} className={withClass("basalt-input", className)} />;
+  const own = React.useRef<HTMLInputElement | null>(null);
+  const written = useWriting(writing, value, own);
+  return (
+    <BaseInput
+      {...props}
+      ref={useJoinedRef(ref, own)}
+      value={written.value}
+      readOnly={readOnly || written.busy || undefined}
+      aria-busy={written.busy || undefined}
+      data-writing={written.shown ? "" : undefined}
+      required={required ?? (inRequiredField || undefined)}
+      data-size={controlSize}
+      className={withClass("basalt-input", className)}
+    />
+  );
 }
 
 export interface FieldProps extends Omit<PartProps<"div">, "children">, FormGridPlacement {

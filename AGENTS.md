@@ -101,6 +101,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **A `NumberTicker`** draws its digits and never selects them; the number is in the sentence's flow under them, transparent, and is
   what a selection paints and copies, once, on the sentence's line. Under reduced motion and in forced colours the digits do not roll: the number is plain text.
 - **Danger is text plus a hairline in the danger colour,** never a red fill.
+- **A control that asks the server is busy until the answer, and never sends twice:** a `Button`, `IconButton` or `TextButton` whose `onClick`
+  returns a promise ignores presses until it settles (`aria-busy`, focus, label and width kept, its own `disabled` untouched), a `Form`'s promise
+  does the same for its submits and a `MenuItem`'s for its menu's trigger; the mark shows after 300ms and stays at least 400ms (the shaped
+  skeleton's timings); a rejection ends it and is raised again; `loading` wins and shows at once; `waitForAnswer={false}` opts out. A TextButton's
+  mark is a step down in ink and a dashed underline that breathes; a field being written (`writing`) is read-only, its words in secondary ink and its boundary dashed on a
+  skeleton's pulsing fill, never the disabled look, and an empty value while writing keeps the text shown.
 - **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
   the current page) is its label at 600 (from 400), its width reserved so nothing moves (the live words and icon keep their start edges in segments and tabs; a component is reserved too, but native or component labels holding a control, even a hidden input, a frame, media, canvas, script, style, dialog, template or slot, and words Basalt never sees, keep 400 and are not reserved), an icon in it taking its selected form, on the raised pill, the underline or
   the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
@@ -142,11 +148,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
   (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,
-  the parts of a field or a disabled or loading button). In popup rows (Menu, Select, Combobox,
+  the parts of a field or a disabled, loading or busy button). In popup rows (Menu, Select, Combobox,
   command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
   reduced motion and in forced colours. Nothing overshoots. Two kinds of thing loop, and nothing else: a mark that says work is running
-  (the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
+  (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's
   one ambient loop, opacity only, in its art; `data-loops="held"` stops both. One figure on a page's first screen may draw its marks once
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a

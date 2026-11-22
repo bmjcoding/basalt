@@ -11,6 +11,7 @@ import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
+import { WaitContext, isThenable, waitFor } from "./wait";
 
 export interface MenuProps {
   open?: boolean;
@@ -36,9 +37,44 @@ export interface MenuProps {
   children?: React.ReactNode;
 }
 
-/** A menu of actions. Compose `Menu`, `MenuTrigger`, `MenuContent` and `MenuItem`s. */
-export function Menu(props: MenuProps) {
-  return <BaseMenu.Root {...props} />;
+/** How a menu's items hand their wait to the menu: the count of answers still to come, and a way to wait for one more. */
+interface MenuWait {
+  readonly waiting: number;
+  /** Whether an answer is still to come, read at the press (a second press in the same task sees the first). */
+  pending(): boolean;
+  begin(result: PromiseLike<unknown>): void;
+}
+const MenuWaitContext = /* @__PURE__ */ React.createContext<MenuWait | null>(null);
+
+/**
+ * A menu of actions. Compose `Menu`, `MenuTrigger`, `MenuContent` and `MenuItem`s. An item whose `onClick` returns a promise closes the menu as
+ * any item does, and the menu waits for the answer (DECISIONS 257): its trigger is busy (the ring after 300ms, on a `Button` or `IconButton`
+ * trigger) and the menu does not open again until it settles, so the item is never pressed twice.
+ */
+export function Menu({ onOpenChange, ...props }: MenuProps) {
+  const [waiting, setWaiting] = React.useState(0);
+  const now = React.useRef(0);
+  const wait = React.useMemo<MenuWait>(() => ({
+    waiting,
+    pending: () => now.current > 0,
+    // A rejection ends the wait and is passed on, as a button's is.
+    begin: (result) => waitFor(result, (step) => setWaiting((now.current += step))),
+  }), [waiting]);
+  return (
+    <MenuWaitContext.Provider value={wait}>
+      <BaseMenu.Root
+        {...props}
+        onOpenChange={(open, details) => {
+          // While an item's answer is still to come the menu stays shut, so the item cannot be chosen twice.
+          if (open && now.current > 0) {
+            details.cancel();
+            return;
+          }
+          onOpenChange?.(open, details as OpenChangeDetails);
+        }}
+      />
+    </MenuWaitContext.Provider>
+  );
 }
 
 export interface MenuTriggerProps extends PartProps<"button"> {
@@ -51,7 +87,13 @@ export interface MenuTriggerProps extends PartProps<"button"> {
 }
 
 export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
-  return <BaseMenu.Trigger {...props} className={withClass("basalt-menu-trigger", className)} />;
+  const waiting = (React.useContext(MenuWaitContext)?.waiting ?? 0) > 0;
+  // The trigger is where focus returns when the menu closes, so the wait of an item is shown and held here: a `Button` it renders takes it as its own.
+  return (
+    <WaitContext.Provider value={waiting}>
+      <BaseMenu.Trigger aria-busy={waiting || undefined} {...props} className={withClass("basalt-menu-trigger", className)} />
+    </WaitContext.Provider>
+  );
 }
 
 export interface MenuContentProps extends PartProps<"div">, PlacementProps {
@@ -101,15 +143,31 @@ export interface MenuItemProps extends MenuRowProps {
   shortcut?: string;
   /** A destructive action: shown in the danger colour. */
   danger?: boolean;
+  /**
+   * When `onClick` returns a promise, the menu waits for it (DECISIONS 257): the menu closes as ever, its trigger is busy, and the menu does not
+   * open again until the answer, so the item is never chosen twice. A press on an item of a menu that is waiting is ignored. On by default;
+   * `false` calls the handler on every choice.
+   */
+  waitForAnswer?: boolean;
 }
 
-export function MenuItem({ icon, shortcut, danger, description, className, children, label, "aria-describedby": describedBy, ...props }: MenuItemProps) {
+export function MenuItem({ icon, shortcut, danger, description, className, children, label, waitForAnswer = true, onClick, "aria-describedby": describedBy, ...props }: MenuItemProps) {
   const spoken = React.useId();
   const apple = useApplePlatform();
   const keys = shortcut ? shortcutKeys(shortcut, apple) : [];
+  const wait = React.useContext(MenuWaitContext);
   return (
     <BaseMenu.Item
       {...props}
+      onClick={(event) => {
+        if (waitForAnswer && wait?.pending()) {
+          (event as { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();
+          event.preventDefault();
+          return;
+        }
+        const result = onClick?.(event);
+        if (waitForAnswer && wait && isThenable(result)) wait.begin(result);
+      }}
       label={label ?? (typeof children === "string" ? children : undefined)}
       aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
       aria-describedby={keys.length ? join(describedBy, spoken) : describedBy}

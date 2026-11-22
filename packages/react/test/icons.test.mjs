@@ -245,7 +245,10 @@ describe("the bytes, with the plugin and without it", () => {
   // DECISIONS 221 (the owner raised the limits for the glyph morphs: the part every control carries, control-icon.tsx, is in Button and so in these): Terminal 26,600 to 27,000, Pagination 21,600 to 21,750,
   // NotificationCentre 141,850 to 142,150. Measured as the static graph under splitting (the engine is lazy): 26,956, 21,719 and 142,101; each limit is that rounded up to the next 50.
   // Logs, status and forms (DECISIONS 162, B3): Terminal's `fields` form draws a line's loud fields through LogFields (414 bytes), so Terminal rose from 26,100 to 26,600.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 27_000, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 142_150, 3_500]]) {
+  // DECISIONS 257 (busy controls, under DECISIONS 246): Button, IconButton and TextButton wait for a promise from their handler, and the wait (wait.ts, 1,119 bytes minified after a trim)
+  // rides with Button into what carries it. Measured with the plugin, each limit rounded up to the next 50: Kbd 7,291 (6,950 to 7,300), Terminal 28,343 (27,000 to 28,350),
+  // NotificationCentre 143,495 (142,150 to 143,500), and Pagination alone 21,555 (20,300 to 21,600, below).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_350, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 143_500, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
@@ -276,9 +279,9 @@ describe("the bytes, with the plugin and without it", () => {
   });
 
   // Pagination's absolute limit (it had 21,750 while it drew DotsThree; DECISIONS 222 took the Phosphor icon out and the list band's pieces in): the static graph under splitting, measured 20,2xx, rounded up to the next 50.
-  test("Pagination alone stays under its absolute limit (20,300 bytes, the static graph under splitting)", async () => {
+  test("Pagination alone stays under its absolute limit (21,600 bytes, the static graph under splitting)", async () => {
     const plain = await bundle(alone("Pagination"), { split: true });
-    assert.ok(plain.bytes < 20_300, `Pagination: ${plain.bytes} bytes (limit 20300)`);
+    assert.ok(plain.bytes < 21_600, `Pagination: ${plain.bytes} bytes (limit 21600)`);
   });
 });
 

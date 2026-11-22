@@ -515,8 +515,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
   Under reduced motion the ring fades and braille holds its first frame.
   **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
-  portals included: braille, the ring, a busy Button's ring, the indeterminate Progress bar,
-  Sparkline's loading line and Skeleton's pulse, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
+  portals included: braille, the ring, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar,
+  Sparkline's loading line, Skeleton's pulse and a written field's fill, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
   starts by itself: an entrance is drawn at rest and a demonstration does not send itself. There is no per-spinner prop, and the attribute
   can't be set on a subtree. Braille holds its first frame and the ring stands still at its
   drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
@@ -558,6 +558,34 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
   owner (DECISIONS 139); the implementation hasn't been reviewed.
+- **A control that asks the server is busy until the answer, and never sends twice** (DECISIONS 255, 257). Every button waits for its own
+  press: when the `onClick` of a `Button`, `IconButton` or `TextButton` returns a promise, the control is busy until it settles. A press while
+  it is busy is ignored (the handler is never called twice, and a submit or a link is stopped too), and the control is `aria-busy` and
+  `aria-disabled`, keeps its focus, its label and its width, and keeps its own `disabled` untouched. Its mark shows only once the wait has run
+  300ms (`WAIT_SHOW_AFTER_MS`), so an answer inside that shows nothing and never flashes, and once shown it stays at least 400ms
+  (`WAIT_MIN_SHOWN_MS`), so it never blinks: the shaped skeleton's two timings (DECISIONS 247, 248), one rule for every wait. The cursor is
+  `progress` from the press. A rejection ends the wait at once and is raised again, never swallowed: the app says why (a `StatusLine`, a
+  toast, the field's error). The app's own `loading` still works and wins: it shows the mark at once. A `Form` whose `onSubmit` or
+  `onFormSubmit` returns a promise waits the same way: a second submit, by a button or by Enter, is ignored, and its submit buttons (inside
+  it, or outside it with `form`) are busy. A `MenuItem` whose `onClick` returns a promise closes its menu as any item does, and the menu waits:
+  its trigger is busy (where focus returns) and the menu does not open again until the answer. `waitForAnswer={false}` turns the wait off
+  for a press meant to repeat ("Add another"); `useWaitMark` gives an app's own wait the same two timings. **A Button's and IconButton's mark** is the ring over the kept
+  label, as `loading` draws it. **A TextButton's own mark** has no box and no seat, so nothing moves in its line: the words step down an ink
+  (primary to secondary; the quiet form's secondary to tertiary, both 4.5:1; in the smoked bar, where tertiary never sits, the quiet form stays secondary and the dashed underline carries the state) and the underline, its affordance, turns dashed (a shape, so the
+  state is never colour alone) in the ink and breathes from 35% to full on `duration-loop-fade`, as Sparkline's loading line does. Under
+  reduced motion it keeps breathing (a colour step, as the ring keeps its fade); held, it stands still, dashed and full; in forced colours it
+  is dashed in the system's ink. Braille is not used: it is never in a button. **A field being written into** by something else (an
+  agent's draft, a summary written again) is `writing` on `Textarea` or `Input`: read-only and `aria-busy` at once, and after the same 300ms,
+  for at least 400ms, its words dim to secondary ink, its boundary turns dashed (the shape of a wait, as TextButton's underline is, drawn as an inset outline so nothing moves; a focused field keeps its solid boundary under the ring) and its fill is a skeleton's, `surface-placeholder` with the skeleton's calm 2s pulse,
+  on the fill alone so the words and the boundary hold still. It is not the disabled look, even with its pulse still: the boundary is dashed, the ink is not
+  `text-disabled`, and the radius, size and focus ring stay, so nothing moves when it starts or ends. Empty, the pulse alone (the
+  placeholder hides). Text replaces text: each new value is painted as it comes, in the same ink, with no fade (a fade on every update is a
+  flash), and an empty value while writing keeps the text shown until the next text arrives, so the field is never blanked between drafts;
+  it never remounts. Under reduced motion and the hold the fill stands still at `surface-placeholder`, as a skeleton does; in forced colours
+  its boundary is dashed in `ButtonText`, never `GrayText`. The state belongs to the control and not to `Field`, which also holds controls
+  nothing writes into (a segmented control, a select). The HTML skill's `.btn` already has `aria-busy`; the wait for a promise, TextButton's
+  mark and the written field are React's alone, because a skill page runs no app handlers and has no text button. Status: decided by Opus
+  under the no-council path (DECISIONS 226, 257), with the owner's direction (DECISIONS 255); the implementation is reviewed by Astra.
 
 ### More contrast
 
@@ -1641,13 +1669,13 @@ one ambient loop (each mark runs 0.6 to 1.4 times it).
 
 Nothing overshoots: Vercel's overlays overshoot by 10% (`cubic-bezier(.175, .885, .32, 1.1)`);
 Basalt's settle. A press is a colour step; Button and IconButton also scale to .98 over `duration-fast`
-on `ease-out` while pressed, and back, on `:active` only, never when disabled or loading, and on nothing
+on `ease-out` while pressed, and back, on `:active` only, never when disabled, loading or busy, and on nothing
 else (no row, card, menu item, command row or the parts of a field; there is no `basalt-press` utility). A popup (Menu, Select,
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. A Dialog enters the same way from its own centre (it grows from no opener), in `duration-slow`, and leaves at three quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
 `duration-slow` `ease-out`; the panel never remounts. Two kinds of thing loop, and nothing else: a mark that says work is running
-(the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's
+(the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's
 one ambient loop, opacity only, in its art; `data-loops="held"` stops both.
 
 **The sliding pill.** A one-of-many control, the segmented control and vertical tabs, holds one pill, and it slides to

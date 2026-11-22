@@ -10,6 +10,7 @@ import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
+import { useJoinedRef, usePressWait } from "./wait";
 
 /** `outline` is transparent with an input-boundary edge and primary ink (DECISIONS 154, A7): a button beside the primary one that must not look like a second primary. */
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
@@ -27,8 +28,19 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
   size?: ControlSize;
   /** The button is as wide as the space it is in, its label centred. Nothing else changes. */
   fullWidth?: boolean;
-  /** Shows a spinner and ignores activation. The label stays, so the width does not jump. */
+  /**
+   * Shows the ring at once and ignores presses: the app's own busy flag, for work the button did not start. The label stays, so the width does
+   * not jump. A press whose `onClick` returns a promise needs none of this: the button waits for it by itself (`waitForAnswer`). `loading` wins
+   * over that wait: while it is set the ring shows at once.
+   */
   loading?: boolean;
+  /**
+   * When `onClick` returns a promise, the button is busy until it settles (DECISIONS 257): further presses are ignored and the handler is never
+   * called twice; it is `aria-busy`, keeps its focus, label and width; and the ring shows only once the wait has run 300ms, then stays at least
+   * 400ms. A rejection ends the wait and is raised again, so say why in the app. A submit button waits for its `Form` the same way. On by
+   * default; `false` calls the handler on every press.
+   */
+  waitForAnswer?: boolean;
   /**
    * The words a button rendered as a link with `target="_blank"` adds to its name, for translation. Default
    * "(opens in a new tab)". The arrow and the words come from the target alone; there is no prop for them.
@@ -76,18 +88,22 @@ export type ButtonProps = BaseProps &
 const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 
 /** A button. Its label says what happens: "Deploy", not "OK". */
-export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading = false, disabled, onClick, className, children, newTabLabel, render, ...props }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
   const link = newTabRender(render);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
+  const wait = usePressWait(onClick, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
+  const loading = wait.shown;
   return (
     <BaseButton
       {...props}
+      ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || loading || undefined}
-      aria-busy={loading || undefined}
+      aria-disabled={disabled || wait.busy || undefined}
+      aria-busy={wait.busy || undefined}
+      data-busy={wait.busy ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}
       data-loading={loading ? "" : undefined}
       data-variant={variant}
@@ -95,14 +111,7 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
       data-full-width={fullWidth ? "" : undefined}
       data-lines={note ? "" : undefined}
       className={withClass("basalt-button", className)}
-      onClick={(event) => {
-        // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
-        if (loading) {
-          event.preventDefault();
-          return;
-        }
-        onClick?.(event);
-      }}
+      onClick={wait.press}
     >
       {icon ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
       {/* A text toggle's 16px seat holds the check while pressed and is empty while not, so both are one width. */}
@@ -179,17 +188,21 @@ function DoneSeat({ icon, doneIcon, done, size, selected, fillSafe }: DoneSeatPr
 }
 
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
-export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading = false, disabled, onClick, className, newTabLabel, render, ...props }: IconButtonProps) {
+export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, newTabLabel, render, ref, ...props }: IconButtonProps) {
   const link = newTabRender(render);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
+  const wait = usePressWait(onClick, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
+  const loading = wait.shown;
   return (
     <BaseButton
       {...props}
+      ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || loading || undefined}
-      aria-busy={loading || undefined}
+      aria-disabled={disabled || wait.busy || undefined}
+      aria-busy={wait.busy || undefined}
+      data-busy={wait.busy ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}
       aria-label={link.newTab ? `${label}${newTabWords(newTabLabel)}` : label}
       data-loading={loading ? "" : undefined}
@@ -199,14 +212,7 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, do
       data-full-width={fullWidth ? "" : undefined}
       data-done={done ? "" : undefined}
       className={withClass("basalt-button", className)}
-      onClick={(event) => {
-        // Busy is not activation: stop a form submit or a link's navigation as well as the handler.
-        if (loading) {
-          event.preventDefault();
-          return;
-        }
-        onClick?.(event);
-      }}
+      onClick={wait.press}
     >
       {done !== undefined ? (
         <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />

@@ -24,3 +24,12 @@ export const LOOPS_TOGGLE_NAME = "Pause animations";
 
 /** The settings row's description. */
 export const LOOPS_TOGGLE_DESCRIPTION = "Moving art and spinners hold still. Your work keeps running.";
+
+/**
+ * How long a wait goes unmarked, in milliseconds: a press that waits for its answer, or a field being written, shows its mark only after this, so an
+ * answer that comes quickly shows nothing and never flashes. The shaped skeleton's show-after (DECISIONS 247, 248, 257).
+ */
+export const WAIT_SHOW_AFTER_MS = 300;
+
+/** How long a wait's mark stays once it shows, at least, in milliseconds, so it never blinks: the shaped skeleton's minimum (DECISIONS 247, 248, 257). */
+export const WAIT_MIN_SHOWN_MS = 400;
