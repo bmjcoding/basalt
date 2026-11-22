@@ -1760,6 +1760,9 @@
     .basalt-app-shell { grid-template-columns: var(--basalt-size-rail-width) minmax(0, 1fr); }
     .basalt-app-sidebar { padding-inline: 0; }
     .basalt-app-brand { justify-content: center; padding-inline: 0; }
+    /* The link keeps its 44px target and the mark sits in its middle, on the nav glyphs' centre line (in a header the mark stays at the
+       link's start, on the page's edge). */
+    .basalt-app-brand .basalt-site-brand { justify-content: center; }
     .basalt-app-brand-full { display: none; }
     .basalt-app-brand-rail { display: inline-flex; }
   }
@@ -2958,7 +2961,9 @@
      is 32px wide with it, without it and at any count (the count is in the accessible name). It is a fill, which forced
      colours drop, so it keeps a real one there. */
   .basalt-notifications-trigger { position: relative; }
-  .basalt-notifications-trigger[data-unread]::after {
+  /* On ::before, not ::after: a pressed Button's ::after is its hit-box extension (inset -1.03%), which on ::after took the dot's place and
+     threw it to the top left for the length of the press. */
+  .basalt-notifications-trigger[data-unread]::before {
     content: "";
     position: absolute;
     top: var(--basalt-space-1-5);
@@ -5267,7 +5272,7 @@
     /* The unread dots, the nav dot and the checked radio's dot are fills, which forced colours drop: each is drawn as its own border, as a
        status dot is (see the badge), so it takes the system colour of where it sits and needs no override on a lit row. A hovered entry
        is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */
-    .basalt-notifications-trigger[data-unread]::after,
+    .basalt-notifications-trigger[data-unread]::before,
     .basalt-notification[data-unread] .basalt-notification-dot,
     .basalt-nav-dot,
     .basalt-menu-radio-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
