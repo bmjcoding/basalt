@@ -556,13 +556,15 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   `useLoops()` keeps the state (lazy, no module-scope side effects), stored in `localStorage`
   (`basalt-loops`) for this app's origin in this browser and carried across the app's tabs by the
   `storage` event; the server renders "running". `loopsBootstrap` is a line for the head, beside the
-  theme's, so a stored hold applies before the first frame. This is the mechanism WCAG 2.2.2
+  theme's, so a stored hold applies before the first frame; under a policy that forbids inline scripts it is the same line as a file
+  (`head/loops.js`, as the theme's is `head/theme.js`), loaded with a plain `<script src>` in the head. This is the mechanism WCAG 2.2.2
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
   reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
-  in an app, a pressed-toggle Button (secondary or ghost) in the head band of the view that shows running work, and a settings row (the
+  in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
+  secondary or ghost, labelled "Pause animations") or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
   label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
   animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
   state. **The app's own text is its part too:** while held, an elapsed time shows when the work

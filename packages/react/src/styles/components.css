@@ -2290,8 +2290,8 @@
   /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
   .basalt-table[data-fixed] :is(th, td):has(> :is(.basalt-button, .basalt-checkbox, .basalt-choice, .basalt-menu-trigger, [role="checkbox"])) { overflow: visible; }
   .basalt-table[data-fixed] thead th { height: var(--_head-h); }
-  /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
-  .basalt-table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. A link, in a data cell or a row's head (`th`, the pinned name column), is that box. */
+  .basalt-table[data-fixed] :is(td, th) > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (pointer: coarse) {
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
@@ -3861,6 +3861,11 @@
   .basalt-code-title { display: flex; align-items: center; justify-content: space-between; min-height: var(--basalt-size-control-sm); }
   .basalt-code-title .basalt-code-copy { position: static; margin: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2-5)) calc(-1 * var(--basalt-space-1)) 0; }
 
+  /* Base UI's one inline style, drawn here so a page under `style-src 'self'` can turn Base UI's style elements off (`CSPProvider disableStyleElements`) and see
+     the same thing: the element Base UI marks scrolls with no scrollbar. Base UI's own rule is these two declarations; with its style element on, both agree. */
+  .base-ui-disable-scrollbar { scrollbar-width: none; }
+  .base-ui-disable-scrollbar::-webkit-scrollbar { display: none; }
+
   /* stylelint-disable-next-line unit-disallowed-list -- the standard screen-reader-only clip; not a design length */
   .basalt-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
@@ -4911,10 +4916,10 @@
   .basalt-link > .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
   .basalt-button > .basalt-external { display: inline-flex; align-items: center; color: inherit; }
   .basalt-button > .basalt-external > .basalt-icon { vertical-align: baseline; margin-block: 0; }
-  /* In a still-table cell the label truncates and the arrow stays whole. */
-  .basalt-table[data-fixed] td > a[data-new-tab] { display: flex; align-items: center; }
-  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-external { flex: none; }
+  /* In a still-table cell (a data cell or a row's head) the label truncates and the arrow stays whole. */
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] { display: flex; align-items: center; }
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] > .basalt-link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] > .basalt-external { flex: none; }
   .basalt-breadcrumbs { font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
   .basalt-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); margin: 0; padding: 0; list-style: none; }
   .basalt-breadcrumbs li { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }

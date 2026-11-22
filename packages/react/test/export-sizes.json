@@ -33,6 +33,7 @@
   "Button": 17513,
   "CONFIRM_MS": 31,
   "COPIED_MS": 35,
+  "CSPProvider": 449,
   "CalendarGlyph": 2974,
   "Callout": 11777,
   "CaptionedColumn": 350,
@@ -60,7 +61,7 @@
   "Combobox": 164576,
   "CommandBlock": 4923,
   "CommandList": 33057,
-  "CommandMenu": 84208,
+  "CommandMenu": 84381,
   "CopyButton": 18435,
   "CopyGlyph": 2884,
   "Countdown": 2920,
@@ -248,7 +249,7 @@
   "Slider": 38283,
   "SocialLink": 38420,
   "SocialLinks": 434,
-  "SourceStamp": 3895,
+  "SourceStamp": 3897,
   "SourceStateWords": 12703,
   "SourcesGlyph": 2938,
   "Sparkline": 4585,
@@ -369,11 +370,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 760821,
-  "gzip": 250482
+  "bytes": 761402,
+  "gzip": 250659
  },
  "styles": {
-  "bytes": 306194,
-  "gzip": 40099
+  "bytes": 306333,
+  "gzip": 40125
  }
 }

@@ -525,12 +525,13 @@ test("the whole package up front and styles.css, minified and gzipped, stay with
 });
 
 // Loading a module does nothing, for every file in dist (the lazy command panel apart: it loads on first open, and the Maps it builds are Phosphor's icon
-// tables, bundled in). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
+// tables, bundled in; and the two head scripts in dist/head, which are not modules: each is a classic script that runs in a document's head, and reads the page's
+// storage as it loads, which is what it is for; test/content-policy.test.mjs runs them in a page). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
 // formatter that the file itself allocates while it loads (the frame that called `new` is in this package's dist) is counted against it, and so is any throw.
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js").sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !f.startsWith(`head${path.sep}`)).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -549,4 +550,62 @@ test("importing every file in dist allocates no registry or formatter, reads no 
   `;
   const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, dist, ...files], { encoding: "utf8", cwd: pkg, maxBuffer: 1 << 24 });
   assert.deepEqual(JSON.parse(out.trim().split("\n").at(-1)), []);
+});
+
+// First-load chunking (DECISIONS 265, batch B0). An app that splits its bundle draws its shell up front and its forms and popups in a route it loads later, and
+// imports everything from the root. esbuild places a module by which entries reach it before tree shaking, and every `export … from` in the root is a path, so
+// without the imports plugin the route's modules ride in a chunk the first screen loads (measured: 341 KB up front, Base UI's combobox, select and menu in it).
+// With the plugin the first screen loads exactly what it would if each import named its own module. The limit is the measurement (160,341 bytes) rounded up to the next 1,000.
+async function firstScreen({ plugin, entry = "shell.jsx" } = {}) {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const result = await esbuild.build({
+    absWorkingDir: path.join(here, "fixtures", "split-app"), entryPoints: [entry],
+    outdir: path.join(pkg, ".bundle-check"), bundle: true, minify: true, format: "esm", splitting: true, write: false, metafile: true, jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    plugins: plugin ? [basaltImportsEsbuild()] : [],
+  });
+  const outputs = result.metafile.outputs;
+  const start = Object.keys(outputs).find((file) => outputs[file].entryPoint === entry);
+  const seen = new Set();
+  const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+  visit(start);
+  // What contributes bytes, from the package and its dependencies (the app's own file and the plugin's small barrels left out).
+  const inputs = [...new Set([...seen].flatMap((file) => Object.entries(outputs[file].inputs).filter(([input, { bytesInOutput }]) => bytesInOutput > 0 && /\/dist\/|node_modules/.test(input)).map(([input]) => input)))].sort();
+  const later = [...new Set(Object.keys(outputs).filter((file) => !seen.has(file)).flatMap((file) => Object.keys(outputs[file].inputs)))];
+  return { bytes: [...seen].reduce((sum, file) => sum + outputs[file].bytes, 0), inputs, later };
+}
+
+test("a split app's first screen, through the imports plugin, loads what it would if each import named its own module, and none of a later route's", async () => {
+  const through = await firstScreen({ plugin: true });
+  const direct = await firstScreen({ entry: "shell-direct.jsx" });
+  assert.deepEqual(through.inputs, direct.inputs, "the same files up front as imports that name each module");
+  const route = through.inputs.filter((f) => /@base-ui\/react\/(esm\/)?(combobox|select|menu|dialog|field|input)\//.test(f));
+  assert.deepEqual(route, [], "none of the route's popups and fields are up front");
+  assert.ok(through.inputs.some((f) => /@base-ui\/react\/(esm\/)?tooltip\//.test(f)), "the rail's tooltip, which Nav draws, is");
+  assert.ok(through.bytes < 161_000, `first screen ${through.bytes} bytes (limit 161,000)`);
+});
+
+test("the imports plugin changes where code lands, not what the route gets: the route still loads every part it draws", async () => {
+  const { later } = await firstScreen({ plugin: true });
+  for (const part of ["combobox", "select", "menu", "dialog", "field"]) assert.ok(later.some((f) => new RegExp(`@base-ui/react/(esm/)?${part}/`).test(f)), `Base UI's ${part} loads with the route`);
+});
+
+test("the imports plugin's map holds every name the root exports at run time, each from a module that exports it", async () => {
+  const { rootMap } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const map = rootMap();
+  const exported = await runtimeExports();
+  assert.deepEqual([...map.keys()].sort(), exported);
+  const modules = new Map();
+  for (const [name, { module, local }] of map) {
+    modules.set(module, modules.get(module) ?? await import(path.join(pkg, "dist", module)));
+    assert.ok(local in modules.get(module), `${name}: ${module} exports ${local}`);
+  }
+});
+
+test("rootImports reads named imports and re-exports, skips types, and gives up on a namespace or a star", async () => {
+  const { rootImports } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const source = `import { Button, IconButton as Icon, type ButtonProps } from "@srasyndicate/basalt";\nimport type { MenuProps } from "@srasyndicate/basalt";\nexport {\n  Table,\n  TableRow,\n} from '@srasyndicate/basalt';\nimport { Spinner } from "@srasyndicate/basalt/other";`;
+  assert.deepEqual(rootImports(source), ["Button", "IconButton", "Table", "TableRow"]);
+  assert.equal(rootImports(`import * as B from "@srasyndicate/basalt";`), null);
+  assert.equal(rootImports(`export * from "@srasyndicate/basalt";`), null);
 });
