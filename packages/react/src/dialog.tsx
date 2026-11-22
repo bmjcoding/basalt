@@ -32,7 +32,7 @@ export interface DialogProps {
  * trigger when it closes; Esc closes it.
  */
 export function Dialog(props: DialogProps) {
-  const form = React.useRef<FormState>({ dirty: false, opened: undefined });
+  const form = React.useRef<FormState>({ dirty: false, opened: undefined, popup: null, initial: "" });
   const { onOpenChange } = props;
   return (
     <DialogModal.Provider value={props.modal === undefined || props.modal === true}>
@@ -41,7 +41,7 @@ export function Dialog(props: DialogProps) {
           {...props}
           onOpenChange={(open, details) => {
             // A form is closed by a press on the scrim only while nothing has been entered (Esc, Close and Cancel always close it).
-            if (!open && details.reason === "outside-press" && form.current.dirty) {
+            if (!open && details.reason === "outside-press" && entered(form.current)) {
               details.cancel();
               return;
             }
@@ -59,7 +59,17 @@ export function Dialog(props: DialogProps) {
 interface FormState {
   dirty: boolean;
   opened: "touch" | "keyboard" | undefined;
+  /** The open form's box and what its fields held when it opened. */
+  popup: HTMLElement | null;
+  initial: string;
 }
+
+/** What the fields of a form hold: a Base UI control (Select, Combobox, Switch, Checkbox) keeps a hidden input, so a change of value is seen whether or not it fires an event. */
+function values(box: HTMLElement): string {
+  return Array.from(box.querySelectorAll<HTMLInputElement>("input, select, textarea"), (el) => (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : el.value)).join("\u0001");
+}
+/** Something has been entered: an input or change event, or any field that no longer holds what it held when the form opened. */
+const entered = (state: FormState) => state.dirty || Boolean(state.popup && values(state.popup) !== state.initial);
 const DialogForm = /* @__PURE__ */ React.createContext<FormState | null>(null);
 
 /**
@@ -121,6 +131,14 @@ export function DialogContent({ className, style, children, ref, size = "default
   }, [ref]);
   const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
   const top = useHeldTop(node, form);
+  // A form's state lives only while it is open: opened by whatever means, it starts with nothing entered and no remembered input; when its box goes, both go (however it was closed).
+  React.useLayoutEffect(() => {
+    if (!form || !state || !node) return undefined;
+    state.dirty = false;
+    state.popup = node;
+    state.initial = values(node);
+    return () => { state.dirty = false; state.opened = undefined; state.popup = null; state.initial = ""; };
+  }, [node, form, state]);
   // A wide dialog is a manual: its first focus is its name, not the first button, so Enter on opening does nothing. A form opens on its first field, or on its title when a
   // touch opened it, so no keyboard rises over a form before the reader has seen it.
   const title = () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true;

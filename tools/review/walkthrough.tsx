@@ -13,13 +13,13 @@ import { ROUNDS } from "./rounds";
 declare global {
   interface Window {
     __BASALT_ROUND__: string;
-    __BASALT_STEPS__: Array<{ id: string; name: string; states: string[]; widths?: number[]; scales?: number[]; height?: number }>;
+    __BASALT_STEPS__: Array<{ id: string; name: string; states: string[]; widths?: number[]; scales?: number[]; height?: number; touch?: boolean }>;
   }
 }
 
 const round = ROUNDS.find((r) => r.id === window.__BASALT_ROUND__)!;
 // for build.mjs: which steps and states to screenshot
-window.__BASALT_STEPS__ = round.steps.map((s) => ({ id: s.id, name: s.name, states: s.states ?? [], widths: s.widths, scales: s.scales, height: s.height }));
+window.__BASALT_STEPS__ = round.steps.map((s) => ({ id: s.id, name: s.name, states: s.states ?? [], widths: s.widths, scales: s.scales, height: s.height, touch: s.touch }));
 const params = new URLSearchParams(location.search);
 const shot = params.get("shot") === "1";
 const initialTheme = params.get("theme") ?? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");

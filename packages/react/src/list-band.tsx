@@ -14,6 +14,8 @@ import { join } from "./utils";
 const DEFAULT_SIZES = [10, 25, 50, 100] as const;
 
 type Rest = false | true | "previous" | "next";
+/** How long a press waits for the app to move the page before it is forgotten (an app may set it after an await). */
+const PRESS_WAIT = 10_000;
 
 export interface ListBandProps extends Omit<React.ComponentProps<"div">, "children" | "onChange"> {
   /** How many rows match now (after any search and filters). 0 blanks the count and hides the pager, keeping their room. */
@@ -43,7 +45,11 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   pagerLabel?: string;
   /** Milliseconds the page or size must hold still before it is spoken. Default 400. */
   delay?: number;
-  /** The list itself (the rows' panel or the table): drawn after the band and its Back to top, and followed by the foot. */
+  /**
+   * The list itself (the rows' panel or the table): drawn after the band and its Back to top, and followed by the foot. All of them are one element, so the band and Back to top
+   * stick within the list and not in the app's parent. The window is the scroller: the band's stickiness, the return to rest and Back to top all read and move the window's scroll, so
+   * a list inside a scrolling element of its own is not supported.
+   */
   children?: React.ReactNode;
   /**
    * The list's heading, as an id or a ref: Back to top focuses it (`preventScroll`) before it takes the window to the top. It is the start of what the reader came back for (the search, the
@@ -54,6 +60,11 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   backToTop?: boolean;
   /** The foot's name. Default "Pagination, end of list": say what is paged ("Incident pages, end of list"). */
   footLabel?: string;
+  /**
+   * Anything that changes when the search or a filter does (the app's own value, or a string of them). A change clears the band's spoken line even when the total stays the same: a filter that
+   * resets the page to 1 leaves no stale "Page 2 of 9" behind. A change of `total` clears it too.
+   */
+  filterKey?: string | number;
 }
 
 const eights = (n: number) => String(Math.max(0, Math.floor(n))).replace(/\d/g, "8");
@@ -75,7 +86,7 @@ function returnToRest(sentinel: HTMLElement) {
  * and under 340px the page size moves to the end of a second row. Under 720, with more than one page, the band's Previous, count and Next are drawn again, centred under the list (its foot):
  * a press there changes the page, returns the window to where the band rests and moves focus to the band's own arrow. Back to top sits in a dock of zero height after the band.
  */
-export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", children, className, ...props }: ListBandProps) {
+export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, children, className, ...props }: ListBandProps) {
   const count = Math.max(0, Math.floor(total) || 0);
   const size = Math.max(1, Math.floor(pageSize) || 1);
   const pages = Math.max(1, Math.ceil(count / size));
@@ -83,6 +94,7 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   const from = count ? (current - 1) * size + 1 : 0;
   const to = Math.min(current * size, count);
   const reach = Math.max(count, Math.floor(maxTotal ?? 0) || 0);
+  const selectId = React.useId();
   const smallest = Math.max(1, Math.min(...pageSizes));
   const band = React.useRef<HTMLDivElement>(null);
   const sentinel = React.useRef<HTMLDivElement>(null);
@@ -90,6 +102,9 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   // What the last press asks of the window once the app has moved the page: `true` returns a stuck band to rest; the foot's `previous` or `next` returns the window to the band's rest
   // wherever it is and moves focus to the band's own arrow of that name.
   const rest = React.useRef<Rest>(false);
+  const restTimer = React.useRef<number | undefined>(undefined);
+  const ask = (what: Rest) => { rest.current = what; window.clearTimeout(restTimer.current); restTimer.current = window.setTimeout(() => { rest.current = false; }, PRESS_WAIT); };
+  React.useEffect(() => () => window.clearTimeout(restTimer.current), []);
 
   // From 720 the band is `position: sticky`: a sentinel just above it says when it is stuck. A hidden sentinel, or a band that does not stick (under 720), is never stuck.
   React.useEffect(() => {
@@ -114,23 +129,24 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   }, []);
 
   // What the band says: a page or size change, once. A change of `total` is a filter or a search and clears what was said (FilterResult speaks that).
-  const last = React.useRef({ total: count, page: current, size });
+  const last = React.useRef({ total: count, page: current, size, filterKey });
   const [said, setSaid] = React.useState({ text: "", id: 0 });
   React.useLayoutEffect(() => {
     const before = last.current;
-    last.current = { total: count, page: current, size };
-    if (before.total !== count) setSaid((now) => (now.text ? { text: "", id: now.id + 1 } : now));
+    last.current = { total: count, page: current, size, filterKey };
+    if (before.total !== count || before.filterKey !== filterKey) setSaid((now) => (now.text ? { text: "", id: now.id + 1 } : now));
     else if (before.page !== current || before.size !== size) setSaid((now) => ({ text: `Page ${current} of ${pages}. ${noun} ${from} to ${to} of ${count}.`, id: now.id + 1 }));
+    // A press is remembered until the page or size really changes (an app may set it after an await, and a `stuck` flip in between must not forget it).
     const asked = rest.current;
-    if ((before.page !== current || before.size !== size) && asked && sentinel.current && (stuck || asked !== true)) {
-      returnToRest(sentinel.current);
+    if ((before.page !== current || before.size !== size) && asked && sentinel.current) {
+      if (stuck || asked !== true) returnToRest(sentinel.current);
       if (asked !== true) {
         const arrows = band.current?.querySelectorAll<HTMLElement>(".basalt-pagination > .basalt-button");
         arrows?.[asked === "previous" ? 0 : arrows.length - 1]?.focus({ preventScroll: true });
       }
+      rest.current = false;
     }
-    rest.current = false;
-  }, [count, current, size, pages, noun, from, to, stuck]);
+  }, [count, current, size, pages, noun, from, to, stuck, filterKey]);
 
   const widest = eights(reach);
   const range = (
@@ -142,7 +158,7 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   );
   const maxPages = Math.ceil(reach / smallest);
   return (
-    <>
+    <div className="basalt-list-band-wrap">
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
       <div {...props} ref={band} data-stuck={stuck ? "" : undefined} className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
@@ -153,25 +169,28 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
             pageCount={count ? pages : 0}
             maxPages={maxPages}
             summary={range}
-            onPageChange={(next) => { rest.current = true; onPageChange?.(next); }}
+            keepRoom
+            onPageChange={(next) => { ask(true); onPageChange?.(next); }}
           />
           <div className="basalt-list-band-size">
             <Select
               numeric
+              id={selectId}
+              controlSize="sm"
               aria-label={`${noun} ${sizeLabel}`}
               options={pageSizes.map((n) => ({ value: String(n), label: String(n) }))}
               value={String(size)}
               onValueChange={(value) => {
                 const next = Number(value);
                 if (!value || !Number.isFinite(next) || next === size) return;
-                rest.current = true;
+                ask(true);
                 // The reader's first row stays in view: the page that holds it at the new size.
                 const first = (current - 1) * size;
                 onPageSizeChange?.(next);
                 onPageChange?.(Math.floor(first / next) + 1);
               }}
             />
-            <span className="basalt-list-band-size-label" aria-hidden="true">{sizeLabel}</span>
+            <label className="basalt-list-band-size-label" htmlFor={selectId}>{sizeLabel}</label>
           </div>
         </div>
         <StatusLine delay={delay} sendId={said.id}>{said.text}</StatusLine>
@@ -186,9 +205,9 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
           pageCount={count ? pages : 0}
           maxPages={maxPages}
           summary={range}
-          onPageChange={(next) => { rest.current = next < current ? "previous" : "next"; onPageChange?.(next); }}
+          onPageChange={(next) => { ask(next < current ? "previous" : "next"); onPageChange?.(next); }}
         />
       </div>
-    </>
+    </div>
   );
 }

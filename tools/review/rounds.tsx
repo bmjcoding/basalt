@@ -137,6 +137,8 @@ export interface Step {
   height?: number;
   /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
   bleed?: boolean;
+  /** Shoot widths under 720 as a phone: touch and mobile emulation (a coarse pointer, the 44px targets, focus by touch). */
+  touch?: boolean;
   demo: (props: { state: string }) => React.ReactNode;
 }
 

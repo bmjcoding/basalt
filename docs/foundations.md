@@ -1915,9 +1915,7 @@ reader picks 50 per page, and leaves a keyboard's next Tab outside the new page.
   words are inside the name (WCAG 2.5.3), the noun is the app's. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
 - **It is spoken once.** A page or size change is said by the band's own polite status line after 400ms of stillness ("Page 2 of 9. Incidents 26 to 50 of 214."). A change of the
   total (a search or a filter) clears the line, and only `FilterResult` speaks a filter ("Showing 37 of 214 incidents"): two numbers with two jobs, each beside the control that drives it.
-- **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go: Previous, the count and Next, with the page size after them; that is one row at
-  390 (a 193px pager and a 132px page size in 358). Under `size-breakpoint-container-sm` (340), where one row would not fit (the 292px card), the page size is the end of a second row,
-  so nothing overflows or wraps by its content.
+- **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list. The window is the scroller.
 
 ### Back to top and the list's foot
 
@@ -1953,7 +1951,7 @@ count keeps `space-1` more on each side: 8px between an arrow and the count, the
 Past seven pages the pager is seven slots: `1 2 3 4 5 … N`, then `1 … p−1 p p+1 … N`, then `1 … N−4 N−3 N−2 N−1 N`. Every slot, the gap included, is as wide as the widest page
 number the list can reach (its unfiltered count at the smallest size; `maxPages`), at 600 in tabular figures: the incident rows reserve "22" (a 36px slot), the still table "49". The
 box reserves `min(7, maxPages)` slots in one cell, so with fewer pages the numbers sit centered between the arrows and nothing moves. Previous and Next are always there and stop at
-an end without leaving focus (`aria-disabled`, as the period stepper's arrows do). At one page or none the pager is `visibility: hidden` and keeps its room (the stepper's `whole`);
+an end without leaving focus (`aria-disabled`, as the period stepper's arrows do). At one page or none a bare pager renders nothing, as before; in the band (`keepRoom`) it is `visibility: hidden` and keeps its room with `role="none"`, never an empty `nav` landmark (the stepper's `whole`);
 the count stays. It never wraps. The gap glyph is the core `more` (a component never draws Phosphor's version of a core glyph; engineering). A press on a number moves focus to the
 button that holds the current page; Previous and Next keep focus. A bare `Pagination` is its own container and goes to Previous, "Page 3 of 22" and Next under 640 of its width. It
 keeps the shipped look: ghost `sm` buttons, the numeral at 600 against 400 on the raised plate with its hairline, the hover wash of DECISIONS 145 item 3; the figures are tabular, and
@@ -1982,7 +1980,7 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 
 - **Height.** At most the window less `space-4` above and below, with the head and foot held and the body scrolling (528px at 1440 by 560).
 - **Its top is held where it opened** (where a dialog of its height would sit, never nearer the window's edge than `space-4`), and it grows downward: an error under a field adds its height and the title does not move. It re-centres only on a window resize.
-- **The scrim closes it only while nothing has been entered.** Esc, Close and Cancel always close it. There is no "discard changes?" step: one task at a time.
+- **The scrim closes it only while nothing has been entered.** Esc, Close and Cancel always close it. "Entered" is an input or change event, or any field (a Select, a Switch, a Combobox: each keeps a hidden input) that holds something other than it held when the form opened. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. There is no "discard changes?" step: one task at a time.
 - **Focus** on opening goes to the first field; when a touch opened it, to the title (`tabindex="-1"`, no ring), so no keyboard rises over a form before it is seen. The choice is by the input that
   opened it (a key press on the opener focuses the field even in touch emulation); a controlled dialog falls back to the primitive's reading. On closing, focus returns to the opener.
 - **Under 720 it is a full-screen modal:** the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion (300ms in, 225ms

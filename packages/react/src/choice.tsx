@@ -217,19 +217,15 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   return (
     <BaseSelect.Root {...props} inputRef={mirror} items={items}>
-      <BaseSelect.Trigger data-numeric={numeric ? "" : undefined} aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
+      <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         {valuePrefix ? (
           <span className="basalt-select-lead">
             <span id={ids.prefix} className="basalt-select-prefix">{valuePrefix}</span>
             <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
           </span>
-        ) : numeric ? (
-          <span className="basalt-select-seat">
-            <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
-            {options.map((o) => <span key={o.value} className="basalt-select-sizer" aria-hidden="true">{o.label}</span>)}
-          </span>
         ) : (
-          <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+          // A numeric select holds the width of its widest option: the value's cell carries it as eights in an attribute that a pseudo-element paints, so choosing moves nothing and the DOM holds the words once.
+          <BaseSelect.Value data-widest={numeric ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />
         )}
         <BaseSelect.Icon className="basalt-select-icon">
           <Icon icon={CaretUpDownIcon} size={16} />

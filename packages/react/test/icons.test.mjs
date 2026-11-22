@@ -274,6 +274,12 @@ describe("the bytes, with the plugin and without it", () => {
     assert.equal(trimmed.bytes, plain.bytes, `${plain.bytes} → ${trimmed.bytes}`);
     assert.equal(fs.readFileSync(path.join(dist, "navigation.js"), "utf8").includes("@phosphor-icons"), false);
   });
+
+  // Pagination's absolute limit (it had 21,750 while it drew DotsThree; DECISIONS 222 took the Phosphor icon out and the list band's pieces in): the static graph under splitting, measured 20,2xx, rounded up to the next 50.
+  test("Pagination alone stays under its absolute limit (20,300 bytes, the static graph under splitting)", async () => {
+    const plain = await bundle(alone("Pagination"), { split: true });
+    assert.ok(plain.bytes < 20_300, `Pagination: ${plain.bytes} bytes (limit 20300)`);
+  });
 });
 
 describe("the licence is in an output once", () => {

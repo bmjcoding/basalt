@@ -22,6 +22,7 @@ import {
   FilterToolbar,
   Icon,
   Input,
+  Pagination,
   ListBand,
   MultiSelect,
   Select,
@@ -59,6 +60,11 @@ const INCIDENTS: Incident[] = Array.from({ length: 214 }, (_, i) => {
   return { n, ref: `INC-${String(n + 486).padStart(4, "0")}`, sev, status, title: TITLES[(i * 3) % TITLES.length]!, who: PEOPLE[(i * 5) % PEOPLE.length]!, app: APPS[(i * 7) % APPS.length]!, age: `${(i * 13) % 55 + 5} min` };
 });
 const PAST = Array.from({ length: 486 }, (_, j) => ({ ref: `INC-${String(486 - j).padStart(4, "0")}`, title: TITLES[(j * 3) % TITLES.length]!, sev: SEV[(j * 5) % 4]!, who: PEOPLE[(j * 7) % PEOPLE.length]!, when: `Nov ${(j % 28) + 1}, ${(j % 11) + 1}:${String((j * 7) % 60).padStart(2, "0")} PM`, took: `${(j * 11) % 14} h ${(j * 17) % 60} min`, app: APPS[(j * 3) % APPS.length]! }));
+
+/** The page's own gutter (16 at 390), and no bar above (so the band's stick offset is 0): a phone's list as the app draws it. */
+function Frame({ children }: { children: React.ReactNode }) {
+  return <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", ["--basalt-sticky-offset" as string]: "0px" }}>{children}</div>;
+}
 
 const tone = (sev: string) => (sev === "SEV1" ? "danger" : sev === "SEV2" ? "warning" : "neutral");
 
@@ -116,8 +122,14 @@ function Incidents({ state }: { state: string }) {
     })();
     return () => { live = false; };
   }, [kind]);
-  const clear = () => { setQ(""); setSev([]); setStatus([]); setPage(1); };
+  // DECISIONS 207: focus goes where the next try starts. The button leaves with the empty state, so focus goes to the search field, or to the first filter's trigger when a filter hid the rows.
+  const clear = () => {
+    const hadFilters = filtered;
+    setQ(""); setSev([]); setStatus([]); setPage(1);
+    window.setTimeout(() => (hadFilters ? document.querySelector<HTMLElement>(".basalt-filter-toolbar .basalt-filter-trigger") : first.current)?.focus(), 30);
+  };
   return (
+    <Frame>
     <div style={{ display: "flex", flexDirection: "column" }}>
       <h2 id="incidents-title" tabIndex={-1} style={{ margin: "0 0 var(--basalt-space-3)", font: "var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans)" }}>Your incidents</h2>
       <FilterToolbar
@@ -134,7 +146,7 @@ function Incidents({ state }: { state: string }) {
         ]}
         result={<FilterResult>{`Showing ${shown.length} of ${INCIDENTS.length} incidents`}</FilterResult>}
       />
-      <ListBand heading="incidents-title" footLabel="Incident pages, end of list" total={shown.length} maxTotal={INCIDENTS.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents">
+      <ListBand heading="incidents-title" pagerLabel="Incident pages" filterKey={`${q}|${sev}|${status}`} footLabel="Incident pages, end of list" total={shown.length} maxTotal={INCIDENTS.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents">
       <Card style={{ overflow: "hidden", padding: 0 }}>
         {rows.length ? (
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -160,17 +172,20 @@ function Incidents({ state }: { state: string }) {
       </Card>
       </ListBand>
     </div>
+    </Frame>
   );
 }
 
-function PastTable() {
-  const [page, setPage] = React.useState(1);
-  const [size, setSize] = React.useState(25);
+function PastTable({ state }: { state: string }) {
+  const kind = kindOf(state);
+  const [page, setPage] = React.useState(kind === "page-4" ? 4 : 1);
+  const [size, setSize] = React.useState(kind === "size-10" ? 10 : 25);
   const [sort, setSort] = React.useState<"ascending" | "descending">("descending");
   const rows = [...PAST].sort((a, b) => (sort === "ascending" ? 1 : -1) * (a.ref < b.ref ? -1 : 1)).slice((page - 1) * size, page * size);
   return (
+    <Frame>
     <div>
-      <ListBand total={PAST.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Past incidents">
+      <ListBand total={PAST.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Past incidents" pagerLabel="Past incident pages" filterKey={sort}>
       <TableContainer label="Past incidents">
         <Table columns={[{ width: 100 }, { width: 80 }, { width: 150 }, { width: 150 }, { width: 120 }, { width: 140 }, {}]} minWidth={940}>
           <TableHeader><TableRow><TableHead onSortChange={() => { setSort(sort === "ascending" ? "descending" : "ascending"); setPage(1); }} sort={sort}>Ref</TableHead><TableHead>Severity</TableHead><TableHead>Commander</TableHead><TableHead>Declared</TableHead><TableHead numeric>Took</TableHead><TableHead>Application</TableHead><TableHead>Title</TableHead></TableRow></TableHeader>
@@ -182,25 +197,47 @@ function PastTable() {
       </TableContainer>
       </ListBand>
     </div>
+    </Frame>
+  );
+}
+
+// The link-mode pager (DECISIONS 222): the same slots as links, in a wide box and in a phone's.
+function LinkPager() {
+  return (
+    <Frame>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--basalt-space-6)" }}>
+        <Text size="sm" tone="secondary">Pagination of links (hrefForPage): seven fixed slots from 640 of its container, Previous, “Page 3 of 22” and Next under it.</Text>
+        <Pagination aria-label="Runs, page 3" page={3} pageCount={22} hrefForPage={(n) => `#page-${n}`} />
+        <Pagination aria-label="Runs, page 12" page={12} pageCount={22} hrefForPage={(n) => `#page-${n}`} />
+        <Pagination aria-label="Runs, the last page" page={22} pageCount={22} hrefForPage={(n) => `#page-${n}`} />
+      </div>
+    </Frame>
   );
 }
 
 // The Declare form. Its body is tall enough to scroll in a short window; `dialog-error` has submitted with nothing entered.
 function Declare({ state }: { state: string }) {
   const kind = kindOf(state);
-  const [error, setError] = React.useState(kind === "dialog-error");
-  const [open, setOpen] = React.useState(kind.startsWith("dialog"));
+  const [error, setError] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
   const body = React.useRef<HTMLDivElement>(null);
+  const trigger = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
-    if (kind !== "dialog-scrolled") return undefined;
-    const timer = window.setTimeout(() => { if (body.current) body.current.scrollTop = body.current.scrollHeight; }, 400);
-    return () => window.clearTimeout(timer);
+    if (!kind.startsWith("dialog")) return undefined;
+    // Opened by the input the reader would use: a tap on a phone, a click otherwise, so focus goes by it (the title for a touch, the first field for a pointer).
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const opened = window.setTimeout(() => trigger.current?.dispatchEvent(new PointerEvent("click", { bubbles: true, cancelable: true, pointerType: coarse ? "touch" : "mouse", detail: 1 })), 60);
+    // The error shot opens at rest and then shows the error, so the top held where it opened is what the shot shows.
+    const failed = kind === "dialog-error" ? window.setTimeout(() => setError(true), 420) : 0;
+    const scrolled = kind === "dialog-scrolled" ? window.setTimeout(() => { if (body.current) body.current.scrollTop = body.current.scrollHeight; }, 420) : 0;
+    return () => { window.clearTimeout(opened); window.clearTimeout(failed); window.clearTimeout(scrolled); };
   }, [kind]);
   return (
+    <Frame>
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--basalt-space-3)" }}>
       <Text size="sm" tone="secondary">A form opens in the center from 720 (480 wide, its top held where it opened) and fills the window under it. Esc, Close and Cancel always close it; the scrim closes it only while nothing has been typed.</Text>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <div><DialogTrigger render={<Button variant="primary">Declare incident</Button>} /></div>
+      <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(false); }}>
+        <div><DialogTrigger ref={trigger} render={<Button variant="primary">Declare incident</Button>} /></div>
         <DialogContent form>
           <SheetHeader closeLabel="Close declare incident"><DialogTitle>Declare an incident</DialogTitle></SheetHeader>
           <SheetBody ref={body}>
@@ -218,12 +255,13 @@ function Declare({ state }: { state: string }) {
         </DialogContent>
       </Dialog>
     </div>
+    </Frame>
   );
 }
 
 const LIST_STATES = ["page-4", "page-last", "size-10", "size-100", "filtered", "search-empty", "filters-empty", "page-1-forced-colours", "page-1-reduced-motion", "filtered-forced-colours", "back-down", "back-up", "foot-end", "foot-next", "back-down-forced-colours", "back-down-reduced-motion", "foot-end-forced-colours"];
 const DIALOG_STATES = ["dialog", "dialog-scrolled", "dialog-error", "dialog-forced-colours", "dialog-reduced-motion"];
-const SHOT = { widths: [1440, 390], scales: [1, 2] };
+const SHOT = { widths: [1440, 390], scales: [1, 2], bleed: true, touch: true };
 
 export const ROUND_51: Round = {
   id: "51",
@@ -260,7 +298,18 @@ export const ROUND_51: Round = {
       states: ["page-4", "size-10-forced-colours"],
       ...SHOT,
       height: 900,
-      demo: () => <PastTable />,
+      demo: ({ state }) => <PastTable state={state} />,
+    },
+    {
+      id: "pager-links",
+      name: "The pager as links",
+      intro: "A bare Pagination of links (hrefForPage): the same seven fixed slots, Previous and Next always there, and the compact form under 640 of its container.",
+      decisions: ["Link-mode pages take the same 10px of inline padding as a button's, so every slot is one width (the shipped links used 8px). Previous and Next at an end are aria-disabled and stay focusable.", "A bare Pagination is its own container: it fills its parent, and in a flex row it needs flex: 1."],
+      tryIt: ["Tab through the links: an end arrow keeps focus."],
+      states: [],
+      ...SHOT,
+      height: 700,
+      demo: () => <LinkPager />,
     },
     {
       id: "declare",

@@ -97,6 +97,11 @@ export interface PaginationProps extends Omit<React.ComponentProps<"nav">, "onCh
   summary?: React.ReactNode;
   /** Always the compact form (Previous, the summary and Next), whatever the container's width: the list's foot under 720. */
   compact?: boolean;
+  /**
+   * At one page or none a bare `Pagination` renders nothing, as it always did. Set this to keep its room instead (its arrows `visibility: hidden`, and `role="none"` instead of a `nav` landmark: an empty landmark
+   * would be read out), so a filter that leaves one page closes no gap and moves nothing. `ListBand` sets it.
+   */
+  keepRoom?: boolean;
 }
 
 type PageItem = number | "gap";
@@ -110,23 +115,24 @@ function pageItems(page: number, count: number): PageItem[] {
 }
 
 /** The widest a page number can be, as eights: tabular figures are all one width, so the string stands for every number of its length. */
-const eights = (n: number) => String(Math.max(1, Math.floor(n))).replace(/\d/g, "8");
+const eights = (n: number) => String(n).replace(/\d/g, "8");
 
 /**
  * Bounded pagination, fixed in place: seven slots, each as wide as the widest page number the list can reach, so no page and neither arrow moves when the page
- * changes. Previous and Next are always there and stop at an end without leaving focus (`aria-disabled`). At one page or none it is hidden and keeps its room. It
- * never wraps: under 640px of its container it is Previous, a summary and Next. The current page is its number at 600 on a plate. A press on a number moves focus to
+ * changes. Previous and Next are always there and stop at an end without leaving focus (`aria-disabled`). At one page or none it renders nothing, or with `keepRoom` it is
+ * hidden and keeps its room. It never wraps: under 640px of its container it is Previous, a summary and Next. The current page is its number at 600 on a plate. A press on a number moves focus to
  * the button that holds the current page.
  */
-export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPages, summary, compact, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
+export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPages, summary, compact, keepRoom, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   const current = Math.max(1, Math.min(Math.max(count, 1), Math.floor(page) || 1));
   const whole = count <= 1;
-  const reach = Math.max(count, Number.isFinite(maxPages) ? Math.floor(maxPages as number) : 0, 1);
+  const reach = Math.max(count, Math.floor(maxPages || 0), 1);
   const widest = eights(reach);
   const root = React.useRef<HTMLElement>(null);
   const pressed = React.useRef(false);
-  // A press on a number moves focus to the button that now holds the current page (the numbers slide along, so the one that was pressed may be another page now).
+  // A press on a number moves focus to the button that now holds the current page (the numbers slide along, so the one that was pressed may be another page now). It waits for the page to change,
+  // however long the app takes (a page set after an await works); an arrow press clears it, so a press the app refused leaves nothing for a later arrow.
   React.useLayoutEffect(() => {
     if (!pressed.current) return;
     pressed.current = false;
@@ -151,11 +157,8 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
         focusableWhenDisabled
         onClick={() => {
           if (ended) return;
-          if (typeof value === "number" && name.startsWith("Page ")) {
-            pressed.current = true;
-            // The caller may not move the page: a press that changed nothing must not leave the flag for a later arrow.
-            window.setTimeout(() => { pressed.current = false; }, 0);
-          }
+          // A number press waits for the page to change, and an arrow press is its own: one nobody answered must not take its focus.
+          pressed.current = typeof value === "number" && name.startsWith("Page ");
           onPageChange?.(value);
         }}
       >
@@ -163,9 +166,11 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
       </Button>
     );
   };
+  // At one page or none: nothing (as before), or its room with no landmark role (an empty `nav` would be read out).
+  if (whole && !keepRoom) return null;
   const items = whole ? [] : pageItems(current, count);
   return (
-    <nav {...props} ref={root} aria-label={label} data-whole={whole ? "" : undefined} data-compact={compact ? "" : undefined} className={join("basalt-pagination", className)}>
+    <nav {...props} ref={root} role={whole ? "none" : undefined} aria-label={whole ? undefined : label} data-whole={whole ? "" : undefined} data-compact={compact ? "" : undefined} className={join("basalt-pagination", className)}>
       {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current <= 1)}
       {compact ? null : (
         <div className="basalt-pagination-pages">

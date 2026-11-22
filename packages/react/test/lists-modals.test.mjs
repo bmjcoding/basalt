@@ -60,10 +60,10 @@ function App() {
         filter={[<B.MultiSelect key="s" toolbar label="Severity" options={${JSON.stringify(SEV.map((v) => ({ value: v, label: v })))}} value={sev} onValueChange={(v) => { setSev(v); back(); }} />,
           <B.MultiSelect key="t" toolbar label="Status" options={${JSON.stringify(STATUS.map((v) => ({ value: v, label: v })))}} value={status} onValueChange={(v) => { setStatus(v); back(); }} />]}
         result={<B.FilterResult>{"Showing " + shown.length + " of " + ALL.length + " incidents"}</B.FilterResult>} />
-      <B.ListBand id="band" heading="list-title" footLabel="Incident pages, end of list" total={shown.length} maxTotal={ALL.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents">
+      <B.ListBand id="band" pagerLabel="Incident pages" filterKey={q + "|" + sev + "|" + status} heading="list-title" footLabel="Incident pages, end of list" total={shown.length} maxTotal={ALL.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Incidents">
       <div className="basalt-card" id="panel">
         {rows.length ? <ul id="rows" style={{ listStyle: "none", margin: 0, padding: 0 }}>{rows.map((r) => <li key={r.n}><a className="row" href={"#" + r.n} style={{ display: "block", padding: "12px 16px", height: 48, boxSizing: "border-box" }}>{r.sev} {r.title} {r.status}</a></li>)}</ul>
-          : <div id="empty"><p>{filtered ? (q ? "No incidents match \\u201C" + q + "\\u201D with these filters." : "No incidents match these filters.") : "No incidents match \\u201C" + q + "\\u201D."}</p><B.Button id="clear" onClick={() => { setQ(""); setSev([]); setStatus([]); back(); }}>{filtered ? "Clear filters" : "Clear search"}</B.Button></div>}
+          : <div id="empty"><p>{filtered ? (q ? "No incidents match \\u201C" + q + "\\u201D with these filters." : "No incidents match these filters.") : "No incidents match \\u201C" + q + "\\u201D."}</p><B.Button id="clear" onClick={() => { const hadFilters = filtered; setQ(""); setSev([]); setStatus([]); back(); window.setTimeout(() => (hadFilters ? document.querySelector(".basalt-filter-toolbar .basalt-filter-trigger") : document.getElementById("q"))?.focus(), 30); }}>{filtered ? "Clear filters" : "Clear search"}</B.Button></div>}
       </div>
       </B.ListBand>
       ${extra}
@@ -154,10 +154,20 @@ describe("Pagination: seven fixed slots", () => {
     const box = await full.evaluate(() => { const r = document.querySelector(".basalt-pagination").getBoundingClientRect(); return [r.width, r.height]; });
     await full.close();
     for (const n of [1, 0]) {
-      const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><B.Pagination page={1} pageCount={${n}} maxPages={22} /></div>);`);
+      const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><B.Pagination keepRoom page={1} pageCount={${n}} maxPages={22} /></div>);`);
       const nav = page.locator(".basalt-pagination");
+      assert.equal(await nav.getAttribute("role"), "none", "its room, not an empty landmark");
+      assert.equal(await page.getByRole("navigation").count(), 0);
       assert.deepEqual(await nav.evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; }), box, `${n} pages keeps the room of 22`);
       for (const name of ["Previous page", "Next page"]) assert.equal(await page.locator(`[aria-label="${name}"]`).evaluate((el) => getComputedStyle(el).visibility), "hidden");
+      await page.close();
+    }
+  });
+
+  test("a bare Pagination at one page or none renders nothing, as it always did", async () => {
+    for (const n of [1, 0]) {
+      const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div id="host" style={{ padding: 16 }}><B.Pagination page={1} pageCount={${n}} maxPages={22} /></div>);`);
+      assert.equal(await page.locator("#host").evaluate((el) => el.children.length), 0);
       await page.close();
     }
   });
@@ -307,8 +317,14 @@ describe("The band, the filters and the list: nothing moves", () => {
     const page = await open(LIST());
     const select = page.getByRole("combobox", { name: "Incidents per page" });
     assert.equal(await select.count(), 1);
-    assert.equal(await page.locator(".basalt-list-band-size-label").textContent(), "per page");
-    assert.equal(await page.locator(".basalt-list-band-size-label").getAttribute("aria-hidden"), "true");
+    const label = page.locator(".basalt-list-band-size-label");
+    assert.equal(await label.textContent(), "per page");
+    assert.equal(await label.evaluate((el) => el.tagName), "LABEL", "a real label");
+    assert.equal(await label.getAttribute("for"), await select.getAttribute("id"), "for the select");
+    // Pressing the words opens the select.
+    await label.click();
+    await page.getByRole("option").first().waitFor();
+    await page.keyboard.press("Escape");
     await select.click();
     await page.getByRole("option").first().waitFor();
     assert.deepEqual(await page.getByRole("option").allTextContents(), ["10", "25", "50", "100"]);
@@ -971,4 +987,278 @@ describe("The list's foot", () => {
     assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Previous page");
     await page.close();
   });
+});
+
+// ---- Fix pass 1 (Opus's review, 7/10) ----
+/** A standalone band in a box of the given width (no page padding), for the widths a phone really gives. */
+const BAND = (width, extra = "") => `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+function Host() { const [p, setP] = React.useState(2); const [s, setS] = React.useState(25); return <div style={{ padding: 0 }}><div id="box" style={{ width: ${width} }}><B.ListBand total={214} page={p} pageSize={s} onPageChange={setP} onPageSizeChange={setS} noun="Incidents" ${extra}><div id="rowsbox" style={{ height: 200 }}>Rows</div></B.ListBand></div></div>; }
+createRoot(document.getElementById("root")).render(<Host />);`;
+/** What a band's parts cover: each part's box, and whether any reaches past the band's edge or another. */
+const READ_BAND = (page) => page.evaluate(() => {
+  const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+  const row = document.querySelector(".basalt-list-band-row");
+  const kids = [...row.querySelectorAll('[aria-label="Previous page"], [aria-label="Next page"], .basalt-list-band-size .basalt-select-trigger, .basalt-list-band-size-label, .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary [data-on], .basalt-list-band-row > .basalt-list-band-range [data-on]')].filter((el) => el.getClientRects().length);
+  const parts = Object.fromEntries([["prev", '[aria-label="Previous page"]'], ["next", '[aria-label="Next page"]'], ["size", ".basalt-list-band-size"], ["pager", ".basalt-list-band-row > .basalt-pagination"]].map(([k, sel]) => [k, box(row.querySelector(sel))]));
+  const band = box(document.querySelector(".basalt-list-band"));
+  const overlap = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+  return { band, parts, past: Math.max(...kids.map((el) => box(el).r)) - band.r, overlap: overlap(parts.pager, parts.size), twoRows: parts.size.t >= parts.pager.b - 1, doc: document.documentElement.scrollWidth };
+});
+
+describe("Fix pass 1: the band's narrow forms", () => {
+  test("the count is centred between Previous and Next in the foot and in the narrow band: the text's own extent, 0px off", async () => {
+    const page = await open(LIST(), { width: 390, height: 844, ...COARSE });
+    for (const [where, sel] of [["foot", ".basalt-list-band-foot nav"], ["narrow band", ".basalt-list-band-row > .basalt-pagination"]]) {
+      for (const size of ["25", "100"]) {
+        if (size === "100") await hundred(page);
+        const r = await page.locator(sel).evaluate((nav) => {
+          const text = nav.querySelector(".basalt-pagination-summary [data-on]");
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          const t = range.getBoundingClientRect();
+          const prev = nav.querySelector('[aria-label="Previous page"]').getBoundingClientRect();
+          const next = nav.querySelector('[aria-label="Next page"]').getBoundingClientRect();
+          return { left: t.left - prev.right, right: next.left - t.right, text: text.textContent };
+        });
+        assert.ok(Math.abs(r.left - r.right) < 0.6, `${where} at ${size} per page: "${r.text}" is ${r.left} from Previous and ${r.right} from Next`);
+        assert.ok(r.left >= 7.9, "the ring clears");
+      }
+    }
+    await page.close();
+  });
+
+  for (const width of [330, 335, 340, 341, 343, 345, 348, 349, 352, 360]) {
+    test(`on touch a band ${width}px wide overflows nothing: one row where it fits, the page size at the end of a second row where it does not`, async () => {
+      const page = await open(BAND(width), { width: 390, height: 844, ...COARSE });
+      const r = await READ_BAND(page);
+      assert.ok(r.past <= 0.5, `something ends ${r.past}px past the band (${JSON.stringify(r.parts)})`);
+      assert.equal(r.overlap, 0, "the page size covers nothing");
+      assert.ok(r.parts.size.r <= r.band.r + 0.5);
+      if (r.twoRows) assert.ok(Math.abs(r.parts.size.r - r.band.r) < 0.6, "at the end of its row");
+      await page.close();
+    });
+  }
+
+  test("a 375 phone (a 343 band) holds the narrow band with nothing past the panel", async () => {
+    const page = await open(LIST(), { width: 375, height: 812, ...COARSE });
+    const r = await READ_BAND(page);
+    assert.ok(Math.abs(r.band.r - r.band.l - 343) < 1, `band ${r.band.r - r.band.l}`);
+    assert.ok(r.past <= 0.5, `past by ${r.past}`);
+    assert.ok(r.doc <= 375);
+    await page.close();
+  });
+
+  for (const width of [640, 648, 660, 680, 690, 700, 719, 720, 768]) {
+    test(`on touch a band ${width}px wide: the page size never covers the pager (the coarse narrow form is under 720)`, async () => {
+      const page = await open(BAND(width), { width: 800, height: 900, ...COARSE });
+      const r = await READ_BAND(page);
+      assert.equal(r.overlap, 0, `the page size covers the pager by ${r.overlap}px²`);
+      assert.ok(r.past <= 0.5);
+      const narrow = await page.locator(".basalt-list-band-row > .basalt-list-band-range").evaluate((el) => getComputedStyle(el).display === "none");
+      assert.equal(narrow, width < 720, "the narrow form on touch under 720");
+      await page.close();
+    });
+  }
+
+  test("on a pointer the wide form stays from 640: 640 and 648 do not overlap either", async () => {
+    for (const width of [640, 648, 700]) {
+      const page = await open(BAND(width), { width: 800, height: 900 });
+      assert.equal((await READ_BAND(page)).overlap, 0);
+      assert.equal(await page.locator(".basalt-list-band-row > .basalt-list-band-range").evaluate((el) => getComputedStyle(el).display === "none"), false);
+      await page.close();
+    }
+  });
+});
+
+describe("Fix pass 1: the band as one part", () => {
+  test("the band, its Back to top and the list are one element, and the sticky band leaves with the list's end", async () => {
+    const page = await open(LIST(), { width: 1440, height: 900 });
+    const same = await page.evaluate(() => { const w = document.querySelector(".basalt-list-band-wrap"); return ["basalt-list-band", "basalt-list-band-sentinel", "basalt-back-to-top-dock", "basalt-list-band-foot"].every((c) => w.querySelector("." + c) !== null) && w.querySelector("#panel") !== null; });
+    assert.equal(same, true);
+    await goto(page, 1_000_000);
+    const r = await page.evaluate(() => ({ band: document.querySelector(".basalt-list-band").getBoundingClientRect().bottom, wrap: document.querySelector(".basalt-list-band-wrap").getBoundingClientRect().bottom }));
+    assert.ok(r.band <= r.wrap + 0.5, `the band does not outlive the list: ${r.band} vs ${r.wrap}`);
+    await page.close();
+  });
+
+  test("at one page the pager is its room with no landmark role, not an empty landmark, and the band names its nav", async () => {
+    const page = await open(LIST(), { width: 1440, height: 900 });
+    assert.equal(await page.getByRole("navigation", { name: "Incident pages" }).count(), 1);
+    await page.locator("#q").fill("incident 150");
+    assert.equal(await page.getByRole("navigation", { name: "Incident pages" }).count(), 0, "no landmark at one page");
+    assert.equal(await page.locator(".basalt-list-band-row > .basalt-pagination").getAttribute("role"), "none");
+    await page.close();
+  });
+
+  test("the empty state's Clear moves focus: Clear search to the search field, Clear filters to the first filter's trigger", async () => {
+    const page = await open(LIST());
+    await page.locator("#q").fill("zzq");
+    await page.locator("#clear").click();
+    await page.waitForFunction(() => document.activeElement?.id === "q", null, { timeout: 3000 });
+    await page.getByRole("button", { name: /^Severity/ }).click();
+    await tap(page.getByRole("checkbox", { name: "SEV4" }));
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /^Status/ }).click();
+    await tap(page.getByRole("checkbox", { name: "Mitigating" }));
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#clear").textContent(), "Clear filters");
+    await page.locator("#clear").click();
+    await page.waitForFunction(() => document.activeElement?.classList.contains("basalt-filter-trigger") && /^Severity/.test(document.activeElement.textContent), null, { timeout: 3000 });
+    await page.close();
+  });
+
+  test("a filter reset clears the band's line even when the total does not change (the filter inputs are compared)", async () => {
+    const page = await open(LIST());
+    const line = page.locator(".basalt-list-band [role=status]");
+    await page.locator("#q").fill("incident");
+    const next = page.locator(".basalt-list-band-row").getByRole("button", { name: "Next page" });
+    await next.click();
+    await page.waitForFunction(() => document.querySelector(".basalt-list-band [role=status]").textContent !== "", null, { timeout: 3000 });
+    // Same matches ("incident" matches every title), a different filter value: the page resets and the line goes.
+    await page.locator("#q").fill("INCIDENT");
+    await page.waitForFunction(() => document.querySelector(".basalt-list-band [role=status]").textContent === "", null, { timeout: 3000 });
+    assert.equal(await line.textContent(), "");
+    await page.close();
+  });
+
+  test("forced colours: nothing moves by 1px when the band sticks (the Canvas edge becomes CanvasText)", async () => {
+    const page = await open(LIST(), { width: 1440, height: 900, forcedColors: "active" });
+    const read = () => page.evaluate(() => ({ band: document.querySelector(".basalt-list-band").getBoundingClientRect().height, panel: document.querySelector("#panel").getBoundingClientRect().top + scrollY, row: document.querySelector("#rows li").getBoundingClientRect().top + scrollY }));
+    const rest = await read();
+    await goto(page, 400);
+    assert.equal(await page.locator(".basalt-list-band").getAttribute("data-stuck"), "");
+    assert.deepEqual(await read(), rest, "the band and the rows are where they were");
+    await page.close();
+  });
+
+  test("the page size is the sm Select beside the sm pager (28 on a pointer)", async () => {
+    const page = await open(LIST());
+    const h = await page.evaluate(() => [document.querySelector(".basalt-list-band-size .basalt-select-trigger").getBoundingClientRect().height, document.querySelector('.basalt-list-band-row [aria-label="Next page"]').getBoundingClientRect().height]);
+    assert.deepEqual(h.map(Math.round), [28, 28]);
+    await page.close();
+  });
+});
+
+describe("Fix pass 1: page changes the app makes later", () => {
+  const LATER = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)";
+function Later() {
+  const [page, setPage] = React.useState(1);
+  const ask = (n) => window.setTimeout(() => setPage(n), 500);
+  return <div style={{ padding: "96px 16px 0", minHeight: 5000 }}>
+    <B.ListBand total={214} maxTotal={214} page={page} pageSize={25} pagerLabel="Pages" footLabel="Pages, end" onPageChange={ask} noun="Incidents"><div style={{ height: 1800 }} id="rows">Rows</div></B.ListBand>
+    <div style={{ marginTop: 3000 }}><B.Pagination aria-label="Bare" page={page} pageCount={9} onPageChange={ask} /></div>
+  </div>;
+}
+createRoot(document.getElementById("root")).render(<Later />);`;
+
+  test("a press stays remembered through a stuck flip: the window returns to rest when the page arrives half a second later", async () => {
+    const page = await open(LATER, { width: 1440, height: 900 });
+    await goto(page, 700);
+    assert.equal(await page.locator(".basalt-list-band").getAttribute("data-stuck"), "");
+    await page.locator(".basalt-list-band-row").getByRole("button", { name: "Next page" }).click();
+    // The app has not answered yet: the reader scrolls to the top and back, so `stuck` flips twice.
+    await goto(page, 0);
+    await goto(page, 900);
+    await page.waitForFunction(() => /^26–50/.test(document.querySelector(".basalt-list-band-row > .basalt-list-band-range [data-on]").textContent), null, { timeout: 4000 });
+    await page.waitForTimeout(200);
+    const r = await page.evaluate(() => ({ band: document.querySelector(".basalt-list-band").getBoundingClientRect().top, sentinel: document.querySelector(".basalt-list-band-sentinel").getBoundingClientRect().top + scrollY, y: scrollY }));
+    assert.ok(Math.abs(r.band - 56) < 1.5 && Math.abs(r.y - (r.sentinel - 56)) < 1.5, `rested: ${JSON.stringify(r)}`);
+    await page.close();
+  });
+
+  test("a press on a page number moves focus to the current page even when the app sets the page after an await", async () => {
+    const page = await open(LATER, { width: 1440, height: 900 });
+    await goto(page, 1_000_000);
+    const bare = page.getByRole("navigation", { name: "Bare" });
+    await bare.getByRole("button", { name: "Page 4", exact: true }).click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "Page 4" && document.activeElement.getAttribute("aria-current") === "page", null, { timeout: 4000 });
+    await page.close();
+  });
+
+  test("a press the app never answers leaves nothing behind for a later arrow", async () => {
+    const page = await open(`document.body.style.margin = "0"; function Never() { const [p, setP] = React.useState(1); return <div style={{ padding: 16 }}><B.Pagination aria-label="Never" page={p} pageCount={9} onPageChange={(n) => { if (n !== 4) setP(n); }} /></div>; } createRoot(document.getElementById("root")).render(<Never />);`);
+    await page.getByRole("button", { name: "Page 4", exact: true }).click();
+    await page.getByRole("button", { name: "Next page" }).click();
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Next page", "an arrow press moves nothing's focus");
+    await page.close();
+  });
+});
+
+describe("Fix pass 1: a form's state lives only while it is open", () => {
+  const FORM2 = (extra = "") => FORM(`<B.Select aria-label="Severity" id="sev" defaultValue="sev2" options={[{ value: "sev1", label: "SEV1" }, { value: "sev2", label: "SEV2" }, { value: "sev3", label: "SEV3" }]} />${extra}`).replace('<B.DialogTrigger id="opener" className="basalt-button" data-variant="primary">Declare incident</B.DialogTrigger>', '<B.DialogTrigger id="opener" className="basalt-button" data-variant="primary">Declare incident</B.DialogTrigger><button id="code-open" type="button" onClick={() => setOpen(true)}>Open from code</button><button id="code-close" type="button" onClick={() => setOpen(false)}>Close from code</button>');
+
+  test("a Select's change counts as entered: the scrim leaves a form with a changed Select open", async () => {
+    const page = await open(FORM2());
+    await openForm(page);
+    await page.locator("#sev").click();
+    await tap(page.getByRole("option", { name: "SEV3", exact: true }));
+    await page.waitForTimeout(250);
+    await page.mouse.click(30, 450);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator("#declare").count(), 1, "a changed Select is something entered");
+    await page.close();
+  });
+
+  test("closed and reopened from code: nothing is remembered (entered or opened by touch)", async () => {
+    const page = await open(FORM2(), { width: 1440, height: 900, hasTouch: true });
+    await page.locator("#opener").tap();
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement.className), "basalt-dialog-title", "opened by touch: the title");
+    await page.locator("#what").fill("Checkout is timing out");
+    // Closed from code, with something entered; reopened from code with a key press: pristine, and the first field.
+    await page.evaluate(() => document.getElementById("code-close").click());
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await page.locator("#code-open").focus();
+    await page.keyboard.press("Enter");
+    await page.locator("#declare").waitFor();
+    await settle(page);
+    assert.equal(await page.locator("#what").inputValue(), "");
+    await page.waitForFunction(() => document.activeElement?.id === "what", null, { timeout: 3000 });
+    await page.mouse.click(30, 450);
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await page.close();
+  });
+});
+
+describe("Fix pass 1: a still table with the band", () => {
+  const TABLE_LIST = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+const PAST = Array.from({ length: 486 }, (_, j) => ({ ref: "INC-" + String(486 - j).padStart(4, "0"), title: "Synthetic past incident " + (486 - j), sev: ["SEV1", "SEV2", "SEV3", "SEV4"][(j * 5) % 4], who: ["Ama Kestrel", "Lio Brask", "Noor Feldane"][j % 3], took: (j * 11) % 14 }));
+function PastList() {
+  const [page, setPage] = React.useState(1); const [size, setSize] = React.useState(25); const [sort, setSort] = React.useState("descending");
+  const rows = [...PAST].sort((a, b) => (sort === "ascending" ? 1 : -1) * (a.ref < b.ref ? -1 : 1)).slice((page - 1) * size, page * size);
+  return <div id="app" style={{ padding: "96px 16px 0", minHeight: 3000 }}>
+    <B.ListBand total={PAST.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Past incidents" pagerLabel="Past incident pages" filterKey={sort}>
+      <B.TableContainer label="Past incidents"><B.Table columns={[{ width: 110 }, { width: 90 }, { width: 150 }, { width: 100 }, {}]} minWidth={560}>
+        <B.TableHeader><B.TableRow><B.TableHead sort={sort} onSortChange={(d) => { setSort(d); setPage(1); }}>Ref</B.TableHead><B.TableHead>Severity</B.TableHead><B.TableHead>Commander</B.TableHead><B.TableHead numeric>Took</B.TableHead><B.TableHead>Title</B.TableHead></B.TableRow></B.TableHeader>
+        <B.TableBody>{rows.map((r) => <B.TableRow key={r.ref}><B.TableRowHead>{r.ref}</B.TableRowHead><B.TableCell>{r.sev}</B.TableCell><B.TableCell>{r.who}</B.TableCell><B.TableCell numeric>{r.took} h</B.TableCell><B.TableCell>{r.title}</B.TableCell></B.TableRow>)}</B.TableBody>
+      </B.Table></B.TableContainer>
+    </B.ListBand>
+  </div>;
+}
+createRoot(document.getElementById("root")).render(<PastList />);`;
+  const COLS = `window.__cols = () => { const box = (el) => { const r = el.getBoundingClientRect(); return [r.left + scrollX, r.top + scrollY, r.width, r.height]; }; const out = { band: box(document.querySelector(".basalt-list-band")), prev: box(document.querySelector('.basalt-list-band-row [aria-label="Previous page"]')), next: box(document.querySelector('.basalt-list-band-row [aria-label="Next page"]')), size: box(document.querySelector(".basalt-list-band-size .basalt-select-trigger")) }; document.querySelectorAll("thead th").forEach((th, i) => { out["column " + i] = box(th); }); return out; };`;
+
+  for (const [width, height, options] of [[1440, 900, {}], [390, 844, COARSE]]) {
+    test(`at ${width}: the columns, the band and the pager do not move across every page, size and sort`, async () => {
+      const page = await open(TABLE_LIST, { width, height, ...options });
+      await page.evaluate(COLS);
+      await goto(page, 0);
+      const first = await page.evaluate(() => window.__cols());
+      const problems = [];
+      const check = async (what) => { const now = await page.evaluate(() => window.__cols()); for (const k of Object.keys(first)) { if (first[k].some((v, i) => Math.abs(v - now[k][i]) > 0.5)) problems.push(`${what}: ${k} moved`); } };
+      const next = page.locator(".basalt-list-band-row").getByRole("button", { name: "Next page" });
+      const size = page.getByRole("combobox", { name: "Past incidents per page" });
+      for (const n of ["10", "50", "100", "25"]) {
+        await size.click();
+        await tap(page.getByRole("option", { name: n, exact: true }));
+        await goto(page, 0);
+        await check(`size ${n}`);
+        for (let g = 0; g < 6 && (await next.getAttribute("aria-disabled")) !== "true"; g += 1) { await next.click(); await goto(page, 0); await check(`size ${n} page ${g + 2}`); }
+      }
+      for (const direction of ["Ref", "Ref"]) { await page.locator("thead th button.basalt-sort").first().click(); await goto(page, 0); await check(`sort ${direction}`); }
+      assert.deepEqual(problems, []);
+      await page.close();
+    });
+  }
 });

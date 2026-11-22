@@ -2838,11 +2838,10 @@
   .basalt-select-prefix { flex: none; color: var(--basalt-text-secondary); white-space: nowrap; }
   .basalt-select-lead > .basalt-select-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-select-value[data-placeholder] { color: var(--basalt-text-tertiary); }
-  /* A numeric select (a page size) is as wide as its widest option and below size-select-min: each option is drawn in one cell, unseen, so the value never moves it. */
-  .basalt-select-trigger[data-numeric] { width: auto; min-width: 0; font-variant-numeric: tabular-nums; }
-  .basalt-select-seat { display: inline-grid; justify-items: start; }
-  .basalt-select-seat > * { grid-area: 1 / 1; }
-  .basalt-select-sizer { visibility: hidden; user-select: none; pointer-events: none; }
+  /* A numeric select (a page size) is as wide as its widest option and below size-select-min: the value's cell holds the widest option (an attribute a pseudo-element paints, unseen), so the value never moves it. */
+  .basalt-select-trigger:has(> .basalt-select-value[data-widest]) { width: auto; min-width: 0; font-variant-numeric: tabular-nums; }
+  .basalt-select-value[data-widest] { display: inline-grid; justify-items: start; }
+  .basalt-select-value[data-widest]::after { content: attr(data-widest); grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
   .basalt-select-trigger[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -4919,7 +4918,7 @@
 
   /* The list's band (DECISIONS 222): the count at the start, the pager in the centre, the page size at the end, above the list. Not a box: the page's own fill, no rim.
      From 720 it is sticky under the app's bar, opaque (it is not the one smoked surface), with a divider under it only while it is stuck (the sentinel says). Under 640px of
-     its own width the numbers go and the page size follows the pager; under 340px the page size moves to the end of a second row. */
+     its own width (720 on a coarse pointer) the numbers go and the page size follows the pager, or is the end of a second row where they do not fit. */
   /* The sentinel's scroll-margin-top is the bar's room as a length (script reads it: where the band rests); it scrolls nothing itself. */
   .basalt-list-band-sentinel { height: 0; scroll-margin-top: var(--basalt-sticky-offset); }
   .basalt-list-band { container-type: inline-size; background: var(--basalt-surface-page); z-index: var(--basalt-layer-sticky); }
@@ -4935,20 +4934,28 @@
   .basalt-list-band-row > .basalt-pagination { grid-column: 2; justify-self: center; container-type: normal; }
   .basalt-list-band-size { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
   .basalt-list-band-size-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; }
-  /* size-breakpoint-container-lg (640px): a container query cannot read a token */
+  /* The narrow form: the count goes into the pager (Previous, the count and Next) and the page size follows it, on one row of the band's own width. It is a flex row that wraps by what it measures: the
+     pager and the page size are reserved widths (the count's seat, the numeric select), so they never change size, and where they do not fit together (a 343 band on touch needs 340.1 plus the ring's room)
+     the page size is the end of a second row, nothing overflowing. Under size-breakpoint-container-lg (640px) of the band's width; on a coarse pointer under size-breakpoint-md (720px), where the wide
+     form's three tracks cannot hold 44px targets (the page size covered Next from 640 to 690). A container query cannot read a token. */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
-    .basalt-list-band-row { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--basalt-space-2); }
+    .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
     .basalt-list-band-row > .basalt-list-band-range { display: none; }
-    .basalt-list-band-row > .basalt-pagination { grid-column: 1; justify-self: start; }
+    .basalt-list-band-size { margin-inline-start: auto; }
   }
-  /* size-breakpoint-container-sm (340px): a container query cannot read a token. Too narrow for one row: the page size is the end of a second row, so nothing overflows or wraps by its content. */
-  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-sm (340px); a container query cannot read a custom property */
-  @container (width < 340px) {
-    .basalt-list-band-row { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-1); }
-    .basalt-list-band-row > .basalt-pagination { grid-column: 1; justify-self: start; }
-    .basalt-list-band-size { grid-column: 1; grid-row: 2; justify-self: end; }
+  @media (pointer: coarse) {
+    /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-md (720px); a container query cannot read a custom property */
+    @container (width < 720px) {
+      .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
+      .basalt-list-band-row > .basalt-list-band-range { display: none; }
+      .basalt-list-band-size { margin-inline-start: auto; }
+      .basalt-list-band-row > .basalt-pagination .basalt-pagination-pages { display: none; }
+      .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary { display: inline-block; }
+    }
   }
+  /* The count sits in the middle of the room between the arrows: its seat holds the widest form and the text is centred in it (the wide band's own count stays at the start). */
+  .basalt-pagination-summary .basalt-list-band-range-seat { justify-items: center; }
   /* The list's foot (DECISIONS 227): under 720, with more than one page, the band's Previous, count and Next again, centred under the rows, with no seat under it. */
   .basalt-list-band-foot { display: none; padding-block: var(--basalt-space-2); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
@@ -4993,7 +5000,9 @@
   }
   @media print { .basalt-back-to-top-dock, .basalt-list-band-foot { display: none; } }
   @media (forced-colors: active) {
-    .basalt-list-band[data-stuck] { box-shadow: none; border-bottom: var(--basalt-size-hairline) solid CanvasText; }
+    /* A 1px Canvas edge at rest that becomes CanvasText while stuck: the rows do not move when the band sticks. */
+    .basalt-list-band { border-bottom: var(--basalt-size-hairline) solid Canvas; }
+    .basalt-list-band[data-stuck] { box-shadow: none; border-bottom-color: CanvasText; }
   }
   @media print { .basalt-list-band { position: static; } }
 

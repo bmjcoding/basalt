@@ -67,7 +67,10 @@ export function BackToTop({ list, band, heading, label = "Back to top", classNam
     // A modal over the page makes the button inert (or hides its ancestors): it is not drawn then.
     const watch = () => {
       const el = button.current;
-      s.modal = Boolean(el && el.closest("[inert], [aria-hidden='true']"));
+      const modal = Boolean(el && el.closest("[inert], [aria-hidden='true']"));
+      // Only a flip is worth a look: these attributes change all over the page, and `sync` reads layout.
+      if (modal === s.modal) return;
+      s.modal = modal;
       sync();
     };
     const observer = new MutationObserver(watch);
