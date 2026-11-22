@@ -159,50 +159,51 @@ describe("Mod in Kbd, ActionShortcut, Menu and Tooltip", () => {
   });
 });
 
-describe("one seat: no hydration mismatch and no change of width between the server's form and the client's", () => {
+describe("when the platform is known: the first client render, and hydration", () => {
+  const widthOf = (page, selector) => page.evaluate((q) => document.querySelector(q).getBoundingClientRect().width, selector);
+
+  for (const p of [MACOS, WINDOWS]) {
+    test(`${p.name}: a client render (createRoot) draws the platform's form at its natural width from the first commit`, async () => {
+      // A layout effect runs on the first commit, before any later render could correct it: what it reads is what the first frame shows.
+      const fixture = render(`<div><p><B.Kbd id="mod">Mod+Enter</B.Kbd> <B.Kbd id="mac">⌘↵</B.Kbd> <B.Kbd id="pc">Ctrl Enter</B.Kbd></p><First /></div>`).replace("createRoot", `function First() { React.useLayoutEffect(() => { window.__first = document.querySelector("#mod > .basalt-visually-hidden").textContent; }, []); return null; }\ncreateRoot`);
+      const { page, errors, context } = await open(fixture, p);
+      assert.equal(await page.evaluate(() => window.__first), p.apple ? "Command Return" : "Control Enter", "right on the first commit");
+      assert.deepEqual(await faces(page.locator("#mod")), p.apple ? ["icon", "↵"] : ["Ctrl", "Enter"]);
+      const natural = await widthOf(page, p.apple ? "#mac" : "#pc");
+      assert.equal(await widthOf(page, "#mod"), natural, `${p.apple ? "⌘↵" : "Ctrl Enter"} draws exactly as the hand-written chip does`);
+      assert.equal(await page.locator("#mod [data-swap], #mod [data-form]").count(), 0, "one form, no second seat");
+      assert.deepEqual(errors, []);
+      await context.close();
+    });
+  }
+
   const HYDRATE = `import { renderToString } from "react-dom/server"; import { hydrateRoot } from "react-dom/client";
     const App = () => <div><p><B.Kbd id="k">Mod+Enter</B.Kbd> <B.Kbd id="legacy">⌘K</B.Kbd></p><B.ActionShortcut shortcut="Mod+Enter"><button id="declare">Declare incident</button></B.ActionShortcut></div>;
     const root = document.getElementById("root");
     root.innerHTML = renderToString(<App />);
     window.__recoverable = [];
     window.__hydrate = () => { hydrateRoot(root, <App />, { onRecoverableError: (e) => window.__recoverable.push(String(e && e.message)) }); };`;
-  const measure = (page) => page.evaluate(() => {
-    const w = (selector) => document.querySelector(selector).getBoundingClientRect().width;
-    return { chip: w("#k"), keys: [...document.querySelectorAll("#k > .basalt-kbd-key")].map((k) => k.getBoundingClientRect().width), legacy: w("#legacy"), button: w("#declare"), aria: document.querySelector("#declare").getAttribute("aria-keyshortcuts"), text: document.querySelector("#k > .basalt-visually-hidden").textContent };
-  });
+  const read = (page) => page.evaluate(() => ({ legacy: document.querySelector("#legacy").getBoundingClientRect().width, aria: document.querySelector("#declare").getAttribute("aria-keyshortcuts"), text: document.querySelector("#k > .basalt-visually-hidden").textContent }));
 
   for (const p of [MACOS, WINDOWS, LINUX, IPADOS]) {
-    test(`${p.name}: the server's HTML hydrates cleanly, and the chips keep their widths when the real platform arrives`, async () => {
+    test(`${p.name}: a server-rendered page draws Control, then settles to the platform's form at hydration with no mismatch warning`, async () => {
       const { page, errors, context } = await open(HYDRATE, p);
-      const server = await measure(page);
+      const server = await read(page);
       assert.equal(server.aria, "Control+Enter", "the server's fixed answer is Control");
       assert.equal(server.text, "Control Enter");
       await page.evaluate(() => window.__hydrate());
       await frames(page);
       await frames(page);
-      const client = await measure(page);
+      const client = await read(page);
       assert.equal(client.aria, p.apple ? "Meta+Enter" : "Control+Enter", "the real answer after mount");
       assert.equal(client.text, p.apple ? "Command Return" : "Control Enter");
+      assert.deepEqual(await faces(page.locator("#k")), p.apple ? ["icon", "↵"] : ["Ctrl", "Enter"]);
       assert.deepEqual(await page.evaluate(() => window.__recoverable), [], "no hydration mismatch");
       assert.deepEqual(errors, [], "no warning");
-      assert.deepEqual(client.keys, server.keys, "each key's seat is the same width");
-      assert.equal(client.chip, server.chip, "the chip is the same width");
-      assert.equal(client.button, server.button);
       assert.equal(client.legacy, server.legacy, "a string with no Mod is untouched");
       await context.close();
     });
   }
-
-  test("the seat is as wide on Apple's systems as elsewhere, so a Mac and a PC lay the chip out alike", async () => {
-    const widths = [];
-    for (const p of [MACOS, WINDOWS]) {
-      const { page, context } = await open(`${HYDRATE} window.__hydrate();`, p);
-      await frames(page);
-      widths.push(await measure(page).then((m) => ({ chip: m.chip, keys: m.keys })));
-      await context.close();
-    }
-    assert.deepEqual(widths[0], widths[1]);
-  });
 });
 
 describe("Basalt's own Mod+K", () => {
@@ -219,6 +220,23 @@ describe("Basalt's own Mod+K", () => {
       assert.equal(await page.evaluate(() => document.activeElement?.id), "elsewhere", "the other platform's chord is left alone");
       await page.keyboard.press(works);
       assert.match(await focusedClass(page), /basalt-command-input/);
+      await context.close();
+    });
+  }
+});
+
+describe("Toast action keys", () => {
+  for (const [p, expected] of [[MACOS, "Meta+Z"], [WINDOWS, "Control+Z"], [LINUX, "Control+Z"]]) {
+    test(`${p.name}: "Mod+Z" is ${expected}, and "Meta+Z" is as written`, async () => {
+      const fixture = `function App() { const toast = B.useToast(); return <div><button id="mod" onClick={() => toast.show({ title: "Deleted", action: { label: "Undo", keys: "Mod+Z", onClick() {} }, home: "key" })}>mod</button><button id="raw" onClick={() => toast.show({ title: "Moved", action: { label: "Redo", keys: "Meta+Z", onClick() {} }, home: "key" })}>raw</button></div>; }
+        ${render("<B.ToastProvider><App /></B.ToastProvider>")}`;
+      const { page, context } = await open(fixture, p);
+      await page.click("#mod");
+      await page.locator(".basalt-toast-action").waitFor();
+      assert.equal(await page.locator(".basalt-toast-action", { hasText: "Undo" }).getAttribute("aria-keyshortcuts"), expected);
+      await page.click("#raw");
+      await page.locator(".basalt-toast-action", { hasText: "Redo" }).waitFor();
+      assert.equal(await page.locator(".basalt-toast-action", { hasText: "Redo" }).getAttribute("aria-keyshortcuts"), "Meta+Z", "a string with no Mod is as written");
       await context.close();
     });
   }

@@ -3,16 +3,14 @@
 // `aria-keyshortcuts` and the key an app listens for always agree. Plain functions with no React and nothing run at import, so a Server
 // Component may load them (on the server there is no machine to ask, and the answer is "not Apple's").
 
-// `navigator.userAgentData.platform` where the browser has it (Chromium), else `navigator.platform`, else the user agent string.
-function platformName(): string {
-  if (typeof navigator === "undefined") return "";
-  const data = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
-  return data?.platform || navigator.platform || navigator.userAgent || "";
-}
-
-/** Whether this machine is Apple's, so its shortcut modifier is Command. False where there is no `navigator` (a server). */
+/**
+ * Whether this machine is Apple's, so its shortcut modifier is Command. Reads `navigator.userAgentData.platform` where the browser has it (Chromium),
+ * else `navigator.platform`, else the user agent string. False where there is no `navigator` (a server).
+ */
 export function isApplePlatform(): boolean {
-  return /mac|iphone|ipad|ipod/i.test(platformName());
+  if (typeof navigator === "undefined") return false;
+  const data = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  return /mac|iphone|ipad|ipod/i.test(data?.platform || navigator.platform || navigator.userAgent);
 }
 
 /**

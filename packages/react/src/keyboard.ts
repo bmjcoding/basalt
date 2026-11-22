@@ -65,12 +65,14 @@ export function useShortcutsVisible(): boolean {
   return React.useSyncExternalStore(subscribe, snapshot, () => true);
 }
 
-const subscribeNever = () => () => {};
+// Nothing to subscribe to: the subscription's teardown is `no` too, which does nothing.
+const no = () => false;
 
 /**
- * Whether this machine is Apple's, so `Mod` is Command (`isApplePlatform`). Not Apple's on the server and in the render that hydrates it, then
- * the real answer after mount: no mismatch warning, and a chip that differs between the two reserves the wider seat (see `Kbd`), so nothing moves.
+ * Whether this machine is Apple's, so `Mod` is Command (`isApplePlatform`). It never changes, so nothing subscribes: a client render reads it at its first
+ * render and is right at once. The server and the render that hydrates it answer "not Apple's" (Control), and the real answer arrives after mount with
+ * no mismatch warning: a server-rendered page's `Mod` chips settle at hydration.
  */
 export function useApplePlatform(): boolean {
-  return React.useSyncExternalStore(subscribeNever, isApplePlatform, () => false);
+  return React.useSyncExternalStore(() => no, isApplePlatform, no);
 }

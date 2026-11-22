@@ -646,11 +646,11 @@ else `navigator.platform`, else the user agent, and the key-event check that goe
 binds with `isModKey` and writes the same shortcut as `Mod`, so the hint and the binding cannot disagree; `CommandList`'s `bindShortcut` is bound this way (⌘K on Apple's systems, Ctrl K elsewhere, and
 each is left alone on the other). `useApplePlatform()` is the same answer as a hook.
 
-The server and the render that hydrates it have no machine to ask, so they use one fixed answer ("not Apple's": Control), and the real one arrives after mount, with no mismatch warning. A key that
-reads differently on the two kinds of machine (Mod, and Enter beside it) draws both forms in one seat, the form that is not this machine's hidden, so the chip is as wide as the wider form (the
-word "Ctrl") whichever it shows: it never changes width when the real platform is known. The cost is that a `Mod` chip on a Mac is as wide as "Ctrl", not 20px; a string with no `Mod` is untouched.
-Without scripts a page keeps the server's answer (Control). The HTML skill's `kbd` module takes the same `Mod` (`data-kbd="Mod Enter"`, the same sources in the same order) and needs no seat: its chips
-are drawn after load.
+A `Mod` chip is one form, the machine's, at its natural width: "Mod+Enter" on a Mac draws exactly like a hand-written "⌘↵". The platform is read at the first client render (it never changes, so
+nothing subscribes to it): an app that renders on the client (`createRoot`) is right on its first frame. A server-rendered page has no machine to ask, so its server HTML and the hydrating render use one fixed
+answer, Control, and its `Mod` chips settle once at hydration, with no mismatch warning; the chip's width can change then on a Mac (Ctrl is wider than ⌘), and a page without scripts keeps Control. A string
+with no `Mod` is untouched. A toast's `action.keys` takes `Mod` too ("Mod+Z" is `Meta+Z` or `Control+Z`). The HTML skill's `kbd` module takes the same `Mod` (`data-kbd="Mod Enter"`, the same sources in
+the same order); its chips are drawn after load.
 
 ## Type
 

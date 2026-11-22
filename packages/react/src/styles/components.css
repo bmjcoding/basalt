@@ -1957,14 +1957,6 @@
     font: inherit;
   }
 
-  /* A key that reads differently on Apple's systems and elsewhere (Mod: ⌘ or Ctrl, and ↵ or Enter beside it) draws both forms in one seat: the seat is
-     as wide as the wider, so the chip is the same width on the server, while it hydrates and on either machine, and nothing moves when the real
-     platform is known. The form that is not this machine's is hidden (and so is not read or copied). */
-  .basalt-kbd-key[data-swap] { display: inline-grid; justify-items: center; align-items: center; }
-  .basalt-kbd-key[data-swap] > [data-form] { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; }
-  .basalt-kbd-key[data-swap="apple"] > [data-form="other"],
-  .basalt-kbd-key[data-swap="other"] > [data-form="apple"] { visibility: hidden; }
-
   [data-highlighted] .basalt-kbd,
   [data-selected="true"] .basalt-kbd,
   [data-selected] .basalt-kbd { color: var(--basalt-text-primary); }

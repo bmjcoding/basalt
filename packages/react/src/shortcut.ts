@@ -4,7 +4,7 @@
 
 const SPOKEN: Record<string, string> = {
   "⌘": "Command", "⌥": "Option", "⌃": "Control", "⇧": "Shift", "↵": "Return", "⌫": "Delete", "⇥": "Tab",
-  "←": "Left arrow", "↑": "Up arrow", "→": "Right arrow", "↓": "Down arrow", "Esc": "Escape", "Ctrl": "Control", "Cmd": "Command",
+  "←": "Left arrow", "↑": "Up arrow", "→": "Right arrow", "↓": "Down arrow", "Esc": "Escape", "Ctrl": "Control",
 };
 
 const ARIA: Record<string, string> = {
@@ -19,8 +19,8 @@ const ARIA: Record<string, string> = {
  */
 export function shortcutKeys(shortcut: string, apple = false): string[] {
   const keys = split(shortcut);
-  if (!keys.includes("Mod")) return keys;
-  return keys.map((key) => (key === "Mod" ? (apple ? "⌘" : "Ctrl") : key === "Enter" && apple ? "↵" : key));
+  const mod: Record<string, string> = apple ? { Mod: "⌘", Enter: "↵" } : { Mod: "Ctrl" };
+  return keys.includes("Mod") ? keys.map((key) => mod[key] ?? key) : keys;
 }
 
 function split(shortcut: string): string[] {

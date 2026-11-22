@@ -47,31 +47,21 @@ function Chip({ className, children, ...props }: React.ComponentProps<"kbd">) {
   return <KeysChip {...props} className={className} shortcut={children} />;
 }
 
-// A key that reads differently on the two kinds of machine ("Mod": ⌘ or Ctrl; ↵ or Enter beside it) draws both forms in one seat, the
-// inactive one hidden, so the chip is as wide as the wider form on the server, when hydrating and on either machine: it never moves when the
-// real platform is known. The words a screen reader says are for this machine's form.
+// "Mod" is one form for the machine's platform, at its natural width: ⌘↵ on a Mac draws as a hand-written "⌘↵" does. The platform is read at the
+// first client render (it never changes, so there is nothing to subscribe to); a server-rendered page draws Control and settles at hydration.
 function KeysChip({ shortcut, className, ...props }: Omit<React.ComponentProps<"kbd">, "children"> & { shortcut: string }) {
-  const apple = useApplePlatform();
-  const keys = shortcutKeys(shortcut, apple);
-  const other = shortcutKeys(shortcut, !apple);
+  const keys = shortcutKeys(shortcut, useApplePlatform());
   return (
     <kbd {...props} className={join("basalt-kbd", className)}>
       <span className="basalt-visually-hidden">{spokenShortcut(keys)}</span>
-      {keys.map((key, index) => (
-        key === other[index]
-          ? <kbd key={index} className="basalt-kbd-key" aria-hidden="true"><KeyFace face={key} /></kbd>
-          : (
-            <kbd key={index} className="basalt-kbd-key" data-swap={apple ? "apple" : "other"} aria-hidden="true">
-              <span data-form="apple"><KeyFace face={apple ? key : other[index]!} /></span>
-              <span data-form="other"><KeyFace face={apple ? other[index]! : key} /></span>
-            </kbd>
-          )
-      ))}
+      {keys.map((key, index) => {
+        const Glyph = MODIFIERS[key as keyof typeof MODIFIERS];
+        return (
+          <kbd key={index} className="basalt-kbd-key" aria-hidden="true">
+            {Glyph ? <Glyph size={12} weight="bold" className="basalt-icon" aria-hidden="true" focusable="false" /> : key}
+          </kbd>
+        );
+      })}
     </kbd>
   );
-}
-
-function KeyFace({ face }: { face: string }) {
-  const Glyph = MODIFIERS[face as keyof typeof MODIFIERS];
-  return Glyph ? <Glyph size={12} weight="bold" className="basalt-icon" aria-hidden="true" focusable="false" /> : <>{face}</>;
 }
