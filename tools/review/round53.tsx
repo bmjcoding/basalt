@@ -1,277 +1,143 @@
-// Round 53: loading in the page's own shape (skeleton-shape: DECISIONS 247, 248, 249b and 258). Decided by Opus and approved by the owner; the implementation is
-// reviewed by Astra. Two synthetic pages drawn from Basalt's parts with `LoadingShape` and no CIMIP code: a list (a header, a count, a still table) and a detail
-// page (a header, facts, a stream). States: the full shape (nothing known), the prefill (what is known shown, the rest bones), the phases mid-way (the facts
-// landed, the stream still loading), a last copy with "Updating", and loaded (the default). Each in both themes at 1440 and 390, plus forced colours and reduced
-// motion. A held state never finishes loading, so its bones stay on screen for the shot; the default state has a button that plays the load from the start.
+// Round 53: busy controls (DECISIONS 255, 257). The owner's direction ("this is for all buttons, don't need unnecessary api calls for people spamming buttons when the response
+// is slow"; "if the draft takes a while, it should dim and have a loading animation"; "the text field hyperflashes while rendering"); the looks decided by Opus under the no-council
+// path (DECISIONS 226); the implementation has not been reviewed. A press whose handler returns a promise waits for it (Button, IconButton, TextButton), its mark after 300ms
+// for at least 400ms; TextButton's own busy sign; and a field being written into (`writing`). Every word is synthetic. States: the press step's three phases are three columns in
+// one picture, with `forced-colours` and `reduced-motion`; the field's `empty-writing`, `rewriting` and the default (written), with `rewriting-forced-colours` and
+// `rewriting-reduced-motion`.
 
 import * as React from "react";
 
-import {
-  Avatar,
-  Badge,
-  Button,
-  DescriptionItem,
-  DescriptionList,
-  Heading,
-  LoadingShape,
-  Refreshing,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Text,
-  fillIn,
-  standIn,
-  useStaged,
-} from "../../packages/react/src/index";
-import type { StandInVariant } from "../../packages/react/src/index";
+import { Button, CopyGlyph, Field, IconButton, Input, Text, Textarea, TextButton } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
 const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
-const page: React.CSSProperties = { display: "grid", gap: "var(--basalt-space-6)", maxWidth: "var(--basalt-size-page-width)", margin: "0 auto", padding: "var(--basalt-space-8) var(--basalt-gutter)" };
-const head: React.CSSProperties = { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--basalt-space-4)", flexWrap: "wrap" };
-const actions: React.CSSProperties = { display: "flex", alignItems: "center", gap: "var(--basalt-space-3)" };
+const later = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+/** A slow answer: what a press waits for in the live demo. */
+const slow = () => later(2400);
+const column: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--basalt-space-4)", minWidth: 0 };
+const row: React.CSSProperties = { display: "flex", gap: "var(--basalt-space-3)", alignItems: "center", flexWrap: "wrap" };
 
-// ---- The list ----
-
-interface Row { ref: string; title: string; severity: string; status: string; commander: string; declared: string }
-const ROWS: Row[] = [
-  { ref: "SYN-0412", title: "Checkout timing out for some customers", severity: "SEV1", status: "Investigating", commander: "Dana Okafor", declared: "09:12" },
-  { ref: "SYN-0409", title: "Payments API latency after the 14:05 deploy", severity: "SEV2", status: "Mitigating", commander: "Lee Marsh", declared: "08:47" },
-  { ref: "SYN-0407", title: "Search results missing for new listings", severity: "SEV2", status: "Identified", commander: "Priya Nair", declared: "08:30" },
-  { ref: "SYN-0401", title: "Login retries failing in one region", severity: "SEV3", status: "Monitoring", commander: "Sam Kowalski", declared: "07:58" },
-  { ref: "SYN-0398", title: "Order emails delayed by the queue", severity: "SEV3", status: "Investigating", commander: "Ana Ruiz", declared: "07:21" },
-  { ref: "SYN-0390", title: "Mobile app cache serving stale prices", severity: "SEV4", status: "Monitoring", commander: "Chris Bell", declared: "06:40" },
-];
-const STATUS_OF: Record<string, "danger" | "warning" | "neutral"> = { SEV1: "danger", SEV2: "warning", SEV3: "neutral", SEV4: "neutral" };
-
-/** Stand-in rows: other words, other severities, another hour and one more row in the unseen variant, so every value and count differs. */
-const standInRows = (variant: StandInVariant): Row[] =>
-  Array.from({ length: ROWS.length + variant }, (_, i) => ({
-    ref: variant === 0 ? `SYN-${String(100 + i).padStart(4, "0")}` : `SYN-${String(9000 + i)}`,
-    title: standIn(10 + i, 34 + (i % 3) * 6, variant),
-    severity: variant === 0 ? (i % 2 ? "SEV1" : "SEV2") : (i % 2 ? "SEV3" : "SEV4"),
-    status: standIn(30 + i, 11, variant),
-    commander: standIn(40 + i, 12, variant),
-    declared: variant === 0 ? `0${i}:1${i}` : `1${i}:5${i}`,
-  }));
-
-function ListBody({ rows }: { rows: Row[] }) {
-  return (
-    <div style={{ display: "grid", gap: "var(--basalt-space-3)" }}>
-      <Text size="sm" tone="secondary">Showing {rows.length} of {rows.length} incidents</Text>
-      <TableContainer label="Active incidents">
-        <Table minWidth={760}>
-          <TableHeader>
-            <TableRow><TableHead>Incident</TableHead><TableHead>Severity</TableHead><TableHead>Status</TableHead><TableHead>Commander</TableHead><TableHead>Declared</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.ref}>
-                <TableCell><Text as="span" size="xs" tone="secondary" mono>{row.ref}</Text> <Text as="span" size="sm">{row.title}</Text></TableCell>
-                <TableCell><Badge status={STATUS_OF[row.severity]}>{row.severity}</Badge></TableCell>
-                <TableCell>{row.status}</TableCell>
-                <TableCell><span style={{ display: "inline-flex", alignItems: "center", gap: "var(--basalt-space-2)" }}><Avatar name={row.commander} size={24} />{row.commander}</span></TableCell>
-                <TableCell>{row.declared}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
-  );
-}
-
-function ListPage({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const [run, setRun] = React.useState(0);
-  const [arrived, setArrived] = React.useState(kind === "default" || kind === "refreshing");
+/** One column of the press step: the four controls, pressed on mount when `press` says how (never answered, or answered at 350ms). */
+function Controls({ press, title, note }: { press: "none" | "waiting" | "answered"; title: string; note: string }) {
+  const box = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
-    if (!run) return undefined;
-    setArrived(false);
-    const timer = window.setTimeout(() => setArrived(true), 1500);
-    return () => window.clearTimeout(timer);
-  }, [run]);
-  const loading = kind === "full" || kind === "prefill" || !arrived;
-  const refreshing = kind === "refreshing";
+    if (press === "none") return;
+    for (const control of box.current?.querySelectorAll<HTMLButtonElement>("[data-press]") ?? []) control.click();
+  }, [press]);
+  const answer = () => (press === "waiting" ? new Promise<void>(() => {}) : press === "answered" ? later(350) : slow());
   return (
-    <div style={page}>
-      <div style={head}>
-        <div style={{ display: "grid", gap: "var(--basalt-space-1)" }}>
-          <Heading level={1} size="2xl">Incidents</Heading>
-          <Text size="sm" tone="secondary">Every active incident, most severe first.</Text>
-        </div>
-        <div style={actions}>
-          <Refreshing on={refreshing} />
-          <Button variant="secondary" onClick={() => setRun((n) => n + 1)}>Play the load</Button>
-          <Button variant="primary">Declare</Button>
-        </div>
+    <div style={column}>
+      <div>
+        <Text size="sm" weight="medium">{title}</Text>
+        <Text size="sm" tone="secondary">{note}</Text>
       </div>
-      <LoadingShape
-        key={run}
-        loading={loading}
-        refreshing={refreshing}
-        label="Loading incidents"
-        {...(kind === "full" ? { shape: () => <ListBody rows={standInRows(0)} /> } : { prefill: (variant: StandInVariant) => <ListBody rows={standInRows(variant)} /> })}
-      >
-        {() => <ListBody rows={ROWS} />}
-      </LoadingShape>
+      <div ref={box} style={column}>
+        <div style={row}>
+          <Button data-press="" variant="primary" onClick={answer}>Draft with the scribe</Button>
+          <IconButton data-press="" icon={CopyGlyph} label="Copy the summary" variant="secondary" onClick={answer} />
+        </div>
+        <Text size="sm">The summary is three minutes old. <TextButton data-press="" onClick={answer}>Write it again</TextButton></Text>
+        <Text size="sm" tone="secondary">Not right? <TextButton data-press="" quiet onClick={answer}>Ask the scribe again</TextButton></Text>
+      </div>
     </div>
   );
 }
 
-// ---- The detail page ----
-
-interface Message { author: string; at: string; text: string }
-interface Room {
-  incident: { ref: string; title: string; severity: string; status: string; commander: string; declared: string };
-  people: { deputy: string; application: string; here: string };
-  stream: Message[];
-}
-const ROOM: Room = {
-  incident: { ref: "SYN-0412", title: "Checkout timing out for some customers", severity: "SEV1", status: "Investigating", commander: "Dana Okafor", declared: "09:12" },
-  people: { deputy: "Lee Marsh", application: "Checkout web", here: "6 here now" },
-  stream: [
-    { author: "Dana Okafor", at: "09:12", text: "Declared. Checkout is timing out for about one in twenty customers since the deploy." },
-    { author: "Lee Marsh", at: "09:15", text: "Payments API latency is up. The error rate is elevated on the worker pool." },
-    { author: "Priya Nair", at: "09:21", text: "Rolling back the worker change now. I will post when it is out." },
-    { author: "Dana Okafor", at: "09:30", text: "Rollback is out. Watching the error rate for ten minutes before we call it mitigated." },
-  ],
-};
-/** What the list already knows: the incident itself. */
-const KNOWN = { incident: ROOM.incident };
-/** Stand-ins for the rest: other words, another hour and one more entry in the unseen variant. */
-const standInRoom = (variant: StandInVariant): Room => ({
-  incident: { ref: standIn(1, 8, variant), title: standIn(2, 38, variant), severity: variant === 0 ? "SEV1" : "SEV4", status: standIn(3, 12, variant), commander: standIn(4, 12, variant), declared: variant === 0 ? "01:01" : "23:59" },
-  people: { deputy: standIn(5, 11, variant), application: standIn(6, 12, variant), here: variant === 0 ? "2 here now" : "9 here now" },
-  stream: Array.from({ length: 4 + variant }, (_, i) => ({ author: standIn(20 + i, 12, variant), at: variant === 0 ? `0${i}:0${i}` : `1${i}:4${i}`, text: standIn(30 + i, 70 + (i % 2) * 30, variant) })),
-});
-
-function Facts({ room }: { room: Room }) {
-  const { incident, people } = room;
-  return (
-    <DescriptionList>
-      <DescriptionItem term="Severity"><Badge status={STATUS_OF[incident.severity]}>{incident.severity}</Badge></DescriptionItem>
-      <DescriptionItem term="Status">{incident.status}</DescriptionItem>
-      <DescriptionItem term="Commander">{incident.commander}</DescriptionItem>
-      <DescriptionItem term="Deputy">{people.deputy}</DescriptionItem>
-      <DescriptionItem term="Application">{people.application}</DescriptionItem>
-      <DescriptionItem term="Declared">{incident.declared}</DescriptionItem>
-    </DescriptionList>
-  );
-}
-
-function Stream({ room }: { room: Room }) {
-  return (
-    <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "var(--basalt-space-4)" }}>
-      {room.stream.map((message, i) => (
-        <li key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "var(--basalt-space-3)" }}>
-          <Avatar name={message.author} size={32} />
-          <div style={{ display: "grid", gap: "var(--basalt-space-1)" }}>
-            <Text as="div" size="sm"><span style={{ fontWeight: "var(--basalt-font-weight-medium)" }}>{message.author}</span> <Text as="span" size="xs" tone="tertiary">{message.at}</Text></Text>
-            <Text size="sm" tone="secondary">{message.text}</Text>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-const section: React.CSSProperties = { display: "grid", gap: "var(--basalt-space-3)", alignContent: "start" };
-
-function DetailPage({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const [run, setRun] = React.useState(0);
-  const [at, setAt] = React.useState({ people: kind !== "full" && kind !== "prefill", stream: kind === "default" || kind === "refreshing" });
+function PressDemo() {
+  // The shot waits until the waiting column's mark is up (300ms) and the answered column's has run its 400ms and gone (700ms).
   React.useEffect(() => {
-    if (!run) return undefined;
-    setAt({ people: false, stream: false });
-    const people = window.setTimeout(() => setAt((a) => ({ ...a, people: true })), 700);
-    const stream = window.setTimeout(() => setAt((a) => ({ ...a, stream: true })), 1500);
-    return () => { window.clearTimeout(people); window.clearTimeout(stream); };
-  }, [run]);
-  const landed = useStaged(at);
-  const refreshing = kind === "refreshing";
-  const full = kind === "full";
-  const known = full ? null : KNOWN;
-  const title = known ? <Heading level={1} size="2xl">{ROOM.incident.title}</Heading> : <span />;
+    (window as unknown as { __BASALT_READY__?: Promise<void> }).__BASALT_READY__ = later(950);
+  }, []);
   return (
-    <div style={page}>
-      <div style={head}>
-        <div style={{ display: "grid", gap: "var(--basalt-space-1)", minHeight: "var(--basalt-size-control-3xl)" }}>
-          <Text size="xs" tone="secondary" mono>{known ? ROOM.incident.ref : ""}</Text>
-          {title}
-        </div>
-        <div style={actions}>
-          <Refreshing on={refreshing} />
-          <Button variant="secondary" onClick={() => setRun((n) => n + 1)}>Play the load</Button>
-          <Button variant="primary">Publish update</Button>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 20rem), 1fr))", gap: "var(--basalt-space-8)", alignItems: "start" }}>
-        <section style={section} aria-label="Facts">
-          <Heading level={2} size="md">Facts</Heading>
-          <LoadingShape key={`f${run}`} loading={!landed.people} refreshing={refreshing} label="Opening the incident"
-            {...(full ? { shape: () => <Facts room={standInRoom(0)} /> } : { prefill: (variant: StandInVariant) => <Facts room={fillIn(known, standInRoom(variant))} /> })}>
-            {() => <Facts room={ROOM} />}
-          </LoadingShape>
-        </section>
-        <section style={section} aria-label="Stream">
-          <Heading level={2} size="md">Stream</Heading>
-          <LoadingShape key={`s${run}`} loading={!(landed.people && landed.stream)} refreshing={refreshing}
-            {...(full ? { shape: () => <Stream room={standInRoom(0)} /> } : { prefill: (variant: StandInVariant) => <Stream room={fillIn(known, standInRoom(variant))} /> })}>
-            {() => <Stream room={ROOM} />}
-          </LoadingShape>
-        </section>
-      </div>
+    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))", gap: "var(--basalt-space-8)" }}>
+      <Controls press="none" title="At rest, and pressed under 300ms" note="A quick answer draws nothing: the cursor shows progress and presses are ignored. Press one: it waits 2.4s." />
+      <Controls press="waiting" title="Waiting, past 300ms" note="The ring over the kept label; a TextButton's words a step down and its underline dashed and breathing." />
+      <Controls press="answered" title="Answered" note="Answered at 350ms: the mark held its 400ms and went. Nothing moved." />
     </div>
   );
 }
 
-const STATES = ["full", "prefill", "phases", "refreshing", "prefill-forced-colours", "prefill-reduced-motion"];
-const SHOT = { widths: [1440, 390], scales: [2], bleed: true, touch: true };
-const DECISIONS = [
-  "A view's loading state is the view itself: the same components with stand-in data, painted as bones measured from the drawing. A line is one bar per line, 0.75 of its text's size; a filled control or a mark is a bone in its own box and radius; an icon is hidden, its seat kept; structure (rims, dividers, a table's head band) is drawn as it is.",
-  "Known words stay words: a table's column heads and the names of tabs (KEEP), in every state.",
-  "Prefill: the region is drawn twice with two different fillings of what is unknown, and what comes out the same in both, in its words and its place, is drawn as itself. Only what isn't known is a bone, field by field.",
-  "Timing: no bone before 300ms from the page's start, at least 400ms once shown, and the content takes the shape's place at once while the last bones fade out over it (opacity only). One polite “Loading” for the page.",
-  "Phases (useStaged): parts arriving within 250ms land together; a region lands only with every part it reads, top-down, so nothing that has landed moves.",
-  "A last copy stays content while it is fetched again, and “Updating” (braille and its word, tertiary ink) shows after a second in a seat kept for it.",
-  "Forced colours: what is known is drawn as itself and each bone is a 1px ButtonBorder edge. Reduced motion and the hold: the bones stand still at full strength.",
-  "Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258). The implementation is reviewed by Astra. React's alone: the HTML skill has no loading shape.",
-];
+const DRAFT = "Checkout is timing out for about one in twenty customers since the 14:05 deploy. Payments API latency is up and the error rate is elevated.";
+const REWRITE = "Payments API latency rose after the worker change. We rolled it back at 14:22 and the error rate is falling. Next update by 15:00.";
+
+function FieldDemo({ state }: { state: string }) {
+  const kind = kindOf(state);
+  const writing = kind === "empty-writing" || kind === "rewriting";
+  const [text, setText] = React.useState(kind === "empty-writing" ? "" : kind === "rewriting" ? DRAFT : REWRITE);
+  const [title, setTitle] = React.useState(kind === "empty-writing" ? "" : kind === "rewriting" ? "Checkout timing out" : "Latency after a worker change");
+  const [live, setLive] = React.useState(false);
+  React.useEffect(() => {
+    (window as unknown as { __BASALT_READY__?: Promise<void> }).__BASALT_READY__ = later(500);
+  }, []);
+  // The live demo: the scribe writes the summary again, clearing it and streaming the new words in, as CIMIP's does.
+  const rewrite = async () => {
+    setLive(true);
+    setText("");
+    setTitle("");
+    await later(900);
+    const words = REWRITE.split(" ");
+    for (let i = 1; i <= words.length; i += 1) {
+      setText(words.slice(0, i).join(" "));
+      await later(70);
+    }
+    setTitle("Latency after a worker change");
+    setLive(false);
+  };
+  return (
+    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "flex", flexDirection: "column", gap: "var(--basalt-space-4)", maxWidth: "36rem" }}>
+      <Field label="Title"><Input writing={writing || live} value={title} placeholder="A short title" onChange={(e) => setTitle(e.target.value)} /></Field>
+      <Field label="Summary" description="The scribe writes it from the room; you can edit it once it is written.">
+        <Textarea rows={4} writing={writing || live} value={text} placeholder="The scribe writes the summary here." onChange={(e) => setText(e.target.value)} />
+      </Field>
+      <div><TextButton onClick={rewrite}>Write it again</TextButton></div>
+    </div>
+  );
+}
 
 export const ROUND_53: Round = {
   id: "53",
-  title: "Loading in the page's own shape: LoadingShape, the prefill, phases, a last copy, the reload rule (DECISIONS 247, 248, 249b, 258)",
+  title: "Busy controls: a press that waits for its answer, TextButton's busy sign, and a field being written (DECISIONS 255, 257)",
   reviewed: false,
   summary:
-    "Built from Opus's skeleton-shape prototype, which the owner approved (DECISIONS 258); the implementation is reviewed by Astra. Two synthetic pages drawn from Basalt's parts with no CIMIP code: a list and a detail page, each as the full shape (nothing known), the prefill (what is known shown, the rest bones), the phases mid-way (the detail page's facts landed, its stream still loading), a last copy with “Updating”, and loaded. Both themes, 1440 and 390, forced colours and reduced motion. “Play the load” runs it live. Two fixes found on the way: a form dialog no longer slides down half its height as it opens (under reduced motion it only fades), and a tab switch is one change (the panel left goes at once).",
+    "The owner asked that every button wait for its answer, so a slow server is never asked twice, and that a field being drafted dim and show that it is loading without flashing (DECISIONS 254, 255). Opus decided the looks under the no-council path (DECISIONS 226, 257); Astra reviews the code and the lead checks these pixels. The implementation has not been reviewed. Every word is synthetic.",
   steps: [
     {
-      id: "list",
-      name: "A list page",
-      intro: "A header, a count and a still table of incidents. Nothing about the rows is known until they arrive, so the count and every row are bones; the page's words, the buttons and the column heads are drawn as themselves.",
-      decisions: DECISIONS,
-      tryIt: ["Press “Play the load”: the structure and the known words hold still, bones appear at 300ms, and the rows land where their bones were.", "Turn on reduced motion: the bones stand still."],
-      states: STATES.filter((s) => s !== "phases"),
-      ...SHOT,
-      height: 900,
-      demo: ({ state }) => <ListPage state={state} />,
+      id: "press",
+      name: "A press that waits for its answer",
+      intro: "Button, IconButton and TextButton, each with an onClick that returns a promise: at rest (which is also how a press answered inside 300ms looks), waiting past 300ms, and answered.",
+      decisions: [
+        "A press whose onClick returns a promise waits for it: further presses are ignored and the handler is never called twice; the control is aria-busy and aria-disabled, keeps its focus, label and width, and its own disabled is untouched. The cursor is progress from the press.",
+        "The mark shows only once the wait has run 300ms and then stays at least 400ms: the shaped skeleton's timings (DECISIONS 247, 248), so one rule covers every wait, a quick answer never flashes and a slow one never blinks.",
+        "Button and IconButton: the ring over the kept label, as loading has always drawn it. The press scale and press colour are off from the press, not only once the ring shows.",
+        "TextButton has no box and no seat, so nothing in its line moves: the words step down an ink (primary to secondary, quiet secondary to tertiary, both 4.5:1) and the underline turns dashed and breathes on duration-loop-fade, as Sparkline's loading line does. Braille is not used: it is never in a button.",
+        "The app's own loading still works and wins (the mark at once). A rejection ends the wait and is raised again, so the app says why. waitForAnswer={false} calls the handler on every press. A Form's promise and a MenuItem's (through its trigger) wait the same way.",
+        "The implementation has not been reviewed.",
+      ],
+      tryIt: ["Press Draft with the scribe five times: one request, the ring after 300ms, the label kept.", "Tab to Write it again and press Enter: focus stays on it while it waits, and nothing beside it moves."],
+      states: ["forced-colours", "reduced-motion"],
+      widths: [1440, 390],
+      scales: [2],
+      height: 520,
+      demo: () => <PressDemo />,
     },
     {
-      id: "detail",
-      name: "A detail page",
-      intro: "Opened from the list: the incident's reference, title, severity, status, commander and declared time are known at once. The deputy, the application and the stream are bones until they arrive, in two phases.",
-      decisions: DECISIONS,
-      tryIt: ["Press “Play the load”: the facts land at 700ms, then the stream at 1500ms; nothing that has landed moves.", "Compare “full” with “prefill”: the known facts are words in one and bones in the other."],
-      states: STATES,
-      ...SHOT,
-      height: 900,
-      demo: ({ state }) => <DetailPage state={state} />,
+      id: "field",
+      name: "A field being written into",
+      intro: "Textarea and Input with writing: an agent's draft into an empty field, a summary written again over the last one, and the written field.",
+      decisions: [
+        "Read-only and aria-busy at once; after the same 300ms, for at least 400ms, the words dim to secondary ink, the boundary turns dashed (the shape of a wait, as TextButton's underline; an inset outline, so nothing moves) and the fill is a skeleton's, surface-placeholder with the skeleton's calm 2s pulse. Empty, the pulse alone (the placeholder hides).",
+        "Not the disabled look, even with its pulse still (reduced motion): the boundary is dashed, the ink is not text-disabled, and the radius, size and focus stay, so nothing moves when it starts or ends (0px).",
+        "Text replaces text: each update is painted as it comes in the same ink with no fade (a fade per update is a flash), and an empty value while writing keeps the text shown, so the field never blanks between drafts. The field never remounts.",
+        "Reduced motion and the hold still the fill at surface-placeholder, as a skeleton does; forced colours dash the boundary in ButtonText, never GrayText.",
+        "On the control, not on Field: Field also holds controls nothing writes into. The HTML skill's .btn keeps its aria-busy; the wait, TextButton's sign and the written field are React's alone.",
+        "The implementation has not been reviewed.",
+      ],
+      tryIt: ["Press Write it again: the old summary stays dimmed until the new words stream in, and the field never blanks or flashes."],
+      states: ["empty-writing", "rewriting", "rewriting-forced-colours", "rewriting-reduced-motion"],
+      widths: [1440, 390],
+      scales: [2],
+      height: 520,
+      demo: ({ state }) => <FieldDemo key={state} state={state} />,
     },
   ],
 };

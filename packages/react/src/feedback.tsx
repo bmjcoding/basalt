@@ -21,6 +21,7 @@ import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layer
 import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { CONFIRM_MS } from "./constants";
+import { useJoinedRef, useWriting } from "./wait";
 
 // ---- Textarea ----
 
@@ -28,22 +29,31 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
   className?: string;
   /** Visible rows before it scrolls. */
   rows?: number;
+  /**
+   * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
+   * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
+   * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
+   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
+   */
+  writing?: boolean;
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
-export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, ...props }: TextareaProps) {
+export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, ref, ...props }: TextareaProps) {
+  const own = React.useRef<HTMLTextAreaElement | null>(null);
+  const written = useWriting(writing, value, own);
   return (
     <BaseField.Control
       id={id}
       name={name}
-      value={value}
+      value={written.value}
       defaultValue={defaultValue}
       disabled={disabled}
       autoFocus={autoFocus}
       required={required}
-      readOnly={readOnly}
+      readOnly={written.busy || readOnly}
       className={join("basalt-input basalt-textarea", className)}
-      render={<textarea rows={rows} {...props} />}
+      render={<textarea rows={rows} {...props} ref={useJoinedRef(ref, own)} aria-busy={written.busy ? true : props["aria-busy"]} data-writing={written.shown ? "" : undefined} />}
     />
   );
 }

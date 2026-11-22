@@ -13,7 +13,7 @@ const foundations = flat(read("docs/foundations.md"));
 const motion = flat(read("docs/motion.md"));
 const agents = flat(read("AGENTS.md"));
 
-const SENTENCE = "Two kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, the indeterminate Progress bar, Sparkline's loading line and Skeleton's pulse), and a page's one ambient loop, opacity only, in its art; `data-loops=\"held\"` stops both.";
+const SENTENCE = "Two kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's one ambient loop, opacity only, in its art; `data-loops=\"held\"` stops both.";
 
 test("the one sentence for loops is in foundations and in AGENTS.md, and the three older wordings are gone", () => {
   assert.ok(foundations.includes(SENTENCE), "foundations");

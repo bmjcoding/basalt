@@ -17,6 +17,7 @@ import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails,
 import { useMirrorRef } from "./mirror";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
+import { formWaitChanged, isThenable, useJoinedRef, waitFor } from "./wait";
 
 export type FormProps<Values extends Record<string, unknown> = Record<string, unknown>> = PartProps<"form"> & {
   /** When fields first show their errors. */
@@ -27,10 +28,54 @@ export type FormProps<Values extends Record<string, unknown> = Record<string, un
   onFormSubmit?: (values: Values, details: SubmitDetails) => void;
   /** Validate every field, or one by name, on demand: `actionsRef.current?.validate()`. */
   actionsRef?: React.RefObject<ValidateActions | null>;
+  /**
+   * When `onSubmit` or `onFormSubmit` returns a promise, the form waits for it (DECISIONS 260): a second submit, by a button or by Enter in a
+   * field, is ignored until it settles, and its submit buttons (inside it, or outside with `form="…"`) are busy, the ring after 300ms. A rejection
+   * ends the wait and is raised again, so say why in the app. On by default; `false` submits every time.
+   */
+  waitForAnswer?: boolean;
 };
 
-export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, ...props }: FormProps<Values>) {
-  return <BaseForm {...props} className={withClass("basalt-form", className)} />;
+export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, onSubmit, onFormSubmit, waitForAnswer = true, ref, ...props }: FormProps<Values>) {
+  const own = React.useRef<HTMLFormElement | null>(null);
+  const [waiting, setWaiting] = React.useState(0);
+  const now = React.useRef(0);
+  // A submit refused while the form waits is refused whole: Base UI calls `onFormSubmit` straight after `onSubmit`, in the same task.
+  const refused = React.useRef(false);
+  // Whether the form now waits for this result: the caller then cancels the native submit (Base UI cancels it only for `onFormSubmit`).
+  const track = (result: unknown) => {
+    if (!waitForAnswer || !isThenable(result)) return false;
+    waitFor(result, (step) => setWaiting((now.current += step)));
+    return true;
+  };
+  // The submit buttons read the wait from their own form when any form says its wait changed, so one outside the form (`form="…"`) hears it as well
+  // as one inside, and a form that is replaced or removed (a keyed Form remounted mid-wait) says so too and frees them.
+  React.useLayoutEffect(() => {
+    formWaitChanged();
+    // On unmount, once the form has left the page (a microtask after the commit), so a button reads the form it now belongs to, or none.
+    return () => queueMicrotask(formWaitChanged);
+  }, [waiting]);
+  return (
+    <BaseForm
+      {...props}
+      ref={useJoinedRef(ref, own)}
+      data-waiting={waiting > 0 ? "" : undefined}
+      className={withClass("basalt-form", className)}
+      onSubmit={(event) => {
+        refused.current = now.current > 0;
+        if (refused.current) {
+          event.preventDefault();
+          return;
+        }
+        // An `onSubmit` that returns a promise is the app's own submit, waited for here: the page must not also submit and navigate.
+        if (track(onSubmit?.(event))) event.preventDefault();
+      }}
+      onFormSubmit={onFormSubmit ? (values, details) => {
+        if (refused.current) return;
+        track(onFormSubmit(values as Values, details));
+      } : undefined}
+    />
+  );
 }
 
 export interface FieldsetProps extends PartProps<"fieldset"> {
