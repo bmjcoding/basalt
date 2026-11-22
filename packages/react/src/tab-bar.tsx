@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Icon } from "./icon";
+import { ControlIcon } from "./control-icon";
 import { MoreNavGlyph } from "./glyphs/more-nav";
 import { CloseGlyph } from "./glyphs/close";
 import { IconButton } from "./button";
@@ -60,7 +60,7 @@ function Cell({ icon, label, current, dot }: { icon: IconComponent; label: strin
   return (
     <>
       <span className="basalt-tabbar-glyph">
-        <Icon icon={icon} size={24} selected={current} />
+        <ControlIcon icon={icon} size={24} selected={current} eager={current} />
         {dot ? <span className="basalt-tabbar-dot" aria-hidden="true" /> : null}
       </span>
       <span className="basalt-tabbar-label" data-label={label}>{label}</span>

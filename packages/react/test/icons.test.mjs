@@ -69,12 +69,25 @@ async function evaluate(source, react) {
 }
 
 /** A bundle of `contents`, resolved from the package's dist or from `resolveDir`, with or without the plugin. */
-async function bundle(contents, { plugin = false, resolveDir = pkg, weights = BASALT_PHOSPHOR_WEIGHTS } = {}) {
+async function bundle(contents, { plugin = false, resolveDir = pkg, weights = BASALT_PHOSPHOR_WEIGHTS, split = false } = {}) {
   const result = await esbuild.build({
     stdin: { contents, resolveDir, loader: "js" },
     bundle: true, minify: true, format: "esm", write: false, metafile: true, external, logLevel: "silent",
     plugins: plugin ? [phosphorWeightsEsbuild({ weights })] : [],
+    // `split`: the static graph under splitting, which is what an app loads first. A dynamic import (a control's glyph engine) is not in it.
+    ...(split ? { splitting: true, outdir: path.join(pkg, ".bundle-check") } : {}),
   });
+  if (split) {
+    const outputs = result.metafile.outputs;
+    const entry = Object.keys(outputs).find((file) => outputs[file].entryPoint === "<stdin>");
+    const seen = new Set();
+    const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+    visit(entry);
+    const files = result.outputFiles.filter((file) => seen.has(path.relative(pkg, file.path)));
+    const text = files.map((file) => file.text).join("\n");
+    const inputs = [...new Set([...seen].flatMap((file) => Object.keys(outputs[file].inputs)))];
+    return { bytes: files.reduce((sum, file) => sum + file.contents.length, 0), text, inputs, icons: [...text.matchAll(/displayName\s*=\s*"(\w+Icon)"/g)].map((m) => m[1]) };
+  }
   const text = result.outputFiles[0].text;
   const inputs = Object.keys(Object.values(result.metafile.outputs)[0].inputs);
   return { bytes: result.outputFiles[0].contents.length, text, inputs, icons: [...text.matchAll(/displayName\s*=\s*"(\w+Icon)"/g)].map((m) => m[1]) };
@@ -229,15 +242,18 @@ describe("the bytes, with the plugin and without it", () => {
   // Links and rows (DECISIONS 152): Link's arrow form (`arrow`) draws the core right and left arrows, so Pagination, which holds Link, carries them: 19,619 → 20,453 with
   // the plugin (the two glyphs, the arrow's span and the branch, 834 bytes). Raised from 20,000 to 20,500 for that and for nothing else.
   // Combined in integration-nov15b: Pagination holds both Button (DECISIONS 154, 20,700) and Link's arrows (DECISIONS 152, 20,500), and measures 21,560 with the plugin, over both limits, so its limit is 21,600 (the measured bytes rounded up to the next 50).
+  // DECISIONS 221 (the owner raised the limits for the glyph morphs: the part every control carries, control-icon.tsx, is in Button and so in these): Terminal 26,600 to 27,000, Pagination 21,600 to 21,750,
+  // NotificationCentre 141,850 to 142,150. Measured as the static graph under splitting (the engine is lazy): 26,956, 21,719 and 142,101; each limit is that rounded up to the next 50.
   // Logs, status and forms (DECISIONS 162, B3): Terminal's `fields` form draws a line's loud fields through LogFields (414 bytes), so Terminal rose from 26,100 to 26,600.
-  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 26_600, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_600, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 141_850, 3_500]]) {
+  for (const [name, limit, saving] of [["Kbd", 6_950, 2_000], ["Terminal", 27_000, 3_000], ["Callout", 6_950, 4_500], ["Pagination", 21_750, -500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 142_150, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
-      const plain = await bundle(alone(name));
-      const trimmed = await bundle(alone(name), { plugin: true });
+      // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
+      const plain = await bundle(alone(name), { split: true });
+      const trimmed = await bundle(alone(name), { plugin: true, split: true });
       assert.ok(trimmed.bytes < limit, `${name}: ${trimmed.bytes} bytes (limit ${limit})`);
       assert.ok(plain.bytes - trimmed.bytes >= saving, `${name}: ${plain.bytes} → ${trimmed.bytes}`);
-      const mixed = await bundle(own(name, icons), { plugin: true });
+      const mixed = await bundle(own(name, icons), { plugin: true, split: true });
       assert.ok(mixed.bytes < limit + 100, `${name} beside the app's own icons: ${mixed.bytes} bytes`);
     });
   }

@@ -364,9 +364,13 @@
      a glyph change, so it keeps its 100ms crossfade with or without reduced motion (DECISIONS 138, C10). No fill, no plate: the glyph is the cue. */
   .basalt-button-swap { display: grid; }
   .basalt-button-swap > .basalt-icon { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-button-swap > .basalt-icon:last-child,
+  .basalt-button-swap > .basalt-icon:nth-child(2),
   .basalt-button[data-done] .basalt-button-swap > .basalt-icon:first-child { opacity: 0; }
-  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:last-child { opacity: 1; }
+  .basalt-button[data-done] .basalt-button-swap > .basalt-icon:nth-child(2) { opacity: 1; }
+  /* A frame of a morph (Copy and Check) is drawn over the cell, in the cell's one grid area, and the two glyphs under it are out of sight while it runs: they stay mounted,
+     so their crossfade is there for a pair the morphs do not allow. */
+  .basalt-glyph-frame { display: block; grid-area: 1 / 1; }
+  .basalt-button-swap:has(> .basalt-glyph-frame) > .basalt-icon { visibility: hidden; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
      level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over

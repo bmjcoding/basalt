@@ -301,9 +301,9 @@ for (const theme of ["light", "dark"]) {
       await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
       assert.equal(await page.locator(".basalt-code-pre").getAttribute("tabindex"), "0");
       await page.getByRole("button", { name: "Copy code" }).click();
-      await page.getByRole("button", { name: "Copied" }).waitFor();
+      await page.waitForFunction(() => document.querySelector(".basalt-code [role=status]")?.textContent === "Copied");
+      assert.equal(await page.getByRole("button", { name: "Copy code" }).count(), 1, "the button keeps its name while the status says Copied");
       assert.match(await page.evaluate(() => navigator.clipboard.readText()), /blacksand k8s run/);
-      assert.equal(await page.locator(".basalt-code [role=status]").textContent(), "Copied");
       await page.close();
     });
 
@@ -346,7 +346,9 @@ for (const theme of ["light", "dark"]) {
       assert.match(await code.evaluate((el) => getComputedStyle(el).fontFamily), /Geist Mono/);
       await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
       await block.getByRole("button", { name: "Copy code" }).click();
-      await block.getByRole("button", { name: "Copied" }).waitFor();
+      await block.locator("[role=status]").getByText("Copied").waitFor({ state: "attached" });
+      assert.equal(await block.getByRole("button", { name: "Copy code" }).count(), 1, "the named button is still there after activation, and is the one that copied");
+      assert.equal(await block.getByRole("button", { name: "Copied" }).count(), 0);
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), original);
       const updated = '<script>window.__codeExecuted = true</script>\n';
       await page.getByRole("textbox", { name: "Code language" }).fill("html");

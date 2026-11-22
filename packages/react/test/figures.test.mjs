@@ -999,17 +999,27 @@ describe("Terminal: the head when narrow", () => {
     await page.close();
   });
 
-  test("the icon-only button copies the commands, swaps Copy to Check, and says Copied", async () => {
+  test("the icon-only button copies the commands, morphs Copy into Check, keeps its name, and says Copied", async () => {
     const { page } = await fixturePage(browser, inBox(320, T()), { theme: "dark" });
     await stubClipboard(page);
     const button = page.getByRole("button", { name: "Copy commands" });
     const before = await button.locator("svg").evaluate((el) => el.innerHTML);
     await button.click();
     assert.deepEqual(await page.evaluate(() => window.copied), [COMMANDS]);
-    const after = page.getByRole("button", { name: "Copied" });
-    assert.equal(await after.count(), 1);
-    assert.notEqual(await after.locator("svg").evaluate((el) => el.innerHTML), before, "the glyph swapped");
     assert.equal(await page.locator("[role=status]").textContent(), "Copied");
+    assert.equal(await button.count(), 1, "the icon-only button keeps its name while the status says Copied");
+    assert.equal(await page.getByRole("button", { name: "Copied" }).count(), 0);
+    // the glyph inside that named button is the settled Check, once the 200ms morph has run out (real time)
+    await page.waitForFunction(() => document.querySelector(".basalt-terminal-copy-compact svg")?.getAttribute("data-glyph") === "check");
+    await page.waitForTimeout(450);
+    const check = button.locator("svg");
+    assert.equal(await check.count(), 1, "one glyph in the button");
+    assert.equal(await check.getAttribute("data-glyph"), "check");
+    assert.match(await check.getAttribute("class"), /basalt-icon/, "the settled glyph is the control's own Icon");
+    const settledShape = await check.evaluate((el) => el.innerHTML);
+    assert.notEqual(settledShape, before, "it is not Copy");
+    await page.waitForTimeout(100);
+    assert.equal(await check.evaluate((el) => el.innerHTML), settledShape, "and it is at rest");
     await page.close();
   });
 

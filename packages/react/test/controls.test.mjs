@@ -320,7 +320,7 @@ describe("CommandMenu", () => {
 });
 
 describe("CodeBlock", () => {
-  test("the copy button swaps Phosphor Copy for Check, at once, and says Copied", async () => {
+  test("the copy button morphs the core Copy into Check, keeps its name, and says Copied", async () => {
     const { page } = await fixturePage(browser, render(`<B.CodeBlock code="basalt deploy" language="bash" title="terminal" />`));
     await page.evaluate(() => { Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { window.copied = text; } } }); });
     const button = page.getByRole("button", { name: "Copy code" });
@@ -329,9 +329,20 @@ describe("CodeBlock", () => {
     assert.match(await button.locator("svg").getAttribute("class"), /basalt-icon/);
     assert.equal(await button.locator("svg").getAttribute("width"), "16");
     await button.click();
-    const copied = page.getByRole("button", { name: "Copied" });
-    await copied.waitFor();
-    assert.notEqual(await copied.locator("svg").innerHTML(), copyShape, "the icon changed");
+    await page.locator(".basalt-code-copy [role=status]").getByText("Copied").waitFor({ state: "attached" });
+    assert.equal(await page.getByRole("button", { name: "Copied" }).count(), 0, "the name is not changed to Copied");
+    // the glyph inside that named button is the settled Check, once the 200ms morph has run out (real time)
+    await page.waitForFunction(() => document.querySelector(".basalt-code-copy button svg")?.getAttribute("data-glyph") === "check");
+    await page.waitForTimeout(450);
+    assert.equal(await button.count(), 1, "the button is still Copy code");
+    const check = button.locator("svg");
+    assert.equal(await check.count(), 1, "one glyph in the button");
+    assert.equal(await check.getAttribute("data-glyph"), "check");
+    assert.match(await check.getAttribute("class"), /basalt-icon/, "the settled glyph is the control's own Icon");
+    const settledShape = await check.innerHTML();
+    assert.notEqual(settledShape, copyShape, "it is not Copy");
+    await page.waitForTimeout(100);
+    assert.equal(await check.innerHTML(), settledShape, "and it is at rest");
     assert.equal(await page.locator(".basalt-code-copy [role=status]").textContent(), "Copied");
     assert.equal(await page.evaluate(() => window.copied), "basalt deploy");
     await page.close();
