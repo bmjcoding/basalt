@@ -122,7 +122,8 @@ export function formatStatTime(time: Date | number, { now = new Date(), timeZone
  */
 export function formatElapsed(since: Date | number, now: Date | number = new Date()) {
   const m = Math.floor(Math.max(0, new Date(now).getTime() - new Date(since).getTime()) / 60000);
-  if (m < 1) return null;
+  // An invalid date is no length at all: never "NaN min".
+  if (!Number.isFinite(m) || m < 1) return null;
   const d = Math.floor(m / 1440);
   const h = Math.floor((m % 1440) / 60);
   const min = m % 60;

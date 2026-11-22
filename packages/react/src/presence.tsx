@@ -24,7 +24,7 @@ export interface ElapsedProps extends Omit<React.ComponentProps<"time">, "childr
 }
 
 /**
- * How long a state has lasted: a `time` with an ISO duration, in tabular figures, ticking by the minute. It draws nothing under a minute. Put it after
+ * How long a state has lasted: a `time` with an ISO duration, in tabular figures, ticking by the minute. Under a minute it is empty and hidden. Put it after
  * the state's word ("Away 6 min", "Running 12 min", "Open 3 days"); it is never alone, because the word says what has lasted.
  */
 export function Elapsed({ since, now: fixed, format = formatElapsed, className, ...props }: ElapsedProps) {
@@ -32,10 +32,11 @@ export function Elapsed({ since, now: fixed, format = formatElapsed, className, 
   const drawn = useDrawn();
   const running = fixed === undefined;
   const length = format(since, now);
-  if (!length) return null;
+  // The element is always there, empty and hidden under a minute, so a server that drew it at 59 seconds and a client that hydrates it at 61 draw
+  // the same tree; the client's own value replaces it once drawn.
   return (
-    <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} dateTime={length.dateTime} className={join("basalt-time basalt-elapsed", className)}>
-      {length.text}
+    <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} hidden={length ? props.hidden : true} dateTime={length?.dateTime ?? "PT0M"} className={join("basalt-time basalt-elapsed", className)}>
+      {length?.text ?? ""}
     </time>
   );
 }

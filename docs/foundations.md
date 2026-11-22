@@ -2116,7 +2116,8 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
 
 - **A message** (`StreamMessage`): the avatar's 32px gutter, `space-3`, then the text column. The head is the name at `text-base` and 500 in primary
   and the time at `text-xs` in tertiary, tabular, on one baseline; meta (a `Presence`, a badge) follows the time, and controls sit at the head's end. The
-  words are `text-base` (14/20) in primary and wrap anywhere. The avatar is decoration (the name beside it is read). **Consecutive messages join** when
+  words are `text-base` (14/20) in primary and wrap anywhere; they are in block flow, so a link or a badge stays in its sentence, and blocks inside
+  (a paragraph, a list, a quote, a disclosure row) stand `space-2` apart. The avatar is decoration (the name beside it is read). **Consecutive messages join** when
   the app says so (`joined`: the author, the minutes between and an edit are the app's rules, never a number in Basalt): no avatar and no head are
   drawn, and the name and time are said before the words. A new author starts `space-4` below the last entry, a joined message `space-1`.
 - **A note** (`StreamNote`, "Lee joined", "Status set to Open") is a quieter row: a sentence at `text-sm` in secondary in the text column, its time
@@ -2127,16 +2128,18 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
   bar and no indent rule mark it. The words above it say whose it is ("Dana asked", "Replying to Sam", the app's), tertiary at 12 with the time, so the
   fill never carries that alone; it is a `figure` with a `figcaption` and a `blockquote`.
 - **The entry you came to** (`arrived` on a message, a note, an entry or a block). The entry a link, a search result or a notice opened is scrolled to
-  (to the middle; one taller than most of the window, to its top) and focused with no ring, as a page's title is after a route change: it is a place,
+  (to the middle of what scrolls it; one taller than most of that, a pane's visible height or the window's, to its top) and focused with no ring, as a page's title is after a route change: it is a place,
   not a control (it is `tabindex="-1"` from then on, so the mark's going never drops focus). It is marked by the selected wash on its own ground and by
   a word. A message, a note or a block that is not a panel takes a **plate**: one solid fill per level (the choice card's recipe), radius 8, reaching
   `space-2` past the entry at the sides and `space-1` above and below, behind its content, so nothing in it moves. **A panel is never framed from
   outside** (no outer frame, no outline, no bar): its own fill takes the wash, inside its one rim. The word ("Linked" by default; the app says why:
   "From your notice", "Search result") is secondary at 12 at the end of the head; a panel entry's app puts it in the panel's head
-  (`StreamArrivedWord`); a block's message says it in its head. Tertiary words on the wash step up to secondary. A joined message that arrives draws
+  (`StreamArrivedWord`); a block's message says it in its head, in the block's own words, and a block in a joined message (no head) draws it above
+  itself, so the word is always seen while the mark is on. Tertiary words on the wash step up to secondary. A joined message that arrives draws
   its head, and keeps it. **It lasts until the reader acts**: a press anywhere, or a key that does not scroll (the arrows, Page Up and Down, Home, End
   and Space outside a field read around it and leave it); then it goes over 0.75 of `duration-slow` on `ease-in`, and the word's room stays, so
-  nothing moves. It comes at once. One entry arrives at a time. In forced colours the fill drops and the word stays; under reduced motion the fade is
+  nothing moves. It comes at once. An entry that has no box yet (in a hidden tab or pane) is not spent: it is scrolled to, focused and armed once it is
+  shown. One entry arrives at a time: placing another ends the one before (its `onArrivedEnd` is called). In forced colours the fill drops and the word stays; under reduced motion the fade is
   the same, being colour and opacity. In a `LoadingShape` (and its twin) it does nothing.
 - **A disclosure row** (`DisclosureRow`): one line that opens to its detail (a tool call, a thought, a folded stretch, a step's log). Lighter than
   `Accordion`, which is for a page's sections: no heading, no divider, no wash. A button (`aria-expanded`, `aria-controls`) on Base UI's Collapsible: an
@@ -2154,7 +2157,8 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
   disclosure row; when any step has detail, every step keeps the chevron's seat, so the metas line up. It is not a live region.
 - **Presence with a duration** (`Presence`): a `Badge`, plain beside a name or in its outline: the success dot while active, the hollow ring while
   away, the tertiary dot while offline, and always the state's word ("Active", "Away", "Offline", or the app's). With `since`, how long it has lasted
-  follows the word in its ink ("Away 6 min"): nothing under a minute, then "6 min", "1 hr 5 min", "3 days" (`formatElapsed`, US English; an app writing
+  follows the word in its ink ("Away 6 min"): nothing under a minute (the element is there, empty and hidden, so a server's render and the
+  client's hydration agree), nothing for an invalid date, then "6 min", "1 hr 5 min", "3 days" (`formatElapsed`, US English; an app writing
   another language passes `format`). **This is a duration, not a relative age:** it says how long something still true has been true, as a countdown
   says the time left, so it stands without a date (a relative age, "11 days ago", is still written only beside its date). It is a `time` with an ISO
   duration, ticks by the minute on the one shared timer, holds under `data-loops="held"`, is no live region and is not stopped by reduced motion.

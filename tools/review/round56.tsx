@@ -25,6 +25,7 @@ import {
   Spinner,
   Stream,
   StreamArrivedWord,
+  StreamBlock,
   StreamEntry,
   StreamMessage,
   StreamNote,
@@ -192,8 +193,8 @@ function ContactsImport() {
 
 // ---- The entry you came to ----
 
-function ArrivedSupport({ gone }: { gone: boolean }) {
-  const [arrived, setArrived] = React.useState(true);
+function ArrivedSupport({ gone, on = true }: { gone: boolean; on?: boolean }) {
+  const [arrived, setArrived] = React.useState(on);
   React.useEffect(() => {
     if (!gone) return undefined;
     // The reader acts: a press anywhere ends the mark, which fades out.
@@ -215,13 +216,27 @@ function ArrivedSupport({ gone }: { gone: boolean }) {
   );
 }
 
-function ArrivedDoc() {
+function ArrivedBlock() {
+  return (
+    <Stream label="Research assistant">
+      <StreamMessage author="Research assistant" time="11:40 AM">
+        <p>Exports over 5,000 rows are written in parts.</p>
+      </StreamMessage>
+      <StreamMessage author="Research assistant" time="11:41 AM" joined>
+        <p>The status page lists one open issue.</p>
+        <StreamBlock arrived arrivedLabel="Search result"><p>The first part of a split export is empty until the fix ships.</p></StreamBlock>
+      </StreamMessage>
+    </Stream>
+  );
+}
+
+function ArrivedDoc({ arrived }: { arrived: boolean }) {
   return (
     <Stream label="Comments on section 2">
       <StreamMessage author="Theo Park" time="Mon 3:15 PM">
         <p>Should the pricing table come before the plan names?</p>
       </StreamMessage>
-      <StreamEntry panel arrived>
+      <StreamEntry panel arrived={arrived}>
         <Card>
           <CardHeader>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--basalt-space-3)" }}>
@@ -430,14 +445,20 @@ export const ROUND_56: Round = {
         "A panel (a card, a callout) is never framed from outside: its own fill takes the wash, inside its one rim, and the app puts StreamArrivedWord in its head. No outer frame, no outline, no bar.",
         "The word says it, so the fill never carries it alone: “Linked” by default, or the app's (“From your notice”, “Search result”), in secondary at 12 in the head. Tertiary words on the wash step up to secondary. A joined message that arrives draws its head, and keeps it.",
         "It lasts until the reader acts: a press, or a key that does not scroll (arrows, Page Up and Down, Home, End and Space read around it). Then it fades over 0.75 of duration-slow on ease-in, and the word's room is kept, so nothing moves. It comes at once.",
-        "Focus moves to the entry (tabindex -1) with no ring, as a page's title does after a route change: it is a place, not a control. Short entries scroll to the middle; one taller than most of the window to its top.",
+        "Focus moves to the entry (tabindex -1) with no ring, as a page's title does after a route change: it is a place, not a control. Short entries scroll to the middle of what scrolls them; one taller than most of that (a pane's height, or the window's) to its top. An entry in a hidden pane waits until it has a box, then is placed once.",
+        "One entry arrives at a time: placing another ends the one before, with its onArrivedEnd. A block inside a message says its own word in the message's head; in a joined message, which has no head, it draws the word above itself.",
         "Forced colours: the fill drops and the word stays. Reduced motion: the same fade, which is opacity and colour only.",
       ],
       tryIt: ["Press anywhere: the plate and the word fade, and nothing moves.", "Press an arrow key first: the mark stays."],
-      states: ["gone", ...MEDIA],
+      states: ["gone", "panel", "panel-forced-colours", "block", "block-forced-colours", ...MEDIA],
       ...SHOT,
       height: 720,
-      demo: ({ state }) => pair(["Support inbox", "Opened from a notice", <ArrivedSupport gone={state === "gone"} />], ["Shared document", "Opened from a link", <ArrivedDoc />]),
+      // One entry arrives at a time, page-wide, so each state opens one: the support reply, the document's card, or a block in a joined message.
+      demo: ({ state }) => state.startsWith("block")
+        ? pair(["Research assistant", "A search result inside a joined message", <ArrivedBlock />], ["Shared document", "Not opened from a link", <ArrivedDoc arrived={false} />])
+        : state.startsWith("panel")
+          ? pair(["Support inbox", "Not opened from a notice", <ArrivedSupport gone={false} on={false} />], ["Shared document", "Opened from a link", <ArrivedDoc arrived />])
+          : pair(["Support inbox", "Opened from a notice", <ArrivedSupport gone={state === "gone"} />], ["Shared document", "Not opened from a link", <ArrivedDoc arrived={false} />]),
     },
     {
       id: "presence",

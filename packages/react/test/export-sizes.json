@@ -89,7 +89,7 @@
   "DrawerTrigger": 17683,
   "ENTRANCE_LATE_MS": 26,
   "EditGlyph": 2915,
-  "Elapsed": 2447,
+  "Elapsed": 2496,
   "EmptyState": 942,
   "EventLine": 1689,
   "EventLog": 1180,
@@ -192,7 +192,7 @@
   "PopoverDescription": 118926,
   "PopoverTitle": 118914,
   "PopoverTrigger": 118936,
-  "Presence": 3479,
+  "Presence": 3528,
   "ProfileGlyph": 3073,
   "ProfileLink": 24979,
   "ProfileLinks": 278,
@@ -266,10 +266,10 @@
   "Stepper": 26707,
   "Stream": 283,
   "StreamArrivedWord": 470,
-  "StreamBlock": 1898,
-  "StreamEntry": 1968,
-  "StreamMessage": 14192,
-  "StreamNote": 2036,
+  "StreamBlock": 2764,
+  "StreamEntry": 2583,
+  "StreamMessage": 14856,
+  "StreamNote": 2651,
   "StreamQuote": 991,
   "Switch": 16297,
   "SwitchRow": 24811,
@@ -339,7 +339,7 @@
   "formatClock": 822,
   "formatCountdown": 393,
   "formatDay": 635,
-  "formatElapsed": 372,
+  "formatElapsed": 393,
   "formatStamp": 685,
   "formatStatTime": 1116,
   "holdFirstPaint": 787,
@@ -382,11 +382,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 771310,
-  "gzip": 253553
+  "bytes": 772130,
+  "gzip": 253861
  },
  "styles": {
-  "bytes": 316483,
-  "gzip": 41305
+  "bytes": 317406,
+  "gzip": 41412
  }
 }

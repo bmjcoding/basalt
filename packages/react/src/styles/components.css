@@ -6139,8 +6139,11 @@
   .basalt-stream-time { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .basalt-stream-meta { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
   .basalt-stream-actions { display: inline-flex; align-items: center; gap: var(--basalt-space-1); margin-inline-start: auto; align-self: center; }
-  .basalt-stream-text { display: grid; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }
-  .basalt-stream-text > p { margin: 0; }
+  /* Block flow, so words and a link or a badge among them stay on one line; blocks inside (a paragraph, a list, a quote, a disclosure row, a card)
+     stand space-2 apart. */
+  .basalt-stream-text { display: block; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-stream-text > :where(p, ul, ol), .basalt-stream-block > :where(p, ul, ol) { margin-block: 0; }
+  .basalt-stream-text > :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) + :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) { margin-block-start: var(--basalt-space-2); }
 
   /* A note: a sentence in secondary at 13 in the text column, its time after it; a mark (an icon at 16) centres in the gutter on its first line. */
   .basalt-stream-note-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
@@ -6162,21 +6165,21 @@
   /* ---- The entry you came to. A plate in the selected wash (one solid fill per level, the choice card's recipe), radius 8, reaching space-2 past the
      entry at the sides and space-1 above and below, behind what it holds; a panel takes the wash on its own fill instead, inside its one rim. It comes
      at once and goes over 0.75 of duration-slow on ease-in. The word says it in the head; tertiary words on the wash step up to secondary. ---- */
-  [data-arrival]:not([data-panel]) { position: relative; isolation: isolate; }
-  [data-arrival]:not([data-panel])::before {
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel]) { position: relative; isolation: isolate; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel])::before {
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
     background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
   }
-  [data-arrived]:not([data-panel])::before { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
-  [data-panel][data-arrival] > :not(.basalt-visually-hidden) { transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
-  [data-panel][data-arrived] > :not(.basalt-visually-hidden) { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
-  [data-arrival]:focus { outline: none; }
-  [data-arrived] :is(.basalt-stream-time, .basalt-stream-meta, .basalt-stream-quote-cite, .basalt-text[data-tone="tertiary"], .basalt-disclosure-meta, .basalt-activity-meta) { color: var(--basalt-text-secondary); }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived]:not([data-panel])::before { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrival] > :not(.basalt-visually-hidden, .basalt-stream-word) { transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrived] > :not(.basalt-visually-hidden, .basalt-stream-word) { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:focus { outline: none; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived] :is(.basalt-stream-time, .basalt-stream-meta, .basalt-stream-quote-cite, .basalt-text[data-tone="tertiary"], .basalt-disclosure-meta, .basalt-activity-meta) { color: var(--basalt-text-secondary); }
   .basalt-stream-word { color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-slow) * 0.75); }
   .basalt-stream-word[data-on] { opacity: 1; visibility: visible; transition-duration: var(--basalt-duration-instant); transition-delay: var(--basalt-duration-instant); }
   .basalt-stream-word-line { display: block; margin-bottom: var(--basalt-space-1); }
   @media (forced-colors: active) {
-    [data-arrival]::before { display: none; }
+    :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]::before { display: none; }
     .basalt-stream-word { color: CanvasText; }
   }
 

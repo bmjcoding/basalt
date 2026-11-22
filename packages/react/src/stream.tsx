@@ -33,55 +33,90 @@ export interface ArrivalProps {
   onArrivedEnd?: () => void;
 }
 
-/** The arrival's state: shown while `arrived` and the reader has not acted yet. Scrolls and focuses the element once each time it turns on. */
+// One entry arrives at a time. The one placed last is the one the reader is at: placing another ends the one before (its `onArrivedEnd` is
+// called). Assigned only while an entry is arrived, so loading this module does nothing.
+let current: { end: () => void } | undefined;
+
+/** Whether the element has a box the reader can see: not under `display: none` (nor `content-visibility: hidden`). */
+const shown = (el: HTMLElement) => el.getClientRects().length > 0 && (typeof el.checkVisibility !== "function" || el.checkVisibility());
+
+/** The nearest ancestor that scrolls the entry on the block axis, or null when it is the page. */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let at = el.parentElement; at && at !== document.body && at !== document.documentElement; at = at.parentElement) {
+    const { overflowY } = getComputedStyle(at);
+    if ((overflowY === "auto" || overflowY === "scroll") && at.scrollHeight > at.clientHeight) return at;
+  }
+  return null;
+}
+
+/**
+ * The arrival's state: shown while `arrived` and the reader has not acted yet. Once the entry has a box (a pane it sits in may be hidden when it
+ * mounts) it is scrolled to and focused, once each time it turns on, and from then the reader's first act ends it.
+ */
 function useArrival<T extends HTMLElement>({ arrived = false, onArrivedEnd }: ArrivalProps) {
   const inShape = useInShape();
   const ref = React.useRef<T>(null);
   const [ended, setEnded] = React.useState(false);
   const [ever, setEver] = React.useState(false);
+  const [placed, setPlaced] = React.useState(false);
   const end = React.useRef(onArrivedEnd);
   end.current = onArrivedEnd;
   React.useEffect(() => { if (arrived) setEnded(false); }, [arrived]);
   const on = arrived && !ended && inShape === 0;
+  React.useEffect(() => { if (!on) setPlaced(false); }, [on]);
   React.useLayoutEffect(() => {
-    if (!on) return;
-    setEver(true);
+    if (!on || placed) return undefined;
     const el = ref.current;
-    if (!el) return;
-    // A short entry is brought to the middle of its scroller; one taller than most of the window, to its top (under what is pinned there).
-    const tall = el.getBoundingClientRect().height > window.innerHeight * 0.6;
-    el.scrollIntoView({ block: tall ? "start" : "center", inline: "nearest" });
-    el.focus({ preventScroll: true });
-  }, [on]);
+    if (!el) return undefined;
+    const place = () => {
+      // A short entry is brought to the middle of what scrolls it; one taller than most of that (the pane's visible height, or the window's), to its top.
+      const scroller = scrollerOf(el);
+      const room = scroller ? scroller.clientHeight : window.innerHeight;
+      el.scrollIntoView({ block: el.getBoundingClientRect().height > room * 0.6 ? "start" : "center", inline: "nearest" });
+      el.focus({ preventScroll: true });
+      setEver(true);
+      setPlaced(true);
+    };
+    if (shown(el)) { place(); return undefined; }
+    // Not laid out yet (a hidden tab or pane): wait until it has a box, then place it once.
+    const watch = new ResizeObserver(() => { if (shown(el)) { watch.disconnect(); place(); } });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [on, placed]);
   React.useEffect(() => {
-    if (!on) return undefined;
-    const finish = (event: Event) => {
+    if (!on || !placed) return undefined;
+    const finish = () => { setEnded(true); end.current?.(); };
+    const self = { end: finish };
+    if (current && current !== self) current.end();
+    current = self;
+    const act = (event: Event) => {
       if (event.type === "keydown") {
         const key = (event as KeyboardEvent).key;
         const inField = (event.target as Element | null)?.closest?.("input, textarea, select, [contenteditable='true'], [contenteditable='']");
         if (reading(key) && !(key === " " && inField)) return;
       }
-      setEnded(true);
-      end.current?.();
+      finish();
     };
     // From the next frame, so the press or key that opened the entry does not end its mark.
     const frame = requestAnimationFrame(() => {
-      document.addEventListener("pointerdown", finish, true);
-      document.addEventListener("keydown", finish, true);
+      document.addEventListener("pointerdown", act, true);
+      document.addEventListener("keydown", act, true);
     });
     return () => {
+      if (current === self) current = undefined;
       cancelAnimationFrame(frame);
-      document.removeEventListener("pointerdown", finish, true);
-      document.removeEventListener("keydown", finish, true);
+      document.removeEventListener("pointerdown", act, true);
+      document.removeEventListener("keydown", act, true);
     };
-  }, [on]);
+  }, [on, placed]);
   // Once it has arrived the entry stays a focus target, so taking the mark away never drops the reader's focus.
   const attrs = { ref, tabIndex: ever || on ? -1 : undefined, "data-arrival": ever || on ? "" : undefined, "data-arrived": on ? "" : undefined };
   return { on, ever: ever || on, attrs };
 }
 
-// A message's head shows the word when the message itself, or a block in it, is the one arrived.
-interface HeadContext { report: (on: boolean) => void }
+// A message's head shows the word when the message itself, or a block in it, is the one arrived, in the arriving entry's own words. A message with
+// no head drawn (joined) has no place for it: a block there draws its word itself.
+interface HeadContext { hasHead: boolean; report: (label: string | null) => void }
 const HeadContext = /* @__PURE__ */ React.createContext<HeadContext | null>(null);
 // What a panel's own head reads, through `StreamArrivedWord`.
 interface WordContext { on: boolean; ever: boolean; label: string }
@@ -138,13 +173,15 @@ export interface StreamMessageProps extends ArrivalProps, Omit<React.ComponentPr
 /** A message: an avatar, a name, a time and the words. See the module note. */
 export function StreamMessage({ author, avatar, time, dateTime, joined = false, meta, actions, arrived, arrivedLabel = DEFAULT_ARRIVED, onArrivedEnd, className, children, ...props }: StreamMessageProps) {
   const arrival = useArrival<HTMLLIElement>({ arrived, onArrivedEnd });
-  const [blocks, setBlocks] = React.useState(0);
-  const [blocksEver, setBlocksEver] = React.useState(false);
-  const head = React.useMemo<HeadContext>(() => ({ report: (on) => { setBlocks((n) => n + (on ? 1 : -1)); if (on) setBlocksEver(true); } }), []);
-  const wordOn = arrival.on || blocks > 0;
-  const wordEver = arrival.ever || blocksEver;
+  // The label of the block in it that is arrived (one at a time), and whether one ever was, so the word keeps its room after.
+  const [block, setBlock] = React.useState<string | null>(null);
+  const [blockEver, setBlockEver] = React.useState<string | null>(null);
   // A joined message that has been the one arrived is read whole from then on: its head is drawn, and stays, so the mark's going moves nothing.
   const showHead = !joined || arrival.ever;
+  const head = React.useMemo<HeadContext>(() => ({ hasHead: showHead, report: (label) => { setBlock(label); if (label !== null) setBlockEver(label); } }), [showHead]);
+  const wordOn = arrival.on || block !== null;
+  const wordEver = arrival.ever || (showHead && blockEver !== null);
+  const wordLabel = arrival.on ? arrivedLabel : (block ?? blockEver ?? arrivedLabel);
   const timeEl = <time className="basalt-stream-time" dateTime={dateTime}>{time}</time>;
   return (
     <li {...props} {...arrival.attrs} data-joined={showHead ? undefined : ""} className={join("basalt-stream-message", className)}>
@@ -155,14 +192,14 @@ export function StreamMessage({ author, avatar, time, dateTime, joined = false, 
             <span className="basalt-stream-author">{author}</span>
             {timeEl}
             {meta ? <span className="basalt-stream-meta">{meta}</span> : null}
-            {wordEver ? <ArrivedWord on={wordOn} label={arrivedLabel} /> : null}
+            {wordEver ? <ArrivedWord on={wordOn} label={wordLabel} /> : null}
             {actions ? <span className="basalt-stream-actions">{actions}</span> : null}
           </div>
         ) : (
           <span className="basalt-visually-hidden">{author}, {timeEl}: </span>
         )}
         <HeadContext.Provider value={head}>
-          <WordContext.Provider value={{ on: wordOn, ever: wordEver, label: arrivedLabel }}>
+          <WordContext.Provider value={{ on: wordOn, ever: wordEver, label: wordLabel }}>
             <div className="basalt-stream-text">{children}</div>
           </WordContext.Provider>
         </HeadContext.Provider>
@@ -230,21 +267,26 @@ export interface StreamBlockProps extends ArrivalBoxProps, Omit<React.ComponentP
 
 /**
  * A part of a message that can be the one a link opened on its own (one paragraph of an answer, a card inside an agent's turn). Its message's
- * head says the word; a block that is not a panel takes the plate behind it.
+ * head says the word, in the block's `arrivedLabel`; in a joined message, which has no head, the block draws the word above itself. A block that is
+ * not a panel takes the plate behind it; a panel's own fill takes the wash.
  */
 export function StreamBlock({ panel = false, arrived, arrivedLabel = DEFAULT_ARRIVED, onArrivedEnd, className, children, ...props }: StreamBlockProps) {
   const arrival = useArrival<HTMLDivElement>({ arrived, onArrivedEnd });
   const head = React.useContext(HeadContext);
   const on = arrival.on;
+  // In a message with its head drawn, the head says the word, in this block's words. With no head to say it (a joined message, or no message),
+  // the block draws its word itself, above what it holds, and keeps its room after.
+  const inHead = Boolean(head?.hasHead);
   React.useEffect(() => {
-    if (!on || !head) return undefined;
-    head.report(true);
-    return () => head.report(false);
-  }, [on, head]);
+    if (!on || !head?.hasHead) return undefined;
+    head.report(arrivedLabel);
+    return () => head.report(null);
+  }, [on, head, arrivedLabel]);
   return (
     <div {...props} {...arrival.attrs} data-panel={panel ? "" : undefined} className={join("basalt-stream-block", className)}>
-      {on ? <span className="basalt-visually-hidden">{arrivedLabel}: </span> : null}
-      <WordContext.Provider value={{ on, ever: arrival.ever, label: arrivedLabel }}>{children}</WordContext.Provider>
+      {!inHead && arrival.ever ? <ArrivedWord on={on} label={arrivedLabel} className="basalt-stream-word-line" /> : null}
+      {on && inHead ? <span className="basalt-visually-hidden">{arrivedLabel}: </span> : null}
+      <WordContext.Provider value={{ on, ever: false, label: arrivedLabel }}>{children}</WordContext.Provider>
     </div>
   );
 }
