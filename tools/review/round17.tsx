@@ -57,7 +57,7 @@ const fmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour
 type Key = "name" | "status" | "region" | "duration" | "started" | "cost";
 
 function Runs({ state }: { state: string }) {
-  const [sort, setSort] = React.useState<{ key: Key; dir: SortDirection }>(state.startsWith("sorted-asc") ? { key: "name", dir: "ascending" } : { key: "started", dir: "descending" });
+  const [sort, setSort] = React.useState<{ key: Key; dir: SortDirection | undefined }>(state.startsWith("sorted-asc") ? { key: "name", dir: "ascending" } : { key: "started", dir: "descending" });
   const [status, setStatus] = React.useState<string[]>(state === "chips-on" ? ["Failed", "Running"] : []);
   const [region, setRegion] = React.useState<string[]>([]);
   const [range, setRange] = React.useState("30d");
@@ -77,6 +77,8 @@ function Runs({ state }: { state: string }) {
     return () => window.clearTimeout(timer);
   }, [state]);
   const shown = RUNS.filter((r) => (status.length ? status.includes(r.status) : true) && (region.length ? region.includes(r.region) : true) && r.name.includes(query)).sort((a, b) => {
+    // The third press is the table's own order (DECISIONS 261).
+    if (!sort.dir) return a.id - b.id;
     const d = typeof a[sort.key] === "string" ? String(a[sort.key]).localeCompare(String(b[sort.key])) : Number(a[sort.key]) - Number(b[sort.key]);
     return (sort.dir === "ascending" ? d : -d) || a.id - b.id;
   });

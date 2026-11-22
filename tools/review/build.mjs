@@ -411,6 +411,30 @@ for (const id of rounds) {
               await page.waitForTimeout(800);
             }
           }
+          // Round 55 (the column explainer): "explain-hover" rests a real pointer on the header that marks itself `data-wt-explain` past the 600ms wait,
+          // "explain-focus" reaches it from the keyboard (Tab from the header marked `data-wt-before`), and "explain-touch" holds a finger on it for 750ms,
+          // longer than the 500ms long press, and lifts it. Each then waits for the card's entry to end.
+          if (id === "54" && state.startsWith("explain-")) {
+            const target = page.locator("[data-wt-explain]").first();
+            if (state.startsWith("explain-hover")) {
+              await target.hover();
+              await page.waitForTimeout(900);
+            } else if (state.startsWith("explain-focus")) {
+              await page.locator("[data-wt-before] button").first().focus();
+              await page.keyboard.press("Tab");
+              await page.waitForTimeout(400);
+            } else if (state.startsWith("explain-touch")) {
+              // The table scrolled so the header starts just after the pinned name column, as a reader's own scroll would leave it.
+              await target.evaluate((el) => { const frame = el.closest(".basalt-table-container"); const pin = el.parentElement.firstElementChild.getBoundingClientRect(); frame.scrollLeft += el.getBoundingClientRect().left - pin.right; });
+              const b = await target.boundingBox();
+              const client = await page.context().newCDPSession(page);
+              await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }] });
+              await page.waitForTimeout(750);
+              await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+              await page.waitForTimeout(400);
+            }
+            if (!(await page.locator(".basalt-explainer[data-open]").count())) throw new Error(`54/${state}: the explainer did not open`);
+          }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
           if (/^((tab|open)-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
             await page.locator("[data-wt-hover]").first().hover();

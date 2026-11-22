@@ -146,14 +146,15 @@ function sortReadings(rows: Reading[], key: Key, dir: SortDirection): Reading[] 
 const COLUMNS = [{ width: 148 }, { width: 132 }, { width: 132 }, { width: 132 }, { width: 132 }, {}];
 
 function ReadingsTable({ pinned, selected, scroll }: { pinned?: boolean; selected: string; scroll?: boolean }) {
-  const [sort, setSort] = React.useState<{ key: Key; dir: SortDirection }>({ key: "latency", dir: "descending" });
+  const [sort, setSort] = React.useState<{ key: Key; dir: SortDirection | undefined }>({ key: "latency", dir: "descending" });
   const frame = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (!scroll) return undefined;
     const timer = window.setTimeout(() => { if (frame.current) frame.current.scrollLeft = 200; }, 80);
     return () => window.clearTimeout(timer);
   }, [scroll]);
-  const rows = sortReadings(READINGS, sort.key, sort.dir);
+  // The third press is the table's own order (DECISIONS 261).
+  const rows = sort.dir ? sortReadings(READINGS, sort.key, sort.dir) : READINGS;
   const head = (key: Key, label: string, numeric?: boolean) => (
     <TableHead numeric={numeric} sort={sort.key === key ? sort.dir : undefined} onSortChange={(dir) => setSort({ key, dir })}>{label}</TableHead>
   );

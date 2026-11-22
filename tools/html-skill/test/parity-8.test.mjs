@@ -96,8 +96,9 @@ const geometry = (page) => page.evaluate(() => {
     const label = th.querySelector(".sort-label") || th;
     const range = document.createRange();
     range.selectNodeContents(label);
-    const words = range.getBoundingClientRect();
     const b = th.getBoundingClientRect();
+    // A numeric header's words move aside by a transform while its indicator shows (DECISIONS 261): its label's laid-out box is what never moves.
+    const words = th.hasAttribute("data-numeric") && label !== th ? { left: b.left + label.offsetLeft, right: b.left + label.offsetLeft + label.offsetWidth } : range.getBoundingClientRect();
     const seat = th.querySelector(".sort-seat")?.getBoundingClientRect();
     return { left: into(b.left), width: r2(b.width), top: r2(b.top - frame.top), height: r2(b.height), wordsLeft: into(words.left), wordsRight: into(words.right), align: getComputedStyle(th).textAlign, seat: seat ? [into(seat.left), r2(seat.width)] : null };
   });
@@ -194,13 +195,14 @@ describe("the still table: header positions, column widths and alignment never m
   });
 });
 
-describe("the sort control: the whole header cell is the button, ascending then descending, aria-sort", () => {
+describe("the sort control: the whole header cell is the button, ascending, descending, then the own order, aria-sort", () => {
   for (const theme of THEMES) {
-    test(`the cycle, aria-sort on the th, numbers and times first descending, no cleared state (${theme})`, async () => {
+    test(`the cycle, aria-sort on the th, numbers and times first descending, the third press back to the own order (${theme})`, async () => {
       const { page, context, errors } = await open({ scheme: theme });
       const th = (i) => page.locator("#runs thead th").nth(i);
       const sorts = () => page.evaluate(() => [...document.querySelectorAll("#runs thead th")].map((t) => t.getAttribute("aria-sort")));
       assert.deepEqual(await sorts(), [null, null, null, null, null], "nothing is sorted until a press");
+      const load = await names(page);
       await th(0).locator(".sort").click();
       assert.deepEqual(await sorts(), ["ascending", null, null, null, null]);
       assert.deepEqual((await names(page)).slice(0, 3), ["build-0118", "build-0119", "build-0120"], "ascending by the words");
@@ -208,7 +210,8 @@ describe("the sort control: the whole header cell is the button, ascending then 
       assert.deepEqual(await sorts(), ["descending", null, null, null, null]);
       assert.equal((await names(page))[0], "build-0141");
       await th(0).locator(".sort").click();
-      assert.deepEqual(await sorts(), ["ascending", null, null, null, null], "after descending comes ascending: there is no third, cleared state");
+      assert.deepEqual(await sorts(), [null, null, null, null, null], "after descending comes the table's own order, with no column lit (DECISIONS 261)");
+      assert.deepEqual(await names(page), load, "the load order, row for row");
       // A numeric column starts descending; one press elsewhere moves aria-sort to that column alone.
       await th(2).locator(".sort").click();
       assert.deepEqual(await sorts(), [null, null, "descending", null, null], "numbers start descending");
@@ -239,6 +242,8 @@ describe("the sort control: the whole header cell is the button, ascending then 
       await th.locator(".sort").focus();
       await page.keyboard.press("Enter");
       assert.equal(await th.getAttribute("aria-sort"), "descending");
+      await page.keyboard.press("Space");
+      assert.equal(await th.getAttribute("aria-sort"), null, "the third press: the own order, nothing lit");
       await page.keyboard.press("Space");
       assert.equal(await th.getAttribute("aria-sort"), "ascending");
       assert.equal(await th.locator(".sort").evaluate((el) => el.tagName), "BUTTON");

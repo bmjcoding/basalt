@@ -36,9 +36,10 @@ const ROWS = Array.from({ length: ${rows} }, (_, i) => ({ id: i, name: "run-" + 
 function Runs() {
   const [dir, setDir] = React.useState("ascending");
   const [tick, setTick] = React.useState("0");
-  window.sortRuns = () => setDir((d) => (d === "ascending" ? "descending" : "ascending"));
+  // The direction the header asks for, undefined at the third press: the table's own order (DECISIONS 261).
+  window.sortRuns = (next) => setDir(next);
   window.tickRuns = setTick;
-  const rows = [...ROWS].sort((a, b) => (dir === "ascending" ? a.size - b.size : b.size - a.size) || a.id - b.id);
+  const rows = dir ? [...ROWS].sort((a, b) => (dir === "ascending" ? a.size - b.size : b.size - a.size) || a.id - b.id) : ROWS;
   return <div style={{ padding: 16, width: 720 }}><B.TableContainer label="Runs"><B.Table columns={[{ width: 90 }, {}, { width: 80 }, { width: 80 }]} minWidth={560}>
     <B.TableHeader><B.TableRow><B.TableHead>Run</B.TableHead><B.TableHead>Note</B.TableHead><B.TableHead numeric sort={dir} onSortChange={window.sortRuns}>Size</B.TableHead><B.TableHead>Clock</B.TableHead></B.TableRow></B.TableHeader>
     <B.TableBody>{rows.map((r) => <B.TableRow key={r.id}><B.TableRowHead>{r.name}</B.TableRowHead><B.TableCell>{r.note}</B.TableCell><B.TableCell numeric>{r.size}</B.TableCell><B.TableCell>{r.id === 5 ? tick : "x"}</B.TableCell></B.TableRow>)}</B.TableBody>

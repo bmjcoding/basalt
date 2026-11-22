@@ -114,8 +114,8 @@ test("the skill's floor is the package's with Firefox 125, and foundations names
   assert.ok(foundations.includes(`Chrome ${SKILL_FLOOR.chrome}, Safari ${SKILL_FLOOR.safari} and **Firefox ${SKILL_FLOOR.firefox}**`));
   const modules = path.join(pkg, "..", "..", "tools", "html-skill", "src", "modules");
   const callers = fs.readdirSync(modules).filter((file) => file.endsWith(".js") && /showPopover|hidePopover|togglePopover|popover-open|\[popover\]/.test(fs.readFileSync(path.join(modules, file), "utf8"))).map((file) => file.replace(/\.js$/, "")).sort();
-  assert.deepEqual(callers, ["combobox", "menu", "notifications", "palette", "popover", "theme", "toast", "tooltip"], "a skill script calls the Popover API that foundations does not name (or one no longer does): update foundations' list and this one");
-  for (const words of ["menu, toast,", "tooltip, combobox, notification list, command palette, theme menu and `popover` module"]) assert.ok(foundations.includes(words), `foundations lacks "${words}"`);
+  assert.deepEqual(callers, ["combobox", "explainer", "menu", "notifications", "palette", "popover", "theme", "toast", "tooltip"], "a skill script calls the Popover API that foundations does not name (or one no longer does): update foundations' list and this one");
+  for (const words of ["menu, toast,", "tooltip, combobox, notification list, command palette, theme menu, column explainer and `popover` module"]) assert.ok(foundations.includes(words), `foundations lacks "${words}"`);
 });
 
 test("the check itself catches a feature above the floor and passes one at it", () => {
