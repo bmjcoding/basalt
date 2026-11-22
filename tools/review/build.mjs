@@ -380,7 +380,8 @@ for (const id of rounds) {
           }
           // Round 34: every element that marks itself `data-wt-force="hover"` or `"focus"` is held in that state with Chromium's forced
           // pseudo-classes (no pointer or key is needed), so one page can show many parts hovered and focused at once.
-          if (id === "34") {
+          // Round 56 (and any later round) marks its own held rows the same way.
+          if (id === "34" || (Number(id) >= 56 && (await page.locator("[data-wt-force]").count()) > 0)) {
             await page.waitForTimeout(700);
             // The movement readouts click each control through in turn: the shot waits until every one has written its answer.
             await page.waitForFunction(() => ![...document.querySelectorAll("[data-wt-movement]")].some((el) => el.textContent === "measuring"), undefined, { timeout: 60000 });

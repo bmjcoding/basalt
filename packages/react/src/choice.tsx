@@ -216,6 +216,12 @@ export interface SelectProps {
    * chosen value's width: every option is drawn in the trigger's one cell, unseen, so choosing moves nothing beside it.
    */
   numeric?: boolean;
+  /**
+   * Use in a toolbar row: the trigger is as wide as its widest option (or the placeholder), not its container's width, so two selects and a search share a row,
+   * and choosing never moves what follows it. Every option's label is laid out unseen in the value's one cell, as `MultiSelect toolbar` does. In a column
+   * narrower than that it fills the column and cuts the value with an ellipsis. For numbers, use `numeric`.
+   */
+  toolbar?: boolean;
   className?: string;
 }
 
@@ -223,7 +229,7 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, inputRef, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, toolbar, inputRef, ...props }: SelectProps) {
   const mirror = useMirrorRef(inputRef);
   const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
@@ -236,6 +242,12 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
           <span className="basalt-select-lead">
             <span id={ids.prefix} className="basalt-select-prefix">{valuePrefix}</span>
             <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
+          </span>
+        ) : toolbar ? (
+          // A toolbar select holds the width of its widest label: each option (and the placeholder) stands unseen in the value's one cell, so choosing moves nothing after it.
+          <span className="basalt-select-seat">
+            <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+            {[placeholder, ...options.map((o) => o.label)].map((label, i) => <span key={i} aria-hidden="true">{label}</span>)}
           </span>
         ) : (
           // A numeric select holds the width of its widest option: the value's cell carries it as eights in an attribute that a pseudo-element paints, so choosing moves nothing and the DOM holds the words once.

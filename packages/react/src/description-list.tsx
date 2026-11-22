@@ -2,7 +2,10 @@ import * as React from "react";
 
 import { join } from "./utils";
 
-/** The words for a fact with no value. Batch 2's table cell says the same words in the same ink; see `docs/foundations.md`. */
+/**
+ * The default words for a fact with no value: a reading that could have been taken and was not. Batch 2's table cell says the same words in
+ * the same ink; see `docs/foundations.md`. Any other absence says what is absent in the app's own words ("No ticket", "None yet").
+ */
 export const NOT_OBSERVED = "Not observed";
 
 export interface DescriptionListProps extends React.ComponentProps<"dl"> {
@@ -12,6 +15,12 @@ export interface DescriptionListProps extends React.ComponentProps<"dl"> {
    * the list, and the detail takes the rest.
    */
   form?: "rows" | "stacked" | "three";
+  /**
+   * How a `rows` list lays out under 480px of its own width. `stack` (the default) puts each label over its value. `line` keeps the label and the value
+   * on one row, the label column narrowing to `size-field-label-inline` (80px, the inline field label's), so a list in a narrow column (a sidebar, a
+   * card beside the page) is no taller than its values. A long label wraps inside the column; several values stack in the value column.
+   */
+  narrow?: "stack" | "line";
 }
 
 /**
@@ -19,8 +28,8 @@ export interface DescriptionListProps extends React.ComponentProps<"dl"> {
  * own; it goes in a card only when the card is the object. The label column is a fixed width (`size-description-label`), and the
  * list stacks (label over value) when its own width, not the viewport's, is under 480px.
  */
-export function DescriptionList({ form = "rows", className, ...props }: DescriptionListProps) {
-  return <dl {...props} data-form={form === "rows" ? undefined : form} className={join("basalt-description-list", className)} />;
+export function DescriptionList({ form = "rows", narrow = "stack", className, ...props }: DescriptionListProps) {
+  return <dl {...props} data-form={form === "rows" ? undefined : form} data-narrow={form === "rows" && narrow === "line" ? "line" : undefined} className={join("basalt-description-list", className)} />;
 }
 
 export interface DescriptionColumnsProps extends React.ComponentProps<"div"> {}
@@ -43,7 +52,11 @@ export interface DescriptionItemProps extends Omit<React.ComponentProps<"div">, 
   values?: React.ReactNode[];
   /** Identifiers (IDs, hosts, images, addresses) are mono, at 13px on the value's 20px line. Prose and numbers are not. */
   mono?: boolean;
-  /** The fact has no value: the row keeps its label and says "Not observed" in tertiary ink, with no mark. */
+  /**
+   * The fact has no value: the row keeps its label and says so in tertiary ink, with no mark. With no children it says "Not observed", the words for a
+   * reading that could have been taken and was not. Anything else that is absent says what is absent in the app's words, given as the children
+   * ("No ticket", "No email", "None yet"): a missing value is never blank, a dash or zero.
+   */
   missing?: boolean;
   /** A third column, in a list whose `form` is `three`: what the thing is. It starts after the value and takes the rest of the row. */
   detail?: React.ReactNode;
@@ -51,7 +64,7 @@ export interface DescriptionItemProps extends Omit<React.ComponentProps<"div">, 
 
 /** One row: a `div` holding one `dt` and one or more `dd`. */
 export function DescriptionItem({ term, children, values, mono, missing, detail, className, ...props }: DescriptionItemProps) {
-  const details = missing ? [NOT_OBSERVED] : values ?? [children];
+  const details = missing ? [children ?? NOT_OBSERVED] : values ?? [children];
   return (
     <div {...props} className={join("basalt-description-item", className)}>
       <dt className="basalt-description-term">{term}</dt>

@@ -45,6 +45,36 @@ export function codeLines(code: string, tokens: CodeToken[] | null): CodeRun[][]
   return lines;
 }
 
+const SPACE = /([ \t]+)/;
+
+/**
+ * One line's runs as words for a block that wraps (`CodeBlock wrap`): each run of characters between spaces is one `basalt-code-word`, which never
+ * breaks inside, and the spaces stand between the words, so a wrapped line breaks at a space and nowhere else (never after a hyphen or a slash).
+ * A word longer than the line is not broken: the block scrolls sideways for it, as an unwrapped block does. Colours are kept inside the words.
+ */
+export function codeWords(line: CodeRun[]): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  let word: React.ReactNode[] = [];
+  const flush = () => {
+    if (!word.length) return;
+    out.push(<span key={out.length} className="basalt-code-word">{word}</span>);
+    word = [];
+  };
+  for (const run of line) {
+    for (const piece of run.text.split(SPACE)) {
+      if (!piece) continue;
+      if (SPACE.test(piece)) {
+        flush();
+        out.push(piece);
+      } else {
+        word.push(run.color ? <span key={word.length} style={{ color: run.color }}>{piece}</span> : piece);
+      }
+    }
+  }
+  flush();
+  return out;
+}
+
 /** Whether a line ends in a backslash, so the next line continues it and takes an empty gutter. */
 export const continues = (line: CodeRun[] | undefined) => line?.at(-1)?.text.endsWith("\\") ?? false;
 

@@ -150,7 +150,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   items are focusable rows: their ring goes around the hugging pill (see [Navigation](#navigation)). So are the
   notification centre's entries: links or buttons, which join the hover glide on navigation's rules (below). Otherwise Basalt ships none:
   the rows of Menu, Select, Combobox and CommandMenu are options and show the plate, breadcrumbs and pagination are
-  inline, and a settings or list row is the app's own markup. The accordion trigger is the one full-width band that is
+  inline, a `PanelList` row is a band that is itself the link or button (the flush −2 inset; see [Lists and facts](#lists-and-facts)), and any other settings or list row is the app's own markup. The accordion trigger is the one full-width band that is
   itself a button; it keeps the ring it was built with
   and is open for the panel.
 - **Hover and selected:** washes of 6% and 9% white, or 4% and 7% black, so they work on any
@@ -235,6 +235,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   box that is mixed while some rows are selected), and the count ("3 of 12 selected") is written in a polite live
   region by the app. Basalt ships no helper for the column or the count: the column is the app's own markup on
   `Table`, `TableCell` and `Checkbox`, given a first column `size-control-md` wide, and the row takes `selected`.
+  Outside a table the same selection is `SelectableList` (see [Lists and facts](#lists-and-facts)), which draws the boxes, the all box and the count.
   Do not mark selection with a vertical line.
 - **The still table** (the owner's rule, decision 71: header positions, column widths and alignment never move, through
   sort, filter, paging or loading). `Table` takes `columns` and is then `table-layout: fixed` from a `colgroup`: every
@@ -469,12 +470,14 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     (its dividers then stay inside the card's padding). The label column is a fixed 160px (`size-description-label`), never
     sized to its longest label, so every list on a page shares one value edge; a long label wraps inside it. The list is
     its own container and stacks, label over value `space-0-5` apart, when its own width is under 480px (30rem), whatever
-    the viewport. The label is 13/18 at 400 in secondary ink on the value's baseline; the value is 14/20 at 400 in primary
+    the viewport; with `narrow="line"` it keeps each label and value on one row there instead, the label column at 80px (see
+    [Lists and facts](#lists-and-facts)). The label is 13/18 at 400 in secondary ink on the value's baseline; the value is 14/20 at 400 in primary
     ink with tabular numerals, start-aligned. Mono is for identifiers only (a `mono` option), at 13px on the 20px line.
     Rows take `space-2-5` above and below, so a one-line row is 40px, with a `border-divider` between rows (drawn inside
     the row, as the table's is), never above the first or below the last; the first and last rows lose their outer
     padding. Several values in one row stack `space-1` apart. A missing value says "Not observed" in tertiary ink, with no
-    mark, as a table cell does (decision 95). The gap between the label column and the value is `space-4`.
+    mark, as a table cell does (decision 95); a value that is absent rather than unmeasured says so in the app's words, in the
+    same ink (see [Lists and facts](#lists-and-facts)). The gap between the label column and the value is `space-4`.
   - **Meter** (`Meter`, on Base UI's Meter): how much of a cap is used, and not `Progress` (a task finishing). The head has
     the label at the start (13/18 at 500, primary) and the reading at the end: the value in primary at 500 with tabular
     numerals, then "of" with the cap and its unit in secondary ("1,240 of 2,000 min"), reserving the width of the cap
@@ -520,7 +523,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     live transcript is `role="log"` only while lines arrive, never idle, paused or finished; it has a fixed height of nine
     lines that scrolls inside, so arriving lines never move the page, and follows new lines only while the reader is at
     the end. A replay has a pause control, and every word that changes in place in the head reserves its widest form.
-    Long lines scroll sideways, as `CodeBlock`'s do. (Decision 98.) The gutter is one column for the whole block, `CodeBlock`'s
+    Long lines scroll sideways, as `CodeBlock`'s do unless it is given `wrap` (see [Lists and facts](#lists-and-facts)). (Decision 98.) The gutter is one column for the whole block, `CodeBlock`'s
     too: the prompt's width plus 1ch, at least 24px, measured by the browser and never counted in characters, so `$` is exactly
     24px and a longer prompt ("PS>") or a wide glyph widens the column for every line and the text of every line starts on one
     edge. The terminal is the container for its own head: under 30rem of its own width (not the viewport's) the copy button is
@@ -581,7 +584,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   the wider seat on whole pixels (1 + 6 + 2 at 20, 3 + 6 + 3 at 24). The 20 cell (9 by 15) sits in a
   9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
   takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
-  size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
+  size. A plain `Badge` sets no font size of its own: it is a word in its line (a cell, a row, a heading) and takes that line's size, which is what lets
+  its `size` follow the word's cap height. So an app sets its base type on its root (`font: text-base` on `body`), as it sets the page's colour, and a
+  plain badge outside a component is never the browser's 16px (cimip-gaps-2, B6: kept by design). The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
   owner (DECISIONS 139); the implementation hasn't been reviewed.
 - **A control that asks the server is busy until the answer, and never sends twice** (DECISIONS 255, 260). Every button waits for its own
@@ -1046,7 +1051,7 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
 - **Search.** Descriptions are search keywords, ranked below title matches. There is no match highlighting: bold letters change widths as you type.
 - **Where to use it.** Freely in the command menu and the list. In Menu and Select, describe a choice only when the label alone can't tell the
   choices apart (a visibility, a role, a plan, a model), never to explain an obvious action ("Copy link" stays one line). A described
-  menu is as wide as its content, up to `size-popover-max` (320), and then descriptions truncate.
+  menu is as wide as its content, up to `size-popover-max` (320), and then descriptions truncate. (Whether a longer description wraps or the menu widens is open for the owner: see [Lists and facts](#lists-and-facts).)
 
 ### Overlays and search
 
@@ -2104,6 +2109,56 @@ every page, every sort), the band, Previous, Next, the count's seat, the page si
 (`packages/react/test/lists-modals.test.mjs`). Not checked: a real phone (on iOS the held foot sits under the keyboard while typing, as in any web form), WebKit, Firefox, a screen reader and a
 Windows contrast theme.
 
+## Lists and facts
+
+**Status.** Gaps found by building CIMIP on Basalt (cimip-gaps-2, batch B6), decided and built by Opus on the no-council path (DECISIONS 226 and 265); Astra reviews the
+code and the lead checks the pixels, and neither has happened yet. Every part is general and is shown in the review round (56, renumbered at merge if it collides) in at least two unlike
+domains. React's alone (see [What the HTML skill does not draw](#what-the-html-skill-does-not-draw)).
+
+- **A panel of rows** (`PanelList`, `PanelRow`). Rows of one list in one panel: the panel's level (one above what it sits in, 3 at most), its one rim, radius 12 (a card's),
+  and a `border-divider` between rows, never above the first or below the last. Each row is a link (with `href`) or a button across the whole band. It is not a form of
+  `DirectoryList`: the directory is a site's ruled list on the page, rimless, with no wash, three fixed columns and an arrow; a panel of rows is an app's list of things to
+  open, where the band is the target. A row is a title (primary, 500, `text-base`), an optional description (secondary, `text-sm`), a leading seat centred on the title's line
+  (a plain `Badge`, an `Avatar`, an icon), a trailing value on the title's line (secondary, `text-sm`, tabular, never cut) and anything the app adds under the description.
+  The title and the description are one line each, cut with an ellipsis, so a row's height is known; the whole text is still read. Padding `space-3` by `space-4`; at least
+  44 tall on a coarse pointer. **Hover** is the hover wash, full bleed, and lifts no ink; a **press** steps to the selected wash; **focus** is the 2px ring inside at −2, because
+  the band is flush with the panel's clipping edge, and the first and last rows take the panel's inner corner (12 less the rim, 11) so the ring follows it. A row that opens a
+  new tab draws the new-tab arrow after its title and says so. Name the list (`aria-label`, or `aria-labelledby` on its heading).
+- **A list to choose several from, outside a table** (`SelectableList`, `SelectableItem`, `SelectionBar`). The table's selection (see Selected rows), for a list: a chosen
+  row is the selected wash as a band and its checked box carries the state, and rows are divided by `border-divider` as a table's are. The row is its checkbox's label, so a
+  press anywhere on it chooses it; focus is the box's own ring at +2, inside the row's padding (`space-2-5` by `space-3`), as a band that holds its own control focuses that
+  control. The **bar** holds the all box (checked when every row is chosen, mixed while some are, disabled when none can be; its words are the app's, "Select all" by
+  default), the count in words in a polite `role="status"` line ("2 of 8 selected" by default, or the app's own noun) whose room is held for its widest form, and the actions
+  at the end, which stay mounted and are `aria-disabled` at zero so focus stays. It sticks to its edge of the scroller (`barSide`: above the rows, or under them for a list at
+  a sheet's foot), opaque in its surface's colour on a `border-divider` (it is not the smoked surface), and is static in print. The app owns the data: `values` lists what can
+  be chosen now, and a row whose value has left it (one dealt with) keeps its place and its box with an empty check seat, so nothing moves under a pointer, and it is no longer
+  counted. The value is always in the list's order.
+- **Entries outside the notification centre** are B7's `NotificationList` (the centre's rows in the page, with no head, a current entry and a name), not a part of this batch.
+- **One-line facts in a narrow column** (`DescriptionList narrow="line"`). Under 480 of its own width a list stacks by default, which doubles a narrow column's height. With
+  `narrow="line"` each label and value stay on one row there, and the label column narrows to `size-field-label-inline` (80px, the inline field label's width, so no token is
+  made); the gap stays `space-4`, a long label wraps inside its column, and several values (`values`, a name then a line then an action) stack in the value column `space-1`
+  apart, as from 480. From 480 it is the list as it ships. The default stays `stack`, so no shipped list changes.
+- **Missing-value words.** "Not observed" is for a reading that could have been taken and was not (a measurement, a sensor, a coverage figure): it stays the default of
+  `DescriptionItem missing` and `TableCell notObserved`. Anything else that has no value says what is absent, in the app's words, as the children of the same prop: "None yet",
+  "No one", "No email", "No issue linked", in sentence case, naming the thing where the label does not. It is the same tertiary ink with no mark, and never blank, a dash or a
+  zero (a zero is a value). The words belong to the product: Basalt has no second default.
+- **Code that wraps** (`CodeBlock wrap`). An opt-in for a command that must be read whole in a narrow column (one a reader is asked to approve). Each run of characters
+  between spaces is drawn as one word that never breaks inside, and the spaces stand between the words, so a line breaks at a space and nowhere else: never after a hyphen, a
+  slash or a dot, where a browser's own wrap would break a flag or a path. A word longer than the line is not broken: the block scrolls sideways for it, as an unwrapped block
+  does. With no prompt each source line is a row whose continuation is indented 2ch (an empty line keeps its 20px), so a wrapped line never reads as a new one; beside a
+  prompt the gutter already marks where a line starts and the continuation starts at the text's edge. Copy takes the code as given. The default still scrolls.
+- **A select at its own width** (`Select toolbar`). In a toolbar row a `Select` is as wide as its widest label, not its container's width: every option and the placeholder
+  stand unseen in the value's one cell (as `MultiSelect toolbar` does), so a choice moves nothing after it, and two selects and a search share a row. In a column narrower than
+  that it fills the column and cuts the value with an ellipsis; in `FilterToolbar` under 720 it fills its column, as the filters' triggers do. `numeric` stays the form for numbers.
+- **What sits between a form dialog's description and its first field.** A spacing rule, not a slot: the body's blocks after the description are one stack at the form gap
+  (`space-4`), so a block between the description and the first field (a row of ready answers, a callout, a sentence) sits `space-4` above the field's label, as one field
+  sits above the next, and the description keeps its own `space-5` under it (the two margins collapse). The body already takes any children; a slot would only fix their order.
+  A group of ready answers is named by the app.
+- **Described menu rows that are longer than 320 are the owner's call** and nothing is built. Foundations says both lines are cut and never wrap so a row's height is known
+  ([Two-line rows](#two-line-rows)); reversing it, or widening a described menu past `size-popover-max` (DECISIONS 155 kept the popover at 320), is his. The options are
+  pictured in round 56: as shipped; wrapping inside 320; or as wide as the longest line up to the window, then wrapping (what CIMIP does meanwhile).
+- **A plain `Badge`'s size** is kept by design (see the status marks under [Lines, states and actions](#lines-states-and-actions)).
+
 ## Loading in the page's own shape
 
 **Status.** Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258: the shape of what it stands for, known words kept and icons hidden,
@@ -2177,7 +2232,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch), and the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
