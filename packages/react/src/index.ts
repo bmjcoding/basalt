@@ -249,3 +249,8 @@ export { CaptionedColumn, CaptionedColumns } from "./captioned-columns";
 export type { CaptionedColumnProps, CaptionedColumnsProps, CaptionedColumnsSize } from "./captioned-columns";
 export { PeriodStepper } from "./period-stepper";
 export type { PeriodStepperProps } from "./period-stepper";
+export { Composer } from "./composer";
+export { typingStatus } from "./typing-status";
+export type { ComposerProps } from "./composer";
+export { Mention, MentionPicker } from "./mention";
+export type { MentionOption, MentionPickDetails, MentionPickerProps, MentionProps } from "./mention";

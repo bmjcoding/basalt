@@ -356,6 +356,35 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - The formatters draw nothing: `formatStamp` ("14:49:07", to the second and always 24-hour), `formatClock` ("2:49 PM" in `en-US`, "14:49" in `en-GB`: a clock a person reads follows the locale, with a numeric hour), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime` (ISO), the zone an argument and the `locale` too (default `en-US`, never the runtime's, so a server's render and the browser's agree). `Clock`, `Stat`, `SourceStamp`, `SourceStateWords` and `CommandBlock` take `locale` as well, and `EventLog` for the width its time column reserves.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
 
+## Writing to someone
+
+The composer, the mention and the mention picker (cimip-gaps-2, B3; decided and built by Opus on the no-council path, not yet reviewed). See foundations, "Writing to
+someone".
+
+```tsx
+{/* A support inbox: Enter sends, Shift+Enter is a new line; the send waits for the server and keeps the words if it is refused */}
+<Composer
+  label="Reply to the customer"
+  placeholder="Reply to the customer. Type @ to bring someone in."
+  actions={<Button variant="ghost" size="sm" onClick={attach}>Attach</Button>}
+  status={typingStatus(typingNames)}
+  onSend={(text) => api.reply(ticket, text)}
+  mentions={{ options: [{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }], onPick: (o) => picked.add(o.value) }}
+/>
+
+{/* A build's comments: Mod+Enter sends (⌘↵ or Ctrl Enter, shown beside Send) */}
+<Composer label="Comment on the build" sendKey="Mod+Enter" onSend={comment} />
+
+{/* In the stream: a mention, and one that calls on the reader (on the plate) */}
+<p>Thanks <Mention>Ana Ruiz</Mention>; <Mention you>Lee Park</Mention>, can you look? Routed to <Mention trigger="#">billing</Mention>.</p>
+
+{/* An app's own text field with the picker: its handlers see defaultPrevented on a key the picker used */}
+<MentionPicker field={ref} options={people} filter={null} onQueryChange={lookUp} />
+```
+
+An app's own list draws its active row with the plate Basalt's popups use: `background: var(--basalt-plate)` follows the level the row sits in, and the tokens
+`--basalt-plate-0` to `--basalt-plate-3` are each level's.
+
 ## Loading in the page's own shape
 
 A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;
