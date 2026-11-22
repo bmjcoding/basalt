@@ -12,6 +12,7 @@
 import * as React from "react";
 
 import { measureBones } from "./bones-measure";
+import { InShapeContext } from "./in-shape";
 import type { Bone } from "./bones-measure";
 import { FIRST_PAINT, pageStartedAt, startOf } from "./page-start";
 import { KEEP } from "./shape-data";
@@ -49,18 +50,8 @@ export interface LoadingShapeProps {
 /** Waiting (structure and what is known, no bones) → shown (bones) → content. */
 export type ShapePhase = "waiting" | "shown" | "content";
 
-/** 0 outside a shape; 1 in a drawn shape; 2 in the unseen twin a prefill is compared with. */
-export type InShape = 0 | 1 | 2;
-
-const InShapeContext = /* @__PURE__ */ React.createContext<InShape>(0);
-
-/**
- * Where a part is drawn: 0 outside a shape (it is the content); 1 in a drawn shape, where a part that writes (saves a draft, marks something read)
- * does nothing; 2 in the unseen twin, where a part that draws outside itself (a portal into the header) draws nothing.
- */
-export function useInShape(): InShape {
-  return React.useContext(InShapeContext);
-}
+export { useInShape } from "./in-shape";
+export type { InShape } from "./in-shape";
 
 // True after hydration, false on the server and while hydrating: a phase worked out from the clock would differ between the two, so a server-rendered
 // shape starts waiting and draws its bones after hydration.
