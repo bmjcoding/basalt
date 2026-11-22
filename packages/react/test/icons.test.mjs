@@ -104,7 +104,8 @@ const CASES = [
   ["Terminal", ["CheckCircle", "Warning", "XCircle"]],
   ["Callout", ["Info", "CheckCircle", "Warning", "XCircle"]],
   ["ToastProvider", ["CheckCircle", "Warning", "XCircle"]],
-  ["NotificationCentre", ["CheckCircle", "Warning", "XCircle"]],
+  ["NotificationCentre", ["CheckCircle", "Warning", "XCircle", "Circle"]],
+  ["NotificationList", ["CheckCircle", "Warning", "XCircle", "Circle"]],
 ];
 
 describe("the default build: Basalt's dist imports Phosphor as it did, and nothing ships twice", () => {
@@ -251,7 +252,9 @@ describe("the bytes, with the plugin and without it", () => {
   // Kbd is not one of them: its static graph (keyboard.ts, shortcut.ts, platform.ts, utils.ts and the three Phosphor keys) holds no Button and no wait, and measures
   // 7,291 on main at 4778c200 as on this branch, over the 6,950 set in 1eaff4c9: the rise is DECISIONS 244's one Mod key across platforms (b361621c, platform.ts and
   // the Mod handling in keyboard.ts). Its limit is that measurement rounded up to the next 50, 7,300.
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 143_800, 3_500]]) {
+  // cimip-gaps-2, B7 (DECISIONS 265): the center draws the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track, so with the
+  // plugin it rose from 143,793 to 147,187 (143,800 to 147,200, rounded up to the next 50).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 147_200, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
@@ -344,6 +347,7 @@ const ENTRIES = [
   { id: "2", title: "Disk nearly full", time: "1h", status: "warning" },
   { id: "3", title: "Build failed", time: "2h", status: "danger" },
   { id: "4", title: "Queued", time: "3h" },
+  { id: "5", title: "In review", time: "4h", status: "pending" },
 ];
 const options = [{ value: "a", label: "Alpha" }, { value: "b", label: "Beta" }];
 const many = Array.from({ length: 8 }, (_, i) => ({ value: "v" + i, label: "Value " + i }));

@@ -3142,7 +3142,8 @@
     background-color: transparent;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  .basalt-notification:hover::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  /* In a popover the plate is its level's; in the page (NotificationList, no level of its own) it is the page's solid plate. */
+  .basalt-notification:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
   /* The hover glide, navigation's rules: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it
      and the resting hover, so only the ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced
      colours, where each entry paints its own. */
@@ -3172,6 +3173,8 @@
   .basalt-notification[data-status="success"] .basalt-notification-mark { color: var(--basalt-status-success); }
   .basalt-notification[data-status="warning"] .basalt-notification-mark { color: var(--basalt-status-warning); }
   .basalt-notification[data-status="danger"] .basalt-notification-mark { color: var(--basalt-status-danger); }
+  /* Pending (waiting, in review, queued) is the empty ring of the same drawing, in secondary ink: waiting is not a warning, and the title says it. */
+  .basalt-notification[data-status="pending"] .basalt-notification-mark { color: var(--basalt-text-secondary); }
   .basalt-notification-text { display: flex; flex-direction: column; min-width: 0; }
   .basalt-notification-title,
   .basalt-notification-line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3182,6 +3185,24 @@
   .basalt-notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
   .basalt-notification:hover .basalt-notification-line,
   .basalt-notification:hover .basalt-notification-time { color: var(--basalt-text-secondary); }
+  /* The entry for the page on screen (a list in a sidebar): its title at 600 from 400. It is one cut line, so nothing moves. */
+  .basalt-notification[data-current] .basalt-notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+
+  /* A group of repeats: the title is cut first, then the count (the toast's "×3") and the core chevron, which turns as the group opens. Its entries
+     open in place under it (the reveal's track), indented by the dot's and the mark's seats, so their seats sit under the group's words. The clip
+     keeps space-1 beside them, room enough for a ring at +2 inside the list's own space-1-5. */
+  .basalt-notification-head { display: flex; align-items: center; min-width: 0; }
+  /* The spoken ", 3 times" is visually hidden at the end of a title that may be cut: the title is its containing block, so the cut hides it and it never
+     widens the page. */
+  .basalt-notification-head > .basalt-notification-title { position: relative; flex: 0 1 auto; }
+  .basalt-notification-count { flex: none; margin-inline-start: var(--basalt-space-1-5); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
+  .basalt-notification-caret { flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-notification[aria-expanded="true"] .basalt-notification-caret { transform: rotate(180deg); }
+  .basalt-notification-group > .basalt-reveal-panel > .basalt-reveal-clip { margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); }
+  .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
+
+  /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
+  .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
 
   /* ---- Command menu ---- */
 
@@ -4779,6 +4800,73 @@
   .basalt-search-result[data-centered] { justify-content: center; }
   .basalt-search-result[data-centered] .basalt-search-name { flex: none; }
 
+  /* ---- Search in a page or a panel (SearchField, SearchPassages) ---- */
+
+  /* The field: an Input with the core search glyph at its start and, while there are words, a 24px clear button at its end. Both seats are
+     padding, kept whether the button shows or not, so the words never move. */
+  .basalt-search-box { position: relative; display: flex; align-items: center; min-width: 0; margin: 0; }
+  .basalt-search-box-glyph { position: absolute; inset-inline-start: var(--basalt-space-2-5); color: var(--basalt-text-tertiary); pointer-events: none; }
+  .basalt-input.basalt-search-box-input {
+    flex: 1;
+    min-width: 0;
+    padding-inline: calc(var(--basalt-space-2-5) + var(--basalt-size-icon-sm) + var(--basalt-space-2)) calc(var(--basalt-space-1) + var(--basalt-size-control-xs) + var(--basalt-space-1));
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .basalt-search-box-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  .basalt-search-box-input::-webkit-search-cancel-button,
+  .basalt-search-box-input::-webkit-search-decoration,
+  .basalt-search-box-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
+  .basalt-search-box-clear { position: absolute; inset-inline-end: var(--basalt-space-1); }
+
+  /* The results: an ordered list that keeps space-1-5 from its edges, so a ring at +2 is never cut by the panel that scrolls it. */
+  .basalt-passages { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
+  .basalt-passages-item { margin: 0; padding: 0; list-style: none; }
+  /* A passage is a link or a button with popup-row geometry: a plate inset 2px above and below, radius 8, 12px from the edge to the words. The head
+     is the source (one cut line, primary, 400) and the meta at its end (tertiary, tabular); the passage wraps under it in secondary ink. */
+  .basalt-passage {
+    --_plate-inset: var(--basalt-space-0-5);
+    box-sizing: border-box;
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: var(--basalt-space-0-5);
+    width: 100%;
+    margin: 0;
+    padding: calc(var(--basalt-space-2) + var(--_plate-inset)) var(--basalt-space-3);
+    border: 0;
+    border-radius: calc(var(--basalt-radius-md) + var(--_plate-inset));
+    background: none;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-passage::before {
+    content: "";
+    position: absolute;
+    inset: var(--_plate-inset) 0;
+    z-index: -1;
+    border-radius: var(--basalt-radius-md);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  @media (hover: hover) {
+    .basalt-passage:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
+    .basalt-passage:hover .basalt-passage-meta { color: var(--basalt-text-secondary); }
+  }
+  .basalt-passage:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(var(--basalt-size-focus-offset) - var(--_plate-inset)); }
+  .basalt-passage-head { display: flex; align-items: baseline; gap: var(--basalt-space-3); min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-passage-source { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-primary); }
+  .basalt-passage[data-current] .basalt-passage-source { font-weight: var(--basalt-font-weight-semibold); }
+  .basalt-passage-meta { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); }
+  .basalt-passage-text { overflow-wrap: anywhere; text-wrap: pretty; }
+  /* A match: the passage's own words in primary ink at 600, with no fill, no colour and no underline (monochrome; the weight and the ink are the mark). */
+  .basalt-search-match { padding: 0; background: none; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+
   /* The notice bar (D16): one short notice across the top of a page, in the level-1 fill with a divider under it. */
   .basalt-notice-bar {
     box-sizing: border-box;
@@ -5483,7 +5571,15 @@
     .basalt-notification:hover .basalt-notification-title,
     .basalt-notification:hover .basalt-notification-line,
     .basalt-notification:hover .basalt-notification-time,
-    .basalt-notification:hover .basalt-notification-mark { color: HighlightText; }
+    .basalt-notification:hover .basalt-notification-mark,
+    .basalt-notification:hover .basalt-notification-count,
+    .basalt-notification:hover .basalt-notification-caret { color: HighlightText; }
+    .basalt-notification-count, .basalt-notification-caret { color: CanvasText; }
+    /* A passage is the same: a hovered one is Highlight with HighlightText; a match keeps its weight (a mark's system fill is not drawn). */
+    .basalt-passage:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .basalt-passage:hover::before { background-color: transparent; }
+    .basalt-passage:hover :is(.basalt-passage-source, .basalt-passage-meta, .basalt-search-match) { color: HighlightText; }
+    .basalt-search-match { color: CanvasText; background: none; }
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
        glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .basalt-chip { color: ButtonText; }
@@ -5808,7 +5904,7 @@
     .basalt-skeleton { animation: none; }
     /* A written field holds still, as a skeleton does; a busy TextButton's underline keeps breathing, as the ring keeps its fade: it is a colour step, not motion. */
     .basalt-input[data-writing] { animation: none; }
-    .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
+    .basalt-accordion-panel, .basalt-accordion-caret, .basalt-notification-caret { transition: none; }
     /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
     /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
     :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { transform: none; }

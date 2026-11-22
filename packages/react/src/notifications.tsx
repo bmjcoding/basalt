@@ -1,42 +1,68 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { Button, IconButton } from "./button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
+import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { NotificationsGlyph } from "./glyphs/notifications";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
+import { useReveal } from "./reveal";
 import type { ToastStatus } from "./toast";
 import type { Align, IconComponent, OpenChangeDetails, PopupActions, Side } from "./types";
+import { join } from "./utils";
+
+/**
+ * An entry's mark. Success, warning and danger are the toast's marks; `pending` (waiting on someone, in review, queued) is the empty ring of
+ * the same drawing, in secondary ink and no colour, because waiting is not a warning. Neutral draws none (its seat stays, so titles line up).
+ */
+export type NotificationStatus = ToastStatus | "pending";
 
 export interface NotificationEntry {
   /** Stable, for the list's keys. */
   id: string;
-  /** What happened, in one line: "Deploy finished". It is cut with an ellipsis if it is long; the whole text is still read. */
+  /** What happened, in one line: "Deploy finished". It is cut with an ellipsis if it is long; the whole text is still read. A group's title names who and what ("Sam, Priya and Marcus mentioned you"); Basalt adds the count. */
   title: string;
-  /** A secondary line: what it was about ("blacksand-api, production"). */
+  /** A secondary line: what it was about ("api, production"). */
   description?: string;
-  /** The time, as the app writes it ("2m ago", "Yesterday"). Basalt does not format dates. */
+  /** The time, as the app writes it ("2m ago", "Yesterday"). Basalt does not format dates. A group's time is its newest entry's. */
   time: string;
   /** The same moment for machines, as `<time datetime>`. */
   dateTime?: string;
-  /** Success, warning and danger draw the toast's marks. Neutral draws none (its seat stays, so titles line up). */
-  status?: ToastStatus;
-  /** Unread entries take a dot and primary ink. Read entries are the same row with the dot's seat empty and the title in secondary ink. */
+  /** The mark in the entry's 16px seat. The mark is never read: the title says it in words ("Waiting on you: approve the release"). */
+  status?: NotificationStatus;
+  /**
+   * Unread entries take a dot and primary ink. Read entries are the same row with the dot's seat empty and the title in secondary ink. A group
+   * left without it is unread while any of its entries is.
+   */
   unread?: boolean;
-  /** Where it goes. An entry with an `href` is a link, and one without is a button. */
+  /** Where it goes. An entry with an `href` is a link, and one without is a button. A group is always a button: it opens. */
   href?: string;
+  /** The entry for the page on screen (a list of entries in a page or a sidebar): `aria-current`, and the title at 600 from 400. The title is one cut line, so nothing moves. */
+  current?: boolean;
+  /**
+   * A group of repeats: the entries it stands for, newest first (one level; an entry inside a group is never a group). The app does the grouping;
+   * the row draws the title, the count and a chevron, and opens in place to these entries.
+   */
+  entries?: readonly NotificationEntry[];
+  /** A group's count, when the app holds more than the `entries` it gives (40 mentions, the newest 5 listed). Default: `entries.length`. */
+  count?: number;
 }
 
-export interface NotificationCentreProps {
+/** What the bell, the popover and the in-page list share. */
+interface ListParts {
   /** The entries to list, newest first. The app owns the data and its persistence. */
   entries: readonly NotificationEntry[];
-  /** An entry was chosen. The center closes after it. */
+  /** An entry was chosen (never a group's row, which opens instead). The center closes after it. */
   onSelect?: (entry: NotificationEntry) => void;
   /** "Mark all as read" was pressed. Update `unread` on your entries: the rows change ink and nothing moves. */
   onMarkAllRead?: () => void;
+}
+
+export interface NotificationCenterProps extends ListParts {
   /** "View all" was pressed (the app's own page). With `viewAllHref` it is a link as well. */
   onViewAll?: () => void;
   viewAllHref?: string;
@@ -50,7 +76,16 @@ export interface NotificationCentreProps {
   className?: string;
 }
 
-const MARKS: Record<Exclude<ToastStatus, "neutral">, IconComponent> = { success: CheckCircleIcon, warning: WarningIcon, danger: XCircleIcon };
+/** The older spelling of `NotificationCenterProps`; it stays as an alias. */
+export type NotificationCentreProps = NotificationCenterProps;
+
+const MARKS: Record<Exclude<NotificationStatus, "neutral">, IconComponent> = { success: CheckCircleIcon, warning: WarningIcon, danger: XCircleIcon, pending: CircleIcon };
+
+const isGroup = (entry: NotificationEntry): boolean => (entry.entries?.length ?? 0) > 0;
+const isUnread = (entry: NotificationEntry): boolean => entry.unread ?? (entry.entries?.some((inner) => inner.unread) ?? false);
+/** What is unread is counted by the entries a reader would open, so a group of three unread mentions is three. */
+const unreadCount = (entries: readonly NotificationEntry[]): number =>
+  entries.reduce((count, entry) => count + (isGroup(entry) ? unreadCount(entry.entries!) : entry.unread ? 1 : 0), 0);
 
 /**
  * The durable copy of what the toasts said. A bell button (32px, a 6px ink dot when anything is unread, the count in its
@@ -59,9 +94,12 @@ const MARKS: Record<Exclude<ToastStatus, "neutral">, IconComponent> = { success:
  *
  * This is what lets a toast time out: a toast may close after five seconds when the information, and any action, also has a
  * home here (`home: "center"` on the toast). Keep an entry's action reachable for as long as it is valid.
+ *
+ * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
+ * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCentreProps) {
-  const unread = entries.reduce((count, entry) => count + (entry.unread ? 1 : 0), 0);
+export function NotificationCenter({ entries, onSelect, onMarkAllRead, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCenterProps) {
+  const unread = unreadCount(entries);
   const popup = React.useRef<PopupActions | null>(null);
   // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
   const leave = () => popup.current?.close();
@@ -76,10 +114,7 @@ export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
           <span className="basalt-notifications-count">{unread} unread</span>
-          {/* Stays mounted and keeps focus when nothing is left to mark, as Clear does: disabled in place. */}
-          <Button variant="ghost" size="sm" className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
-            Mark all as read
-          </Button>
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} />
         </div>
         {entries.length === 0 ? (
           <p className="basalt-notifications-empty">Nothing yet.</p>
@@ -87,13 +122,7 @@ export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll
           // The scroller is the glide's host: the shared plate follows the pointer between entries (40 or 58 tall), behind them.
           <div className="basalt-notifications-scroll">
             <GlidePlate notifications />
-            <ul className="basalt-notifications-list">
-              {entries.map((entry) => (
-                <li key={entry.id}>
-                  <NotificationRow entry={entry} onChoose={() => { onSelect?.(entry); leave(); }} />
-                </li>
-              ))}
-            </ul>
+            <Entries entries={entries} onChoose={(entry) => { onSelect?.(entry); leave(); }} />
           </div>
         )}
         <div className="basalt-notifications-foot">
@@ -110,23 +139,137 @@ export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll
   );
 }
 
-function NotificationRow({ entry, onChoose }: { entry: NotificationEntry; onChoose: () => void }) {
+/** The older spelling of `NotificationCenter`; it stays as an alias. */
+export const NotificationCentre = NotificationCenter;
+
+export interface NotificationListProps extends ListParts {
+  /** The head band: the unread count and "Mark all as read". Default true; `false` for a list of entries in a sidebar or a page column. */
+  head?: boolean;
+  /** The list's name for assistive technology. Default "Notifications". Give `aria-labelledby` instead to name it by the page's heading. */
+  label?: string;
+  "aria-labelledby"?: string;
+  /** What an empty list says. Default "Nothing yet." */
+  empty?: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * The center's entries in the page: the page form, for the app's own notifications page (what "View all" opens, and on a phone the tab bar's
+ * destination, since a bell does not fit a phone's header), and for a list of entries in a sidebar. The same rows, seats, groups and words as the
+ * bell's popover, with no popover, no title (the page's heading names it) and no glide: each entry paints its own plate. No rim: it is a list,
+ * not an object. Paging is the app's (`ListBand` under it).
+ */
+export function NotificationList({ entries, onSelect, onMarkAllRead, head = true, label = "Notifications", "aria-labelledby": labelledBy, empty = "Nothing yet.", className }: NotificationListProps) {
+  const unread = unreadCount(entries);
+  return (
+    <div className={join("basalt-notification-list", className)}>
+      {head ? (
+        <div className="basalt-notifications-head">
+          <span className="basalt-notifications-count">{unread} unread</span>
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} />
+        </div>
+      ) : null}
+      {entries.length === 0 ? (
+        <p className="basalt-notifications-empty">{empty}</p>
+      ) : (
+        <Entries entries={entries} onChoose={(entry) => onSelect?.(entry)} label={labelledBy ? undefined : label} labelledBy={labelledBy} />
+      )}
+    </div>
+  );
+}
+
+function MarkAllRead({ unread, onMarkAllRead }: { unread: number; onMarkAllRead?: () => void }) {
+  // Stays mounted and keeps focus when nothing is left to mark, as Clear does: disabled in place.
+  return (
+    <Button variant="ghost" size="sm" className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
+      Mark all as read
+    </Button>
+  );
+}
+
+function Entries({ entries, onChoose, label, labelledBy }: { entries: readonly NotificationEntry[]; onChoose: (entry: NotificationEntry) => void; label?: string; labelledBy?: string }) {
+  return (
+    <ul className="basalt-notifications-list" aria-label={label} aria-labelledby={labelledBy}>
+      {entries.map((entry) => (isGroup(entry) ? <GroupItem key={entry.id} entry={entry} onChoose={onChoose} /> : (
+        <li key={entry.id}>
+          <NotificationRow entry={entry} onChoose={() => onChoose(entry)} />
+        </li>
+      )))}
+    </ul>
+  );
+}
+
+/**
+ * A group of repeats: its own row, a button with `aria-expanded`, then its entries, which open in place under it (the reveal: a grid row going 0fr to
+ * 1fr over `duration-slow`, at once under reduced motion), indented to the row's words so they read as its own. Focus stays on the row: its entries
+ * are the next tab stops.
+ */
+function GroupItem({ entry, onChoose }: { entry: NotificationEntry; onChoose: (entry: NotificationEntry) => void }) {
+  const reveal = useReveal({ focusFirst: false });
+  const inner = entry.entries ?? [];
+  return (
+    <li {...reveal.rootProps} ref={reveal.root as unknown as React.Ref<HTMLLIElement>} className="basalt-notification-group">
+      <NotificationRow entry={entry} group={{ open: reveal.open, controls: reveal.id, count: entry.count ?? inner.length }} onChoose={reveal.toggle} />
+      <div className="basalt-reveal-panel" id={reveal.id} inert={!reveal.open}>
+        <div className="basalt-reveal-clip" data-reveal-clip="">
+          <ul className="basalt-notification-entries">
+            {inner.map((child) => (
+              <li key={child.id}>
+                <NotificationRow entry={child} onChoose={() => onChoose(child)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+interface GroupState {
+  open: boolean;
+  controls: string;
+  count: number;
+}
+
+function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry; onChoose: (event: React.MouseEvent) => void; group?: GroupState }) {
   const status = entry.status ?? "neutral";
+  const unread = isUnread(entry);
+  // A group's count is spoken inside the title (", 3 times"), so the name reads as one phrase; the drawn "×3" is hidden from it.
+  const title = (
+    <span className="basalt-notification-title">
+      {unread ? <span className="basalt-visually-hidden">Unread: </span> : null}
+      {entry.title}
+      {group ? <span className="basalt-visually-hidden">, {group.count} times</span> : null}
+    </span>
+  );
   const body = (
     <>
       {/* The dot's own seat: always there, filled only while unread, so reading a row moves nothing. */}
       <span className="basalt-notification-dot" aria-hidden="true" />
       <span className="basalt-notification-mark" aria-hidden="true">{status === "neutral" ? null : <Icon icon={MARKS[status]} size={16} />}</span>
       <span className="basalt-notification-text">
-        <span className="basalt-notification-title">
-          {entry.unread ? <span className="basalt-visually-hidden">Unread: </span> : null}
-          {entry.title}
-        </span>
+        {group ? (
+          // The title is cut first; the count (the toast's "×3") and the chevron always show.
+          <span className="basalt-notification-head">
+            {title}
+            <span className="basalt-notification-count" aria-hidden="true">×{group.count}</span>
+            <Icon icon={ChevronDownGlyph} size={16} className="basalt-notification-caret" />
+          </span>
+        ) : title}
         {entry.description ? <span className="basalt-notification-line">{entry.description}</span> : null}
       </span>
       <time className="basalt-notification-time" dateTime={entry.dateTime}>{entry.time}</time>
     </>
   );
-  const common = { className: "basalt-notification", "data-unread": entry.unread ? "" : undefined, "data-status": status, onClick: onChoose };
-  return entry.href ? <a href={entry.href} {...common}>{body}</a> : <button type="button" {...common}>{body}</button>;
+  const common = {
+    className: "basalt-notification",
+    "data-unread": unread ? "" : undefined,
+    "data-status": status,
+    "data-current": entry.current ? "" : undefined,
+    onClick: onChoose,
+  };
+  if (group) return <button type="button" {...common} data-group="" aria-expanded={group.open} aria-controls={group.controls}>{body}</button>;
+  return entry.href
+    ? <a href={entry.href} {...common} aria-current={entry.current ? "page" : undefined}>{body}</a>
+    : <button type="button" {...common} aria-current={entry.current ? "true" : undefined}>{body}</button>;
 }

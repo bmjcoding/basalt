@@ -6,11 +6,13 @@
   'use strict';
   var _ = B._;
   var seq = 0;
-  var MARK = { success: 'CheckCircle', warning: 'Warning', danger: 'XCircle' };
+  var MARK = { success: 'CheckCircle', warning: 'Warning', danger: 'XCircle', pending: 'Circle' };
+  var CARET = '<svg class="icon notification-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%glyph:chevron-down%"/></svg>';
   var BELL = '<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="%glyph:notifications%"/></svg>';
 
   /**
-   *   Basalt.notifications(host, { entries: [{ id, title, description?, time, dateTime?, status?: 'success'|'warning'|'danger', unread?, href? }],
+   *   Basalt.notifications(host, { entries: [{ id, title, description?, time, dateTime?, status?: 'success'|'warning'|'danger'|'pending', unread?, href?, current?,
+   *     entries?: [...] (a group: its row opens to these), count? }],
    *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
    */
   function notifications(host, options) {
@@ -45,8 +47,24 @@
 
     function leave() { if (pop.matches(':popover-open')) pop.hidePopover(); }
 
+    function isGroup(e) { return !!(e.entries && e.entries.length); }
+    function isUnread(e) { return e.unread != null ? !!e.unread : isGroup(e) && e.entries.some(function (c) { return c.unread; }); }
+    function row(e, index, group) {
+      var st = e.status || 'neutral';
+      var tag = group || !e.href ? 'button' : 'a';
+      var unread = isUnread(e);
+      var n = group ? (e.count || e.entries.length) : 0;
+      var title = '<span class="notification-title">' + (unread ? '<span class="visually-hidden">Unread: </span>' : '') + _.esc(e.title) + (group ? '<span class="visually-hidden">, ' + n + ' times</span>' : '') + '</span>';
+      return '<' + tag + (tag === 'a' ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + index + '"' + (unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '"' +
+        (e.current ? ' data-current aria-current="' + (tag === 'a' ? 'page' : 'true') + '"' : '') + (group ? ' data-group aria-expanded="false" aria-controls="' + group + '"' : '') + '>' +
+        '<span class="notification-dot" aria-hidden="true"></span><span class="notification-mark" aria-hidden="true">' + (MARK[st] ? _.icon(MARK[st]) : '') + '</span>' +
+        '<span class="notification-text">' + (group ? '<span class="notification-head">' + title + '<span class="notification-count" aria-hidden="true">×' + n + '</span>' + CARET + '</span>' : title) +
+        (e.description ? '<span class="notification-line">' + _.esc(e.description) + '</span>' : '') + '</span>' +
+        '<time class="notification-time"' + (e.dateTime ? ' datetime="' + _.esc(e.dateTime) + '"' : '') + '>' + _.esc(e.time) + '</time></' + tag + '>';
+    }
+
     function render() {
-      var unread = entries.reduce(function (n, e) { return n + (e.unread ? 1 : 0); }, 0);
+      var unread = entries.reduce(function (n, e) { return n + (isGroup(e) ? e.entries.filter(function (c) { return c.unread; }).length : e.unread ? 1 : 0); }, 0);
       button.setAttribute('aria-label', unread > 0 ? label + ', ' + unread + ' unread' : label);
       dot.hidden = unread === 0;
       count.textContent = unread + ' unread';
@@ -54,21 +72,27 @@
       if (unread === 0) mark.setAttribute('aria-disabled', 'true'); else mark.removeAttribute('aria-disabled');
       empty.hidden = entries.length > 0;
       scroll.hidden = entries.length === 0;
+      // A group's row opens its entries in place, indented under its words (at once: the reveal's track is React's); focus stays on the row.
       list.innerHTML = entries.map(function (e, i) {
-        var st = e.status || 'neutral';
-        var tag = e.href ? 'a' : 'button';
-        return '<li><' + tag + (e.href ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + i + '"' + (e.unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '">' +
-          '<span class="notification-dot" aria-hidden="true"></span><span class="notification-mark" aria-hidden="true">' + (MARK[st] ? _.icon(MARK[st]) : '') + '</span>' +
-          '<span class="notification-text"><span class="notification-title">' + (e.unread ? '<span class="visually-hidden">Unread: </span>' : '') + _.esc(e.title) + '</span>' +
-          (e.description ? '<span class="notification-line">' + _.esc(e.description) + '</span>' : '') + '</span>' +
-          '<time class="notification-time"' + (e.dateTime ? ' datetime="' + _.esc(e.dateTime) + '"' : '') + '>' + _.esc(e.time) + '</time></' + tag + '></li>';
+        if (!isGroup(e)) return '<li>' + row(e, i) + '</li>';
+        var gid = id + '-g' + i;
+        return '<li>' + row(e, i, gid) + '<ul class="notification-entries" id="' + gid + '" hidden>' +
+          e.entries.map(function (c, j) { return '<li>' + row(c, i + '.' + j) + '</li>'; }).join('') + '</ul></li>';
       }).join('');
     }
 
     list.addEventListener('click', function (ev) {
-      var row = ev.target.closest('.notification');
-      if (!row) return;
-      if (o.onSelect) o.onSelect(entries[Number(row.dataset.index)]);
+      var el = ev.target.closest('.notification');
+      if (!el) return;
+      var at = el.dataset.index.split('.');
+      if (el.hasAttribute('data-group')) {
+        var open = el.getAttribute('aria-expanded') !== 'true';
+        el.setAttribute('aria-expanded', String(open));
+        document.getElementById(el.getAttribute('aria-controls')).hidden = !open;
+        return;
+      }
+      var e = entries[Number(at[0])];
+      if (o.onSelect) o.onSelect(at.length > 1 ? e.entries[Number(at[1])] : e);
       leave();
     });
     mark.addEventListener('click', function () { if (mark.getAttribute('aria-disabled') !== 'true' && o.onMarkAllRead) o.onMarkAllRead(); });

@@ -1071,7 +1071,11 @@
         "notification-text",
         "notification-title",
         "notification-line",
-        "notification-time"
+        "notification-time",
+        "notification-head",
+        "notification-count",
+        "notification-caret",
+        "notification-entries"
       ],
       "text": [
         "Basalt\\s*\\.\\s*notifications\\b"
@@ -1086,9 +1090,10 @@
       "icons": [
         "CheckCircle",
         "Warning",
-        "XCircle"
+        "XCircle",
+        "Circle"
       ],
-      "budget": 9250,
+      "budget": 11350,
       "usage": 1100,
       "builds": [
         "popover",
