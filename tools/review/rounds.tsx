@@ -116,6 +116,7 @@ import { ROUND_47 } from "./round47";
 import { ROUND_48 } from "./round48";
 import { ROUND_49 } from "./round49";
 import { ROUND_50 } from "./round50";
+import { ROUND_51 } from "./round51";
 
 export interface Step {
   id: string;
@@ -136,6 +137,8 @@ export interface Step {
   height?: number;
   /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
   bleed?: boolean;
+  /** Shoot widths under 720 as a phone: touch and mobile emulation (a coarse pointer, the 44px targets, focus by touch). */
+  touch?: boolean;
   demo: (props: { state: string }) => React.ReactNode;
 }
 
@@ -669,3 +672,4 @@ ROUNDS.push(ROUND_47);
 ROUNDS.push(ROUND_48);
 ROUNDS.push(ROUND_49);
 ROUNDS.push(ROUND_50);
+ROUNDS.push(ROUND_51);

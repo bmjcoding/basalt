@@ -1,0 +1,25 @@
+@layer basalt {
+
+  /* ---- A form dialog (React's DialogContent `form`, DECISIONS 222 and 230): a task opens in the center ----
+     The dialog's 480 box with the sheet's head, body and foot (DECISIONS 155), edge to edge: the head and foot held, the body scrolling, at most the window less
+     space-4 above and below. The script writes --_top once as it opens (where a centred dialog of its height sits), so what grows grows downward. Under 720 it is a
+     full-screen modal: square, no rim or shadow, rising from the bottom on the sheet's motion; the foot's two actions are equal 44px buttons. */
+  .dialog[data-form][open] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+  .dialog[data-form][data-held] { inset-block: var(--_top) auto; margin-block: 0; max-height: calc(100dvh - var(--_top) - var(--basalt-space-4)); }
+  .dialog[data-form] .sheet-body { padding-block: var(--basalt-space-5); }
+  .dialog[data-form] .sheet-body > .dialog-description:first-child { margin: 0 0 var(--basalt-space-5); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .dialog[data-form] .sheet-foot .dialog-actions { margin-top: 0; }
+  @media (width < %bp-md%) {
+    /* stylelint-disable-next-line unit-disallowed-list -- the window's height (a viewport unit); a fixed-length token cannot say it */
+    .dialog[data-form], .dialog[data-form][data-held] { --_dur: var(--basalt-duration-slower); inset: 0; margin: 0; width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; box-shadow: none; opacity: 1; transform: translateY(100%); }
+    .dialog[data-form][open] { transform: none; }
+    @starting-style { .dialog[data-form][open] { opacity: 1; transform: translateY(100%); } }
+    .dialog[data-form] .sheet-foot .dialog-actions > .btn { flex: 1 1 0; min-height: var(--basalt-size-control-2xl); }
+  }
+  @media (width < %bp-md%) and (prefers-reduced-motion: reduce) {
+    .dialog[data-form], .dialog[data-form][data-held] { transform: none; opacity: 0; }
+    .dialog[data-form][open] { opacity: 1; }
+    @starting-style { .dialog[data-form][open] { opacity: 0; transform: none; } }
+  }
+}

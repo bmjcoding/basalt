@@ -1741,7 +1741,7 @@ core actions, navigation and Blacksand's product nouns. Each glyph is a module o
 A product's own logo is its own; the social marks are Phosphor's (below).
 
 - **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
-  set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the pagination gap's dots, the social
+  set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the social
   marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
@@ -1885,9 +1885,128 @@ status line says its words, with a hidden prefix ("Week 8, build, "), after it h
 the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a `border-divider` line above (DECISIONS 167), each button at
 least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
 
+## Lists and modals
+
+**Status.** Picked by the owner from Opus's prototype (DECISIONS 224, 226), with no council vote. The implementation has not been reviewed. Three of the prototype's defects, found
+in Sol's ballot, are not copied (see "Defects" below). `Pagination` is fixed in place, `ListBand` and the form `Dialog` are new in this round, and a numeric `Select`, a toolbar
+`MultiSelect` that holds its width, and a `FilterToolbar` with a search are the parts of a filtered, paged list. Back to top (DECISIONS 225) was prototyped separately and is
+built here after the owner's word on Opus's second prototype (DECISIONS 227 and 228): Back to top and the list's foot, below. Their implementation has not been reviewed either.
+
+**The rule: tasks open in the center; columns open at their side.** A task, meaning anything with an end (a form, a confirmation, a choice that is applied), opens as a centered
+`Dialog` over the scrim from 720. Under 720 a task that holds text entry is a full-screen modal, and a decision stays a centered `AlertDialog`. A side `Sheet` is only the narrow
+form of a column the page docks when it is wide enough, and it opens from the side where the column docks. Under 720 that column is a bottom `Sheet`, as is a short list opened
+from the bottom of the screen. The top `Sheet` stays the site's narrow menu. (The owner's DECISIONS 222: lists are paginated with a choice of how many to show, and can be filtered;
+a form or task opens as a centered modal over a darkened page, not a side panel.)
+
+### Everything that changes a list sits above it
+
+The filters come first (`FilterToolbar`), then one band (`ListBand`) with the count, the pager and the page size. Only the rows below change, so nothing above can be pushed. A bar
+under the list moves whenever the list's height does (891px across the pages of the incident rows, 7,939px across every action), drops 25 rows away from the pointer when the
+reader picks 50 per page, and leaves a keyboard's next Tab outside the new page. It is for a list of rows in a rimmed panel and for a still table alike.
+
+- **The band** is one row on the page's own fill, with no rim: the count at the start, the pager in the centre, the page size at the end (`size-select-min` is not for a number).
+  From 720 it is `position: sticky` under the app's bar, opaque in the page colour (it is not the one smoked surface), at `layer-sticky`, with a `border-divider` line under it
+  only while it is stuck (an observed sentinel says so; in forced colours the line is `CanvasText`). When the page or the size changes while it is stuck, the window returns to where
+  the band rests (one helper in `ListBand`, not one per list), so the new page's first row shows under the band and Next, Next, Next is one place on screen. Under 720 it does not
+  stick: the bar and the tab bar already take 112 of a phone's height. It is `container-type: inline-size`; in print it is static.
+- **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
+  It is blank for no matches.
+- **The page size** is a `Select` of 10, 25, 50 and 100 (default 25; the app remembers it for each list) followed by the words "per page", named "Incidents per page": the visible
+  words are inside the name (WCAG 2.5.3), the noun is the app's. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
+- **It is spoken once.** A page or size change is said by the band's own polite status line after 400ms of stillness ("Page 2 of 9. Incidents 26 to 50 of 214."). A change of the
+  total (a search or a filter) clears the line, and only `FilterResult` speaks a filter ("Showing 37 of 214 incidents"): two numbers with two jobs, each beside the control that drives it.
+- **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list. The window is the scroller.
+
+### Back to top and the list's foot
+
+**Back to top** (`BackToTop`, part of `ListBand`; DECISIONS 227 and 228, the owner's design: "someone is scrolling down and then the scroll back up to top appears at the top of the screen during
+scrolling, and if someone physically scrolls up the scroll back up to top goes away"). It replaces a corner button and its position-only rule.
+
+- **Where.** At the top of the screen, centred on the list, `space-2` under the bar, and from 720 `space-2` under the band where it is stuck. It sits in a dock of zero height right after the
+  band (the dock is `position: sticky`; from 720 the band's measured height is added to its top), so it floats over the rows and takes no room: nothing moves when it appears or leaves. It is
+  clear of the tab bar, the toasts and the bottom safe area (they are at the bottom), and of a room's "Jump to latest" (one floating scroll control a view).
+- **When.** It appears while the reader scrolls down, once the list's top is more than one window above the window's top (a page of 10 rows never reaches it), and it stays while they rest. It
+  leaves when they scroll up. The direction turns only after `space-2` (8px) of travel back from the furthest point reached, and the scroll position is held between the page's two ends, so an
+  overscroll's bounce is never a turn. It never leaves while it holds focus (it goes when focus leaves), and it is not drawn while a modal is open. One passive scroll listener, once a frame:
+  the header's phases are decided by position and never by direction, and this control is about direction, by the owner's design.
+- **Look.** A secondary `sm` Button with the core `arrow-up` and "Back to top", solid (the header is the one smoked surface), its own fill and hairline plus `shadow-overlay` because it floats,
+  level 1 like a toast, at every width: 28 tall with radius 6 on a fine pointer, 44 with radius 8 on touch (radius by role); no full radius, which would be a new role for one control. It is not a
+  second glass pill. In forced colours it is ButtonFace with a ButtonText border and no shadow.
+- **Motion.** It fades and never slides: opacity over `duration-fast` on `ease-out` in, 0.75 of that on `ease-in` out, visibility going at the end of the fade so a hidden button is never a focus stop.
+  Under reduced motion it is the same fade and `transform` leaves the transition list.
+- **A press** goes to the top at once, with and without reduced motion (the distance is screens long, and a smooth scroll would only stream rows past; a large moving area is a vestibular trigger),
+  and focuses the list's heading with `preventScroll` before the jump: the start of what the reader came back for, with the search, the filters and the band after it in the Tab order. Its name
+  is "Back to top": it names the place, not a mechanism.
+
+**The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
+DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
+("Incident pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
+under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
+
+**The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
+count keeps `space-1` more on each side: 8px between an arrow and the count, the ring clearing it by 4px.
+
+### Pagination: seven fixed slots
+
+Past seven pages the pager is seven slots: `1 2 3 4 5 … N`, then `1 … p−1 p p+1 … N`, then `1 … N−4 N−3 N−2 N−1 N`. Every slot, the gap included, is as wide as the widest page
+number the list can reach (its unfiltered count at the smallest size; `maxPages`), at 600 in tabular figures: the incident rows reserve "22" (a 36px slot), the still table "49". The
+box reserves `min(7, maxPages)` slots in one cell, so with fewer pages the numbers sit centered between the arrows and nothing moves. Previous and Next are always there and stop at
+an end without leaving focus (`aria-disabled`, as the period stepper's arrows do). At one page or none a bare pager renders nothing, as before; in the band (`keepRoom`) it is `visibility: hidden` and keeps its room with `role="none"`, never an empty `nav` landmark (the stepper's `whole`);
+the count stays. It never wraps. The gap glyph is the core `more` (a component never draws Phosphor's version of a core glyph; engineering). A press on a number moves focus to the
+button that holds the current page; Previous and Next keep focus. A bare `Pagination` is its own container and goes to Previous, "Page 3 of 22" and Next under 640 of its width. It
+keeps the shipped look: ghost `sm` buttons, the numeral at 600 against 400 on the raised plate with its hairline, the hover wash of DECISIONS 145 item 3; the figures are tabular, and
+a link-mode page takes the same 10px of inline padding as a button's. The shipped pager moved Next by 51.5px across 22 pages and 57.3px across 49 at 1440, and wrapped in a 292px card at 390.
+
+### A number's select and a trigger that holds its width
+
+- **A numeric select** (`Select numeric`) is as wide as its widest option, below `size-select-min`, and does not follow its value's width: every option is drawn in the trigger's one cell, unseen.
+- **A `MultiSelect toolbar` trigger** reserves the width of its widest value ("Any", or the longest label with the largest "+N"), so choosing values moves nothing after it (Severity grew from 131 to
+  162px and Status from 120 to 200px without it, pushing the result line by up to 80px). The cost is some empty room in "Status Any". A trigger in a narrow column fills it and cuts the value with an ellipsis.
+
+### Filters over a list
+
+`FilterToolbar` over rows: the `search` field first (the app's own, named "Search incidents", `size-search-trigger` wide from 720, a row of its own under it), then the filters
+(an array; each sits in its own column under 720), then `FilterResult` on a full row after them. There is no sort on a list that already has an order that matters (the incident
+list brings SEV1 to the top). **A search or a filter returns to page 1.** The empty state follows DECISIONS 207, in the panel in place of the rows, one sentence and one button: a
+search alone says "No incidents match “zzq”." with **Clear search** (focus goes to the search field); a filter says "No incidents match these filters." with **Clear filters**, which clears
+a search too, and with a search the sentence names the term: "No incidents match “zzq” with these filters." (focus goes to the first filter's trigger, since the button leaves with the
+empty state). The band keeps its room: the count is blank, the pager hidden. The words are the app's.
+
+### The form dialog
+
+`DialogContent form` is the centered modal for a form or task, at 480 (`size-dialog-width`) over the `scrim`, level 1, the rim, radius 12, `shadow-modal`; what it holds starts at 2. Its parts are the
+sheet's head, body and foot (DECISIONS 155) in the dialog's box, unchanged: a held head with the title (`text-xl` 20/28) and a 44px Close on a divider, a body that scrolls and opens with
+the description (so the held head stays one line), and a held foot with Cancel, then the primary. A form that moves from a sheet to a dialog keeps its parts.
+
+- **Height.** At most the window less `space-4` above and below, with the head and foot held and the body scrolling (528px at 1440 by 560).
+- **Its top is held where it opened** (where a dialog of its height would sit, never nearer the window's edge than `space-4`), and it grows downward: an error under a field adds its height and the title does not move. It re-centres only on a window resize.
+- **The scrim closes it only while nothing has been entered.** Esc, Close and Cancel always close it. "Entered" is an input or change event, or any field (a Select, a Switch, a Combobox: each keeps a hidden input) that holds something other than it held when the form opened. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. There is no "discard changes?" step: one task at a time.
+- **Focus** on opening goes to the first field; when a touch opened it, to the title (`tabindex="-1"`, no ring), so no keyboard rises over a form before it is seen. The choice is by the input that
+  opened it (a key press on the opener focuses the field even in touch emulation); a controlled dialog falls back to the primitive's reading. On closing, focus returns to the opener.
+- **Under 720 it is a full-screen modal:** the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion (300ms in, 225ms
+  out), the head under the top safe area and the foot over the bottom one, the foot's two actions equal 44px buttons, Cancel first. A centered box at 390 is a 358px box inside 16px of scrim on a
+  screen that is already short, and a bottom sheet leaves a strip of page at the top that invites a stray tap and promises a drag. An alert dialog (a decision) stays centered at every width.
+- **Motion** is the dialog's own (a scale from .98 and a fade over `duration-slow`); under reduced motion it only fades.
+- **CIMIP** (for its own PR): Declare an incident, Publish an update and Find someone to call become centered dialogs (Find on Basalt's search dialog at 560); reading a document the agent wrote
+  is the wide dialog (992); the brief's right sheet from 720 to 1231 stays, because it is the narrow form of the brief's column, which docks beside the conversation from 1232; both phone bottom sheets stay.
+  A non-modal side panel is not proposed.
+
+### Defects not copied
+
+The prototype's band kept saying "Page 2 of 9" after a filter narrowed the list to one match; the band's line is now cleared when the total changes. Its first focus followed the pointer
+type, so Enter in touch emulation still focused the title; it now follows the input that opened the dialog. Its compact form needed 340px, overflowing the 292px card; the page size now
+moves to a second row under 340.
+
+### Measured
+
+Across the incident rows (every size, Next to the end and back at each size, every page number, every severity and status, the empty state and searches) and a still table (every size,
+every page, every sort), the band, Previous, Next, the count's seat, the page size, each page slot, the search and both filter triggers and the table's columns moved 0px at 1440, 1024, 720 and 390
+(`packages/react/test/lists-modals.test.mjs`). Not checked: a real phone (on iOS the held foot sits under the keyboard while typing, as in any web form), WebKit, Firefox, a screen reader and a
+Windows contrast theme.
+
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 

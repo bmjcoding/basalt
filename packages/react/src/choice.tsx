@@ -197,6 +197,11 @@ export interface SelectProps {
    * `aria-label` is not used (WCAG 2.5.3). The trigger's height and the value's place do not change with it.
    */
   valuePrefix?: string;
+  /**
+   * The options are numbers (a page size: 10, 25, 50, 100). The trigger is as wide as its widest option, below `size-select-min`, and does not follow the
+   * chosen value's width: every option is drawn in the trigger's one cell, unseen, so choosing moves nothing beside it.
+   */
+  numeric?: boolean;
   className?: string;
 }
 
@@ -204,7 +209,7 @@ export interface SelectProps {
  * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
  * The list opens below the trigger, like a menu.
  */
-export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, inputRef, ...props }: SelectProps) {
+export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, inputRef, ...props }: SelectProps) {
   const mirror = useMirrorRef(inputRef);
   const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
@@ -219,7 +224,8 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
             <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
           </span>
         ) : (
-          <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
+          // A numeric select holds the width of its widest option: the value's cell carries it as eights in an attribute that a pseudo-element paints, so choosing moves nothing and the DOM holds the words once.
+          <BaseSelect.Value data-widest={numeric ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />
         )}
         <BaseSelect.Icon className="basalt-select-icon">
           <Icon icon={CaretUpDownIcon} size={16} />

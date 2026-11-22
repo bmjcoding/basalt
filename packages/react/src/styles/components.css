@@ -137,6 +137,16 @@
     user-select: none;
     pointer-events: none;
   }
+  /* A page also reserves the widest page number the list can reach, at 600 (DECISIONS 222): a second unseen line, pulled back over the first, so every slot is one width. */
+  :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-widest]::before {
+    content: attr(data-widest);
+    height: 1lh;
+    margin-block-end: -1lh;
+    visibility: hidden;
+    font-weight: var(--basalt-font-weight-semibold);
+    user-select: none;
+    pointer-events: none;
+  }
   /* Pagination keeps its centred numeral; a segment or tab puts the reserved slack at the end. */
   :is(.basalt-page-link, .basalt-pagination .basalt-button) [data-label] { align-items: center; }
 
@@ -781,6 +791,40 @@
     justify-content: flex-end;
     gap: var(--basalt-space-2);
     margin-top: var(--basalt-space-6);
+  }
+
+  /* A form dialog (DECISIONS 222; the owner's pick of Opus's prototype): a task opens in the center. The box is the dialog's, the parts are the sheet's head, body and foot
+     (DECISIONS 155): edge to edge, the head and foot held, the body scrolling. Its top is held where it opened (the script writes --_dialog-top), so what grows grows
+     downward; the height is at most the window less space-4 above and below (the dialog's own max-height), and less its top once the top is held. */
+  .basalt-dialog[data-form] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+  .basalt-dialog[data-form][data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
+  .basalt-dialog[data-form][data-held][data-starting-style],
+  .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%) scale(0.98); }
+  .basalt-dialog[data-form] .basalt-sheet-body { padding-block: var(--basalt-space-5); }
+  /* The description opens the body, so the held head stays one line. */
+  .basalt-dialog[data-form] .basalt-sheet-body > .basalt-dialog-description:first-child { margin: 0 0 var(--basalt-space-5); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions { margin-top: 0; }
+  /* Under 720 a form is a full-screen modal: the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion. The
+     head takes the top safe area and the foot the bottom one; the foot's two actions are equal 44px buttons, Cancel first. An alert dialog stays centred at every width. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) {
+    .basalt-dialog[data-form], .basalt-dialog[data-form][data-held] {
+      inset: 0;
+      /* stylelint-disable-next-line unit-disallowed-list -- the window's height (a viewport unit); a fixed-length token cannot say it */
+      height: 100dvh;
+      width: 100%;
+      max-width: none;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+      transition-duration: var(--basalt-duration-slower);
+    }
+    .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 1; transform: translateY(100%); }
+    .basalt-dialog[data-form][data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > * { flex: 1 1 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--basalt-radius-md); min-height: var(--basalt-size-control-2xl); }
   }
 
   /* ---- Tabs ---- */
@@ -2598,6 +2642,10 @@
      takes the selected wash while it filters. The popup is a menu's popup: popup rows, a 36px plate in a 40px row. */
   .basalt-filter[data-popup] { flex-direction: row; align-items: center; }
   .basalt-filter-trigger-value { color: var(--basalt-text-secondary); }
+  /* In a toolbar the value's cell holds the widest value (unseen sizers share the cell), so choosing moves nothing; in a narrow column the cell shrinks and the value is cut by an ellipsis. */
+  .basalt-filter-trigger-value[data-seat] { display: inline-grid; grid-template-columns: minmax(0, 1fr); justify-items: start; min-width: 0; }
+  .basalt-filter-trigger-value[data-seat] > * { grid-area: 1 / 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-filter-trigger-sizer { visibility: hidden; user-select: none; pointer-events: none; }
   .basalt-filter-trigger[data-active] .basalt-filter-trigger-value { color: var(--basalt-text-primary); }
   .basalt-filter-trigger[data-active]:not(:active) { background: var(--basalt-state-selected); }
   .basalt-filter-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -2790,6 +2838,10 @@
   .basalt-select-prefix { flex: none; color: var(--basalt-text-secondary); white-space: nowrap; }
   .basalt-select-lead > .basalt-select-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-select-value[data-placeholder] { color: var(--basalt-text-tertiary); }
+  /* A numeric select (a page size) is as wide as its widest option and below size-select-min: the value's cell holds the widest option (an attribute a pseudo-element paints, unseen), so the value never moves it. */
+  .basalt-select-trigger:has(> .basalt-select-value[data-widest]) { width: auto; min-width: 0; font-variant-numeric: tabular-nums; }
+  .basalt-select-value[data-widest] { display: inline-grid; justify-items: start; }
+  .basalt-select-value[data-widest]::after { content: attr(data-widest); grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
   .basalt-select-trigger[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -4830,16 +4882,129 @@
   .basalt-profile-link .basalt-external > .basalt-icon { width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
   .basalt-profile-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
 
-  .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; }
-  .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
-  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); }
+  /* Pagination (DECISIONS 222, the owner's pick of Opus's prototype): seven fixed slots, each as wide as the widest page number the list can reach (the hidden reserve row
+     holds min(7, maxPages) of them, so the box never changes size and Previous and Next never move), Previous and Next always there, one row and never a wrap. */
+  /* The nav is its own container, so it needs no ancestor to answer to: it fills its parent as a block does, and its numbers go under 640px of that width. In a flex row give it `flex: 1`. */
+  .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); container-type: inline-size; }
+  .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-variant-numeric: tabular-nums; }
+  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
   .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
   .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
   .basalt-page-link[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   /* A page button's number is 400 at rest: the Button's own weight is 500. */
   .basalt-pagination .basalt-button { font-weight: var(--basalt-font-weight-regular); }
-  .basalt-pagination-gap { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-control-sm); color: var(--basalt-text-secondary); }
+  /* The two rows share one grid cell: the reserve (unseen) sets the size, the live row is centred in it, so fewer pages sit between the arrows and nothing moves. */
+  .basalt-pagination-pages { display: grid; }
+  .basalt-pagination-pages > * { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; gap: var(--basalt-space-1); }
+  .basalt-pagination-reserve { visibility: hidden; user-select: none; pointer-events: none; }
+  /* A gap is a slot too: the widest number's width at 600, hidden, with the core `more` glyph over it. */
+  .basalt-pagination-gap { box-sizing: border-box; display: inline-grid; place-items: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-pagination-gap > * { grid-area: 1 / 1; }
+  .basalt-pagination-gap-seat { visibility: hidden; user-select: none; }
+  .basalt-pagination-summary { display: none; min-width: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* One page or none: the arrows and the numbers are hidden and keep their room (the period stepper's `whole`); a summary the app passes stays. */
+  .basalt-pagination[data-whole] > :is(.basalt-button, .basalt-page-link), .basalt-pagination[data-whole] .basalt-pagination-summary[data-default] { visibility: hidden; }
+  /* The compact form (a foot, or a container under 640px): Previous, the summary and Next. The summary keeps space-1 more on each side than the arrows' gap, so an arrow's +2 ring (2px wide, ending 4px out) never touches it. */
+  .basalt-pagination[data-compact] .basalt-pagination-pages { display: none; }
+  .basalt-pagination[data-compact] .basalt-pagination-summary { display: inline-block; }
+  .basalt-pagination-summary { margin-inline: var(--basalt-space-1); }
+  /* size-breakpoint-container-lg (640px): a container query cannot read a token. Under it the numbers go: Previous, the summary and Next, in the nearest container. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-pagination-pages { display: none; }
+    .basalt-pagination-summary { display: inline-block; }
+  }
+
+  /* The list's band (DECISIONS 222): the count at the start, the pager in the centre, the page size at the end, above the list. Not a box: the page's own fill, no rim.
+     From 720 it is sticky under the app's bar, opaque (it is not the one smoked surface), with a divider under it only while it is stuck (the sentinel says). Under 640px of
+     its own width (720 on a coarse pointer) the numbers go and the page size follows the pager, or is the end of a second row where they do not fit. */
+  /* The sentinel's scroll-margin-top is the bar's room as a length (script reads it: where the band rests); it scrolls nothing itself. */
+  .basalt-list-band-sentinel { height: 0; scroll-margin-top: var(--basalt-sticky-offset); }
+  .basalt-list-band { container-type: inline-size; background: var(--basalt-surface-page); z-index: var(--basalt-layer-sticky); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) {
+    .basalt-list-band { position: sticky; top: var(--basalt-sticky-offset); }
+    .basalt-list-band[data-stuck] { box-shadow: 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
+  }
+  .basalt-list-band-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .basalt-list-band-range { margin: 0; justify-self: start; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-list-band-range-seat { display: inline-grid; }
+  /* The band is the container (the pager sits in an auto column, which a container of its own would collapse). */
+  .basalt-list-band-row > .basalt-pagination { grid-column: 2; justify-self: center; container-type: normal; }
+  .basalt-list-band-size { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-list-band-size-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; }
+  /* The narrow form: the count goes into the pager (Previous, the count and Next) and the page size follows it, on one row of the band's own width. It is a flex row that wraps by what it measures: the
+     pager and the page size are reserved widths (the count's seat, the numeric select), so they never change size, and where they do not fit together (a 343 band on touch needs 340.1 plus the ring's room)
+     the page size is the end of a second row, nothing overflowing. Under size-breakpoint-container-lg (640px) of the band's width; on a coarse pointer under size-breakpoint-md (720px), where the wide
+     form's three tracks cannot hold 44px targets (the page size covered Next from 640 to 690). A container query cannot read a token. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
+    .basalt-list-band-row > .basalt-list-band-range { display: none; }
+    .basalt-list-band-size { margin-inline-start: auto; }
+  }
+  @media (pointer: coarse) {
+    /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-md (720px); a container query cannot read a custom property */
+    @container (width < 720px) {
+      .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
+      .basalt-list-band-row > .basalt-list-band-range { display: none; }
+      .basalt-list-band-size { margin-inline-start: auto; }
+      .basalt-list-band-row > .basalt-pagination .basalt-pagination-pages { display: none; }
+      .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary { display: inline-block; }
+    }
+  }
+  /* The count sits in the middle of the room between the arrows: its seat holds the widest form and the text is centred in it (the wide band's own count stays at the start). */
+  .basalt-pagination-summary .basalt-list-band-range-seat { justify-items: center; }
+  /* The list's foot (DECISIONS 227): under 720, with more than one page, the band's Previous, count and Next again, centred under the rows, with no seat under it. */
+  .basalt-list-band-foot { display: none; padding-block: var(--basalt-space-2); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) {
+    .basalt-list-band-foot:not([hidden]) { display: block; }
+    .basalt-list-band-foot > .basalt-pagination { justify-content: center; }
+  }
+  /* Back to top (DECISIONS 227 and 228): at the top of the screen, centred on the list, `space-2` under the bar, and from 720 under the band where it is stuck. It lives in a dock of
+     zero height right after the band: the dock is sticky, so the button floats over the rows and takes no room. It fades over duration-fast on ease-out and leaves at 0.75 on
+     ease-in, and never slides; visibility goes at the end of the fade, so a hidden button is never a focus stop. A secondary sm Button, solid, with shadow-overlay. */
+  .basalt-back-to-top-dock { position: sticky; z-index: var(--basalt-layer-sticky); top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); height: 0; display: flex; justify-content: center; align-items: flex-start; pointer-events: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) {
+    .basalt-back-to-top-dock { top: calc(var(--basalt-sticky-offset) + var(--_band-height, var(--basalt-space-0)) + var(--basalt-space-2)); }
+  }
+  .basalt-back-to-top {
+    flex: none;
+    pointer-events: auto;
+    box-shadow: var(--basalt-shadow-hairline), var(--basalt-shadow-overlay);
+    opacity: 0;
+    visibility: hidden;
+    transition-property: opacity, visibility, background-color, color, box-shadow, transform;
+    transition-duration: calc(var(--basalt-duration-fast) * 0.75), var(--basalt-duration-instant), var(--basalt-duration-fast), var(--basalt-duration-fast), var(--basalt-duration-fast), var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-in), var(--basalt-ease-linear), var(--basalt-ease-out), var(--basalt-ease-out), var(--basalt-ease-out), var(--basalt-ease-out);
+    transition-delay: var(--basalt-duration-instant), calc(var(--basalt-duration-fast) * 0.75), var(--basalt-duration-instant), var(--basalt-duration-instant), var(--basalt-duration-instant), var(--basalt-duration-instant);
+  }
+  .basalt-back-to-top[data-shown] {
+    opacity: 1;
+    visibility: visible;
+    transition-duration: var(--basalt-duration-fast), var(--basalt-duration-instant), var(--basalt-duration-fast), var(--basalt-duration-fast), var(--basalt-duration-fast), var(--basalt-duration-fast);
+    transition-timing-function: var(--basalt-ease-out), var(--basalt-ease-linear), var(--basalt-ease-out), var(--basalt-ease-out), var(--basalt-ease-out), var(--basalt-ease-out);
+    transition-delay: var(--basalt-duration-instant);
+  }
+  @media (hover: hover) {
+    .basalt-back-to-top:hover:not([data-disabled]) { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-page), var(--basalt-shadow-overlay); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-back-to-top, .basalt-back-to-top[data-shown] { transition-property: opacity, visibility, background-color, color, box-shadow; }
+  }
+  @media (forced-colors: active) {
+    .basalt-back-to-top { box-shadow: none; }
+  }
+  @media print { .basalt-back-to-top-dock, .basalt-list-band-foot { display: none; } }
+  @media (forced-colors: active) {
+    /* A 1px Canvas edge at rest that becomes CanvasText while stuck: the rows do not move when the band sticks. */
+    .basalt-list-band { border-bottom: var(--basalt-size-hairline) solid Canvas; }
+    .basalt-list-band[data-stuck] { box-shadow: none; border-bottom-color: CanvasText; }
+  }
+  @media print { .basalt-list-band { position: static; } }
 
   .basalt-separator { flex: none; border: 0; background: var(--basalt-border-divider); }
   .basalt-separator[data-orientation="horizontal"] { height: var(--basalt-size-hairline); width: 100%; margin-block: var(--basalt-space-4); }
@@ -4989,7 +5154,7 @@
   @media (pointer: coarse) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
     .basalt-page-link { border-radius: var(--basalt-radius-md); }
-    .basalt-pagination .basalt-button { min-width: var(--basalt-size-tap-min); }
+    .basalt-pagination .basalt-button, .basalt-pagination-gap { min-width: var(--basalt-size-tap-min); }
   }
   /* A link on a line of its own is a touch target (44px) with no change to layout and no change to its look: inline-flex so the box can be
      44 tall, and a negative block margin that takes back what the box adds, so its margin box is one line and the line it sits on does not
@@ -5402,6 +5567,12 @@
     .basalt-tooltip[data-ending-style] { transform: none; }
     .basalt-dialog[data-starting-style],
     .basalt-dialog[data-ending-style] { transform: translate(-50%, -50%); }
+    .basalt-dialog[data-form][data-held][data-starting-style],
+    .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%); }
+    /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+    @media (width < 720px) {
+      .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 0; transform: none; }
+    }
     .basalt-tabs-indicator { transition: none; }
     .basalt-switch-thumb { transition-property: background-color; }
     /* The stack sits at its final offsets: only opacity changes, and no height or position eases. */
@@ -5622,6 +5793,12 @@
   /* ---- The filter toolbar (D15, C14): two columns under 720; one wrapping row from 720 with the sort at the end. The block margin from 720 is 20 above and 28 (space-6 plus space-1; there is no space-7 token) below. ---- */
   .basalt-filter-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--basalt-space-2); margin-block: var(--basalt-space-5); }
   .basalt-filter-toolbar-kind, .basalt-filter-toolbar-filter { min-width: 0; }
+  /* A search first (DECISIONS 222): a row of its own under 720; from 720 it is size-search-trigger wide, before the filters. The result takes a full row after the filters. */
+  .basalt-filter-toolbar-search { grid-column: 1 / -1; min-width: 0; }
+  .basalt-filter-toolbar:has(> .basalt-filter-toolbar-search) > .basalt-filter-toolbar-result { grid-column: 1 / -1; grid-row: auto; }
+  /* A trigger in a toolbar fills its column and cuts its value with an ellipsis; the checklist shows it whole. */
+  .basalt-filter-toolbar .basalt-filter-trigger { width: 100%; min-width: 0; justify-content: space-between; }
+  .basalt-filter-toolbar .basalt-filter-trigger .basalt-button-label { min-width: 0; }
   .basalt-filter-toolbar-result { grid-column: 1; grid-row: 3; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   .basalt-filter-toolbar-result > * { margin: 0; }
   .basalt-filter-toolbar-sort { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--basalt-space-2-5); }
@@ -5631,6 +5808,8 @@
     /* 28px below the toolbar: space-6 plus space-1 (there is no space-7 token); the 20 above is space-5. No new token. */
     .basalt-filter-toolbar { display: flex; flex-wrap: wrap; gap: var(--basalt-space-3) var(--basalt-space-4); margin-block: var(--basalt-space-5) calc(var(--basalt-space-6) + var(--basalt-space-1)); }
     .basalt-filter-toolbar-kind { display: none; }
+    .basalt-filter-toolbar-search { flex: none; order: -1; width: var(--basalt-size-search-trigger); }
+    .basalt-filter-toolbar .basalt-filter-trigger { width: auto; }
     .basalt-filter-toolbar-result { order: 2; }
     .basalt-filter-toolbar-sort { order: 3; margin-inline-start: auto; }
     .basalt-filter-toolbar-label { display: block; }

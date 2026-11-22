@@ -15,3 +15,4 @@ A filter that takes any number of its values (React's MultiSelect), and the line
 - Clear stays in place and is `aria-disabled` at zero, so focus stays on it. Nothing chosen means no filter.
 - `data-for` (a `table` or its `.table-wrap` by id) and `data-column` (from 1) hide the rows whose cell's `data-value`, else its words, matches no chosen value, and show the table's `tr[data-empty]` when none is left. Without them, listen for `filterchange` (`detail.values`) and filter yourself.
 - `.filter-result` is the one thing spoken: shown at once, spoken once, 400ms after the text holds still. Put one by each filtered list, with `data-noun`. `Basalt.filterResult(el, text)` sets one by hand; `Basalt.refreshFilter(id)` filters again after you replace the rows.
+- With `data-toolbar` the trigger holds its widest value's width ("Any", or the longest label with the largest "+N").

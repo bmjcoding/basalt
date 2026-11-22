@@ -98,7 +98,7 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       Clear
     </Button>
   );
-  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear, controlSize }} />;
+  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear, controlSize, toolbar }} />;
   return (
     <div className={join("basalt-filter", className)}>
       <div className="basalt-filter-head">
@@ -174,6 +174,7 @@ interface ChecklistProps {
   count: string;
   clear: React.ReactNode;
   controlSize: ControlSize;
+  toolbar: boolean;
 }
 
 /**
@@ -181,7 +182,7 @@ interface ChecklistProps {
  * `size-popup-max-height` (nine 40px rows show whole, the tenth is the first to scroll), with the foot outside them. From ten
  * values a search band sits above the rows: 40px, the next level's fill, a divider below.
  */
-function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear, controlSize }: ChecklistProps) {
+function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear, controlSize, toolbar }: ChecklistProps) {
   const layer = useFloatingLayer();
   // A popup is its opener plus one, with a floor of 1: from the page it is level 1.
   const level = usePopupLevel();
@@ -245,7 +246,16 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
         >
           <span className="basalt-button-label">
             <span className="basalt-filter-trigger-label">{label}</span>{" "}
-            <span className="basalt-filter-trigger-value">{summary}</span>
+            {toolbar ? (
+              // In a toolbar the trigger holds the width of its widest value ("Any", or the longest label with the largest "+N"), unseen in the cell the value is in, so
+              // choosing values moves nothing after it. A trigger in a narrow column still cuts the value with an ellipsis.
+              <span className="basalt-filter-trigger-value" data-seat="">
+                <span className="basalt-filter-trigger-now">{summary}</span>
+                {["Any", ...options.map((o) => (options.length > 1 ? `${o.label} +${options.length - 1}` : o.label))].map((text) => <span key={text} className="basalt-filter-trigger-sizer" aria-hidden="true">{text}</span>)}
+              </span>
+            ) : (
+              <span className="basalt-filter-trigger-value">{summary}</span>
+            )}
           </span>
           <Icon icon={ChevronDownGlyph} />
         </BasePopover.Trigger>

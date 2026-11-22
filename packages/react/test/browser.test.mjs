@@ -596,7 +596,7 @@ for (const theme of ["light", "dark"]) {
       const { page, errors } = await open(theme, "&fixture=complete", { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
       await page.evaluate(() => document.documentElement.dataset.density = "compact");
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390);
-      const targets = await page.locator(".basalt-combobox-trigger, .basalt-number-group .basalt-button, .basalt-pagination .basalt-button, .basalt-slider-control").evaluateAll((elements) => elements.map((el) => {
+      const targets = await page.locator(".basalt-combobox-trigger, .basalt-number-group .basalt-button, .basalt-pagination .basalt-button, .basalt-slider-control").evaluateAll((elements) => elements.filter((el) => el.getClientRects().length).map((el) => {
         const { width, height } = el.getBoundingClientRect();
         return { label: el.getAttribute("aria-label") ?? el.textContent, width, height };
       }));

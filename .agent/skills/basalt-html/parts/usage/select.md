@@ -16,3 +16,4 @@ A native `<select class="input">` in a `.select` wrapper (it draws the caret whe
 - `<button><selectedcontent>` first keeps a closed select to the label alone; leave it out when no option has a description, or the description runs on after the label.
 - `.option-description` is a second line in an option, only when the label can't tell the choices apart. A placeholder is a `hidden` option with `value=""` (tertiary ink).
 - `data-size` is `xs`, `sm`, `lg` or `xl`; `disabled` and `aria-invalid="true"` as for `.input`.
+- `data-numeric` (a page size) holds its widest option's width, below the 160 minimum.
