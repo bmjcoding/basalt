@@ -300,6 +300,8 @@ describe("the command list in the page", () => {
     const bound = `${DATA} ${render(`<div><button id="elsewhere">elsewhere</button>${tall}<B.CommandList bindShortcut label="Console" groups={GROUPS} /></div>`)}`;
     const { page } = await open(bound);
     await ready(page);
+    // ⌘K is Command on Apple's systems (DECISIONS 244): say so, whatever machine this runs on (test/platform-shortcuts.test.mjs has the other platforms).
+    await page.evaluate(() => { Object.defineProperty(navigator, "userAgentData", { value: { platform: "macOS" }, configurable: true }); Object.defineProperty(navigator, "platform", { value: "MacIntel", configurable: true }); });
     await page.focus(".basalt-command-input");
     await page.keyboard.type("abc");
     await page.focus("#elsewhere");

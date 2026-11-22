@@ -85,25 +85,39 @@ export interface SwitchProps extends PartProps<"span", "onChange" | "defaultChec
   uncheckedValue?: string;
   onCheckedChange?: (checked: boolean, details: ChangeDetails) => void;
   inputRef?: React.Ref<HTMLInputElement>;
+  /**
+   * A line of help drawn under the switch's row in a `Field` description's style (`text-xs`, secondary ink), starting at the column's start edge (not indented past the
+   * switch) and linked to the switch with `aria-describedby` (DECISIONS 242). Needs a label (`children`). Its words may be a `Reserve`, and then hold their room.
+   */
+  description?: React.ReactNode;
   /** The label. A switch takes effect immediately; name the setting, not the action ("Auto-deploy", not "Turn on"). */
   children?: React.ReactNode;
 }
 
 /** A setting that takes effect immediately, on or off. */
-export function Switch({ children, className, disabled, inputRef, ...props }: SwitchProps) {
+export function Switch({ children, className, disabled, inputRef, description, "aria-describedby": describedby, ...props }: SwitchProps) {
   const fieldsetDisabled = useFieldsetDisabled();
   const mirror = useMirrorRef(inputRef);
+  const id = React.useId();
+  const helped = children !== undefined && description !== undefined && description !== null && description !== false;
   const control = (
-    <BaseSwitch.Root {...props} inputRef={mirror} disabled={disabled || fieldsetDisabled} className={withClass("basalt-switch", className)}>
+    <BaseSwitch.Root {...props} aria-describedby={helped ? join(describedby, id) : describedby} inputRef={mirror} disabled={disabled || fieldsetDisabled} className={withClass("basalt-switch", className)}>
       <BaseSwitch.Thumb className="basalt-switch-thumb" />
     </BaseSwitch.Root>
   );
   if (children === undefined) return control;
-  return (
+  const row = (
     <label className="basalt-choice">
       {control}
       <span className="basalt-choice-label">{children}</span>
     </label>
+  );
+  if (!helped) return row;
+  return (
+    <div className="basalt-switch-field">
+      {row}
+      <p id={id} className="basalt-field-description basalt-switch-description">{description}</p>
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@
 
 const SPOKEN: Record<string, string> = {
   "⌘": "Command", "⌥": "Option", "⌃": "Control", "⇧": "Shift", "↵": "Return", "⌫": "Delete", "⇥": "Tab",
-  "←": "Left arrow", "↑": "Up arrow", "→": "Right arrow", "↓": "Down arrow", "Esc": "Escape",
+  "←": "Left arrow", "↑": "Up arrow", "→": "Right arrow", "↓": "Down arrow", "Esc": "Escape", "Ctrl": "Control",
 };
 
 const ARIA: Record<string, string> = {
@@ -13,8 +13,17 @@ const ARIA: Record<string, string> = {
   "Cmd": "Meta", "Command": "Meta", "Ctrl": "Control", "Option": "Alt", "Opt": "Alt", "Return": "Enter", "Del": "Delete",
 };
 
-/** "⌘K" becomes ["⌘", "K"]; "Ctrl+K" becomes ["Ctrl", "K"]; a word such as "Esc" or "F12" is one key. */
-export function shortcutKeys(shortcut: string): string[] {
+/**
+ * "⌘K" becomes ["⌘", "K"]; "Ctrl+K" becomes ["Ctrl", "K"]; a word such as "Esc" or "F12" is one key. "Mod" is the platform's modifier: with
+ * `apple` (see `isApplePlatform`) "Mod+Enter" is ["⌘", "↵"], without it ["Ctrl", "Enter"]. A shortcut with no "Mod" reads the same either way.
+ */
+export function shortcutKeys(shortcut: string, apple = false): string[] {
+  const keys = split(shortcut);
+  const mod: Record<string, string> = apple ? { Mod: "⌘", Enter: "↵" } : { Mod: "Ctrl" };
+  return keys.includes("Mod") ? keys.map((key) => mod[key] ?? key) : keys;
+}
+
+function split(shortcut: string): string[] {
   return shortcut
     .split(/[\s+]+/)
     .filter(Boolean)

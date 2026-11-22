@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { isApplePlatform } from "./platform";
+
 // On a touch device with no keyboard, a shortcut chip is noise: nothing there can press it. The CSS hides
 // the chips (`data-shortcut`) and their hint legends (`data-kbd-hint`) on `(hover: none) and (pointer:
 // coarse)` until `<html data-keyboard="hardware">` is set. This sets it, once a key a physical keyboard
@@ -61,4 +63,16 @@ function snapshot() {
  */
 export function useShortcutsVisible(): boolean {
   return React.useSyncExternalStore(subscribe, snapshot, () => true);
+}
+
+// Nothing to subscribe to: the subscription's teardown is `no` too, which does nothing.
+const no = () => false;
+
+/**
+ * Whether this machine is Apple's, so `Mod` is Command (`isApplePlatform`). It never changes, so nothing subscribes: a client render reads it at its first
+ * render and is right at once. The server and the render that hydrates it answer "not Apple's" (Control), and the real answer arrives after mount with
+ * no mismatch warning: a server-rendered page's `Mod` chips settle at hydration.
+ */
+export function useApplePlatform(): boolean {
+  return React.useSyncExternalStore(() => no, isApplePlatform, no);
 }

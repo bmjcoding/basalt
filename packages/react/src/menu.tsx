@@ -6,6 +6,7 @@ import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
+import { useApplePlatform } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
@@ -104,7 +105,8 @@ export interface MenuItemProps extends MenuRowProps {
 
 export function MenuItem({ icon, shortcut, danger, description, className, children, label, "aria-describedby": describedBy, ...props }: MenuItemProps) {
   const spoken = React.useId();
-  const keys = shortcut ? shortcutKeys(shortcut) : [];
+  const apple = useApplePlatform();
+  const keys = shortcut ? shortcutKeys(shortcut, apple) : [];
   return (
     <BaseMenu.Item
       {...props}

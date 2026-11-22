@@ -6,6 +6,7 @@ import type { CommandItem } from "./command";
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
+import { useApplePlatform } from "./keyboard";
 import { shortcutKeys, spokenShortcut } from "./shortcut";
 
 /** What a row is matched on: its label and id. Its keywords and description are matched too, after them. */
@@ -27,7 +28,8 @@ export function commandRowShape(command: CommandItem) {
  * only while a list with a preview is narrower than its split.
  */
 export function CommandRowContent({ command, spokenId, chevron = false }: { command: CommandItem; spokenId: string; chevron?: boolean }): React.ReactElement {
-  const keys = command.shortcut ? shortcutKeys(command.shortcut) : [];
+  const apple = useApplePlatform();
+  const keys = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
   return (
     <>
       {command.icon ? <Icon icon={command.icon} size={16} /> : null}

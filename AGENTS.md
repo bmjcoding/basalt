@@ -127,7 +127,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Keyboard keys are chips:** a fill with no border, 20px tall (`size-kbd`), one per key, 2px apart; ⌘ ⌥ ⌃ are
   Phosphor icons at 12 inside the chip. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
-  (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays.
+  (`data-kbd-hint`) hide on touch until a hardware key is pressed; a bare `Kbd` in text stays. **One modifier across platforms** (DECISIONS 244): write
+  a shortcut with `Mod` ("Mod+Enter"), Command on Apple's systems (⌘, `Meta` in `aria-keyshortcuts`) and Control on Windows, Linux and ChromeOS ("Ctrl", `Control`); bind it with
+  `isModKey(event)`, from the same `isApplePlatform()`, so the hint and the binding agree. A client render is right on its first frame; a server-rendered page's `Mod` chips settle at hydration (the server's answer is Control).
 - **Radius by role,** by the size a box is drawn at (a 32px control drawn at 44 on touch is 8; a `NumberField` group drawn at
   40 is 8): 2 (a coverage strip's cells), 4 (badges, checkboxes), 6 (controls up to 32px), 8 (36px and up, code blocks and callouts), 12 (cards, menus,
   dialogs), 16 (bottom sheets), full (avatars, dots, the navigation hover pill, the switch, the radio, the slider's track and

@@ -400,9 +400,10 @@ for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["Cover
 }
 
 // The allowance was 400 and rose to 600 in the wording audit's batch (W3: the hidden space in the headline and the legend, W8's `DateAge` separator): TimeChart measures 47,541, 568 over, rounded up to the next 50.
-test("the short bar plot's `compact` prop and the wording audit's word boundaries add under 600 bytes to TimeChart (it was 46,973 before the prop)", async () => {
+// It rose to 1,050 with one Mod key across platforms (DECISIONS 244, the owner's word on the size, 246): TimeChart's chips carry the platform rule, 48,001, 1,028 over, rounded up to the next 50.
+test("the short bar plot's `compact` prop, the wording audit's word boundaries and the platform rule add under 1,050 bytes to TimeChart (it was 46,973 before the prop)", async () => {
   const { bytes } = await bundle("TimeChart");
-  assert.ok(bytes < 46_973 + 600, `TimeChart bundle is ${bytes} bytes; the prop and the boundaries may add 600`);
+  assert.ok(bytes < 46_973 + 1_050, `TimeChart bundle is ${bytes} bytes; the prop, the boundaries and the platform rule may add 1,050`);
 });
 
 test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no Shiki; TimeChart and PhaseChart load no Shiki or cmdk", async () => {

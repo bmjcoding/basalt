@@ -3,6 +3,9 @@ import { Input as BaseInput } from "@base-ui/react/input";
 import * as React from "react";
 
 import type { ControlSize } from "./button";
+import { FieldGroupContext } from "./field-group";
+import { formGridPlacement } from "./form-grid";
+import type { FormGridPlacement } from "./form-grid";
 import type { ChangeDetails, PartProps, ValidateActions } from "./types";
 import { withClass } from "./utils";
 
@@ -22,7 +25,7 @@ export function Input({ controlSize = "md", className, required, ...props }: Inp
   return <BaseInput {...props} required={required ?? (inRequiredField || undefined)} data-size={controlSize} className={withClass("basalt-input", className)} />;
 }
 
-export interface FieldProps extends Omit<PartProps<"div">, "children"> {
+export interface FieldProps extends Omit<PartProps<"div">, "children">, FormGridPlacement {
   /** Name the field is submitted and validated under. */
   name?: string;
   disabled?: boolean;
@@ -48,6 +51,12 @@ export interface FieldProps extends Omit<PartProps<"div">, "children"> {
    * nothing. `required` wins if both are set.
    */
   optional?: boolean;
+  /**
+   * A node at the end of the label's row, on the label track: the Title's "Generate a title" `TextButton`. It is not inside the `<label>`, so a press on
+   * it never focuses the control, and the label stays as wide as its words and "Required" (DECISIONS 233). In a `FormGrid` the row is the label track, so
+   * it lines up with the fields beside it. It names its own action: give a button words that say what it does, beside this field's label.
+   */
+  labelAction?: React.ReactNode;
   /** The word after a required field's label, for translation. Default "Required". */
   requiredLabel?: string;
   /** The word after an optional field's label, for translation. Default "Optional". */
@@ -60,18 +69,36 @@ export interface FieldProps extends Omit<PartProps<"div">, "children"> {
   children: React.ReactNode;
 }
 
-/** A labelled form field: label, control, description and error, wired together. */
-export function Field({ label, required, optional, requiredLabel = "Required", optionalLabel = "Optional", description, error, children, className, ...props }: FieldProps) {
+/**
+ * A labelled form field: label, control, description and error, wired together. A control that is a group (a `SegmentedControl`) is named by the label, with "Required" said after
+ * it in a required field, and described by the description and, while the field is `invalid`, the error. In a `FormGrid` it takes `column`, `row` and `rows`.
+ */
+export function Field({ label, required, optional, requiredLabel = "Required", optionalLabel = "Optional", labelAction, description, error, children, className, style, column, row, rows, ...props }: FieldProps) {
   const necessity = required ? requiredLabel : optional ? optionalLabel : null;
+  const id = React.useId();
+  const group = React.useMemo(() => ({
+    labelId: `${id}-label`,
+    descriptionId: description ? `${id}-description` : undefined,
+    errorId: error && props.invalid ? `${id}-error` : undefined,
+    required: Boolean(required),
+    requiredLabel,
+    invalid: Boolean(props.invalid),
+  }), [id, description, error, props.invalid, required, requiredLabel]);
+  const labelElement = (
+    <BaseField.Label id={group.labelId} className="basalt-field-label">
+      {label}
+      {necessity ? <span className="basalt-field-necessity" aria-hidden="true">{necessity}</span> : null}
+    </BaseField.Label>
+  );
+  const place = formGridPlacement({ column, row, rows });
   return (
-    <BaseField.Root {...props} className={withClass("basalt-field", className)}>
-      <BaseField.Label className="basalt-field-label">
-        {label}
-        {necessity ? <span className="basalt-field-necessity" aria-hidden="true">{necessity}</span> : null}
-      </BaseField.Label>
-      <FieldRequiredContext.Provider value={Boolean(required)}>{children}</FieldRequiredContext.Provider>
-      {description ? <BaseField.Description className="basalt-field-description">{description}</BaseField.Description> : null}
-      {error ? <BaseField.Error className="basalt-field-error" match={props.invalid ? true : undefined}>{error}</BaseField.Error> : null}
+    <BaseField.Root {...props} {...place} style={typeof style === "function" ? (state) => ({ ...place.style, ...style(state) }) : { ...place.style, ...style }} className={withClass("basalt-field", className)}>
+      {labelAction ? <div className="basalt-field-label-row">{labelElement}{labelAction}</div> : labelElement}
+      <FieldGroupContext.Provider value={group}>
+        <FieldRequiredContext.Provider value={Boolean(required)}>{children}</FieldRequiredContext.Provider>
+      </FieldGroupContext.Provider>
+      {description ? <BaseField.Description id={group.descriptionId} className="basalt-field-description">{description}</BaseField.Description> : null}
+      {error ? <BaseField.Error id={group.errorId} className="basalt-field-error" match={props.invalid ? true : undefined}>{error}</BaseField.Error> : null}
     </BaseField.Root>
   );
 }

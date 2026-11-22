@@ -6,6 +6,7 @@ import * as React from "react";
 
 import { CloseGlyph } from "./glyphs/close";
 import { Icon } from "./icon";
+import { isApplePlatform } from "./platform";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 
@@ -26,7 +27,7 @@ export interface ToastAction {
   /** What it does: "Undo", "Retry", "View". */
   label: string;
   onClick: () => void;
-  /** The app's own key for it, written to `aria-keyshortcuts` ("Meta+Z"). No chip is drawn on the button. */
+  /** The app's own key for it, written to `aria-keyshortcuts` ("Meta+Z"; "Mod+Z" is Meta on Apple's systems and Control elsewhere). No chip is drawn on the button. */
   keys?: string;
 }
 
@@ -148,6 +149,9 @@ function createController(): Controller {
   return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [] };
 }
 
+// The app's key as `aria-keyshortcuts` says it: "Mod+Z" is "Meta+Z" on Apple's systems and "Control+Z" elsewhere (DECISIONS 244); any other string is as written.
+const ariaKeys = (keys: string) => keys.replace(/\bMod\b/g, isApplePlatform() ? "Meta" : "Control");
+
 const statusOf = (options: Pick<ToastOptions, "status">): ToastStatus => options.status ?? "neutral";
 
 function announce(c: Controller, options: ToastOptions, suffix = "") {
@@ -172,7 +176,7 @@ function toBase(c: Controller, entry: Entry, stamp: number) {
     type: statusOf(options),
     // Base UI's own clock is never used: the toast times itself, so that a hidden tab and a queue are covered.
     timeout: 0,
-    actionProps: options.action ? { children: options.action.label, onClick: options.action.onClick, ...(options.action.keys ? { "aria-keyshortcuts": options.action.keys } : null) } : undefined,
+    actionProps: options.action ? { children: options.action.label, onClick: options.action.onClick, ...(options.action.keys ? { "aria-keyshortcuts": ariaKeys(options.action.keys) } : null) } : undefined,
     data,
     onClose: () => {
       c.items.delete(entry.id);
