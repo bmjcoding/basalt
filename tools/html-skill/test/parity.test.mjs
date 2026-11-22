@@ -868,7 +868,7 @@ const appSkill = (tabs) => `<div class="app-shell"${tabs ? " data-tabbar" : ""}>
   <main class="app-main"><div style="height: 1600px"></div></main></div>
   ${tabs ? `<nav class="tab-bar" aria-label="Primary"><ul class="tab-bar-list"><li><a class="tab-bar-item" href="#home" aria-current="page"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Home</span></a></li><li><a class="tab-bar-item" href="#search"><span class="tab-bar-glyph"><span data-glyph="search" data-size="24"></span></span><span class="tab-bar-label">Search</span></a></li><li><a class="tab-bar-item" href="#inbox"><span class="tab-bar-glyph"><span data-glyph="notifications" data-size="24"></span><span class="tab-bar-dot" aria-hidden="true"></span></span><span class="tab-bar-label">Inbox</span><span class="visually-hidden">, New activity</span></a></li><li><button class="tab-bar-item" type="button" data-dialog-open="#more" aria-label="More"><span class="tab-bar-glyph"><span data-glyph="more-nav" data-size="24"></span></span><span class="tab-bar-label">More</span></button></li></ul></nav>
   <dialog class="panel float modal sheet" id="more" data-side="bottom"><div class="tab-bar-sheet-head"><h2 class="dialog-title">More</h2><button class="btn" data-variant="ghost" data-icon-only aria-label="Close more" data-dialog-close><span data-glyph="close"></span></button></div><nav class="nav" aria-label="More"><ul class="nav-list"><li><a class="nav-item" href="#settings"><span class="nav-pill"><span data-glyph="settings" data-size="24"></span><span class="nav-label">Settings</span></span></a></li></ul></nav></dialog>` : ""}</div>`;
-const TABLE_IMPORTS = "TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableRowHead, TableCell, TableEmpty, TableScrollHint, Checkbox, Button, MultiSelect, FilterResult";
+const TABLE_IMPORTS = "TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableHeadExplainer, TableRowHead, TableCell, TableEmpty, TableScrollHint, Checkbox, Button, MultiSelect, FilterResult";
 const NAV_IMPORTS = "SiteHeader, IconButton, Button, SettingsGlyph, ToastProvider, AppShell, AppHeader, Nav, NavItem, NavGroup, TabBar, TabBarItem, TabBarMore, HomeGlyph, SearchGlyph, NotificationsGlyph, MessagesGlyph, PlanGlyph, Sheet, SheetContent";
 const NAVIGATION = [
   {
@@ -1090,6 +1090,22 @@ const openTrigger = {
 const POPUP_BOX = ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "gapBelow", "startOffset"];
 const ROW = [...BOXRECT, "paddingLeft", "paddingRight", "display", "alignItems", "gap", "color", "backgroundColor", ...TYPE];
 const TABLES = [
+  {
+    // A column explainer (DECISIONS 257 and 261), opened by keyboard focus on its header: the card, its place above the header, its title and its words.
+    id: "column explainer, open",
+    width: 1440,
+    react: `<div style={{ width: 720, paddingTop: 240 }}><TableContainer><Table columns={[{ width: 200 }, { width: 120 }, {}]} minWidth={560}><TableHeader><TableRow><TableHead onSortChange={() => {}}>Name</TableHead><TableHead numeric onSortChange={() => {}}>Input</TableHead><TableHead onSortChange={() => {}} firstSort="descending" explainer={<TableHeadExplainer title="Zero retention"><p>At least one provider for this model says it keeps no prompts or outputs once it has answered.</p><p><a href="#r">How retention is reported</a></p></TableHeadExplainer>}>Zero retention</TableHead></TableRow></TableHeader><TableBody><TableRow><TableRowHead>lumen/atlas-3</TableRowHead><TableCell numeric>$2.00</TableCell><TableCell>Yes</TableCell></TableRow></TableBody></Table></TableContainer></div>`,
+    skill: `<div style="width: 720px; padding-top: 240px"><div class="panel table-wrap"><table data-fixed style="min-width: 560px"><colgroup><col style="width: 200px"><col style="width: 120px"><col></colgroup><thead><tr><th data-sortable>Name</th><th data-sortable data-numeric>Input</th><th data-sortable data-first-sort="descending">Zero retention<div class="explainer"><p class="explainer-title">Zero retention</p><p>At least one provider for this model says it keeps no prompts or outputs once it has answered.</p><p><a href="#r">How retention is reported</a></p></div></th></tr></thead><tbody><tr><th scope="row">lumen/atlas-3</th><td data-numeric>$2.00</td><td>Yes</td></tr></tbody></table></div></div>`,
+    ready: { react: ".basalt-explainer", skill: ".explainer[popover]" },
+    pairs: [
+      ["numeric label at rest", "th:nth-child(2) .basalt-sort-label", "th:nth-child(2) .sort-label", [...BOXRECT, "transform"]],
+      ["numeric seat", "th:nth-child(2) .basalt-sort-seat", "th:nth-child(2) .sort-seat", [...BOXRECT]],
+      ["the card", ".basalt-explainer", ".explainer", ["backgroundColor", "borderTopLeftRadius", "borderTopColor", "borderTopWidth", "borderBottomColor", "boxShadow", "boxWidth", "boxHeight", "paddingTop", "paddingLeft", "rectLeft", "rectTop", "opacity", "transform", ...TYPE, "color", "textAlign"], { focusOn: ["th:nth-child(3) .basalt-sort", "th:nth-child(3) .sort"] }],
+      ["its title", ".basalt-explainer-title", ".explainer-title", [...BOXRECT, ...TYPE, "color"], { focusOn: ["th:nth-child(3) .basalt-sort", "th:nth-child(3) .sort"] }],
+      ["its words", ".basalt-explainer-body > p:first-child", ".explainer > p:nth-child(2)", [...BOXRECT, ...TYPE, "color"], { focusOn: ["th:nth-child(3) .basalt-sort", "th:nth-child(3) .sort"] }],
+      ["its link's line", ".basalt-explainer-body > p:last-child", ".explainer > p:last-child", [...BOXRECT], { focusOn: ["th:nth-child(3) .basalt-sort", "th:nth-child(3) .sort"] }],
+    ],
+  },
   {
     id: "still table",
     width: 1440,

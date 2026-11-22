@@ -64,6 +64,10 @@ export {
   TooltipProvider,
 } from "./display";
 export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCallProps, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
+export { TableHeadExplainer } from "./table-explainer";
+export type { TableHeadExplainerProps } from "./table-explainer";
+export { sortRows } from "./table-sort";
+export type { SortValue } from "./table-sort";
 export { MultiSelect } from "./filter";
 export type { MultiSelectOption, MultiSelectProps } from "./filter";
 export { FilterResult, StatusLine } from "./filter-result";

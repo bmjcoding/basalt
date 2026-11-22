@@ -27,10 +27,10 @@
 
   /* ---- The sort control: the whole header cell is the button (DECISION 84) ----
      still-table.js writes the button around the header's words. It fills the cell, so the label sits exactly where a plain header's label does and a press
-     anywhere sorts. Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label, and on a numeric
-     (end-aligned) column before it, so the label's edge stays on the numbers' edge. No weight change and no wash on the cell. Hover and focus lift the label
-     from secondary to primary ink and show a tertiary up-down caret in the seat; on touch the caret is always there. Sorted, the direction arrow replaces
-     it, in primary. A band that is itself the button takes the flush-field focus ring, inset by 2px (so a pinned column cannot cover it). */
+     anywhere sorts. Every sortable header reserves the indicator's 16px seat after the label (DECISIONS 261), so the indicator arriving moves no column. No
+     weight change and no wash on the cell. Hover and focus lift the label from secondary to primary ink and show a tertiary up-down caret in the seat; on
+     touch the caret is always there. Sorted, the direction arrow replaces it, in primary. A band that is itself the button takes the flush-field focus ring,
+     inset by 2px (so a pinned column cannot cover it). */
 
   table[data-fixed] th[data-sortable] { padding: 0; }
   .sort {
@@ -53,8 +53,15 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  /* In the seat's mirror the main axis runs from the end, so the label stays on the end edge and the seat is before it. */
-  th[data-numeric] .sort { flex-direction: row-reverse; }
+  /* A numeric (end-aligned) column: the label rests over the empty seat, on the numbers' edge, and moves aside by a transform while the indicator shows (over
+     duration-base on ease-out, back at 0.75x on ease-in); on a fine pointer the indicator waits for it and fades in. Only the label moves. On touch, and under
+     reduced motion, it stays aside and the indicator swaps at once. */
+  th[data-numeric] .sort { justify-content: flex-end; }
+  th[data-numeric] .sort-label { --_a: calc(var(--basalt-size-icon-sm) + var(--basalt-space-1)); transform: translateX(var(--_a)); transition: transform calc(var(--basalt-duration-base) * .75) var(--basalt-ease-in); }
+  th[data-numeric]:dir(rtl) .sort-label { --_a: calc(-1 * (var(--basalt-size-icon-sm) + var(--basalt-space-1))); }
+  th[data-numeric]:is([aria-sort], :has(.sort:is(:hover, :focus-visible))) .sort-label { transform: none; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) { th[data-numeric] .sort-label { transform: none; transition: none; } }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) { th[data-numeric]:is([aria-sort], :has(.sort:is(:hover, :focus-visible))) .sort-seat > svg { transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out) calc(var(--basalt-duration-base) - var(--basalt-duration-fast)); } }
   .sort-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sort-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .sort-seat > svg { position: absolute; inset: 0; opacity: 0; }

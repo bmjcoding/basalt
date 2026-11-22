@@ -42,6 +42,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
 - **still-table** `data-fixed`, `data-sortable`: a `<col>` for each column, one with no width; never size a column from content.
+- **explainer** `.explainer`: inside a sortable `th`, after its words; only for a column a reader could misread.
 - **filter** `.filter`: write only labelled checkboxes, the script builds the control; one `.filter-result` for each list.
 - **option-chips** `.option-chips`: native radios, eight at most; an unavailable one is `aria-disabled`, not `disabled`.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.

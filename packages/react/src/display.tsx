@@ -185,7 +185,10 @@ export function ChoiceCardGroup({ multiple = false, className, ...props }: Choic
 
 export type TableDensity = "compact" | "default" | "comfortable";
 
-/** The direction a sorted column runs. A column is either sorted one way or the other, or it is not the sorted one. */
+/**
+ * The direction a sorted column runs. A column is sorted one way or the other, or it is not the sorted one; when no column is, the
+ * table is in its own order (the order the app loaded it in) and no header is lit.
+ */
 export type SortDirection = "ascending" | "descending";
 
 export interface TableContainerProps extends React.ComponentProps<"div"> {
@@ -298,7 +301,7 @@ export function Table({ columns, minWidth, pinned, className, style, children, r
   const reach = vars["--_pin-end"];
   const node = React.useRef<HTMLTableElement | null>(null);
   React.useLayoutEffect(() => {
-    // A focused header or action scrolls clear of the pinned columns, not under them. The scroll container's scroll-padding
+    // A header or action focused from the keyboard scrolls clear of the pinned columns, not under them. The scroll container's scroll-padding
     // does it for a cell that is out of view (the table cannot reach its ancestor from CSS, so it is written there). A
     // cell that is only half under the pinned columns counts as in view to the browser, so the focus handler finishes the
     // job: it measures the real edge of the last pinned cell and scrolls the container by what is covered.
@@ -307,6 +310,9 @@ export function Table({ columns, minWidth, pinned, className, style, children, r
     if (!table || !frame || !pinned) return undefined;
     if (reach) frame.style.scrollPaddingInlineStart = reach;
     const reveal = (event: FocusEvent) => {
+      // Keyboard focus only (DECISIONS 261). A tap focuses before it clicks, so a scroll on that focus could carry what was under the
+      // finger away and the click would land on something else; the rule exists for someone moving by keys.
+      if (!(event.target as Element | null)?.matches?.(":focus-visible")) return;
       const cell = (event.target as Element | null)?.closest("td, th");
       const row = cell?.parentElement;
       if (!cell || !row || row.hasAttribute("data-empty") || [...row.children].indexOf(cell) < pinned) return;
@@ -375,33 +381,45 @@ export const TableRow: React.NamedExoticComponent<TableRowProps> = /* @__PURE__ 
 
 export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClick"> {
   numeric?: boolean;
-  /** Which way this column is sorted, when it is the sorted one. Leave it unset on every other column. */
+  /** Which way this column is sorted, when it is the sorted one. Leave it unset on every other column, and on every column while the table is in its own order. */
   sort?: SortDirection;
   /**
-   * Makes the header sortable: the whole cell is the button. Called with the direction a press asks for: ascending then
-   * descending, a numeric column or a `firstSort="descending"` column descending first. There is no cleared state.
+   * Makes the header sortable: the whole cell is the button. Called with what a press asks for, in three states (DECISIONS 261): the
+   * column's first direction, then the reverse, then `undefined`, which is the table's own order with no column lit. Text starts
+   * ascending; a numeric column, or a `firstSort="descending"` column, descending. Sort from the table's own order every time, never from
+   * the order on screen, so ties keep it and the third press gives the loaded order back row for row: `sortRows` does exactly that.
    */
-  onSortChange?: (next: SortDirection) => void;
+  onSortChange?: (next: SortDirection | undefined) => void;
   /** The direction a first press asks for. Text starts ascending, a `numeric` column descending; set it to descending for a time. */
   firstSort?: SortDirection;
+  /**
+   * A `TableHeadExplainer` for a column a reader could misread without one (a term of art, a coined name, a measurement whose method
+   * changes the reading). Only a sortable header takes one; a table without explainers loads none of its code.
+   */
+  explainer?: React.ReactNode;
 }
 
-/** The header of one column. Sortable when `onSortChange` is set; it then reserves the indicator's seat, so a sort moves nothing. */
-export function TableHead({ numeric, sort, onSortChange, firstSort, className, children, ...props }: TableHeadProps) {
+/**
+ * The header of one column. Sortable when `onSortChange` is set: it then reserves the indicator's seat after the label, so a sort
+ * moves no column. In a numeric (end-aligned) column the label rests on the numbers' edge and moves aside, by a transform, while the
+ * indicator shows.
+ */
+export function TableHead({ numeric, sort, onSortChange, firstSort, explainer, className, children, ...props }: TableHeadProps) {
   if (!onSortChange) return <th scope="col" {...props} aria-sort={sort} data-numeric={numeric ? "" : undefined} className={className}>{children}</th>;
   const first: SortDirection = firstSort ?? (numeric ? "descending" : "ascending");
-  const next: SortDirection = sort === undefined ? first : sort === "ascending" ? "descending" : "ascending";
+  const next: SortDirection | undefined = sort === undefined ? first : sort === first ? (first === "ascending" ? "descending" : "ascending") : undefined;
   return (
     <th scope="col" {...props} aria-sort={sort} data-sortable="" data-numeric={numeric ? "" : undefined} className={className}>
       <button type="button" className="basalt-sort" onClick={() => onSortChange(next)}>
         <span className="basalt-sort-label">{children}</span>
-        {/* The seat is 16px on every sortable header, whatever it shows, so the indicator arriving moves nothing. */}
+        {/* The seat is 16px on every sortable header, whatever it shows, so the indicator arriving moves no column. */}
         <span className="basalt-sort-seat" aria-hidden="true">
           <Icon icon={CaretUpDownIcon} className="basalt-sort-caret" />
           <Icon icon={ArrowUpGlyph} className="basalt-sort-up" />
           <Icon icon={ArrowDownGlyph} className="basalt-sort-down" />
         </span>
       </button>
+      {explainer}
     </th>
   );
 }

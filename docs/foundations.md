@@ -256,19 +256,43 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   **Status:** decided by the council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been
   reviewed. **The sort control is the whole header cell** (decision 84): a
   press anywhere in it sorts, and the cell is the button, so it takes the flush-field −2 inset focus ring and has no wash.
-  Every sortable header reserves a 16px seat for the indicator, after the label and, on a numeric (end-aligned) column,
-  before it, so the label's edge stays on the numbers' edge and the indicator arriving moves nothing. Hover and focus lift
-  the label from secondary to primary and show a tertiary up-down caret in the seat (always, on touch); sorted, the
-  direction arrow takes the seat in primary and the label stays primary. There is no weight change. `aria-sort` is on
-  the `th`, only on the sorted column. A press cycles ascending then descending; a numeric column, or one with
-  `firstSort="descending"` (a time), starts descending; there is no third, cleared state, and the table's default order
-  is a sort on a named column. The header band is 32px, and 44 on touch. When no row matches, one row spans every
+  Every sortable header reserves a 16px seat for the indicator **after the label, in every column** (DECISIONS 261), so the
+  indicator arriving moves no column. A start-aligned label never moves. In a numeric (end-aligned) column the label rests on the
+  numbers' edge, over the empty seat, and moves aside to make room while the indicator shows (hover, keyboard focus, sorted, and
+  always on touch, where the caret always shows): a transform on the label alone, over `duration-base` on `ease-out` and back at
+  0.75× on `ease-in`, and on a fine pointer the indicator fades in over `duration-fast` once the label has cleared its seat. Under
+  reduced motion the label does not move: it keeps its place beside the seat, as on touch. Column widths, alignment, the header's
+  height and every other column never move. Hover and focus lift the label from secondary to primary and show a tertiary up-down
+  caret in the seat (always, on touch); sorted, the direction arrow takes the seat in primary and the label stays primary. There is
+  no weight change. `aria-sort` is on the `th`, only on the sorted column. **A press cycles three states:** the column's first
+  direction, then the reverse, then the table's own order (the order it loaded in) with no column lit and no `aria-sort` anywhere.
+  Text starts ascending; a numeric column, or one with `firstSort="descending"` (a time), starts descending. Rows always sort from
+  the table's own order, never from the order on screen, so ties keep it and the third press gives it back row for row (`sortRows`,
+  and the HTML skill's own sort). An app may load the table sorted on a named column; the third press still returns its own order.
+  The header band is 32px, and 44 on touch. **A column explainer** (`TableHeadExplainer`, given to a sortable `TableHead` as
+  `explainer`; the HTML skill's `.explainer` inside the `th`) says what a column means. It is only for a column a reader could
+  misread without it (a term of art, a coined name, a measurement whose method changes the reading), never a plain name; one to
+  three sentences and at most one link, never a control; if most headers need one, the table needs a better caption. It is a
+  popover, not a Tooltip (it can hold a link): the opener's level plus one, the neutral rim, radius 12, `shadow-overlay`,
+  `space-4` inside and at most `size-popover-max` wide, growing from .98 over `duration-base` on `ease-out` and leaving at 0.75× on
+  `ease-in` (a fade only, under reduced motion). It opens from the header itself, on hover after the tooltip's wait (600ms, at once
+  within 400ms of another closing), at once on keyboard focus, and on a long press (500ms) on touch, where the header raises no text
+  selection or callout; a tap sorts. A press before the wait sorts and cancels it, and a sort press closes an open one, which stays
+  shut until the pointer and focus have left. It sits above the header, on the column's start edge (its end edge on a numeric
+  column) and kept inside the window, else beside the header (the end side, then the start side), never below, so never over its
+  own column; with no room it opens nothing (a long press first scrolls the page up to make room). WCAG 1.4.13 applies: Esc
+  dismisses it without moving the pointer or focus, the pointer can move onto it, and it stays until hover and focus have both left.
+  Its words are the sort button's description; the button's name stays the label and it is never a popup trigger. Tab from an open
+  header goes into its link, then on. A header with one is sized for its label under WCAG 1.4.12, as every header is. A table
+  without explainers loads none of its code. **Status:** the three states, the arrow after the label and the explainer were picked
+  by the owner (DECISIONS 257, 261), built by Opus, reviewed by Astra (the code review was still to come when this was written). When no row matches, one row spans every
   column under the unchanged header with a sentence and an action that names what hid the rows (`TableEmpty`; DECISIONS 207): a search alone gets a sentence that names the term
   (`No runs match “zzq”.`) and "Clear search"; a chosen filter gets "Clear filters", which in the mixed case clears the search too. It is outside the sticky rules.
   **At 390** the table scrolls and `pinned` leaves the name sticking, and the select column and the name when there is
   one. A pinned cell is opaque at its level in every state (rest, hover, selected, forced colours: the row's wash is laid
-  over the panel's fill as one cell background), and a focused header or action scrolls clear of the pinned columns
-  (the container's `scroll-padding-inline-start`, finished on focus for a cell that is only half covered). **The
+  over the panel's fill as one cell background), and a header or action focused from the keyboard scrolls clear of the pinned
+  columns (the container's `scroll-padding-inline-start`, finished on keyboard focus for a cell that is only half covered). A tap
+  never scrolls the table: it focuses before it clicks, and a scroll then would carry what was under the finger away (DECISIONS 261). **The
   scrolled-edge divider** is one of the few vertical lines Basalt allows, and a **meter's target tick** is another (see
   [Vertical lines](#vertical-lines)): each is structure (a 1px `border-divider` at the pinned edge, drawn only while the
   table is actually scrolled; a labelled scale tick on a meter's slot) and never a selection, sort, active or status
@@ -2166,7 +2190,7 @@ are verified; runtime checks on other Apple platforms remain app integration wor
 
 The floor, decided by the owner (DECISIONS 140, "browsers are fine"): **Chrome 123, Safari 17.5 and Firefox 121** for the React package and
 the tokens (the stylesheets they ship). The HTML skill's floor is Chrome 123, Safari 17.5 and **Firefox 125**, because its menu, toast,
-tooltip, combobox, notification list, command palette, theme menu and `popover` module call the Popover API (`showPopover`,
+tooltip, combobox, notification list, command palette, theme menu, column explainer and `popover` module call the Popover API (`showPopover`,
 `hidePopover`, `:popover-open`) with no feature test; below those versions they throw instead of opening. Browsers older than the floor are not supported.
 
 The version that sets each number, as the built CSS uses the feature:

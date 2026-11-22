@@ -1,12 +1,14 @@
 /* Basalt HTML script, still-table module: React's still table (Table with `columns`, decisions 71 and 82 to 84) for a `table[data-fixed]` with a colgroup.
-   - A `th[data-sortable]` becomes the sort control: the header's words go in a button that fills the cell, beside a 16px seat for the up-down caret and the
-     direction arrows (the seat is there on every sortable header, so nothing moves when one arrives). A press asks for ascending, then descending, with no
-     cleared state; a numeric column (`data-numeric`) asks for descending first, and `data-first-sort="descending"` makes any column do so (a time). The
-     direction is `aria-sort` on the th. The rows are reordered by the cell's `data-value`, else its words: numbers as numbers in a numeric column, other text
-     in natural order, and a cell that is empty or `data-not-observed` after every other row in both directions. The th fires a bubbling, cancelable
-     `sortchange` ({ detail: { index, direction } }) first; a page that sorts its own rows calls preventDefault and the script leaves them alone.
+   - A `th[data-sortable]` becomes the sort control: the header's words go in a button that fills the cell, before a 16px seat for the up-down caret and the
+     direction arrows (the seat is there on every sortable header, so no column moves when one arrives). A press asks for the first direction, then the
+     reverse, then the table's own order with no column lit (DECISIONS 261); a numeric column (`data-numeric`) asks for descending first, and
+     `data-first-sort="descending"` makes any column do so (a time). The direction is `aria-sort` on the th, and none at the third press. The rows are sorted
+     from the table's own order (the order they were in when the script ran), so ties keep it and the third press gives it back row for row: by the cell's
+     `data-value`, else its words, numbers as numbers in a numeric column, other text in natural order, and a cell that is empty or `data-not-observed` after
+     every other row in both directions. The th fires a bubbling, cancelable `sortchange` ({ detail: { index, direction } }, direction null at the third)
+     first; a page that sorts its own rows calls preventDefault and the script leaves them alone. A `.explainer` in the th stays out of the button.
    - `data-pinned="1|2|3"` pins the leading columns: where each sticks, the container's scroll-padding (a focused cell is never covered by the pinned columns,
-     finished on focus for a cell half under them) and `data-scrolled` on the .table-wrap while it is scrolled, which draws the divider at the pinned edge.
+     finished on keyboard focus for a cell half under them: a tap's focus never scrolls, so the press lands where the finger is) and `data-scrolled` on the .table-wrap while it is scrolled, which draws the divider at the pinned edge.
    - A cut cell can be read (DECISIONS 138 and 139): the ellipsis and the row stay; a cell whose text is cut is a focus stop (`data-cut`, `tabindex="0"`), and on hover (after the
      tooltip's 600ms wait) or focus its whole value opens in place over it on a level-3 plate (`.cell-peek`: the rim, shadow-overlay, radius 8). The plate is aria-hidden, meets WCAG
      1.4.13 (Esc dismisses it without moving the pointer or focus, the pointer can move onto it, it stays until hover and focus have both left) and is never past the viewport. A cell
@@ -24,22 +26,30 @@
     return v === '' ? null : v;
   }
 
+  // Sorted from the table's own order every time, never from the order on screen: ties keep it, and no direction gives it back. A row is numbered the first
+  // time the script sees it (when it wires the table, or when the page has put new rows in), so the own order is the order the rows came in.
+  function own(table) {
+    var n = table.__bhN || 0;
+    Array.prototype.forEach.call(table.tBodies[0] ? table.tBodies[0].rows : [], function (r) { if (r.__bhI == null) r.__bhI = n++; });
+    table.__bhN = n;
+  }
   function sortRows(table, index, direction, numeric) {
     var body = table.tBodies[0];
     if (!body) return;
+    own(table);
     var rows = Array.prototype.filter.call(body.rows, function (r) { return !r.hasAttribute('data-empty'); });
     var empty = Array.prototype.filter.call(body.rows, function (r) { return r.hasAttribute('data-empty'); });
     var sign = direction === 'ascending' ? 1 : -1;
     var collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
     var keyed = rows.map(function (row) {
-      var v = cellValue(row, index);
-      return { row: row, v: v, n: numeric && v !== null ? parseFloat(String(v).replace(/[^\d.eE+-]/g, '')) : NaN };
+      var v = direction ? cellValue(row, index) : null;
+      return { row: row, i: row.__bhI, v: v, n: numeric && v !== null ? parseFloat(String(v).replace(/[^\d.eE+-]/g, '')) : NaN };
     });
     keyed.sort(function (a, b) {
-      // Not observed (and empty) sorts after every observed value in both directions.
-      if (a.v === null || b.v === null) return a.v === b.v ? 0 : a.v === null ? 1 : -1;
-      if (numeric && !isNaN(a.n) && !isNaN(b.n)) return sign * (a.n - b.n);
-      return sign * collator.compare(a.v, b.v);
+      // Not observed (and empty) sorts after every observed value in both directions; ties keep the table's own order.
+      if (a.v === null || b.v === null) return a.v === b.v ? a.i - b.i : a.v === null ? 1 : -1;
+      var c = numeric && !isNaN(a.n) && !isNaN(b.n) ? a.n - b.n : collator.compare(a.v, b.v);
+      return c ? sign * c : a.i - b.i;
     });
     keyed.forEach(function (k) { body.appendChild(k.row); });
     empty.forEach(function (r) { body.appendChild(r); });
@@ -57,7 +67,7 @@
       button.className = 'sort';
       var label = document.createElement('span');
       label.className = 'sort-label';
-      while (th.firstChild) label.appendChild(th.firstChild);
+      Array.prototype.slice.call(th.childNodes).forEach(function (n) { if (!(n.classList && n.classList.contains('explainer'))) label.appendChild(n); });
       var seat = document.createElement('span');
       seat.className = 'sort-seat';
       seat.setAttribute('aria-hidden', 'true');
@@ -65,14 +75,14 @@
       ['sort-caret', 'sort-up', 'sort-down'].forEach(function (cls, i) { seat.children[i].classList.add(cls); });
       button.appendChild(label);
       button.appendChild(seat);
-      th.appendChild(button);
+      th.insertBefore(button, th.firstChild);
       button.addEventListener('click', function () {
         var now = th.getAttribute('aria-sort');
         var first = th.getAttribute('data-first-sort') || (th.hasAttribute('data-numeric') ? 'descending' : 'ascending');
-        var next = !now ? first : now === 'ascending' ? 'descending' : 'ascending';
+        var next = !now ? first : now === first ? (first === 'ascending' ? 'descending' : 'ascending') : null;
         var asked = th.dispatchEvent(new CustomEvent('sortchange', { bubbles: true, cancelable: true, detail: { index: index, direction: next } }));
-        Array.prototype.forEach.call(head.cells, function (other) { if (other !== th) other.removeAttribute('aria-sort'); });
-        th.setAttribute('aria-sort', next);
+        Array.prototype.forEach.call(head.cells, function (other) { other.removeAttribute('aria-sort'); });
+        if (next) th.setAttribute('aria-sort', next);
         if (asked) sortRows(table, index, next, th.hasAttribute('data-numeric'));
       });
     });
@@ -97,10 +107,11 @@
     var mark = function () { frame.toggleAttribute('data-scrolled', Math.abs(frame.scrollLeft) > 0); };
     mark();
     frame.addEventListener('scroll', mark, { passive: true });
-    // A focused header or action scrolls clear of the pinned columns, not under them. The scroll-padding does it for a cell that is out of view; a cell
+    // A header or action focused from the keyboard scrolls clear of the pinned columns, not under them. The scroll-padding does it for a cell that is out of view; a cell
     // only half under the pinned columns counts as in view to the browser, so this finishes the job: it measures the real edge of the last pinned cell
     // and scrolls the container by what is covered (and by what hangs past the far edge, the start winning when the cell is wider than what is left).
     frame.addEventListener('focusin', function (event) {
+      if (!event.target.matches(':focus-visible')) return;
       var cell = event.target.closest && event.target.closest('td, th');
       var row = cell && cell.parentElement;
       if (!cell || !row || row.hasAttribute('data-empty') || Array.prototype.indexOf.call(row.children, cell) < pinned) return;
@@ -240,6 +251,7 @@
     document.querySelectorAll('table[data-fixed]').forEach(function (table) {
       if (table.__bhStill) return;
       table.__bhStill = true;
+      own(table);
       wireSort(table);
       wirePinned(table);
       wirePeek(table);

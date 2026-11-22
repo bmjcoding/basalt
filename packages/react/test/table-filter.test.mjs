@@ -128,15 +128,17 @@ describe("the still table: nothing moves", () => {
 
 describe("the sort control: the whole header cell is the button", () => {
   for (const theme of THEMES) {
-    test(`ascending then descending, numbers and times first descending, aria-sort on the th only, no third state (${theme})`, async () => {
+    test(`ascending then descending then the table's own order, numbers and times first descending, aria-sort on the th only (${theme})`, async () => {
       const { page } = await open({ theme, ...DESKTOP });
-      assert.deepEqual(await sortOf(page), { Started: "descending" }, "the table's default order is a sort on a named column");
+      assert.deepEqual(await sortOf(page), { Started: "descending" }, "an app may load the table sorted on a named column");
       await pressCell(page, "Name");
       assert.deepEqual(await sortOf(page), { Name: "ascending" });
       await pressCell(page, "Name");
       assert.deepEqual(await sortOf(page), { Name: "descending" });
       await pressCell(page, "Name");
-      assert.deepEqual(await sortOf(page), { Name: "ascending" }, "there is no cleared state");
+      assert.deepEqual(await sortOf(page), {}, "the third press is the table's own order, with no column lit (DECISIONS 261)");
+      await pressCell(page, "Name");
+      assert.deepEqual(await sortOf(page), { Name: "ascending" }, "and the fourth starts again");
       await pressCell(page, "Duration");
       assert.deepEqual(await sortOf(page), { Duration: "descending" }, "a number starts descending");
       await pressCell(page, "Duration");
@@ -234,7 +236,7 @@ describe("the sort control: the whole header cell is the button", () => {
     assert.equal(await desktop.page.locator("thead th").first().evaluate((th) => th.getBoundingClientRect().height), 32);
   });
 
-  test("the seat is on the start side of a numeric header, so the label's edge is the numbers' edge; the label is the header's text edge otherwise", async () => {
+  test("the seat is after the label in every column; at rest a numeric label's edge is the numbers' edge; the label is the header's text edge otherwise", async () => {
     const { page } = await open({ ...DESKTOP });
     const edges = await page.evaluate(() => {
       const table = document.querySelector(".basalt-table");
@@ -249,7 +251,8 @@ describe("the sort control: the whole header cell is the button", () => {
       return { cost: col(6), region: col(3) };
     });
     assert.ok(Math.abs(edges.cost.labelR - edges.cost.cellR) < 0.6, `Cost: label ${edges.cost.labelR} numbers ${edges.cost.cellR}`);
-    assert.ok(edges.cost.seatR <= edges.cost.labelBox.left + 0.1, "the seat is before the label on a numeric column");
+    assert.ok(edges.cost.seatL >= edges.cost.labelBox.right - 0.1 - 20, "the seat is after the label on a numeric column (the label rests over it until the indicator shows)");
+    assert.ok(Math.abs(edges.cost.seatR - edges.cost.cellR) < 0.6, "and ends on the numbers' edge");
     assert.ok(Math.abs(edges.region.labelL - edges.region.cellL) < 0.6, "the label starts where the cells' text starts");
   });
 

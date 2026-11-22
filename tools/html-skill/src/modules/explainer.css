@@ -1,0 +1,54 @@
+@layer basalt {
+
+  /* ---- A column explainer (React's TableHeadExplainer; DECISIONS 257 and 261) ----
+     What a column means, for a header a reader could misread without it. It is written inside the sortable th, after the words; explainer.js makes it a
+     manual native popover (the top layer, so the header's clip never cuts it) that opens from the header itself and places it above the header, else beside
+     it, never over its column. It is a panel inside the table's panel, so it is the opener's level plus one, with the neutral rim, radius 12 and
+     shadow-overlay, the popover's padding and width. It grows from .98 over duration-base on ease-out and leaves at 0.75x on ease-in; under reduced motion
+     it only fades. It is inside the th, so it puts back everything the header band sets. Without the script it never shows. */
+  th > .explainer:not([popover]) { display: none; }
+  .explainer[popover] {
+    position: fixed;
+    inset: auto;
+    top: 0;
+    left: 0;
+    margin: 0;
+    box-sizing: border-box;
+    /* stylelint-disable-next-line unit-disallowed-list -- the fallback when the room is not known yet: the window itself (a viewport unit) */
+    width: max-content; max-width: min(var(--basalt-size-popover-max), var(--available-width, 100vw));
+    height: auto;
+    padding: var(--basalt-space-4);
+    box-shadow: var(--basalt-shadow-overlay);
+    outline: none;
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    font-weight: var(--basalt-font-weight-regular);
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--basalt-text-primary);
+    text-align: start;
+    white-space: normal;
+    overflow-wrap: break-word;
+    opacity: 0;
+    transform: scale(0.98);
+    transform-origin: var(--origin, left bottom);
+    transition-property: opacity, transform, overlay, display;
+    transition-behavior: allow-discrete;
+    transition-duration: calc(var(--basalt-duration-base) * 0.75);
+    transition-timing-function: var(--basalt-ease-in);
+  }
+  .explainer[popover]:popover-open { opacity: 1; transform: none; transition-duration: var(--basalt-duration-base); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { .explainer[popover]:popover-open { opacity: 0; transform: scale(0.98); } }
+  .explainer > * { margin: 0; color: var(--basalt-text-secondary); }
+  .explainer > * + * { margin-block-start: var(--basalt-space-2); }
+  .explainer > .explainer-title + * { margin-block-start: var(--basalt-space-1); }
+  .explainer > .explainer-title { color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); font-weight: var(--basalt-font-weight-semibold); }
+  /* A long press opens it on touch: the header raises no text selection or callout. */
+  th[data-explained] .sort { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .explainer[popover], .explainer[popover]:popover-open { transform: none; }
+    @starting-style { .explainer[popover]:popover-open { transform: none; } }
+  }
+  @media print { .explainer[popover] { display: none; } }
+}

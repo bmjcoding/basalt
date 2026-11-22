@@ -2,7 +2,7 @@
  "exports": {
   "AMBIENT_MAX": 25,
   "Accordion": 25353,
-  "AccordionItem": 28993,
+  "AccordionItem": 28991,
   "ActionShortcut": 10444,
   "AlertDialog": 69694,
   "AlertDialogAction": 69695,
@@ -267,13 +267,14 @@
   "TabBar": 1102,
   "TabBarItem": 1859,
   "TabBarMore": 88259,
-  "Table": 8256,
+  "Table": 8305,
   "TableBody": 143,
   "TableCall": 391,
   "TableCell": 347,
   "TableContainer": 1454,
   "TableEmpty": 331,
-  "TableHead": 6767,
+  "TableHead": 6800,
+  "TableHeadExplainer": 7498,
   "TableHeader": 143,
   "TableRow": 215,
   "TableRowHead": 194,
@@ -330,6 +331,7 @@
   "markPageChange": 58,
   "preloadCodeLanguages": 2143,
   "shareOf": 361,
+  "sortRows": 459,
   "themeBootstrap": 320,
   "trailingMean": 319,
   "travelLeg": 248,
@@ -352,11 +354,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 737222,
-  "gzip": 242661
+  "bytes": 744935,
+  "gzip": 244962
  },
  "styles": {
-  "bytes": 301602,
-  "gzip": 39417
+  "bytes": 303238,
+  "gzip": 39610
  }
 }

@@ -35,6 +35,8 @@ function Runs() {
   const shown = RUNS
     .filter((r) => (status.length ? status.includes(r.status) : true) && (region.length ? region.includes(r.region) : true) && r.name.includes(query))
     .sort((a, b) => {
+      // The third press is the table's own order (DECISIONS 261), and ties keep it.
+      if (!sort.dir) return a.id - b.id;
       const k = sort.key;
       const d = typeof a[k] === "string" ? a[k].localeCompare(b[k]) : a[k] - b[k];
       return (sort.dir === "ascending" ? d : -d) || a.id - b.id;
@@ -97,7 +99,8 @@ createRoot(document.getElementById("root")).render(<Runs />);
 
 /**
  * Where every header is, relative to its table, and the left and right edges of its words. Measured at scroll 0 so the
- * pinned columns are where the layout puts them.
+ * pinned columns are where the layout puts them. A numeric (end-aligned) header's words move aside by a transform while its
+ * indicator shows (DECISIONS 261), so for it the edges are its label's laid-out box, which never moves.
  */
 export const measureHeaders = (page) => page.evaluate(() => {
   const table = document.querySelector(".basalt-table");
@@ -113,7 +116,8 @@ export const measureHeaders = (page) => page.evaluate(() => {
       const words = th.querySelector(".basalt-sort-label") ?? th;
       const range = document.createRange();
       range.selectNodeContents(words);
-      const w = range.getBoundingClientRect();
+      const moves = th.hasAttribute("data-numeric") && words !== th;
+      const w = moves ? { left: r.left + words.offsetLeft, right: r.left + words.offsetLeft + words.offsetWidth } : range.getBoundingClientRect();
       return { x: +(r.left - t.left).toFixed(2), w: +r.width.toFixed(2), h: +r.height.toFixed(2), y: +(r.top - t.top).toFixed(2), l: +(w.left - t.left).toFixed(2), r: +(w.right - t.left).toFixed(2), weight: getComputedStyle(words).fontWeight };
     }),
   };

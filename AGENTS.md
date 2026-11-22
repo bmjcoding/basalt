@@ -83,11 +83,16 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   distinct object, at most one deeper inside any panel; bands (the command menu's input row,
   a table header) are not boxes.
 - **The still table:** header positions, column widths and alignment never move (the owner's rule). Fixed layout from a
-  `colgroup`, one remainder column, a minimum width; every sortable header reserves the indicator's 16px seat (on the start
-  side of a numeric column); the whole header cell is the sort button (−2 inset focus, hover lifts the label and shows the
-  caret, no wash, no weight change); ascending then descending, numbers and times first descending, no cleared state;
-  `aria-sort` on the `th`. At 390 the name (and the select column) is pinned, opaque in every state, and a focused cell
-  is never covered. Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
+  `colgroup`, one remainder column, a minimum width; every sortable header reserves the indicator's 16px seat after its label, in every column; a
+  start-aligned label never moves, and a numeric one rests on the numbers' edge and moves aside by a transform while the indicator
+  shows (`duration-base`, `ease-out`; still under reduced motion and on touch); the whole header cell is the sort button (−2 inset
+  focus, hover lifts the label and shows the caret, no wash, no weight change); the first direction, the reverse, then the table's
+  own order with nothing lit (numbers and times first descending; rows always sort from the own order, so ties come back row for
+  row); `aria-sort` on the `th`, none at the third. A column explainer (`TableHeadExplainer`) is a popover from the header itself
+  (hover after 600ms, keyboard focus, a long press on touch; a press sorts and cancels it), opener+1, the rim, radius 12,
+  `shadow-overlay`, above the header else beside it, never over its column, WCAG 1.4.13, only for a column a reader could misread
+  (DECISIONS 257, 261). At 390 the name (and the select column) is pinned, opaque in every state, and a cell focused
+  from the keyboard is never covered (a tap never scrolls the table). Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
   it is cut it is a focus stop, and on hover or focus its whole value opens in place on a level-3 plate (WCAG 1.4.13: Esc, hoverable,
   persistent; never past the viewport); after Esc the cell shows its own −2 ring. A column of one fixed form (a date, a time, a status)
   is sized for its longest form under WCAG 1.4.12 spacing, and so is a header's label for its column (a sortable header is its own

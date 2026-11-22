@@ -2387,10 +2387,11 @@
 
   /* The sort control: the whole header cell is the button (decision 84). The button fills the cell, so the label sits
      exactly where a plain header's label does (the cell's 16px padding is the button's), and a press anywhere sorts.
-     Every sortable header reserves the indicator's 16px seat, so the indicator arriving moves nothing: after the label,
-     and on a numeric (end-aligned) column before it, so the label's edge stays on the numbers' edge. There is no weight
-     change and no wash on the cell. Hover and focus lift the label from secondary to primary ink and show a tertiary
-     up-down caret in the seat; on touch the caret is always there. Sorted, the direction arrow replaces it, in primary. */
+     Every sortable header reserves the indicator's 16px seat after the label (DECISIONS 261), so the indicator arriving
+     moves no column. There is no weight change and no wash on the cell. Hover and focus lift the label from secondary to
+     primary ink and show a tertiary up-down caret in the seat; on touch the caret is always there. Sorted, the direction
+     arrow replaces it, in primary. A press cycles the first direction, the reverse, then the table's own order with no
+     column lit. */
   .basalt-table th[data-sortable] { padding: 0; }
   .basalt-sort {
     box-sizing: border-box;
@@ -2412,8 +2413,34 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  /* In the seat's mirror the main axis runs from the end, so the label stays on the end edge and the seat is before it. */
-  .basalt-table th[data-numeric] .basalt-sort { flex-direction: row-reverse; }
+  /* A numeric (end-aligned) column keeps the seat after the label too, and the pair sits on the end edge. While the seat is empty the
+     label rests over it, on the numbers' edge, by a transform; when the indicator shows (hover, keyboard focus, sorted, and always on
+     touch) the label moves aside to make room, over duration-base on ease-out, and back at 0.75x on ease-in. Only the label moves:
+     its box, the seat, the cell and every column stay where they are. Under reduced motion the label never moves: it keeps the
+     place beside its seat, as a start-aligned label does. */
+  .basalt-table th[data-numeric] .basalt-sort { justify-content: flex-end; }
+  .basalt-table th[data-numeric] .basalt-sort-label {
+    --_aside: calc(var(--basalt-size-icon-sm) + var(--basalt-space-1));
+    transform: translateX(var(--_aside));
+    transition: transform calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in);
+  }
+  .basalt-table th[data-numeric]:dir(rtl) .basalt-sort-label { --_aside: calc(-1 * (var(--basalt-size-icon-sm) + var(--basalt-space-1))); }
+  .basalt-table th[data-numeric][aria-sort] .basalt-sort-label,
+  .basalt-table th[data-numeric] .basalt-sort:focus-visible .basalt-sort-label {
+    transform: none;
+    transition: transform var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  @media (hover: hover) {
+    .basalt-table th[data-numeric] .basalt-sort:hover .basalt-sort-label { transform: none; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  }
+  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+    .basalt-table th[data-numeric] .basalt-sort-label { transform: none; transition: none; }
+  }
+  /* Where the label moves, the indicator waits for it to clear the seat, so the two never draw over each other, and fades in over duration-fast;
+     it goes at once. Elsewhere (touch, reduced motion, a start-aligned column) it swaps at once, as it always has. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .basalt-table th[data-numeric]:is([aria-sort], :has(.basalt-sort:is(:hover, :focus-visible))) .basalt-sort-seat > .basalt-icon { transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out) calc(var(--basalt-duration-base) - var(--basalt-duration-fast)); }
+  }
   .basalt-sort-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-sort-seat { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
   .basalt-sort-seat > .basalt-icon { position: absolute; inset: 0; opacity: 0; }
@@ -2432,6 +2459,15 @@
   .basalt-table th[aria-sort] .basalt-sort-seat { color: var(--basalt-text-primary); }
   .basalt-table th[aria-sort="ascending"] .basalt-sort-up,
   .basalt-table th[aria-sort="descending"] .basalt-sort-down { opacity: 1; }
+
+  /* A column explainer (TableHeadExplainer; DECISIONS 257 and 261): the popover's own look (the opener's level plus one, the neutral rim,
+     radius 12, shadow-overlay, space-4 inside, at most size-popover-max wide), placed by the script above the header or beside it, in
+     the window's coordinates. A long press opens it on touch, so the header it explains raises no text selection or callout. */
+  .basalt-explainer { position: fixed; top: 0; left: 0; margin: 0; text-align: start; white-space: normal; overflow-wrap: break-word; }
+  .basalt-explainer-body > * { margin: 0; }
+  .basalt-explainer-body > * + * { margin-block-start: var(--basalt-space-2); }
+  .basalt-table th[data-explained] .basalt-sort { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  @media print { .basalt-explainer { display: none; } }
 
   /* The empty row: one cell across every column, under the unchanged header. It is not a pinned or hoverable row; its
      sentence sticks to the container's start edge so a scrolled table does not carry it out of view. */
