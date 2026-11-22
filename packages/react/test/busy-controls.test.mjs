@@ -107,6 +107,8 @@ describe("a press that waits by itself", () => {
       await run(page, 49);
       await page.evaluate((id) => window.answer(id), id);
       await commit(page);
+      assert.equal(await attr(control, "aria-busy"), null, `${id}: busy ends with the answer, though the mark keeps its 400ms`);
+      assert.equal(await attr(control, "aria-disabled"), null, `${id}: and it can be pressed`);
       await run(page, 340);
       assert.equal(await mark(), true, `${id}: still up 390ms after it showed`);
       await run(page, 20);
@@ -232,6 +234,108 @@ describe("a press that waits by itself", () => {
     await page.getByTestId("item").click({ force: true });
     assert.equal(await calls(page, "item"), 2);
   });
+  test("a Retry pressed while the mark finishes its 400ms goes through, and the mark stays up for the new wait", async () => {
+    const { page } = await open(BUTTONS, { clock: true });
+    for (const id of ["button", "icon", "text"]) {
+      const control = page.getByTestId(id);
+      await control.click({ force: true });
+      await run(page, 350);
+      await page.evaluate((id) => window.refuse(id), id);
+      await commit(page);
+      await run(page, 50);
+      assert.equal(await control.evaluate((el) => el.hasAttribute("data-loading")), true, `${id}: the mark is in its tail`);
+      await control.click({ force: true });
+      assert.equal(await calls(page, id), 2, `${id}: the retry asked again`);
+      await commit(page);
+      assert.equal(await attr(control, "aria-busy"), "true", `${id}: busy again`);
+      await run(page, 1000);
+      assert.equal(await control.evaluate((el) => el.hasAttribute("data-loading")), true, `${id}: the mark stays up for the retry`);
+      await page.evaluate((id) => window.answer(id), id);
+      await commit(page);
+      await run(page, 500);
+      assert.equal(await attr(control, "aria-busy"), null);
+    }
+    assert.equal((await page.evaluate(() => window.unhandled)).length, 3, "each refusal was passed on");
+  });
+
+  test("a handler on the rendered element (render={<button onClick>}) is guarded too: one call for five presses, and none while loading", async () => {
+    const { page } = await open(`<div>
+      <B.Button data-testid="r" render={<button onClick={window.ask("r")} />}>Save</B.Button>
+      <B.TextButton data-testid="rt" render={<button onClick={window.ask("rt")} />}>Write it again</B.TextButton>
+      <B.Button data-testid="rl" loading render={<button onClick={window.ask("rl")} />}>Publish</B.Button>
+    </div>`);
+    for (const id of ["r", "rt"]) {
+      for (let i = 0; i < 5; i += 1) await page.getByTestId(id).click({ force: true });
+      assert.equal(await calls(page, id), 1, `${id}: one call`);
+      assert.equal(await attr(page.getByTestId(id), "aria-busy"), "true");
+    }
+    await page.getByTestId("rl").click({ force: true });
+    assert.equal(await calls(page, "rl"), 0, "explicit loading refuses the rendered element's handler");
+  });
+
+  test("a Form whose onSubmit returns a promise cancels the native submit; a synchronous onSubmit that does not prevent it still submits", async () => {
+    const { page } = await open(`<div>
+      <B.Form data-testid="async" onSubmit={window.ask("async")}><B.Button data-testid="async-go" type="submit">Send</B.Button></B.Form>
+      <B.Form data-testid="sync" onSubmit={() => { window.calls.sync = (window.calls.sync ?? 0) + 1; }}><B.Button data-testid="sync-go" type="submit">Send</B.Button></B.Form>
+    </div>`);
+    // What the page would do: read after React's handlers (a listener on the window runs last), then stop the navigation so the test page stays.
+    await page.evaluate(() => { window.native = []; window.addEventListener("submit", (event) => { window.native.push([event.target.dataset.testid, event.defaultPrevented]); event.preventDefault(); }); });
+    await page.getByTestId("async-go").click({ force: true });
+    await page.getByTestId("sync-go").click({ force: true });
+    assert.deepEqual(await page.evaluate(() => window.native), [["async", true], ["sync", false]], "the promise's submit is cancelled; the plain one goes ahead");
+    assert.equal(await calls(page, "async"), 1);
+    assert.equal(await calls(page, "sync"), 1);
+  });
+
+  test("a submit button outside a keyed Form that is replaced mid-wait is freed, and submits the new form", async () => {
+    const { page } = await open(`(() => { function App() { const [key, setKey] = React.useState(0); window.replace = () => setKey((k) => k + 1); return <div>
+      <B.Form key={key} id="edit" onFormSubmit={window.ask("edit")}><B.Field name="title" label="Title"><B.Input defaultValue="Checkout timing out" /></B.Field></B.Form>
+      <B.Button data-testid="ext" type="submit" form="edit" variant="primary">Save</B.Button></div>; } return <App />; })()`);
+    const ext = page.getByTestId("ext");
+    await ext.click({ force: true });
+    await page.waitForFunction(() => document.querySelector("[data-testid=ext]").getAttribute("aria-busy") === "true");
+    await page.evaluate(() => window.replace());
+    await page.waitForFunction(() => document.querySelector("[data-testid=ext]").getAttribute("aria-busy") === null);
+    await ext.click({ force: true });
+    assert.equal(await calls(page, "edit"), 2, "the new form submits");
+    await page.waitForFunction(() => document.querySelector("[data-testid=ext]").getAttribute("aria-busy") === "true");
+  });
+
+  test("the default MenuTrigger is unavailable (aria-disabled, focus kept) while an item waits, and a keyboard reopen is refused", async () => {
+    const { page } = await open(`<B.Menu><B.MenuTrigger data-testid="trigger">Send to</B.MenuTrigger><B.MenuContent>
+      <B.MenuItem data-testid="item" onClick={window.ask("item")}>Copy the summary</B.MenuItem></B.MenuContent></B.Menu>`);
+    const trigger = page.getByTestId("trigger");
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    await page.getByTestId("item").waitFor();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => !document.querySelector("[data-testid=item]"));
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement?.dataset.testid), "trigger", "focus is back on the trigger");
+    assert.equal(await attr(trigger, "aria-disabled"), "true");
+    assert.equal(await attr(trigger, "aria-busy"), "true");
+    for (const key of ["Enter", "Space", "ArrowDown"]) {
+      await page.keyboard.press(key);
+      await page.waitForTimeout(120);
+      assert.equal(await page.getByTestId("item").count(), 0, `${key} does not reopen it`);
+    }
+    assert.equal(await page.evaluate(() => document.activeElement?.dataset.testid), "trigger", "focus stays");
+    assert.equal(await calls(page, "item"), 1);
+    await page.evaluate(() => window.answer("item"));
+    await page.waitForFunction(() => document.querySelector("[data-testid=trigger]").getAttribute("aria-disabled") === null);
+    await page.keyboard.press("Enter");
+    await page.getByTestId("item").waitFor();
+  });
+
+  test("a caller's own aria-busy and aria-disabled are kept while Basalt asserts nothing", async () => {
+    const { page } = await open(`<div>
+      <B.TextButton data-testid="t" aria-disabled="true" aria-busy="true">Write it again</B.TextButton>
+      <B.Input data-testid="i" aria-label="Title" aria-busy="true" />
+      <B.Textarea data-testid="a" aria-label="Summary" aria-busy="true" />
+    </div>`);
+    assert.equal(await attr(page.getByTestId("t"), "aria-disabled"), "true");
+    for (const id of ["t", "i", "a"]) assert.equal(await attr(page.getByTestId(id), "aria-busy"), "true", id);
+  });
 });
 
 describe("TextButton's busy look", () => {
@@ -255,6 +359,8 @@ describe("TextButton's busy look", () => {
         await page.evaluate((id) => window.answer(id), id);
         await commit(page);
         await page.waitForFunction((id) => !document.querySelector(`[data-testid=${id}]`).hasAttribute("aria-busy"), id);
+        // Busy ends with the answer; the look keeps its 400ms, then goes.
+        await page.waitForFunction((id) => !document.querySelector(`[data-testid=${id}]`).hasAttribute("data-loading"), id);
         assert.deepEqual(await box(control), rest);
         assert.equal((await css(label, "textDecorationStyle")).textDecorationStyle, "solid");
       }
@@ -308,7 +414,8 @@ describe("a field being written into", () => {
       await commit(page);
       await run(page, 290);
       assert.equal(await attr(field, "data-writing"), "", `${id}: the look holds its 400ms`);
-      assert.equal(await field.evaluate((el) => el.readOnly), true, "and so does read-only");
+      assert.equal(await field.evaluate((el) => el.readOnly), false, `${id}: but read-only ends with the writing`);
+      assert.equal(await attr(field, "aria-busy"), null, `${id}: and so does aria-busy`);
       await run(page, 20);
       assert.equal(await attr(field, "data-writing"), null);
       assert.equal(await field.evaluate((el) => el.readOnly), false);
@@ -387,6 +494,37 @@ describe("a field being written into", () => {
     await page.waitForFunction(() => !document.querySelector("[data-testid=area]").hasAttribute("aria-busy"));
     assert.equal(await area.inputValue(), "", "once written, the value is the app's again");
   });
+
+  for (const id of ["input", "area"]) {
+    test(`${id}: focused with a selection inside the old text, a draft replaces it; editing resumes at the end of the new text, and a key typed in the look's tail is typed`, async () => {
+      const { page } = await open(FIELDS, { clock: true });
+      const field = page.getByTestId(id);
+      const setter = id === "input" ? "setTitle" : "setText";
+      await page.evaluate(({ setter, draft }) => window[setter](draft), { setter, draft: DRAFT });
+      await commit(page);
+      await field.focus();
+      await field.evaluate((el) => el.setSelectionRange(9, 15));
+      await page.evaluate(() => window.setWriting(true));
+      await run(page, 301);
+      assert.equal(await attr(field, "data-writing"), "", "written");
+      await page.keyboard.type("x");
+      assert.equal(await field.inputValue(), DRAFT, "a key typed while it is written is not typed");
+      const words = "Payments API latency rose after the worker change.".split(" ");
+      for (let i = 1; i <= words.length; i += 1) {
+        await page.evaluate(({ setter, text }) => window[setter](text), { setter, text: words.slice(0, i).join(" ") });
+        await run(page, 10);
+      }
+      await page.evaluate(() => window.setWriting(false));
+      await run(page, 10);
+      assert.equal(await field.evaluate((el) => el.readOnly), false, "editable once the writing ends");
+      assert.equal(await attr(field, "data-writing"), "", "the look is still in its 400ms");
+      const text = words.join(" ");
+      assert.equal(await page.evaluate(() => document.activeElement?.dataset.testid), id, "focus stayed");
+      assert.deepEqual(await field.evaluate((el) => [el.selectionStart, el.selectionEnd]), [text.length, text.length], "the caret is at the end of the new text");
+      await page.keyboard.type("!");
+      assert.equal(await field.inputValue(), `${text}!`, "the key is typed where the caret is, in the look's tail");
+    });
+  }
 
   test("reduced motion and the hold still the pulse (as a skeleton's); forced colours draws a dashed boundary, never GrayText", async () => {
     const { page } = await open(FIELDS);

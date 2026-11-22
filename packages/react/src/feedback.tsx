@@ -31,7 +31,7 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
   rows?: number;
   /**
    * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
-   * once; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
+   * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
    * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
    * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
    */
@@ -51,9 +51,9 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
       disabled={disabled}
       autoFocus={autoFocus}
       required={required}
-      readOnly={readOnly || written.busy || undefined}
+      readOnly={written.busy || readOnly}
       className={join("basalt-input basalt-textarea", className)}
-      render={<textarea rows={rows} {...props} ref={useJoinedRef(ref, own)} aria-busy={written.busy || undefined} data-writing={written.shown ? "" : undefined} />}
+      render={<textarea rows={rows} {...props} ref={useJoinedRef(ref, own)} aria-busy={written.busy ? true : props["aria-busy"]} data-writing={written.shown ? "" : undefined} />}
     />
   );
 }

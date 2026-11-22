@@ -10,7 +10,7 @@ import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
-import { useJoinedRef, usePressWait } from "./wait";
+import { takeClick, useJoinedRef, usePressWait } from "./wait";
 
 /** `outline` is transparent with an input-boundary edge and primary ink (DECISIONS 154, A7): a button beside the primary one that must not look like a second primary. */
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
@@ -90,10 +90,12 @@ const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 /** A button. Its label says what happens: "Deploy", not "OK". */
 export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
-  const link = newTabRender(render);
+  // A handler on the rendered element is taken into the press, so the wait guards it too.
+  const [rendered, handler] = takeClick(render, onClick);
+  const link = newTabRender(rendered);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
-  const wait = usePressWait(onClick, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
+  const wait = usePressWait(handler, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
   const loading = wait.shown;
   return (
     <BaseButton
@@ -101,9 +103,9 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
       ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || wait.busy || undefined}
-      aria-busy={wait.busy || undefined}
-      data-busy={wait.busy ? "" : undefined}
+      aria-disabled={disabled || wait.busy ? true : props["aria-disabled"]}
+      aria-busy={wait.busy ? true : props["aria-busy"]}
+      data-busy={wait.busy || wait.shown ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}
       data-loading={loading ? "" : undefined}
       data-variant={variant}
@@ -189,10 +191,12 @@ function DoneSeat({ icon, doneIcon, done, size, selected, fillSafe }: DoneSeatPr
 
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
 export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, newTabLabel, render, ref, ...props }: IconButtonProps) {
-  const link = newTabRender(render);
+  // A handler on the rendered element is taken into the press, so the wait guards it too.
+  const [rendered, handler] = takeClick(render, onClick);
+  const link = newTabRender(rendered);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
-  const wait = usePressWait(onClick, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
+  const wait = usePressWait(handler, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
   const loading = wait.shown;
   return (
     <BaseButton
@@ -200,9 +204,9 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, do
       ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || wait.busy || undefined}
-      aria-busy={wait.busy || undefined}
-      data-busy={wait.busy ? "" : undefined}
+      aria-disabled={disabled || wait.busy ? true : props["aria-disabled"]}
+      aria-busy={wait.busy ? true : props["aria-busy"]}
+      data-busy={wait.busy || wait.shown ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}
       aria-label={link.newTab ? `${label}${newTabWords(newTabLabel)}` : label}
       data-loading={loading ? "" : undefined}

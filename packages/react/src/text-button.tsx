@@ -4,7 +4,7 @@ import * as React from "react";
 import { Icon } from "./icon";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
-import { useJoinedRef, useLoopClock, usePressWait } from "./wait";
+import { takeClick, useJoinedRef, useLoopClock, usePressWait } from "./wait";
 
 export interface TextButtonProps extends Omit<PartProps<"button">, "children" | "aria-pressed"> {
   /** Set to false when `render` produces something other than a native `<button>`. */
@@ -44,17 +44,20 @@ export interface TextButtonProps extends Omit<PartProps<"button">, "children" | 
  * (words that change in place, the button holding the width of the longest): the underline is drawn under the words that are shown. A press whose
  * `onClick` returns a promise waits for its answer, as every Basalt button does.
  */
-export function TextButton({ quiet = false, iconEnd, className, children, focusableWhenDisabled = true, loading = false, waitForAnswer = true, onClick, ref, ...props }: TextButtonProps) {
-  const wait = usePressWait(onClick, { loading, waitForAnswer, submits: props.type === "submit", form: props.form });
+export function TextButton({ quiet = false, iconEnd, className, children, focusableWhenDisabled = true, loading = false, waitForAnswer = true, onClick, render, ref, ...props }: TextButtonProps) {
+  // A handler on the rendered element is taken into the press, so the wait guards it too.
+  const [rendered, handler] = takeClick(render, onClick);
+  const wait = usePressWait(handler, { loading, waitForAnswer, submits: props.type === "submit", form: props.form });
   useLoopClock(wait.ref, wait.shown);
   return (
     <BaseButton
       {...props}
       ref={useJoinedRef(ref, wait.ref)}
       focusableWhenDisabled={focusableWhenDisabled}
-      aria-disabled={props.disabled || wait.busy || undefined}
-      aria-busy={wait.busy || undefined}
-      data-busy={wait.busy ? "" : undefined}
+      render={rendered}
+      aria-disabled={props.disabled || wait.busy ? true : props["aria-disabled"]}
+      aria-busy={wait.busy ? true : props["aria-busy"]}
+      data-busy={wait.busy || wait.shown ? "" : undefined}
       data-loading={wait.shown ? "" : undefined}
       data-quiet={quiet ? "" : undefined}
       className={withClass("basalt-text-button", className)}

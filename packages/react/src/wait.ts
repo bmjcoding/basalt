@@ -64,18 +64,46 @@ export const FORM_WAIT_EVENT = "basalt-form-wait";
 
 /**
  * Whether the form a submit button submits is waiting for its answer. Read from the element's own `form` (the one it sits in, or the one its
- * `form` attribute names), so it holds for a button in a dialog's foot as well as one inside the form.
+ * `form` attribute names) each time any form says its wait changed, so it holds for a button in a dialog's foot as well as one inside the form,
+ * and for a form that is replaced (a keyed `Form` remounted mid-wait): the button reads whichever form it now belongs to. Only a submit button
+ * listens.
  */
 function useFormWait(element: React.RefObject<HTMLButtonElement | null>, submits: boolean, formId: string | undefined) {
   const [waiting, setWaiting] = React.useState(false);
   React.useEffect(() => {
-    const form = submits ? element.current?.form : null;
-    const read = () => setWaiting(Boolean(form?.hasAttribute("data-waiting")));
+    if (!submits) return undefined;
+    const read = () => setWaiting(Boolean(element.current?.form?.hasAttribute("data-waiting")));
     read();
-    form?.addEventListener(FORM_WAIT_EVENT, read);
-    return () => form?.removeEventListener(FORM_WAIT_EVENT, read);
+    document.addEventListener(FORM_WAIT_EVENT, read);
+    return () => {
+      document.removeEventListener(FORM_WAIT_EVENT, read);
+      setWaiting(false);
+    };
   }, [element, submits, formId]);
   return waiting;
+}
+
+/** Tell every submit button on the page that a form's wait changed (it started, ended, or the form came or went). */
+export function formWaitChanged() {
+  document.dispatchEvent(new Event(FORM_WAIT_EVENT));
+}
+
+type Press<E> = (event: E) => unknown;
+
+/**
+ * The press handler of an element given as `render` (`<Button render={<button onClick={save} />}>`) is taken into the button's own press, so the
+ * wait guards it too: Base UI would otherwise call it before the button's guard. Both are called, the element's first (the order Base UI kept), and
+ * the press waits for whichever returns a promise (for both, when both do).
+ */
+export function takeClick<R, E>(render: R, onClick: Press<E> | undefined): [R, Press<E> | undefined] {
+  const own = React.isValidElement(render) ? (render.props as { onClick?: Press<E> }).onClick : undefined;
+  if (!own) return [render, onClick];
+  return [React.cloneElement(render as React.ReactElement<{ onClick?: unknown }>, { onClick: undefined }) as R, (event) => {
+    const first = own(event);
+    const second = onClick?.(event);
+    if (!isThenable(first)) return second;
+    return isThenable(second) ? Promise.all([first, second]) : first;
+  }];
 }
 
 /** Join an app's ref to the part's own. */
@@ -100,9 +128,9 @@ export interface PressWaitOptions {
 }
 
 export interface PressWait<E> {
-  /** Presses are ignored and the control is `aria-busy` and `aria-disabled`. From the press, before the mark shows. */
+  /** Presses are ignored and the control is `aria-busy` and `aria-disabled`: from the press, before the mark shows, until the answer (not the mark's tail). */
   busy: boolean;
-  /** The mark shows (`data-loading`): at once for `loading`, after the wait has run 300ms otherwise. */
+  /** The mark shows (`data-loading`): at once for `loading`, after the wait has run 300ms otherwise, and for at least 400ms once shown. Look only. */
   shown: boolean;
   /** The handler to give the element: it ignores a press while busy (stopping a submit or a link too) and waits for a promise it gets back. */
   press: (event: E) => void;
@@ -111,14 +139,15 @@ export interface PressWait<E> {
 }
 
 /** A press that waits by itself: the rule every button keeps (`Button`, `IconButton`, `TextButton`). */
-export function usePressWait<E extends { preventDefault(): void }>(onClick: ((event: E) => unknown) | undefined, { loading, waitForAnswer, submits, form }: PressWaitOptions): PressWait<E> {
+export function usePressWait<E extends { preventDefault(): void }>(onClick: Press<E> | undefined, { loading, waitForAnswer, submits, form }: PressWaitOptions): PressWait<E> {
   const ref = React.useRef<HTMLButtonElement | null>(null);
   const [pending, setPending] = React.useState(0);
   const outer = React.useContext(WaitContext);
   const formWaiting = useFormWait(ref, submits && waitForAnswer, form);
   const waiting = pending > 0 || outer || formWaiting;
   const mark = useWaitMark(waiting);
-  const busy = loading || waiting || mark;
+  // The mark keeps its 400ms (a look), but presses, aria-busy and aria-disabled end with the answer: a Retry pressed while the ring finishes goes through.
+  const busy = loading || waiting;
   // The press reads the latest busy, and a press that starts a wait marks it at once: five presses in one task call the handler once.
   const busyNow = React.useRef(busy);
   busyNow.current = busy;
@@ -137,8 +166,9 @@ export function usePressWait<E extends { preventDefault(): void }>(onClick: ((ev
 }
 
 /**
- * A field being written into by something else (an agent's draft, a summary written again): `busy` while it is written and while its look is up
- * (read-only and `aria-busy`), `shown` once the writing has run 300ms and for at least 400ms (the look, `data-writing`), and the text to show. Text
+ * A field being written into by something else (an agent's draft, a summary written again): `busy` while it is written (read-only and `aria-busy`,
+ * ending with the writing, so a keystroke in the look's tail is typed), `shown` once the writing has run 300ms and for at least 400ms (the look,
+ * `data-writing`), and the text to show. Text
  * replaces text: while it is written, an empty value keeps the text that was there until the next text arrives, so the field is never blanked
  * between two drafts, and each update is painted as it comes, in the same ink, with no fade (a fade on every update is the flashing this stops).
  */
@@ -150,5 +180,5 @@ export function useWriting<V>(writing: boolean, value: V, element: React.RefObje
     kept.current = text;
   });
   useLoopClock(element, shown);
-  return { busy: writing || shown, shown, value: text };
+  return { busy: writing, shown, value: text };
 }

@@ -91,7 +91,13 @@ export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
   // The trigger is where focus returns when the menu closes, so the wait of an item is shown and held here: a `Button` it renders takes it as its own.
   return (
     <WaitContext.Provider value={waiting}>
-      <BaseMenu.Trigger aria-busy={waiting || undefined} {...props} className={withClass("basalt-menu-trigger", className)} />
+      <BaseMenu.Trigger
+        {...props}
+        // Unavailable while an item's answer is still to come (the menu will not open), but never disabled: focus stays on the trigger.
+        aria-busy={waiting ? true : props["aria-busy"]}
+        aria-disabled={waiting ? true : props["aria-disabled"]}
+        className={withClass("basalt-menu-trigger", className)}
+      />
     </WaitContext.Provider>
   );
 }

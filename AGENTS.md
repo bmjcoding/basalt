@@ -104,7 +104,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **A control that asks the server is busy until the answer, and never sends twice:** a `Button`, `IconButton` or `TextButton` whose `onClick`
   returns a promise ignores presses until it settles (`aria-busy`, focus, label and width kept, its own `disabled` untouched), a `Form`'s promise
   does the same for its submits and a `MenuItem`'s for its menu's trigger; the mark shows after 300ms and stays at least 400ms (the shaped
-  skeleton's timings); a rejection ends it and is raised again; `loading` wins and shows at once; `waitForAnswer={false}` opts out. A TextButton's
+  skeleton's timings, a look only: presses and `aria-busy` end with the answer); a rejection ends it and is raised again; `loading` wins and shows at once; `waitForAnswer={false}` opts out. A TextButton's
   mark is a step down in ink and a dashed underline that breathes; a field being written (`writing`) is read-only, its words in secondary ink and its boundary dashed on a
   skeleton's pulsing fill, never the disabled look, and an empty value while writing keeps the text shown.
 - **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,

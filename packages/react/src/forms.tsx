@@ -17,7 +17,7 @@ import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails,
 import { useMirrorRef } from "./mirror";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
-import { FORM_WAIT_EVENT, isThenable, useJoinedRef, waitFor } from "./wait";
+import { formWaitChanged, isThenable, useJoinedRef, waitFor } from "./wait";
 
 export type FormProps<Values extends Record<string, unknown> = Record<string, unknown>> = PartProps<"form"> & {
   /** When fields first show their errors. */
@@ -42,12 +42,18 @@ export function Form<Values extends Record<string, unknown> = Record<string, unk
   const now = React.useRef(0);
   // A submit refused while the form waits is refused whole: Base UI calls `onFormSubmit` straight after `onSubmit`, in the same task.
   const refused = React.useRef(false);
+  // Whether the form now waits for this result: the caller then cancels the native submit (Base UI cancels it only for `onFormSubmit`).
   const track = (result: unknown) => {
-    if (waitForAnswer && isThenable(result)) waitFor(result, (step) => setWaiting((now.current += step)));
+    if (!waitForAnswer || !isThenable(result)) return false;
+    waitFor(result, (step) => setWaiting((now.current += step)));
+    return true;
   };
-  // The submit buttons read the wait from the form element, so one outside the form (`form="…"`) hears it as well as one inside.
+  // The submit buttons read the wait from their own form when any form says its wait changed, so one outside the form (`form="…"`) hears it as well
+  // as one inside, and a form that is replaced or removed (a keyed Form remounted mid-wait) says so too and frees them.
   React.useLayoutEffect(() => {
-    own.current?.dispatchEvent(new Event(FORM_WAIT_EVENT));
+    formWaitChanged();
+    // On unmount, once the form has left the page (a microtask after the commit), so a button reads the form it now belongs to, or none.
+    return () => queueMicrotask(formWaitChanged);
   }, [waiting]);
   return (
     <BaseForm
@@ -61,7 +67,8 @@ export function Form<Values extends Record<string, unknown> = Record<string, unk
           event.preventDefault();
           return;
         }
-        track(onSubmit?.(event));
+        // An `onSubmit` that returns a promise is the app's own submit, waited for here: the page must not also submit and navigate.
+        if (track(onSubmit?.(event))) event.preventDefault();
       }}
       onFormSubmit={onFormSubmit ? (values, details) => {
         if (refused.current) return;

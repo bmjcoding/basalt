@@ -563,19 +563,23 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   it is busy is ignored (the handler is never called twice, and a submit or a link is stopped too), and the control is `aria-busy` and
   `aria-disabled`, keeps its focus, its label and its width, and keeps its own `disabled` untouched. Its mark shows only once the wait has run
   300ms (`WAIT_SHOW_AFTER_MS`), so an answer inside that shows nothing and never flashes, and once shown it stays at least 400ms
-  (`WAIT_MIN_SHOWN_MS`), so it never blinks: the shaped skeleton's two timings (DECISIONS 247, 248), one rule for every wait. The cursor is
-  `progress` from the press. A rejection ends the wait at once and is raised again, never swallowed: the app says why (a `StatusLine`, a
+  (`WAIT_MIN_SHOWN_MS`), so it never blinks: the shaped skeleton's two timings (DECISIONS 247, 248), one rule for every wait. The minimum is
+  the mark's alone: presses, `aria-busy` and `aria-disabled` end with the answer, so a Retry pressed while the mark finishes goes through. A
+  handler on the element given as `render` is guarded the same way. The cursor is `progress` from the press. A rejection ends the wait at once and is raised again, never swallowed: the app says why (a `StatusLine`, a
   toast, the field's error). The app's own `loading` still works and wins: it shows the mark at once. A `Form` whose `onSubmit` or
-  `onFormSubmit` returns a promise waits the same way: a second submit, by a button or by Enter, is ignored, and its submit buttons (inside
-  it, or outside it with `form`) are busy. A `MenuItem` whose `onClick` returns a promise closes its menu as any item does, and the menu waits:
-  its trigger is busy (where focus returns) and the menu does not open again until the answer. `waitForAnswer={false}` turns the wait off
+  `onFormSubmit` returns a promise waits the same way: the page's own submit is cancelled (the app's handler is the submit), a second submit, by a
+  button or by Enter, is ignored, and its submit buttons (inside it, or outside it with `form`, which follow the form they belong to even
+  when it is replaced) are busy. A `MenuItem` whose `onClick` returns a promise closes its menu as any item does, and the menu waits:
+  its trigger is busy and unavailable (`aria-disabled`, never disabled, so focus stays where it returned) and the menu does not open
+  again, by pointer or key, until the answer. `waitForAnswer={false}` turns the wait off
   for a press meant to repeat ("Add another"); `useWaitMark` gives an app's own wait the same two timings. **A Button's and IconButton's mark** is the ring over the kept
   label, as `loading` draws it. **A TextButton's own mark** has no box and no seat, so nothing moves in its line: the words step down an ink
   (primary to secondary; the quiet form's secondary to tertiary, both 4.5:1; in the smoked bar, where tertiary never sits, the quiet form stays secondary and the dashed underline carries the state) and the underline, its affordance, turns dashed (a shape, so the
   state is never colour alone) in the ink and breathes from 35% to full on `duration-loop-fade`, as Sparkline's loading line does. Under
   reduced motion it keeps breathing (a colour step, as the ring keeps its fade); held, it stands still, dashed and full; in forced colours it
   is dashed in the system's ink. Braille is not used: it is never in a button. **A field being written into** by something else (an
-  agent's draft, a summary written again) is `writing` on `Textarea` or `Input`: read-only and `aria-busy` at once, and after the same 300ms,
+  agent's draft, a summary written again) is `writing` on `Textarea` or `Input`: read-only and `aria-busy` at once and until the writing ends (a key typed in the look's tail is
+  typed, at the end of the new text, where the caret is left), and after the same 300ms,
   for at least 400ms, its words dim to secondary ink, its boundary turns dashed (the shape of a wait, as TextButton's underline is, drawn as an inset outline so nothing moves; a focused field keeps its solid boundary under the ring) and its fill is a skeleton's, `surface-placeholder` with the skeleton's calm 2s pulse,
   on the fill alone so the words and the boundary hold still. It is not the disabled look, even with its pulse still: the boundary is dashed, the ink is not
   `text-disabled`, and the radius, size and focus ring stay, so nothing moves when it starts or ends. Empty, the pulse alone (the
