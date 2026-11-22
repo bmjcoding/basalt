@@ -89,6 +89,7 @@
   .nav[data-collapsed] .nav-item { justify-content: center; }
   /* The second size (data-size="sm" on the .nav; React's Nav size="sm"): a quieter list under the main one, a 32px pill at 13/18 with the glyph at 16. */
   .nav[data-size="sm"] { --_nav-height: var(--basalt-size-control-md); }
+  .nav + .nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
   .nav[data-size="sm"] .nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
   .nav[data-size="sm"] .nav-item:not(:has(.icon, [data-glyph])) .nav-pill { padding-inline: var(--basalt-space-3); }
   .nav[data-size="sm"] .nav-label { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }

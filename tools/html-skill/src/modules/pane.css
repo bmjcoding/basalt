@@ -18,7 +18,7 @@
       top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-6) - var(--basalt-space-1-5));
       box-sizing: border-box;
       /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-      max-height: calc(100dvh - var(--basalt-sticky-offset, var(--basalt-space-0)) - 2 * (var(--basalt-space-6) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset, var(--basalt-space-0)));
+      max-height: calc(100dvh - var(--basalt-sticky-offset, var(--basalt-space-0)) - (var(--basalt-space-6) - var(--basalt-space-1-5)) - (var(--basalt-space-16) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset, var(--basalt-space-0)));
       margin: calc(-1 * var(--basalt-space-1-5));
       padding: var(--basalt-space-1-5);
       overflow-y: auto;

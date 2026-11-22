@@ -1,7 +1,7 @@
 // Round 56: the app shell's gaps (cimip-gaps-2, batch B4): the capped, centred shell; a page with a pane; Nav at its second size; the header's primary
 // kept under 720; and facts under the header's title. Decided and built by Opus on the no-council path (DECISIONS 226 and 265); the code review is Astra's
 // and the pixels are the lead's. Every part is shown in two unlike domains with synthetic data: a support inbox and a build pipeline. A state's domain is
-// its first word ("pipeline-…" is the build pipeline; anything else the inbox). "scrolled" scrolls the document so the pane is seen to stay; "pane-focus"
+// its first word ("pipeline-…" is the build pipeline; anything else the inbox). "after-scroll" scrolls the document so the pane is seen to stay; "pane-focus"
 // gives the overflowing pane keyboard focus; "hover" is a real pointer on the item marked `data-wt-hover`. "reduced-motion" and "forced-colours" are
 // emulations build.mjs sets before the page loads.
 
@@ -62,7 +62,7 @@ function useDemoState(state: string) {
     const m = mode(state);
     const timer = window.setTimeout(() => {
       if (m.endsWith("hover")) document.querySelectorAll(".basalt-nav[data-size=sm] .basalt-nav-item")[1]?.setAttribute("data-wt-hover", "");
-      if (m.endsWith("scrolled")) window.scrollTo(0, 640);
+      if (m.endsWith("after-scroll")) window.scrollTo(0, 640);
       if (m.endsWith("pane-focus")) document.querySelector<HTMLElement>(".basalt-pane")?.focus({ focusVisible: true } as FocusOptions);
     }, 80);
     return () => window.clearTimeout(timer);
@@ -80,8 +80,8 @@ const DOMAINS = {
     nav: [["Inbox", HomeGlyph, 14], ["Messages", MessagesGlyph, undefined], ["Reports", TrendsGlyph, undefined]] as const,
     secondaryLabel: "Saved views",
     secondary: [["Open and waiting", SourcesGlyph, 38], ["Assigned to me", ProfileGlyph, 12], ["Overdue", PlanGlyph, 3], ["Billing questions", NotificationsGlyph, undefined]] as const,
-    title: "Ticket 2291: Refund for a double charge",
-    facts: [<InlineCode key="r">#2291</InlineCode>, <Badge key="s" variant="plain" status="pending">Waiting on the customer</Badge>, <time key="t" dateTime="2026-11-22T09:12">Updated 12 min ago</time>],
+    title: "Refund for a double charge",
+    facts: [<InlineCode key="r">#2291</InlineCode>, <Badge key="s" variant="plain" status="pending">Waiting</Badge>, <time key="t" dateTime="2026-11-22T09:12">12 min ago</time>],
     primary: "Reply",
     cards: [
       ["Customer wrote", "I was charged twice for the November plan. Can you refund one of them?"],
@@ -104,7 +104,7 @@ const DOMAINS = {
     secondaryLabel: "Pinned pipelines",
     secondary: [["web-app / main", PlanGlyph, undefined], ["api / release", PlanGlyph, 2], ["docs / preview", PlanGlyph, undefined], ["mobile / nightly", PlanGlyph, undefined]] as const,
     title: "Build 1284 on main",
-    facts: [<InlineCode key="r">a81f3c2</InlineCode>, <Badge key="s" variant="plain" status="success">Passed</Badge>, <time key="t" dateTime="2026-11-22T08:40">Finished 4 min ago</time>],
+    facts: [<InlineCode key="r">a81f3c2</InlineCode>, <Badge key="s" variant="plain" status="success">Passed</Badge>, <time key="t" dateTime="2026-11-22T08:40">4 min ago</time>],
     primary: "Run again",
     cards: [
       ["Install", "Dependencies restored from the cache in 18 seconds."],
@@ -206,6 +206,7 @@ export const ROUND_56: Round = {
       widths: [1920, 1440, 390],
       scales: [1, 2],
       height: 800,
+      bleed: true,
       decisions: [
         "The cap is --basalt-shell-width, derived from two tokens and not a new one: size-sidebar-width plus size-page-width (1408px at 16px text, and it grows with the reader's text size). At the cap the page is exactly its own 72rem cap, so the shell's cap and the page's meet with no gap; under it (1408 and down) the capped shell draws what the uncapped one does, pixel for pixel, and a test holds that at 1408, 1300, 1024, 900 and 390.",
         "In the capped form the page fills its column, so an app that sets --basalt-shell-width on the root for another cap (CIMIP's own is 100rem) widens the page with it, and Basalt stays out of its numbers.",
@@ -222,22 +223,24 @@ export const ROUND_56: Round = {
       widths: [1440, 390],
       scales: [1, 2],
       height: 760,
+      bleed: true,
       decisions: [
         "Weighed against foundations' \"never an inner pane\" (DECISIONS 96, a council rule): kept, not reversed. The rule is that the page is never moved into a scroller of its own; the sidebar is already sticky at 100dvh and scrolls only its own overflow. The pane is that pattern for a page's side column, so the document is still what scrolls the page, and foundations now says so in plain words.",
-        "256 wide (size-sidebar-width, whose role already names a page's own aside), the gutter between, sticky space-6 under the bar, at most the window less the bar and space-6 above and below; it scrolls inside only when taller (overscroll-behavior: contain), and while it overflows it is a tab stop so the keys can scroll it, with the control ring at +2.",
+        "256 wide (size-sidebar-width, whose role already names a page's own aside), the gutter between, sticky space-6 under the bar, at most the window less the bar, space-6 above and space-16 below (the main's own foot, so at the page's end it still fits under the bar); it scrolls inside only when taller (overscroll-behavior: contain), and while it overflows it is a tab stop so the keys can scroll it, with the control ring at +2.",
         "It answers its own width: beside the page from 920px (size-sidebar-width + size-gutter + size-breakpoint-container-lg), so the page beside it is never under 640; narrower (the sidebar's 1024 to about 1220, the rail, a phone) it follows the page in the flow with no height of its own. The page is first in the source, so reading order matches at every width. A region named by the app; level 0, no fill or rim: what it holds groups by space and a divider.",
       ],
       tryIt: ["Scroll the page: the pane stays under the bar.", "Tab into the pane and press Page Down: the pane scrolls, the page does not.", "Narrow the window: the pane moves under the page."],
-      states: [...MEDIA(["pipeline", "scrolled@1440", "pipeline-scrolled@1440", "pane-focus@1440"])],
+      states: [...MEDIA(["pipeline", "after-scroll@1440", "pipeline-after-scroll@1440", "pane-focus@1440"])],
       demo: ({ state }) => <Shell state={state} pane secondary={false} facts={false} />,
     },
     {
       id: "nav-sm",
       name: "Nav at its second size",
-      intro: "Nav size=\"sm\": a quieter list under the main navigation (saved views in the inbox, pinned pipelines in the build tool), a 32px pill at 13/18 with a 16 glyph.",
+      intro: "Nav size=\"sm\": a quieter list under the main navigation (saved views in the inbox, pinned pipelines in the build tool), a 32px pill at 13/18 with a 16 glyph, space-4 under the main list.",
       widths: [1440, 900],
       scales: [1, 2],
       height: 760,
+      bleed: true,
       decisions: [
         "The main Nav's every rule a step smaller: the hugging pill (32, control-md), its hover at the selected wash and the one shared glide, the current page as the selected glyph and a 600 label with its width reserved, the control ring at +2. 8 before the glyph, 12 after the label, 8 between; a count at 12/16 in secondary ink.",
         "Compact steps the pill to 28, touch keeps it at 44, and in the rail it is a 32 circle on the main list's centre line with its label as the name and tooltip.",
@@ -254,11 +257,12 @@ export const ROUND_56: Round = {
       widths: [1440, 390],
       scales: [1, 2],
       height: 640,
+      bleed: true,
       decisions: [
-        "The facts are one line at 13/18 in secondary ink under the 18/26 title, joined by dots (DotLine: drawn as dots, read as commas) and cut with an ellipsis. Title and line are 44 together, centred in the 56px bar at every width, so the bar never grows. A status is a plain Badge with its status, so the word says it and the dot is never alone. The facts are not part of the h1.",
+        "The facts are one line at 13/18 in secondary ink under the 18/26 title, joined by dots (DotLine: drawn as dots, read as commas) and cut with an ellipsis from its end, so an app puts the facts in order of importance and keeps them short. Title and line are 44 together, centred in the 56px bar at every width, so the bar never grows. A status is a plain Badge with its status, so the word says it and the dot is never alone. The facts are not part of the h1.",
         "Under 720 the primary stays at the bar's end with its words, 44 tall and radius 8 like the bar's other buttons; the title is cut first, never the action. Not the tab bar (it is navigation) and not a sheet (it would hide the page's main action behind a second press). The site header moves its primary into the narrow menu because that menu exists; an app's bar has none. Foundations' line \"the primary leaves the bar under 720\" (DECISIONS 96, council) is replaced, and the old test now asserts the new rule.",
       ],
-      tryIt: ["Narrow the window to a phone: the primary keeps its words and the title gives way.", "Read the facts with a screen reader: \"#2291, Waiting on the customer, Updated 12 min ago\"."],
+      tryIt: ["Narrow the window to a phone: the primary keeps its words and the title gives way.", "Read the facts with a screen reader: \"#2291, Waiting, 12 min ago\"."],
       states: MEDIA(["pipeline"]),
       demo: ({ state }) => <Shell state={state} secondary={false} />,
     },

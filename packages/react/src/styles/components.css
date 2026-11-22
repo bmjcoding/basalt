@@ -1882,11 +1882,14 @@
   /* A page with a pane (PaneLayout): the page, and a size-sidebar-width column at its end, the gutter between. The pane is sticky under
      the bar (space-6 below it, the main's own top padding), at most the window less the bar and space-6 above and below, and scrolls
      inside only when it is taller; the document stays the scroller. Sticky is also the containing block for what is placed inside it,
-     so a visually hidden label cannot escape the box and stretch the page. It keeps space-1-5 round its content (and takes it back
+     so a visually hidden label cannot escape the box and stretch the page. Its content ends space-16 above the window's foot (the main's
+     own bottom padding), so when the page is read to its end the pane still fits under the bar. It keeps space-1-5 round its content (and takes it back
      with a negative margin), so a ring inside never clips. Beside the page from 920px of the layout's own width
      (size-sidebar-width 256 + size-gutter 24 + size-breakpoint-container-lg 640), so the page is never under 640 beside it; below,
      it follows the page in the flow with no height of its own. */
   .basalt-pane-layout { container-type: inline-size; min-width: 0; }
+  /* A second, quieter Nav (size="sm") under the main one in the sidebar starts a group label's step below it. */
+  .basalt-nav + .basalt-nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
   .basalt-pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
   .basalt-pane-page { min-width: 0; }
   .basalt-pane { min-width: 0; }
@@ -1900,7 +1903,7 @@
       top: calc(var(--basalt-sticky-offset) + var(--basalt-space-6) - var(--basalt-space-1-5));
       box-sizing: border-box;
       /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-      max-height: calc(100dvh - var(--basalt-sticky-offset) - 2 * (var(--basalt-space-6) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset));
+      max-height: calc(100dvh - var(--basalt-sticky-offset) - (var(--basalt-space-6) - var(--basalt-space-1-5)) - (var(--basalt-space-16) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset));
       margin: calc(-1 * var(--basalt-space-1-5));
       padding: var(--basalt-space-1-5);
       overflow-y: auto;

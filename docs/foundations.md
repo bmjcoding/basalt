@@ -1123,7 +1123,7 @@ labels, and `aria-current="page"` on the current link.
 - **The second size** (`Nav size="sm"`): a quieter list under the main one, such as recent items, saved views or a workspace's
   projects. The same item, hover, glide, current page, ring and rail, a step smaller: a 32px pill (`size-control-md`), the label at
   13/18 (`text-sm`), the glyph at 16, 8 before the glyph and 12 after the label (12 either side with no glyph), 8 between, and a count
-  at 12/16. Each row still carries 2px above and below its pill (a 36px row). Compact steps it to 28, and on touch it is 44. In the rail
+  at 12/16. Each row still carries 2px above and below its pill (a 36px row). Under the main list it starts `space-4` below it. Compact steps it to 28, and on touch it is 44. In the rail
   it is a 32px circle on the same centre line. It is the main list's size that marks the main list: never two main lists, and never the
   small size for the app's own destinations.
 
@@ -1276,7 +1276,8 @@ only what overflows it, and the document still scrolls the page.
   because that menu exists, and an app's bar has none.
 - **Facts under the title** (`facts`): one line under the `h1` of what the page is about at a glance, such as a reference, a status (a
   plain `Badge` with its `status`, so a word says it) and a time. 13/18 (`text-sm`) at 400 in secondary ink, joined by dots (`DotLine`:
-  drawn as dots, read as commas), cut with an ellipsis, never wrapped. The title (26) and the line (18) are 44 together, centred in the
+  drawn as dots, read as commas), cut with an ellipsis from its end, never wrapped, so an app keeps them short and puts them in order of
+  importance (on a phone the line has about half the bar). The title (26) and the line (18) are 44 together, centred in the
   56px bar at every width, so the bar never grows. Only primary and secondary ink sit on the smoked bar. The facts are not in the heading.
 - **The capped form** (`capped`): the whole shell, sidebar and page together, at most `--basalt-shell-width` and centred in the window,
   so on a wide display the navigation and the page stay together and the space is shared by both sides. The width is
@@ -1285,7 +1286,8 @@ only what overflows it, and the document still scrolls the page.
   on the root for another cap widens the page with it. The header spans the content column as always and so ends at the shell's end;
   the margins either side are the page. The skip link moves in with the brand. Under 1024 the window is narrower than any cap.
 - **A page with a pane** (`PaneLayout`): a column of `size-sidebar-width` at the page's end, the gutter between, that stays in view. It
-  is sticky `space-6` under the bar, at most the window less the bar and `space-6` above and below, and scrolls inside only when what
+  is sticky `space-6` under the bar, at most the window less the bar, `space-6` above and `space-16` below (the main's own foot, so read
+  to the page's end it never slides under the bar), and scrolls inside only when what
   it holds is taller (`overscroll-behavior: contain`), as the sidebar does; while it overflows it is a tab stop so the keys can scroll it.
   It keeps `space-1-5` round its content so a ring never clips, and it is positioned, so a visually hidden label inside cannot stretch
   the page. It is a `region` named by the app (`paneLabel`), at level 0 with no fill or rim of its own: what it holds groups by space and

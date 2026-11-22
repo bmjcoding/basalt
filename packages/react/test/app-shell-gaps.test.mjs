@@ -138,14 +138,19 @@ describe("a page with a pane", () => {
   test("a pane taller than the window has a height of its own, scrolls inside, and is a tab stop while it overflows", async () => {
     const page = await open(shell({ pane: 60 }), { width: 1440, height: 700 });
     const pane = await box(page, ".basalt-pane");
-    near(pane.h, 700 - 56 - 2 * (24 - 6), "the window less the bar and space-6 above and below the content", 0.5);
+    near(pane.h, 700 - 56 - (24 - 6) - (64 - 6), "the window less the bar, space-6 above the content and space-16 below it", 0.5);
+    // Read to the end of the page, the pane still sits under the bar: it never slides up behind it.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await settle(page);
+    assert.ok((await box(page, ".basalt-pane")).y + 6 >= 56 + 24 - 0.5, "at the page's end the pane is still under the bar");
     const facts = await page.locator(".basalt-pane").evaluate((el) => ({ over: el.scrollHeight > el.clientHeight, y: getComputedStyle(el).overflowY, contain: getComputedStyle(el).overscrollBehaviorY, tab: el.getAttribute("tabindex") }));
     assert.deepEqual(facts, { over: true, y: "auto", contain: "contain", tab: "0" });
+    const before = await page.evaluate(() => scrollY);
     await page.locator(".basalt-pane").focus();
     await page.keyboard.press("PageDown");
     await settle(page);
     assert.ok(await page.locator(".basalt-pane").evaluate((el) => el.scrollTop) > 0, "the keys scroll the pane");
-    assert.equal(await page.evaluate(() => scrollY), 0, "and not the document");
+    assert.equal(await page.evaluate(() => scrollY), before, "and not the document");
     const ring = await page.locator(".basalt-pane").evaluate((el) => { const s = getComputedStyle(el); return [s.outlineStyle, s.outlineWidth, s.outlineOffset]; });
     assert.deepEqual(ring, ["solid", "2px", "2px"]);
     await page.close();
@@ -198,6 +203,7 @@ describe("Nav at its second size", () => {
       assert.equal(await page.locator(`${sm} [aria-current=page]`).count(), 1);
       // the main list is untouched
       assert.equal((await box(page, ".basalt-nav:not([data-size]) .basalt-nav-pill")).h, 48);
+      assert.equal(await css(page, ".basalt-nav[data-size=sm]", "marginTop"), "16px", "a group label's step below the main list");
       assert.deepEqual(page.errors, []);
       await page.close();
     }
