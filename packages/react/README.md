@@ -369,7 +369,7 @@ someone".
   actions={<Button variant="ghost" size="sm" onClick={attach}>Attach</Button>}
   status={typingStatus(typingNames)}
   onSend={(text) => api.reply(ticket, text)}
-  mentions={{ options: [{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }], onPick: (o) => picked.add(o.value) }}
+  mentions={(field) => <MentionPicker field={field} options={[{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }]} onPick={(o) => picked.add(o.value)} />}
 />
 
 {/* A build's comments: Mod+Enter sends (⌘↵ or Ctrl Enter, shown beside Send) */}

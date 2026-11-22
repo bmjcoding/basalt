@@ -328,7 +328,7 @@ function App() {
   window.query = query;
   return ${wrap(`<div style={{ position: "absolute", top: ${top}, left: 24, width: 520 }}>
       <B.Composer id="c" label="Message the team" value={text} onValueChange={setText} onSend={(t) => { window.sends = [...(window.sends ?? []), t]; }}
-        mentions={{ options: OPTIONS, onQueryChange: setQuery, onPick: (o, d) => window.picks.push([o.value, d.start, d.end, d.text]), label: "Mention someone" ${props} }} />
+        mentions={(field) => <B.MentionPicker field={field} options={OPTIONS} onQueryChange={setQuery} onPick={(o, d) => window.picks.push([o.value, d.start, d.end, d.text])} label="Mention someone" ${props} />} />
     </div>`)};
 }
 createRoot(document.getElementById("root")).render(<App />);`;
@@ -495,5 +495,193 @@ describe("MentionPicker", () => {
       else assert.ok(got.bottom <= got.taTop + 16 + 0.5, "above the trigger's line");
       await page.close();
     }
+  });
+});
+
+// ---- Fix pass 1 (Astra's review): a stale query, an input method's Enter, a field that cannot be written, the phone's keyboard, the typing
+// line's one line, the caller's ARIA, and the picker loaded only when asked for ----
+
+// A plain controlled textarea with the picker, so an Enter sends nothing and the field's value is the test's to read. window.setDraft sets the
+// value as an app would (React state, no input event); window.flags sets readOnly and disabled.
+const OWN_FIELD = (pre = "") => `
+${pre}
+window.picks = [];
+const OPTIONS = ${PEOPLE};
+function App() {
+  const [text, setText] = React.useState("");
+  const [flags, setFlags] = React.useState({ readOnly: false, disabled: false });
+  const [picker, setPicker] = React.useState(true);
+  window.setDraft = setText; window.flags = setFlags; window.setPicker = setPicker;
+  const ref = React.useRef(null);
+  return (
+    <div style={{ position: "absolute", top: 200, left: 24, width: 520 }}>
+      <textarea id="own" ref={ref} rows={2} aria-label="Notes" aria-controls="help-1" aria-describedby="help-1" value={text} readOnly={flags.readOnly} disabled={flags.disabled} onChange={(e) => setText(e.target.value)} style={{ width: 480, font: "16px/24px sans-serif" }} />
+      <p id="help-1">Type @ to name someone.</p>
+      {picker ? <B.MentionPicker field={ref} options={OPTIONS} onPick={(o) => window.picks.push(o.value)} /> : null}
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+const own = "#own";
+const opened = (page) => until(page, () => document.querySelector('[role="listbox"]') && !document.querySelector(".basalt-mention-picker[data-ending-style]"));
+
+describe("fix pass 1", () => {
+  test("a value the app sets while the picker is open closes it: Enter and a press on an old row write nothing, by React state or by the DOM", async () => {
+    const page = await open(OWN_FIELD());
+    await page.locator(own).click();
+    await page.keyboard.type("@a");
+    await opened(page);
+    // A controlled update: React state, no input event. The picker closes as it is drawn; a press on a row of the closing popup writes nothing,
+    // and the next Enter is the field's own (a new line), not a pick.
+    await page.evaluate(() => window.setDraft("draft"));
+    await until(page, () => document.getElementById("own").value === "draft");
+    await page.locator('[role="option"]').first().dispatchEvent("click").catch(() => {});
+    assert.equal(await page.locator(own).inputValue(), "draft", "the field stays the app's draft");
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator(own).inputValue(), "draft\n", "the Enter was the field's");
+    assert.deepEqual(await page.evaluate(() => window.picks), []);
+    // The DOM's value set straight, with nothing drawn and before any event says so: an Enter and a press at once. The picker still shows its
+    // rows, reads the field live, and writes nothing; the Enter it was shown for is still its own, so it does not reach the field either.
+    await page.evaluate(() => window.setDraft(""));
+    await until(page, () => document.getElementById("own").value === "");
+    await page.locator(own).click();
+    await page.keyboard.type("@a");
+    await opened(page);
+    const consumed = await page.evaluate(() => {
+      const ta = document.getElementById("own");
+      ta.value = "draft";
+      ta.setSelectionRange(5, 5);
+      const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+      ta.dispatchEvent(enter);
+      document.querySelector('[role="option"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return enter.defaultPrevented;
+    });
+    assert.equal(consumed, true);
+    assert.equal(await page.locator(own).inputValue(), "draft");
+    assert.deepEqual(await page.evaluate(() => window.picks), []);
+    await until(page, () => !document.querySelector('[role="listbox"]'));
+    await page.close();
+  });
+
+  test("an input method's Enter (key code 229) picks nothing, writes nothing and sends nothing", async () => {
+    const page = await open(PICKER());
+    await page.locator(field).click();
+    await page.keyboard.type("@an");
+    await opened(page);
+    const before = await state(page);
+    const ime = await page.evaluate(() => {
+      const ta = document.querySelector("#c textarea");
+      const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+      Object.defineProperty(event, "keyCode", { get: () => 229 });
+      ta.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    const after = await state(page);
+    assert.equal(ime, false, "the key is left to the input method");
+    assert.equal(after.value, before.value);
+    assert.equal(after.open, true);
+    assert.deepEqual(await page.evaluate(() => [window.picks, window.sends]), [[], undefined]);
+    await page.close();
+  });
+
+  test("a read-only or disabled field: the picker does not open there, and a field made read-only while it is open is not written", async () => {
+    const page = await open(OWN_FIELD());
+    await page.evaluate(() => window.flags({ readOnly: true, disabled: false }));
+    await page.evaluate(() => { const ta = document.getElementById("own"); ta.focus(); ta.value = "@a"; ta.setSelectionRange(2, 2); ta.dispatchEvent(new Event("input", { bubbles: true })); ta.dispatchEvent(new KeyboardEvent("keyup", { key: "a" })); });
+    await page.waitForTimeout(150);
+    assert.equal(await page.locator('[role="listbox"]').count(), 0, "read-only: closed");
+    await page.evaluate(() => { window.flags({ readOnly: false, disabled: false }); window.setDraft(""); });
+    await page.locator(own).click();
+    await page.keyboard.type("@a");
+    await opened(page);
+    // Made read-only while open: Enter and a press write nothing.
+    await page.evaluate(() => { document.getElementById("own").readOnly = true; });
+    await page.keyboard.press("Enter");
+    await page.locator('[role="option"]').first().dispatchEvent("click").catch(() => {});
+    assert.equal(await page.locator(own).inputValue(), "@a");
+    assert.deepEqual(await page.evaluate(() => window.picks), []);
+    // Disabled: the same.
+    await page.evaluate(() => { const ta = document.getElementById("own"); ta.readOnly = false; ta.focus(); ta.dispatchEvent(new KeyboardEvent("keyup", { key: "a" })); });
+    await opened(page);
+    await page.evaluate(() => { document.getElementById("own").disabled = true; });
+    await page.locator('[role="option"]').first().dispatchEvent("click").catch(() => {});
+    assert.equal(await page.locator(own).inputValue(), "@a");
+    assert.deepEqual(await page.evaluate(() => window.picks), []);
+    await page.close();
+  });
+
+  test("the phone's keyboard: with a visual viewport shorter than the window, the picker opens above the caret, inside what can be seen", async () => {
+    // A stand-in for a keyboard that covers the window's lower part (WebKit keeps innerHeight whole): the visual viewport is 300 tall.
+    const STUB = `{ const vv = new EventTarget(); Object.assign(vv, { offsetTop: 0, offsetLeft: 0, height: 300, width: innerWidth, scale: 1, pageTop: 0, pageLeft: 0 }); Object.defineProperty(window, "visualViewport", { configurable: true, get: () => vv }); window.vv = vv; }`;
+    const page = await open(OWN_FIELD(STUB), { width: 390, height: 800 });
+    await page.locator(own).click();
+    await page.keyboard.type("@");
+    await opened(page);
+    await until(page, () => document.querySelector(".basalt-mention-positioner")?.dataset.side).catch((e) => { throw new Error(`${e.message}; errors: ${page.errors.join(" | ")}`); });
+    const got = await page.evaluate(() => {
+      const pop = document.querySelector(".basalt-mention-picker").getBoundingClientRect();
+      const ta = document.getElementById("own").getBoundingClientRect();
+      return { side: document.querySelector(".basalt-mention-positioner").dataset.side, top: pop.top, bottom: pop.bottom, taTop: ta.top };
+    });
+    assert.equal(got.side, "top", "the room below the visible edge is short, so it opens above");
+    assert.ok(got.bottom <= got.taTop + 16, `above the caret's line: ${got.bottom} against ${got.taTop}`);
+    assert.ok(got.top >= 8 - 0.5, `inside what can be seen: ${got.top}`);
+    // The keyboard goes: the viewport grows back, and the picker follows it (resize), below the line again.
+    await page.evaluate(() => { window.vv.height = 800; window.vv.dispatchEvent(new Event("resize")); });
+    await until(page, () => document.querySelector(".basalt-mention-positioner").dataset.side === "bottom");
+    // A scroll of the visual viewport (a pinch-zoomed page panned) moves it too.
+    await page.evaluate(() => { window.vv.height = 200; window.vv.offsetTop = 100; window.vv.dispatchEvent(new Event("scroll")); });
+    await until(page, () => document.querySelector(".basalt-mention-positioner").dataset.side === "top");
+    const top = await page.evaluate(() => document.querySelector(".basalt-mention-picker").getBoundingClientRect().top);
+    assert.ok(top >= 108 - 0.5, `kept under the visual viewport's top (100) and its margin: ${top}`);
+    await page.close();
+  });
+
+  test("the typing line stays one line at 390 with three long names: cut with an ellipsis, the whole text in the live region", async () => {
+    const page = await open(COMPOSER(), { width: 390 });
+    await page.locator("#c").evaluate((el) => { el.parentElement.style.width = "358px"; el.parentElement.style.padding = "16px"; el.parentElement.style.boxSizing = "border-box"; });
+    const below = await box(page, "#after");
+    await page.evaluate(() => window.setTyping(["Maximiliana Okonkwo-Fairweather", "Bartholomew Alessandrini", "Genevieve Castellanos-Ruiz"]));
+    await until(page, () => document.querySelector("#c .basalt-composer-status").textContent.endsWith("are typing"));
+    const got = await page.locator("#c .basalt-composer-status").evaluate((el) => ({ h: el.getBoundingClientRect().height, cut: el.scrollWidth > el.clientWidth, overflow: getComputedStyle(el).textOverflow, text: el.textContent, live: el.getAttribute("aria-live") }));
+    assert.equal(got.h, 16, "one line");
+    assert.equal(got.cut, true, "the names are wider than the line");
+    assert.equal(got.overflow, "ellipsis");
+    assert.equal(got.text, "Maximiliana Okonkwo-Fairweather, Bartholomew Alessandrini, and Genevieve Castellanos-Ruiz are typing");
+    assert.equal(got.live, "polite");
+    assert.equal((await box(page, "#after")).y, below.y, "nothing under it moved");
+    await page.close();
+  });
+
+  test("the field's own ARIA is kept: its aria-controls comes back when the picker closes and when it lets go", async () => {
+    const page = await open(OWN_FIELD());
+    const aria = () => page.locator(own).evaluate((el) => ({ controls: el.getAttribute("aria-controls"), active: el.getAttribute("aria-activedescendant"), described: el.getAttribute("aria-describedby") }));
+    assert.equal((await aria()).controls, "help-1", "at rest, the field's own");
+    await page.locator(own).click();
+    await page.keyboard.type("@a");
+    await opened(page);
+    const during = await aria();
+    assert.notEqual(during.controls, "help-1");
+    assert.ok(during.active);
+    await page.keyboard.press("Escape");
+    await until(page, () => document.getElementById("own").getAttribute("aria-controls") === "help-1");
+    assert.equal((await aria()).active, null);
+    // The picker lets go (unmounted while open): the field has its own again, and none of the picker's.
+    await page.keyboard.type(" @b");
+    await opened(page);
+    await page.evaluate(() => window.setPicker(false));
+    await until(page, () => !document.getElementById("own").hasAttribute("aria-autocomplete"));
+    const released = await page.locator(own).evaluate((el) => ({ controls: el.getAttribute("aria-controls"), active: el.getAttribute("aria-activedescendant"), popup: el.getAttribute("aria-haspopup"), described: el.getAttribute("aria-describedby") }));
+    assert.deepEqual(released, { controls: "help-1", active: null, popup: null, described: "help-1" });
+    await page.close();
+  });
+
+  test("a composer without mentions draws no picker and leaves its field alone; one with mentions draws it, attached to its field", async () => {
+    const plain = await open(COMPOSER());
+    assert.equal(await plain.evaluate(() => document.querySelector("#c textarea").hasAttribute("aria-autocomplete")), false, "no picker attached");
+    await plain.close();
+    const withPicker = await open(PICKER());
+    await until(withPicker, () => document.querySelector("#c textarea").getAttribute("aria-autocomplete") === "list");
+    await withPicker.close();
   });
 });

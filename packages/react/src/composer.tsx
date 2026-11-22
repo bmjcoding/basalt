@@ -3,8 +3,7 @@ import * as React from "react";
 import { ActionShortcut } from "./action-shortcut";
 import { Button } from "./button";
 import { Textarea } from "./feedback";
-import { MentionPicker } from "./mention";
-import type { MentionPickerProps } from "./mention";
+import { isComposingKey } from "./keyboard";
 import { isModKey } from "./platform";
 import { isThenable, useJoinedRef } from "./wait";
 import { join } from "./utils";
@@ -42,8 +41,11 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
   actions?: React.ReactNode;
   /** The line under the composer: who is typing (`typingStatus`), a draft saved. A polite live region, one line tall even when empty. */
   status?: React.ReactNode;
-  /** Names in the field: the trigger opens a picker (`MentionPicker`) anchored to the field. */
-  mentions?: Omit<MentionPickerProps, "field">;
+  /**
+   * Names in the field: render the picker for the composer's field, `(field) => <MentionPicker field={field} options={people} />`. The app imports
+   * `MentionPicker` itself, so a composer without names never carries it.
+   */
+  mentions?: (field: React.RefObject<HTMLTextAreaElement | null>) => React.ReactNode;
   disabled?: boolean;
   /** The field's element. */
   inputRef?: React.Ref<HTMLTextAreaElement>;
@@ -114,7 +116,7 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     textareaProps?.onKeyDown?.(event);
-    if (event.defaultPrevented || event.key !== "Enter" || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.defaultPrevented || event.key !== "Enter" || isComposingKey(event.nativeEvent)) return;
     const sends = sendKey === "Enter" ? !event.shiftKey && !event.altKey : isModKey(event.nativeEvent) && !event.shiftKey && !event.altKey;
     if (!sends) return;
     event.preventDefault();
@@ -152,7 +154,7 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
         onChange={(event) => { textareaProps?.onChange?.(event); change(event.currentTarget.value); }}
         onKeyDown={onKeyDown}
       />
-      {mentions ? <MentionPicker {...mentions} field={own} /> : null}
+      {mentions ? mentions(own) : null}
       <div className="basalt-composer-actions">
         {actions ? <div className="basalt-composer-extra">{actions}</div> : null}
         {sendKey === "Mod+Enter" ? <ActionShortcut shortcut="Mod+Enter" className="basalt-composer-send-group">{button}</ActionShortcut> : button}

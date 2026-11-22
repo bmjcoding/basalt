@@ -3416,13 +3416,17 @@
   .basalt-composer-extra { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; min-width: 0; }
   /* Send is the row's last, at its end, whether or not the app gave other actions. */
   .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { margin-inline-start: auto; }
+  /* One line, always: a long list of names is cut with an ellipsis rather than wrapped, so nothing under it moves. The cut is a look only:
+     the live region holds the whole text, and that is what is read. */
   .basalt-composer-status {
     margin: 0;
     min-height: var(--basalt-text-xs-line-height);
     font-size: var(--basalt-text-xs-size);
     line-height: var(--basalt-text-xs-line-height);
     color: var(--basalt-text-tertiary);
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour. It wraps with its text. One

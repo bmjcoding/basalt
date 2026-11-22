@@ -2233,25 +2233,25 @@ the lead; the owner sees the pictures before merge). Every part serves any app w
 
 - **The composer** (`Composer`). The field is Basalt's `Textarea` with an accessible name (`label`) and no visible label; the placeholder says where the message goes too. Under it a row:
   the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. Under that one status line, `text-xs` in
-  tertiary ink, one line tall even when empty, a polite live region: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
+  tertiary ink, one line tall even when empty and never more (a long list of names is cut with an ellipsis; the live region holds the whole text), a polite live region: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
   are typing") or anything the app says there. Nothing moves when it fills. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
   to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within
   the same bounds.
 - **Sending.** Enter sends and Shift+Enter is a new line (the soft keyboard's key says Send), or with `sendKey="Mod+Enter"` Enter is a new line and the platform's modifier with Enter sends,
-  shown as chips beside Send (`ActionShortcut`). A key never sends while an input method is composing. The key presses Send, so a key and a press are one send and the button's own wait
+  shown as chips beside Send (`ActionShortcut`). A key never sends, and never picks a name, while an input method is composing (`isComposing`, or the key code 229 some engines send instead). The key presses Send, so a key and a press are one send and the button's own wait
   (`waitForAnswer`) guards both: a second Enter while a message is out sends nothing. On success the field is cleared, unless its text changed while the send was out; a refusal (a
   rejection, or `false`) keeps the words. A press on Send keeps focus, and a phone's keyboard, in the field; after a keyboard press on Send, focus goes back to the field.
 - **A mention** (`Mention`) is the trigger and the name, "@Ana Ruiz", at 500 in primary ink: a glyph and a weight mark it, never a colour, and it wraps with its text. The trigger is a prop
   ("#billing"). A mention that calls on the reader (`you`) also sits on its level's plate (`--basalt-plate`), radius 4, 2px each side of its own (given back by a margin, the plate ate half the space before it), drawn on
   every line it wraps to; in forced colours it is `Mark` with `MarkText`, and in print the plate is dropped.
-- **The mention picker** (`MentionPicker`, or `Composer`'s `mentions`) is Combobox's popup and rows, reused: the popup's level (its opener's plus one), rim, `shadow-overlay`, radius 12,
+- **The mention picker** (`MentionPicker`; `Composer`'s `mentions` renders it for the composer's field, and the app imports it, so a composer without names never carries it) is Combobox's popup and rows, reused: the popup's level (its opener's plus one), rim, `shadow-overlay`, radius 12,
   one-line and two-line rows (40 and 58), group labels ("People", "Teams", "Roles", the app's words), the plate, its glide and the lift. `Listbox` is a list in the page that holds its own
   focus, so it is not the picker. Focus stays in the field, which carries `aria-autocomplete="list"` and `aria-haspopup="listbox"`, and while the picker is open `aria-controls` and
   `aria-activedescendant` to the active row (whose `aria-selected` is true). A trigger at the start of the text, or after a space or an opening bracket, opens it; one inside a word (an address)
   does not. ↑ and ↓ move the plate, passing over a row that cannot be picked; Enter or Tab writes the trigger, the name and a space (the browser's own undo takes it back); a press on a row picks
   it; Esc closes it until another trigger is typed, and a dialog round the field stays open. A name may hold a space while something matches it; once nothing does, the picker closes, so a
   sentence is never held, and a query that matches nothing opens nothing (the app still hears it, `onQueryChange`, to look names up). The default match is each word typed starting a word of
-  the label or the description. It sits 6px under the trigger's line, or above it when there is more room there, and inside the window, 8px from its edges, at every width. Rows are cut and never
+  the label or the description. It sits 6px under the trigger's line, or above it when there is more room there, inside what can be seen, 8px from its edges, at every width: the room is the visual viewport's where there is one, so a phone's keyboard (which shrinks it and not WebKit's `innerHeight`) counts. It never writes into a field that is read-only or disabled (it does not open there, and checks again as it writes), nor into a mention the field no longer holds: a value the app set while it was open closes it, and an Enter or Tab meant for its rows then writes and sends nothing. The field's own `aria-controls`, `aria-activedescendant`, `aria-autocomplete` and `aria-haspopup` are kept and put back when it closes or lets go. Rows are cut and never
   wrap, as every popup row is (whether a described row may wrap is open). It enters and leaves as a popup does.
 - **The plate is public.** The lit row's plate as one opaque colour per level is the tokens `plate-0` to `plate-3` (the selected wash composited over the level, or in dark over the next
   level; a test holds each to that recipe), in both themes and in Swift, and `--basalt-plate`, which follows the level a part sits in (`data-level`; the page and a nested theme root start

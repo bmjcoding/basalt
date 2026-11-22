@@ -24,6 +24,14 @@ export function isHardwareKey(event: Pick<KeyboardEvent, "key" | "metaKey" | "ct
   return event.key === "Tab" || event.key === "Escape" || event.metaKey || event.ctrlKey || event.altKey;
 }
 
+/**
+ * A key an input method is still composing with (a candidate's confirmation, for one): `isComposing`, or the 229 some engines send instead
+ * (Safari's IME Enter, Android's soft keyboards). A field's own key handling (the composer's send, the mention picker's pick) ignores it.
+ */
+export function isComposingKey(event: { isComposing?: boolean; keyCode?: number }): boolean {
+  return Boolean(event.isComposing) || event.keyCode === 229;
+}
+
 function reveal() {
   hardware = true;
   document.documentElement.dataset.keyboard = "hardware";

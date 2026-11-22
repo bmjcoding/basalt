@@ -8,7 +8,7 @@
 
 import * as React from "react";
 
-import { Button, Card, CardContent, Composer, Mention, Text, typingStatus } from "../../packages/react/src/index";
+import { Button, Card, CardContent, Composer, Mention, MentionPicker, Text, typingStatus } from "../../packages/react/src/index";
 import type { MentionOption } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
@@ -68,18 +68,23 @@ function Thread({ domain, state }: { domain: keyof typeof DOMAINS; state: string
     const ta = field.current;
     if (!ta) return undefined;
     if (kind === "picker" || kind === "picker-keys") {
-      // A real focus and a real input event, so the picker reads the field as it would a person's typing.
-      ta.focus();
-      ta.value = d.query;
-      ta.setSelectionRange(d.query.length, d.query.length);
-      ta.dispatchEvent(new Event("input", { bubbles: true }));
-      setText(d.query);
-      if (kind === "picker-keys") {
-        const timer = window.setTimeout(() => {
-          for (let i = 0; i < 2; i++) ta.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
-        }, 200);
-        return () => window.clearTimeout(timer);
-      }
+      // A real focus and a real input event, so the picker reads the field as it would a person's typing, once the picker has taken the field.
+      const timers: number[] = [];
+      const start = () => {
+        if (!ta.hasAttribute("aria-autocomplete")) { timers.push(window.setTimeout(start, 20)); return; }
+        ta.focus();
+        ta.value = d.query;
+        ta.setSelectionRange(d.query.length, d.query.length);
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        setText(d.query);
+        if (kind === "picker-keys") {
+          timers.push(window.setTimeout(() => {
+            for (let i = 0; i < 2; i++) ta.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+          }, 200));
+        }
+      };
+      start();
+      return () => timers.forEach(window.clearTimeout);
     }
     if (kind === "long") { ta.scrollTop = ta.scrollHeight; }
     if (kind === "sending") {
@@ -111,7 +116,7 @@ function Thread({ domain, state }: { domain: keyof typeof DOMAINS; state: string
         status={typingStatus(kind === "default" ? [] : d.typing)}
         // The review holds a send out, so the ring can be seen; it never settles.
         onSend={() => (kind === "sending" ? new Promise(() => {}) : undefined)}
-        mentions={{ options: d.options, label: "Mention someone" }}
+        mentions={(field) => <MentionPicker field={field} options={d.options} label="Mention someone" />}
       />
     </section>
   );

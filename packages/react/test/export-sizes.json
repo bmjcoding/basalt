@@ -61,7 +61,7 @@
   "CommandBlock": 4923,
   "CommandList": 33057,
   "CommandMenu": 84208,
-  "Composer": 64670,
+  "Composer": 51932,
   "CopyButton": 18435,
   "CopyGlyph": 2884,
   "Countdown": 2920,
@@ -139,7 +139,7 @@
   "LoopsToggleIcon": 17952,
   "MarksRow": 886,
   "Mention": 342,
-  "MentionPicker": 12701,
+  "MentionPicker": 13737,
   "Menu": 181593,
   "MenuCheckboxItem": 184918,
   "MenuContent": 186365,
@@ -373,11 +373,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 771778,
-  "gzip": 254404
+  "bytes": 772787,
+  "gzip": 254757
  },
  "styles": {
-  "bytes": 306695,
-  "gzip": 40380
+  "bytes": 306730,
+  "gzip": 40384
  }
 }

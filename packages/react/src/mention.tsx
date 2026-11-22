@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 
+import { isComposingKey } from "./keyboard";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 import { GlidePlate } from "./plate";
 import { join } from "./utils";
@@ -124,6 +125,16 @@ function caretBox(field: HTMLTextAreaElement | HTMLInputElement, index: number):
   return { x: Math.min(Math.max(x, box.left), box.right), top: clampedTop, bottom: clampedTop + line };
 }
 
+/** A field the picker may write into: not read-only, not disabled, with a caret and no selection. */
+const writable = (element: HTMLTextAreaElement | HTMLInputElement) => !element.readOnly && !element.disabled && element.selectionStart === element.selectionEnd;
+
+/** The mention at the field's caret now, read from its live value: a controlled update fires no input event, so a query held from before may be stale. */
+const liveQuery = (element: HTMLTextAreaElement | HTMLInputElement, trigger: string) => (writable(element) ? queryAt(element.value, element.selectionStart ?? element.value.length, trigger) : null);
+const same = (a: Query | null, b: Query | null) => Boolean(a && b && a.at === b.at && a.text === b.text);
+
+/** The ARIA the picker sets on the field. The caller's own values are kept and put back when the picker lets go. */
+const OWNED = ["aria-autocomplete", "aria-haspopup", "aria-controls", "aria-activedescendant"] as const;
+
 /** 6px from the trigger's line, as a popup sits from its trigger; 8px from the window's edges. */
 const OFFSET = 6;
 const MARGIN = 8;
@@ -165,12 +176,24 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
   // What is typed after the trigger, read from the field on every change of its text or caret.
   const read = React.useCallback(() => {
     const element = field.current;
-    if (!element || document.activeElement !== element || element.selectionStart !== element.selectionEnd) { setQuery(null); return; }
-    const next = queryAt(element.value, element.selectionStart ?? element.value.length, trigger);
+    if (!element || document.activeElement !== element || !writable(element)) { setQuery(null); return; }
+    const next = liveQuery(element, trigger);
     if (next && dismissed.current === next.at) { setQuery(null); return; }
     if (!next) dismissed.current = null;
     setQuery((was) => (was && next && was.at === next.at && was.text === next.text ? was : next));
   }, [field, trigger]);
+
+  // The caller's own values of the attributes the picker sets, read once from the field before the picker writes any.
+  const saved = React.useRef<{ element: Element; values: Map<string, string | null> } | null>(null);
+  const saveAria = React.useCallback((element: Element) => {
+    if (saved.current?.element === element) return;
+    saved.current = { element, values: new Map(OWNED.map((name) => [name, element.getAttribute(name)])) };
+  }, []);
+  const restoreAria = React.useCallback((element: Element, name: string) => {
+    const value = saved.current?.element === element ? saved.current.values.get(name) : null;
+    if (value === null || value === undefined) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+  }, []);
 
   const queryText = query?.text ?? null;
   const onQuery = React.useRef(onQueryChange);
@@ -182,6 +205,9 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
   const pick = React.useCallback((option: MentionOption) => {
     const element = field.current;
     if (!element || !query || option.disabled) return;
+    // Write only into the mention the field holds now: a field the app made read-only or disabled, or a value it replaced, closes the picker
+    // and keeps its text.
+    if (!same(liveQuery(element, trigger), query)) { setQuery(null); return; }
     const end = element.selectionStart ?? element.value.length;
     const name = `${trigger}${option.label}`;
     const spaced = /^\s/u.test(element.value.slice(end)) ? name : `${name} `;
@@ -201,15 +227,22 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
   }, [field, query, trigger, onPick]);
 
   // The keys, on the field itself, so they run before any handler the app gave the field (React's run at the root).
-  const state = React.useRef({ open, current, shown, pick });
-  state.current = { open, current, shown, pick };
+  const state = React.useRef({ open, current, shown, pick, query });
+  state.current = { open, current, shown, pick, query };
   React.useEffect(() => {
     const element = field.current;
     if (!element) return undefined;
     const onKey = (event: Event) => {
       const key = event as KeyboardEvent;
       const s = state.current;
-      if (!s.open || key.isComposing) return;
+      if (!s.open || isComposingKey(key)) return;
+      // The field changed under the picker (the app set its value, or made it read-only): it closes. An Enter or Tab meant for the rows it
+      // showed is still the picker's, so it neither writes nor sends.
+      if (!same(liveQuery(element, trigger), s.query)) {
+        if (key.key === "Enter" || key.key === "Tab" || key.key === "ArrowDown" || key.key === "ArrowUp" || key.key === "Escape") key.preventDefault();
+        read();
+        return;
+      }
       if (key.key === "ArrowDown" || key.key === "ArrowUp") {
         key.preventDefault();
         const step = key.key === "ArrowDown" ? 1 : -1;
@@ -218,6 +251,8 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
           next = (next + step + s.shown.length) % s.shown.length;
           if (!s.shown[next]!.disabled) break;
         }
+        // Two keys in one task each move once: the next reads where this one left it, before React draws.
+        s.current = next;
         setActive(next);
       } else if ((key.key === "Enter" || key.key === "Tab") && !key.shiftKey && !key.altKey && !key.metaKey && !key.ctrlKey) {
         const option = s.shown[s.current];
@@ -245,27 +280,36 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     element.addEventListener("pointerup", later);
     element.addEventListener("focus", read);
     element.addEventListener("blur", onBlur);
+    // A selection or caret the app moved without an input event (a value it set) is read too.
+    const onSelection = () => { if (doc.activeElement === element) read(); };
+    doc.addEventListener("selectionchange", onSelection);
+    saveAria(element);
     element.setAttribute("aria-autocomplete", "list");
     element.setAttribute("aria-haspopup", "listbox");
     return () => {
+      doc.removeEventListener("selectionchange", onSelection);
       element.removeEventListener("keydown", onKey);
       doc.removeEventListener("input", onInput);
       element.removeEventListener("keyup", read);
       element.removeEventListener("pointerup", later);
       element.removeEventListener("focus", read);
       element.removeEventListener("blur", onBlur);
-      for (const name of ["aria-autocomplete", "aria-haspopup", "aria-controls", "aria-activedescendant"]) element.removeAttribute(name);
+      for (const name of OWNED) restoreAria(element, name);
+      saved.current = null;
     };
-  }, [field, read, trigger]);
+  }, [field, read, trigger, saveAria, restoreAria]);
 
   // The field names the list while it is open, and the row the keys are on.
   React.useLayoutEffect(() => {
     const element = field.current;
     if (!element) return;
+    saveAria(element);
     if (open) element.setAttribute("aria-controls", listId);
-    else element.removeAttribute("aria-controls");
+    else restoreAria(element, "aria-controls");
     if (open && current >= 0) element.setAttribute("aria-activedescendant", optionId(current));
-    else element.removeAttribute("aria-activedescendant");
+    else restoreAria(element, "aria-activedescendant");
+    // A value the app set while the picker was open (no input event): the query is read again, and closes if it is gone.
+    if (query && !same(liveQuery(element, trigger), query)) read();
   });
 
   // The popup stays mounted through its exit (0.75 of its entry, easing in), as Base UI's popups do.
@@ -286,7 +330,7 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     return () => window.clearTimeout(done);
   }, [open, mounted]);
 
-  // Where it sits: under the trigger's line, or above it when there is more room there; never past the window.
+  // Where it sits: under the trigger's line, or above it when there is more room there; never past what can be seen.
   const positioner = React.useRef<HTMLDivElement>(null);
   const popup = React.useRef<HTMLDivElement>(null);
   const anchor = open ? query!.at : -1;
@@ -296,15 +340,22 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     const list = popup.current;
     if (!element || !box || !list || anchor < 0) return;
     const caret = caretBox(element, anchor);
-    const below = window.innerHeight - caret.bottom - OFFSET - MARGIN;
-    const above = caret.top - OFFSET - MARGIN;
+    // The room is the visual viewport's, where there is one: a phone's keyboard shrinks it and not the layout viewport (WebKit's innerHeight
+    // stays whole), and a pinch-zoom moves it. Its offsets are in the layout viewport's coordinates, which the caret and a fixed box use too.
+    const view = window.visualViewport;
+    const top = view?.offsetTop ?? 0;
+    const leftEdge = view?.offsetLeft ?? 0;
+    const height = view?.height ?? window.innerHeight;
+    const viewWidth = view?.width ?? window.innerWidth;
+    const below = top + height - caret.bottom - OFFSET - MARGIN;
+    const above = caret.top - top - OFFSET - MARGIN;
     list.style.removeProperty("--available-height");
     const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
     const down = below >= natural || below >= above;
     list.style.setProperty("--available-height", `${Math.max(0, down ? below : above)}px`);
     list.style.setProperty("--transform-origin", down ? "left top" : "left bottom");
     const width = list.offsetWidth;
-    const left = Math.min(Math.max(MARGIN, caret.x), Math.max(MARGIN, window.innerWidth - MARGIN - width));
+    const left = Math.min(Math.max(leftEdge + MARGIN, caret.x), Math.max(leftEdge + MARGIN, leftEdge + viewWidth - MARGIN - width));
     box.style.left = `${left}px`;
     if (down) { box.style.top = `${caret.bottom + OFFSET}px`; box.style.bottom = ""; }
     else { box.style.bottom = `${window.innerHeight - caret.top + OFFSET}px`; box.style.top = ""; }
@@ -318,11 +369,13 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     window.addEventListener("resize", again);
     window.addEventListener("scroll", again, { capture: true, passive: true });
     window.visualViewport?.addEventListener("resize", again);
+    window.visualViewport?.addEventListener("scroll", again);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", again);
       window.removeEventListener("scroll", again, { capture: true });
       window.visualViewport?.removeEventListener("resize", again);
+      window.visualViewport?.removeEventListener("scroll", again);
     };
   }, [mounted, place]);
 
