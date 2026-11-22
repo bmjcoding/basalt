@@ -32,7 +32,7 @@ export interface DialogProps {
  * trigger when it closes; Esc closes it.
  */
 export function Dialog(props: DialogProps) {
-  const form = React.useRef<FormState>({ dirty: false, opened: undefined, popup: null, initial: "" });
+  const form = React.useRef<FormState>({ opened: undefined, popup: null, initial: "" });
   const { onOpenChange } = props;
   return (
     <DialogModal.Provider value={props.modal === undefined || props.modal === true}>
@@ -45,7 +45,6 @@ export function Dialog(props: DialogProps) {
               details.cancel();
               return;
             }
-            form.current.dirty = false;
             form.current.opened = open ? modalityOf(details.event) : undefined;
             onOpenChange?.(open, details);
           }}
@@ -55,9 +54,8 @@ export function Dialog(props: DialogProps) {
   );
 }
 
-/** What a form dialog learns about its opening and its fields: whether anything has been entered, and the input that opened it. */
+/** What a form dialog learns about its opening and its fields: what they held when it opened, and the input that opened it. */
 interface FormState {
-  dirty: boolean;
   opened: "touch" | "keyboard" | undefined;
   /** The open form's box and what its fields held when it opened. */
   popup: HTMLElement | null;
@@ -68,8 +66,8 @@ interface FormState {
 function values(box: HTMLElement): string {
   return Array.from(box.querySelectorAll<HTMLInputElement>("input, select, textarea"), (el) => (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : el.value)).join("\u0001");
 }
-/** Something has been entered: an input or change event, or any field that no longer holds what it held when the form opened. */
-const entered = (state: FormState) => state.dirty || Boolean(state.popup && values(state.popup) !== state.initial);
+/** Something is entered: a field holds something other than it held when the form opened. Read at the press, so a form typed into and emptied again closes. */
+const entered = (state: FormState) => Boolean(state.popup && values(state.popup) !== state.initial);
 const DialogForm = /* @__PURE__ */ React.createContext<FormState | null>(null);
 
 /**
@@ -103,7 +101,7 @@ export interface DialogContentProps extends PartProps<"div"> {
   /**
    * A form or a task (DECISIONS 222: tasks open in the center): the sheet's `SheetHeader`, `SheetBody` and `SheetFooter` in a dialog box (a held head with the title and a 44px
    * Close, a body that scrolls and opens with the description, a held foot with Cancel, then the primary). It is at most the window less `space-4` above and below; its top is
-   * held where it opened and it grows downward (it re-centres only when the window is resized); a press on the scrim closes it only while nothing has been entered; focus
+   * held where it opened and it grows downward (it re-centres only when the window is resized); a press on the scrim closes it only while its fields hold what they held when it opened; focus
    * on opening goes to the first field, or to the title (no ring) when a touch opened it; and under 720 it is a full-screen modal, square, rising from the bottom.
    */
   form?: boolean;
@@ -131,13 +129,12 @@ export function DialogContent({ className, style, children, ref, size = "default
   }, [ref]);
   const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
   const top = useHeldTop(node, form);
-  // A form's state lives only while it is open: opened by whatever means, it starts with nothing entered and no remembered input; when its box goes, both go (however it was closed).
+  // A form's state lives only while it is open: opened by whatever means, it starts with what its fields hold and no remembered input; when its box goes, both go (however it was closed).
   React.useLayoutEffect(() => {
     if (!form || !state || !node) return undefined;
-    state.dirty = false;
     state.popup = node;
     state.initial = values(node);
-    return () => { state.dirty = false; state.opened = undefined; state.popup = null; state.initial = ""; };
+    return () => { state.opened = undefined; state.popup = null; state.initial = ""; };
   }, [node, form, state]);
   // A wide dialog is a manual: its first focus is its name, not the first button, so Enter on opening does nothing. A form opens on its first field, or on its title when a
   // touch opened it, so no keyboard rises over a form before the reader has seen it.
@@ -147,7 +144,7 @@ export function DialogContent({ className, style, children, ref, size = "default
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} onInput={(event) => { if (form && state) state.dirty = true; props.onInput?.(event); }} onChange={(event) => { if (form && state) state.dirty = true; props.onChange?.(event); }} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalDepth.Provider>
   );

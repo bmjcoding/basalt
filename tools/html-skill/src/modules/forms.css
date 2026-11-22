@@ -3,6 +3,7 @@
   /* ---- Fields and inputs ---- */
 
   .field { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; }
+  .field > label { align-self: start; }
   .field > label, .label { font: var(--basalt-font-weight-medium) var(--bh-sm); color: var(--basalt-text-primary); }
   /* "Required" or "Optional", directly after the label: tertiary ink at text-xs, 400, hidden from assistive technology (the input's own `required` says it). Never an asterisk. */
   .necessity { margin-inline-start: var(--basalt-space-1-5); font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }

@@ -477,7 +477,10 @@
     min-width: 0;
   }
 
+  /* The label is as wide as its words (and "Required"), not the field's row: a press on its words focuses the control, a press on the empty
+     space beside them does nothing. A long label still wraps at the row's width. */
   .basalt-field-label {
+    align-self: start;
     font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-primary);
   }

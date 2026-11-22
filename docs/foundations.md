@@ -1980,7 +1980,7 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 
 - **Height.** At most the window less `space-4` above and below, with the head and foot held and the body scrolling (528px at 1440 by 560).
 - **Its top is held where it opened** (where a dialog of its height would sit, never nearer the window's edge than `space-4`), and it grows downward: an error under a field adds its height and the title does not move. It re-centres only on a window resize.
-- **The scrim closes it only while nothing has been entered.** Esc, Close and Cancel always close it. "Entered" is an input or change event, or any field (a Select, a Switch, a Combobox: each keeps a hidden input) that holds something other than it held when the form opened. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. There is no "discard changes?" step: one task at a time.
+- **The scrim closes it only while nothing has been entered** (the owner, DECISIONS 233: "it makes sense to have the guard if there's information filled in, but if there's no info filled it can minimize/close"). Esc, Close and Cancel always close it. "Entered" is read at the press: any field (a Select, a Switch, a Combobox: each keeps a hidden input) that holds something other than it held when the form opened, so a field typed into and emptied again counts as nothing entered. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. There is no "discard changes?" step: one task at a time.
 - **Focus** on opening goes to the first field; when a touch opened it, to the title (`tabindex="-1"`, no ring), so no keyboard rises over a form before it is seen. The choice is by the input that
   opened it (a key press on the opener focuses the field even in touch emulation); a controlled dialog falls back to the primitive's reading. On closing, focus returns to the opener.
 - **Under 720 it is a full-screen modal:** the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion (300ms in, 225ms
@@ -2060,7 +2060,7 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 Components build on Base UI (the default base in shadcn/ui since July 2026, from the team
 behind Radix), with shadcn/ui's variable names mapped onto Basalt's in `dist/css/shadcn.css`.
 
-Forms retain native labels, grouped legends and validation. **A required field says so:** "Required" directly after the label
+Forms retain native labels, grouped legends and validation. **A field's label is as wide as its words** (with its "Required" or "Optional"), never the row: a press on the words focuses the control, a press on the empty space beside them does nothing (DECISIONS 233). **A required field says so:** "Required" directly after the label
 (not at the far end of its row), in `text-tertiary` at `text-xs` and 400, hidden from assistive technology (the input's own
 `required` says it, so it is not said twice). "Optional" shows the same way, only where an author marks a field optional; a field
 marked neither shows nothing, so existing fields do not all grow a word. Never an asterisk, a colour or a glyph alone. On the smoked
