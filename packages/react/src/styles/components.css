@@ -3882,8 +3882,10 @@
      Select inserts; the `uncheckedValue` input), not the Slider's range input (a real focus target, and already inside its transformed thumb, so
      not a layer), and not the checklist rows' inputs: in the open popup absolute inputs move the AA of its corners, which is a pixel. It is an inline
      style, so the override takes !important. If a Base UI release stops passing `inputRef` to this input, nothing matches and nothing is exposed (the input is
-     as hidden as Base UI makes it); a test fails when the rule matches nothing. */
-  [data-basalt-mirror] { position: absolute !important; inset: auto !important; }
+     as hidden as Base UI makes it); a test fails when the rule matches nothing. It sits at the top start of its containing block, as Base UI's fixed
+     input sat at the viewport's, never at its place in the flow: an absolute box at its static place escapes a scroller that is not itself positioned,
+     so a list of checkboxes under a sticky or positioned ancestor stretched the page by the list's whole scrolled height (found by the first app). */
+  [data-basalt-mirror] { position: absolute !important; inset: 0 auto auto 0 !important; }
   /* In the checklist's rows the inputs sit at the rows' own top start, so they add nothing to the rows' scrollable height (DECISIONS 167, Q9j). */
   .basalt-filter-rows > [data-basalt-mirror] { top: 0 !important; left: 0 !important; }
 
