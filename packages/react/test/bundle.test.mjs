@@ -345,10 +345,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
-// so its limit is 146,000.
-// cimip-gaps-2, B7 (DECISIONS 265): the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track take NotificationCentre from
-// 147,581 to 151,710 (147,600 to 151,750).
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 151_750]]) {
+// so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default).
+// cimip-gaps-2, B7 (DECISIONS 265): the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track take NotificationCentre up
+// by about 4,130 bytes (147,581 to 151,710 before DECISIONS 268's 18; the limit 147,700 to 151,850).
+for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 151_850]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -529,12 +529,13 @@ test("the whole package up front and styles.css, minified and gzipped, stay with
 });
 
 // Loading a module does nothing, for every file in dist (the lazy command panel apart: it loads on first open, and the Maps it builds are Phosphor's icon
-// tables, bundled in). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
+// tables, bundled in; and the two head scripts, dist/head/theme.js and dist/head/loops.js, by name, which are not modules: each is a classic script that runs in a document's head, and reads the page's
+// storage as it loads, which is what it is for; test/content-policy.test.mjs runs them in a page). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
 // formatter that the file itself allocates while it loads (the frame that called `new` is in this package's dist) is counted against it, and so is any throw.
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js").sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -553,4 +554,102 @@ test("importing every file in dist allocates no registry or formatter, reads no 
   `;
   const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, dist, ...files], { encoding: "utf8", cwd: pkg, maxBuffer: 1 << 24 });
   assert.deepEqual(JSON.parse(out.trim().split("\n").at(-1)), []);
+});
+
+// First-load chunking (DECISIONS 265, batch B0). An app that splits its bundle draws its shell up front and its forms and popups in a route it loads later, and
+// imports everything from the root. esbuild places a module by which entries reach it before tree shaking, and every `export … from` in the root is a path, so
+// without the imports plugin the route's modules ride in a chunk the first screen loads (measured: 341 KB up front, Base UI's combobox, select and menu in it).
+// With the plugin the first screen loads exactly what it would if each import named its own module. The limit is the measurement (160,341 bytes) rounded up to the next 1,000.
+async function firstScreen({ plugin, entry = "shell.jsx" } = {}) {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const result = await esbuild.build({
+    absWorkingDir: path.join(here, "fixtures", "split-app"), entryPoints: [entry],
+    outdir: path.join(pkg, ".bundle-check"), bundle: true, minify: true, format: "esm", splitting: true, write: false, metafile: true, jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    plugins: plugin ? [basaltImportsEsbuild()] : [],
+  });
+  const outputs = result.metafile.outputs;
+  const start = Object.keys(outputs).find((file) => outputs[file].entryPoint === entry);
+  const seen = new Set();
+  const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+  visit(start);
+  // What contributes bytes, from the package and its dependencies (the app's own file and the plugin's small barrels left out).
+  const inputs = [...new Set([...seen].flatMap((file) => Object.entries(outputs[file].inputs).filter(([input, { bytesInOutput }]) => bytesInOutput > 0 && /\/dist\/|node_modules/.test(input)).map(([input]) => input)))].sort();
+  const later = [...new Set(Object.keys(outputs).filter((file) => !seen.has(file)).flatMap((file) => Object.keys(outputs[file].inputs)))];
+  return { bytes: [...seen].reduce((sum, file) => sum + outputs[file].bytes, 0), inputs, later };
+}
+
+test("a split app's first screen, through the imports plugin, loads what it would if each import named its own module, and none of a later route's", async () => {
+  const through = await firstScreen({ plugin: true });
+  const direct = await firstScreen({ entry: "shell-direct.jsx" });
+  assert.deepEqual(through.inputs, direct.inputs, "the same files up front as imports that name each module");
+  const route = through.inputs.filter((f) => /@base-ui\/react\/(esm\/)?(combobox|select|menu|dialog|field|input)\//.test(f));
+  assert.deepEqual(route, [], "none of the route's popups and fields are up front");
+  assert.ok(through.inputs.some((f) => /@base-ui\/react\/(esm\/)?tooltip\//.test(f)), "the rail's tooltip, which Nav draws, is");
+  assert.ok(through.bytes < 161_000, `first screen ${through.bytes} bytes (limit 161,000)`);
+});
+
+test("the imports plugin changes where code lands, not what the route gets: the route still loads every part it draws", async () => {
+  const { later } = await firstScreen({ plugin: true });
+  for (const part of ["combobox", "select", "menu", "dialog", "field"]) assert.ok(later.some((f) => new RegExp(`@base-ui/react/(esm/)?${part}/`).test(f)), `Base UI's ${part} loads with the route`);
+});
+
+test("the imports plugin's map holds every name the root exports at run time, each from a module that exports it", async () => {
+  const { rootMap } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const map = rootMap();
+  const exported = await runtimeExports();
+  assert.deepEqual([...map.keys()].sort(), exported);
+  const modules = new Map();
+  for (const [name, { module, local }] of map) {
+    modules.set(module, modules.get(module) ?? await import(path.join(pkg, "dist", module)));
+    assert.ok(local in modules.get(module), `${name}: ${module} exports ${local}`);
+  }
+});
+
+test("the plugin reads a file's imports from the root by esbuild's parser, and takes the whole root for a form it cannot place", async () => {
+  const { readRootImports } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const cases = [
+    ["semicolon-free.ts", 'export type Local = { id: string }\nimport { Button } from "@srasyndicate/basalt"\nexport const x: Local = { id: String(Button) }\n', ["Button"]],
+    ["comment.js", '// import { Menu } from "@srasyndicate/basalt";\n/* import { Dialog } from "@srasyndicate/basalt" */\nimport { Button } from "@srasyndicate/basalt";\nconsole.log(Button);\n', ["Button"]],
+    ["default.js", 'import Default, { A } from "@srasyndicate/basalt";\nconsole.log(Default, A);\n', null],
+    ["typed.ts", 'import { type A, B } from "@srasyndicate/basalt";\nexport const y: A = B;\n', ["B"]],
+    ["reexport.js", 'export { A as B } from "@srasyndicate/basalt";\n', ["A"]],
+    ["multi-line.tsx", "import {\n  Button,\n  // a comment\n  Menu as M,\n} from '@srasyndicate/basalt'\nexport const C = () => <M><Button>Don't</Button></M>\n", ["Button", "Menu"]],
+    ["type-only.ts", 'import type { MenuProps } from "@srasyndicate/basalt";\nimport { Spinner } from "@srasyndicate/basalt/other";\nexport const p: MenuProps | null = null; console.log(Spinner);\n', []],
+    ["template.js", 'import { Button } from "@srasyndicate/basalt";\nconst s = `import { Menu } from "@srasyndicate/basalt"`;\nconsole.log(Button, s);\n', null],
+    ["dynamic.js", 'import { Button } from "@srasyndicate/basalt";\nconst later = () => import("@srasyndicate/basalt");\nconsole.log(Button, later);\n', ["Button"]],
+    ["namespace.js", 'import * as B from "@srasyndicate/basalt";\nconsole.log(B);\n', null],
+    ["star.js", 'export * from "@srasyndicate/basalt";\n', null],
+    ["jsx-in-plain.js", 'import { Button } from "@srasyndicate/basalt";\nexport const C = () => <Button />;\n', null],
+  ];
+  for (const [file, source, expected] of cases) assert.deepEqual(await readRootImports(source, file, esbuild.transform), expected, file);
+  // The build's own loader for an extension is the one used: JSX in a .js file is read when the build says so.
+  assert.deepEqual(await readRootImports(cases.at(-1)[1], "jsx-in-plain.js", esbuild.transform, { ".js": "jsx" }), ["Button"]);
+});
+
+// A dependency with its own nested copy of the package keeps it: the plugin rewrites only an import that resolves to the root beside it.
+test("the imports plugin never rewrites a file that resolves another copy of Basalt", async () => {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const root = path.join(pkg, ".bundle-check", "nested-copy");
+  nodeFs.rmSync(root, { recursive: true, force: true });
+  const write = (file, text) => { nodeFs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); nodeFs.writeFileSync(path.join(root, file), text); };
+  write("app.js", 'import { Button } from "@srasyndicate/basalt";\nimport { fromDependency } from "dep";\nconsole.log(Button, fromDependency);\n');
+  write("node_modules/dep/package.json", JSON.stringify({ name: "dep", version: "1.0.0", type: "module", main: "index.js" }));
+  write("node_modules/dep/index.js", 'import { Button } from "@srasyndicate/basalt";\nexport const fromDependency = Button;\n');
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/package.json", JSON.stringify({ name: "@srasyndicate/basalt", version: "0.0.1", type: "module", exports: { ".": "./index.js" }, sideEffects: false }));
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/index.js", 'export const Button = "the nested copy";\n');
+  try {
+    const result = await esbuild.build({
+      absWorkingDir: root, entryPoints: ["app.js"], bundle: true, format: "esm", write: false, metafile: true,
+      external: ["react", "react-dom", "react/jsx-runtime", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"],
+      logLevel: "silent", plugins: [basaltImportsEsbuild()],
+    });
+    const inputs = Object.keys(result.metafile.inputs);
+    assert.ok(result.outputFiles[0].text.includes("the nested copy"), "the dependency's own copy is what it gets");
+    assert.ok(inputs.some((f) => /node_modules\/dep\/node_modules\/@srasyndicate\/basalt\/index\.js$/.test(f)), "the nested copy is resolved as esbuild would resolve it");
+    assert.ok(inputs.some((f) => f.startsWith("basalt-imports:") && f.endsWith(`${path.sep}app.js`)), "the app's own import is still rewritten");
+    assert.ok(!inputs.some((f) => f.startsWith("basalt-imports:") && f.includes(`${path.sep}dep${path.sep}`)), "the dependency's import is not");
+  } finally {
+    nodeFs.rmSync(root, { recursive: true, force: true });
+  }
 });

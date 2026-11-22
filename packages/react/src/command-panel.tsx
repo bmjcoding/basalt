@@ -75,14 +75,14 @@ export interface CommandPanelProps {
   placeholder: string;
   hints: boolean;
   onOpenChange: (open: boolean) => void;
-  /** What was typed into the placeholder search row while this panel loaded. */
-  initialSearch?: string;
+  /** What is typed: the menu holds it (from its first keystroke, while this panel loaded), so an app can read it or control it. */
+  search: string;
+  onSearchChange: (search: string) => void;
 }
 
-export function CommandPanel({ groups, placeholder, hints, onOpenChange, initialSearch = "" }: CommandPanelProps) {
+export function CommandPanel({ groups, placeholder, hints, onOpenChange, search, onSearchChange: setSearch }: CommandPanelProps) {
   const hintId = React.useId();
   const apple = useApplePlatform();
-  const [search, setSearch] = React.useState(initialSearch);
   const list = React.useRef<HTMLDivElement>(null);
   const input = React.useRef<HTMLInputElement>(null);
   useActiveDescendant(list, input);

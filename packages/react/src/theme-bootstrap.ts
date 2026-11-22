@@ -6,6 +6,7 @@
  * system's, written to `data-theme` exactly as the HTML skill's head snippet does. It also writes `data-theme-choice` (`light`,
  * `dark` or `system`: what the person chose), which the theme choice's own CSS draws its chosen word from, so the right word is
  * chosen in the first frame, before any script and before React hydrates (DECISIONS 146 B). The app inlines it:
- * `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`.
+ * `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`. Under a policy that forbids inline scripts, the same line is a file,
+ * `@srasyndicate/basalt/head/theme.js`, for a plain `<script src>` in `<head>`; with a nonce, give the inline script the nonce.
  */
 export const themeBootstrap = '(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);})();';

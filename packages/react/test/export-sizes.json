@@ -33,6 +33,7 @@
   "Button": 17513,
   "CONFIRM_MS": 31,
   "COPIED_MS": 35,
+  "CSPProvider": 449,
   "CalendarGlyph": 2974,
   "Callout": 11777,
   "CaptionedColumn": 350,
@@ -60,7 +61,7 @@
   "Combobox": 164576,
   "CommandBlock": 4923,
   "CommandList": 33057,
-  "CommandMenu": 84208,
+  "CommandMenu": 84381,
   "CopyButton": 18435,
   "CopyGlyph": 2884,
   "Countdown": 2920,
@@ -156,13 +157,13 @@
   "MoreGlyph": 2809,
   "MoreNavGlyph": 2918,
   "MorphIcon": 6713,
-  "MultiSelect": 150431,
+  "MultiSelect": 150482,
   "Nav": 4675,
   "NavGroup": 514,
   "NavItem": 110643,
   "NoticeBar": 813,
-  "NotificationCenter": 151165,
-  "NotificationCentre": 151175,
+  "NotificationCenter": 151202,
+  "NotificationCentre": 151212,
   "NotificationList": 31751,
   "NotificationsGlyph": 3066,
   "NumberField": 43928,
@@ -186,7 +187,7 @@
   "PolicyGlyph": 2987,
   "Popover": 118760,
   "PopoverClose": 118738,
-  "PopoverContent": 119655,
+  "PopoverContent": 119692,
   "PopoverDescription": 118926,
   "PopoverTitle": 118914,
   "PopoverTrigger": 118936,
@@ -376,11 +377,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 766491,
-  "gzip": 252001
+  "bytes": 767161,
+  "gzip": 252198
  },
  "styles": {
-  "bytes": 311085,
-  "gzip": 40662
+  "bytes": 311275,
+  "gzip": 40693
  }
 }
