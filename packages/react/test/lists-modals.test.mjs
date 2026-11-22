@@ -626,6 +626,33 @@ describe("Dialog as a centred form modal", () => {
     await page.close();
   });
 
+  test("what is entered is read at the press: typed into and emptied again, the form closes on the scrim (DECISIONS 233)", async () => {
+    const page = await open(FORM());
+    await openForm(page);
+    await page.locator("#what").pressSequentially("abc");
+    await page.mouse.click(30, 450);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator("#declare").count(), 1, "with something typed, a stray press does nothing");
+    await page.locator("#what").fill("");
+    await page.mouse.click(30, 450);
+    await page.locator("#declare").waitFor({ state: "detached" });
+    await page.close();
+  });
+
+  test("a field's label is as wide as its words: a press on them focuses the control, a press on the empty space beside them does not (DECISIONS 233)", async () => {
+    const page = await open(`document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ width: 440, padding: 16 }}><B.Field label="Title" required><B.Input id="title" /></B.Field><button id="other" type="button">Other</button></div>);`);
+    const label = await page.locator(".basalt-field-label").boundingBox();
+    const input = await page.locator("#title").boundingBox();
+    assert.ok(label.width < input.width / 2, `the label is ${label.width}px wide in a ${input.width}px field`);
+    assert.match(await page.locator(".basalt-field-label").innerText(), /Title\s*Required/, "the necessity word is inside the label");
+    await page.locator("#other").focus();
+    await page.mouse.click(input.x + input.width - 8, label.y + label.height / 2);
+    assert.notEqual(await page.evaluate(() => document.activeElement.id), "title", "the empty space beside the label is not a target");
+    await page.mouse.click(label.x + 4, label.y + label.height / 2);
+    assert.equal(await page.evaluate(() => document.activeElement.id), "title", "the label's words focus the field");
+    await page.close();
+  });
+
   test("focus on opening goes to the first field with a mouse or a key; focus returns to the opener on closing", async () => {
     const page = await open(FORM());
     await page.locator("#opener").click();
