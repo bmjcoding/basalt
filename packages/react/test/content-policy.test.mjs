@@ -1,5 +1,5 @@
-// A page under a content policy (DECISIONS 265, batch B0): the head scripts as files, Base UI's inline style turned off or given a nonce, and nothing on screen
-// changing. Each page is served from its own origin with a real `Content-Security-Policy` header, so Chromium enforces the policy and reports each refusal.
+// A page under a content policy (DECISIONS 265, batch B0): the head scripts as files, and Base UI's inline style turned off or given a nonce, with the open popup's
+// box and its list's scrollbar measured the same. Each page is served from its own origin with a real `Content-Security-Policy` header, so Chromium enforces the policy and reports each refusal.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -68,8 +68,8 @@ describe("the head scripts as files", () => {
   test("each file is its exported string, character for character, and a package export", async () => {
     const { themeBootstrap } = await import(pathToFileURL(path.join(dist, "theme-bootstrap.js")).href);
     const { loopsBootstrap } = await import(pathToFileURL(path.join(dist, "loops-bootstrap.js")).href);
-    assert.equal(fs.readFileSync(path.join(dist, "head", "theme.js"), "utf8"), `${themeBootstrap}\n`);
-    assert.equal(fs.readFileSync(path.join(dist, "head", "loops.js"), "utf8"), `${loopsBootstrap}\n`);
+    assert.equal(fs.readFileSync(path.join(dist, "head", "theme.js"), "utf8"), themeBootstrap);
+    assert.equal(fs.readFileSync(path.join(dist, "head", "loops.js"), "utf8"), loopsBootstrap);
     const manifest = JSON.parse(fs.readFileSync(path.join(pkg, "package.json"), "utf8"));
     assert.equal(manifest.exports["./head/theme.js"], "./dist/head/theme.js");
     assert.equal(manifest.exports["./head/loops.js"], "./dist/head/loops.js");
@@ -137,7 +137,7 @@ describe("Base UI's inline style under style-src 'self'", () => {
     }
   });
 
-  test("the provider changes no pixel: the open Select's popup is the same box with the style element on and off", async () => {
+  test("with the style element on and off, the open Select's popup has the same box, and its list the same scrollbar width and client width", async () => {
     const boxes = [];
     for (const provider of [null, { disableStyleElements: true }]) {
       const { page, context } = await policyPage("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");

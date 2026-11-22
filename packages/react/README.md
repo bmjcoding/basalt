@@ -52,10 +52,10 @@ and then drawn draws nothing**. Measured with esbuild's minifier on this package
 common components, and about 28 KB (7.5 KB gzipped) less for one that imports everything. Without the plugin the icons ship whole, as before; nothing
 else changes.
 
-**Split bundles with esbuild: add the imports plugin.** An app that splits its bundle (`splitting: true`) and imports from the package's root pays up front for
-every Basalt module a later route draws: esbuild places a module by which entry points reach it before tree shaking, and each `export … from` in the root is a
-path. `@srasyndicate/basalt/imports` gives each of your files a small barrel of the names it imports, each from the module that holds it, so your imports stay
-as they are:
+**Split bundles with esbuild: the imports plugin (experimental).** An app that splits its bundle (`splitting: true`) and imports from the package's root pays
+up front for every Basalt module a later route draws: esbuild places a module by which entry points reach it before tree shaking, and each `export … from` in the
+root is a path. `@srasyndicate/basalt/imports` gives each of your files a small barrel of the names it imports, each from the module that holds it, so your imports
+stay as they are:
 
 ```ts
 import { basaltImportsEsbuild } from "@srasyndicate/basalt/imports";
@@ -63,9 +63,15 @@ await esbuild.build({ splitting: true, plugins: [basaltImportsEsbuild()] /* … 
 ```
 
 Measured with esbuild 0.28 on a first screen that draws `AppShell`, `Nav` and a `Table`, with a route loaded later that draws `Combobox`, `Select`, `Menu`,
-`Dialog` and a `Field`: 341 KB minified up front without it (Base UI's combobox, select and menu among it), 160 KB with it, none of them. A file that imports
-the whole namespace (`import * as B`) or re-exports everything keeps the full root. It changes which chunk code lands in, never what runs; a bundle without
-splitting gains nothing from it.
+`Dialog` and a `Field`: 341 KB minified up front without it (Base UI's combobox, select and menu among it), 160 KB with it, none of them. It changes which chunk
+code lands in, never what runs; a bundle without splitting gains nothing from it. It is **experimental**: esbuild only (Rollup and Vite have not been measured),
+and it keeps to two rules:
+
+- **It falls back to the whole root when it cannot read a file.** A file is read through esbuild's own parser, and its imports from the root by their grammar. A
+  file esbuild cannot transform with the loader it would use, or one that names the root in any other form (a namespace import, `export *`, a default import, the
+  name in a string), keeps the full root: a slower first screen, never a missing import.
+- **It never rewrites a dependency that resolves another copy of Basalt.** Each import is resolved as esbuild would resolve it for that file, and only one that
+  reaches the copy beside the plugin is rewritten.
 
 **Under a content security policy.** Two things Basalt or Base UI write inline have a form for a policy that forbids inline code:
 
@@ -74,8 +80,8 @@ splitting gains nothing from it.
   `<script src="/basalt-theme.js"></script>` (no `async`, `defer` or `type="module"`, which would run them after the first frame). With a nonce, keep the
   inline form and give it the nonce: `<script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`.
 - **Base UI's one inline `<style>`** (a hidden scrollbar on `.base-ui-disable-scrollbar`, written when a `Select` opens) is refused by `style-src 'self'`.
-  Wrap the app in `<CSPProvider disableStyleElements>`: Base UI writes no style element, and Basalt's stylesheet draws the same rule in `@layer basalt`, so
-  nothing on screen changes. Or pass the policy's nonce, `<CSPProvider nonce={nonce}>`, and Base UI writes it on its style and script elements.
+  Wrap the app in `<CSPProvider disableStyleElements>`: Base UI writes no style element, and Basalt's stylesheet draws the same two declarations in
+  `@layer basalt` (measured: the open popup's box, and its list's scrollbar width and client width, are the same with Base UI's style and without it). Or pass the policy's nonce, `<CSPProvider nonce={nonce}>`, and Base UI writes it on its style and script elements.
   `CSPProvider` takes `nonce`, `disableStyleElements` and `children`, and draws nothing of its own: it is Base UI's provider with Basalt's types.
 
 ```ts

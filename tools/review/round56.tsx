@@ -178,7 +178,7 @@ export const ROUND_56: Round = {
       name: "A Select under a content policy",
       intro: "Two Selects inside `CSPProvider disableStyleElements`, a build pipeline's runner and a shared folder's sort.",
       decisions: [
-        "Base UI writes one inline `<style>` when a Select opens; `style-src 'self'` refuses it. With the provider, Base UI writes none, and Basalt's sheet draws the same two declarations on `.base-ui-disable-scrollbar` in `@layer basalt`. The open popup is the same box, pixel for pixel (tested), and no style element is written (tested under a real policy).",
+        "Base UI writes one inline `<style>` when a Select opens; `style-src 'self'` refuses it. With the provider, Base UI writes none, and Basalt's sheet draws the same two declarations on `.base-ui-disable-scrollbar` in `@layer basalt`. Measured with Base UI's style and without it: the open popup's box, and its list's scrollbar width and client width, are the same; no style element is written (tested under a real policy).",
         "The head scripts (`themeBootstrap`, `loopsBootstrap`) ship as files too (`head/theme.js`, `head/loops.js`) for `script-src 'self'`; nothing to see.",
       ],
       tryIt: ["Open the runner Select and choose: it behaves as any Select."],

@@ -77,12 +77,21 @@ await esbuild.build({
 });
 
 // The root's map for the imports plugin (src/tooling/imports.ts): every name the root exports at run time, and the module that holds it, read from the barrel's source.
-// `export * from "./glyph-set"` is the one star, and glyph-set is itself a list of `export { X } from "./glyphs/x"`: each glyph maps to its own module. Any other
-// form in the barrel fails the build here, so the plugin never misses a name (test/bundle.test.mjs holds the map to the root's exports).
+// `export * from "./glyph-set"` is the one star, and glyph-set is itself a list of `export { X } from "./glyphs/x"`: each glyph maps to its own module. Every
+// `export` statement in the barrel must be one of the three forms below (`export { … } from "./x";`, `export type { … } from "./x";`, `export * from "./x";`, double
+// quotes, a relative path); any other fails the build here, naming its line, so the plugin never misses a name (test/bundle.test.mjs holds the map to the root's exports).
 const rootMap = {};
+const BARREL_FORM = /export\s+(type\s+)?(\*|\{[^{}]*\})\s*from\s*"(\.\/[^"]+)"\s*;/y;
 const readBarrel = (file, dir) => {
-  const source = fs.readFileSync(file, "utf8").replace(/\/\/.*$/gm, "");
-  for (const statement of source.matchAll(/export\s+(type\s+)?(\*|\{[^}]*\})\s*from\s*"(\.\/[^"]+)"/g)) {
+  // Comments become spaces of the same length, so a position still names its line.
+  const source = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (comment) => comment.replace(/[^\n]/g, " "));
+  for (const start of source.matchAll(/(?<![\w$.])export\b/g)) {
+    BARREL_FORM.lastIndex = start.index;
+    const statement = BARREL_FORM.exec(source);
+    if (!statement) {
+      const line = source.slice(0, start.index).split("\n").length;
+      throw new Error(`the imports map: ${path.relative(here, file)}:${line} is an export the map cannot read: ${source.split("\n")[line - 1].trim()}`);
+    }
     const [, type, clause, from] = statement;
     if (type) continue;
     const target = path.join(dir, from);
@@ -181,8 +190,8 @@ execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")),
 const { themeBootstrap } = await import(pathToFileURL(path.join(dist, "theme-bootstrap.js")).href);
 const { loopsBootstrap } = await import(pathToFileURL(path.join(dist, "loops-bootstrap.js")).href);
 fs.mkdirSync(path.join(dist, "head"), { recursive: true });
-fs.writeFileSync(path.join(dist, "head", "theme.js"), `${themeBootstrap}\n`);
-fs.writeFileSync(path.join(dist, "head", "loops.js"), `${loopsBootstrap}\n`);
+fs.writeFileSync(path.join(dist, "head", "theme.js"), themeBootstrap);
+fs.writeFileSync(path.join(dist, "head", "loops.js"), loopsBootstrap);
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
 const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");

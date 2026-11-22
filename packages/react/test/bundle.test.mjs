@@ -525,13 +525,13 @@ test("the whole package up front and styles.css, minified and gzipped, stay with
 });
 
 // Loading a module does nothing, for every file in dist (the lazy command panel apart: it loads on first open, and the Maps it builds are Phosphor's icon
-// tables, bundled in; and the two head scripts in dist/head, which are not modules: each is a classic script that runs in a document's head, and reads the page's
+// tables, bundled in; and the two head scripts, dist/head/theme.js and dist/head/loops.js, by name, which are not modules: each is a classic script that runs in a document's head, and reads the page's
 // storage as it loads, which is what it is for; test/content-policy.test.mjs runs them in a page). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
 // formatter that the file itself allocates while it loads (the frame that called `new` is in this package's dist) is counted against it, and so is any throw.
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !f.startsWith(`head${path.sep}`)).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -602,10 +602,50 @@ test("the imports plugin's map holds every name the root exports at run time, ea
   }
 });
 
-test("rootImports reads named imports and re-exports, skips types, and gives up on a namespace or a star", async () => {
-  const { rootImports } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
-  const source = `import { Button, IconButton as Icon, type ButtonProps } from "@srasyndicate/basalt";\nimport type { MenuProps } from "@srasyndicate/basalt";\nexport {\n  Table,\n  TableRow,\n} from '@srasyndicate/basalt';\nimport { Spinner } from "@srasyndicate/basalt/other";`;
-  assert.deepEqual(rootImports(source), ["Button", "IconButton", "Table", "TableRow"]);
-  assert.equal(rootImports(`import * as B from "@srasyndicate/basalt";`), null);
-  assert.equal(rootImports(`export * from "@srasyndicate/basalt";`), null);
+test("the plugin reads a file's imports from the root by esbuild's parser, and takes the whole root for a form it cannot place", async () => {
+  const { readRootImports } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const cases = [
+    ["semicolon-free.ts", 'export type Local = { id: string }\nimport { Button } from "@srasyndicate/basalt"\nexport const x: Local = { id: String(Button) }\n', ["Button"]],
+    ["comment.js", '// import { Menu } from "@srasyndicate/basalt";\n/* import { Dialog } from "@srasyndicate/basalt" */\nimport { Button } from "@srasyndicate/basalt";\nconsole.log(Button);\n', ["Button"]],
+    ["default.js", 'import Default, { A } from "@srasyndicate/basalt";\nconsole.log(Default, A);\n', null],
+    ["typed.ts", 'import { type A, B } from "@srasyndicate/basalt";\nexport const y: A = B;\n', ["B"]],
+    ["reexport.js", 'export { A as B } from "@srasyndicate/basalt";\n', ["A"]],
+    ["multi-line.tsx", "import {\n  Button,\n  // a comment\n  Menu as M,\n} from '@srasyndicate/basalt'\nexport const C = () => <M><Button>Don't</Button></M>\n", ["Button", "Menu"]],
+    ["type-only.ts", 'import type { MenuProps } from "@srasyndicate/basalt";\nimport { Spinner } from "@srasyndicate/basalt/other";\nexport const p: MenuProps | null = null; console.log(Spinner);\n', []],
+    ["template.js", 'import { Button } from "@srasyndicate/basalt";\nconst s = `import { Menu } from "@srasyndicate/basalt"`;\nconsole.log(Button, s);\n', null],
+    ["dynamic.js", 'import { Button } from "@srasyndicate/basalt";\nconst later = () => import("@srasyndicate/basalt");\nconsole.log(Button, later);\n', ["Button"]],
+    ["namespace.js", 'import * as B from "@srasyndicate/basalt";\nconsole.log(B);\n', null],
+    ["star.js", 'export * from "@srasyndicate/basalt";\n', null],
+    ["jsx-in-plain.js", 'import { Button } from "@srasyndicate/basalt";\nexport const C = () => <Button />;\n', null],
+  ];
+  for (const [file, source, expected] of cases) assert.deepEqual(await readRootImports(source, file, esbuild.transform), expected, file);
+  // The build's own loader for an extension is the one used: JSX in a .js file is read when the build says so.
+  assert.deepEqual(await readRootImports(cases.at(-1)[1], "jsx-in-plain.js", esbuild.transform, { ".js": "jsx" }), ["Button"]);
+});
+
+// A dependency with its own nested copy of the package keeps it: the plugin rewrites only an import that resolves to the root beside it.
+test("the imports plugin never rewrites a file that resolves another copy of Basalt", async () => {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const root = path.join(pkg, ".bundle-check", "nested-copy");
+  nodeFs.rmSync(root, { recursive: true, force: true });
+  const write = (file, text) => { nodeFs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); nodeFs.writeFileSync(path.join(root, file), text); };
+  write("app.js", 'import { Button } from "@srasyndicate/basalt";\nimport { fromDependency } from "dep";\nconsole.log(Button, fromDependency);\n');
+  write("node_modules/dep/package.json", JSON.stringify({ name: "dep", version: "1.0.0", type: "module", main: "index.js" }));
+  write("node_modules/dep/index.js", 'import { Button } from "@srasyndicate/basalt";\nexport const fromDependency = Button;\n');
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/package.json", JSON.stringify({ name: "@srasyndicate/basalt", version: "0.0.1", type: "module", exports: { ".": "./index.js" }, sideEffects: false }));
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/index.js", 'export const Button = "the nested copy";\n');
+  try {
+    const result = await esbuild.build({
+      absWorkingDir: root, entryPoints: ["app.js"], bundle: true, format: "esm", write: false, metafile: true,
+      external: ["react", "react-dom", "react/jsx-runtime", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"],
+      logLevel: "silent", plugins: [basaltImportsEsbuild()],
+    });
+    const inputs = Object.keys(result.metafile.inputs);
+    assert.ok(result.outputFiles[0].text.includes("the nested copy"), "the dependency's own copy is what it gets");
+    assert.ok(inputs.some((f) => /node_modules\/dep\/node_modules\/@srasyndicate\/basalt\/index\.js$/.test(f)), "the nested copy is resolved as esbuild would resolve it");
+    assert.ok(inputs.some((f) => f.startsWith("basalt-imports:") && f.endsWith(`${path.sep}app.js`)), "the app's own import is still rewritten");
+    assert.ok(!inputs.some((f) => f.startsWith("basalt-imports:") && f.includes(`${path.sep}dep${path.sep}`)), "the dependency's import is not");
+  } finally {
+    nodeFs.rmSync(root, { recursive: true, force: true });
+  }
 });
