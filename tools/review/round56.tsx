@@ -2,7 +2,7 @@
 // (a support inbox, a build pipeline, a shared document, a team chat). Synthetic data only. Decided and built by Opus on the no-council path (DECISIONS 226 and 265);
 // Astra reviews the code and the lead checks the pixels; nothing here has been reviewed yet. The described-menu step is the owner's call and ships nothing: its
 // three options are pictures (unlayered demo CSS on purpose, so the option can override `@layer basalt`).
-// States: `focus` and `hover` hold a row with Chromium's forced pseudo-classes (`data-wt-force`); `open` opens the step's dialog or menus; each may end in
+// States: `held-focus` and `held-hover` hold a row with Chromium's forced pseudo-classes (`data-wt-force`); `open` opens the step's dialog or menus; each may end in
 // `-forced-colours` or `-reduced-motion`.
 
 import * as React from "react";
@@ -72,7 +72,7 @@ function Panels({ state }: { state: string }) {
         <h3 id="r56-requests" className="basalt-visually-hidden">Open requests</h3>
         <PanelList aria-labelledby="r56-requests">
           {REQUESTS.map((r, i) => (
-            <PanelRow key={r.id} href={`#${r.id}`} title={r.title} description={r.from} trailing={r.time} leading={<Badge variant="plain" status={r.status}>{r.word}</Badge>} data-wt-force={i === 1 && kind === "focus" ? "focus" : i === 0 && kind === "hover" ? "hover" : undefined} />
+            <PanelRow key={r.id} href={`#${r.id}`} title={r.title} description={r.from} trailing={r.time} leading={<Badge variant="plain" status={r.status}>{r.word}</Badge>} data-wt-force={i === 1 && kind === "held-focus" ? "focus" : i === 0 && kind === "held-hover" ? "hover" : undefined} />
           ))}
         </PanelList>
       </div>
@@ -143,8 +143,8 @@ function Selectable({ state }: { state: string }) {
         </Card>
       </div>
       <div style={stack}>
-        <Caption>A team chat: scheduled messages, the bar under the rows (as at the foot of a sheet).</Caption>
-        <Card>
+        <Caption>A team chat: scheduled messages, the bar under the rows, sticking to the scroller's foot (as at the foot of a sheet).</Caption>
+        <Card style={{ maxHeight: 180, overflowY: "auto" }}>
           <SelectableList
             label="Scheduled messages"
             values={QUEUE.map((q) => q.id)}
@@ -230,7 +230,7 @@ function Code() {
         <CodeBlock code={DEPLOY} language="sh" prompt="$" wrap />
       </div>
       <div style={stack}>
-        <Caption>wrap with no prompt: a continuation is indented 2ch, so it never reads as a new line.</Caption>
+        <Caption>wrap with no prompt: a continuation is indented 2ch, so it never reads as a new line. The file name is longer than the line at 390, so the block scrolls for it.</Caption>
         <CodeBlock code={`${MIGRATE}\n\n# then\nnpm run reindex -- --table orders --batch-size 5000`} language="sh" title="Run once" wrap />
       </div>
     </div>
@@ -350,7 +350,7 @@ function MenuOptions({ state }: { state: string }) {
     <div style={stack}>
       <style>{OPTION_CSS}</style>
       <Caption>
-        {option === "a" ? "Option A, as shipped: up to 320 wide, both lines cut with an ellipsis." : option === "b" ? "Option B: still up to 320, the description wraps; a row grows a line." : "Option C (what CIMIP did): as wide as its longest line up to the window less 16px each side, wrapping only when the window is narrower."}
+        {option === "a" ? "Option A, as shipped: up to 320 wide, both lines cut with an ellipsis." : option === "b" ? "Option B: still up to 320, the description wraps; a row grows a line." : "Option C: as wide as its longest line up to the window less 16px each side, wrapping only when the window is narrower."}
       </Caption>
       <div style={{ display: "flex", gap: "var(--basalt-space-2)" }}>
         {chat ? <OptionMenu option={option} items={ALERTS} label="Notifications" open={kind.startsWith("menu-")} /> : <OptionMenu option={option} items={ROLES} label="Access" open={kind.startsWith("menu-")} />}
@@ -395,7 +395,7 @@ export const ROUND_56: Round = {
         "A row that opens a new tab draws the new-tab arrow after its title and says so. On a coarse pointer a row is at least 44.",
       ],
       tryIt: ["Tab through the inbox: the ring is inside each band and follows the panel's corners on the first and last rows.", "Hover a row: the wash runs edge to edge and no ink changes."],
-      states: ["focus", "hover", ...MEDIA, "focus-forced-colours"],
+      states: ["held-focus", "held-hover", ...MEDIA, "held-focus-forced-colours"],
       widths: [1440, 390],
       touch: true,
       height: 520,

@@ -76,6 +76,10 @@ describe("PanelList", () => {
 
   test("the band is full bleed: hover is a wash with no ink change; focus is the ring inside at −2 and the end rows take the panel's inner corner", async () => {
     const page = await open(PANEL);
+    // The rows are subgrids of the list: every title starts on one edge, a row with a seat or without, and every trailing value ends on one.
+    const edges = await page.evaluate(() => [...document.querySelectorAll("#r1, #r2, #r3")].map((r) => [Math.round(r.querySelector(".basalt-panel-row-title").getBoundingClientRect().left), r.querySelector(".basalt-panel-row-end") ? Math.round(r.querySelector(".basalt-panel-row-end").getBoundingClientRect().right) : null]));
+    assert.equal(new Set(edges.map((e) => e[0])).size, 1, `titles on one edge: ${JSON.stringify(edges)}`);
+    assert.equal(edges[0][1], edges[1][1]);
     const rest = await page.evaluate(() => { const r = document.getElementById("r1"); return { bg: getComputedStyle(r).backgroundColor, ink: getComputedStyle(r.querySelector(".basalt-panel-row-title")).color, w: r.getBoundingClientRect().width, list: document.querySelector(".basalt-panel-list").clientWidth }; });
     assert.equal(rest.w, rest.list, "the row is the panel's inner width");
     await page.hover("#r1");

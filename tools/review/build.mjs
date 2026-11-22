@@ -322,7 +322,7 @@ for (const id of rounds) {
           if (state.endsWith("reduced-transparency")) await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
-          const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34") && /^Unsafe attempt to load URL file:/.test(text);
+          const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34" || Number(id) >= 56) && /^Unsafe attempt to load URL file:/.test(text);
           // Round 34 draws the skill's page with the script off, in a frame that may not run scripts: the browser says so, once for each script it blocked (the timer count this file installs in every frame is one of them, in the frame's `about:blank` first).
           const scriptsOff = (text) => id === "34" && /^Blocked script execution in 'about:(srcdoc|blank)'/.test(text);
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);

@@ -4995,12 +4995,17 @@
      The panel's level, one rim, radius 12 and a divider between rows. Each row is a band that is itself a link or a button: hover is the row's wash, full bleed,
      lifting no ink; a press steps it to the selected wash; focus is the 2px ring inside at −2, because the band meets the panel's clipping edge, and the first
      and last rows take the panel's inner corner so the ring follows it. Not DirectoryList, which is rimless, washless and on the page. */
-  .basalt-panel-list { box-sizing: border-box; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
+  /* The list is the grid and every row a subgrid of it, so the leading seats, the words and the trailing values line up down the list whatever each row holds
+     (a "Waiting" and an "Answered" badge start every title on one edge). The leading column is there only when a row has a seat. */
+  .basalt-panel-list { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .basalt-panel-item { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
   .basalt-panel-item + .basalt-panel-item { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-panel-row {
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
     column-gap: var(--basalt-space-3);
     align-items: start;
     width: 100%;
@@ -5015,7 +5020,10 @@
     cursor: pointer;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  .basalt-panel-row:has(> .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .basalt-panel-row-lead { grid-column: 1; }
+  .basalt-panel-row-words { grid-column: -3 / -2; }
+  .basalt-panel-row:not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column-end: -1; }
+  .basalt-panel-row-end { grid-column: -2 / -1; justify-self: end; }
   .basalt-panel-row:hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
   .basalt-panel-row:active { background-color: var(--basalt-state-selected); }
   .basalt-panel-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
