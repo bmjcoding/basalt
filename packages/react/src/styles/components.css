@@ -4835,6 +4835,15 @@
   /* The results: an ordered list that keeps space-1-5 from its edges, so a ring at +2 is never cut by the panel that scrolls it. */
   .basalt-passages { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
   .basalt-passages-item { margin: 0; padding: 0; list-style: none; }
+  /* A results budget (rows, lines): as tall as that many passages (the row's padding, its head line, the gap and its lines of text), plus the list's own
+     padding, scrolling inside, so the field and the count above never move. Unset, the list grows with its results. */
+  .basalt-passages[data-budget] {
+    box-sizing: border-box;
+    height: calc(2 * var(--basalt-space-1-5) + var(--_rows, 5) * (2 * (var(--basalt-space-2) + var(--basalt-space-0-5)) + var(--basalt-text-sm-line-height) + var(--basalt-space-0-5) + var(--_lines, 2) * var(--basalt-text-base-line-height)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: var(--basalt-space-1-5);
+  }
   /* A passage is a link or a button with popup-row geometry: a plate inset 2px above and below, radius 8, 12px from the edge to the words. The head
      is the source (one cut line, primary, 400) and the meta at its end (tertiary, tabular); the passage wraps under it in secondary ink. */
   .basalt-passage {

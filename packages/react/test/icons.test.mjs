@@ -253,9 +253,9 @@ describe("the bytes, with the plugin and without it", () => {
   // 7,291 on main at 4778c200 as on this branch, over the 6,950 set in 1eaff4c9: the rise is DECISIONS 244's one Mod key across platforms (b361621c, platform.ts and
   // the Mod handling in keyboard.ts). Its limit is that measurement rounded up to the next 50, 7,300.
   // cimip-gaps-2, B7 (DECISIONS 265): the center draws the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track, so with the
-  // plugin it rose from 143,793 to 147,187, and DECISIONS 268's popover default (18 bytes) brings it to 147,224, and Clear all (DECISIONS 269) adds
-  // about 100 (143,800 to 147,350).
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 147_350, 3_500]]) {
+  // plugin it rose from 143,793 to 147,187, and DECISIONS 268's popover default (18 bytes) brings it to 147,224, and with Clear all (DECISIONS 269) it measured 147,477
+  // (143,800 to 147,500).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 147_500, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first

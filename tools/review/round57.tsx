@@ -1,6 +1,6 @@
 // Round 57: notices and search (cimip-gaps-2, batch B7; DECISIONS 265, the no-council path). Built and decided by Opus inside foundations; the code
 // review is Astra's and the pixels are the lead's. Every part in two unlike domains with synthetic data: a build pipeline and a support inbox for
-// the notification center, and a shared handbook and a team chat for the search. States: the bell open in each domain, a group opened, the page form
+// the notification center, and a shared handbook and a support inbox's messages for the search. States: the bell open in each domain, a group opened, the page form
 // on a phone with the tab bar, the list in a sidebar with a current entry, and the search with results, a current passage, its first load (bones),
 // a slow changed query (the last results kept, "Searching"), and no results; forced colours and reduced motion for each.
 
@@ -154,13 +154,15 @@ const HANDBOOK: { query: string; label: string; hits: Hit[] } = {
     { source: "Leaving › Returning equipment", meta: "Section 9", text: "Return the laptop, its charger and your badge on your last day. A courier can collect them if you work from home." },
   ],
 };
-const CHAT: { query: string; label: string; hits: Hit[] } = {
-  query: "contrast",
-  label: "Search this channel",
+const INBOX_SEARCH: { query: string; label: string; hits: Hit[] } = {
+  query: "refund",
+  label: "Search the inbox",
   hits: [
-    { source: "Noor Haddad", meta: "2h ago", text: "Can we check the contrast on the muted labels before Friday? Two of them look faint on the dark theme." },
-    { source: "Elif Kaya", meta: "Yesterday", text: "I measured them: 4.1 to 1 on the panel. We need 4.5, so the contrast fix is a step up in ink." },
-    { source: "You", meta: "Mon", text: "Raised a ticket for the contrast checks, and linked the screenshots from the review." },
+    { source: "Dana Whitfield · ticket 4821", meta: "2m ago", text: "I was charged twice for the same order. Could you refund the second charge to the original card?" },
+    { source: "You · ticket 4821", meta: "1m ago", text: "Thanks, Dana. I have started the refund for the duplicate charge; it reaches your card in three to five days." },
+    { source: "Omar Reyes · ticket 4766", meta: "Tue", text: "The refund arrived, but the confirmation email still shows the old total." },
+    { source: "Hana Sato · ticket 4702", meta: "Nov 3", text: "Is a refund possible after thirty days if the item never shipped?" },
+    { source: "You · ticket 4702", meta: "Nov 3", text: "Yes: an order that never shipped is refunded in full, whenever you ask. I have sent it now." },
   ],
 };
 
@@ -173,9 +175,9 @@ const rangesOf = (text: string, query: string): MatchRange[] => {
   return out;
 };
 
-function Passages({ hits, query, current, label }: { hits: Hit[]; query: string; current?: number; label: string }) {
+function Passages({ hits, query, current, label, rows }: { hits: Hit[]; query: string; current?: number; label: string; rows?: number }) {
   return (
-    <SearchPassages aria-label={label}>
+    <SearchPassages aria-label={label} rows={rows}>
       {hits.map((hit, i) => (
         <SearchPassage key={hit.source + i} source={hit.source} meta={hit.meta} current={current === i} onClick={() => {}}>
           {markMatches(hit.text, rangesOf(hit.text, query))}
@@ -190,9 +192,11 @@ const standInHits = (variant: StandInVariant): Hit[] =>
 
 function Search({ state }: { state: string }) {
   const kind = kindOf(state);
-  const domain = kind.startsWith("chat") ? CHAT : HANDBOOK;
+  const domain = kind.startsWith("inbox") ? INBOX_SEARCH : HANDBOOK;
   const [query, setQuery] = React.useState(kind === "none" ? "keyboard tray" : domain.query);
   const loading = kind === "loading";
+  // The inbox's panel holds a budget of three passages; the handbook's list grows with the page.
+  const budget = domain === INBOX_SEARCH ? 3 : undefined;
   const refreshing = kind === "refreshing";
   const none = kind === "none";
   const hits = none ? [] : domain.hits;
@@ -200,8 +204,8 @@ function Search({ state }: { state: string }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--basalt-space-8)", padding: "var(--basalt-space-6) var(--basalt-gutter)" }} className="wt-search-page">
       <div>
-        <Heading level={1} size="xl">{domain === CHAT ? "#design" : "Team handbook"}</Heading>
-        <Text tone="secondary">{domain === CHAT ? "A team chat: the search runs on the server, over the whole history, and returns passages." : "A shared document: the search runs on the server and returns passages with their matches."}</Text>
+        <Heading level={1} size="xl">{domain === INBOX_SEARCH ? "Support inbox" : "Team handbook"}</Heading>
+        <Text tone="secondary">{domain === INBOX_SEARCH ? "A support inbox: the search runs on the server over every ticket's messages; the results hold a budget of three passages and scroll inside." : "A shared document: the search runs on the server and returns passages with their matches."}</Text>
       </div>
       <Card style={{ padding: 0 }}>
         <div style={{ display: "grid", gap: "var(--basalt-space-2)", padding: "var(--basalt-space-3) var(--basalt-space-3) 0" }}>
@@ -211,10 +215,10 @@ function Search({ state }: { state: string }) {
             <Refreshing on={refreshing} label="Searching" />
           </div>
         </div>
-        <LoadingShape loading={loading} refreshing={refreshing} label="Searching" shape={() => <Passages hits={standInHits(0)} query="" label={domain.label} />}>
+        <LoadingShape loading={loading} refreshing={refreshing} label="Searching" shape={() => <Passages hits={standInHits(0)} query="" label={domain.label} rows={budget} />}>
           {() => (none
             ? <Text size="sm" tone="secondary" style={{ padding: "var(--basalt-space-3) var(--basalt-space-4-5, 18px) var(--basalt-space-4)" }}>Nothing in the handbook matches “keyboard tray”.</Text>
-            : <Passages hits={hits} query={domain.query} current={kind.endsWith("current") ? 1 : undefined} label={`Results for ${domain.query}`} />)}
+            : <Passages hits={hits} query={domain.query} current={kind.endsWith("current") ? 1 : undefined} label={`Results for ${domain.query}`} rows={budget} />)}
         </LoadingShape>
       </Card>
     </div>
@@ -228,7 +232,7 @@ export const ROUND_57: Round = {
   title: "Notices and search: the pending mark, grouped repeats, the page form and search with server results (cimip-gaps-2, B7)",
   reviewed: false,
   summary:
-    "Five gaps from building CIMIP, made general (DECISIONS 265, no council): the notification center's pending mark (the empty ring of the toast's marks, no colour), grouped repeats with names and a count that open in place, a page form (`NotificationList`) for a phone's tab bar and for a sidebar, an in-page search whose passages come from a server (`SearchField`, `SearchPassages`, `SearchPassage`, `SearchMatch`, `markMatches`) and loads with `LoadingShape`, and the US names `NotificationCenter` and `NotificationCenterProps`. Decided and built by Opus; the code review is Astra's and has not happened yet, and the design panel did not review it. Synthetic data in four domains: a build pipeline, a support inbox, a shared handbook and a team chat.",
+    "Five gaps from building CIMIP, made general (DECISIONS 265, no council): the notification center's pending mark (the empty ring of the toast's marks, no colour), grouped repeats with names and a count that open in place, a page form (`NotificationList`) for a phone's tab bar and for a sidebar, an in-page search whose passages come from a server (`SearchField`, `SearchPassages`, `SearchPassage`, `SearchMatch`, `markMatches`) and loads with `LoadingShape`, and the US names `NotificationCenter` and `NotificationCenterProps`. Decided and built by Opus; the code review is Astra's and has not happened yet, and the design panel did not review it. Synthetic data in four domains: a build pipeline, a support inbox, a shared handbook and a support inbox's messages.",
   steps: [
     {
       id: "bell",
@@ -270,15 +274,16 @@ export const ROUND_57: Round = {
     {
       id: "search",
       name: "Search in a panel, with results from a server",
-      intro: "A search over one place (a handbook, a channel's history) that runs on the server and returns passages with the matched words marked. It is in the page or a panel; the site's search dialog is unchanged.",
+      intro: "A search over one place (a handbook, an inbox's messages) that runs on the server and returns passages with the matched words marked. It is in the page or a panel; the site's search dialog is unchanged.",
       decisions: [
         "Composed, not a new dialog: `SearchField` (an Input with the core search glyph and one clear ×; the first Esc empties it, the next is the app's), the app's count line (`FilterResult`: drawn at once, spoken once it holds still), and `SearchPassages`, an ordered list of `SearchPassage`s, in a `LoadingShape`. `SearchDialog` and `SearchResults` stay the site search's: a fixed-height area of picture rows.",
         "A passage is a link or a button with the notification entry's row geometry: the source (who said it, or the section) in primary at 400, cut, with the meta at the head's end in tertiary, and the passage under it in secondary, wrapping. `current` is the passage shown beside the results: aria-current and the source at 600.",
         "A match is a `mark` in primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour. `markMatches(text, ranges)` draws a server's ranges (joined, clamped, any order) and never parses HTML.",
+        "A results budget the caller sets (Sol's audit, F7): `rows` (and `lines`, 2 by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, it grows with the page. The site search's `SearchResults` keeps its counts as a shop's presets (three logo rows, five picture rows, See all) that any app overrides. The query, its paging and any grouping stay the app's.",
         "The first results load as bones in the list's own shape; a changed query keeps the last results on screen (`refreshing`) and shows \"Searching\" only after a second. No results is the app's sentence in the list's place.",
       ],
       tryIt: ["Type in the field: Esc empties it; the × does too.", "Hover a passage: the plate, and the meta lifts to secondary."],
-      states: ["chat", "chat-current", "loading", "refreshing", "none", "chat-current-forced-colours", "loading-forced-colours", "chat-reduced-motion", "loading-reduced-motion"],
+      states: ["inbox", "inbox-current", "loading", "refreshing", "none", "inbox-current-forced-colours", "loading-forced-colours", "inbox-reduced-motion", "loading-reduced-motion"],
       widths: [1440, 390],
       height: 720,
       touch: true,

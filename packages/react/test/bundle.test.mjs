@@ -346,9 +346,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
 // so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default); 147,900 for Clear all (DECISIONS 269, 98 bytes).
-// cimip-gaps-2, B7 (DECISIONS 265): the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track take NotificationCentre up
-// by about 4,130 bytes (147,581 to 151,710 before DECISIONS 268's 18; the limit 147,700 to 151,850).
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 151_850]]) {
+// cimip-gaps-2, B7 (DECISIONS 265): the pending ring (Phosphor's Circle), a group's core chevron, the reveal's track and the page form's shared
+// Clear all take NotificationCentre from 147,900's measurement to 152,000 (the limit 147,900 to 152,050).
+for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 152_050]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);

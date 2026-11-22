@@ -1128,7 +1128,7 @@ implementation hasn't been reviewed.
   lifting to secondary on the plate), then the passage in secondary at `text-base`, wrapping (its length is the server's). A **match** is a `mark` in
   primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour; in forced colours it keeps its
   weight in `CanvasText`. `markMatches(text, ranges)` draws a server's ranges (UTF-16 offsets, joined where they overlap or touch, clamped, in any
-  order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **Loading:** the first
+  order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
   results are a `LoadingShape` of stand-in passages (bones in the list's own shape); a changed query keeps the last results on screen
   (`refreshing`) and shows `Refreshing` ("Searching") only after a second; no results is the app's sentence in the list's place. React's alone (the
   HTML skill has no search over a server).

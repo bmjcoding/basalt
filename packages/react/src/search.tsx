@@ -96,9 +96,9 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
 }
 
 export interface SearchResultsProps extends React.ComponentProps<"ul"> {
-  /** The most rows that show a logo a result can hold (60px each). Default 3. */
+  /** The most rows that show a logo a result can hold (60px each). Default 3: the defaults are a shop's presets; set your own budget, 0 for none. */
   logoRows?: number;
-  /** The most rows that show a picture a result can hold (72px each). Default 5. */
+  /** The most rows that show a picture a result can hold (72px each). Default 5 (a shop's preset). */
   rows?: number;
   /** Whether a "See all" row can follow the rows. Default true. */
   all?: boolean;
@@ -269,15 +269,25 @@ export function markMatches(text: string, ranges: readonly MatchRange[]): React.
   return out;
 }
 
-export type SearchPassagesProps = React.ComponentProps<"ol">;
+export interface SearchPassagesProps extends React.ComponentProps<"ol"> {
+  /**
+   * A results budget: the list is as tall as this many passages and scrolls inside, so what sits above it (the field, the count) and below it
+   * never moves however many results come back. Unset, the list grows with its results (a page that scrolls).
+   */
+  rows?: number;
+  /** With `rows`: the lines of passage text each budgeted passage holds (its head line is counted apart). Default 2. */
+  lines?: number;
+}
 
 /**
  * The results of a search in a page or a panel: an ordered list of `SearchPassage`s, in the order the server ranked them. Give it a name
- * (`aria-label`). It keeps `space-1-5` from its edges, so a ring is never cut by a scrolling panel. While the first results are on their way,
+ * (`aria-label`). It keeps `space-1-5` from its edges, so a ring is never cut by a scrolling panel. `rows` (and `lines`) give it a fixed budget
+ * that scrolls inside, as the site search's results area has; the query, its paging and any grouping are the app's. While the first results are on their way,
  * draw it in a `LoadingShape` with stand-in passages; while a changed query runs, keep the last results on screen (`refreshing`).
  */
-export function SearchPassages({ className, ...props }: SearchPassagesProps) {
-  return <ol {...props} className={join("basalt-passages", className)} />;
+export function SearchPassages({ rows, lines = 2, className, style, ...props }: SearchPassagesProps) {
+  const budget = rows === undefined ? undefined : ({ "--_rows": rows, "--_lines": lines } as React.CSSProperties);
+  return <ol {...props} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
 }
 
 export interface SearchPassageProps extends Omit<React.HTMLAttributes<HTMLElement>, "children"> {

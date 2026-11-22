@@ -27,7 +27,7 @@
   "BadgePair": 411,
   "BigLinkList": 257,
   "BigLinkRow": 4708,
-  "Bones": 8911,
+  "Bones": 9148,
   "BrandSvg": 1084,
   "Breadcrumbs": 5631,
   "Button": 17513,
@@ -130,7 +130,7 @@
   "ListboxGroup": 405,
   "ListboxOption": 4052,
   "LivePreview": 46023,
-  "LoadingShape": 11486,
+  "LoadingShape": 11724,
   "LogFields": 414,
   "LogLine": 602,
   "LogSlots": 1588,
@@ -215,7 +215,7 @@
   "SearchGlyph": 3181,
   "SearchMatch": 248,
   "SearchPassage": 784,
-  "SearchPassages": 242,
+  "SearchPassages": 375,
   "SearchResult": 722,
   "SearchResults": 342,
   "SearchTrigger": 3907,
@@ -377,11 +377,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 767530,
-  "gzip": 252261
+  "bytes": 767900,
+  "gzip": 252379
  },
  "styles": {
-  "bytes": 311433,
-  "gzip": 40713
+  "bytes": 311819,
+  "gzip": 40782
  }
 }

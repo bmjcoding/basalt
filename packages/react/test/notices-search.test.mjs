@@ -300,6 +300,20 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
+    test("rows and lines are a results budget: the list is as tall as that many passages and scrolls inside; unset, it grows", async () => {
+      const passage = (i) => `<B.SearchPassage key={${i}} source="Ticket ${4800 + i}" meta="${i}h ago" onClick={() => {}}>{B.markMatches("Could you refund the second charge to the original card?", [[10, 16]])}</B.SearchPassage>`;
+      const { page } = await open(`<div style={{ width: 360 }}><B.SearchPassages aria-label="Budget" rows={3}>${[0, 1, 2, 3, 4].map(passage).join("")}</B.SearchPassages><B.SearchPassages aria-label="Grows" rows={undefined}>${[0, 1].map(passage).join("")}</B.SearchPassages><B.SearchPassages aria-label="Four lines" rows={2} lines={4}>{null}</B.SearchPassages></div>`, { theme, viewport: { width: 600, height: 900 } });
+      await settle(page);
+      const budget = page.getByRole("list", { name: "Budget" });
+      // 6px of list padding each side, then per passage: 20 of row padding, an 18px head, a 2px gap and two 20px lines.
+      assert.equal((await box(budget)).height, 12 + 3 * (20 + 18 + 2 + 2 * 20));
+      assert.equal(await budget.evaluate((el) => getComputedStyle(el).overflowY), "auto");
+      assert.ok(await budget.evaluate((el) => el.scrollHeight > el.clientHeight), "five passages scroll inside a budget of three");
+      assert.equal((await box(page.getByRole("list", { name: "Four lines" }))).height, 12 + 2 * (20 + 18 + 2 + 4 * 20), "the same height with no results");
+      assert.equal(await page.getByRole("list", { name: "Grows" }).evaluate((el) => getComputedStyle(el).overflowY), "visible");
+      await page.close();
+    });
+
     test("in a LoadingShape the first results are bones in the passages' shape, aria-busy, and the shape is inert", async () => {
       const { page } = await open(`<div style={{ padding: 24, width: 360 }}><B.LoadingShape loading label="Searching" shape={() => <B.SearchPassages aria-label="Results">{[0, 1, 2].map((i) => <B.SearchPassage key={i} source={B.standIn(i + 1, 18)} meta={B.standIn(i + 7, 6)} onClick={() => {}}>{B.standIn(i + 13, 110)}</B.SearchPassage>)}</B.SearchPassages>}>{() => null}</B.LoadingShape></div>`, { theme, viewport: { width: 600, height: 600 } });
       await page.waitForSelector(".basalt-loading-shape .basalt-skeleton", { timeout: 3000 });
