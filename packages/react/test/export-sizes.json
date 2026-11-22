@@ -156,12 +156,12 @@
   "MoreGlyph": 2809,
   "MoreNavGlyph": 2918,
   "MorphIcon": 6713,
-  "MultiSelect": 150431,
+  "MultiSelect": 150482,
   "Nav": 4675,
   "NavGroup": 514,
   "NavItem": 110643,
   "NoticeBar": 813,
-  "NotificationCentre": 147046,
+  "NotificationCentre": 147083,
   "NotificationsGlyph": 3066,
   "NumberField": 43928,
   "NumberTicker": 2587,
@@ -184,7 +184,7 @@
   "PolicyGlyph": 2987,
   "Popover": 118760,
   "PopoverClose": 118738,
-  "PopoverContent": 119655,
+  "PopoverContent": 119692,
   "PopoverDescription": 118926,
   "PopoverTitle": 118914,
   "PopoverTrigger": 118936,
@@ -369,11 +369,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 760821,
-  "gzip": 250482
+  "bytes": 760909,
+  "gzip": 250516
  },
  "styles": {
-  "bytes": 306194,
-  "gzip": 40099
+  "bytes": 306245,
+  "gzip": 40103
  }
 }

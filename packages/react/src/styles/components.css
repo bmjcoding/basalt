@@ -3405,6 +3405,9 @@
     box-sizing: border-box;
     width: max-content;
     max-width: min(var(--basalt-size-popover-max), var(--available-width));
+    /* It stays below its opener (or above), never beside it, so a tall one fits the room it has and scrolls inside. */
+    max-height: var(--available-height);
+    overflow-y: auto;
     padding: var(--basalt-space-4);
     border-radius: var(--basalt-radius-lg);
     background: var(--_surface, var(--basalt-surface-overlay));

@@ -57,3 +57,47 @@ describe("The notification bell's unread dot", () => {
     await page.close();
   });
 });
+
+// The owner, 2026-11-22 (DECISIONS 268): popups open below their opener, never beside it. Base UI's popover default let a centre
+// taller than the room above and below jump to the bell's left; it now stays under the bell and scrolls inside.
+describe("A popup taller than the room stays below its opener", () => {
+  const entries = Array.from({ length: 20 }, (_, i) => `{ id: "e${i}", title: "Synthetic entry ${i + 1}", description: "A second line of synthetic words", time: "${i + 1}m ago", unread: ${i < 3} }`).join(",");
+  for (const theme of ["dark", "light"]) {
+    test(`the notification centre opens under the bell at its end edge, and scrolls (${theme})`, async () => {
+      const { page } = await fixturePage(browser, `document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<header style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.NotificationCentre entries={[${entries}]} /></header>);`, { theme, viewport: { width: 1440, height: 700 } });
+      await settle(page);
+      await page.locator(".basalt-notifications-trigger").click();
+      await page.waitForTimeout(400);
+      const m = await page.evaluate(() => {
+        const bell = document.querySelector(".basalt-notifications-trigger").getBoundingClientRect();
+        const pop = document.querySelector(".basalt-notifications").getBoundingClientRect();
+        const scroll = document.querySelector(".basalt-notifications-scroll");
+        return { side: document.querySelector(".basalt-notifications").closest(".basalt-positioner").getAttribute("data-side"), bell: { bottom: bell.bottom, right: bell.right }, pop: { top: pop.top, bottom: pop.bottom, right: pop.right }, scrolls: scroll.scrollHeight > scroll.clientHeight, vh: innerHeight };
+      });
+      assert.equal(m.side, "bottom", "placed below");
+      assert.ok(m.pop.top >= m.bell.bottom, `the popup's top ${m.pop.top} is under the bell's bottom ${m.bell.bottom}`);
+      assert.ok(Math.abs(m.pop.right - m.bell.right) < 0.5, `its end edge ${m.pop.right} is the bell's ${m.bell.right}`);
+      assert.ok(m.pop.bottom <= m.vh, `it fits the window (${m.pop.bottom} of ${m.vh})`);
+      assert.ok(m.scrolls, "the list scrolls inside");
+      await page.close();
+    });
+  }
+
+  test("a plain popover taller than the room stays below and scrolls", async () => {
+    const lines = Array.from({ length: 60 }, (_, i) => `<p>Synthetic line ${i + 1}</p>`).join("");
+    const { page } = await fixturePage(browser, `document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.Popover><B.PopoverTrigger render={<B.Button>Details</B.Button>} /><B.PopoverContent align="end">${lines}</B.PopoverContent></B.Popover></div>);`, { theme: "dark", viewport: { width: 1024, height: 600 } });
+    await settle(page);
+    await page.getByRole("button", { name: "Details" }).click();
+    await page.waitForTimeout(400);
+    const m = await page.evaluate(() => {
+      const pop = document.querySelector(".basalt-popover");
+      const r = pop.getBoundingClientRect();
+      const t = [...document.querySelectorAll("button")].find((b) => b.textContent === "Details").getBoundingClientRect();
+      return { side: pop.closest(".basalt-positioner").getAttribute("data-side"), top: r.top, bottom: r.bottom, trigger: t.bottom, scrolls: pop.scrollHeight > pop.clientHeight, vh: innerHeight };
+    });
+    assert.equal(m.side, "bottom");
+    assert.ok(m.top >= m.trigger, `under the trigger (${m.top} against ${m.trigger})`);
+    assert.ok(m.bottom <= m.vh && m.scrolls, `fits the window and scrolls (${m.bottom} of ${m.vh})`);
+    await page.close();
+  });
+});
