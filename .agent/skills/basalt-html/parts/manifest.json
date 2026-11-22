@@ -1061,6 +1061,7 @@
         "notifications-count",
         "notifications-mark",
         "notifications-foot",
+        "notifications-clear",
         "notifications-empty",
         "notifications-scroll",
         "notifications-list",
@@ -1093,7 +1094,7 @@
         "XCircle",
         "Circle"
       ],
-      "budget": 11350,
+      "budget": 11800,
       "usage": 1100,
       "builds": [
         "popover",

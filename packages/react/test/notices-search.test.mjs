@@ -189,6 +189,23 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
+    test("with onClearAll a foot holds Clear all at its start; once nothing is left it stays, disabled in place, and keeps focus", async () => {
+      const { page } = await open(`(() => { function App() { const [e, set] = React.useState(${INBOX}); return <div style={{ padding: 24, width: 420 }}><h1 id="t">Notifications</h1><B.NotificationList entries={e} aria-labelledby="t" onClearAll={() => set([])} /></div>; } return <App />; })()`, { theme, viewport: { width: 600, height: 700 } });
+      await settle(page);
+      const clear = page.getByRole("button", { name: "Clear all" });
+      const foot = await box(page.locator(".basalt-notification-list > .basalt-notifications-foot"));
+      const at = await box(clear);
+      assert.ok(at.x - foot.x <= 6.5, `Clear all sits at the foot's start (${at.x - foot.x}px in)`);
+      assert.equal(await page.locator(".basalt-notification-list .basalt-notifications-foot a, .basalt-notification-list .basalt-notifications-foot button").count(), 1, "no View all: this is that page");
+      await clear.focus();
+      await page.keyboard.press("Enter");
+      await settle(page);
+      assert.equal(await page.locator(".basalt-notification").count(), 0);
+      assert.equal(await clear.getAttribute("aria-disabled"), "true");
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Clear all", "focus stays on it");
+      await page.close();
+    });
+
     test("axe finds nothing in the page form, with the group open, at a phone's width on touch", async () => {
       const { page } = await open(`<div style={{ padding: 16 }}><h1 id="t">Notifications</h1><B.NotificationList entries={${INBOX}} aria-labelledby="t" /></div>`, { theme, viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
       await settle(page);

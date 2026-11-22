@@ -345,7 +345,7 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
-// so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default).
+// so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default); 147,900 for Clear all (DECISIONS 269, 98 bytes).
 // cimip-gaps-2, B7 (DECISIONS 265): the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track take NotificationCentre up
 // by about 4,130 bytes (147,581 to 151,710 before DECISIONS 268's 18; the limit 147,700 to 151,850).
 for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 151_850]]) {

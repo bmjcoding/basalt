@@ -162,9 +162,9 @@
   "NavGroup": 514,
   "NavItem": 110643,
   "NoticeBar": 813,
-  "NotificationCenter": 151202,
-  "NotificationCentre": 151212,
-  "NotificationList": 31751,
+  "NotificationCenter": 151455,
+  "NotificationCentre": 151465,
+  "NotificationList": 32065,
   "NotificationsGlyph": 3066,
   "NumberField": 43928,
   "NumberTicker": 2587,
@@ -377,11 +377,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 767161,
-  "gzip": 252198
+  "bytes": 767530,
+  "gzip": 252261
  },
  "styles": {
-  "bytes": 311275,
-  "gzip": 40693
+  "bytes": 311433,
+  "gzip": 40713
  }
 }

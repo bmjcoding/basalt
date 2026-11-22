@@ -91,7 +91,7 @@ function Bell({ state }: { state: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--basalt-space-3)", padding: "var(--basalt-space-4) var(--basalt-gutter)", borderBottom: "1px solid var(--basalt-border-divider)" }}>
       <Text size="sm" tone="secondary" style={{ marginInlineEnd: "auto" }}>{inbox ? "A support inbox" : "A build pipeline"}</Text>
-      <NotificationCenter defaultOpen entries={entries} onMarkAllRead={() => setEntries(readAll(entries))} viewAllHref="#all" />
+      <NotificationCenter defaultOpen entries={entries} onMarkAllRead={() => setEntries(readAll(entries))} onClearAll={() => setEntries([])} viewAllHref="#all" />
     </div>
   );
 }
@@ -108,7 +108,7 @@ function PhonePage({ state }: { state: string }) {
   return (
     <div style={{ padding: "var(--basalt-space-4) var(--basalt-gutter)", paddingBottom: "var(--basalt-bottom-offset, 96px)", maxWidth: 720 }}>
       <Heading level={1} size="xl" id="notices-title" style={{ marginBottom: "var(--basalt-space-2)" }}>Notifications</Heading>
-      <NotificationList entries={entries} aria-labelledby="notices-title" onMarkAllRead={() => setEntries(readAll(entries))} />
+      <NotificationList entries={entries} aria-labelledby="notices-title" onMarkAllRead={() => setEntries(readAll(entries))} onClearAll={() => setEntries([])} />
       <TabBar>
         <TabBarItem href="#home" icon={HomeGlyph}>Home</TabBarItem>
         <TabBarItem href="#search" icon={SearchGlyph}>Search</TabBarItem>
@@ -257,6 +257,7 @@ export const ROUND_57: Round = {
       decisions: [
         "A page, not a sheet: a tab bar's cells are links to pages (never a tablist or a button), so the destination is the app's own notifications page, the same page \"View all\" opens. The tab bar's cell is `TabBarItem` with `NotificationsGlyph` and its `dot` (\"3 unread\" is spoken; counts are never drawn). From 720 the app shows the bell in its header instead.",
         "The same rows, seats, groups and words as the popover, with no popover, no title (the page's heading names the list, by aria-labelledby) and no glide: each entry paints its own plate, the page's solid plate. No rim: a list in the page, not an object. Paging is the app's (`ListBand` under it).",
+        "Clear all (DECISIONS 269, the owner's): with `onClearAll` the page form has a foot with \"Clear all\" at its start, as the center's foot has, and no \"View all\" (this is that page). Once nothing is left it stays, disabled in place, and keeps focus.",
         "`head={false}` drops the count and \"Mark all as read\", for a list of entries in a sidebar; `current` marks the entry for the page on screen with aria-current and its title at 600 from 400 (one cut line, so nothing moves). This closes batch B6's \"entries outside the notification center\".",
       ],
       tryIt: ["On the phone, open the group, then Mark all as read: the tab bar's dot goes.", "In the sidebar, the current entry is the one at 600."],

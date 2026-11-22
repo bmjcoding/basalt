@@ -446,7 +446,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
-  all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
+  all" at its end and, when the app offers it, "Clear all" at its start, disabled in place once nothing is left; DECISIONS 269). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
   line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
   the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
   entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
@@ -476,7 +476,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     new-activity `dot` ("3 unread", spoken; counts are never drawn), and from 720 the app shows the bell in its header instead. It has no
     popover, no title (the page's heading names the list, `aria-labelledby`), no rim and no glide: each entry paints its own plate, the
     page's solid plate where it has no level. Its head band holds the count and "Mark all as read", its count lined up with the entries'
-    dots; `head={false}` drops it, for a list of entries in a sidebar or a page column. Paging is the app's (`ListBand` under it).
+    dots; `head={false}` drops it, for a list of entries in a sidebar or a page column. With `onClearAll` a foot holds "Clear all" at its start, as the
+    center's does (no "View all": this is that page). Paging is the app's (`ListBand` under it).
   - **The current entry** (`current`, in a list of entries beside the page they open) is `aria-current` and its title at 600 from 400, the
     selected rule's one of many; the title is one cut line, so nothing moves.
 - **A popup opens below its opener, never beside it** (the owner's word, DECISIONS 268). A popover, a menu, a select, a combobox and

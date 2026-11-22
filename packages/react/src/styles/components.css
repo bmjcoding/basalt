@@ -3092,6 +3092,8 @@
     padding: var(--basalt-space-2-5);
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
+  /* Clear all at the start, View all at the end (the owner, DECISIONS 269). */
+  .basalt-notifications-clear { margin-inline-end: auto; }
   .basalt-notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
   .basalt-notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
@@ -3202,6 +3204,7 @@
   .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
   /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
+  .basalt-notification-list > .basalt-notifications-foot { padding: var(--basalt-space-2) var(--basalt-space-1-5); }
   .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
 
   /* ---- Command menu ---- */

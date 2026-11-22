@@ -60,6 +60,11 @@ interface ListParts {
   onSelect?: (entry: NotificationEntry) => void;
   /** "Mark all as read" was pressed. Update `unread` on your entries: the rows change ink and nothing moves. */
   onMarkAllRead?: () => void;
+  /**
+   * "Clear all" was pressed: remove the entries (the app owns them). Given, the foot shows "Clear all" at its start (DECISIONS 269); with nothing
+   * left it stays, disabled in place, and keeps focus. The center stays open.
+   */
+  onClearAll?: () => void;
 }
 
 export interface NotificationCenterProps extends ListParts {
@@ -98,7 +103,7 @@ const unreadCount = (entries: readonly NotificationEntry[]): number =>
  * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCenter({ entries, onSelect, onMarkAllRead, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCenterProps) {
+export function NotificationCenter({ entries, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCenterProps) {
   const unread = unreadCount(entries);
   const popup = React.useRef<PopupActions | null>(null);
   // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
@@ -126,6 +131,7 @@ export function NotificationCenter({ entries, onSelect, onMarkAllRead, onViewAll
           </div>
         )}
         <div className="basalt-notifications-foot">
+          <ClearAll count={entries.length} onClearAll={onClearAll} />
           {viewAllHref ? (
             <a className="basalt-button" data-variant="ghost" data-size="sm" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
               <span className="basalt-button-label">View all</span>
@@ -157,9 +163,9 @@ export interface NotificationListProps extends ListParts {
  * The center's entries in the page: the page form, for the app's own notifications page (what "View all" opens, and on a phone the tab bar's
  * destination, since a bell does not fit a phone's header), and for a list of entries in a sidebar. The same rows, seats, groups and words as the
  * bell's popover, with no popover, no title (the page's heading names it) and no glide: each entry paints its own plate. No rim: it is a list,
- * not an object. Paging is the app's (`ListBand` under it).
+ * not an object. Paging is the app's (`ListBand` under it). With `onClearAll` a foot holds "Clear all" at its start, as the center's does.
  */
-export function NotificationList({ entries, onSelect, onMarkAllRead, head = true, label = "Notifications", "aria-labelledby": labelledBy, empty = "Nothing yet.", className }: NotificationListProps) {
+export function NotificationList({ entries, onSelect, onMarkAllRead, onClearAll, head = true, label = "Notifications", "aria-labelledby": labelledBy, empty = "Nothing yet.", className }: NotificationListProps) {
   const unread = unreadCount(entries);
   return (
     <div className={join("basalt-notification-list", className)}>
@@ -174,6 +180,12 @@ export function NotificationList({ entries, onSelect, onMarkAllRead, head = true
       ) : (
         <Entries entries={entries} onChoose={(entry) => onSelect?.(entry)} label={labelledBy ? undefined : label} labelledBy={labelledBy} />
       )}
+      {onClearAll ? (
+        // The center's foot without View all (this is the page it opens): Clear all at its start.
+        <div className="basalt-notifications-foot">
+          <ClearAll count={entries.length} onClearAll={onClearAll} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -183,6 +195,16 @@ function MarkAllRead({ unread, onMarkAllRead }: { unread: number; onMarkAllRead?
   return (
     <Button variant="ghost" size="sm" className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
       Mark all as read
+    </Button>
+  );
+}
+
+function ClearAll({ count, onClearAll }: { count: number; onClearAll?: () => void }) {
+  if (!onClearAll) return null;
+  // At the foot's start, apart from View all; stays mounted and keeps focus when nothing is left, as Mark all as read does.
+  return (
+    <Button variant="ghost" size="sm" className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
+      Clear all
     </Button>
   );
 }

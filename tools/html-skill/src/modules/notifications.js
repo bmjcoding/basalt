@@ -13,7 +13,7 @@
   /**
    *   Basalt.notifications(host, { entries: [{ id, title, description?, time, dateTime?, status?: 'success'|'warning'|'danger'|'pending', unread?, href?, current?,
    *     entries?: [...] (a group: its row opens to these), count? }],
-   *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
+   *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onClearAll?() (shows Clear all at the foot's start), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
    */
   function notifications(host, options) {
     var o = options || {};
@@ -39,10 +39,11 @@
     var scroll = pop.querySelector('.notifications-scroll');
     var list = pop.querySelector('.notifications-list');
     var foot = pop.querySelector('.notifications-foot');
-    foot.innerHTML = o.viewAllHref
+    foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm">Clear all</button>' : '') + (o.viewAllHref
       ? '<a class="btn" data-variant="ghost" data-size="sm" href="' + _.esc(o.viewAllHref) + '"><span>View all</span></a>'
-      : '<button type="button" class="btn" data-variant="ghost" data-size="sm"><span>View all</span></button>';
-    var viewAll = foot.firstElementChild;
+      : '<button type="button" class="btn" data-variant="ghost" data-size="sm"><span>View all</span></button>');
+    var viewAll = foot.lastElementChild;
+    var clear = pop.querySelector('.notifications-clear');
     var unglide;
 
     function leave() { if (pop.matches(':popover-open')) pop.hidePopover(); }
@@ -70,6 +71,7 @@
       count.textContent = unread + ' unread';
       // Stays mounted and keeps focus when nothing is left to mark: disabled in place.
       if (unread === 0) mark.setAttribute('aria-disabled', 'true'); else mark.removeAttribute('aria-disabled');
+      if (clear) { if (entries.length === 0) clear.setAttribute('aria-disabled', 'true'); else clear.removeAttribute('aria-disabled'); }
       empty.hidden = entries.length > 0;
       scroll.hidden = entries.length === 0;
       // A group's row opens its entries in place, indented under its words (at once: the reveal's track is React's); focus stays on the row.
@@ -96,6 +98,7 @@
       leave();
     });
     mark.addEventListener('click', function () { if (mark.getAttribute('aria-disabled') !== 'true' && o.onMarkAllRead) o.onMarkAllRead(); });
+    if (clear) clear.addEventListener('click', function () { if (clear.getAttribute('aria-disabled') !== 'true') o.onClearAll(); });
     viewAll.addEventListener('click', function () { if (o.onViewAll) o.onViewAll(); leave(); });
     pop.addEventListener('toggle', function (ev) {
       if (ev.newState === 'open') unglide = _.glide(scroll, scroll.firstElementChild, { active: '.notification[data-hovered]', item: '.notification' });
