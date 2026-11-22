@@ -12,11 +12,24 @@
     if (select && select.getAttribute('data-input') !== how) select.setAttribute('data-input', how);
   }
 
+  /** A `data-numeric` select holds the width of its widest option, whichever is chosen: each option is measured by choosing it, once fonts are ready. */
+  function seat() {
+    Array.prototype.forEach.call(document.querySelectorAll('select.input[data-numeric]'), function (s) {
+      if (!s.getClientRects().length) return;
+      var keep = s.value, w = 0;
+      s.style.minWidth = '0';
+      Array.prototype.forEach.call(s.options, function (o) { s.value = o.value; w = Math.max(w, s.getBoundingClientRect().width); });
+      s.value = keep;
+      s.style.minWidth = Math.ceil(w) + 'px';
+    });
+  }
+
   _.step(65, 'select', function () {
     if (wired) return;
     wired = true;
     document.addEventListener('pointermove', function (e) { mark(e, 'pointer'); });
     document.addEventListener('pointerdown', function (e) { mark(e, 'pointer'); });
     document.addEventListener('keydown', function (e) { mark(e, 'key'); });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(seat);
   });
 })(window.Basalt);

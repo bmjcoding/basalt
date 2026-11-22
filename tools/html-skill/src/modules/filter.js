@@ -114,6 +114,12 @@
       shell.trigger = el('button', 'btn filter-trigger', { type: 'button', popovertarget: id.pop }, '<span class="filter-trigger-label-wrap"><span class="filter-trigger-label"></span> <span class="filter-trigger-value"></span></span>' + '%glyph-svg:chevron-down%');
       shell.trigger.querySelector('.filter-trigger-label').textContent = label;
       shell.value = shell.trigger.querySelector('.filter-trigger-value');
+      if (root.hasAttribute('data-toolbar')) {
+        // In a toolbar the value's cell holds its widest value ("Any", or the longest label with the largest "+N"), unseen, so choosing moves nothing after it.
+        var seat = shell.value;
+        shell.value = seat.appendChild(el('span', 'filter-trigger-now'));
+        ['Any'].concat(opts.map(function (o) { return o.label + (opts.length > 1 ? ' +' + (opts.length - 1) : ''); })).forEach(function (t) { seat.appendChild(el('span', 'filter-trigger-sizer', { 'aria-hidden': 'true' })).textContent = t; });
+      }
       var pop = el('div', 'panel float filter-popup', { popover: '', id: id.pop, role: 'dialog', 'aria-labelledby': id.label, tabindex: '-1' });
       var plate = el('span', 'plate', { 'aria-hidden': 'true' });
       pop.appendChild(plate);

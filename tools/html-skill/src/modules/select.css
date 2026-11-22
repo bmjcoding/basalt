@@ -138,4 +138,7 @@
       select.input option:is(:hover, :focus-visible) .option-description { color: HighlightText; }
     }
   }
+
+  /* A select of numbers (a page size) is as wide as its widest option and below size-select-min: the script measures it (React's `numeric` draws each option in one cell). */
+  select.input[data-numeric] { width: auto; min-width: 0; font-variant-numeric: tabular-nums; }
 }
