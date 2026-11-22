@@ -113,3 +113,20 @@ export function formatStatTime(time: Date | number, { now = new Date(), timeZone
     dateTime: `${stamp.year}-${stamp.month}-${stamp.day}T${stamp.hour === "24" ? "00" : stamp.hour}:${stamp.minute}`,
   };
 }
+
+/**
+ * How long a state has lasted so far, as a length of time a person reads beside the state's word ("Away 6 min"): `null` under a minute (the word
+ * stands alone), then minutes ("6 min"), hours and minutes under a day ("1 hr 5 min", "2 hr"), then days ("3 days"). It is a length, like a
+ * countdown the other way, and not an age: it says how long something that is still true has been true, so it never needs a date beside it.
+ * The words are US English; an app writing another language passes its own formatter to the part that draws it. `dateTime` is the ISO duration.
+ */
+export function formatElapsed(since: Date | number, now: Date | number = new Date()) {
+  const m = Math.floor(Math.max(0, new Date(now).getTime() - new Date(since).getTime()) / 60000);
+  if (m < 1) return null;
+  const d = Math.floor(m / 1440);
+  const h = Math.floor((m % 1440) / 60);
+  const min = m % 60;
+  if (d > 0) return { text: `${d} ${d === 1 ? "day" : "days"}`, dateTime: `P${d}D` };
+  if (h > 0) return { text: min ? `${h} hr ${min} min` : `${h} hr`, dateTime: `PT${h}H${min ? `${min}M` : ""}` };
+  return { text: `${min} min`, dateTime: `PT${min}M` };
+}
