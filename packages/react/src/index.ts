@@ -8,6 +8,8 @@ export type { GlyphData, GlyphIcon, GlyphSlot } from "./glyph";
 export type { GlyphName } from "./glyph-names";
 export { Field, Input } from "./field";
 export type { FieldProps, InputProps } from "./field";
+export { FormGrid, FormGridItem } from "./form-grid";
+export type { FormGridItemProps, FormGridPlacement, FormGridProps } from "./form-grid";
 export { Menu, MenuCheckboxItem, MenuContent, MenuGroup, MenuGroupLabel, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuSubmenuTrigger, MenuTrigger } from "./menu";
 export type { MenuCheckboxItemProps, MenuContentProps, MenuItemProps, MenuProps, MenuRadioGroupProps, MenuRadioItemProps, MenuRowProps, MenuSubmenuProps, MenuSubmenuTriggerProps, MenuTriggerProps } from "./menu";
 export { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./dialog";

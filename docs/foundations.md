@@ -981,7 +981,7 @@ implementation hasn't been reviewed.
 
 - **The popover stays 320.** All four refused a wider size: N1's popover drew at `size-popover-max`, so none is built. A **wide dialog** (`size="wide"`) is
   `size-dialog-width-wide`, 992px, decided in DECISIONS 158 (Q1; 3 to 1; DECISIONS 155's `118ch` was withdrawn, because on Basalt's dialog it draws 1,251.7px): 118 characters of Geist Mono at 14px (991.17px) rounded up, kept in px because the dialog's own face is not mono and Basalt's type sizes are px; capped by the viewport less 2 × `space-4`, with the dialog's own padding and scroll. Its first focus is
-  its title (`tabindex="-1"`, no ring), so Enter on opening runs nothing.
+  its title (`tabindex="-1"`, no ring), so Enter on opening runs nothing. A wide `form` is not a reading dialog: it keeps a form's first focus, on its first field (the title when a touch opened it), so Enter on opening is a field's own (DECISIONS 242).
 - **Scrim.** Dialogs and sheets keep Basalt's `scrim` (black at 80% in dark, 40% in light); a product may re-point the token (4 to 0).
 - **A sheet's anatomy.** A head band (the title at `text-xl` 20/28, a count at `text-sm` in tertiary, a 44px close), a scrolling body and a foot, edge to edge with
   no padding of the sheet's own; a `border-divider` under the head and above the foot; the head and the foot keep the safe areas. Motion is the sheet's own (300ms in,
@@ -1991,6 +1991,28 @@ the description (so the held head stays one line), and a held foot with Cancel, 
   is the wide dialog (992); the brief's right sheet from 720 to 1231 stays, because it is the narrow form of the brief's column, which docks beside the conversation from 1232; both phone bottom sheets stay.
   A non-modal side panel is not proposed.
 
+### Declare's form gaps
+
+**Status:** decided by the owner in CIMIP (DECISIONS 237, 239 to 241: a sliding pill for severity with nothing chosen at first, two columns on one grid, a text button on the Title's label row) and taken into Basalt without a vote
+(DECISIONS 242, under DECISIONS 234); the implementation hasn't been reviewed. Source: Opus's "Declare B, round 2" prototype in CIMIP. React's alone: the HTML skill's `forms`, `segment` and `dialog-form` modules draw none of it, and none is added.
+
+- **The form grid** (`FormGrid`, `FormGridItem`, and `column`, `row` and `rows` on `Field`). Fields in columns that line up. Every cell takes four tracks a row: label, control, hint and error, and is a subgrid on them, so the cells beside
+  each other share every track: a label, a control's top and bottom, a hint and an error on one row sit on the same pixel across the columns (measured 0px at 1440, 1024 and 720, with errors showing). The spaces are Basalt's and each is held by its
+  track as a margin: the field gap (`space-1-5`) inside a field, the form gap (`space-4`) above a label that is not in the first row, `space-8` between columns. A ratio sets the columns (`columns="3-2"`). A field that spans rows keeps its label on the
+  first row's label track and its hint and error on the last row's; its control (a `Textarea`) fills what is between, so its bottom is the bottom of the control beside it. Every control is `size-control-md` (32) tall: the input, the combobox, the
+  segmented control (28 segments in a 2px track), and a `Switch`'s row (its 18px switch centred in the 32). Every edge is straight: a field's label, control and hint start at its column's edge, and a control ends at it. Under 720 it is one
+  column in the markup's order, the field gap and the form gap as in any `Form`. It is for a place at least 640 wide. Not measured: a tablet from 720 with a touch pointer, where Basalt draws touch targets at 44 (a segmented control is then 48 and the
+  fields beside it 44).
+- **A segmented control in a form.** `fullWidth`: equal segments filling the container, the pill still sliding. In a `Field` the label names the group, with "Required" after it as on other fields; `required` says the word in the group's name, because a
+  group of pressed buttons takes no `aria-required`; `invalid` sets `aria-invalid`, and the group is described by the line and, while invalid, by the field's error. **No invalid look is decided**, so it draws no danger hairline or colour of its own: the error line is
+  what shows. It is one tab stop: Tab lands on the chosen value, or the first that can take focus while none is chosen, and the arrows move focus without choosing. With no value it shows no selection and draws no pill.
+- **`TextButton`** keeps focus when it disables itself (`focusableWhenDisabled` is on by default), so a press that disables it does not drop focus to the page. Its underline reaches a `Reserve` child, under the words shown, so a button whose words change holds
+  the width of the longest.
+- **A `Switch` description.** A line under the switch's row in a field description's style (`text-xs`, secondary), at the column's start edge, not indented past the switch, linked by `aria-describedby`.
+- **A field hint whose words change** (a `Reserve` in a `description` or an `error`) lays out as a block that wraps at the field's width, so the line holds its room and never moves the field.
+- **`ActionShortcut` in a form dialog's foot under 720.** The foot's two actions stay equal 44px buttons: the button inside the shortcut's wrapper takes the rule.
+- **Open.** The Title's text button on the label's row is not a Basalt slot yet (it is app layout in CIMIP), and a status callout on a segmented control is not decided.
+
 ### Defects not copied
 
 The prototype's band kept saying "Page 2 of 9" after a filter narrowed the list to one match; the band's line is now cleared when the total changes. Its first focus followed the pointer
@@ -2006,7 +2028,7 @@ Windows contrast theme.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
