@@ -219,7 +219,7 @@ export { useSitePhase } from "./use-site-phase";
 export type { SiteForm, SitePhase, SitePhaseOptions, SitePhaseState } from "./use-site-phase";
 export { AppHeader, AppShell } from "./app-shell";
 export type { AppHeaderProps, AppShellProps } from "./app-shell";
-export { PaneLayout } from "./pane-layout";
+export { PaneLayout, usePaneScroller } from "./pane-layout";
 export type { PaneLayoutProps } from "./pane-layout";
 export { TabBar, TabBarItem, TabBarMore } from "./tab-bar";
 export type { TabBarItemProps, TabBarMoreProps, TabBarProps } from "./tab-bar";

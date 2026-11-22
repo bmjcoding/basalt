@@ -26,6 +26,7 @@ const shell = ({ capped = false, facts = null, title = "Inbox", primary = "New r
   ${root ? `document.documentElement.style.cssText = ${JSON.stringify(root)};` : ""}
   ${density ? `document.documentElement.dataset.density = ${JSON.stringify(density)};` : ""}
   const Page = () => <div style={{ height: ${page} }}><p>Synthetic page.</p></div>;
+  const Owner = () => { const owner = B.usePaneScroller(); return <span id="owner" data-owner={owner ? owner.className : "window"} />; };
   createRoot(document.getElementById("root")).render(
     <B.ToastProvider><B.SkipLink target="main" /><B.AppShell ${capped ? "capped" : ""} brand={<>${MARK}<span>Helpdesk</span></>} brandMark={${MARK}} brandLabel="Helpdesk home"
       mainProps={{ id: "main", tabIndex: -1 }}
@@ -33,7 +34,7 @@ const shell = ({ capped = false, facts = null, title = "Inbox", primary = "New r
         ${secondary ? `<B.Nav aria-label="Saved views" size="sm"><B.NavGroup label="Saved views"><B.NavItem href="#open" icon={B.SourcesGlyph} current>Open and waiting</B.NavItem><B.NavItem href="#mine" icon={B.ProfileGlyph} count={12}>Assigned to me</B.NavItem><B.NavItem href="#late" icon={B.PlanGlyph} dot="New activity">Overdue</B.NavItem></B.NavGroup></B.Nav>` : ""}</>}
       header={<B.AppHeader title=${JSON.stringify(title)} ${facts ? `facts={${facts}}` : ""} actions={<><B.IconButton icon={B.SettingsGlyph} label="Settings" />${primary ? `<B.Button variant="primary">${primary}</B.Button>` : ""}</>} />}
       tabBar={<B.TabBar><B.TabBarItem href="#inbox" icon={B.HomeGlyph} current>Inbox</B.TabBarItem><B.TabBarItem href="#messages" icon={B.MessagesGlyph}>Messages</B.TabBarItem><B.TabBarItem href="#settings" icon={B.SettingsGlyph}>Settings</B.TabBarItem></B.TabBar>}>
-      ${pane ? `<B.PaneLayout paneLabel="Run details" pane={<div><h2 style={{ margin: "0 0 12px" }}>Run 1284</h2><B.Link href="#log">Open the log</B.Link>${PANE_LINES(pane)}</div>}><Page /></B.PaneLayout>` : "<Page />"}
+      ${pane ? `<B.PaneLayout paneLabel="Run details" pane={<div><Owner /><h2 style={{ margin: "0 0 12px" }}>Run 1284</h2><B.Link href="#log">Open the log</B.Link>${PANE_LINES(pane)}</div>}><Page /></B.PaneLayout>` : "<Page />"}
     </B.AppShell></B.ToastProvider>);`;
 
 const open = async (fixture, { width = 1440, height = 800, theme = "dark", ...options } = {}) => {
@@ -153,6 +154,19 @@ describe("a page with a pane", () => {
     assert.equal(await page.evaluate(() => scrollY), before, "and not the document");
     const ring = await page.locator(".basalt-pane").evaluate((el) => { const s = getComputedStyle(el); return [s.outlineStyle, s.outlineWidth, s.outlineOffset]; });
     assert.deepEqual(ring, ["solid", "2px", "2px"]);
+    await page.close();
+  });
+
+  test("what scrolls a part inside the pane: the pane beside the page, the window under it", async () => {
+    let page = await open(shell({ pane: 60 }), { width: 1440, height: 700 });
+    assert.equal(await page.locator("#owner").getAttribute("data-owner"), "basalt-pane");
+    assert.equal(await page.locator(".basalt-pane").getAttribute("data-scroller"), "");
+    await page.setViewportSize({ width: 1100, height: 700 });
+    await page.waitForFunction(() => document.querySelector("#owner").dataset.owner === "window");
+    assert.equal(await page.locator(".basalt-pane").getAttribute("data-scroller"), null);
+    await page.close();
+    page = await open(shell({ pane: 60 }), { width: 390, height: 700 });
+    assert.equal(await page.locator("#owner").getAttribute("data-owner"), "window");
     await page.close();
   });
 

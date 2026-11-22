@@ -175,7 +175,7 @@
   "PageWait": 2453,
   "Pagination": 21695,
   "PairedArt": 462,
-  "PaneLayout": 978,
+  "PaneLayout": 1307,
   "PauseGlyph": 2819,
   "PeriodStepper": 17812,
   "PhaseChart": 51249,
@@ -356,6 +356,7 @@
   "useLoops": 1050,
   "useMediaQuery": 260,
   "useNow": 1614,
+  "usePaneScroller": 154,
   "useReducedMotion": 307,
   "useRefreshing": 272,
   "useRouteFocus": 361,
@@ -370,8 +371,8 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 762196,
-  "gzip": 250861
+  "bytes": 762455,
+  "gzip": 250973
  },
  "styles": {
   "bytes": 309160,
