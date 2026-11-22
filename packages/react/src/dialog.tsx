@@ -172,6 +172,17 @@ function useHeldTop(node: HTMLElement | null, form: boolean): number | null {
     const gap = Number.isFinite(max) ? Math.max(0, (window.innerHeight - max) / 2) : 0;
     setTop(Math.max(gap, Math.round((window.innerHeight - node.offsetHeight) / 2)));
   }, [node, form, epoch]);
+  // The held place lands where it is and never glides. It is measured while the box is centred by `translate(-50%, -50%)` (that style is resolved
+  // to measure it), and the held box is placed by its top with `translateX(-50%)`: a transition between the two slid the dialog down from half its
+  // height above as it opened, under reduced motion too. So the change to the held place is resolved with transitions off, and only the entry's
+  // own scale and fade run (opacity alone under reduced motion). The same holds when a window resize holds it again.
+  React.useLayoutEffect(() => {
+    if (!node || top === null) return;
+    const transition = node.style.transition;
+    node.style.transition = "none";
+    void getComputedStyle(node).transform;
+    node.style.transition = transition;
+  }, [node, top]);
   React.useEffect(() => {
     if (!node || !form) return undefined;
     const resize = () => { setTop(null); setEpoch((n) => n + 1); };

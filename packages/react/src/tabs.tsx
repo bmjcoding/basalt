@@ -15,6 +15,8 @@ const TabsMotion = React.createContext<{
 } | null>(null);
 
 const TabsOrientation = React.createContext<Orientation | undefined>(undefined);
+// The chosen tab's value as text, or null when none is known: a panel that is not it is being left, and is not drawn while Base UI finishes its exit.
+const TabsChosen = /* @__PURE__ */ React.createContext<string | null>(null);
 
 export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"div", "defaultValue"> {
   /** The selected tab's `value`. `null` selects none. */
@@ -53,6 +55,7 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
   }, [current]);
   return (
     <TabsMotion.Provider value={motion}>
+      <TabsChosen.Provider value={current == null ? null : String(current)}>
       <TabsOrientation.Provider value={props.orientation}>
         <div className="basalt-tabs-root" data-direction={direction || undefined}>
           <BaseTabs.Root
@@ -68,6 +71,7 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
           />
         </div>
       </TabsOrientation.Provider>
+      </TabsChosen.Provider>
     </TabsMotion.Provider>
   );
 }
@@ -169,7 +173,12 @@ export function TabsPanels({ stacked = false, className, ...props }: TabsPanelsP
 export function TabsPanel({ className, keepMounted, ...props }: TabsPanelProps) {
   // Stacked panels all stay mounted: a panel that is not there would take no room.
   const stacked = React.useContext(PanelsStacked);
-  return <BaseTabs.Panel {...props} keepMounted={stacked || keepMounted} className={withClass("basalt-tabs-panel", className)} />;
+  // The panel being left goes at once (skeleton-shape: a switch is one change). Base UI keeps it mounted until its animations end, and in the flow it held
+  // the new panel under itself, off screen, for the slide's 200ms, then dropped it into place. Marked from the chosen value, not from Base UI's exit status,
+  // which lags a frame when a panel is chosen again mid-exit.
+  const chosen = React.useContext(TabsChosen);
+  const leaving = chosen !== null && String(props.value) !== chosen;
+  return <BaseTabs.Panel {...props} data-leaving={leaving ? "" : undefined} keepMounted={stacked || keepMounted} className={withClass("basalt-tabs-panel", className)} />;
 }
 
 export interface SegmentedControlProps extends PartProps<"div", "defaultValue" | "value"> {

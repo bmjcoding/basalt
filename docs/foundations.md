@@ -2078,9 +2078,80 @@ every page, every sort), the band, Previous, Next, the count's seat, the page si
 (`packages/react/test/lists-modals.test.mjs`). Not checked: a real phone (on iOS the held foot sits under the keyboard while typing, as in any web form), WebKit, Firefox, a screen reader and a
 Windows contrast theme.
 
+## Loading in the page's own shape
+
+**Status.** Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258: the shape of what it stands for, known words kept and icons hidden,
+the ring as the page-level wait, what is known shown at once, a last copy shown on a return visit, a page that fills in by parts, and the reload rule). The
+implementation is reviewed by Astra. React's alone: the HTML skill has no loading shape (a follow-up batch, with the walk and the comparison in its script).
+
+**A view's loading state is the view itself** (`LoadingShape`): the same components, drawn with stand-in data, painted as bones measured from the drawing,
+never hand-sized. A line of words is one rounded bar per line (`radius-sm`), as long as its words, 0.75 of the text's size and centred on the line; runs
+on one line are one bar. A control with a fill or a border is one bone in its own box and radius; one with neither (a ghost button, a tab, a link) is its
+words. A painted mark (an avatar's disc, a status dot) is a bone in its box; an icon of 24px or less is hidden and its seat kept. Structure is drawn as it
+is (a panel's fill and rim, a divider, a field's frame, a table's header band); a state is not (a chosen tab's underline, the navigation's pill). Known
+words stay words (`KEEP`: a table's column heads, the names of tabs, and what an app marks `data-bone="keep"`). Bones use `surface-placeholder` and
+breathe together on Skeleton's 2s pulse, one animation for the region.
+
+**What is known shows at once, field by field** (`prefill`). The region is drawn twice, from `fillIn(known, standIns(variant))` with two different fillings
+of what is unknown: variant 0 on the page and variant 1 in an unseen twin at the same width. A word, mark or control that comes out the same in both, in
+its words, its painted box and its drawing (fill, edge, ink, transform, and a painted pseudo-element), depends only on what is known and keeps its ink; whatever differs is a bone, and an element whose own attributes differ is a bone
+with all it holds. A value drawn by CSS (a meter's fill, a status dot) that differs is one bone in its box. A line is never part ink, part bone. `shape` is the form for a region where nothing is known.
+
+**The stand-in contract.** An app's stand-ins (`standIn(seed, length, variant)` for words) take values from a different set in each variant (other words,
+other severities, the other role, a different hour), so no guess can match in both however the view sorts; they keep the same rows and branches, except
+where a branch is itself unknown (it is then a bone as a whole, the safe failure); a list's variant 1 has one more row, so every count differs; and nothing
+is assumed about content (who said what, and when, is a bone until it arrives). The unseen variant's words are half again as long and a dozen letters more,
+so what sits under text of unknown length is at another place and is a bone. Rows: the count the list had last time (`rememberCount` keeps the count and
+nothing else), else what fits the window, never more than a page.
+
+**The six rules** (DECISIONS 249b):
+
+1. **No stand-in words, anywhere.** No app name in place of a page's title, no reference in place of a title, no "Loading…". What isn't known keeps its seat
+   empty or is a bone; a known word shows only if its text and its place are final.
+2. **A status word for a wait waits too.** "Connecting" waits a second, as a bone waits 300ms.
+3. **A reload paints once if its data is quick.** `holdFirstPaint` holds a client-rendered app's first paint (by opacity, so its shapes are measured while held) until nothing is loading, at most 250ms from the
+   navigation; after that the page shows with its bones drawn together, never its structure and then bones a moment later.
+4. **A move never blanks.** The next page's code is preloaded; if it isn't here yet the page on screen stays until it is (the router's gate, never a lazy
+   fallback in its place), the router calls `markPageStart`, and the new page answers at once with what is known and fills in once. `PageWait` (nothing for
+   300ms, then the 20px ring where the page's first line goes, its label said once, never a box) is for a reload whose page code is late. **A tab switch is
+   a move of its own panel:** the panel left goes at once and the new panel is in its place from the switch's first frame, its known words (a description)
+   in that paint and what it doesn't know yet as bones in their seats; a region in the panel counts its 300ms from the switch. A switch is not a new page and
+   calls no `markPageStart`. The panel's 8px slide and fade stay: they are motion by transform, and move no layout.
+5. **A page keeps one structure, loading and loaded.** A part that has landed stays in its region; CSS that reaches into a region with a child combinator
+   reaches its twin too.
+6. **What changes after the page has settled is the page living** (presence, a running agent, a last copy refreshed), and is not loading.
+
+**Timing.** Waiting (the structure and what is known, no bones) → shown → content. Bones appear 300ms after the page's start (`showAfter`: the navigation,
+or the last `markPageStart`; a region drawn more than a second after its page began, or after a press or key since it began, such as a tab switched to or a sheet the reader opens, counts from itself), and once shown
+stay at least 400ms (`minShown`). The content takes the shape's place at once and the last bones fade out over it: an exit, 0.75 of `duration-base` on
+`ease-in`, opacity only. Content never goes back to bones. Under reduced motion and `data-loops="held"` the bones stand still at full strength.
+
+**Phases** (`useStaged`). Each region is its own `LoadingShape`, loading until every part it reads has arrived. Until 250ms from the page's start parts land
+only all at once, so a fast page fills in once; after it a part waits 120ms for any other arriving with it; once all are here they land at once. A region
+never lands above one still loading whose height it can't know (top-down), so landing only fills in and never pushes. At most three phases after the known
+paint, in reading order.
+
+**A last copy** (`refreshing`). A return visit shows the last copy at once (the app's data layer keeps it for the session and forgets it at sign-out); it
+stays content and the region carries `data-refreshing`. `useRefreshing` is true only once a refresh has taken more than a second, and `Refreshing` is the mark:
+braille and "Updating" in tertiary ink, in a seat kept whether it shows or not; on a phone the ring alone, the word visually hidden as plain text. It is not
+a live region. There is no "last updated" stamp.
+
+**Accessibility.** The region is `aria-busy` while its shape is up; the shape is `aria-hidden` and `inert` (nothing in it can be focused or pressed), known
+words included, because a stand-in word read aloud would be wrong. "Loading" (the region's `label`) is said once for the page by one polite status line made
+on first need, by the first region to show bones; nothing is said per phase, when the page completes, or for a load under 300ms. In forced colours the
+unknown drawing is hidden by `visibility` (a transparent fill comes back in `CanvasText`), what is known is drawn as itself, and each bone is Skeleton's 1px
+`ButtonBorder` edge in its place; the space is held. A `PageWait` and the shapes of the page it hands over to share the one announcement.
+
+**Engineering.** `useInShape()` is 0 outside a shape, 1 in a drawn shape (a part that writes does nothing there) and 2 in the twin (a part that draws
+outside itself, a portal, draws nothing); a shape renders parts, not effects. `data-bone="keep"` draws an element as it is, `"none"` skips it, `"box"` makes it
+one bone in its box, painted or not. Bones are cut to the boxes that clip them; a shape measures again on a scroll inside it, and on a scroll of
+the page only when it holds a sticky or fixed part. `Bones` is the painting alone, for a place a region can't wrap. Bones are measured in the browser: a server-rendered shape is its structure with no
+bones until hydration. A prefilled region is drawn twice while it loads (the twin is laid out, never painted). Stand-ins that break the contract show a guess
+as if it were known, which Basalt can't detect.
+
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
@@ -2196,6 +2267,9 @@ stays smoked with the setting on. It is a comfort and not a legibility matter: t
 read this from compatibility data and did not check it in Safari with the setting on.
 
 ## How these were decided
+
+Loading in the page's own shape (`LoadingShape` and its parts) was decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258), with no
+council vote; its implementation is reviewed by Astra.
 
 Two design reviewers proposed the original foundations independently and converged on the
 initial rounds. Rounds 5–7 and the syntax palette were built without them and reviewed
