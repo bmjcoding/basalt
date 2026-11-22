@@ -38,6 +38,7 @@ export { useConfirm } from "./confirm";
 // The plain numbers and words (no component, no hook) come from modules that carry no "use client", so a Server Component can read them.
 export { CONFIRM_MS, COPIED_MS, LOOPS_TOGGLE_DESCRIPTION, LOOPS_TOGGLE_NAME, REFLOW_BOUND, STATUS_MESSAGE_MS, WAIT_MIN_SHOWN_MS, WAIT_SHOW_AFTER_MS } from "./constants";
 export { useWaitMark } from "./wait";
+export type { WritingEmpty } from "./wait";
 export {
   Badge,
   BadgePair,
@@ -155,8 +156,8 @@ export { Reflow, ReflowItem } from "./reflow";
 export type { ReflowItemProps, ReflowProps, ReflowReport } from "./reflow";
 export { Bones, LoadingShape, PageWait, Refreshing, useInShape, useRefreshing, useShapePhase, useStaged } from "./loading-shape";
 export type { BonesProps, InShape, LoadingShapeProps, PageWaitProps, RefreshingProps, ShapePhase } from "./loading-shape";
-export { KEEP, fillIn, rememberCount, rememberedCount, standIn } from "./shape-data";
-export type { DeepPartial, StandInVariant } from "./shape-data";
+export { KEEP, fillIn, forgetCount, rememberCount, rememberedCount, standIn } from "./shape-data";
+export type { CountStore, DeepPartial, StandInVariant } from "./shape-data";
 export { holdFirstPaint, markPageStart } from "./page-start";
 export { ENTRANCE_LATE_MS, entranceKey, entranceSeen, entranceStep, entranceVerdict, forgetEntrance, markEntranceSeen, markPageChange } from "./entrance";
 export type { EntranceVerdict } from "./entrance";
@@ -187,6 +188,7 @@ export { BackLink } from "./back-link";
 export type { BackLinkProps } from "./back-link";
 export type { BreadcrumbItem, BreadcrumbsProps, LinkProps, PaginationProps } from "./navigation";
 export type { ListBandProps } from "./list-band";
+export type { ScrollOwner } from "./scroll-owner";
 export type { BackToTopProps } from "./back-to-top";
 export { LinkCard, LinkTile } from "./link-card";
 export type { LinkCardProps, LinkTileProps } from "./link-card";

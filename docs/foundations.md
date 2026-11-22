@@ -269,8 +269,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   Text starts ascending; a numeric column, or one with `firstSort="descending"` (a time), starts descending. Rows always sort from
   the table's own order, never from the order on screen, so ties keep it and the third press gives it back row for row (`sortRows`,
   and the HTML skill's own sort). An app may load the table sorted on a named column; the third press still returns its own order.
-  The header band is 32px, and 44 on touch. **A column explainer** (`TableHeadExplainer`, given to a sortable `TableHead` as
-  `explainer`; the HTML skill's `.explainer` inside the `th`) says what a column means. It is only for a column a reader could
+  The header band is 32px, and 44 on touch. **A column explainer** (`TableHeadExplainer`, given to a `TableHead` as
+  `explainer`; the HTML skill's `.explainer` inside a sortable `th`) says what a column means. It is only for a column a reader could
   misread without it (a term of art, a coined name, a measurement whose method changes the reading), never a plain name; one to
   three sentences and at most one link, never a control; if most headers need one, the table needs a better caption. It is a
   popover, not a Tooltip (it can hold a link): the opener's level plus one, the neutral rim, radius 12, `shadow-overlay`,
@@ -285,7 +285,12 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   move onto it (a pause in the gap between header and card keeps it), and it stays until hover and focus have both left. Inside a modal
   it is written into the modal's own layer, so its link stays reachable.
   Its words are the sort button's description; the button's name stays the label and it is never a popup trigger. Tab from an open
-  header goes into its link, then on. A header with one is sized for its label under WCAG 1.4.12, as every header is. A table
+  header goes into its link, then on. **On a header that does not sort** the opener is the header cell itself: it becomes a focus stop
+  (`tabindex="0"`) described by the card's words, with the −2 inset ring of the still table's other stops, and opens the same way
+  (hover after the wait, keyboard focus, a long press); a press there does nothing else. The cell keeps its role and its name, the
+  column header, so a screen reader hears the column and then what it means, and nothing new is drawn in the header (a small trigger
+  would need a seat that every header of its kind then reserves, and a second stop in a sortable header). The HTML skill's explainer
+  stays on sortable headers; this form is React's alone. A header with one is sized for its label under WCAG 1.4.12, as every header is. A table
   without explainers loads none of its code. **Status:** the three states, the arrow after the label and the explainer were picked
   by the owner (DECISIONS 257, 261), built by Opus, reviewed by Astra. When no row matches, one row spans every
   column under the unchanged header with a sentence and an action that names what hid the rows (`TableEmpty`; DECISIONS 207): a search alone gets a sentence that names the term
@@ -701,7 +706,7 @@ every device. The CommandMenu input carries `aria-describedby` for its footer on
 show; `aria-keyshortcuts` always stays. A hybrid device shows chips after its first hardware key.
 
 **One modifier across platforms.** **Status:** decided by the owner (DECISIONS 244: "we just need to add device detection and account for windows machines vs. macos (and I guess linux too lol)
-wth the keybindings like this", on the ⌘↵ chips beside Declare incident) and taken into Basalt without a vote; the implementation hasn't been reviewed. A shortcut is written once with `Mod`
+wth the keybindings like this"; found by the first app's ⌘↵ chips in a form dialog's foot) and taken into Basalt without a vote; the implementation hasn't been reviewed. A shortcut is written once with `Mod`
 (`"Mod+Enter"`, `"Mod K"`): the platform's modifier, **Command on Apple's systems** (macOS, and iPadOS or iOS with a keyboard) and **Control on Windows, Linux and ChromeOS**. `Kbd`,
 `ActionShortcut`, `Menu` and `CommandMenu` rows, `Tooltip` and `useShortcuts` take it. The chips are ⌘ on Apple's systems and the word "Ctrl" elsewhere; beside `Mod`, Enter is ↵ on Apple's systems and "Enter"
 elsewhere ("Mod+Enter" is ⌘↵ or Ctrl Enter). `aria-keyshortcuts` is `Meta+Enter` or `Control+Enter`, and the words a screen reader says are "Command" or "Control" ("Command Return", "Control Enter").
@@ -1981,21 +1986,28 @@ a form or task opens as a centered modal over a darkened page, not a side panel.
 ### Everything that changes a list sits above it
 
 The filters come first (`FilterToolbar`), then one band (`ListBand`) with the count, the pager and the page size. Only the rows below change, so nothing above can be pushed. A bar
-under the list moves whenever the list's height does (891px across the pages of the incident rows, 7,939px across every action), drops 25 rows away from the pointer when the
-reader picks 50 per page, and leaves a keyboard's next Tab outside the new page. It is for a list of rows in a rimmed panel and for a still table alike.
+under the list moves whenever the list's height does, drops rows away from the pointer when the reader picks a larger page, and leaves a keyboard's next Tab outside the new page
+(found by: the first app's lists, where a bar under the rows moved 891px across their pages). It is for a list of rows in a rimmed panel and for a still table alike.
 
 - **The band** is one row on the page's own fill, with no rim: the count at the start, the pager in the centre, the page size at the end (`size-select-min` is not for a number).
   From 720 it is `position: sticky` under the app's bar, opaque in the page colour (it is not the one smoked surface), at `layer-sticky`, with a `border-divider` line under it
   only while it is stuck (an observed sentinel says so; in forced colours the line is `CanvasText`). When the page or the size changes while it is stuck, the window returns to where
   the band rests (one helper in `ListBand`, not one per list), so the new page's first row shows under the band and Next, Next, Next is one place on screen. Under 720 it does not
   stick: the bar and the tab bar already take 112 of a phone's height. It is `container-type: inline-size`; in print it is static.
+- **The scroller** is the window unless the app names one (`scroller`, an element or a ref): a list in a pane that scrolls on its own sticks to that pane's top, returns that pane to
+  where the band rests after a page change, and its Back to top watches and moves that pane. In a pane the band rests at the pane's top edge (`--basalt-sticky-offset` is 0 there;
+  an app with a sticky header of its own inside the pane sets the property in its own CSS). The return waits for the page or size the press asked for, however long the app takes to
+  load it, and forgets the press when a filter changes or the app moves somewhere else.
 - **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
   It is blank for no matches.
-- **The page size** is a `Select` of 10, 25, 50 and 100 (default 25; the app remembers it for each list) followed by the words "per page", named "Incidents per page": the visible
-  words are inside the name (WCAG 2.5.3), the noun is the app's. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
-- **It is spoken once.** A page or size change is said by the band's own polite status line after 400ms of stillness ("Page 2 of 9. Incidents 26 to 50 of 214."). A change of the
-  total (a search or a filter) clears the line, and only `FilterResult` speaks a filter ("Showing 37 of 214 incidents"): two numbers with two jobs, each beside the control that drives it.
-- **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list. The window is the scroller.
+- **The page size** is a `Select` of the app's sizes (10, 25, 50 and 100 unless it gives others) followed by the words "per page", named by the app's noun and those words ("Orders
+  per page"): the visible words are inside the name (WCAG 2.5.3), the noun is the app's. The size a list starts at is the app's too (the examples start at 25; it is not a default),
+  and so is whether it remembers the reader's choice. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
+- **It is spoken once.** A page or size change is said by the band's own polite status line after 400ms of stillness ("Page 2 of 9. Orders 26 to 50 of 214."). A search or a filter
+  (a change of the app's `filterKey`) clears the line, and only `FilterResult` speaks a filter ("Showing 37 of 214 orders"): two numbers with two jobs, each beside the control that
+  drives it. A total that changes by itself (rows arriving in a live list) is neither, so it never swallows a page change said with it; without a `filterKey`, a change of the total is
+  read as a filter.
+- **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list.
 
 ### Back to top and the list's foot
 
@@ -2004,7 +2016,8 @@ scrolling, and if someone physically scrolls up the scroll back up to top goes a
 
 - **Where.** At the top of the screen, centred on the list, `space-2` under the bar, and from 720 `space-2` under the band where it is stuck. It sits in a dock of zero height right after the
   band (the dock is `position: sticky`; from 720 the band's measured height is added to its top), so it floats over the rows and takes no room: nothing moves when it appears or leaves. It is
-  clear of the tab bar, the toasts and the bottom safe area (they are at the bottom), and of a room's "Jump to latest" (one floating scroll control a view).
+  clear of the tab bar, the toasts and the bottom safe area (they are at the bottom), and of any other floating scroll control (one a view: a view that already floats a "go to the
+  newest" control leaves Back to top out with `backToTop={false}`).
 - **When.** It appears while the reader scrolls down, once the list's top is more than one window above the window's top (a page of 10 rows never reaches it), and it stays while they rest. It
   leaves when they scroll up. The direction turns only after `space-2` (8px) of travel back from the furthest point reached, and the scroll position is held between the page's two ends, so an
   overscroll's bounce is never a turn. It never leaves while it holds focus (it goes when focus leaves), and it is not drawn while a modal is open. One passive scroll listener, once a frame:
@@ -2020,7 +2033,7 @@ scrolling, and if someone physically scrolls up the scroll back up to top goes a
 
 **The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
 DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
-("Incident pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
+("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
@@ -2029,7 +2042,7 @@ count keeps `space-1` more on each side: 8px between an arrow and the count, the
 ### Pagination: seven fixed slots
 
 Past seven pages the pager is seven slots: `1 2 3 4 5 … N`, then `1 … p−1 p p+1 … N`, then `1 … N−4 N−3 N−2 N−1 N`. Every slot, the gap included, is as wide as the widest page
-number the list can reach (its unfiltered count at the smallest size; `maxPages`), at 600 in tabular figures: the incident rows reserve "22" (a 36px slot), the still table "49". The
+number the list can reach (its unfiltered count at the smallest size; `maxPages`), at 600 in tabular figures: a list that can reach 22 pages reserves "22" (a 36px slot), one of 49 pages "49". The
 box reserves `min(7, maxPages)` slots in one cell, so with fewer pages the numbers sit centered between the arrows and nothing moves. Previous and Next are always there and stop at
 an end without leaving focus (`aria-disabled`, as the period stepper's arrows do). At one page or none a bare pager renders nothing, as before; in the band (`keepRoom`) it is `visibility: hidden` and keeps its room with `role="none"`, never an empty `nav` landmark (the stepper's `whole`);
 the count stays. It never wraps. The gap glyph is the core `more` (a component never draws Phosphor's version of a core glyph; engineering). A press on a number moves focus to the
@@ -2040,16 +2053,16 @@ a link-mode page takes the same 10px of inline padding as a button's. The shippe
 ### A number's select and a trigger that holds its width
 
 - **A numeric select** (`Select numeric`) is as wide as its widest option, below `size-select-min`, and does not follow its value's width: every option is drawn in the trigger's one cell, unseen.
-- **A `MultiSelect toolbar` trigger** reserves the width of its widest value ("Any", or the longest label with the largest "+N"), so choosing values moves nothing after it (Severity grew from 131 to
-  162px and Status from 120 to 200px without it, pushing the result line by up to 80px). The cost is some empty room in "Status Any". A trigger in a narrow column fills it and cuts the value with an ellipsis.
+- **A `MultiSelect toolbar` trigger** reserves the width of its widest value ("Any", or the longest label with the largest "+N"), so choosing values moves nothing after it (found by: the
+  first app's filters, which grew by up to 80px without it and pushed the result line). The cost is some empty room in "Status Any". A trigger in a narrow column fills it and cuts the value with an ellipsis.
 
 ### Filters over a list
 
-`FilterToolbar` over rows: the `search` field first (the app's own, named "Search incidents", `size-search-trigger` wide from 720, a row of its own under it), then the filters
-(an array; each sits in its own column under 720), then `FilterResult` on a full row after them. There is no sort on a list that already has an order that matters (the incident
-list brings SEV1 to the top). **A search or a filter returns to page 1.** The empty state follows DECISIONS 207, in the panel in place of the rows, one sentence and one button: a
-search alone says "No incidents match “zzq”." with **Clear search** (focus goes to the search field); a filter says "No incidents match these filters." with **Clear filters**, which clears
-a search too, and with a search the sentence names the term: "No incidents match “zzq” with these filters." (focus goes to the first filter's trigger, since the button leaves with the
+`FilterToolbar` over rows: the `search` field first (the app's own, named for what it searches, "Search orders", `size-search-trigger` wide from 720, a row of its own under it), then
+the filters (an array; each sits in its own column under 720), then `FilterResult` on a full row after them. There is no sort on a list that already has an order that matters (a list
+ordered by urgency or by time). **A search or a filter returns to page 1.** The empty state follows DECISIONS 207, in the panel in place of the rows, one sentence and one button: a
+search alone says "No orders match “zzq”." with **Clear search** (focus goes to the search field); a filter says "No orders match these filters." with **Clear filters**, which clears
+a search too, and with a search the sentence names the term: "No orders match “zzq” with these filters." (focus goes to the first filter's trigger, since the button leaves with the
 empty state). The band keeps its room: the count is blank, the pager hidden. The words are the app's.
 
 ### The form dialog
@@ -2060,28 +2073,30 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 
 - **Height.** At most the window less `space-4` above and below, with the head and foot held and the body scrolling (528px at 1440 by 560).
 - **Its top is held where it opened** (where a dialog of its height would sit, never nearer the window's edge than `space-4`), and it grows downward: an error under a field adds its height and the title does not move. It re-centres only on a window resize.
-- **The scrim closes it only while nothing has been entered** (the owner, DECISIONS 233: "it makes sense to have the guard if there's information filled in, but if there's no info filled it can minimize/close"). Esc, Close and Cancel always close it. "Entered" is read at the press: any field (a Select, a Switch, a Combobox: each keeps a hidden input) that holds something other than it held when the form opened, so a field typed into and emptied again counts as nothing entered. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. There is no "discard changes?" step: one task at a time.
+- **The scrim closes it only while nothing has been entered** (the owner, DECISIONS 233: "it makes sense to have the guard if there's information filled in, but if there's no info filled it can minimize/close"). Esc, Close and Cancel always close it. "Entered" is read at the press, by the fields' structure: every selected option of a select (one or many), whether a checkbox or radio is checked (a checked group included), the files a file input holds, and the text of the rest (a Select, a Switch, a Combobox: each keeps a hidden input), against what they held when the form opened, so a field typed into and emptied again counts as nothing entered. **The app's own answer wins** (`dirty`): for a custom control with no input, or defaults that load after the form opened, the app says whether anything is entered. The form's state lives only while it is open: opened by any means it starts with nothing entered and no remembered input, and closed by any means both go. **Drafts and discards are the app's:** Basalt keeps no draft, and an app that keeps one across a close holds the values in its own state. There is no "discard changes?" step: one task at a time.
 - **Focus** on opening goes to the first field; when a touch opened it, to the title (`tabindex="-1"`, no ring), so no keyboard rises over a form before it is seen. The choice is by the input that
   opened it (a key press on the opener focuses the field even in touch emulation); a controlled dialog falls back to the primitive's reading. On closing, focus returns to the opener.
 - **Under 720 it is a full-screen modal:** the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion (300ms in, 225ms
   out), the head under the top safe area and the foot over the bottom one, the foot's two actions equal 44px buttons, Cancel first. A centered box at 390 is a 358px box inside 16px of scrim on a
   screen that is already short, and a bottom sheet leaves a strip of page at the top that invites a stray tap and promises a drag. An alert dialog (a decision) stays centered at every width.
 - **Motion** is the dialog's own (a scale from .98 and a fade over `duration-slow`); under reduced motion it only fades.
-- **CIMIP** (for its own PR): Declare an incident, Publish an update and Find someone to call become centered dialogs (Find on Basalt's search dialog at 560); reading a document the agent wrote
-  is the wide dialog (992); the brief's right sheet from 720 to 1231 stays, because it is the narrow form of the brief's column, which docks beside the conversation from 1232; both phone bottom sheets stay.
-  A non-modal side panel is not proposed.
+- **Found by** the first app's tasks (a create form, a publish form and a people search) and its docked reading column; how that app applied the rule is in its own record
+  (DECISIONS 222 and 224). A non-modal side panel is not proposed.
 
-### Declare's form gaps
+### Form gaps: columns, a choice in a field, and a label's action
 
-**Status:** decided by the owner in CIMIP (DECISIONS 237, 239 to 241: a sliding pill for severity with nothing chosen at first, two columns on one grid, a text button on the Title's label row) and taken into Basalt without a vote
-(DECISIONS 242, under DECISIONS 234); the implementation hasn't been reviewed. Source: Opus's "Declare B, round 2" prototype in CIMIP. React's alone: the HTML skill's `forms`, `segment` and `dialog-form` modules draw none of it, and none is added.
+**Status:** decided by the owner in the first app (DECISIONS 237, 239 to 241: a sliding pill for a required choice with nothing chosen at first, two columns on one grid, a text button on a
+label's row) and taken into Basalt without a vote (DECISIONS 242, under DECISIONS 234); the implementation hasn't been reviewed. Found by that app's multi-column create form (Opus's prototype,
+round 2). React's alone: the HTML skill's `forms`, `segment` and `dialog-form` modules draw none of it, and none is added.
 
 - **The form grid** (`FormGrid`, `FormGridItem`, and `column`, `row` and `rows` on `Field`). Fields in columns that line up. Every cell takes four tracks a row: label, control, hint and error, and is a subgrid on them, so the cells beside
   each other share every track: a label, a control's top and bottom, a hint and an error on one row sit on the same pixel across the columns (measured 0px at 1440, 1024 and 720, with errors showing). The spaces are Basalt's and each is held by its
   track as a margin: the field gap (`space-1-5`) inside a field, the form gap (`space-4`) above a label that is not in the first row, `space-8` between columns. A ratio sets the columns (`columns="3-2"`). A field that spans rows keeps its label on the
   first row's label track and its hint and error on the last row's; its control (a `Textarea`) fills what is between, so its bottom is the bottom of the control beside it. Every control is `size-control-md` (32) tall: the input, the combobox, the
-  segmented control (28 segments in a 2px track), and a `Switch`'s row (its 18px switch centred in the 32). Every edge is straight: a field's label, control and hint start at its column's edge, and a control ends at it. Under 720 it is one
-  column in the markup's order, the field gap and the form gap as in any `Form`. It is for a place at least 640 wide. Not measured: a tablet from 720 with a touch pointer, where Basalt draws touch targets at 44 (a segmented control is then 48 and the
+  segmented control (28 segments in a 2px track), and a `Switch`'s row (its 18px switch centred in the 32). Every edge is straight: a field's label, control and hint start at its column's edge, and a control ends at it. **It answers the
+  width it is given, not the window:** it is the columns where its own width is at least `size-breakpoint-container-lg` (640) and the window at least `size-breakpoint-md` (720), and
+  one column in the markup's order anywhere else (a phone, the 480 form dialog, a narrow pane on a wide screen), the field gap and the form gap as in any `Form`; the grid's frame is the
+  container its width is read from. Not measured: a tablet from 720 with a touch pointer, where Basalt draws touch targets at 44 (a segmented control is then 48 and the
   fields beside it 44).
 - **A segmented control in a form.** `fullWidth`: equal segments filling the container, the pill still sliding. In a `Field` the label names the group, with "Required" after it as on other fields; `required` says the word in the group's name, because a
   group of pressed buttons takes no `aria-required`; `invalid` sets `aria-invalid`, and the group is described by the line and, while invalid, by the field's error. **No invalid look is decided**, so it draws no danger hairline or colour of its own: the error line is
@@ -2091,7 +2106,7 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 - **A `Switch` description.** A line under the switch's row in a field description's style (`text-xs`, secondary), at the column's start edge, not indented past the switch, linked by `aria-describedby`.
 - **A field hint whose words change** (a `Reserve` in a `description` or an `error`) lays out as a block that wraps at the field's width, so the line holds its room and never moves the field.
 - **`ActionShortcut` in a form dialog's foot under 720.** The foot's two actions stay equal 44px buttons: the button inside the shortcut's wrapper takes the rule.
-- **`Field`'s `labelAction`** (DECISIONS 241: the Title's "Generate a title" text button). A node at the end of the label's row, on the label track: the row (`basalt-field-label-row`) holds the `<label>` and the
+- **`Field`'s `labelAction`** (DECISIONS 241: a text button on a label's row, such as "Suggest a name"). A node at the end of the label's row, on the label track: the row (`basalt-field-label-row`) holds the `<label>` and the
   action, the action's end on the column's end and its baseline on the label's. The action is not inside the `<label>`, so a press on it never focuses the control, and the label stays as wide as its words and "Required"
   (DECISIONS 233: a press on the empty space between them does nothing). In a `FormGrid` the row is the label track, so it lines up with the fields beside it, 0px; a field with no `labelAction` draws no row. React's
   alone. The implementation hasn't been reviewed.
@@ -2099,14 +2114,15 @@ the description (so the held head stays one line), and a held foot with Cancel, 
 
 ### Defects not copied
 
-The prototype's band kept saying "Page 2 of 9" after a filter narrowed the list to one match; the band's line is now cleared when the total changes. Its first focus followed the pointer
+The prototype's band kept saying "Page 2 of 9" after a filter narrowed the list to one match; the band's line is now cleared when the filter changes (`filterKey`, or the total
+where the app gives none). Its first focus followed the pointer
 type, so Enter in touch emulation still focused the title; it now follows the input that opened the dialog. Its compact form needed 340px, overflowing the 292px card; the page size now
 moves to a second row under 340.
 
 ### Measured
 
-Across the incident rows (every size, Next to the end and back at each size, every page number, every severity and status, the empty state and searches) and a still table (every size,
-every page, every sort), the band, Previous, Next, the count's seat, the page size, each page slot, the search and both filter triggers and the table's columns moved 0px at 1440, 1024, 720 and 390
+Across a paged list of 214 rows (every size, Next to the end and back at each size, every page number, every value of both filters, the empty state and searches) and a still table
+(every size, every page, every sort), and a second, unlike list in a pane that scrolls on its own (`packages/react/test/agnostic.test.mjs`), the band, Previous, Next, the count's seat, the page size, each page slot, the search and both filter triggers and the table's columns moved 0px at 1440, 1024, 720 and 390
 (`packages/react/test/lists-modals.test.mjs`). Not checked: a real phone (on iOS the held foot sits under the keyboard while typing, as in any web form), WebKit, Firefox, a screen reader and a
 Windows contrast theme.
 
@@ -2130,11 +2146,13 @@ its words, its painted box and its drawing (fill, edge, ink, transform, and a pa
 with all it holds. A value drawn by CSS (a meter's fill, a status dot) that differs is one bone in its box. A line is never part ink, part bone. `shape` is the form for a region where nothing is known.
 
 **The stand-in contract.** An app's stand-ins (`standIn(seed, length, variant)` for words) take values from a different set in each variant (other words,
-other severities, the other role, a different hour), so no guess can match in both however the view sorts; they keep the same rows and branches, except
+another status, the other role, a different hour), so no guess can match in both however the view sorts; they keep the same rows and branches, except
 where a branch is itself unknown (it is then a bone as a whole, the safe failure); a list's variant 1 has one more row, so every count differs; and nothing
 is assumed about content (who said what, and when, is a bone until it arrives). The unseen variant's words are half again as long and a dozen letters more,
 so what sits under text of unknown length is at another place and is a bone. Rows: the count the list had last time (`rememberCount` keeps the count and
-nothing else), else what fits the window, never more than a page.
+nothing else, where the app says: a `CountStore` it passes, scoped to whoever the list belongs to; with none, only for the page's life), else what fits the window, never more than
+a page. **Known-empty is not unknown:** `fillIn` merges plain records only (an array, a `Date` and every atomic value are taken as given), a field left out or `undefined` is unknown and
+stood in, and a field set to `null` is known to be empty and is drawn empty.
 
 **The six rules** (DECISIONS 249b):
 
@@ -2143,7 +2161,7 @@ nothing else), else what fits the window, never more than a page.
 2. **A status word for a wait waits too.** "Connecting" waits a second, as a bone waits 300ms.
 3. **A reload paints once if its data is quick.** `holdFirstPaint` holds a client-rendered app's first paint (by opacity, so its shapes are measured while held) until nothing is loading, at most 250ms from the
    navigation; after that the page shows with its bones drawn together, never its structure and then bones a moment later.
-4. **A move never blanks.** The next page's code is preloaded; if it isn't here yet the page on screen stays until it is (the router's gate, never a lazy
+4. **A move never blanks.** The next page's code is preloaded (how and when is the app's router's choice); if it isn't here yet the page on screen stays until it is (the router's gate, never a lazy
    fallback in its place), the router calls `markPageStart`, and the new page answers at once with what is known and fills in once. `PageWait` (nothing for
    300ms, then the 20px ring where the page's first line goes, its label said once, never a box) is for a reload whose page code is late. **A tab switch is
    a move of its own panel:** the panel left goes at once and the new panel is in its place from the switch's first frame, its known words (a description)
@@ -2163,7 +2181,8 @@ only all at once, so a fast page fills in once; after it a part waits 120ms for 
 never lands above one still loading whose height it can't know (top-down), so landing only fills in and never pushes. At most three phases after the known
 paint, in reading order.
 
-**A last copy** (`refreshing`). A return visit shows the last copy at once (the app's data layer keeps it for the session and forgets it at sign-out); it
+**A last copy** (`refreshing`). A return visit shows the last copy at once (how long the app's data layer keeps it, and that it forgets it at sign-out, are the app's
+integration choices; Basalt keeps no data); it
 stays content and the region carries `data-refreshing`. `useRefreshing` is true only once a refresh has taken more than a second, and `Refreshing` is the mark:
 braille and "Updating" in tertiary ink, in a seat kept whether it shows or not; on a phone the ring alone, the word visually hidden as plain text. It is not
 a live region. There is no "last updated" stamp.
@@ -2183,7 +2202,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of Declare's gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it). React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 

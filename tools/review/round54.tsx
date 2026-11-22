@@ -28,6 +28,7 @@ import {
   useStaged,
 } from "../../packages/react/src/index";
 import type { StandInVariant } from "../../packages/react/src/index";
+import { DocumentsLoading } from "./af-demos";
 import type { Round } from "./rounds";
 
 const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
@@ -272,6 +273,21 @@ export const ROUND_54: Round = {
       ...SHOT,
       height: 900,
       demo: ({ state }) => <DetailPage state={state} />,
+    },
+    {
+      id: "documents",
+      name: "A second domain: shared documents, with a date, a list and a known-empty field",
+      intro: "A table of shared documents (cimip-gaps-2, AF) whose rows hold a `Date`, an array of editors and a note that may be empty. A cache knows the titles, and that two documents have no note.",
+      decisions: [
+        "`fillIn` merges plain records only: the `Date` and the array are taken whole. A field left out (or `undefined`) is unknown and stood in; a field set to `null` is known to be empty and is drawn empty, never as a bone.",
+        "The stand-in words are neutral everyday words; they are never read, only measured.",
+        "The rest is the shape above: bones measured from the drawing, the column heads kept as words.",
+      ],
+      tryIt: ["Compare “full” with “prefill”: the titles are words, and the two empty notes are empty, not bones."],
+      states: ["full", "prefill", "prefill-forced-colours", "prefill-reduced-motion"],
+      ...SHOT,
+      height: 700,
+      demo: ({ state }) => <DocumentsLoading state={state} />,
     },
   ],
 };

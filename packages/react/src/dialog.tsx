@@ -32,7 +32,7 @@ export interface DialogProps {
  * trigger when it closes; Esc closes it.
  */
 export function Dialog(props: DialogProps) {
-  const form = React.useRef<FormState>({ opened: undefined, popup: null, initial: "" });
+  const form = React.useRef<FormState>({ opened: undefined, popup: null, initial: "", dirty: undefined });
   const { onOpenChange } = props;
   return (
     <DialogModal.Provider value={props.modal === undefined || props.modal === true}>
@@ -60,14 +60,33 @@ interface FormState {
   /** The open form's box and what its fields held when it opened. */
   popup: HTMLElement | null;
   initial: string;
+  /** The app's own answer (`DialogContent`'s `dirty`), which wins when it is given. */
+  dirty: boolean | undefined;
 }
 
-/** What the fields of a form hold: a Base UI control (Select, Combobox, Switch, Checkbox) keeps a hidden input, so a change of value is seen whether or not it fires an event. */
-function values(box: HTMLElement): string {
-  return Array.from(box.querySelectorAll<HTMLInputElement>("input, select, textarea"), (el) => (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : el.value)).join("\u0001");
+/**
+ * What one field holds, by its structure and not only its `.value`: every selected option of a `<select>` (one or many), whether a checkbox or a radio is checked, the files a
+ * file input holds (name, size and date), and the text of the rest. A Base UI control (Select, Combobox, Switch, Checkbox, a checkbox group) keeps hidden inputs, so a change of
+ * value is seen whether or not it fires an event, and a control that adds an input per chosen value changes the count.
+ */
+function held(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+  if (el.tagName === "SELECT") return Array.from((el as HTMLSelectElement).selectedOptions, (option) => option.value).join("\u0002");
+  if (el.tagName === "INPUT") {
+    const input = el as HTMLInputElement;
+    if (input.type === "checkbox" || input.type === "radio") return String(input.checked);
+    if (input.type === "file") return Array.from(input.files ?? [], (file) => `${file.name}\u0003${file.size}\u0003${file.lastModified}`).join("\u0002");
+  }
+  return el.value;
 }
-/** Something is entered: a field holds something other than it held when the form opened. Read at the press, so a form typed into and emptied again closes. */
-const entered = (state: FormState) => Boolean(state.popup && values(state.popup) !== state.initial);
+/** What the fields of a form hold, in the order they are in the form. */
+function values(box: HTMLElement): string {
+  return Array.from(box.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"), held).join("\u0001");
+}
+/**
+ * Something is entered: the app says so (`dirty`), or, when it says nothing, a field holds something other than it held when the form opened. Read at the press, so a form typed
+ * into and emptied again closes.
+ */
+const entered = (state: FormState) => state.dirty ?? Boolean(state.popup && values(state.popup) !== state.initial);
 const DialogForm = /* @__PURE__ */ React.createContext<FormState | null>(null);
 
 /**
@@ -115,9 +134,15 @@ export interface DialogContentProps extends PartProps<"div"> {
   initialFocus?: FocusTarget;
   /** Where focus goes on close. By default, back to the trigger. */
   finalFocus?: FocusTarget;
+  /**
+   * A `form`'s own answer to "has anything been entered?", for what Basalt cannot read from the fields: a custom control with no input, or defaults that load after the form
+   * opened (which would otherwise read as entered). Given, it wins: `true` keeps the form open on a press on the scrim, `false` lets the scrim close it. Left out, Basalt compares
+   * what the fields hold with what they held when the form opened. Esc, Close and Cancel close it either way.
+   */
+  dirty?: boolean;
 }
 
-export function DialogContent({ className, style, children, ref, size = "default", initialFocus, form = false, ...props }: DialogContentProps) {
+export function DialogContent({ className, style, children, ref, size = "default", initialFocus, form = false, dirty, ...props }: DialogContentProps) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
   const [node, setNode] = React.useState<HTMLDivElement | null>(null);
@@ -137,6 +162,12 @@ export function DialogContent({ className, style, children, ref, size = "default
     state.initial = values(node);
     return () => { state.opened = undefined; state.popup = null; state.initial = ""; };
   }, [node, form, state]);
+  // The app's answer is read at the press: kept current on every render, and gone with the form.
+  React.useLayoutEffect(() => {
+    if (!form || !state) return undefined;
+    state.dirty = dirty;
+    return () => { state.dirty = undefined; };
+  }, [form, state, dirty]);
   // A form opens on its first field, or on its title when a touch opened it, so no keyboard rises over a form before the reader has seen it, whatever its width. A wide
   // dialog that is not a form is a manual: its first focus is its name, not the first button, so Enter on opening does nothing.
   const title = () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true;

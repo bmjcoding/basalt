@@ -13,7 +13,7 @@
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
-//   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
+//   examples/*.body.html      src/examples/*.body.html, copied: the example bodies for compose.mjs
 //
 //   node tools/html-skill/build.mjs                  write the files (committed; a test fails if they drift)
 //   node tools/html-skill/build.mjs --out <dir>      write somewhere else

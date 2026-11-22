@@ -166,16 +166,23 @@ export function usePressWait<E extends { preventDefault(): void }>(onClick: Pres
 }
 
 /**
+ * What an empty `value` shows while a field is written into: `keep` (the default) keeps the text that was there until the next text arrives, so the field never blanks between
+ * two drafts; `clear` shows it empty, for an app that clears the field on purpose while the busy look stays.
+ */
+export type WritingEmpty = "keep" | "clear";
+
+/**
  * A field being written into by something else (an agent's draft, a summary written again): `busy` while it is written (read-only and `aria-busy`,
  * ending with the writing, so a keystroke in the look's tail is typed), `shown` once the writing has run 300ms and for at least 400ms (the look,
  * `data-writing`), and the text to show. Text
  * replaces text: while it is written, an empty value keeps the text that was there until the next text arrives, so the field is never blanked
  * between two drafts, and each update is painted as it comes, in the same ink, with no fade (a fade on every update is the flashing this stops).
+ * With `empty` "clear", an empty value while it is written is shown empty: the busy look stays, and the field is cleared.
  */
-export function useWriting<V>(writing: boolean, value: V, element: React.RefObject<Element | null>): { busy: boolean; shown: boolean; value: V } {
+export function useWriting<V>(writing: boolean, value: V, element: React.RefObject<Element | null>, empty: WritingEmpty = "keep"): { busy: boolean; shown: boolean; value: V } {
   const shown = useWaitMark(writing);
   const kept = React.useRef(value);
-  const text = writing && value === "" ? kept.current : value;
+  const text = writing && empty === "keep" && value === "" ? kept.current : value;
   React.useEffect(() => {
     kept.current = text;
   });

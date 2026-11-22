@@ -8,11 +8,11 @@ export interface FilterToolbarProps extends Omit<React.ComponentProps<"div">, "c
   /** The kind `Select`, for a phone: it is shown under 720 and hidden from it (where the page has its own tabs for the kind). */
   kind?: React.ReactNode;
   /**
-   * A search field, first: the app's own (a text input with the core search glyph, named "Search incidents"). From 720 it is `size-search-trigger` (200px) wide
+   * A search field, first: the app's own (a text input with the core search glyph, named for what it searches: "Search orders"). From 720 it is `size-search-trigger` (200px) wide
    * and sits before the filters; under 720 it has a row of its own. A change in it, like a change in a filter, returns a paged list to its first page.
    */
   search?: React.ReactNode;
-  /** The filter: a `MultiSelect` with `toolbar`. Pass an array for more than one (Severity, then Status): each sits in its own column under 720. */
+  /** The filter: a `MultiSelect` with `toolbar`. Pass an array for more than one (Priority, then Status): each sits in its own column under 720. */
   filter?: React.ReactNode;
   /** The result: a `FilterResult`, which is spoken once and debounced. Never a bare `role="status"`. */
   result?: React.ReactNode;

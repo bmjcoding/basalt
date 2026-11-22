@@ -414,7 +414,7 @@ for (const id of rounds) {
           // Round 55 (the column explainer): "explain-hover" rests a real pointer on the header that marks itself `data-wt-explain` past the 600ms wait,
           // "explain-focus" reaches it from the keyboard (Tab from the header marked `data-wt-before`), and "explain-touch" holds a finger on it for 750ms,
           // longer than the 500ms long press, and lifts it. Each then waits for the card's entry to end.
-          if (id === "54" && state.startsWith("explain-")) {
+          if ((id === "55" || id === "57") && state.startsWith("explain-")) {
             const target = page.locator("[data-wt-explain]").first();
             if (state.startsWith("explain-hover")) {
               await target.hover();
@@ -433,7 +433,7 @@ for (const id of rounds) {
               await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
               await page.waitForTimeout(400);
             }
-            if (!(await page.locator(".basalt-explainer[data-open]").count())) throw new Error(`54/${state}: the explainer did not open`);
+            if (!(await page.locator(".basalt-explainer[data-open]").count())) throw new Error(`${id}/${state}: the explainer did not open`);
           }
           // "hover" puts a real pointer on the element that marks itself `data-wt-hover` (round 17's Region header).
           if (/^((tab|open)-)?hover(-forced-colours|-reduced-motion)?$/.test(state)) {
