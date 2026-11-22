@@ -180,15 +180,16 @@ function PastTable({ state }: { state: string }) {
   const kind = kindOf(state);
   const [page, setPage] = React.useState(kind === "page-4" ? 4 : 1);
   const [size, setSize] = React.useState(kind === "size-10" ? 10 : 25);
-  const [sort, setSort] = React.useState<"ascending" | "descending">("descending");
-  const rows = [...PAST].sort((a, b) => (sort === "ascending" ? 1 : -1) * (a.ref < b.ref ? -1 : 1)).slice((page - 1) * size, page * size);
+  const [sort, setSort] = React.useState<"ascending" | "descending" | undefined>("descending");
+  // The direction the header asks for; undefined at the third press is the list's own order (DECISIONS 261).
+  const rows = (sort ? [...PAST].sort((a, b) => (sort === "ascending" ? 1 : -1) * (a.ref < b.ref ? -1 : 1)) : PAST).slice((page - 1) * size, page * size);
   return (
     <Frame>
     <div>
-      <ListBand total={PAST.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Past incidents" pagerLabel="Past incident pages" filterKey={sort}>
+      <ListBand total={PAST.length} page={page} pageSize={size} onPageChange={setPage} onPageSizeChange={setSize} noun="Past incidents" pagerLabel="Past incident pages" filterKey={sort ?? "own"}>
       <TableContainer label="Past incidents">
         <Table columns={[{ width: 100 }, { width: 80 }, { width: 150 }, { width: 150 }, { width: 120 }, { width: 140 }, {}]} minWidth={940}>
-          <TableHeader><TableRow><TableHead onSortChange={() => { setSort(sort === "ascending" ? "descending" : "ascending"); setPage(1); }} sort={sort}>Ref</TableHead><TableHead>Severity</TableHead><TableHead>Commander</TableHead><TableHead>Declared</TableHead><TableHead numeric>Took</TableHead><TableHead>Application</TableHead><TableHead>Title</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead onSortChange={(next) => { setSort(next); setPage(1); }} sort={sort}>Ref</TableHead><TableHead>Severity</TableHead><TableHead>Commander</TableHead><TableHead>Declared</TableHead><TableHead numeric>Took</TableHead><TableHead>Application</TableHead><TableHead>Title</TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.map((r) => <TableRow key={r.ref}><TableRowHead>{r.ref}</TableRowHead><TableCell>{r.sev}</TableCell><TableCell>{r.who}</TableCell><TableCell>{r.when}</TableCell><TableCell numeric>{r.took}</TableCell><TableCell>{r.app}</TableCell><TableCell>{r.title}</TableCell></TableRow>)}
             {rows.length === 0 ? <TableEmpty colSpan={7}>No past incidents.</TableEmpty> : null}

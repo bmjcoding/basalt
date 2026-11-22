@@ -16,8 +16,11 @@ const CONTROLS = [
 /** Makes inert every control outside `popup` that the modal left exposed. Returns the undo. */
 export function inertOutside(popup: Element): () => void {
   const made: Element[] = [];
+  // The modal's own portal holds what it opens from inside (a column explainer's card, written beside the popup so a transform on the popup
+  // cannot move it): that is inside the modal, as Base UI counts it, and stays operable.
+  const portal = popup.closest("[data-base-ui-portal]");
   for (const control of popup.ownerDocument.querySelectorAll(CONTROLS)) {
-    if (popup.contains(control) || control.contains(popup)) continue;
+    if (popup.contains(control) || control.contains(popup) || portal?.contains(control)) continue;
     // Already out of the tree, or the toast stack, which stays operable above a modal (F6 reaches it).
     if (control.closest("[aria-hidden='true'], [inert], .basalt-toast-viewport")) continue;
     control.setAttribute("inert", "");

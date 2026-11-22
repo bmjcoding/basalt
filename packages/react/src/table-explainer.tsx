@@ -12,9 +12,11 @@ import { join } from "./utils";
 //   - it opens on hover after the tooltip's wait (600ms, then at once within 400ms of another closing), at once on keyboard focus, and on a
 //     long press (500ms) on touch; a press before the wait cancels it, and a sort press closes an open one, which then stays closed until
 //     the pointer and focus have left;
-//   - it is placed above the header, else beside it (the end side, then the start side), never below, so never over its own column;
-//   - WCAG 1.4.13: Esc dismisses it without moving the pointer or focus, the pointer can move onto it, and it stays until hover and focus
-//     have both left;
+//   - it is placed above the header, else beside it (the end side, then the start side), never below, so never over its own column, and
+//     it closes, focus or not, when its header leaves the view or the room goes;
+//   - WCAG 1.4.13: Esc dismisses it without moving the pointer or focus, the pointer can move onto it (a pause in the 6px gap between
+//     header and card keeps it), and it stays until hover and focus have both left;
+//   - inside a dialog, sheet or popup it is written into that modal's own portal, so the modal counts it as inside and its link stays reachable;
 //   - it is the opener's level plus one, with the neutral rim, radius 12 and shadow-overlay (the popover's own look);
 //   - its words are the sort button's description, so they are heard with the header; Tab from an open header goes into its link, and on.
 // Nothing here runs when the module loads; a table without explainers never imports it.
@@ -73,6 +75,20 @@ function place(card: HTMLElement, th: HTMLElement): boolean {
   return true;
 }
 
+/**
+ * Whether a point is in the gap between the header and its card (the space-1-5 between them, across the two boxes' joint extent), so a
+ * pointer crossing slowly from one to the other keeps the card open (WCAG 1.4.13, hoverable).
+ */
+function inGap(x: number, y: number, th: HTMLElement, card: HTMLElement): boolean {
+  const a = th.getBoundingClientRect();
+  const c = card.getBoundingClientRect();
+  const side = card.getAttribute("data-side");
+  if (side === "top") return y >= c.bottom - 1 && y <= a.top + 1 && x >= Math.min(a.left, c.left) && x <= Math.max(a.right, c.right);
+  const lo = Math.min(a.right, c.right) - 1;
+  const hi = Math.max(a.left, c.left) + 1;
+  return x >= Math.min(lo, hi) && x <= Math.max(lo, hi) && y >= Math.min(a.top, c.top) && y <= Math.max(a.bottom, c.bottom);
+}
+
 /** Whether any of the header is in view: in the window and in its table's scroll box. */
 function inView(th: HTMLElement): boolean {
   const a = th.getBoundingClientRect();
@@ -102,9 +118,12 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
   const bodyId = `${own}-explainer-body`;
   const anchor = React.useRef<HTMLSpanElement | null>(null);
   const card = React.useRef<HTMLDivElement | null>(null);
-  // The card is written into the page's body after the first render: a portal cannot be drawn on a server.
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  // The card is written after the first render (a portal cannot be drawn on a server), into the page's body, or into the portal of the
+  // dialog, sheet or popup the table sits in: a modal makes everything outside its own portal inert and hidden, which would leave the
+  // card's link out of reach. Marked as a portal of its own, so the modal counts it as inside.
+  const [container, setContainer] = React.useState<HTMLElement | null>(null);
+  React.useEffect(() => setContainer(anchor.current?.closest<HTMLElement>("[data-base-ui-portal]") ?? document.body), []);
+  const mounted = container !== null;
 
   React.useEffect(() => {
     const th = anchor.current?.closest("th");
@@ -118,6 +137,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
     let pinned = false;
     let overButton = false;
     let overCard = false;
+    let pointer: [number, number] | null = null;
     let wait = 0;
     let leave = 0;
     let ending = 0;
@@ -134,9 +154,8 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
     };
     const reposition = () => {
       if (!open) return;
-      if (!inView(th) || !place(box, th)) {
-        if (!focusInside()) hide();
-      }
+      // Its header scrolled out of view, or there is no room left for it: it closes, focus or not (focus in it goes back to the header).
+      if (!inView(th) || !place(box, th)) hide();
     };
     const show = (how: "hover" | "focus" | "touch") => {
       window.clearTimeout(wait);
@@ -170,6 +189,8 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       window.addEventListener("scroll", reposition, true);
       window.addEventListener("resize", reposition);
       window.addEventListener("keydown", onEscape, true);
+      document.addEventListener("pointermove", onTrack, true);
+      document.addEventListener("pointerdown", onOutside, true);
     };
     const hide = () => {
       window.clearTimeout(wait);
@@ -181,6 +202,9 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("keydown", onEscape, true);
+      document.removeEventListener("pointermove", onTrack, true);
+      document.removeEventListener("pointerdown", onOutside, true);
+      pointer = null;
       // Focus that was in the card goes back to the header, never to the page.
       if (box.contains(document.activeElement)) button.focus({ preventScroll: true });
       box.removeAttribute("data-open");
@@ -196,14 +220,19 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       else done();
       ending = window.setTimeout(done, 400);
     };
-    // It stays while the pointer is on the header or the card, or focus is on either, or a long press opened it.
+    // It stays while the pointer is on the header or the card, or in the gap between them, or focus is on either, or a long press opened it.
     const settle = () => {
       window.clearTimeout(leave);
-      leave = window.setTimeout(() => {
+      leave = window.setTimeout(function check() {
         if (pinned || overButton || overCard || focusInside()) return;
+        if (open && pointer && inGap(pointer[0], pointer[1], th, box)) {
+          leave = window.setTimeout(check, LEAVE);
+          return;
+        }
         hide();
       }, LEAVE);
     };
+    const onTrack = (e: PointerEvent) => { if (e.pointerType !== "touch") pointer = [e.clientX, e.clientY]; };
 
     const onEnter = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
@@ -215,12 +244,14 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
     const onLeave = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
       overButton = false;
+      pointer = [e.clientX, e.clientY];
       window.clearTimeout(wait);
-      held = false;
+      // A dismissed card stays shut until the pointer and focus have both left the header.
+      if (!focusInside()) held = false;
       settle();
     };
     const onCardEnter = () => { overCard = true; window.clearTimeout(leave); };
-    const onCardLeave = () => { overCard = false; settle(); };
+    const onCardLeave = (e: PointerEvent) => { overCard = false; pointer = [e.clientX, e.clientY]; settle(); };
     const onFocus = () => { if (button.matches(":focus-visible")) show("focus"); };
     const onFocusOut = (e: FocusEvent) => {
       const to = e.relatedTarget as Node | null;
@@ -307,7 +338,6 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
     box.addEventListener("pointerleave", onCardLeave);
     box.addEventListener("focusout", onFocusOut);
     box.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onOutside, true);
     return () => {
       window.clearTimeout(wait);
       window.clearTimeout(leave);
@@ -316,6 +346,8 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("keydown", onEscape, true);
+      document.removeEventListener("pointermove", onTrack, true);
+      document.removeEventListener("pointerdown", onOutside, true);
       button.removeEventListener("pointerenter", onEnter);
       button.removeEventListener("pointerleave", onLeave);
       button.removeEventListener("focus", onFocus);
@@ -331,7 +363,6 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       box.removeEventListener("pointerleave", onCardLeave);
       box.removeEventListener("focusout", onFocusOut);
       box.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onOutside, true);
       const left = (button.getAttribute("aria-describedby") ?? "").split(/\s+/).filter((x) => x && x !== bodyId);
       if (left.length) button.setAttribute("aria-describedby", left.join(" "));
       else button.removeAttribute("aria-describedby");
@@ -342,7 +373,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
   return (
     <>
       <span ref={anchor} hidden />
-      {mounted
+      {container
         ? createPortal(
             <div
               {...props}
@@ -350,6 +381,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
               id={cardId}
               hidden
               data-level={level}
+              data-base-ui-portal=""
               className={join("basalt-popover basalt-explainer", className)}
               style={{ zIndex: layer?.zIndex ?? "var(--basalt-layer-popover)", ...style }}
             >
@@ -361,7 +393,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
                 </>,
               )}
             </div>,
-            document.body,
+            container,
           )
         : null}
     </>

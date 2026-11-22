@@ -280,8 +280,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   selection or callout; a tap sorts. A press before the wait sorts and cancels it, and a sort press closes an open one, which stays
   shut until the pointer and focus have left. It sits above the header, on the column's start edge (its end edge on a numeric
   column) and kept inside the window, else beside the header (the end side, then the start side), never below, so never over its
-  own column; with no room it opens nothing (a long press first scrolls the page up to make room). WCAG 1.4.13 applies: Esc
-  dismisses it without moving the pointer or focus, the pointer can move onto it, and it stays until hover and focus have both left.
+  own column; with no room it opens nothing (a long press first scrolls the page up to make room), and it closes, focus or not, when its
+  header leaves the view or the room goes. WCAG 1.4.13 applies: Esc dismisses it without moving the pointer or focus, the pointer can
+  move onto it (a pause in the gap between header and card keeps it), and it stays until hover and focus have both left. Inside a modal
+  it is written into the modal's own layer, so its link stays reachable.
   Its words are the sort button's description; the button's name stays the label and it is never a popup trigger. Tab from an open
   header goes into its link, then on. A header with one is sized for its label under WCAG 1.4.12, as every header is. A table
   without explainers loads none of its code. **Status:** the three states, the arrow after the label and the explainer were picked

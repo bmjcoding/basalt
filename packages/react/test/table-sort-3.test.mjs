@@ -291,7 +291,7 @@ describe("the column explainer", () => {
     assert.deepEqual(errors, []);
   });
 
-  test("a press before the wait sorts and cancels it, and it stays shut while the pointer stays", async () => {
+  test("a press before the wait sorts and cancels it; a dismissed card stays shut until the pointer and focus have both left the header", async () => {
     const { page } = await open({ ...DESKTOP });
     const box = await head(page, "Zero retention").boundingBox();
     await page.mouse.move(box.x + 20, box.y + box.height / 2);
@@ -301,15 +301,104 @@ describe("the column explainer", () => {
     assert.deepEqual(await sortOf(page), { "Zero retention": "descending" });
     await wait(page, 900);
     assert.equal(await isOpen(page, "Zero retention"), false);
-    // Opened by hover, a press sorts and closes it.
+    // The press left focus on the header: the pointer leaving and coming back does not open it (foundations: shut until both have left).
     await page.mouse.move(2, 2);
     await page.mouse.move(box.x + 30, box.y + box.height / 2);
     await wait(page, 900);
-    assert.equal(await isOpen(page, "Zero retention"), true);
+    assert.equal(await isOpen(page, "Zero retention"), false, "focus is still on the header");
+    // Focus leaves too (a press elsewhere), and then hover opens it again.
+    await page.mouse.click(2, 2);
+    assert.equal(await page.evaluate(() => document.activeElement === document.body), true);
+    await page.mouse.move(box.x + 30, box.y + box.height / 2);
+    await wait(page, 900);
+    assert.equal(await isOpen(page, "Zero retention"), true, "pointer and focus both left, so hover opens it");
+    // Opened by hover, a press sorts and closes it.
     await page.mouse.down();
     await page.mouse.up();
     assert.deepEqual(await sortOf(page), { "Zero retention": "ascending" });
     assert.equal(await isOpen(page, "Zero retention"), false, "the sort press closed it");
+  });
+
+  test("a slow move from the header to the card keeps it: a 300ms pause in the gap, above the header and beside it", async () => {
+    for (const [fixture, nearTop] of [[modelsFixture(), false], [modelsFixture({ width: 1100 }), true]]) {
+      const { page } = await open({ ...DESKTOP }, fixture);
+      if (nearTop) await page.evaluate(() => { const th = document.querySelector("thead th:nth-child(6)"); window.scrollBy(0, th.getBoundingClientRect().top - 20); });
+      const box = await head(page, "Zero retention").boundingBox();
+      await page.mouse.move(box.x + 30, box.y + box.height / 2);
+      await wait(page, 900);
+      assert.equal(await isOpen(page, "Zero retention"), true);
+      const side = await card(page, "Zero retention").getAttribute("data-side");
+      assert.equal(side, nearTop ? "end" : "top");
+      const c = await card(page, "Zero retention").boundingBox();
+      // Into the 6px gap, and a pause there longer than the leave timer.
+      const gap = side === "top" ? { x: box.x + 30, y: (c.y + c.height + box.y) / 2 } : { x: (box.x + box.width + c.x) / 2, y: box.y + box.height / 2 };
+      await page.mouse.move(gap.x, gap.y, { steps: 3 });
+      await wait(page, 300);
+      assert.equal(await isOpen(page, "Zero retention"), true, `${side}: still open with the pointer in the gap`);
+      const on = side === "top" ? { x: box.x + 30, y: c.y + c.height - 8 } : { x: c.x + 8, y: box.y + box.height / 2 };
+      await page.mouse.move(on.x, on.y, { steps: 3 });
+      await wait(page, 300);
+      assert.equal(await isOpen(page, "Zero retention"), true, `${side}: the pointer reached the card`);
+      await page.mouse.move(2, 600);
+      await wait(page, 400);
+      assert.equal(await isOpen(page, "Zero retention"), false, "and it goes once the pointer has left all three");
+    }
+  });
+
+  test("a card opened by focus closes when its header scrolls out of view, and focus in its link goes back to the header", async () => {
+    const { page } = await open({ ...DESKTOP });
+    await head(page, "Released").locator("button").focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await isOpen(page, "Zero retention"), true);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.textContent), "How retention is reported");
+    await page.evaluate(() => window.scrollBy(0, 1200));
+    await frames(page);
+    await wait(page, 100);
+    assert.equal(await isOpen(page, "Zero retention"), false, "the header left the window: the card closed with focus in it");
+    assert.equal(await page.evaluate(() => document.activeElement.closest("th")?.querySelector(".basalt-sort-label").textContent), "Zero retention", "focus went back to the header");
+  });
+
+  test("inside a dialog: the card is inside the modal, Tab goes from the header into its link and on, and Esc closes the card with the dialog still open", async () => {
+    const { page, errors } = await open({ ...DESKTOP }, `
+      createRoot(document.getElementById("root")).render(
+        <B.Dialog defaultOpen>
+          <B.DialogContent>
+            <B.DialogTitle>Models</B.DialogTitle>
+            <div style={{ height: 160 }} />
+            <B.TableContainer label="Models">
+              <B.Table columns={[{}, { width: 180 }]} minWidth={360}>
+                <B.TableHeader><B.TableRow>
+                  <B.TableHead onSortChange={() => {}}>Model</B.TableHead>
+                  <B.TableHead onSortChange={() => {}} explainer={<B.TableHeadExplainer title="Zero retention"><p>Providers report this themselves.</p><p><a href="#r">How retention is reported</a></p></B.TableHeadExplainer>}>Zero retention</B.TableHead>
+                </B.TableRow></B.TableHeader>
+                <B.TableBody><B.TableRow><B.TableRowHead>lumen/atlas-3</B.TableRowHead><B.TableCell>Yes</B.TableCell></B.TableRow></B.TableBody>
+              </B.Table>
+            </B.TableContainer>
+            <p><button id="after" type="button">After the table</button></p>
+          </B.DialogContent>
+        </B.Dialog>);`);
+    await page.locator(".basalt-dialog").waitFor();
+    await settle(page);
+    await page.keyboard.press("Shift");
+    await head(page, "Model").locator("button").focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await isOpen(page, "Zero retention"), true);
+    const hidden = await card(page, "Zero retention").evaluate((c) => ({ inDialogPortal: Boolean(c.parentElement?.closest("[data-base-ui-portal]")) && c.parentElement.contains(document.querySelector(".basalt-dialog")), ariaHidden: Boolean(c.closest('[aria-hidden="true"], [inert]')) }));
+    assert.deepEqual(hidden, { inDialogPortal: true, ariaHidden: false }, "the card is written into the dialog's portal, not hidden by the modal");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.textContent), "How retention is reported", "Tab reaches its link");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "after", "and goes on to what follows the header in the dialog");
+    await page.keyboard.press("Shift+Tab");
+    await wait(page, 200);
+    assert.equal(await page.evaluate(() => document.activeElement.closest("th")?.querySelector(".basalt-sort-label").textContent), "Zero retention", "Shift+Tab comes back to the header");
+    assert.equal(await isOpen(page, "Zero retention"), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await isOpen(page, "Zero retention"), false, "Esc closed the card");
+    assert.equal(await page.locator(".basalt-dialog").count(), 1, "and the dialog is still open");
+    assert.equal(await page.evaluate(() => document.activeElement.closest("th")?.querySelector(".basalt-sort-label").textContent), "Zero retention");
+    assert.deepEqual(errors, []);
   });
 
   test("WCAG 1.4.13: the pointer can move onto it, it stays while hovered, and Esc dismisses it without moving the pointer; it stays shut until the pointer leaves", async () => {

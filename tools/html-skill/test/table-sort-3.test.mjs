@@ -266,6 +266,127 @@ describe("the column explainer", () => {
     await context.close();
   });
 
+  test("a dismissed card stays shut until the pointer and focus have both left the header", async () => {
+    const { page, context } = await open();
+    const box = await head(page, "Zero retention").boundingBox();
+    await page.mouse.move(box.x + 20, box.y + box.height / 2);
+    await wait(page, 900);
+    assert.equal(await isOpen(page, "Zero retention"), true);
+    await page.mouse.down();
+    await page.mouse.up();
+    assert.equal(await isOpen(page, "Zero retention"), false, "the press sorted and closed it");
+    await page.mouse.move(2, 2);
+    await page.mouse.move(box.x + 30, box.y + box.height / 2);
+    await wait(page, 900);
+    assert.equal(await isOpen(page, "Zero retention"), false, "focus is still on the header, so it stays shut");
+    await page.mouse.click(2, 2);
+    await page.mouse.move(box.x + 30, box.y + box.height / 2);
+    await wait(page, 900);
+    assert.equal(await isOpen(page, "Zero retention"), true, "pointer and focus have both left: hover opens it");
+    await context.close();
+  });
+
+  test("a slow move from the header to the card keeps it: a 300ms pause in the gap, above and beside", async () => {
+    for (const nearTop of [false, true]) {
+      const { page, context } = await open({ width: nearTop ? 1800 : 1440 });
+      if (nearTop) await page.evaluate(() => { document.querySelector(".table-wrap").style.width = "1100px"; const th = document.querySelectorAll("#models thead th")[5]; window.scrollBy(0, th.getBoundingClientRect().top - 20); });
+      const box = await head(page, "Zero retention").boundingBox();
+      await page.mouse.move(box.x + 30, box.y + box.height / 2);
+      await wait(page, 900);
+      assert.equal(await isOpen(page, "Zero retention"), true);
+      const side = await card(page, "Zero retention").getAttribute("data-side");
+      assert.equal(side, nearTop ? "end" : "top");
+      const c = await card(page, "Zero retention").boundingBox();
+      const gapAt = side === "top" ? { x: box.x + 30, y: (c.y + c.height + box.y) / 2 } : { x: (box.x + box.width + c.x) / 2, y: box.y + box.height / 2 };
+      await page.mouse.move(gapAt.x, gapAt.y, { steps: 3 });
+      await wait(page, 300);
+      assert.equal(await isOpen(page, "Zero retention"), true, `${side}: open with the pointer resting in the gap`);
+      await page.mouse.move(side === "top" ? box.x + 30 : c.x + 8, side === "top" ? c.y + c.height - 8 : box.y + box.height / 2, { steps: 3 });
+      await wait(page, 300);
+      assert.equal(await isOpen(page, "Zero retention"), true, `${side}: on the card`);
+      await page.mouse.move(2, 700);
+      await wait(page, 400);
+      assert.equal(await isOpen(page, "Zero retention"), false);
+      await context.close();
+    }
+  });
+
+  test("a card opened by focus closes when its header scrolls out of view, and focus in its link goes back to the header", async () => {
+    const { page, context } = await open();
+    await head(page, "Released").locator(".sort").focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.textContent), "How retention is reported");
+    await page.evaluate(() => window.scrollBy(0, 1200));
+    await wait(page, 150);
+    assert.equal(await isOpen(page, "Zero retention"), false);
+    assert.equal(await page.evaluate(() => document.activeElement.closest("th")?.querySelector(".sort-label").textContent), "Zero retention");
+    await context.close();
+  });
+
+  test("its page-wide listeners live only while it is open, and removing the table stops a pending open", async () => {
+    const { page, context, errors } = await open();
+    const client = await context.newCDPSession(page);
+    const count = async (expr, type) => {
+      const { result } = await client.send("Runtime.evaluate", { expression: expr });
+      const { listeners } = await client.send("DOMDebugger.getEventListeners", { objectId: result.objectId });
+      return listeners.filter((l) => l.type === type).length;
+    };
+    const before = { key: await count("window", "keydown"), move: await count("document", "pointermove"), down: await count("document", "pointerdown") };
+    await head(page, "Released").locator(".sort").focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await isOpen(page, "Zero retention"), true);
+    assert.equal(await count("window", "keydown"), before.key + 1, "one Esc listener while open");
+    assert.equal(await count("document", "pointermove"), before.move + 1);
+    assert.equal(await count("document", "pointerdown"), before.down + 1);
+    await page.keyboard.press("Escape");
+    assert.deepEqual({ key: await count("window", "keydown"), move: await count("document", "pointermove"), down: await count("document", "pointerdown") }, before, "and none once it is shut");
+    // A hover starts the 600ms wait; the table goes before it ends: nothing opens and nothing is left listening.
+    await page.mouse.click(2, 2);
+    const box = await head(page, "No training").boundingBox();
+    await page.mouse.move(box.x + 20, box.y + box.height / 2);
+    await wait(page, 200);
+    const card2 = await page.evaluateHandle(() => document.querySelectorAll("#models thead th")[6].querySelector(".explainer"));
+    await page.evaluate(() => document.querySelector(".table-wrap").remove());
+    await wait(page, 700);
+    assert.equal(await card2.evaluate((c) => c.matches(":popover-open")), false);
+    assert.deepEqual({ key: await count("window", "keydown"), move: await count("document", "pointermove"), down: await count("document", "pointerdown") }, before);
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+
+  test("inside a modal dialog: Tab goes from the header into the card's link and on, and Esc closes the card with the dialog still open", async () => {
+    const DIALOG = `<main class="page"><button class="btn" data-dialog-open="#d">Open</button>
+<dialog class="panel float modal dialog" id="d"><h2 class="dialog-title">Models</h2><div style="height: 200px"></div>
+<div class="panel table-wrap"><table id="models" data-fixed style="min-width: 360px"><colgroup><col><col style="width: 192px"></colgroup>
+<thead><tr><th data-sortable>Model</th><th data-sortable data-first-sort="descending">Zero retention${explain("Zero retention", "Providers report this themselves.", "How retention is reported")}</th></tr></thead>
+<tbody><tr><th scope="row">lumen/atlas-3</th><td data-value="1">Yes</td></tr></tbody></table></div>
+<p><button class="btn" id="after" type="button">After the table</button></p></dialog></main>`;
+    const { page, context, errors } = await openHtml(browser, compose(`<title>Models</title>${DIALOG}`, { fonts: false }).html, { scheme: "dark" });
+    await page.evaluate(() => Basalt.openDialog("#d"));
+    await settled(page);
+    await page.keyboard.press("Shift");
+    await page.locator("#models thead th").nth(0).locator(".sort").focus();
+    await page.keyboard.press("Tab");
+    const zr = page.locator("#models thead th").nth(1);
+    assert.equal(await zr.locator(".explainer").evaluate((c) => c.matches(":popover-open")), true);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.textContent), "How retention is reported", "the link is reachable inside the modal");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "after");
+    await wait(page, 300);
+    assert.equal(await zr.locator(".explainer").evaluate((c) => c.matches(":popover-open")), false, "focus left: it closed");
+    await page.keyboard.press("Shift+Tab");
+    await wait(page, 200);
+    assert.equal(await page.evaluate(() => document.activeElement.closest("th")?.querySelector(".sort-label").textContent), "Zero retention");
+    assert.equal(await zr.locator(".explainer").evaluate((c) => c.matches(":popover-open")), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await zr.locator(".explainer").evaluate((c) => c.matches(":popover-open")), false, "Esc closed the card");
+    assert.equal(await page.evaluate(() => document.getElementById("d").open), true, "and the dialog is still open");
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+
   test("it never covers its own column: near the top of the window it goes beside the header", async () => {
     const { page, context } = await open();
     await page.evaluate(() => { const th = document.querySelectorAll("#models thead th")[5]; window.scrollBy(0, th.getBoundingClientRect().top - 20); });
