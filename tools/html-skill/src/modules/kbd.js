@@ -6,7 +6,11 @@
   var icon = _.icon;
 
   var MOD_ICON = { '⌘': 'Command', '⌥': 'Option', '⌃': 'Control' };
-  var KEY_NAME = { '⌘': 'Meta', '⌥': 'Alt', '⌃': 'Control', '⇧': 'Shift', '↵': 'Enter', '↑': 'ArrowUp', '↓': 'ArrowDown', '←': 'ArrowLeft', '→': 'ArrowRight', 'Esc': 'Escape', '⌫': 'Backspace', '⇥': 'Tab' };
+  var KEY_NAME = { '⌘': 'Meta', '⌥': 'Alt', '⌃': 'Control', '⇧': 'Shift', '↵': 'Enter', '↑': 'ArrowUp', '↓': 'ArrowDown', '←': 'ArrowLeft', '→': 'ArrowRight', 'Esc': 'Escape', 'Ctrl': 'Control', '⌫': 'Backspace', '⇥': 'Tab' };
+
+  // "Mod" is the platform's modifier (DECISIONS 244): ⌘ on Apple's systems, Ctrl elsewhere; "Mod Enter" draws ↵ on Apple's. A page's hydration runs after load, so there is no server form to mismatch.
+  var MOD = /mac|ip(hone|ad|od)/i.test((navigator.userAgentData || navigator).platform || navigator.userAgent) ? { Mod: '⌘', Enter: '↵' } : { Mod: 'Ctrl' };
+  function mod(keys) { return keys.indexOf('Mod') < 0 ? keys : keys.map(function (k) { return MOD[k] || k; }); }
 
   /** One chip. Command, Option and Control are icons; everything else is Geist Mono text. aria-hidden: the control carries aria-keyshortcuts. */
   function kbd(key) {
@@ -15,17 +19,17 @@
 
   /** A shortcut: one chip per key, 2px apart. keys is an array such as ['⌘', 'K']. */
   function kbdGroup(keys) {
-    return '<span class="kbd-group" aria-hidden="true">' + keys.map(kbd).join('') + '</span>';
+    return '<span class="kbd-group" aria-hidden="true">' + mod(keys).map(kbd).join('') + '</span>';
   }
 
   /** ['⌘', 'K'] gives "Meta+K", for aria-keyshortcuts. */
   function keyshortcuts(keys) {
-    return keys.map(function (k) { return KEY_NAME[k] || (k.length === 1 ? k.toUpperCase() : k); }).join('+');
+    return mod(keys).map(function (k) { return KEY_NAME[k] || (k.length === 1 ? k.toUpperCase() : k); }).join('+');
   }
 
   /** ['⌘', 'K'] gives "Command K": the shortcut in words, for the aria-describedby that goes with aria-keyshortcuts (the name stays "Copy", not "Copy C"). */
   function keywords(keys) {
-    return keys.map(function (k) { return MOD_ICON[k] || KEY_NAME[k] || k.toUpperCase(); }).join(' ');
+    return mod(keys).map(function (k) { return MOD_ICON[k] || KEY_NAME[k] || k.toUpperCase(); }).join(' ');
   }
 
   function hydrateKbd() {

@@ -13,7 +13,7 @@ import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
-import { useShortcutsVisible } from "./keyboard";
+import { useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
 
@@ -81,6 +81,7 @@ export interface CommandPanelProps {
 
 export function CommandPanel({ groups, placeholder, hints, onOpenChange, initialSearch = "" }: CommandPanelProps) {
   const hintId = React.useId();
+  const apple = useApplePlatform();
   const [search, setSearch] = React.useState(initialSearch);
   const list = React.useRef<HTMLDivElement>(null);
   const input = React.useRef<HTMLInputElement>(null);
@@ -100,7 +101,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, initial
         {orderGroups(groups, search).map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
             {group.commands.map((command) => {
-              const keys = command.shortcut ? shortcutKeys(command.shortcut) : [];
+              const keys = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
               const spoken = `${hintId}-${command.id}`;
               return (
                 <Command.Item
@@ -181,6 +182,7 @@ const tokenPx = (el: HTMLElement, name: string, fallback: number) => {
 
 export function CommandListPanel({ groups, label, placeholder, noun, level, bandLevel, onSelect, detail, className, initialSearch = "", focusHandoff }: CommandListPanelProps) {
   const ids = { hint: React.useId(), pane: React.useId(), heading: React.useId(), list: React.useId() };
+  const apple = useApplePlatform();
   const [search, setSearch] = React.useState("");
   const [focused, setFocused] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
@@ -325,7 +327,7 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
   };
 
   const row = (command: CommandItem) => {
-    const keysOf = command.shortcut ? shortcutKeys(command.shortcut) : [];
+    const keysOf = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
     const spoken = `${ids.hint}-${command.id}`;
     return (
       <Command.Item

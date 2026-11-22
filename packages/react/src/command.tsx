@@ -7,6 +7,7 @@ import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "
 import { Icon } from "./icon";
 import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer, usePanelLevel } from "./layers";
 import { useModalOutside } from "./modal-outside";
+import { isModKey } from "./platform";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
@@ -104,7 +105,7 @@ function usePanel(open: boolean) {
 }
 
 /**
- * A searchable list of every action, opened with ⌘K. Type to filter, arrows to move,
+ * A searchable list of every action, opened with ⌘K (Ctrl K on Windows and Linux: bind it with `isModKey`). Type to filter, arrows to move,
  * Enter to run, Esc to close. Bind the shortcut in the app; this component is the dialog.
  * Filtering and keyboard selection come from cmdk (MIT), loaded the first time it opens.
  */
@@ -200,7 +201,7 @@ export interface CommandListProps {
    */
   detail?: (command: CommandItem) => React.ReactNode;
   /**
-   * Bind ⌘K (Ctrl K elsewhere) to this list: focus the field, select its text, scroll it into view. One command surface owns ⌘K
+   * Bind Mod+K (⌘K on Apple's systems, Ctrl K elsewhere: `isModKey`) to this list: focus the field, select its text, scroll it into view. One command surface owns ⌘K
    * on a page. A page whose surface is this list sets it, and has no `CommandMenu`; a page with a modal gives ⌘K to the modal.
    */
   bindShortcut?: boolean;
@@ -229,7 +230,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
   React.useEffect(() => {
     if (!bindShortcut) return undefined;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+      if (event.key.toLowerCase() !== "k" || !isModKey(event) || event.altKey || event.shiftKey) return;
       const field = host.current?.querySelector<HTMLInputElement>(".basalt-command-input");
       if (!field) return;
       event.preventDefault();

@@ -3,7 +3,7 @@ import { ControlIcon } from "@phosphor-icons/react/dist/csr/Control";
 import { OptionIcon } from "@phosphor-icons/react/dist/csr/Option";
 import type * as React from "react";
 
-import { useShortcutsVisible } from "./keyboard";
+import { useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { shortcutKeys, spokenShortcut } from "./shortcut";
 import { join } from "./utils";
 
@@ -44,7 +44,13 @@ function Chip({ className, children, ...props }: React.ComponentProps<"kbd">) {
       </kbd>
     );
   }
-  const keys = shortcutKeys(children);
+  return <KeysChip {...props} className={className} shortcut={children} />;
+}
+
+// "Mod" is one form for the machine's platform, at its natural width: ⌘↵ on a Mac draws as a hand-written "⌘↵" does. The platform is read at the
+// first client render (it never changes, so there is nothing to subscribe to); a server-rendered page draws Control and settles at hydration.
+function KeysChip({ shortcut, className, ...props }: Omit<React.ComponentProps<"kbd">, "children"> & { shortcut: string }) {
+  const keys = shortcutKeys(shortcut, useApplePlatform());
   return (
     <kbd {...props} className={join("basalt-kbd", className)}>
       <span className="basalt-visually-hidden">{spokenShortcut(keys)}</span>
