@@ -11,7 +11,7 @@ import { PlusGlyph } from "./glyphs/plus";
 import { Icon } from "./icon";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { GlidePlate } from "./plate";
-import type { ChangeDetails } from "./types";
+import type { ChangeDetails, CollisionAvoidance } from "./types";
 import { markMirror } from "./mirror";
 import { join } from "./utils";
 
@@ -60,6 +60,9 @@ export interface MultiSelectProps {
  * plus when off and a check when on; seven or more, or a toolbar, are a trigger and a checklist. Clear is always mounted, in
  * place, and never moves focus: at zero it is `aria-disabled`, not `disabled`, so keyboard focus can stay on it.
  */
+
+// The checklist stays under its trigger (or above it), never beside it: as PopoverContent does.
+const KEEP_AXIS: CollisionAvoidance = { fallbackAxisSide: "none" };
 export function MultiSelect({ label, options, value, defaultValue, onValueChange, toolbar = false, controlSize = "md", disabled = false, className }: MultiSelectProps) {
   const [inner, setInner] = React.useState<string[]>(defaultValue ?? []);
   const chosen = value ?? inner;
@@ -260,7 +263,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
           <Icon icon={ChevronDownGlyph} />
         </BasePopover.Trigger>
         <BasePopover.Portal>
-          <BasePopover.Positioner side="bottom" align="start" sideOffset={6} style={layer} className="basalt-positioner">
+          <BasePopover.Positioner side="bottom" align="start" sideOffset={6} collisionAvoidance={KEEP_AXIS} style={layer} className="basalt-positioner">
             <BasePopover.Popup
               data-level={level}
               aria-labelledby={ids.label}

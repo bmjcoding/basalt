@@ -445,7 +445,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     distance alone. The line and the clock pause together on hover, on focus, in a blurred window and in a hidden tab.
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
-  a popover at its opener's level plus one, with a header band (title, count, "Mark all as read") and a footer ("View
+  a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
   all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
   line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
   the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
@@ -455,6 +455,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   in the same plumbing: one plate follows the pointer between entries (40 or 58 tall; 44 or 58 on touch); the first key hides it and the resting
   hover, so only the shipped rounded control ring at +2, outside the row, shows; the next pointer move brings the plate back.
   Off on touch, under reduced motion and in forced colours, where each entry paints its own.
+- **A popup opens below its opener, never beside it** (the owner's word, DECISIONS 268). A popover, a menu, a select, a combobox and
+  a filter's checklist open under the control (above it only when that side has more room) and never jump to its side when they are
+  taller than the room; they fit the room they have and scroll inside. A submenu opens beside its row, and a tooltip and an app's
+  own `side` keep theirs.
 - **Callouts** keep a neutral fill at their own level, with no tint. Status is the icon and the words, and success,
   warning and danger also draw the rim in their status colour, mixed in sRGB at 45% over the callout's own level (the
   danger Button's hairline recipe, but one solid colour on every side, in both themes). The icon takes the status

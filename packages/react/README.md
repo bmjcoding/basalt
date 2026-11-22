@@ -223,7 +223,7 @@ A toolbar draws nothing. It has no class that styles anything: no gap, no separa
 
 None of these changes how anything looks: each is an option Base UI already had, opened up, with Basalt's own types.
 
-**Placement props** on `PopoverContent` and `MenuContent`, each optional. Left out, a popup is placed as before: against its trigger, `side="bottom"`, `align="start"`, `sideOffset` 6, flipped and shifted to stay 5px inside the viewport.
+**Placement props** on `PopoverContent` and `MenuContent`, each optional. Left out, a popup is placed as before: against its trigger, `side="bottom"`, `align="start"`, `sideOffset` 6, flipped and shifted to stay 5px inside the viewport. A popup stays on its axis: below its trigger, or above it when that has more room, and never beside it (`PopoverContent` passes `collisionAvoidance={{ fallbackAxisSide: "none" }}` unless you give your own; a menu already did). A tall one fits the room and scrolls inside.
 
 | Prop | What it does |
 |---|---|

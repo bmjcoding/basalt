@@ -345,8 +345,8 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
-// so its limit is 146,000.
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 147_600]]) {
+// so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default).
+for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 147_700]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
