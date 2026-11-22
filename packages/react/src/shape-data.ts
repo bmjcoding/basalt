@@ -70,11 +70,13 @@ export type CountStore = Pick<Storage, "getItem" | "setItem"> & Partial<Pick<Sto
 
 /** The page's own store, for a call that names none: a map that lives as long as the page, made on first use (nothing is made at import). */
 let pageCounts: Map<string, string> | undefined;
-const pageStore = (): CountStore => {
+/** The store to use: the app's (called, if it is a function), else the page's own map, which takes the same three calls. */
+const storeOf = (store: CountStore | (() => CountStore | null | undefined) | undefined): CountStore | null | undefined => {
+  if (typeof store === "function") return store();
+  if (store) return store;
   const map = (pageCounts ??= new Map());
-  return { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => { map.set(key, value); }, removeItem: (key) => { map.delete(key); } };
+  return { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => void map.set(key, value), removeItem: (key) => void map.delete(key) };
 };
-const storeOf = (store: CountStore | (() => CountStore | null | undefined) | undefined): CountStore | null | undefined => (typeof store === "function" ? store() : store ?? pageStore());
 
 /**
  * How many rows the list under `key` had when it last loaded, or `null`: a shape draws that many stand-ins. Read from `store`; with none, from what `rememberCount` noted on this

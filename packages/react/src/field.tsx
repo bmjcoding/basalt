@@ -31,7 +31,7 @@ export type InputProps = PartProps<"input"> & {
 const FieldRequiredContext = React.createContext(false);
 
 /** A text input. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
-export function Input({ controlSize = "md", className, required, writing = false, writingEmpty = "keep", value, readOnly, ref, ...props }: InputProps) {
+export function Input({ controlSize = "md", className, required, writing = false, writingEmpty, value, readOnly, ref, ...props }: InputProps) {
   const inRequiredField = React.useContext(FieldRequiredContext);
   const own = React.useRef<HTMLInputElement | null>(null);
   const written = useWriting(writing, value, own, writingEmpty);

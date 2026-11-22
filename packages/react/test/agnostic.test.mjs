@@ -46,7 +46,8 @@ describe("the public surface names no app's nouns (npm run lint)", () => {
   test("it matches words and the words inside identifiers, never a substring", () => {
     assert.deepEqual(words("incidentId basalt-incident-row SEV1 aria-describedby"), ["incident", "id", "basalt", "incident", "row", "sev1", "aria", "describedby"]);
     assert.deepEqual(nounsIn("const incidentId = 1; // and subscribe(), aria-describedby, prescribed"), ["incident"]);
-    assert.deepEqual(nounsIn('label="War room" severityLevel ServiceNow rolodexes'), ["war room", "severity", "servicenow", "rolodexes"]);
+    assert.deepEqual(nounsIn('label="War room" severityLevel ServiceNow rolodexes').sort(), ["rolodexes", "servicenow", "severity", "war room"]);
+    assert.deepEqual(nounsIn("the service now responds"), [], "two ordinary words are not the product's name");
     assert.deepEqual(nounsIn("several seven severe"), []);
   });
 
@@ -82,7 +83,7 @@ describe("the public surface names no app's nouns (npm run lint)", () => {
 // ---- Two domains: unrelated schemas, long labels, other page sizes, a live total, a slow page ----
 
 // A list the app owns: `rows` of any shape, its own noun and sizes, an optional delay before a page it is asked for arrives, and an optional live total.
-const LIST = ({ noun, sizes, start, delay = 0, foot = "" }) => `document.body.style.margin = "0";
+const LIST = ({ noun, sizes, start, delay = 0, foot = "" }) => `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
 const ROWS = Array.from({ length: 300 }, (_, i) => ({ id: i + 1, label: ${JSON.stringify(noun)} + " " + (i + 1) }));
 function App() {
   const [page, setPage] = React.useState(1);
@@ -123,9 +124,10 @@ describe("two domains: the band takes the app's words, sizes and timing", () => 
     const page = await open(LIST({ noun: "Recipes", sizes: [12, 24, 48], start: 12 }));
     await page.evaluate(() => window.__fx.setPage(3));
     await frames(page);
-    await page.locator("#band [role=combobox]").click();
-    assert.deepEqual(await page.locator("[role=option]").allTextContents(), ["12", "24", "48"]);
-    await page.locator("[role=option]", { hasText: "24" }).click();
+    await page.getByRole("combobox", { name: "Recipes per page" }).click();
+    await page.getByRole("option").first().waitFor();
+    assert.deepEqual((await page.getByRole("option").allTextContents()).map((t) => t.trim()), ["12", "24", "48"]);
+    await tap(page.getByRole("option", { name: "24", exact: true }));
     await page.waitForFunction(() => document.querySelector("#rows li")?.textContent === "Recipes 25");
     assert.equal(await page.locator("#rows li").first().textContent(), "Recipes 25", "the first row of page 3 at 12 is on page 2 at 24");
     await page.close();
@@ -191,7 +193,7 @@ describe("two domains: the band takes the app's words, sizes and timing", () => 
 
 // ---- Nested scrolling: a list in a pane, in a page that scrolls too ----
 
-const PANE = (domain) => `document.body.style.margin = "0";
+const PANE = (domain) => `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
 const ROWS = Array.from({ length: 180 }, (_, i) => ${domain === "catalog" ? '"Product " + (i + 1)' : '"Build #" + (5000 - i)'});
 function App() {
   const pane = React.useRef(null);
@@ -285,6 +287,8 @@ describe("nested scrolling: ListBand and BackToTop follow the pane they are give
     const rest = await page.evaluate(() => { const pane = document.getElementById("pane"); const sentinel = document.querySelector(".basalt-list-band-sentinel"); return Math.round(sentinel.getBoundingClientRect().top - pane.getBoundingClientRect().top - pane.clientTop + pane.scrollTop); });
     assert.equal(Math.round((await paneState(page)).scroll), rest);
     assert.equal(await page.evaluate(() => document.activeElement?.closest("#band") !== null && document.activeElement.getAttribute("aria-label")), "Next page");
+    // Back to top fades out as the pane moves up: axe reads the page at rest.
+    await settle(page);
     assert.deepEqual(await axe(page), []);
     await page.close();
   });
@@ -293,7 +297,7 @@ describe("nested scrolling: ListBand and BackToTop follow the pane they are give
 // ---- A form grid answers its own width ----
 
 const FIELDS = (pre) => `<B.Field label="Display name" column={1} row={1}><B.Input id="${pre}-a" /></B.Field><B.Field label="Email address for receipts and notices" column={2} row={1}><B.Input id="${pre}-b" /></B.Field><B.Field label="Postcode" column={1} row={2}><B.Input id="${pre}-c" /></B.Field><B.Field label="Country" column={2} row={2}><B.Input id="${pre}-d" /></B.Field>`;
-const PLACES = `document.body.style.margin = "0";
+const PLACES = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
 function App() {
   return (
     <div style={{ padding: 16, display: "grid", gap: 24 }}>
@@ -338,7 +342,7 @@ describe("FormGrid answers the width it is given, at one desktop window", () => 
 
 // ---- The form dialog: what is entered, by structure, and the app's own answer ----
 
-const FORM = (dirty) => `document.body.style.margin = "0";
+const FORM = (dirty) => `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
 function App() {
   const [open, setOpen] = React.useState(false);
   window.__open = () => open;
@@ -407,7 +411,7 @@ describe("the form dialog's entered check reads structure, and the app's dirty w
 
 // ---- An explainer on a header that does not sort ----
 
-const FIXED = `document.body.style.margin = "0";
+const FIXED = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
 function App() {
   const [shown, setShown] = React.useState(true);
   window.__hide = () => setShown(false);

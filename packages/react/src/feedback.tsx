@@ -42,7 +42,7 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
-export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty = "keep", ref, ...props }: TextareaProps) {
+export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, ...props }: TextareaProps) {
   const own = React.useRef<HTMLTextAreaElement | null>(null);
   const written = useWriting(writing, value, own, writingEmpty);
   return (

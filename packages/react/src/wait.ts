@@ -179,10 +179,10 @@ export type WritingEmpty = "keep" | "clear";
  * between two drafts, and each update is painted as it comes, in the same ink, with no fade (a fade on every update is the flashing this stops).
  * With `empty` "clear", an empty value while it is written is shown empty: the busy look stays, and the field is cleared.
  */
-export function useWriting<V>(writing: boolean, value: V, element: React.RefObject<Element | null>, empty: WritingEmpty = "keep"): { busy: boolean; shown: boolean; value: V } {
+export function useWriting<V>(writing: boolean, value: V, element: React.RefObject<Element | null>, empty?: WritingEmpty): { busy: boolean; shown: boolean; value: V } {
   const shown = useWaitMark(writing);
   const kept = React.useRef(value);
-  const text = writing && empty === "keep" && value === "" ? kept.current : value;
+  const text = writing && empty !== "clear" && value === "" ? kept.current : value;
   React.useEffect(() => {
     kept.current = text;
   });

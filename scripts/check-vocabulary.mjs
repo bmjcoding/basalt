@@ -27,27 +27,30 @@ export const SURFACE = [
 /** One app's nouns, as whole words (lower case). */
 const NOUNS = new Set(["incident", "incidents", "commander", "commanders", "severity", "severities", "sev", "sev1", "sev2", "sev3", "sev4", "scribe", "scribes", "rolodex", "rolodexes", "servicenow", "warroom", "warrooms"]);
 /** Two words that are a noun together. */
-const PAIRS = [["war", "room"], ["war", "rooms"], ["service", "now"]];
+const PAIRS = [["war", "room"], ["war", "rooms"]];
 /** A person's full name as a whole string: two or three capitalised words, the way a fixture's default person is written ("Dana Whitfield"). */
 const PERSON = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,2}$/;
 const MARKER = /basalt-vocabulary-example\b(.*)$/;
 
 /** The words of a run of code: split on anything that is not a letter or digit, then inside each identifier at its case changes. */
 export function words(text) {
-  const out = [];
-  for (const raw of text.split(/[^A-Za-z0-9]+/)) {
-    if (!raw) continue;
-    for (const part of raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").split(" ")) if (part) out.push(part.toLowerCase());
-  }
-  return out;
+  return identifiers(text).flatMap(parts);
 }
+const identifiers = (text) => text.split(/[^A-Za-z0-9]+/).filter(Boolean);
+const parts = (raw) => raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").split(" ").filter(Boolean).map((part) => part.toLowerCase());
 
 /** The app nouns in a run of code, as written. */
 export function nounsIn(text) {
   const found = [];
-  const list = words(text);
+  // A whole identifier first ("ServiceNow", "warRoom"), then the words inside it, then two words that are a noun together.
+  const list = [];
+  for (const raw of identifiers(text)) {
+    const whole = raw.toLowerCase();
+    if (NOUNS.has(whole)) { found.push(whole); list.push(whole); continue; }
+    list.push(...parts(raw));
+  }
   list.forEach((word, i) => {
-    if (NOUNS.has(word)) found.push(word);
+    if (NOUNS.has(word) && !found.includes(word)) found.push(word);
     for (const [a, b] of PAIRS) if (word === a && list[i + 1] === b) found.push(`${a} ${b}`);
   });
   return found;

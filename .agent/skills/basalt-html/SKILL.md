@@ -14,7 +14,7 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It wraps the body in the doctype, meta and theme bootstrap, inlines Geist, and adds the core CSS and script plus only the modules your classes, attributes and tags use, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (only for a file a tool reads, never a file a person opens), `--lang fr` sets the language, `--all` adds every module.
 4. Open the page in both themes at 1440 and 390 wide before you hand it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
 
-`examples/static.body.html` and `examples/sales.body.html` (two reports of unlike kinds: a service's reliability, a shop's month) and `examples/interactive.body.html` (inputs, tabs, a palette) are bodies to copy from. Never open or paste `parts/`: it is minified output.
+`examples/static.body.html` and `sales.body.html` (reports) and `interactive.body.html` (inputs, tabs, a palette) are bodies to copy from. Never open or paste `parts/`: it is minified output.
 
 ## Modules
 

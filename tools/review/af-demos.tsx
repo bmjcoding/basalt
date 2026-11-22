@@ -157,7 +157,7 @@ const FORMS = {
         <Field name={`${pre}-email`} label="Email" required column={2} row={1} description="Sign-in and notices go here."><Input type="email" defaultValue="rowan@example.com" /></Field>
         <Field name={`${pre}-team`} label="Team" optional column={1} row={2}><Select aria-label="Team" defaultValue="design" options={[{ value: "design", label: "Design" }, { value: "support", label: "Support" }, { value: "finance", label: "Finance" }]} /></Field>
         <Field name={`${pre}-zone`} label="Time zone" column={2} row={2} description="Dates and times follow it."><Select aria-label="Time zone" defaultValue="utc" options={[{ value: "utc", label: "UTC" }, { value: "lis", label: "Lisbon" }, { value: "chi", label: "Chicago" }]} /></Field>
-        <Field name={`${pre}-topics`} label="Email me about" optional column={1} row={3}><MultiSelect label="Email me about" options={[{ value: "mentions", label: "Mentions" }, { value: "invites", label: "Invites" }, { value: "digest", label: "Weekly digest" }]} defaultValue={["mentions"]} /></Field>
+        <FormGridItem column={1} row={3}><MultiSelect label="Email me about" options={[{ value: "mentions", label: "Mentions" }, { value: "invites", label: "Invites" }, { value: "digest", label: "Weekly digest" }]} defaultValue={["mentions"]} /></FormGridItem>
         <FormGridItem column={2} row={3}><Switch defaultChecked description="Others see when you were last active.">Show my activity</Switch></FormGridItem>
       </>
     ),
@@ -343,10 +343,10 @@ export function DocumentsLoading({ state }: { state: string }) {
 /** Two tables whose headers do not sort, each with one column a reader could misread: a price table ("Fair use") and energy readings ("Normalised"). */
 export function FixedExplainers() {
   return (
-    <div style={{ display: "grid", gap: "var(--basalt-space-10)", padding: "var(--basalt-space-16) var(--basalt-gutter) var(--basalt-space-6)" }}>
+    <div style={{ display: "grid", gap: "var(--basalt-space-10)", padding: "var(--basalt-space-32) var(--basalt-gutter) var(--basalt-space-6)" }}>
       <div data-wt-before=""><Button size="sm" variant="ghost">Compare plans</Button></div>
       <TableContainer label="Plans">
-        <Table columns={[{}, { width: 112 }, { width: 152 }, { width: 120 }]} minWidth={520}>
+        <Table columns={[{}, { width: 64 }, { width: 136 }, { width: 88 }]} minWidth={340}>
           <TableHeader><TableRow><TableHead>Plan</TableHead><TableHead numeric>Seats</TableHead>
             <TableHead data-wt-explain="" explainer={<TableHeadExplainer title="Fair use"><p>What a plan allows before we ask you to move up: storage and sends a month, counted across every seat.</p></TableHeadExplainer>}>Fair use</TableHead>
             <TableHead numeric>Per month</TableHead></TableRow></TableHeader>
