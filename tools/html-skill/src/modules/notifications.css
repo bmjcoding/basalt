@@ -13,6 +13,7 @@
   .notifications-count { flex: 1; min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
   .notifications-mark { flex: none; }
   .notifications-foot { display: flex; justify-content: flex-end; padding: var(--basalt-space-2-5); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .notifications-clear { margin-inline-end: auto; }
   .notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
   .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }

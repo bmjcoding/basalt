@@ -446,7 +446,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
-  all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
+  all" at its end and, when the app offers it, "Clear all" at its start, disabled in place once nothing is left; DECISIONS 269). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
   line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
   the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
   entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
