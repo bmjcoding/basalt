@@ -391,7 +391,7 @@ describe("the choice card", () => {
 
     test(`${theme}: selected is one solid fill at the card's own level, hover is the wash alone, and tertiary content steps up`, async () => {
       const { page } = await open(CARDS, { theme, ...DESKTOP });
-      const paint = (id) => page.locator(card(id)).evaluate((el) => { const s = getComputedStyle(el); const probe = document.createElement("i"); probe.style.backgroundColor = "var(--_plate-solid)"; el.append(probe); const plate = getComputedStyle(probe).backgroundColor; probe.remove(); return { bg: s.backgroundColor, image: s.backgroundImage, plate, veil: getComputedStyle(el, "::before").opacity }; });
+      const paint = (id) => page.locator(card(id)).evaluate((el) => { const s = getComputedStyle(el); const probe = document.createElement("i"); probe.style.backgroundColor = "var(--basalt-plate)"; el.append(probe); const plate = getComputedStyle(probe).backgroundColor; probe.remove(); return { bg: s.backgroundColor, image: s.backgroundImage, plate, veil: getComputedStyle(el, "::before").opacity }; });
       const rest = await paint("plan-a");
       const chosen = await paint("plan-b");
       assert.equal(chosen.bg, chosen.plate, "the plate recipe, one solid colour");
@@ -529,7 +529,7 @@ describe("the pressed toggle", () => {
 
     test(`${theme}: pressed is the selected plate as one solid fill at the level, primary ink, the check swapped in, and no weight change`, async () => {
       const { page } = await open(TOGGLES, { theme, ...DESKTOP });
-      const paint = (id) => page.locator(id).evaluate((node) => { const s = getComputedStyle(node); const probe = document.createElement("i"); probe.style.backgroundColor = "var(--_plate-solid)"; node.parentElement.append(probe); const plate = getComputedStyle(probe).backgroundColor; probe.remove(); const seat = node.querySelector(".basalt-button-check .basalt-icon"); return { bg: s.backgroundColor, image: s.backgroundImage, colour: s.color, weight: s.fontWeight, radius: s.borderRadius, shadow: s.boxShadow, plate, check: seat ? getComputedStyle(seat).opacity : null }; });
+      const paint = (id) => page.locator(id).evaluate((node) => { const s = getComputedStyle(node); const probe = document.createElement("i"); probe.style.backgroundColor = "var(--basalt-plate)"; node.parentElement.append(probe); const plate = getComputedStyle(probe).backgroundColor; probe.remove(); const seat = node.querySelector(".basalt-button-check .basalt-icon"); return { bg: s.backgroundColor, image: s.backgroundImage, colour: s.color, weight: s.fontWeight, radius: s.borderRadius, shadow: s.boxShadow, plate, check: seat ? getComputedStyle(seat).opacity : null }; });
       const secOff = await paint("#t-sec");
       const ghostOff = await paint("#t-ghost");
       assert.equal(secOff.check, "0");
@@ -584,9 +584,11 @@ describe("the pressed toggle", () => {
     for (const [theme, expected] of [["light", [232, 232, 232]], ["dark", null]]) {
       const { page } = await open(body, { theme, ...DESKTOP });
       const bg = await page.locator("#p").evaluate((n) => getComputedStyle(n).backgroundColor);
-      const rgb = bg.match(/[\d.]+/g).slice(0, 3).map(Number).map((c) => (bg.startsWith("color(srgb") ? c * 255 : c));
+      // Read as painted (the plate is the token plate-0 now, written in oklch, so its computed text is not rgb()).
+      const painted = (css) => page.evaluate((value) => { const c = document.createElement("canvas"); c.width = c.height = 1; const x = c.getContext("2d"); x.fillStyle = value; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); }, css);
+      const rgb = await painted(bg);
       if (expected) rgb.forEach((c, i) => assert.ok(Math.abs(c - expected[i]) <= 1, `${theme}: ${bg}`));
-      else assert.equal(bg, await fillOf(page, "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))"), "dark: unchanged");
+      else assert.deepEqual(rgb, await painted(await fillOf(page, "color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))")), "dark: unchanged");
       assert.ok(!/\/|rgba/.test(bg), `opaque: ${bg}`);
       await page.close();
     }

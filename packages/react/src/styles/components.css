@@ -61,17 +61,20 @@
   [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
   [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
-  /* --_plate-solid is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle) rather than
-     laying over a panel: one opaque colour, so nothing shows through it. In dark it is --_plate; in light it is the 7% selected
-     wash (black at state-selected's own alpha) mixed over the level's own white. */
-  /* The page (no data-level ancestor) has its own: in dark the next level plus the wash, as level 0 would be; in light the 7% wash over
-     surface-page, one opaque colour (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it. */
-  :root { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); }
-  [data-level="1"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2))); }
-  [data-level="2"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
-  [data-level="3"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+  /* --basalt-plate is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle, an app's own list row)
+     rather than laying over a panel: one opaque colour per level, so nothing shows through it. It is public: the tokens plate-0 to plate-3
+     hold it (in dark --_plate, the next level plus the wash; in light the 7% selected wash, black at state-selected's own alpha, mixed over
+     the level's own white), and this alias follows the level, so a row anywhere reads `var(--basalt-plate)` and gets its level's plate.
+     The page (no data-level ancestor) and a nested theme root start at plate-0: in dark the next level plus the wash, as level 0 would be;
+     in light the 7% wash over surface-page (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it.
+     The tokens are plain colours themed by selector, so no light-dark() and no fallback is needed for them. */
+  :root, [data-theme], .light, .dark { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="0"] { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="1"] { --basalt-plate: var(--basalt-plate-1); }
+  [data-level="2"] { --basalt-plate: var(--basalt-plate-2); }
+  [data-level="3"] { --basalt-plate: var(--basalt-plate-3); }
 
-  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate, plate-solid
+  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate
      and pill variables above as an unknown function and paint nothing. There the same values are mixed instead of picked:
      --_dkp is how much of the dark value a mix takes, 0% in a light theme and 100% in a dark one, set where the theme tokens set
      the theme, so a nested theme root and the OS preference resolve as they do for the tokens. color-mix reaches every browser that
@@ -85,10 +88,6 @@
     [data-level="1"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="2"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="3"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
-    :root { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page))); }
-    [data-level="1"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1))); }
-    [data-level="2"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2))); }
-    [data-level="3"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3))); }
   }
 
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
@@ -383,7 +382,7 @@
   .basalt-button-swap:has(> .basalt-glyph-frame) > .basalt-icon { visibility: hidden; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
-     level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
+     level (--basalt-plate: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
      surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
      hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
      label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
@@ -394,11 +393,11 @@
   .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
   }
   .basalt-button[aria-pressed="true"][data-variant="secondary"]:not([data-disabled]):not([data-loading]),
   .basalt-button[aria-pressed="true"][data-variant="ghost"]:not([data-disabled]):not([data-loading]) {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
     color: var(--basalt-text-primary);
   }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"] { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
@@ -2109,7 +2108,7 @@
   /* ---- Choice card: a native radio or checkbox wearing a card ----
      The whole card is the label; the input is visually hidden (it covers the card, invisible, so it stays focusable) and a real
      choice box sits in a seat on the header line, reserved on every choice card, so choosing moves no title. Selected is the
-     selected wash as one solid fill at the card's own level (--_plate-solid, the active-row recipe made opaque), with the rim and the level
+     selected wash as one solid fill at the card's own level (--basalt-plate, the active-row recipe made opaque), with the rim and the level
      unchanged and the title still primary. Hover on an unselected card is the hover wash alone; a selected card takes no further
      step. No press scale. Focus is the control ring at +2, outside the card. State changes crossfade over duration-fast. */
   .basalt-choice-card {
@@ -2135,7 +2134,7 @@
   @media (hover: hover) {
     .basalt-choice-card:hover:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled))::before { opacity: 1; }
   }
-  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--_plate-solid); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--basalt-plate); }
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-choice-card:has(> .basalt-choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
@@ -2365,7 +2364,7 @@
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
   .basalt-peek[data-kind="row"] { cursor: pointer; }
-  .basalt-peek[data-chosen] { background: var(--_plate-solid); }
+  .basalt-peek[data-chosen] { background: var(--basalt-plate); }
   .basalt-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-peek-text { display: block; }
   .basalt-peek-seat { float: inline-end; }
@@ -3422,6 +3421,67 @@
     line-height: var(--basalt-text-base-line-height);
     resize: vertical;
   }
+
+  /* ---- Composer, Mention and MentionPicker (cimip-gaps-2, B3) ----
+     A composer is the textarea, a row of actions under it with Send last, and a status line under that. The field has no visible label
+     (its name is the aria-label) and grows with its text, a line at a time, from --_rows to --_max-rows (set by the component), then
+     scrolls; it never takes a resize handle, since its height is the text's. The status line is text-xs in tertiary ink, one line tall
+     even when empty, so nothing above or below moves when someone starts typing. */
+  .basalt-composer { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-input.basalt-textarea.basalt-composer-field {
+    --_line: var(--basalt-text-base-line-height);
+    resize: none;
+    field-sizing: content;
+    min-height: calc(var(--_line) * var(--_rows, 2) + var(--basalt-space-4));
+    max-height: calc(var(--_line) * var(--_max-rows, 8) + var(--basalt-space-4));
+    overflow-y: auto;
+  }
+  .basalt-composer-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); flex-wrap: wrap; }
+  .basalt-composer-extra { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; min-width: 0; }
+  /* Send is the row's last, at its end, whether or not the app gave other actions. */
+  .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { margin-inline-start: auto; }
+  /* One line, always: a long list of names is cut with an ellipsis rather than wrapped, so nothing under it moves. The cut is a look only:
+     the live region holds the whole text, and that is what is read. */
+  .basalt-composer-status {
+    margin: 0;
+    min-height: var(--basalt-text-xs-line-height);
+    font-size: var(--basalt-text-xs-size);
+    line-height: var(--basalt-text-xs-line-height);
+    color: var(--basalt-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour. It wraps with its text. One
+     that calls on the reader (data-you) also sits on the plate of its level, the opaque --basalt-plate, with radius 4 and 2px each side,
+     drawn on every line it wraps to. The 2px are its own (no margin gives them back): given back, the plate ate half the space before it
+     and the name read as joined to the word ahead. A mention never changes state, so nothing moves. */
+  .basalt-mention { font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-primary); }
+  .basalt-mention[data-you] {
+    padding-inline: var(--basalt-space-0-5);
+    border-radius: var(--basalt-radius-xs);
+    background-color: var(--basalt-plate);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  @media (forced-colors: active) {
+    .basalt-mention[data-you] { forced-color-adjust: none; background-color: Mark; color: MarkText; }
+  }
+  @media print {
+    .basalt-mention[data-you] { background-color: transparent; }
+  }
+
+  /* The picker is a popup of Combobox's rows, placed by the component (fixed, beside the trigger's line) and as wide as its content up to
+     the popover maximum. Focus stays in the field, so the rows' plate follows aria-activedescendant through data-highlighted. */
+  .basalt-mention-positioner { position: fixed; }
+  .basalt-mention-picker {
+    width: max-content;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
+    max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-2)));
+  }
+  .basalt-mention-option { cursor: pointer; }
+  .basalt-mention-option[aria-disabled="true"] { cursor: default; }
 
   /* ---- Popover ---- */
 
@@ -6233,6 +6293,123 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) and (pointer: fine) {
     .basalt-form-grid .basalt-choice { min-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  }
+
+  /* ==== The conversation stream (the second gaps batch, B2): messages, notes, quotes, the entry you came to, the disclosure row, the activity list and
+     presence. Decided by Opus on the no-council path (DECISIONS 226 and 265); the implementation is reviewed by Astra. ==== */
+
+  /* ---- The stream: one column, oldest first. A new author's message starts space-4 below the last entry; a joined one space-1; a note space-2. ---- */
+  .basalt-stream { box-sizing: border-box; display: flow-root; margin: 0; padding: 0; list-style: none; min-width: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-stream > li { margin: 0; }
+  .basalt-stream > li + li { margin-top: var(--basalt-space-4); }
+  .basalt-stream > li + .basalt-stream-message[data-joined] { margin-top: var(--basalt-space-1); }
+  .basalt-stream > .basalt-stream-note + .basalt-stream-note { margin-top: var(--basalt-space-2); }
+  .basalt-stream > .basalt-event-rule { padding-inline: 0; }
+
+  /* A message: the avatar's gutter (32, as the avatar is), space-3, then the head and the words. The head is the name at 500 in primary and the time
+     in tertiary at 12, on one baseline; meta follows the time and the actions sit at the end. */
+  .basalt-stream-message,
+  .basalt-stream-note { display: grid; grid-template-columns: var(--basalt-size-control-md) minmax(0, 1fr); column-gap: var(--basalt-space-3); align-items: start; }
+  .basalt-stream-gutter { display: flex; justify-content: center; min-width: 0; color: var(--basalt-text-secondary); }
+  .basalt-stream-body { display: grid; min-width: 0; }
+  .basalt-stream-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-height: var(--basalt-text-base-line-height); min-width: 0; }
+  .basalt-stream-author { min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-stream-time { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-stream-meta { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-stream-actions { display: inline-flex; align-items: center; gap: var(--basalt-space-1); margin-inline-start: auto; align-self: center; }
+  /* Block flow, so words and a link or a badge among them stay on one line; blocks inside (a paragraph, a list, a quote, a disclosure row, a card)
+     stand space-2 apart. */
+  .basalt-stream-text { display: block; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-stream-text > :where(p, ul, ol), .basalt-stream-block > :where(p, ul, ol) { margin-block: 0; }
+  .basalt-stream-text > :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) + :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) { margin-block-start: var(--basalt-space-2); }
+
+  /* A note: a sentence in secondary at 13 in the text column, its time after it; a mark (an icon at 16) centres in the gutter on its first line. */
+  .basalt-stream-note-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-stream-note-text { min-width: 0; overflow-wrap: anywhere; }
+  .basalt-stream-note > .basalt-stream-gutter { align-items: center; height: var(--basalt-text-sm-line-height); }
+
+  /* An entry of the app's own stands in the text column, under the words; with bleed it spans the stream. */
+  .basalt-stream-entry { display: grid; min-width: 0; padding-inline-start: calc(var(--basalt-size-control-md) + var(--basalt-space-3)); }
+  .basalt-stream-entry[data-bleed] { padding-inline-start: 0; }
+  .basalt-stream-block { min-width: 0; }
+
+  /* ---- The quote: the other side of an exchange, a fill one step from its ground and no rim. Dark: the level above (data-level is the quote's own,
+     one above what it sits in). Light: the sunken band's grey, because light's levels 1 to 3 are one white. Radius 8, as a callout's. ---- */
+  .basalt-stream-quote { box-sizing: border-box; display: grid; gap: var(--basalt-space-0-5); min-width: 0; margin: 0; padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-md); background: light-dark(var(--basalt-surface-sunken-strong), var(--_surface, var(--basalt-surface-1))); }
+  .basalt-stream-quote-cite { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; }
+  .basalt-stream-quote-text { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
+  .basalt-stream-quote-text > p { margin: 0; }
+
+  /* ---- The entry you came to. A plate in the selected wash (one solid fill per level, the choice card's recipe), radius 8, reaching space-2 past the
+     entry at the sides and space-1 above and below, behind what it holds; a panel takes the wash on its own fill instead, inside its one rim. It comes
+     at once and goes over 0.75 of duration-slow on ease-in. The word says it in the head; tertiary words on the wash step up to secondary. ---- */
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel]) { position: relative; isolation: isolate; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel])::before {
+    content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
+    background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
+  }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived]:not([data-panel])::before { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrival] > :not(.basalt-visually-hidden, .basalt-stream-word) { transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrived] > :not(.basalt-visually-hidden, .basalt-stream-word) { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:focus { outline: none; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived] :is(.basalt-stream-time, .basalt-stream-meta, .basalt-stream-quote-cite, .basalt-text[data-tone="tertiary"], .basalt-disclosure-meta, .basalt-activity-meta) { color: var(--basalt-text-secondary); }
+  .basalt-stream-word { color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-slow) * 0.75); }
+  .basalt-stream-word[data-on] { opacity: 1; visibility: visible; transition-duration: var(--basalt-duration-instant); transition-delay: var(--basalt-duration-instant); }
+  .basalt-stream-word-line { display: block; margin-bottom: var(--basalt-space-1); }
+  @media (forced-colors: active) {
+    :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]::before { display: none; }
+    .basalt-stream-word { color: CanvasText; }
+  }
+
+  /* ---- The disclosure row: a button on one line (cut while closed, wrapped when open), its mark, its meta and the core chevron, which morphs from
+     right to down. Hover lifts the ink; there is no wash. Focus is the control ring at +2. 28 tall (44 on touch), text at 13. ---- */
+  .basalt-disclosure { min-width: 0; }
+  .basalt-disclosure-row {
+    box-sizing: border-box; display: flex; align-items: flex-start; gap: var(--basalt-space-2); width: 100%; min-width: 0; min-height: var(--basalt-size-control-sm); margin: 0;
+    padding: calc((var(--basalt-size-control-sm) - var(--basalt-text-sm-line-height)) / 2) 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; cursor: pointer;
+    color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); text-align: start;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  @media (hover: hover) { .basalt-disclosure-row:hover:not([data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); } .basalt-disclosure-row:hover:not([data-disabled]) .basalt-disclosure-meta { color: var(--basalt-text-secondary); } }
+  .basalt-disclosure-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-disclosure-row[data-disabled] { color: var(--basalt-text-disabled); cursor: default; }
+  @media (pointer: coarse) { .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
+  .basalt-disclosure-mark, .basalt-disclosure-chevron { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-text-sm-line-height); }
+  .basalt-disclosure-title { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-disclosure-row[data-panel-open] .basalt-disclosure-title, .basalt-disclosure[data-wrap] .basalt-disclosure-title { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .basalt-disclosure-meta { flex: none; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-disclosure-row:not([data-panel-open]) .basalt-disclosure-chevron:dir(rtl) { transform: scaleX(-1); }
+  /* The panel opens by height (Base UI's measured height) and clips while it moves; it reaches space-1-5 past the detail on each side so a ring inside is whole. */
+  .basalt-disclosure-panel { height: var(--collapsible-panel-height); overflow: hidden; margin-inline: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); transition: height var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-disclosure-panel[data-starting-style], .basalt-disclosure-panel[data-ending-style] { height: 0; }
+  .basalt-disclosure-panel[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+  .basalt-disclosure-detail { display: grid; gap: var(--basalt-space-2); min-width: 0; padding-block: var(--basalt-space-1) var(--basalt-space-3); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  .basalt-disclosure-detail > p { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .basalt-disclosure-panel { transition: none; } }
+
+  /* ---- The activity list: a sentence a step at 13, wrapping, behind the plain badge's status seat (6, and a gap as wide): braille while it runs, the
+     tertiary dot once done, the danger dot when it failed, the hollow ring while it waits. The running step is primary; done steps are secondary. ---- */
+  .basalt-activity { display: grid; margin: 0; padding: 0; list-style: none; min-width: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-activity-step { margin: 0; min-width: 0; }
+  .basalt-activity-line { display: flex; align-items: flex-start; gap: var(--basalt-size-dot); min-width: 0; padding-block: var(--basalt-space-1); }
+  .basalt-activity .basalt-disclosure-row { gap: var(--basalt-size-dot); min-height: 0; padding-block: var(--basalt-space-1); }
+  @media (pointer: coarse) { .basalt-activity .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
+  .basalt-activity .basalt-disclosure-mark { width: var(--basalt-size-dot); }
+  .basalt-activity .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-dot) * 2); }
+  .basalt-activity-seat { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-dot); height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
+  .basalt-activity-dot { box-sizing: border-box; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-text-tertiary); }
+  .basalt-activity-step[data-status="failed"] .basalt-activity-dot { background: var(--basalt-status-danger); }
+  .basalt-activity-step[data-status="waiting"] .basalt-activity-dot { background: transparent; border: var(--basalt-size-hairline) solid currentColor; }
+  .basalt-activity-sentence { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-activity-step:is([data-status="running"], [data-status="failed"], [data-status="waiting"]) .basalt-activity-sentence { color: var(--basalt-text-primary); }
+  .basalt-activity-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-activity-meta { flex: none; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-activity-chevron-seat { display: none; flex: none; width: var(--basalt-size-icon-sm); }
+  .basalt-activity:has(.basalt-disclosure) .basalt-activity-chevron-seat { display: block; }
+  @media (forced-colors: active) {
+    .basalt-activity-dot { background: CanvasText; }
+    .basalt-activity-step[data-status="waiting"] .basalt-activity-dot { background: transparent; border-color: CanvasText; }
   }
 
 }

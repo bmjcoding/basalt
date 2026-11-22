@@ -424,6 +424,81 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - The formatters draw nothing: `formatStamp` ("14:49:07", to the second and always 24-hour), `formatClock` ("2:49 PM" in `en-US`, "14:49" in `en-GB`: a clock a person reads follows the locale, with a numeric hour), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime` (ISO), the zone an argument and the `locale` too (default `en-US`, never the runtime's, so a server's render and the browser's agree). `Clock`, `Stat`, `SourceStamp`, `SourceStateWords` and `CommandBlock` take `locale` as well, and `EventLog` for the width its time column reserves.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
 
+## The conversation stream
+
+A support thread, a team chat, a document's comments, an assistant's answer, a build's history: one column of entries, oldest first (the
+no-council path, DECISIONS 226 and 265; `docs/foundations.md`, "The conversation stream"). Basalt draws; the app owns the data, what joins,
+the words, and following the end.
+
+```tsx
+import { ActivityList, ActivityStep, DisclosureRow, EventLogRule, Presence, Stream, StreamArrivedWord, StreamEntry, StreamMessage, StreamNote, StreamQuote } from "@srasyndicate/basalt";
+
+<Stream label="Ticket 4821">
+  <EventLogRule>Today</EventLogRule>
+  <StreamNote mark={<Icon icon={TagIcon} size={16} />} time="4:13 PM">Assigned to Ada Brooks</StreamNote>
+  <StreamMessage author="Jules Ferreira" time="4:12 PM" dateTime="2026-11-18T16:12">Exporting invoices gives me an empty file.</StreamMessage>
+  <StreamMessage author="Jules Ferreira" time="4:13 PM" joined>Since yesterday.</StreamMessage>   {/* the app decides what joins */}
+  <StreamMessage author="Ada Brooks" time="4:20 PM" meta={<Presence status="away" since={awayAt} />}
+    arrived={openedFrom === "notice"} arrivedLabel="From your notice" onArrivedEnd={clearArrival}>
+    <StreamQuote cite="Jules Ferreira asked">Why is my export empty?</StreamQuote>
+    <p>Which date range did you choose?</p>
+  </StreamMessage>
+  <StreamEntry panel arrived={linked}>   {/* a panel: its own fill takes the wash; the app puts the word in its head */}
+    <Card><CardHeader><CardTitle>Suggested edit</CardTitle><StreamArrivedWord /></CardHeader>…</Card>
+  </StreamEntry>
+</Stream>
+
+<DisclosureRow mark={<Icon icon={MagnifyingGlassIcon} size={16} />} title="Searched the help center" meta="0.8 s">…the detail…</DisclosureRow>
+
+<ActivityList label="Build 1287">
+  <ActivityStep status="done" meta="12 s">Installed 214 packages</ActivityStep>
+  <ActivityStep status="failed" meta="48 s" detail={<LogLine fields={["Expected 1,204.50"]} />}>3 of 412 unit tests failed</ActivityStep>
+  <ActivityStep status="running">Building the web app</ActivityStep>
+</ActivityList>
+```
+
+| Export | What it does |
+|---|---|
+| `Stream` | The ordered list (`label`). Not a live region, and it does not follow its end: follow the end only while the reader is at it, and say what must be heard through `StatusLine`. |
+| `StreamMessage` | `author`, `time` (the app's words), `dateTime`, `avatar` (default an `Avatar` at 32, hidden from assistive technology), `joined` (no avatar or head drawn; the name and time are said), `meta` (after the time), `actions` (end of the head), `children`. |
+| `StreamNote` | A quieter row: a sentence in secondary at 13, `time`, and an optional `mark` (an icon at 16) in the gutter. |
+| `StreamQuote` | The other side of an exchange: `cite` (the app's words: "Dana asked", "Replying to Sam"), `time`, the words. A fill one step from its ground, no rim. |
+| `StreamEntry`, `StreamBlock` | An entry of the app's own (a card, an update; `bleed` to span the gutter) and a part of a message that can be the one arrived on its own (its message's head says the block's word; in a joined message the block draws it above itself). `panel` when it holds a panel. |
+| `arrived`, `arrivedLabel`, `onArrivedEnd` | On every entry and block: scrolled to, focused (no ring), a plate in the selected wash and a word ("Linked" by default) until the reader presses or types (keys that scroll don't count); then it fades and nothing moves. One entry at a time: a new arrival ends the one before (calling its `onArrivedEnd`). An entry in a hidden pane waits until it is shown. Nothing happens inside a `LoadingShape`. |
+| `StreamArrivedWord` | The word, for a panel entry's own head. |
+| `DisclosureRow` | One line that opens to its detail: `title`, `mark`, `meta`, `wrap`, `open`/`defaultOpen`/`onOpenChange`, `hiddenUntilFound`. Base UI's Collapsible. |
+| `ActivityList`, `ActivityStep` | A sentence a step: `status` (`running`, `done`, `failed`, `waiting`), `word`, `meta`, `detail` (then the step is a disclosure row). |
+| `Presence`, `Elapsed`, `formatElapsed` | "Away 6 min": `status` (`active`, `away`, `offline`), `label`, `since`, `now`, `format`, `variant` (`plain` or `outline`). `Elapsed` is the length alone after any word; `formatElapsed` writes it (plain, safe on a server). |
+
+## Writing to someone
+
+The composer, the mention and the mention picker (cimip-gaps-2, B3; decided and built by Opus on the no-council path, not yet reviewed). See foundations, "Writing to
+someone".
+
+```tsx
+{/* A support inbox: Enter sends, Shift+Enter is a new line; the send waits for the server and keeps the words if it is refused */}
+<Composer
+  label="Reply to the customer"
+  placeholder="Reply to the customer. Type @ to bring someone in."
+  actions={<Button variant="ghost" size="sm" onClick={attach}>Attach</Button>}
+  status={typingStatus(typingNames)}
+  onSend={(text) => api.reply(ticket, text)}
+  mentions={(field) => <MentionPicker field={field} options={[{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }]} onPick={(o) => picked.add(o.value)} />}
+/>
+
+{/* A build's comments: Mod+Enter sends (⌘↵ or Ctrl Enter, shown beside Send) */}
+<Composer label="Comment on the build" sendKey="Mod+Enter" onSend={comment} />
+
+{/* In the stream: a mention, and one that calls on the reader (on the plate) */}
+<p>Thanks <Mention>Ana Ruiz</Mention>; <Mention you>Lee Park</Mention>, can you look? Routed to <Mention trigger="#">billing</Mention>.</p>
+
+{/* An app's own text field with the picker: its handlers see defaultPrevented on a key the picker used */}
+<MentionPicker field={ref} options={people} filter={null} onQueryChange={lookUp} />
+```
+
+An app's own list draws its active row with the plate Basalt's popups use: `background: var(--basalt-plate)` follows the level the row sits in, and the tokens
+`--basalt-plate-0` to `--basalt-plate-3` are each level's.
+
 ## Loading in the page's own shape
 
 A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;

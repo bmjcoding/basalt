@@ -1,293 +1,235 @@
-// Round 57: notices and search (cimip-gaps-2, batch B7; DECISIONS 265, the no-council path). Built and decided by Opus inside foundations; the code
-// review is Astra's and the pixels are the lead's. Every part in two unlike domains with synthetic data: a build pipeline and a support inbox for
-// the notification center, and a shared handbook and a support inbox's messages for the search. States: the bell open in each domain, a group opened, the page form
-// on a phone with the tab bar, the list in a sidebar with a current entry, and the search with results, a current passage, its first load (bones),
-// a slow changed query (the last results kept, "Searching"), and no results; forced colours and reduced motion for each.
+// Round 57: the composer, the mention, the mention picker and the public plate (cimip-gaps-2, batch B3). Decided and built by Opus on the
+// no-council path (DECISIONS 226 and 265); the code review is Astra's and the pixels are the lead's, and neither has happened yet. Every part
+// is shown in two unlike domains, a support inbox and a build pipeline, with synthetic names only. States: at rest (`default`), `typing`
+// (words in the field and someone typing), `long` (the field at its cap, scrolling), `sending` (a send held out, Send's ring up),
+// `picker` (@ typed, the picker open under the field's line), `picker-keys` (↓ twice), `picker-foot` (the composers at the page's foot: the
+// picker above the line), and forced colours and reduced
+// motion for each that moves or marks.
 
 import * as React from "react";
 
-import {
-  Card,
-  FilterResult,
-  Heading,
-  LoadingShape,
-  markMatches,
-  NotificationCenter,
-  NotificationList,
-  NotificationsGlyph,
-  Refreshing,
-  SearchField,
-  SearchPassage,
-  SearchPassages,
-  standIn,
-  TabBar,
-  TabBarItem,
-  Text,
-  HomeGlyph,
-  SearchGlyph,
-  SettingsGlyph,
-} from "../../packages/react/src/index";
-import type { MatchRange, NotificationEntry, StandInVariant } from "../../packages/react/src/index";
+import { Button, Card, CardContent, Composer, Mention, MentionPicker, Text, typingStatus } from "../../packages/react/src/index";
+import type { MentionOption } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
-const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
+const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "").replace(/-foot$/, "");
 
-// ---- Two domains for the notification center ----
-
-const PIPELINE: NotificationEntry[] = [
-  { id: "p1", title: "Waiting on you: approve release 4.2", description: "web, production", time: "4m", status: "pending", unread: true, href: "#release-4-2" },
-  {
-    id: "p2",
-    title: "Ines, Tomas and Ruth commented on your change",
-    description: "Add retries to the upload worker",
-    time: "12m",
-    entries: [
-      { id: "p2a", title: "Ines Ortega commented", description: "Can we cap the retries at five?", time: "12m", unread: true, href: "#c1" },
-      { id: "p2b", title: "Tomas Lindqvist commented", description: "Backoff looks right to me.", time: "20m", unread: true, href: "#c2" },
-      { id: "p2c", title: "Ruth Achebe commented", description: "Please add a test for the timeout.", time: "31m", href: "#c3" },
-    ],
-  },
-  { id: "p3", title: "Deploy finished", description: "api, staging", time: "1h", status: "success", unread: true, href: "#deploy" },
-  { id: "p4", title: "Disk usage above 85%", description: "runner-07", time: "3h", status: "warning", href: "#runner" },
-  { id: "p5", title: "Nightly build failed", description: "3 tests failing", time: "Yesterday", status: "danger", href: "#nightly" },
-  { id: "p6", title: "In review: update the cache keys", description: "Requested by Ruth Achebe", time: "Yesterday", status: "pending", href: "#review" },
+const SUPPORT: MentionOption[] = [
+  { label: "Ana Ruiz", value: "u1", description: "Support lead · Online", group: "People" },
+  { label: "Anders Holm", value: "u2", description: "Billing · Away until 2 pm", group: "People" },
+  { label: "Ben Okafor", value: "u3", description: "Support · Online", group: "People" },
+  { label: "billing", value: "t1", description: "Team of 4 · Refunds and invoices", group: "Teams" },
+  { label: "android-app", value: "t2", description: "Team of 6 · Mobile reports", group: "Teams" },
+  { label: "analytics", value: "t3", description: "Reaches nobody yet", group: "Teams", disabled: true },
+  { label: "tier-2", value: "r1", description: "Whoever takes escalations this week", group: "Roles" },
+];
+const PIPELINE: MentionOption[] = [
+  { label: "Lee Park", value: "u1", description: "Owns the arm64 runners", group: "People" },
+  { label: "Lena Varga", value: "u2", description: "Release manager", group: "People" },
+  { label: "Mira Sato", value: "u3", description: "Build tooling", group: "People" },
+  { label: "linker", value: "t1", description: "Team of 3 · Toolchain", group: "Teams" },
+  { label: "release", value: "t2", description: "Team of 5 · Signs and ships", group: "Teams" },
+  { label: "on-call", value: "r1", description: "Whoever holds the pager this week", group: "Roles" },
 ];
 
-const INBOX: NotificationEntry[] = [
-  { id: "i1", title: "Waiting on your reply: ticket 4821", description: "Refund for a duplicate charge", time: "2m", status: "pending", unread: true, href: "#t4821" },
-  {
-    id: "i2",
-    title: "Mia, Arjun and Leo replied on tickets you follow",
-    time: "9m",
-    count: 5,
-    entries: [
-      { id: "i2a", title: "Mia Santos replied on 4810", description: "The customer confirmed the new address.", time: "9m", unread: true, href: "#t4810" },
-      { id: "i2b", title: "Arjun Mehta replied on 4802", description: "Escalated to the billing queue.", time: "26m", unread: true, href: "#t4802" },
-      { id: "i2c", title: "Leo Brandt replied on 4799", description: "Sent the replacement order.", time: "48m", href: "#t4799" },
-    ],
+const DOMAINS = {
+  support: {
+    title: "Order 4471: refund not received",
+    label: "Reply to the customer",
+    placeholder: "Reply to the customer. Type @ to bring someone in.",
+    options: SUPPORT,
+    typed: "Hi Jordan, the refund went out this morning. It takes three to five business days to reach your card.",
+    long: ["Hi Jordan,", "", "The refund went out this morning.", "It takes three to five business days", "to reach your card, and your bank", "may show it as pending first.", "", "If it hasn't arrived by Friday,", "reply here and we'll trace it."].join("\n"),
+    query: "Thanks, @an",
+    typing: ["Ana Ruiz"],
+    actions: <Button variant="ghost" size="sm">Attach</Button>,
+    sendKey: "Enter" as const,
   },
-  { id: "i3", title: "Ticket 4790 was closed", description: "Password reset link expired", time: "1h", status: "success", href: "#t4790" },
-  { id: "i4", title: "You were added to the Billing queue", time: "2h", href: "#billing" },
-  { id: "i5", title: "In review: your article draft", description: "How to change a plan", time: "Yesterday", status: "pending", href: "#draft" },
-];
+  pipeline: {
+    title: "Nightly build #2291 failed on arm64",
+    label: "Comment on the build",
+    placeholder: "Comment on the build. Type @ to ask someone.",
+    options: PIPELINE,
+    typed: "The linker ran out of memory on the arm64 runner. Rerunning with the larger runner now.",
+    long: ["The linker ran out of memory on arm64:", "", "  ld: error: out of memory", "  allocating 2147483648 bytes", "", "Rerunning on the 32 GB runner.", "If that passes I'll raise the default", "for every arm64 job in the matrix", "and close this."].join("\n"),
+    query: "@l",
+    typing: ["Lee Park", "Mira Sato"],
+    actions: <Button variant="ghost" size="sm">Code block</Button>,
+    sendKey: "Mod+Enter" as const,
+  },
+};
 
-const leaves = (entries: NotificationEntry[]) => entries.flatMap((e) => e.entries ?? [e]);
-const readAll = (entries: NotificationEntry[]): NotificationEntry[] => entries.map((e) => ({ ...e, unread: false, entries: e.entries?.map((c) => ({ ...c, unread: false })) }));
-
-/** Opens the first group once it is drawn (a real press on its row), for the states that show a group open. */
-function useOpenGroup(on: boolean) {
+function Thread({ domain, state }: { domain: keyof typeof DOMAINS; state: string }) {
+  const d = DOMAINS[domain];
+  const kind = kindOf(state);
+  const [text, setText] = React.useState(kind === "typing" || kind === "sending" ? d.typed : kind === "long" ? d.long : "");
+  const field = React.useRef<HTMLTextAreaElement | null>(null);
   React.useEffect(() => {
-    if (!on) return undefined;
-    const timer = window.setTimeout(() => document.querySelector<HTMLButtonElement>(".basalt-notification[data-group]")?.click(), 120);
-    return () => window.clearTimeout(timer);
-  }, [on]);
+    const ta = field.current;
+    if (!ta) return undefined;
+    if (kind === "picker" || kind === "picker-keys") {
+      // A real focus and a real input event, so the picker reads the field as it would a person's typing, once the picker has taken the field.
+      const timers: number[] = [];
+      const start = () => {
+        if (!ta.hasAttribute("aria-autocomplete")) { timers.push(window.setTimeout(start, 20)); return; }
+        ta.focus();
+        ta.value = d.query;
+        ta.setSelectionRange(d.query.length, d.query.length);
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        setText(d.query);
+        if (kind === "picker-keys") {
+          timers.push(window.setTimeout(() => {
+            for (let i = 0; i < 2; i++) ta.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+          }, 200));
+        }
+      };
+      start();
+      return () => timers.forEach(window.clearTimeout);
+    }
+    if (kind === "long") { ta.scrollTop = ta.scrollHeight; }
+    if (kind === "sending") {
+      const timer = window.setTimeout(() => ta.closest(".basalt-composer")?.querySelector<HTMLButtonElement>(".basalt-composer-send")?.click(), 50);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [kind, d]);
+  return (
+    <section style={{ display: "grid", gap: "var(--basalt-space-3)", minWidth: 0 }}>
+      <Text size="sm" weight="medium">{d.title}</Text>
+      {domain === "support" ? (
+        <Text size="sm" tone="secondary">
+          <Mention>Ben Okafor</Mention> checked the payment provider: the refund was issued at 09:12. <Mention you>Ana Ruiz</Mention>, can you confirm the card it went to?
+        </Text>
+      ) : (
+        <Text size="sm" tone="secondary">
+          <Mention>Mira Sato</Mention> retried once with the same runner and it failed at the same step. <Mention you>Lee Park</Mention>, is the 32 GB pool free tonight?
+        </Text>
+      )}
+      <Composer
+        label={d.label}
+        placeholder={d.placeholder}
+        value={text}
+        onValueChange={setText}
+        inputRef={field}
+        sendKey={d.sendKey}
+        actions={d.actions}
+        status={typingStatus(kind === "default" ? [] : d.typing)}
+        // The review holds a send out, so the ring can be seen; it never settles.
+        onSend={() => (kind === "sending" ? new Promise(() => {}) : undefined)}
+        mentions={(field) => <MentionPicker field={field} options={d.options} label="Mention someone" />}
+      />
+    </section>
+  );
 }
 
-function Bell({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const inbox = kind.startsWith("inbox");
-  const [entries, setEntries] = React.useState(inbox ? INBOX : PIPELINE);
-  useOpenGroup(kind.endsWith("group"));
+function Composers({ state }: { state: string }) {
+  const at = state.includes("-foot") ? "foot" : "top";
   return (
-    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--basalt-space-3)", padding: "var(--basalt-space-4) var(--basalt-gutter)", borderBottom: "1px solid var(--basalt-border-divider)" }}>
-      <Text size="sm" tone="secondary" style={{ marginInlineEnd: "auto" }}>{inbox ? "A support inbox" : "A build pipeline"}</Text>
-      <NotificationCenter defaultOpen entries={entries} onMarkAllRead={() => setEntries(readAll(entries))} onClearAll={() => setEntries([])} viewAllHref="#all" />
+    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "grid", gap: "var(--basalt-space-8)", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", alignContent: at === "foot" ? "end" : "start", minHeight: at === "foot" ? 700 : undefined }}>
+      <Thread domain="support" state={state} />
+      <Thread domain="pipeline" state={state} />
     </div>
   );
 }
 
-// ---- The page form, on a phone, and the list in a sidebar ----
-
-function PhonePage({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const inbox = kind.startsWith("inbox");
-  const [entries, setEntries] = React.useState(inbox ? INBOX : PIPELINE);
-  useOpenGroup(kind.endsWith("group"));
-  const unread = leaves(entries).filter((e) => e.unread).length;
-  if (kind === "sidebar") return <Sidebar />;
+// An app's own list, drawn with the public plate: the active row is `var(--basalt-plate)` at whatever level the list sits on.
+function OwnList({ title, rows, active }: { title: string; rows: string[]; active: number }) {
   return (
-    <div style={{ padding: "var(--basalt-space-4) var(--basalt-gutter)", paddingBottom: "var(--basalt-bottom-offset, 96px)", maxWidth: 720 }}>
-      <Heading level={1} size="xl" id="notices-title" style={{ marginBottom: "var(--basalt-space-2)" }}>Notifications</Heading>
-      <NotificationList entries={entries} aria-labelledby="notices-title" onMarkAllRead={() => setEntries(readAll(entries))} onClearAll={() => setEntries([])} />
-      <TabBar>
-        <TabBarItem href="#home" icon={HomeGlyph}>Home</TabBarItem>
-        <TabBarItem href="#search" icon={SearchGlyph}>Search</TabBarItem>
-        <TabBarItem href="#notifications" icon={NotificationsGlyph} current dot={unread > 0 ? `${unread} unread` : undefined}>Notifications</TabBarItem>
-        <TabBarItem href="#settings" icon={SettingsGlyph}>Settings</TabBarItem>
-      </TabBar>
-    </div>
-  );
-}
-
-const SIDEBAR: NotificationEntry[] = [
-  { id: "s1", title: "Upload worker retries", description: "Ines Ortega · 3 comments", time: "12m", unread: true, href: "#s1" },
-  { id: "s2", title: "Cache keys for the CDN", description: "Waiting on your review", time: "1h", status: "pending", current: true, href: "#s2" },
-  { id: "s3", title: "Release 4.2", description: "Deployed to staging", time: "3h", status: "success", href: "#s3" },
-  { id: "s4", title: "Nightly build", description: "3 tests failing", time: "Yesterday", status: "danger", href: "#s4" },
-];
-
-function Sidebar() {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "var(--basalt-space-8)", padding: "var(--basalt-space-6) var(--basalt-gutter)" }}>
-      <aside>
-        <Heading level={2} size="sm" id="mine" style={{ margin: "0 0 var(--basalt-space-1) var(--basalt-space-4-5, 18px)" }}>Your changes</Heading>
-        <NotificationList head={false} entries={SIDEBAR} aria-labelledby="mine" />
-      </aside>
-      <main>
-        <Heading level={1} size="xl">Cache keys for the CDN</Heading>
-        <Text tone="secondary">The page for the current entry. The list in the sidebar has no head band, and its current entry is its title at 600.</Text>
-      </main>
-    </div>
-  );
-}
-
-// ---- The search, in two domains ----
-
-interface Hit { source: string; meta: string; text: string }
-const HANDBOOK: { query: string; label: string; hits: Hit[] } = {
-  query: "laptop",
-  label: "Search the handbook",
-  hits: [
-    { source: "Your first week › Equipment", meta: "Section 2", text: "Your laptop arrives on your first morning. Someone from IT sets the laptop up with you, and you choose a password together." },
-    { source: "Working remotely › Security", meta: "Section 5", text: "Lock your laptop whenever you step away, and never leave it in a car. A lost laptop is reported the same day." },
-    { source: "Travel › What to pack", meta: "Section 7", text: "Bring the laptop charger and the travel adapter; the office keeps spares of neither." },
-    { source: "Leaving › Returning equipment", meta: "Section 9", text: "Return the laptop, its charger and your badge on your last day. A courier can collect them if you work from home." },
-  ],
-};
-const INBOX_SEARCH: { query: string; label: string; hits: Hit[] } = {
-  query: "refund",
-  label: "Search the inbox",
-  hits: [
-    { source: "Dana Whitfield · ticket 4821", meta: "2m ago", text: "I was charged twice for the same order. Could you refund the second charge to the original card?" },
-    { source: "You · ticket 4821", meta: "1m ago", text: "Thanks, Dana. I have started the refund for the duplicate charge; it reaches your card in three to five days." },
-    { source: "Omar Reyes · ticket 4766", meta: "Tue", text: "The refund arrived, but the confirmation email still shows the old total." },
-    { source: "Hana Sato · ticket 4702", meta: "Nov 3", text: "Is a refund possible after thirty days if the item never shipped?" },
-    { source: "You · ticket 4702", meta: "Nov 3", text: "Yes: an order that never shipped is refunded in full, whenever you ask. I have sent it now." },
-  ],
-};
-
-/** What a server's highlighter returns: every place the words were found. */
-const rangesOf = (text: string, query: string): MatchRange[] => {
-  const out: MatchRange[] = [];
-  if (!query) return out;
-  const lower = text.toLowerCase();
-  for (let at = lower.indexOf(query); at >= 0; at = lower.indexOf(query, at + query.length)) out.push([at, at + query.length]);
-  return out;
-};
-
-function Passages({ hits, query, current, label, rows }: { hits: Hit[]; query: string; current?: number; label: string; rows?: number }) {
-  return (
-    <SearchPassages aria-label={label} rows={rows}>
-      {hits.map((hit, i) => (
-        <SearchPassage key={hit.source + i} source={hit.source} meta={hit.meta} current={current === i} onClick={() => {}}>
-          {markMatches(hit.text, rangesOf(hit.text, query))}
-        </SearchPassage>
-      ))}
-    </SearchPassages>
-  );
-}
-
-const standInHits = (variant: StandInVariant): Hit[] =>
-  [0, 1, 2].map((i) => ({ source: standIn(i * 3 + 1, 18, variant), meta: standIn(i * 3 + 2, 6, variant), text: standIn(i * 3 + 3, 110, variant) }));
-
-function Search({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const domain = kind.startsWith("inbox") ? INBOX_SEARCH : HANDBOOK;
-  const [query, setQuery] = React.useState(kind === "none" ? "keyboard tray" : domain.query);
-  const loading = kind === "loading";
-  // The inbox's panel holds a budget of three passages; the handbook's list grows with the page.
-  const budget = domain === INBOX_SEARCH ? 3 : undefined;
-  const refreshing = kind === "refreshing";
-  const none = kind === "none";
-  const hits = none ? [] : domain.hits;
-  const count = none ? "No passages match" : hits.length === 1 ? "1 passage" : `${hits.length} passages`;
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--basalt-space-8)", padding: "var(--basalt-space-6) var(--basalt-gutter)" }} className="wt-search-page">
-      <div>
-        <Heading level={1} size="xl">{domain === INBOX_SEARCH ? "Support inbox" : "Team handbook"}</Heading>
-        <Text tone="secondary">{domain === INBOX_SEARCH ? "A support inbox: the search runs on the server over every ticket's messages; the results hold a budget of three passages and scroll inside." : "A shared document: the search runs on the server and returns passages with their matches."}</Text>
-      </div>
-      <Card style={{ padding: 0 }}>
-        <div style={{ display: "grid", gap: "var(--basalt-space-2)", padding: "var(--basalt-space-3) var(--basalt-space-3) 0" }}>
-          <SearchField label={domain.label} placeholder={domain.label} value={query} onValueChange={setQuery} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--basalt-space-2)", minHeight: 18, paddingInline: "var(--basalt-space-1-5)" }}>
-            {loading ? <span /> : <FilterResult style={{ margin: 0, fontSize: "var(--basalt-text-sm-size)", lineHeight: "var(--basalt-text-sm-line-height)", color: "var(--basalt-text-tertiary)" }}>{count}</FilterResult>}
-            <Refreshing on={refreshing} label="Searching" />
+    <div style={{ display: "grid", gap: "var(--basalt-space-1)", minWidth: 0 }}>
+      <Text size="xs" tone="tertiary" weight="medium">{title}</Text>
+      <div role="listbox" aria-label={title} aria-activedescendant={`${title}-${active}`} tabIndex={0} style={{ display: "grid", gap: "var(--basalt-space-0-5)" }}>
+        {rows.map((r, i) => (
+          <div key={r} id={`${title}-${i}`} role="option" aria-selected={i === active} style={{ padding: "var(--basalt-space-2) var(--basalt-space-3)", borderRadius: "var(--basalt-radius-md)", background: i === active ? "var(--basalt-plate)" : undefined, color: i === active ? "var(--basalt-text-primary)" : "var(--basalt-text-secondary)", fontSize: "var(--basalt-text-base-size)", lineHeight: "var(--basalt-text-base-line-height)" }}>
+            {r}
           </div>
-        </div>
-        <LoadingShape loading={loading} refreshing={refreshing} label="Searching" shape={() => <Passages hits={standInHits(0)} query="" label={domain.label} rows={budget} />}>
-          {() => (none
-            ? <Text size="sm" tone="secondary" style={{ padding: "var(--basalt-space-3) var(--basalt-space-4-5, 18px) var(--basalt-space-4)" }}>Nothing in the handbook matches “keyboard tray”.</Text>
-            : <Passages hits={hits} query={domain.query} current={kind.endsWith("current") ? 1 : undefined} label={`Results for ${domain.query}`} rows={budget} />)}
-        </LoadingShape>
-      </Card>
+        ))}
+      </div>
     </div>
   );
 }
 
-const ALSO = (list: string[]) => [...list, ...list.slice(0, 2).flatMap((s) => [`${s}-forced-colours`, `${s}-reduced-motion`])];
+function Plates() {
+  const inbox = ["Unassigned", "Mine", "Waiting on customer", "Closed"];
+  const runs = ["main · #2291", "release/4.2 · #2290", "main · #2289"];
+  return (
+    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "grid", gap: "var(--basalt-space-6)", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))" }}>
+      <OwnList title="Inbox views (the page)" rows={inbox} active={1} />
+      <Card><CardContent><OwnList title="Recent runs (a card, level 1)" rows={runs} active={0} /></CardContent></Card>
+      <Card><CardContent><Card><CardContent><OwnList title="Queues (level 2)" rows={inbox} active={2} /></CardContent></Card></CardContent></Card>
+    </div>
+  );
+}
 
 export const ROUND_57: Round = {
   id: "57",
-  title: "Notices and search: the pending mark, grouped repeats, the page form and search with server results (cimip-gaps-2, B7)",
+  title: "The composer, the mention, the mention picker and the public plate (cimip-gaps-2, B3)",
   reviewed: false,
   summary:
-    "Five gaps from building CIMIP, made general (DECISIONS 265, no council): the notification center's pending mark (the empty ring of the toast's marks, no colour), grouped repeats with names and a count that open in place, a page form (`NotificationList`) for a phone's tab bar and for a sidebar, an in-page search whose passages come from a server (`SearchField`, `SearchPassages`, `SearchPassage`, `SearchMatch`, `markMatches`) and loads with `LoadingShape`, and the US names `NotificationCenter` and `NotificationCenterProps`. Decided and built by Opus; the code review is Astra's and has not happened yet, and the design panel did not review it. Synthetic data in four domains: a build pipeline, a support inbox, a shared handbook and a support inbox's messages.",
+    "Four parts any app that lets people write to each other needs: a composer (a message field with no visible label, its actions and Send, and a line for who is typing), a mention (a name that calls on someone, marked by its @ and a weight), a mention picker (Combobox's rows in a popup over the field, focus left in the field), and the lit row's plate as public tokens, so an app's own list draws its active row as Basalt does. Decided and built by Opus on the no-council path (DECISIONS 226 and 265); Astra's code review and the lead's pixel check have not happened yet, and no design panel reviewed it. Shown in a support inbox and a build pipeline, synthetic names only, at 1440 and at 390 on touch, in both themes, with forced colours and reduced motion. No space step at 160 was added: the 160 that was asked for is a label column, and `size-description-label` is that.",
   steps: [
     {
-      id: "bell",
-      name: "The bell: pending and a group",
-      intro: "The notification center in a build pipeline and in a support inbox. Each has entries waiting on the reader (pending), a group of repeats, and the toast's three marks.",
+      id: "composer",
+      name: "The composer",
+      intro: "Where a person writes a message: the field (its name is its label, and there is no visible one), the app's actions and Send under it, and one line for who is typing.",
       decisions: [
-        "Pending is the toast's ring with nothing in it: Phosphor's Circle at 16, the same drawing as CheckCircle and XCircle, in secondary ink. Waiting is not a warning, so it has no colour. Badge's 6px ring was the first choice, but in the 16px mark seat it sat 10px from the 6px unread dot as a second, hollow dot: it read as a read state. The title says it in words (\"Waiting on you: …\"); the mark is aria-hidden like every mark.",
-        "A group is the app's: `entries` on an entry. Its row is a button (aria-expanded) with the app's title naming who and what, then the toast's count (\"×3\", spoken \", 3 times\") and the core chevron. The title is cut first; the count and the chevron always show. `count` covers a group the app holds more of than it lists (×5 with three listed).",
-        "A group opens in place under its row on the reveal's track (0fr to 1fr over duration-slow, ease-out; at once under reduced motion), its entries indented by the dot's and the mark's seats, so their seats sit under the group's words. Focus stays on the row: its entries are the next tab stops. They join the hover glide.",
-        "A group with no `unread` of its own is unread while any of its entries is; the bell counts the entries, so three unread mentions are \"3 unread\". Errors are never grouped, as the toast never groups them.",
+        "Built from parts that are already decided: Basalt's Textarea, a primary Button for Send at the row's end, the app's own ghost buttons at its start, and the status line in text-xs tertiary ink. No new look.",
+        "The status line is one line tall even when empty, so nothing moves when someone starts typing; it is a polite live region. `typingStatus` writes \"Ana is typing\", \"Ana and Ben are typing\", \"Ana, Ben, and Cy are typing\" and \"4 people are typing\"; an app can write its own words.",
+        "The field starts at two lines (the Textarea's own least) and grows a line at a time to eight, then scrolls; both are props (`rows`, `maxRows`). No resize handle: its height is its text's. Where the browser cannot size a field to its content it is measured instead, within the same bounds.",
+        "Enter sends and Shift+Enter is a new line, and the soft keyboard's key says Send. With `sendKey=\"Mod+Enter\"` (the build pipeline) Enter is a new line and ⌘↵ or Ctrl Enter sends, shown as chips beside Send (ActionShortcut, hidden on touch until a hardware key is pressed). A key presses Send, so a key and a press are one send, guarded by the button's own wait: while a send is out, a second Enter sends nothing.",
+        "On success the field is cleared, unless the person changed the text while it was out; a refusal keeps the words. A press on Send keeps focus (and a phone's keyboard) in the field.",
+        "Not reviewed: no design panel, and Astra and the lead have not looked yet.",
       ],
       tryIt: [
-        "Open the group: three comments open under it. Tab: focus goes from the group's row to its first comment.",
-        "Mark all as read: the dots go, the titles step to secondary, and nothing moves, the group included.",
+        "Type a reply and press Enter in the support thread; in the build thread press Enter for a new line and ⌘↵ (Ctrl Enter) to send.",
+        "Paste ten lines: the field grows to eight and then scrolls.",
+        "Type @ and a letter: the picker opens over the field's line (the next step).",
       ],
-      states: ALSO(["inbox", "pipeline-group", "inbox-group"]),
+      states: ["typing", "long", "sending", "typing-forced-colours", "sending-reduced-motion"],
       widths: [1440, 390],
-      height: 720,
+      scales: [2],
+      height: 560,
       touch: true,
-      demo: ({ state }) => <Bell state={state} />,
+      demo: ({ state }) => <Composers state={state} />,
     },
     {
-      id: "page",
-      name: "The page form: a tab bar's destination, and a sidebar",
-      intro: "On a phone the bell does not fit the header beside the page's buttons. `NotificationList` is the center's entries in the page, which the tab bar links to; the same list without its head is a sidebar's list of entries.",
+      id: "picker",
+      name: "The mention picker",
+      intro: "Typing @ at the start of a word offers who can be named: people, teams and roles, two lines a row, under the trigger's line, with focus left in the field.",
       decisions: [
-        "A page, not a sheet: a tab bar's cells are links to pages (never a tablist or a button), so the destination is the app's own notifications page, the same page \"View all\" opens. The tab bar's cell is `TabBarItem` with `NotificationsGlyph` and its `dot` (\"3 unread\" is spoken; counts are never drawn). From 720 the app shows the bell in its header instead.",
-        "The same rows, seats, groups and words as the popover, with no popover, no title (the page's heading names the list, by aria-labelledby) and no glide: each entry paints its own plate, the page's solid plate. No rim: a list in the page, not an object. Paging is the app's (`ListBand` under it).",
-        "Clear all (DECISIONS 269, the owner's): with `onClearAll` the page form has a foot with \"Clear all\" at its start, as the center's foot has, and no \"View all\" (this is that page). Once nothing is left it stays, disabled in place, and keeps focus.",
-        "`head={false}` drops the count and \"Mark all as read\", for a list of entries in a sidebar; `current` marks the entry for the page on screen with aria-current and its title at 600 from 400 (one cut line, so nothing moves). This closes batch B6's \"entries outside the notification center\".",
+        "Combobox's popup and rows, reused: the popup's level, rim, shadow and radius 12, the 58px two-line rows (54 plate), group labels, the plate and its glide, and the lift from secondary to primary. `Listbox` is a list in the page that holds focus, so it is not the picker.",
+        "Focus stays in the field, which carries `aria-activedescendant` to the active row, `aria-controls` to the list while it is open, and `aria-autocomplete=\"list\"`. ↑ and ↓ move the plate and pass over a row that cannot be picked; Enter or Tab writes \"@Name \" (the browser's own undo takes it back); a press on a row picks it; Esc closes it until another @ is typed, and a dialog round the field stays open.",
+        "It sits under the trigger's line, 6px from it, and above the line when there is more room there (a composer at a page's foot), inside the window at 390.",
+        "A name may hold a space (\"@ana r\") while something matches; once nothing does it closes, so a sentence is never held. An @ inside a word (an address) opens nothing. A query that matches nothing opens nothing, and the app still hears it (`onQueryChange`) to look names up on its server.",
+        "Rows are cut, never wrapped, as every popup row is today. Whether described rows may wrap is another batch's question (B6).",
       ],
-      tryIt: ["On the phone, open the group, then Mark all as read: the tab bar's dot goes.", "In the sidebar, the current entry is the one at 600."],
-      states: [...ALSO(["inbox", "pipeline-group"]), "sidebar@1440", "sidebar-forced-colours@1440"],
-      widths: [390, 1440],
-      height: 844,
+      tryIt: [
+        "Type @an in the support thread, ↓ twice, Enter.",
+        "Type @an and press Esc; type more: it stays closed until the next @.",
+      ],
+      states: ["picker", "picker-keys", "picker-foot", "picker-forced-colours", "picker-reduced-motion"],
+      widths: [1440, 390],
+      scales: [2],
+      height: 640,
       touch: true,
-      demo: ({ state }) => <PhonePage state={state} />,
+      demo: ({ state }) => <Composers state={state} />,
     },
     {
-      id: "search",
-      name: "Search in a panel, with results from a server",
-      intro: "A search over one place (a handbook, an inbox's messages) that runs on the server and returns passages with the matched words marked. It is in the page or a panel; the site's search dialog is unchanged.",
+      id: "mention",
+      name: "The mention, and the public plate",
+      intro: "A name in running text that calls on someone, and the plate an app's own list can draw its active row with.",
       decisions: [
-        "Composed, not a new dialog: `SearchField` (an Input with the core search glyph and one clear ×; the first Esc empties it, the next is the app's), the app's count line (`FilterResult`: drawn at once, spoken once it holds still), and `SearchPassages`, an ordered list of `SearchPassage`s, in a `LoadingShape`. `SearchDialog` and `SearchResults` stay the site search's: a fixed-height area of picture rows.",
-        "A passage is a link or a button with the notification entry's row geometry: the source (who said it, or the section) in primary at 400, cut, with the meta at the head's end in tertiary, and the passage under it in secondary, wrapping. `current` is the passage shown beside the results: aria-current and the source at 600.",
-        "A match is a `mark` in primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour. `markMatches(text, ranges)` draws a server's ranges (joined, clamped, any order) and never parses HTML.",
-        "A results budget the caller sets (Sol's audit, F7): `rows` (and `lines`, 2 by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, it grows with the page. The site search's `SearchResults` keeps its counts as a shop's presets (three logo rows, five picture rows, See all) that any app overrides. The query, its paging and any grouping stay the app's.",
-        "The first results load as bones in the list's own shape; a changed query keeps the last results on screen (`refreshing`) and shows \"Searching\" only after a second. No results is the app's sentence in the list's place.",
+        "A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour, and it wraps with its text. The trigger is a prop (\"#billing\").",
+        "A mention of the reader (`you`) sits on its level's plate as well, radius 4 and 2px each side of its own, drawn on every line it wraps to (given back by a margin, the plate ate half the space before it); in forced colours it is Mark with MarkText.",
+        "The plate is public: tokens plate-0 to plate-3 (the selected wash over each level as one opaque colour, in both themes and in Swift), and `--basalt-plate`, which follows the level a part sits in. Basalt's pressed toggle, chosen card and chosen peek now read it; a test proves they paint the same pixel the private recipe did.",
+        "No space step above 128: the 160 that was asked for is a label column, which `size-description-label` already names. Space steps are gaps; past 64 the scale has only the section gaps (96 and 128).",
       ],
-      tryIt: ["Type in the field: Esc empties it; the × does too.", "Hover a passage: the plate, and the meta lifts to secondary."],
-      states: ["inbox", "inbox-current", "loading", "refreshing", "none", "inbox-current-forced-colours", "loading-forced-colours", "inbox-reduced-motion", "loading-reduced-motion"],
+      tryIt: ["Look at the three lists: each active row is `var(--basalt-plate)`, a step lighter at each level in dark and one grey in light. These are an app's own markup with inline styles, so in forced colours their fill goes: an app gives its own active row `Highlight` there, as Basalt's rows do."],
+      states: ["forced-colours"],
       widths: [1440, 390],
-      height: 720,
+      scales: [2],
+      height: 520,
       touch: true,
-      demo: ({ state }) => <Search state={state} />,
+      demo: () => <><Composers state="default" /><Plates /></>,
     },
   ],
 };
