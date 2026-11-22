@@ -291,24 +291,24 @@
   /* A press is a colour step, and Button and IconButton (which are this class) also scale to .98 over
      duration-fast on ease-out. Primary steps to action-primary-press; the rest to the selected wash.
      Never on a disabled or loading button, and never on a row, card, menu item, command row or the parts of a field. */
-  .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-loading]) { background: var(--basalt-action-primary-press); }
-  .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-loading]),
-  .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-loading]),
-  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-loading]),
-  .basalt-button[data-variant="outline"]:active:not([data-disabled]):not([data-loading]) {
+  .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-busy]) { background: var(--basalt-action-primary-press); }
+  .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-busy]),
+  .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-busy]),
+  .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-busy]),
+  .basalt-button[data-variant="outline"]:active:not([data-disabled]):not([data-busy]) {
     background: var(--basalt-state-selected);
   }
-  .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: scale(0.98); }
+  .basalt-button:active:not([data-disabled]):not([data-busy]) { transform: scale(0.98); }
   /* The scale shrinks the hit box under a held pointer, so a press at a wide button's edge would lose its click and a 44px
      touch target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed
      target at least its rest size. It is a percentage of the button, so it scales with it. */
-  .basalt-button:active:not([data-disabled]):not([data-loading])::after { content: ""; position: absolute; inset: -1.03%; }
+  .basalt-button:active:not([data-disabled]):not([data-busy])::after { content: ""; position: absolute; inset: -1.03%; }
   /* The parts of a field (the NumberField steppers, the Combobox trigger) keep the colour step and never scale, so they
      need no extension either. The council decided this by majority (4-0). The extra class outranks the press rule above. */
-  .basalt-number-group .basalt-button:active:not([data-disabled]):not([data-loading]),
-  .basalt-button.basalt-combobox-trigger:active:not([data-disabled]):not([data-loading]) { transform: none; }
-  .basalt-number-group .basalt-button:active:not([data-disabled]):not([data-loading])::after,
-  .basalt-button.basalt-combobox-trigger:active:not([data-disabled]):not([data-loading])::after { content: none; }
+  .basalt-number-group .basalt-button:active:not([data-disabled]):not([data-busy]),
+  .basalt-button.basalt-combobox-trigger:active:not([data-disabled]):not([data-busy]) { transform: none; }
+  .basalt-number-group .basalt-button:active:not([data-disabled]):not([data-busy])::after,
+  .basalt-button.basalt-combobox-trigger:active:not([data-disabled]):not([data-busy])::after { content: none; }
   /* An icon placed inside the label (a MorphIcon beside the words) sits on the same line, 6px away. */
   .basalt-button-label { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
   .basalt-button[data-loading] .basalt-button-label,
@@ -411,7 +411,7 @@
   .basalt-button[data-variant="outline"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
   /* Loading is busy, not disabled: the variant colour stays and a spinner sits on the label. */
-  .basalt-button[data-loading] { cursor: progress; }
+  .basalt-button:is([data-busy], [data-loading]) { cursor: progress; }
   .basalt-button[data-variant="primary"][data-loading] { background: var(--basalt-action-primary); color: var(--basalt-action-primary-text); }
   .basalt-button[data-variant="secondary"][data-loading] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-hairline); }
   .basalt-button[data-variant="ghost"][data-loading] { background: transparent; color: var(--basalt-text-secondary); }
@@ -450,12 +450,27 @@
     transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .basalt-text-button > .basalt-icon { align-self: center; flex: none; color: var(--basalt-text-secondary); }
-  .basalt-text-button:hover:not([data-disabled]) .basalt-text-button-label { text-decoration-color: currentColor; }
-  .basalt-text-button[data-quiet]:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
+  .basalt-text-button:hover:not([data-disabled], [data-loading]) .basalt-text-button-label { text-decoration-color: currentColor; }
+  .basalt-text-button[data-quiet]:hover:not([data-disabled], [data-loading]) { color: var(--basalt-text-primary); }
   .basalt-text-button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-text-button[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .basalt-text-button[data-disabled] > .basalt-icon { color: inherit; }
   .basalt-text-button[data-disabled] .basalt-text-button-label { text-decoration-color: currentColor; }
+  /* Busy (DECISIONS 260): a press is ignored from the press on; after 300ms the TextButton's own sign shows, with no box and nothing moved. The words step
+     down an ink (primary to secondary, the quiet form's secondary to tertiary), and the underline, the button's affordance, turns dashed (a shape, so the
+     state is never colour alone) in the ink and breathes on duration-loop-fade, as Sparkline's loading line does. Not the disabled look: the words stay
+     readable at 4.5:1 and the underline is drawn, not dimmed away. */
+  .basalt-text-button[data-busy] { cursor: progress; }
+  .basalt-text-button[data-loading] { color: var(--basalt-text-secondary); }
+  .basalt-text-button[data-quiet][data-loading] { color: var(--basalt-text-tertiary); }
+  .basalt-text-button[data-loading] .basalt-text-button-label {
+    text-decoration-style: dashed;
+    text-decoration-color: currentColor;
+    animation: basalt-underline-breathe var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate;
+  }
+  @keyframes basalt-underline-breathe {
+    from { text-decoration-color: color-mix(in oklch, currentColor 35%, transparent); }
+  }
   @media (pointer: coarse) {
     .basalt-text-button:not(:is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table) *)::before {
       content: "";
@@ -542,6 +557,30 @@
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .basalt-input[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
+  /* A field being written into (DECISIONS 260): not off, being filled. Read-only and aria-busy from the start; after 300ms its words dim a step
+     (secondary ink), its boundary turns dashed (below) and its fill is a skeleton's, surface-placeholder with the skeleton's calm pulse (the pulse is the fill's alone, so the words and the
+     boundary hold still). The size, the boundary, the radius and the focus ring stay; empty, the pulse alone (the placeholder hides). Text that
+     replaces text is painted as it comes, in the same ink: there is no fade on an update. */
+  .basalt-input[aria-busy="true"] { cursor: progress; }
+  .basalt-input[data-writing] {
+    color: var(--basalt-text-secondary);
+    background: var(--basalt-surface-placeholder);
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, the same literal as .basalt-skeleton's (a loop-duration token is undecided) */
+    animation: basalt-writing 2s var(--basalt-ease-in-out) infinite alternate;
+  }
+  .basalt-input[data-writing]::placeholder { color: transparent; }
+  /* The boundary turns dashed, in its own colour, so a written field is never the disabled look even when its pulse is still (reduced motion, the hold)
+     and is never shown by colour alone: dashed is the shape of a wait, as a busy TextButton's underline is. An outline inset over the boundary, so
+     nothing is laid out again; a focused field keeps its solid boundary under the focus ring. */
+  .basalt-input[data-writing]:not(:focus-visible) {
+    box-shadow: none;
+    outline: var(--basalt-size-hairline) dashed var(--basalt-border-field);
+    outline-offset: calc(-1 * var(--basalt-size-hairline));
+  }
+  /* The skeleton's own pulse (opacity 1 to 0.7 over the field's fill), drawn on the fill so the words do not pulse. */
+  @keyframes basalt-writing {
+    to { background-color: color-mix(in srgb, var(--basalt-surface-placeholder) 70%, var(--basalt-surface-raised)); }
+  }
 
   /* ---- Menu ---- */
 
@@ -3474,7 +3513,9 @@
   :root[data-loops="held"] .basalt-spinner[data-variant="ring"] svg,
   :root[data-loops="held"] .basalt-spinner[data-variant="braille"] .basalt-spinner-dot[data-dot],
   :root[data-loops="held"] .basalt-sparkline[data-loading] .basalt-sparkline-line,
-  :root[data-loops="held"] .basalt-skeleton { animation: none; }
+  :root[data-loops="held"] .basalt-skeleton,
+  :root[data-loops="held"] .basalt-input[data-writing],
+  :root[data-loops="held"] .basalt-text-button[data-loading] .basalt-text-button-label { animation: none; }
   /* The indeterminate bar, held: the track only. The indicator is hidden, not just stopped, because a still bar reads as a value
      (30% done, or under reduced motion a full-width bar that reads as done). The label still says the work is running, and the
      bar keeps its indeterminate semantics (no aria-valuenow). This sets the indicator's whole look, so it also overrides the
@@ -4202,8 +4243,9 @@
   }
   /* A pressed ghost Button in the header takes primary ink on its wash: secondary ink is 4.42:1 there on touch, where a
      press is the only state. Header only; the wash stays (council, 3-1). */
-  .basalt-chrome .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-loading]) { color: var(--basalt-text-primary); }
+  .basalt-chrome .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-busy]) { color: var(--basalt-text-primary); }
   .basalt-chrome .basalt-text[data-tone="tertiary"],
+  .basalt-chrome .basalt-text-button[data-quiet][data-loading],
   .basalt-chrome .basalt-sparkline-axis,
   .basalt-chrome .basalt-chip-seat,
   .basalt-chrome .basalt-switch-row-seat,
@@ -5209,6 +5251,9 @@
       box-shadow: none;
     }
     .basalt-button[data-disabled], .basalt-input[data-disabled], .basalt-select-trigger[data-disabled] { border-color: GrayText; color: GrayText; }
+    /* A field being written: its fill is dropped, so the boundary is dashed (a shape, as a skeleton's edge is its own) and stays ButtonText, never GrayText. */
+    .basalt-input[data-writing] { border-style: dashed; animation: none; }
+    .basalt-input[data-writing]:not(:focus-visible) { outline: none; }
     /* Choices: off is a ButtonText border on Canvas; on (or mixed) is a Highlight fill with the mark in
        HighlightText. The mark elements opt out of colour adjustment so exactly these colours apply. */
     .basalt-checkbox, .basalt-radio, .basalt-switch { background: Canvas; color: ButtonText; }
@@ -5576,7 +5621,7 @@
   @media (prefers-reduced-motion: reduce) {
     /* A press is its colour step alone: scale 1. Same specificity as the press rule, and later. Transform leaves the
        transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
-    .basalt-button:active:not([data-disabled]):not([data-loading]) { transform: none; }
+    .basalt-button:active:not([data-disabled]):not([data-busy]) { transform: none; }
     .basalt-button { transition-property: background-color, color, box-shadow; }
     .basalt-sheet { transition-property: opacity; }
     .basalt-sheet[data-side][data-starting-style], .basalt-sheet[data-side][data-ending-style] { transform: none; opacity: 0; }
@@ -5616,6 +5661,8 @@
     .basalt-progress-indicator { transition: none; }
     .basalt-progress-indicator[data-indeterminate] { left: 0; width: 100%; animation: basalt-pulse var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
     .basalt-skeleton { animation: none; }
+    /* A written field holds still, as a skeleton does; a busy TextButton's underline keeps breathing, as the ring keeps its fade: it is a colour step, not motion. */
+    .basalt-input[data-writing] { animation: none; }
     .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
     /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
     /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
@@ -5864,8 +5911,8 @@
   /* A text button whose words are a `Reserve`: an inline grid is an atomic box, which an underline does not reach, so each wording draws its own, under the words that are shown (the
      others are unseen, and so is their underline). The wording is as wide as its words, so the underline is not as wide as the longest; the colour, offset and thickness are the label's
      (inherited from it, so the hover colour and the disabled colour follow). */
-  .basalt-text-button-label .basalt-reserve { text-decoration-color: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
-  .basalt-text-button-label .basalt-reserve > * { width: fit-content; text-decoration-line: underline; text-decoration-color: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
+  .basalt-text-button-label .basalt-reserve { text-decoration-color: inherit; text-decoration-style: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
+  .basalt-text-button-label .basalt-reserve > * { width: fit-content; text-decoration-line: underline; text-decoration-color: inherit; text-decoration-style: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
 
   /* A switch with a description: the row, then the line, at the column's start edge. */
   .basalt-switch-field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-1-5); min-width: 0; }

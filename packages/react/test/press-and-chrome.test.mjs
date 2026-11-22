@@ -252,7 +252,7 @@ for (const theme of ["dark", "light"]) {
       const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
       assert.ok(!/basalt-press/.test(css), "a basalt-press utility exists");
       const { page } = await fixturePage(browser, fixture, { theme });
-      assert.deepEqual(await page.evaluate(scalingOnActive), [".basalt-button:active:not([data-disabled]):not([data-loading])"], "the one :active rule that scales");
+      assert.deepEqual(await page.evaluate(scalingOnActive), [".basalt-button:active:not([data-disabled]):not([data-busy])"], "the one :active rule that scales (busy covers loading: a button waiting for its answer, from the press, DECISIONS 260)");
       await page.close();
     });
 
@@ -481,7 +481,7 @@ for (const theme of ["dark", "light"]) {
       const { page } = await fixturePage(browser, headerPage(), { theme });
       const found = [...new Set(await page.evaluate(tertiaryInk))].sort();
       // Promoted by the bar: it has no fill of its own.
-      const promoted = [".basalt-chart-hint", ".basalt-chart-not-observed", ".basalt-chart-source", ".basalt-chart-value [data-missing]", ".basalt-chart-seat [data-missing]", ".basalt-chip-seat", ".basalt-description-details[data-missing]", ".basalt-field-necessity", ".basalt-filter-count", ".basalt-framed-credit", ".basalt-link-tile-details", ".basalt-option-chips-count", ".basalt-preview-kicker", ".basalt-profile-handle", ".basalt-sparkline-axis", ".basalt-stat-source", ".basalt-switch-row-seat", ".basalt-table-hint", '.basalt-text[data-tone="tertiary"]'];
+      const promoted = [".basalt-chart-hint", ".basalt-chart-not-observed", ".basalt-chart-source", ".basalt-chart-value [data-missing]", ".basalt-chart-seat [data-missing]", ".basalt-chip-seat", ".basalt-description-details[data-missing]", ".basalt-field-necessity", ".basalt-filter-count", ".basalt-framed-credit", ".basalt-link-tile-details", ".basalt-option-chips-count", ".basalt-preview-kicker", ".basalt-profile-handle", ".basalt-sparkline-axis", ".basalt-stat-source", ".basalt-switch-row-seat", ".basalt-table-hint", '.basalt-text[data-tone="tertiary"]', ".basalt-text-button[data-quiet][data-loading]"];
       // Draws tertiary ink only on a fill of its own (an input, a select trigger, the command menu's panel and its level-2
       // input band, the group labels of a popup, and the notification centre's secondary lines and times, which all sit on the popup's
       // own level fill; the sort seat of a table header, which sits on the header band's own fill; "Not observed" in a table cell, which sits on the

@@ -27,7 +27,7 @@ const home = new Map();
 // Every value the package exports that is neither a component nor a hook: the ones a Server Component may reach for. The two that are left out are listed with why.
 const PLAIN = [
   "AMBIENT_MAX", "CONFIRM_MS", "COPIED_MS", "ENTRANCE_LATE_MS", "LOOPS_TOGGLE_DESCRIPTION", "LOOPS_TOGGLE_NAME", "REFLOW_BOUND", "STATUS_MESSAGE_MS", "TRAVEL_IN_FLIGHT",
-  "TRAVEL_LONG_LEG", "TRAVEL_MIN_LEG", "TRAVEL_MS_PER_PX", "TRAVEL_RUN_LIMIT", "TRAVEL_SHORT_LEG", "ambient", "ambientTiming", "createTravellers", "entranceKey",
+  "TRAVEL_LONG_LEG", "TRAVEL_MIN_LEG", "TRAVEL_MS_PER_PX", "TRAVEL_RUN_LIMIT", "TRAVEL_SHORT_LEG", "WAIT_MIN_SHOWN_MS", "WAIT_SHOW_AFTER_MS", "ambient", "ambientTiming", "createTravellers", "entranceKey",
   "entranceSeen", "entranceStep", "entranceVerdict", "forgetEntrance", "formatAge", "formatClock", "formatCountdown", "formatDay", "formatStamp", "formatStatTime",
   "isApplePlatform", "isModKey", "lockupDrawing", "loopsBootstrap", "markEntranceSeen", "markPageChange", "preloadCodeLanguages", "shareOf", "themeBootstrap", "trailingMean", "travelLeg", "travelRun", "travelTokens",
 ];

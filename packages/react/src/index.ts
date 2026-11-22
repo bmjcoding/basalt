@@ -36,7 +36,8 @@ export { OptionChips } from "./option-chips";
 export type { OptionChip, OptionChipsProps } from "./option-chips";
 export { useConfirm } from "./confirm";
 // The plain numbers and words (no component, no hook) come from modules that carry no "use client", so a Server Component can read them.
-export { CONFIRM_MS, COPIED_MS, LOOPS_TOGGLE_DESCRIPTION, LOOPS_TOGGLE_NAME, REFLOW_BOUND, STATUS_MESSAGE_MS } from "./constants";
+export { CONFIRM_MS, COPIED_MS, LOOPS_TOGGLE_DESCRIPTION, LOOPS_TOGGLE_NAME, REFLOW_BOUND, STATUS_MESSAGE_MS, WAIT_MIN_SHOWN_MS, WAIT_SHOW_AFTER_MS } from "./constants";
+export { useWaitMark } from "./wait";
 export {
   Badge,
   BadgePair,
