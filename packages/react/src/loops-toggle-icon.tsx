@@ -18,7 +18,7 @@ export interface LoopsToggleIconProps {
 }
 
 /**
- * An icon-only ghost toggle with the core `pause` glyph, for a site header's end cluster, before the theme toggle: `LoopsToggle`'s icon form. Its name is the fixed
+ * An icon-only ghost toggle with the core `pause` glyph, for a site header's end cluster (first in it) or the head band of an app's view that shows running work: `LoopsToggle`'s icon form. Its name is the fixed
  * "Pause animations", taken from its `title` alone, which is also the browser's own tooltip on a fine pointer, so a screen reader hears it once. Show it only on a page
  * that has an ambient loop or a loop that can run past five seconds. `SiteHeader` draws the Button form of the same control in its narrow menu.
  */
