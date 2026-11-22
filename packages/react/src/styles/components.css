@@ -61,17 +61,20 @@
   [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
   [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
-  /* --_plate-solid is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle) rather than
-     laying over a panel: one opaque colour, so nothing shows through it. In dark it is --_plate; in light it is the 7% selected
-     wash (black at state-selected's own alpha) mixed over the level's own white. */
-  /* The page (no data-level ancestor) has its own: in dark the next level plus the wash, as level 0 would be; in light the 7% wash over
-     surface-page, one opaque colour (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it. */
-  :root { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); }
-  [data-level="1"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2))); }
-  [data-level="2"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
-  [data-level="3"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+  /* --basalt-plate is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle, an app's own list row)
+     rather than laying over a panel: one opaque colour per level, so nothing shows through it. It is public: the tokens plate-0 to plate-3
+     hold it (in dark --_plate, the next level plus the wash; in light the 7% selected wash, black at state-selected's own alpha, mixed over
+     the level's own white), and this alias follows the level, so a row anywhere reads `var(--basalt-plate)` and gets its level's plate.
+     The page (no data-level ancestor) and a nested theme root start at plate-0: in dark the next level plus the wash, as level 0 would be;
+     in light the 7% wash over surface-page (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it.
+     The tokens are plain colours themed by selector, so no light-dark() and no fallback is needed for them. */
+  :root, [data-theme], .light, .dark { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="0"] { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="1"] { --basalt-plate: var(--basalt-plate-1); }
+  [data-level="2"] { --basalt-plate: var(--basalt-plate-2); }
+  [data-level="3"] { --basalt-plate: var(--basalt-plate-3); }
 
-  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate, plate-solid
+  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate
      and pill variables above as an unknown function and paint nothing. There the same values are mixed instead of picked:
      --_dkp is how much of the dark value a mix takes, 0% in a light theme and 100% in a dark one, set where the theme tokens set
      the theme, so a nested theme root and the OS preference resolve as they do for the tokens. color-mix reaches every browser that
@@ -85,10 +88,6 @@
     [data-level="1"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="2"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="3"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
-    :root { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page))); }
-    [data-level="1"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1))); }
-    [data-level="2"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2))); }
-    [data-level="3"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3))); }
   }
 
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
@@ -383,7 +382,7 @@
   .basalt-button-swap:has(> .basalt-glyph-frame) > .basalt-icon { visibility: hidden; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
-     level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
+     level (--basalt-plate: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
      surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
      hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
      label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
@@ -394,11 +393,11 @@
   .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
   }
   .basalt-button[aria-pressed="true"][data-variant="secondary"]:not([data-disabled]):not([data-loading]),
   .basalt-button[aria-pressed="true"][data-variant="ghost"]:not([data-disabled]):not([data-loading]) {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
     color: var(--basalt-text-primary);
   }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"] { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
@@ -2109,7 +2108,7 @@
   /* ---- Choice card: a native radio or checkbox wearing a card ----
      The whole card is the label; the input is visually hidden (it covers the card, invisible, so it stays focusable) and a real
      choice box sits in a seat on the header line, reserved on every choice card, so choosing moves no title. Selected is the
-     selected wash as one solid fill at the card's own level (--_plate-solid, the active-row recipe made opaque), with the rim and the level
+     selected wash as one solid fill at the card's own level (--basalt-plate, the active-row recipe made opaque), with the rim and the level
      unchanged and the title still primary. Hover on an unselected card is the hover wash alone; a selected card takes no further
      step. No press scale. Focus is the control ring at +2, outside the card. State changes crossfade over duration-fast. */
   .basalt-choice-card {
@@ -2135,7 +2134,7 @@
   @media (hover: hover) {
     .basalt-choice-card:hover:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled))::before { opacity: 1; }
   }
-  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--_plate-solid); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--basalt-plate); }
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-choice-card:has(> .basalt-choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
@@ -2365,7 +2364,7 @@
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
   .basalt-peek[data-kind="row"] { cursor: pointer; }
-  .basalt-peek[data-chosen] { background: var(--_plate-solid); }
+  .basalt-peek[data-chosen] { background: var(--basalt-plate); }
   .basalt-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-peek-text { display: block; }
   .basalt-peek-seat { float: inline-end; }
@@ -3400,6 +3399,67 @@
     line-height: var(--basalt-text-base-line-height);
     resize: vertical;
   }
+
+  /* ---- Composer, Mention and MentionPicker (cimip-gaps-2, B3) ----
+     A composer is the textarea, a row of actions under it with Send last, and a status line under that. The field has no visible label
+     (its name is the aria-label) and grows with its text, a line at a time, from --_rows to --_max-rows (set by the component), then
+     scrolls; it never takes a resize handle, since its height is the text's. The status line is text-xs in tertiary ink, one line tall
+     even when empty, so nothing above or below moves when someone starts typing. */
+  .basalt-composer { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-input.basalt-textarea.basalt-composer-field {
+    --_line: var(--basalt-text-base-line-height);
+    resize: none;
+    field-sizing: content;
+    min-height: calc(var(--_line) * var(--_rows, 2) + var(--basalt-space-4));
+    max-height: calc(var(--_line) * var(--_max-rows, 8) + var(--basalt-space-4));
+    overflow-y: auto;
+  }
+  .basalt-composer-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); flex-wrap: wrap; }
+  .basalt-composer-extra { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; min-width: 0; }
+  /* Send is the row's last, at its end, whether or not the app gave other actions. */
+  .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { margin-inline-start: auto; }
+  /* One line, always: a long list of names is cut with an ellipsis rather than wrapped, so nothing under it moves. The cut is a look only:
+     the live region holds the whole text, and that is what is read. */
+  .basalt-composer-status {
+    margin: 0;
+    min-height: var(--basalt-text-xs-line-height);
+    font-size: var(--basalt-text-xs-size);
+    line-height: var(--basalt-text-xs-line-height);
+    color: var(--basalt-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour. It wraps with its text. One
+     that calls on the reader (data-you) also sits on the plate of its level, the opaque --basalt-plate, with radius 4 and 2px each side,
+     drawn on every line it wraps to. The 2px are its own (no margin gives them back): given back, the plate ate half the space before it
+     and the name read as joined to the word ahead. A mention never changes state, so nothing moves. */
+  .basalt-mention { font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-primary); }
+  .basalt-mention[data-you] {
+    padding-inline: var(--basalt-space-0-5);
+    border-radius: var(--basalt-radius-xs);
+    background-color: var(--basalt-plate);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  @media (forced-colors: active) {
+    .basalt-mention[data-you] { forced-color-adjust: none; background-color: Mark; color: MarkText; }
+  }
+  @media print {
+    .basalt-mention[data-you] { background-color: transparent; }
+  }
+
+  /* The picker is a popup of Combobox's rows, placed by the component (fixed, beside the trigger's line) and as wide as its content up to
+     the popover maximum. Focus stays in the field, so the rows' plate follows aria-activedescendant through data-highlighted. */
+  .basalt-mention-positioner { position: fixed; }
+  .basalt-mention-picker {
+    width: max-content;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
+    max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-2)));
+  }
+  .basalt-mention-option { cursor: pointer; }
+  .basalt-mention-option[aria-disabled="true"] { cursor: default; }
 
   /* ---- Popover ---- */
 
