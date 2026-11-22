@@ -252,7 +252,7 @@ for (const theme of ["dark", "light"]) {
       const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
       assert.ok(!/basalt-press/.test(css), "a basalt-press utility exists");
       const { page } = await fixturePage(browser, fixture, { theme });
-      assert.deepEqual(await page.evaluate(scalingOnActive), [".basalt-button:active:not([data-disabled]):not([data-busy])"], "the one :active rule that scales (busy covers loading: a button waiting for its answer, from the press, DECISIONS 257)");
+      assert.deepEqual(await page.evaluate(scalingOnActive), [".basalt-button:active:not([data-disabled]):not([data-busy])"], "the one :active rule that scales (busy covers loading: a button waiting for its answer, from the press, DECISIONS 260)");
       await page.close();
     });
 

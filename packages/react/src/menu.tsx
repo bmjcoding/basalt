@@ -48,7 +48,7 @@ const MenuWaitContext = /* @__PURE__ */ React.createContext<MenuWait | null>(nul
 
 /**
  * A menu of actions. Compose `Menu`, `MenuTrigger`, `MenuContent` and `MenuItem`s. An item whose `onClick` returns a promise closes the menu as
- * any item does, and the menu waits for the answer (DECISIONS 257): its trigger is busy (the ring after 300ms, on a `Button` or `IconButton`
+ * any item does, and the menu waits for the answer (DECISIONS 260): its trigger is busy (the ring after 300ms, on a `Button` or `IconButton`
  * trigger) and the menu does not open again until it settles, so the item is never pressed twice.
  */
 export function Menu({ onOpenChange, ...props }: MenuProps) {
@@ -144,7 +144,7 @@ export interface MenuItemProps extends MenuRowProps {
   /** A destructive action: shown in the danger colour. */
   danger?: boolean;
   /**
-   * When `onClick` returns a promise, the menu waits for it (DECISIONS 257): the menu closes as ever, its trigger is busy, and the menu does not
+   * When `onClick` returns a promise, the menu waits for it (DECISIONS 260): the menu closes as ever, its trigger is busy, and the menu does not
    * open again until the answer, so the item is never chosen twice. A press on an item of a menu that is waiting is ignored. On by default;
    * `false` calls the handler on every choice.
    */

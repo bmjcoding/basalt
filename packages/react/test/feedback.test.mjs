@@ -698,7 +698,7 @@ describe("NotificationCentre", () => {
       const { page } = await fixturePage(browser, app(), { theme });
       const bell = page.getByRole("button", { name: "Notifications, 3 unread" });
       await bell.waitFor();
-      const geometry = () => bell.evaluate((el) => { const r = el.getBoundingClientRect(); const dot = getComputedStyle(el, "::after"); return { w: r.width, h: r.height, dot: dot.content === "none" ? null : { w: dot.width, h: dot.height, radius: dot.borderTopLeftRadius, bg: dot.backgroundColor, position: dot.position } }; });
+      const geometry = () => bell.evaluate((el) => { const r = el.getBoundingClientRect(); const dot = getComputedStyle(el, "::before"); return { w: r.width, h: r.height, dot: dot.content === "none" ? null : { w: dot.width, h: dot.height, radius: dot.borderTopLeftRadius, bg: dot.backgroundColor, position: dot.position } }; });
       const unread = await geometry();
       assert.equal(unread.w, 32);
       assert.equal(unread.h, 32);
@@ -708,7 +708,7 @@ describe("NotificationCentre", () => {
       await page.evaluate(() => window.setList((all) => all.map((e) => ({ ...e, unread: false }))));
       const read = page.getByRole("button", { name: "Notifications", exact: true });
       await read.waitFor();
-      const none = await read.evaluate((el) => { const r = el.getBoundingClientRect(); return { w: r.width, dot: getComputedStyle(el, "::after").content }; });
+      const none = await read.evaluate((el) => { const r = el.getBoundingClientRect(); return { w: r.width, dot: getComputedStyle(el, "::before").content }; });
       assert.equal(none.w, 32, "no dot, same width");
       assert.equal(none.dot, "none");
       await page.evaluate(() => window.setList((all) => Array.from({ length: 12 }, (_, i) => ({ ...all[0], id: String(i), unread: true }))));
@@ -910,7 +910,7 @@ describe("NotificationCentre", () => {
     const sys = (name, prop = "color") => page.evaluate(([name, prop]) => { const p = document.createElement("i"); p.style[prop] = name; document.body.append(p); const c = getComputedStyle(p)[prop]; p.remove(); return c; }, [name, prop]);
     const dot = await page.locator(".basalt-notification").first().locator(".basalt-notification-dot").evaluate((el) => { const s = getComputedStyle(el); return [s.borderTopWidth, s.borderTopStyle, s.borderTopColor]; });
     assert.deepEqual(dot, ["3px", "solid", await sys("CanvasText")], "the unread dot is drawn, as a border disc");
-    const bellDot = await page.getByRole("button", { name: /Notifications/ }).evaluate((el) => { const s = getComputedStyle(el, "::after"); return [s.borderTopWidth, s.borderTopStyle]; });
+    const bellDot = await page.getByRole("button", { name: /Notifications/ }).evaluate((el) => { const s = getComputedStyle(el, "::before"); return [s.borderTopWidth, s.borderTopStyle]; });
     assert.deepEqual(bellDot, ["3px", "solid"]);
     await page.locator(".basalt-notification").nth(1).hover();
     await atRest(page);

@@ -22,7 +22,7 @@ export interface TextButtonProps extends Omit<PartProps<"button">, "children" | 
   /** An icon after the label, e.g. a chevron for a button that opens something in place. The words are underlined; the icon is not. */
   iconEnd?: IconComponent;
   /**
-   * Busy, in a TextButton's own look (DECISIONS 257): the words step down an ink (primary to secondary, the quiet form's secondary to tertiary) and
+   * Busy, in a TextButton's own look (DECISIONS 260): the words step down an ink (primary to secondary, the quiet form's secondary to tertiary) and
    * the underline turns dashed and breathes, so nothing moves and the button is never a box. Presses are ignored and it is `aria-busy`. The app's
    * own flag, shown at once; a press whose `onClick` returns a promise waits by itself (`waitForAnswer`), and `loading` wins over that wait.
    */

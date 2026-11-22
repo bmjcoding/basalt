@@ -29,7 +29,7 @@ export type FormProps<Values extends Record<string, unknown> = Record<string, un
   /** Validate every field, or one by name, on demand: `actionsRef.current?.validate()`. */
   actionsRef?: React.RefObject<ValidateActions | null>;
   /**
-   * When `onSubmit` or `onFormSubmit` returns a promise, the form waits for it (DECISIONS 257): a second submit, by a button or by Enter in a
+   * When `onSubmit` or `onFormSubmit` returns a promise, the form waits for it (DECISIONS 260): a second submit, by a button or by Enter in a
    * field, is ignored until it settles, and its submit buttons (inside it, or outside with `form="…"`) are busy, the ring after 300ms. A rejection
    * ends the wait and is raised again, so say why in the app. On by default; `false` submits every time.
    */

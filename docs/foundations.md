@@ -558,7 +558,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   size. The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
   owner (DECISIONS 139); the implementation hasn't been reviewed.
-- **A control that asks the server is busy until the answer, and never sends twice** (DECISIONS 255, 257). Every button waits for its own
+- **A control that asks the server is busy until the answer, and never sends twice** (DECISIONS 255, 260). Every button waits for its own
   press: when the `onClick` of a `Button`, `IconButton` or `TextButton` returns a promise, the control is busy until it settles. A press while
   it is busy is ignored (the handler is never called twice, and a submit or a link is stopped too), and the control is `aria-busy` and
   `aria-disabled`, keeps its focus, its label and its width, and keeps its own `disabled` untouched. Its mark shows only once the wait has run
@@ -585,7 +585,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   its boundary is dashed in `ButtonText`, never `GrayText`. The state belongs to the control and not to `Field`, which also holds controls
   nothing writes into (a segmented control, a select). The HTML skill's `.btn` already has `aria-busy`; the wait for a promise, TextButton's
   mark and the written field are React's alone, because a skill page runs no app handlers and has no text button. Status: decided by Opus
-  under the no-council path (DECISIONS 226, 257), with the owner's direction (DECISIONS 255); the implementation is reviewed by Astra.
+  under the no-council path (DECISIONS 226, 260), with the owner's direction (DECISIONS 255); the implementation is reviewed by Astra.
 
 ### More contrast
 

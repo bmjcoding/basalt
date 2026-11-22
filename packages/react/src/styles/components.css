@@ -456,7 +456,7 @@
   .basalt-text-button[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .basalt-text-button[data-disabled] > .basalt-icon { color: inherit; }
   .basalt-text-button[data-disabled] .basalt-text-button-label { text-decoration-color: currentColor; }
-  /* Busy (DECISIONS 257): a press is ignored from the press on; after 300ms the TextButton's own sign shows, with no box and nothing moved. The words step
+  /* Busy (DECISIONS 260): a press is ignored from the press on; after 300ms the TextButton's own sign shows, with no box and nothing moved. The words step
      down an ink (primary to secondary, the quiet form's secondary to tertiary), and the underline, the button's affordance, turns dashed (a shape, so the
      state is never colour alone) in the ink and breathes on duration-loop-fade, as Sparkline's loading line does. Not the disabled look: the words stay
      readable at 4.5:1 and the underline is drawn, not dimmed away. */
@@ -557,7 +557,7 @@
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .basalt-input[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
-  /* A field being written into (DECISIONS 257): not off, being filled. Read-only and aria-busy from the start; after 300ms its words dim a step
+  /* A field being written into (DECISIONS 260): not off, being filled. Read-only and aria-busy from the start; after 300ms its words dim a step
      (secondary ink), its boundary turns dashed (below) and its fill is a skeleton's, surface-placeholder with the skeleton's calm pulse (the pulse is the fill's alone, so the words and the
      boundary hold still). The size, the boundary, the radius and the focus ring stay; empty, the pulse alone (the placeholder hides). Text that
      replaces text is painted as it comes, in the same ink: there is no fade on an update. */

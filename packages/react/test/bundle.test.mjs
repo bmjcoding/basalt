@@ -71,7 +71,7 @@ async function lazyGraph(names, extra = "") {
   return { bytes: engine.reduce((sum, file) => sum + outputs[file].bytes, 0), files: engine.length };
 }
 
-// DECISIONS 257 (busy controls, under DECISIONS 246: a raise a decided feature needs is allowed, and said with its numbers): every Button, IconButton and TextButton now waits for a
+// DECISIONS 260 (busy controls, under DECISIONS 246: a raise a decided feature needs is allowed, and said with its numbers): every Button, IconButton and TextButton now waits for a
 // promise from its handler, so the wait (wait.ts: the 300/400ms mark, the press guard, the form's wait and the joined ref, 1,119 bytes minified after a trim from 1,266) is in each one's static
 // graph. Measured after the trim, each limit the measurement rounded up to the next 50: Button 17,379 (16,150 to 17,400), CopyButton 18,292 (to 18,300), DirectoryList 19,739 (to 19,750),
 // Drawer 17,928 (to 17,950), NotificationCentre 147,283 (to 147,300), PeriodStepper 17,671 (to 17,700), Reveal 19,335 (to 19,350), TextButton 10,291 (9,200 to 10,300), the toolbar set

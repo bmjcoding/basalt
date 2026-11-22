@@ -35,7 +35,7 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
    */
   loading?: boolean;
   /**
-   * When `onClick` returns a promise, the button is busy until it settles (DECISIONS 257): further presses are ignored and the handler is never
+   * When `onClick` returns a promise, the button is busy until it settles (DECISIONS 260): further presses are ignored and the handler is never
    * called twice; it is `aria-busy`, keeps its focus, label and width; and the ring shows only once the wait has run 300ms, then stays at least
    * 400ms. A rejection ends the wait and is raised again, so say why in the app. A submit button waits for its `Form` the same way. On by
    * default; `false` calls the handler on every press.
