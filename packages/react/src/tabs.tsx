@@ -4,6 +4,7 @@ import { ToggleGroup } from "@base-ui/react/toggle-group";
 import * as React from "react";
 
 import { ChosenLabel } from "./chosen";
+import { FieldGroupContext } from "./field-group";
 import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
@@ -175,33 +176,76 @@ export interface SegmentedControlProps extends PartProps<"div", "defaultValue" |
   disabled?: boolean;
   orientation?: Orientation;
   loopFocus?: boolean;
-  /** The selected segment. */
+  /** The selected segment. With no value (and no `defaultValue`) nothing is chosen, no segment is pressed and no pill is drawn. */
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
-  /** Required: names the group for screen readers, e.g. "Time range". */
-  "aria-label": string;
+  /**
+   * Equal segments that fill the container, as `Button`'s `fullWidth` does for a button (DECISIONS 242: Declare's severity). The pill still slides.
+   */
+  fullWidth?: boolean;
+  /**
+   * A choice is required. A group of pressed buttons cannot carry `aria-required`, so the group's name says it: "Severity, Required". In a `Field`, `Field`'s `required` is
+   * read, and the word after the label is the field's. Without a `Field` the word is added to `aria-label`.
+   */
+  required?: boolean;
+  /** The word that is added to the name of a required group, for translation. In a `Field`, the field's `requiredLabel`. Default "Required". */
+  requiredLabel?: string;
+  /**
+   * The choice is wrong or missing: the group takes `aria-invalid` and, in a `Field` that has an `error`, is described by it. It draws no mark of its own (DECISIONS 242: no
+   * invalid look is decided): the error line under it is what shows. In a `Field`, `Field`'s `invalid` is read.
+   */
+  invalid?: boolean;
+  /**
+   * Names the group for screen readers, e.g. "Time range". Required unless the group is in a `Field` (its label names it) or `aria-labelledby` does.
+   */
+  "aria-label"?: string;
 }
+
+/** The value that holds the group's one tab stop while focus is outside it: undefined while focus is inside (the roving focus owns it) or when nothing can take it. */
+const SegmentStop = /* @__PURE__ */ React.createContext<string | undefined>(undefined);
 
 /**
  * A single choice among a few options that filter or change the current view (a time
  * range, a layout). Use `Tabs` when each option has its own panel. The chosen segment's label is 600 in primary ink against
  * 400 in secondary at rest, each reserving the other's width so nothing moves; the raised pill and the ink step support it.
- * A segment with no label (an icon alone) draws its glyph's selected form.
+ * A segment with no label (an icon alone) draws its glyph's selected form. It is one tab stop: Tab lands on the chosen segment (on the first one that can
+ * take focus while none is chosen), and the arrows move within it. In a form it is a field's control: put it in a `Field`, and `required` and `invalid` work as they do there.
  */
-export function SegmentedControl({ value, defaultValue, onValueChange, className, children, ...props }: SegmentedControlProps) {
-  // Always controlled underneath, so a segmented control can never end up with nothing
-  // selected: pressing the selected segment again leaves it selected.
+export function SegmentedControl({ value, defaultValue, onValueChange, className, children, fullWidth = false, required: requiredProp, requiredLabel, invalid: invalidProp, ...props }: SegmentedControlProps) {
+  // Always controlled underneath: pressing the selected segment again leaves it selected. With no value there is no segment pressed.
   const [inner, setInner] = React.useState(defaultValue);
   const current = value ?? inner;
   const [direction, setDirection] = React.useState<"" | "forward" | "back">("");
-  const order = React.Children.toArray(children).flatMap((child) =>
-    React.isValidElement<{ value?: string }>(child) && child.props.value ? [child.props.value] : [],
+  const [inside, setInside] = React.useState(false);
+  const field = React.useContext(FieldGroupContext);
+  const hidden = React.useId();
+  const required = requiredProp ?? field?.required ?? false;
+  const invalid = invalidProp ?? field?.invalid ?? false;
+  const word = requiredLabel ?? field?.requiredLabel ?? "Required";
+  const items = React.Children.toArray(children).flatMap((child) =>
+    React.isValidElement<{ value?: string; disabled?: boolean }>(child) && child.props.value ? [{ value: child.props.value, disabled: Boolean(child.props.disabled) }] : [],
   );
+  const order = items.map((item) => item.value);
+  const chosenItem = items.find((item) => item.value === current && !item.disabled);
+  const stop = inside || props.disabled ? undefined : (chosenItem ?? items.find((item) => !item.disabled))?.value;
+  // The name: a `Field`'s label names the group (a `<label for>` cannot), with the word after it when required, said in a hidden span the name refers to; without one, `aria-label` and the word.
+  const named = field && !props["aria-label"] && !props["aria-labelledby"];
+  const labelledby = named ? (required ? `${field.labelId} ${hidden}` : field.labelId) : props["aria-labelledby"];
+  const label = !named && required && props["aria-label"] && !props["aria-labelledby"] ? `${props["aria-label"]}, ${word}` : props["aria-label"];
+  const describedby = [field?.descriptionId, invalid ? field?.errorId : undefined, props["aria-describedby"]].filter(Boolean).join(" ") || undefined;
   return (
+    <SegmentStop.Provider value={stop}>
     <ToggleGroup
       {...props}
+      aria-label={label}
+      aria-labelledby={labelledby}
+      aria-describedby={describedby}
+      aria-invalid={invalid || undefined}
       data-direction={direction || undefined}
+      data-full-width={fullWidth ? "" : undefined}
+      onFocus={(event) => { props.onFocus?.(event); setInside(true); }}
+      onBlur={(event) => { props.onBlur?.(event); if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setInside(false); }}
       value={current === undefined ? [] : [current]}
       onValueChange={(next) => {
         const picked = next.find((item) => item !== current) as string | undefined;
@@ -216,7 +260,9 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
     >
       <Pill />
       {children}
+      {named && required ? <span id={hidden} aria-hidden="true" className="basalt-visually-hidden">{`, ${word}`}</span> : null}
     </ToggleGroup>
+    </SegmentStop.Provider>
   );
 }
 
@@ -226,7 +272,9 @@ export interface SegmentProps extends PartProps<"button", "value"> {
   nativeButton?: boolean;
 }
 
-export function Segment({ className, children, ...props }: SegmentProps) {
+export function Segment({ className, children, value, ...props }: SegmentProps) {
   // As a Tab: the label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice.
-  return <Toggle {...props} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
+  // The group's one tab stop is the chosen segment: while focus is outside the group, the others are out of the Tab order whatever the roving focus last held.
+  const stop = React.useContext(SegmentStop);
+  return <Toggle {...props} {...(stop === undefined ? {} : { tabIndex: stop === value ? 0 : -1 })} value={value} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
 }

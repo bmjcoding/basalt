@@ -5836,4 +5836,75 @@
     .basalt-source-stamp { color: CanvasText; }
   }
 
+  /* ---- Declare's gaps (DECISIONS 237, 239 to 242: the owner's decisions on CIMIP's Declare dialog; the implementation hasn't been reviewed) ---- */
+
+  /* A hint or an error whose words change (a `Reserve`) lays out as a block that wraps, not the inline grid a `Reserve` is: all its wordings share one cell as wide as the line, so
+     the longest sets the height and the line never moves what is under it. */
+  :is(.basalt-field-description, .basalt-field-error) > .basalt-reserve { display: grid; grid-template-columns: minmax(0, 1fr); }
+
+  /* A segmented control that fills its container: equal segments (a grid of equal columns, whatever the words), as Button's fullWidth fills it. The pill is absolute and slides as ever. */
+  .basalt-segmented[data-full-width] { box-sizing: border-box; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; }
+
+  /* A text button whose words are a `Reserve`: an inline grid is an atomic box, which an underline does not reach, so each wording draws its own, under the words that are shown (the
+     others are unseen, and so is their underline). The wording is as wide as its words, so the underline is not as wide as the longest; the colour, offset and thickness are the label's
+     (inherited from it, so the hover colour and the disabled colour follow). */
+  .basalt-text-button-label .basalt-reserve { text-decoration-color: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
+  .basalt-text-button-label .basalt-reserve > * { width: fit-content; text-decoration-line: underline; text-decoration-color: inherit; text-underline-offset: inherit; text-decoration-thickness: inherit; }
+
+  /* A switch with a description: the row, then the line, at the column's start edge. */
+  .basalt-switch-field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-1-5); min-width: 0; }
+
+  /* A form dialog's foot under 720 (the rule above for its two actions): an ActionShortcut is the foot's flex child, so the equal 44px button is the one inside it. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) {
+    /* Equal by columns, not by flex-basis: a wrapper with no padding of its own would otherwise be narrower than the Cancel button by its padding. */
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions:has(> .basalt-action-shortcut) { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > .basalt-action-shortcut { display: flex; align-items: stretch; min-width: 0; }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > .basalt-action-shortcut > .basalt-button { flex: 1 1 0; min-width: 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--basalt-radius-md); min-height: var(--basalt-size-control-2xl); }
+  }
+
+  /* ---- FormGrid: fields in columns that line up ---- */
+  /* Each cell takes four tracks a row (label, control, hint, error) and is a subgrid on them, so cells beside each other share every track. The spaces are Basalt's and each is held by
+     its track as a margin: the field gap inside a cell, the form gap above a label that is not in the first row. Under 720 it is one column in the markup's order. */
+  .basalt-form-grid { display: flex; flex-direction: column; gap: var(--basalt-space-4); min-width: 0; }
+  .basalt-form-grid-item { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; }
+  .basalt-switch-field > .basalt-choice { align-self: flex-start; }
+
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) {
+    .basalt-form-grid { display: grid; grid-template-columns: var(--_fg-columns, minmax(0, 1fr) minmax(0, 1fr)); gap: 0 var(--basalt-space-8); }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) {
+      display: grid;
+      grid-template-rows: subgrid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      min-width: 0;
+      grid-row: auto / span calc(var(--_fg-rows, 1) * 4);
+    }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item)[data-row] { grid-row: calc((var(--_fg-row) - 1) * 4 + 1) / span calc(var(--_fg-rows, 1) * 4); }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item)[data-column] { grid-column: var(--_fg-column); }
+    /* The control on track 2, the label on 1, the hint on the last row's third track and the error on its fourth. */
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > *,
+    .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field > .basalt-choice { grid-row: 2; grid-column: 1; }
+    .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field { display: contents; }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-label {
+      grid-row: 1;
+      justify-self: start;
+      margin-block: calc(min(1, var(--_fg-row, 1) - 1) * var(--basalt-space-4)) var(--basalt-space-1-5);
+    }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-description,
+    .basalt-form-grid > .basalt-form-grid-item > .basalt-switch-field > .basalt-field-description { grid-row: calc(var(--_fg-rows, 1) * 4 - 1); margin-block-start: var(--basalt-space-1-5); }
+    .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) > .basalt-field-error { grid-row: calc(var(--_fg-rows, 1) * 4); margin-block-start: var(--basalt-space-1-5); }
+    /* A cell that spans rows: its control fills the tracks between its label and its hint (a text area gives way to them: its `rows` is the least it asks for). */
+    .basalt-form-grid > [data-span] > :not(.basalt-field-label, .basalt-field-description, .basalt-field-error, .basalt-visually-hidden) { grid-row: 2 / calc(var(--_fg-rows, 1) * 4 - 1); }
+    .basalt-form-grid > [data-span] > .basalt-textarea { align-self: stretch; min-block-size: 0; resize: none; }
+    /* A switch row is a control's height, so it shares the track with the fields beside it, and the switch is centred in it. */
+    .basalt-form-grid > .basalt-form-grid-item .basalt-switch-field > .basalt-choice,
+    .basalt-form-grid > .basalt-form-grid-item > .basalt-choice { align-self: center; justify-self: start; }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) and (pointer: fine) {
+    .basalt-form-grid .basalt-choice { min-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  }
+
 }

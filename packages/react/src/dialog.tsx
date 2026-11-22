@@ -106,8 +106,9 @@ export interface DialogContentProps extends PartProps<"div"> {
    */
   form?: boolean;
   /**
-   * `wide` is a reference dialog's width (`size-dialog-width-wide`, 992px, DECISIONS 158 Q1), with Basalt's padding and scroll. Its first focus is its title,
-   * so Enter on opening runs nothing; set `initialFocus` to choose another.
+   * `wide` is a reference dialog's width (`size-dialog-width-wide`, 992px, DECISIONS 158 Q1), with Basalt's padding and scroll. A reading dialog's first focus is its title,
+   * so Enter on opening runs nothing; set `initialFocus` to choose another. A wide `form` keeps a form's rule instead (DECISIONS 242): first focus on the first field, or on the
+   * title when a touch opened it.
    */
   size?: DialogSize;
   /** What receives focus on open: `true` for the first control, `false` for none, an element, or a function that returns one. */
@@ -136,10 +137,10 @@ export function DialogContent({ className, style, children, ref, size = "default
     state.initial = values(node);
     return () => { state.opened = undefined; state.popup = null; state.initial = ""; };
   }, [node, form, state]);
-  // A wide dialog is a manual: its first focus is its name, not the first button, so Enter on opening does nothing. A form opens on its first field, or on its title when a
-  // touch opened it, so no keyboard rises over a form before the reader has seen it.
+  // A form opens on its first field, or on its title when a touch opened it, so no keyboard rises over a form before the reader has seen it, whatever its width. A wide
+  // dialog that is not a form is a manual: its first focus is its name, not the first button, so Enter on opening does nothing.
   const title = () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true;
-  const first: FocusTarget | undefined = initialFocus ?? (size === "wide" ? title : form ? (type: string) => ((state?.opened ?? type) === "touch" ? title() : popup.current?.querySelector<HTMLElement>(FIRST_FIELD) ?? true) : undefined);
+  const first: FocusTarget | undefined = initialFocus ?? (form ? (type: string) => ((state?.opened ?? type) === "touch" ? title() : popup.current?.querySelector<HTMLElement>(FIRST_FIELD) ?? true) : size === "wide" ? title : undefined);
   return (
     <ModalDepth.Provider value={layer.depth}>
     <BaseDialog.Portal>
