@@ -939,6 +939,10 @@
   .basalt-tabs-root[data-direction="forward"] .basalt-tabs[data-orientation="vertical"] > .basalt-tabs-panel { animation-name: basalt-slide-down; }
   .basalt-tabs-root[data-direction="back"] .basalt-tabs[data-orientation="vertical"] > .basalt-tabs-panel { animation-name: basalt-slide-up; }
   .basalt-tabs-panel { outline: none; }
+  /* The panel being left (data-leaving: not the chosen tab's) goes at once: one change for a switch. Base UI keeps it mounted until its animations end
+     (the 8px slide restarts on it as the direction changes), and in the flow it held the new panel under itself, off screen, for the slide's 200ms, then
+     dropped it into place. Stacked panels keep its room (visibility), as they do for a hidden panel. */
+  .basalt-tabs-panel[data-leaving] { display: none; }
   .basalt-tabs-panel:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   /* Vertical tabs are a column of pills in a track, not the horizontal bar turned on its side: no divider and no
@@ -997,11 +1001,11 @@
      it. No !important: an author rule beats the user agent's [hidden]. The element is its own container, so it turns off by its own width. */
   .basalt-tabs-panels[data-stacked] { display: grid; container-type: inline-size; }
   .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel { grid-area: 1 / 1; min-width: 0; }
-  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: block; visibility: hidden; }
+  .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel:is([hidden], [data-leaving]) { display: block; visibility: hidden; }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
-    .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel[hidden] { display: none; }
+    .basalt-tabs-panels[data-stacked] > .basalt-tabs-panel:is([hidden], [data-leaving]) { display: none; }
   }
 
   /* ---- Link tabs (DECISIONS 154, D12) ----
@@ -3710,6 +3714,111 @@
   @keyframes basalt-skeleton {
     from { opacity: 1; }
     to { opacity: 0.7; }
+  }
+
+  /* ---- LoadingShape and Bones (skeleton-shape: DECISIONS 247, 248, 249b and 258) ----
+     A region while its data is on its way draws its own parts, and what isn't known yet is painted as bones measured from the drawing
+     (loading-shape.tsx, bones-measure.ts). */
+
+  .basalt-loading-shape { min-width: 0; }
+  /* The content takes the shape's place at once; the last bones fade out over it, so this is their box. */
+  .basalt-loading-shape[data-phase="content"] { position: relative; }
+  /* The ring sits where the page's first line would: no box, no centring in an empty field. */
+  .basalt-page-wait { display: flex; min-height: var(--basalt-size-control-md); align-items: center; }
+
+  .basalt-bones {
+    position: relative;
+    /* The bones are drawn over everything the shape holds, a sticky band and its fill included, and never over the page. */
+    isolation: isolate;
+    user-select: none;
+  }
+
+  /* The drawn shape keeps its structure (fills, rims, dividers, a field's frame) and loses the ink of what isn't known: no words, no underline, no
+     colour. The words are hidden by their fill, which inherits, and not by `color`, which parts set for themselves and their icons follow. What is
+     known keeps its ink: a whole known part (data-bone-keep), or an element's own known words (data-bone-ink), whose children are hidden again
+     unless they are known too. */
+  .basalt-bones { -webkit-text-fill-color: transparent; }
+  .basalt-bones :is([data-bone-keep], [data-bone-ink]) { -webkit-text-fill-color: currentcolor; }
+  .basalt-bones [data-bone-ink] > :not([data-bone-keep], [data-bone-ink]) { -webkit-text-fill-color: transparent; }
+  .basalt-bones :not([data-bone-keep], [data-bone-keep] *, [data-bone-ink]) {
+    text-decoration-color: transparent !important;
+    caret-color: transparent !important;
+  }
+  .basalt-bones :not([data-bone-keep] *)::placeholder { -webkit-text-fill-color: transparent; }
+
+  /* What a bone stands in for is not drawn under it. An unknown control's own marks (a selected tab's underline, a pill) go with it. */
+  .basalt-bones [data-boned],
+  .basalt-bones :is(button, [role="tab"], [role="button"], [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::before,
+  .basalt-bones :is(button, [role="tab"], [role="button"], [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::after,
+  .basalt-bones [data-boned-mark~="before"]::before,
+  .basalt-bones [data-boned-mark~="after"]::after,
+  /* A state is not loading: the chosen tab's underline and the navigation's pill are not drawn in an unknown part. */
+  .basalt-bones :is(.basalt-tabs-indicator, .basalt-nav-pill):not([data-bone-keep], [data-bone-keep] *) {
+    visibility: hidden !important;
+  }
+
+  /* The twin a prefill is compared with: laid out at the same width, never seen (opacity can't be undone by what it holds, as visibility can), never
+     hit (inert, and no pointer). */
+  .basalt-bones-twin {
+    position: absolute;
+    inset: var(--basalt-space-0) var(--basalt-space-0) auto;
+    height: var(--basalt-space-0);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    contain: layout paint;
+  }
+
+  .basalt-bones-layer,
+  .basalt-bones-leaving {
+    position: absolute;
+    /* Above anything the shape layers itself (a sticky band is layer-sticky); the root is isolated, so it never rises over the page. */
+    z-index: 2147483647;
+    inset: var(--basalt-space-0);
+    pointer-events: none;
+  }
+  .basalt-bones-layer { visibility: hidden; }
+  .basalt-bones[data-shown] > .basalt-bones-layer {
+    visibility: visible;
+    /* One pulse for the whole region, so every bone breathes together: Skeleton's own period and curve (DECISIONS 167). */
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, as Skeleton's own rule: a token for a loop duration is the council's to decide */
+    animation: basalt-skeleton 2s var(--basalt-ease-in-out) infinite alternate;
+  }
+  :is(.basalt-bones-layer, .basalt-bones-leaving) > .basalt-skeleton { position: absolute; animation: none; }
+
+  /* The content takes the shape's place at once, and the last bones fade out over it (an exit: 0.75 of the duration, ease-in), so words appear where
+     their bones were and nothing that was already shown blinks. Opacity only, so it stays under reduced motion. */
+  .basalt-bones-leaving { animation: basalt-bones-leave calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in) forwards; }
+  @keyframes basalt-bones-leave {
+    to { opacity: 0; }
+  }
+
+  /* A refresh taking a while: braille and its word in a seat kept for it, shown after a second. */
+  .basalt-refreshing {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--basalt-space-1-5);
+    color: var(--basalt-text-tertiary);
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    white-space: nowrap;
+    visibility: hidden;
+  }
+  .basalt-refreshing[data-on] { visibility: visible; }
+
+  /* The pulse holds still under reduced motion and the root hold, at full strength. */
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-bones[data-shown] > .basalt-bones-layer { animation: none; }
+  }
+  :root[data-loops="held"] .basalt-bones[data-shown] > .basalt-bones-layer { animation: none; }
+
+  /* Forced colours put every word back in CanvasText, a transparent fill included: the unknown part of the drawing is hidden by visibility, and each
+     bone is Skeleton's own 1px ButtonBorder edge in its place (DECISIONS 167). What is known is drawn as itself. The space is held all the same. */
+  @media (forced-colors: active) {
+    .basalt-bones > :not(.basalt-bones-layer, .basalt-bones-twin) { visibility: hidden !important; }
+    .basalt-bones :is([data-bone-keep], [data-bone-ink]) { visibility: visible !important; }
+    .basalt-bones [data-bone-ink] > :not([data-bone-keep], [data-bone-ink]) { visibility: hidden !important; }
+    .basalt-bones[data-bone-measuring] > :not(.basalt-bones-layer, .basalt-bones-twin) { visibility: inherit !important; }
   }
 
   /* ---- CodeBlock ---- */

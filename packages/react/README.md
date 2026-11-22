@@ -61,7 +61,7 @@ only where `prefers-reduced-transparency` is evaluated (Chromium 118 and later);
 
 | Component | Notes |
 |---|---|
-| `Button`, `IconButton` | `primary`, `secondary`, `ghost`, `danger`, `outline` (transparent, an input-boundary edge, primary ink; never a toggle); sizes `xs`–`xl` (24–40px) and `2xl` (44), `3xl` (48), `4xl` (52), `5xl` (56): radius 8, 16px, and 600 where there is text; compact steps each down one. `IconButton` requires `label`. Props on `Button`: `fullWidth` (as wide as its space); `amount` with `amountReserve` (a quieter amount after the label, in a seat as wide as the widest, so nothing moves; 0.72 ink on primary, secondary and outline, full ink on ghost and danger); `count` (an outlined pill that holds two digits, `aria-hidden`: put the count in the button's name); `note` (a second line under the label, at least 64 tall, one line in a container 340 to 480 wide: give the container `container-type: inline-size`). On `IconButton`: `done` (the plus becomes a check in the button's own ink, in one seat, a 100ms crossfade even under reduced motion; the name does not change, so say what happened in a `StatusLine`) with `doneIcon`. `useConfirm()` returns `[confirmed, confirm]` and holds for `CONFIRM_MS` (1500). A press whose `onClick` returns a promise waits for it (DECISIONS 260): presses are ignored until it settles (the handler is never called twice), the button is `aria-busy` and keeps its focus, label and width, and the ring shows only after 300ms and stays at least 400ms (`WAIT_SHOW_AFTER_MS`, `WAIT_MIN_SHOWN_MS`; a look only: presses and `aria-busy` end with the answer). A handler on the element given as `render` is guarded too. A rejection ends the wait and is raised again: say why in the app. `loading` is the app's own flag and wins (the ring at once); `waitForAnswer={false}` calls the handler on every press. A submit button waits for its `Form` too, inside it or outside with `form`. |
+| `Button`, `IconButton` | `primary`, `secondary`, `ghost`, `danger`, `outline` (transparent, an input-boundary edge, primary ink; never a toggle); sizes `xs`–`xl` (24–40px) and `2xl` (44), `3xl` (48), `4xl` (52), `5xl` (56): radius 8, 16px, and 600 where there is text; compact steps each down one. `IconButton` requires `label`. Props on `Button`: `fullWidth` (as wide as its space); `amount` with `amountReserve` (a quieter amount after the label, in a seat as wide as the widest, so nothing moves; 0.72 ink on primary, secondary and outline, full ink on ghost and danger); `count` (an outlined pill that holds two digits, `aria-hidden`: put the count in the button's name); `note` (a second line under the label, at least 64 tall, one line in a container 340 to 480 wide: give the container `container-type: inline-size`). On `IconButton`: `done` (the plus becomes a check in the button's own ink, in one seat, a 100ms crossfade even under reduced motion; the name does not change, so say what happened in a `StatusLine`) with `doneIcon`. `useConfirm()` returns `[confirmed, confirm]` and holds for `CONFIRM_MS` (1500). A press whose `onClick` returns a promise waits for it (DECISIONS 260): presses are ignored until it settles (the handler is never called twice), the button is `aria-busy` and keeps its focus, label and width, and the ring shows only after 300ms and stays at least 400ms (`WAIT_SHOW_AFTER_MS`, `WAIT_MIN_SHOWN_MS`; a look only: presses and `aria-busy` end with the answer). `useWaitMark(waiting)` is the same rule for an app that draws a wait of its own. A handler on the element given as `render` is guarded too. A rejection ends the wait and is raised again: say why in the app. `loading` is the app's own flag and wins (the ring at once); `waitForAnswer={false}` calls the handler on every press. A submit button waits for its `Form` too, inside it or outside with `form`. |
 | `TextButton` | A button that reads as running text: no box, the text's font, underlined as `Link` is; `quiet` is secondary ink; `iconEnd` is not underlined. No pressed state (a choice between two is a `SegmentedControl`). On touch a button on its own line has a 44px hit box and no layout change; one in a sentence keeps its line. It keeps focus when it disables itself (`focusableWhenDisabled` is on by default; pass `false` to leave the Tab order), so a press that disables it does not drop focus to the page. Its words may be a `Reserve`: the button holds the width of the longest, and the underline is under the words shown (DECISIONS 242). It waits for a promise from `onClick` as `Button` does, and takes `loading`: its busy sign has no box, so nothing moves: the words step down an ink and the underline turns dashed and breathes. |
 | `SwitchRowGroup`, `SwitchRow` | One checkbox drawn as a row: `tile` (36px, 32 under 720 wide, decorative), `kind`, and the name as `children`; a plus and a check cross over in a 16px seat. 52 tall from 720 wide, 48 under. Name the group with `aria-labelledby` and describe it; it is not a filter (no count or Clear), and one `FilterResult` says what it did. |
 | `OptionChips` | One of many, eight at most, as wrapping chips with no track: a fieldset with `legend`, `options` of `{ value, label, unavailable? }`, a round 16px seat on every chip. `unavailable` is the words ("sold out at the brand"): the disabled look, reachable, never chosen. Above eight values use a `Select`. |
@@ -355,6 +355,64 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - Smaller parts: `LogFields` (the runs of a line) and `LogLine` (one line alone) draw the one log-line look; `LogSummary` is a four-line summary in a `pre`; `InlineValue` is a row that is a label and a value, not a field. A `CommandBlock`'s head sticks under a bar set with `--_basalt-block-top`.
 - The formatters draw nothing: `formatStamp` ("14:49:07", to the second and always 24-hour), `formatClock` ("2:49 PM" in `en-US`, "14:49" in `en-GB`: a clock a person reads follows the locale, with a numeric hour), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime` (ISO), the zone an argument and the `locale` too (default `en-US`, never the runtime's, so a server's render and the browser's agree). `Clock`, `Stat`, `SourceStamp`, `SourceStateWords` and `CommandBlock` take `locale` as well, and `EventLog` for the width its time column reserves.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
+
+## Loading in the page's own shape
+
+A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;
+`docs/foundations.md`, "Loading in the page's own shape").
+
+```tsx
+import { LoadingShape, Refreshing, fillIn, standIn, useRefreshing, useStaged } from "@srasyndicate/basalt";
+import type { StandInVariant } from "@srasyndicate/basalt";
+
+// Stand-ins take values from a different set in each variant, with the same rows and branches.
+const standInRoom = (variant: StandInVariant) => ({ owner: standIn(2, 14, variant), people: variant === 0 ? 3 : 4 });
+
+// Something known: the known fields are drawn as themselves at once, and only what the two drawings disagree on is a bone.
+<LoadingShape loading={!room} refreshing={fetchingAgain} label="Opening the room"
+  prefill={(variant) => <Facts room={fillIn({ incident }, standInRoom(variant))} />}>
+  {() => <Facts room={room!} />}
+</LoadingShape>
+
+// Nothing known: every word a bone but the known ones (a table's heads, the names of tabs, `data-bone="keep"`).
+<LoadingShape loading={!rows} shape={() => <Rows rows={standInRows} />}>{() => <Rows rows={rows!} />}</LoadingShape>
+
+// Phases: parts arriving within 250ms of the page's start land together; later ones within 120ms of each other. Let a region wait for every part it reads.
+const landed = useStaged({ people: Boolean(people), stream: Boolean(stream) });
+
+// A last copy being fetched again stays content; the mark shows after a second, in a seat kept for it.
+<Refreshing on={useRefreshing(fetchingAgain)} compact={phone} />
+```
+
+| Export | What it does |
+|---|---|
+| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`. |
+| `Bones` | The painting alone (`shown`, `keep`, `twin`), for a place a region can't wrap. |
+| `useStaged(ready, gap = 120, together = 250)` | Releases parts in phases. |
+| `useRefreshing(on, after = 1000)`, `Refreshing` | "Updating" for a refresh that takes more than a second: braille and its word, or the ring alone with `compact`. |
+| `useShapePhase(loading, showAfter, minShown)` | The timing alone: `"waiting"`, `"shown"`, `"content"`. |
+| `useInShape()` | 0 outside a shape, 1 in a drawn shape (a part that writes does nothing), 2 in the twin (a portal draws nothing). |
+| `PageWait` | A page whose code is still loading: nothing for 300ms, then the 20px ring, its label said once. |
+| `fillIn`, `standIn`, `rememberCount`, `rememberedCount`, `KEEP` | Plain helpers, safe on a server: the stand-in merged with what is known, stand-in words, a list's last count (`localStorage`, `basalt-shape:<key>`, the count and nothing else), the known-words selector. |
+| `holdFirstPaint(root, max = 250)`, `markPageStart()` | The reload rule: one paint when the data is quick, and the page's clock. |
+
+**A client-rendered app and its router.** Hold the first paint in the entry, and tell the clock when a move begins:
+
+```tsx
+const root = document.getElementById("app")!;
+holdFirstPaint(root);                 // before the first render: a reload whose data comes in 250ms paints once
+createRoot(root).render(<App />);
+
+// In the router, when a move between pages begins (back and forward too). `markPageChange` is the same call.
+markPageStart();
+// Gate the move on the next page's code: keep the page on screen until its module is here, then draw the new page. Never draw a lazy
+// fallback in its place. `PageWait` is only for a reload (or a cold first move) whose page code is late.
+await preload(nextPath);
+```
+
+A tab switch is not a move between pages: call nothing. The panel left goes at once and the new panel's regions count their 300ms from the switch; put
+everything the panel knows (a description) in its first paint, and what it doesn't as bones in their seats. A server-rendered shape has no bones until
+hydration. The HTML skill has no loading shape.
 
 ## Code
 

@@ -411,7 +411,7 @@ for (const id of rounds) {
               await page.waitForTimeout(800);
             }
           }
-          // Round 54 (the column explainer): "explain-hover" rests a real pointer on the header that marks itself `data-wt-explain` past the 600ms wait,
+          // Round 55 (the column explainer): "explain-hover" rests a real pointer on the header that marks itself `data-wt-explain` past the 600ms wait,
           // "explain-focus" reaches it from the keyboard (Tab from the header marked `data-wt-before`), and "explain-touch" holds a finger on it for 750ms,
           // longer than the 500ms long press, and lifts it. Each then waits for the card's entry to end.
           if (id === "54" && state.startsWith("explain-")) {

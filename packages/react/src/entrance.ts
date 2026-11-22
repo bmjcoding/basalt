@@ -14,14 +14,19 @@ export const ENTRANCE_LATE_MS = 1000;
 /** Why a figure is drawn at rest instead of entering. `"play"` means it enters. */
 export type EntranceVerdict = "play" | "seen" | "reduced" | "held" | "hidden" | "below" | "late" | "print" | "off";
 
-// The moment the page last changed without a reload, as `performance.now()` read it. Declared here, assigned by `markPageChange`, never at import.
+// The moment the page last changed without a reload, as `performance.now()` read it. Declared here, assigned by `markPageChange`, never at import. It is the
+// page's one clock: `LoadingShape`'s show-after reads it too (page-start.ts), and `markPageStart` is the same call.
 let pageChangedAt: number | undefined;
+
+/** When the page on screen began, on `performance.now()`'s clock: 0 for the navigation, or the last page change marked. */
+export const pageChangeAt = (): number => pageChangedAt ?? 0;
 
 /**
  * Tells the entrance that a page change began without a reload (a router's navigation). The same gates apply from then as for a loaded page:
  * a first visit to the path, on its first screen, within `ENTRANCE_LATE_MS` of the change. Call it where the router starts the change, before the new page's chart
  * mounts: `markPageChange()` for now, or the time `performance.now()` gave when the change began. An app that reports nothing is measured from the document's own start.
- * A path reached this way is stored as seen when its entrance finishes or gives way, as a loaded page's is.
+ * A path reached this way is stored as seen when its entrance finishes or gives way, as a loaded page's is. It is the same call as `markPageStart`: a
+ * `LoadingShape`'s show-after counts from it too.
  */
 export function markPageChange(startedAt: number = performance.now()): void {
   pageChangedAt = startedAt;

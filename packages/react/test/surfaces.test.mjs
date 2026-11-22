@@ -503,8 +503,9 @@ describe("vertical tabs", () => {
     await page.getByRole("tab", { name: "B" }).click();
     const input = page.getByRole("textbox", { name: "draft" });
     await input.fill("kept");
+    // The panel coming in: the one being left (data-leaving, kept mounted by Base UI until its exit ends) is not drawn (skeleton-shape: a switch is one change).
     const during = await page.evaluate(() => {
-      const panel = document.querySelector(".basalt-tabs-panel:not([hidden])");
+      const panel = document.querySelector(".basalt-tabs-panel:not([hidden], [data-leaving])");
       const [a] = panel.getAnimations();
       return { name: a?.animationName, duration: a && a.effect.getComputedTiming().duration, ease: a && a.effect.getKeyframes()[0].easing };
     });
@@ -522,7 +523,7 @@ describe("vertical tabs", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByRole("tab", { name: "A" }).click();
     const reduced = await page.evaluate(() => {
-      const [a] = document.querySelector(".basalt-tabs-panel:not([hidden])").getAnimations();
+      const [a] = document.querySelector(".basalt-tabs-panel:not([hidden], [data-leaving])").getAnimations();
       return { name: a?.animationName, duration: a?.effect.getComputedTiming().duration };
     });
     assert.deepEqual(reduced, { name: "basalt-fade-in", duration: 100 });
