@@ -13,7 +13,7 @@ import * as React from "react";
 
 import { measureBones } from "./bones-measure";
 import type { Bone } from "./bones-measure";
-import { startOf } from "./page-start";
+import { FIRST_PAINT, pageStartedAt, startOf } from "./page-start";
 import { KEEP } from "./shape-data";
 import type { StandInVariant } from "./shape-data";
 import { Spinner } from "./spinner";
@@ -131,11 +131,14 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     const node = root.current;
     if (!node) return undefined;
     let frame = 0;
+    // Whether the shape holds a part that stays put while the page scrolls (sticky or fixed): only then does a scroll outside the shape move its bones.
+    let moving = false;
     const measure = (): void => {
       frame = 0;
       const next = measureBones(node, keep);
-      setBones(next);
-      report.current?.(next);
+      moving = next.moving;
+      setBones(next.bones);
+      report.current?.(next.bones);
     };
     measure();
     const again = (): void => {
@@ -150,15 +153,23 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     });
     changed.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
     window.addEventListener("resize", again);
-    // A sticky part (a band, a strip of facts) moves against the region as the page scrolls: its bones follow it.
-    window.addEventListener("scroll", again, { passive: true, capture: true });
+    window.addEventListener(FIRST_PAINT, again);
+    // A scroll inside the shape (a table scrolled sideways) moves its bones; a scroll of what holds the shape moves them only against a sticky or fixed part
+    // of it (a band, a strip of facts), whose bones follow it. Any other scroll (an unrelated pane, or the page with nothing sticky in the shape) does no work.
+    const scrolled = (event: Event): void => {
+      const target = event.target;
+      if (target instanceof Node && node.contains(target)) return again();
+      if (moving && (target === document || (target instanceof Element && target.contains(node)))) again();
+    };
+    window.addEventListener("scroll", scrolled, { passive: true, capture: true });
     // The text face arriving changes every line's length.
     void document.fonts?.ready.then(again);
     return () => {
       resized.disconnect();
       changed.disconnect();
       window.removeEventListener("resize", again);
-      window.removeEventListener("scroll", again, { capture: true });
+      window.removeEventListener(FIRST_PAINT, again);
+      window.removeEventListener("scroll", scrolled, { capture: true });
       if (frame) cancelAnimationFrame(frame);
       frame = -1;
     };
@@ -328,19 +339,26 @@ export function PageWait({ label = "Loading", showAfter = 300 }: PageWaitProps) 
     const timer = window.setTimeout(() => setShown(true), showAfter);
     return () => window.clearTimeout(timer);
   }, [showAfter]);
+  // Its label is the page's one "Loading", shared with the shapes of the page it waits for: the ring itself is unnamed, so the page saying it again as its
+  // code arrives and its first region shows bones is never a second announcement.
+  useAnnounce(shown, label);
   return (
     <div className="basalt-page-wait" aria-busy="true">
-      {shown && <Spinner size={20} label={label} />}
+      {shown && <Spinner size={20} />}
     </div>
   );
 }
 
 // ---- Saying it ----
 
-// One polite "Loading" for the page, however many regions are waiting and however many phases they land in: the first region to draw bones says its
-// label, and the rest are quiet until every region is done. Nothing is said as phases land or when they finish. Made on first need, never at import.
+// One polite "Loading" for the page, however many regions are waiting and however many phases they land in: the first region to draw bones (or the
+// page's `PageWait`) says its label, and the rest are quiet until every one is done. Nothing is said as phases land or when they finish. A hand-over
+// within the same page (the page's code arriving after its `PageWait` was shown, and its first region showing bones) continues the same wait and says
+// nothing new; a wait that starts a second after the last ended, or on another page, is said again. Made on first need, never at import.
+const HANDOVER = 1000;
 let busy = 0;
 let region: HTMLElement | null = null;
+let said: { page: number; endedAt: number } | null = null;
 function liveRegion(): HTMLElement {
   if (region?.isConnected) return region;
   region = document.createElement("div");
@@ -355,10 +373,17 @@ function useAnnounce(on: boolean, label: string): void {
   React.useEffect(() => {
     if (!on) return undefined;
     busy += 1;
-    if (busy === 1) liveRegion().textContent = label;
+    if (busy === 1) {
+      const page = pageStartedAt();
+      const continues = said !== null && said.page === page && performance.now() - said.endedAt < HANDOVER;
+      if (!continues) liveRegion().textContent = label;
+      said = { page, endedAt: Number.POSITIVE_INFINITY };
+    }
     return () => {
       busy -= 1;
-      if (busy === 0 && region) region.textContent = "";
+      if (busy > 0) return;
+      if (said) said.endedAt = performance.now();
+      if (region) region.textContent = "";
     };
   }, [on, label]);
 }

@@ -54,7 +54,7 @@ export function rememberedCount(key: string): number | null {
     const value = localStorage.getItem(COUNT_PREFIX + key);
     if (value === null) return null;
     const count = Number(value);
-    return Number.isFinite(count) && count >= 0 ? count : null;
+    return /^\d+$/.test(value) && Number.isSafeInteger(count) ? count : null;
   } catch {
     return null;
   }
@@ -62,6 +62,8 @@ export function rememberedCount(key: string): number | null {
 
 /** Note a list's real count once it has loaded, for its next shape: the count and nothing else (`localStorage`, `basalt-shape:<key>`). */
 export function rememberCount(key: string, count: number): void {
+  // A count is a whole number of rows, none or more; anything else (a string from untyped code, a fraction, NaN) is dropped, never stored.
+  if (typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) return;
   try {
     localStorage.setItem(COUNT_PREFIX + key, String(count));
   } catch {

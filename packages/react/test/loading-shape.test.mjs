@@ -237,7 +237,7 @@ async function reload(body, delay) {
     const read = () => {
       const root = document.getElementById("root");
       const words = [];
-      if (root && root.checkVisibility({ visibilityProperty: true })) {
+      if (root && root.checkVisibility({ visibilityProperty: true, opacityProperty: true })) {
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
           const parent = node.parentElement;
@@ -247,8 +247,8 @@ async function reload(body, delay) {
           words.push(node.data.trim());
         }
       }
-      const bones = root?.checkVisibility({ visibilityProperty: true }) ? document.querySelectorAll(".basalt-bones[data-shown] > .basalt-bones-layer > span").length : 0;
-      const shape = Boolean(root?.checkVisibility({ visibilityProperty: true }) && document.querySelector(".basalt-bones"));
+      const bones = root?.checkVisibility({ visibilityProperty: true, opacityProperty: true }) ? document.querySelectorAll(".basalt-bones[data-shown] > .basalt-bones-layer > span").length : 0;
+      const shape = Boolean(root?.checkVisibility({ visibilityProperty: true, opacityProperty: true }) && document.querySelector(".basalt-bones"));
       return { words: words.join("|"), bones, shape };
     };
     const tick = () => {
@@ -557,6 +557,221 @@ const sampleDialog = (page) => page.evaluate(() => new Promise((resolve) => {
   };
   requestAnimationFrame(tick);
 }));
+
+// ---- Astra's review of 36a7a4f5: seven findings and the scroll cost ----
+
+const count = (page, fn) => page.evaluate(fn);
+
+describe("review: values drawn by CSS, and colours read right", () => {
+  test("a prefill's stand-in values drawn through CSS are bones: a meter's fill (same place, another width and colour) and a status dot (same box, another colour)", async () => {
+    const page = await open(`${HELPERS}
+const Drawn = ({ v }) => (
+  <div style={{ width: 320 }}>
+    <h2 id="known" style={{ margin: 0 }}>Error budget</h2>
+    <div id="track" style={{ width: 200, height: 8, background: "var(--basalt-surface-placeholder)" }}><div id="fill" style={{ width: v === 0 ? "40%" : "75%", height: 8, background: v === 0 ? "rgb(200, 30, 30)" : "rgb(30, 160, 60)" }} /></div>
+    <span id="dot" style={{ display: "inline-block", width: 10, height: 10, borderRadius: 999, background: v === 0 ? "rgb(220, 120, 0)" : "rgb(0, 120, 220)" }} />
+  </div>
+);
+createRoot(document.getElementById("root")).render(<B.LoadingShape loading prefill={(v) => <Drawn v={v} />}>{() => null}</B.LoadingShape>);`);
+    await until(page, () => window.bones().length > 0);
+    const got = await page.evaluate(() => {
+      const shape = document.querySelector(".basalt-bones");
+      const el = (id) => shape.querySelector("#" + id);
+      const box = (id) => { const r = el(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+      return { bones: window.bones(), fill: box("fill"), dot: box("dot"), fillHidden: getComputedStyle(el("fill")).visibility, dotHidden: getComputedStyle(el("dot")).visibility, known: el("known").hasAttribute("data-bone-keep") || el("known").hasAttribute("data-bone-ink") };
+    });
+    const near = (a, b) => Math.abs(a - b) <= 1;
+    const covers = (t) => got.bones.some((b) => near(b.x, t.x) && near(b.y, t.y) && near(b.w, t.w) && near(b.h, t.h));
+    assert.ok(covers(got.fill), `the meter's fill is a bone in its box: ${JSON.stringify(got)}`);
+    assert.ok(covers(got.dot), "the status dot is a bone in its box");
+    assert.equal(got.fillHidden, "hidden", "the stand-in fill is not drawn under its bone");
+    assert.equal(got.dotHidden, "hidden");
+    assert.ok(got.known, "the known heading above them is still drawn as itself");
+    await page.close();
+  });
+
+  test("an opaque rgb() is painted: a black borderless button is one bone, and so is a red mark (blue 0, which was read as alpha 0)", async () => {
+    const { alphaOf } = await import(pathToFileURL(path.join(pkg, "dist", "bones-measure.js")).href);
+    assert.equal(alphaOf("rgb(0, 0, 0)"), 1);
+    assert.equal(alphaOf("rgb(255, 0, 0)"), 1);
+    assert.equal(alphaOf("rgba(0, 0, 0, 0)"), 0);
+    assert.equal(alphaOf("rgba(10, 20, 30, 0.5)"), 0.5);
+    assert.equal(alphaOf("rgb(0 0 0 / 0.2)"), 0.2);
+    assert.equal(alphaOf("color(srgb 1 0 0 / 50%)"), 0.5);
+    assert.equal(alphaOf("oklch(0.5 0.1 30)"), 1);
+    assert.equal(alphaOf("transparent"), 0);
+    const page = await open(`${HELPERS}
+const Drawn = () => <div style={{ width: 320, display: "flex", gap: 16, alignItems: "center" }}>
+  <button id="black" style={{ background: "rgb(0, 0, 0)", border: 0, color: "white", height: 32, padding: "0 12px" }}>{B.standIn(1, 8)}</button>
+  <span id="red" style={{ display: "inline-block", width: 12, height: 12, background: "rgb(255, 0, 0)" }} />
+</div>;
+createRoot(document.getElementById("root")).render(<B.LoadingShape loading shape={() => <Drawn />}>{() => null}</B.LoadingShape>);`);
+    await until(page, () => window.bones().length > 0);
+    const got = await page.evaluate(() => {
+      const box = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+      return { bones: window.bones(), black: box("black"), red: box("red") };
+    });
+    const near = (a, b) => Math.abs(a - b) <= 1;
+    const covers = (t) => got.bones.filter((b) => near(b.x, t.x) && near(b.y, t.y) && near(b.w, t.w) && near(b.h, t.h)).length;
+    assert.equal(covers(got.black), 1, `the black button is one bone in its box: ${JSON.stringify(got)}`);
+    assert.equal(covers(got.red), 1, "the red mark is a bone");
+    await page.close();
+  });
+
+  test("data-bone=\"box\" is one bone in the element's box, painted or not", async () => {
+    const page = await open(`${HELPERS}
+createRoot(document.getElementById("root")).render(<B.LoadingShape loading shape={() => <div style={{ width: 300 }}><div id="plain" data-bone="box" style={{ width: 120, height: 40 }} /></div>}>{() => null}</B.LoadingShape>);`);
+    await until(page, () => window.bones().length > 0);
+    const got = await page.evaluate(() => { const r = document.getElementById("plain").getBoundingClientRect(); return { bones: window.bones(), box: [r.left, r.top, r.width, r.height], bg: getComputedStyle(document.getElementById("plain")).backgroundColor }; });
+    assert.equal(got.bg, "rgba(0, 0, 0, 0)", "transparent and borderless");
+    assert.deepEqual(got.bones.map((b) => [b.x, b.y, b.w, b.h]), [got.box]);
+    await page.close();
+  });
+});
+
+describe("review: the held first paint", () => {
+  test("the shape is measured while the paint is held: after the release no stand-in picture or control is drawn at any frame", async () => {
+    const page = await browser.newPage({ viewport: { width: 1024, height: 700 } });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.addInitScript(() => {
+      window.__frames = [];
+      const tick = () => {
+        const root = document.getElementById("root");
+        const seen = Boolean(root?.childElementCount) && getComputedStyle(root).opacity !== "0";
+        const drawn = [...document.querySelectorAll(".basalt-bones img, .basalt-bones button")].filter((el) => !el.closest(".basalt-bones-twin") && el.checkVisibility({ visibilityProperty: true }));
+        window.__frames.push({ t: performance.now(), seen, drawn: drawn.length, bones: document.querySelectorAll(".basalt-bones[data-shown] > .basalt-bones-layer > span").length });
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    const script = await bundleFixture(`
+const root = document.getElementById("root");
+B.holdFirstPaint(root);
+const PIC = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="gray"/></svg>');
+const Drawn = () => <div style={{ display: "flex", gap: 12, alignItems: "center", width: 400 }}><img src={PIC} width="32" height="32" alt="" /><B.Button variant="primary">{B.standIn(1, 8)}</B.Button><p>{B.standIn(2, 30)}</p></div>;
+createRoot(root).render(<B.LoadingShape loading shape={() => <Drawn />}>{() => null}</B.LoadingShape>);`);
+    await page.route("http://basalt.test/", (route) => route.fulfill({ contentType: "text/html", body: `<html data-theme="dark"><head><style>${css()}</style></head><body><div id="root"></div><script>${script.replaceAll("</script", "<\\/script")}</script></body></html>` }));
+    await page.goto("http://basalt.test/");
+    await page.waitForTimeout(900);
+    const frames = await page.evaluate(() => window.__frames);
+    await page.close();
+    assert.deepEqual(errors, []);
+    const after = frames.filter((f) => f.seen);
+    assert.ok(after.length > 5, "the page was shown");
+    assert.deepEqual(after.filter((f) => f.drawn > 0).map((f) => Math.round(f.t)), [], "a stand-in picture or control was drawn after the release");
+    assert.ok(after.at(-1).bones >= 3, "and the bones are drawn");
+  });
+});
+
+describe("review: a region opened by the reader", () => {
+  test("a tab switched to 500ms into the page counts its 300ms from the switch, not from the page's start", async () => {
+    const page = await open(`${HELPERS}
+B.markPageStart(window.t0);
+window.addEventListener("pointerdown", () => { window.pressedAt = performance.now(); }, { capture: true });
+window.record(() => ({ bones: window.bones().length }));
+createRoot(document.getElementById("root")).render(
+  <B.Tabs defaultValue="a">
+    <B.TabsList aria-label="Views"><B.Tab value="a">First</B.Tab><B.Tab value="b">Second</B.Tab></B.TabsList>
+    <B.TabsPanel value="a"><p>First panel</p></B.TabsPanel>
+    <B.TabsPanel value="b"><B.LoadingShape loading shape={() => <p>{B.standIn(3, 40)}</p>}>{() => null}</B.LoadingShape></B.TabsPanel>
+  </B.Tabs>);`);
+    const wait = 500 - (await page.evaluate(() => performance.now() - window.t0));
+    if (wait > 0) await page.waitForTimeout(wait);
+    await page.getByRole("tab", { name: "Second" }).click();
+    await until(page, () => window.bones().length > 0);
+    const { frames, pressedAt, t0 } = await page.evaluate(() => ({ frames: window.frames, pressedAt: window.pressedAt, t0: window.t0 }));
+    const press = pressedAt - t0;
+    assert.ok(press < 1000, `the switch came ${Math.round(press)}ms into the page, inside the page's first second`);
+    const first = frames.find((f) => f.bones > 0);
+    assert.ok(first.t - press >= 299, `the first bone came ${Math.round(first.t - press)}ms after the switch`);
+    await page.close();
+  });
+});
+
+describe("review: one announcement for a page", () => {
+  test("PageWait's ring, then the page's code arriving with a region showing bones, says \"Loading\" once", async () => {
+    const page = await open(`${HELPERS}
+B.markPageStart(window.t0);
+window.said = [];
+new MutationObserver(() => {
+  for (const el of document.querySelectorAll('[role="status"], [aria-live]')) { const text = el.textContent.trim(); if (text && el.__last !== text) { window.said.push(text); } el.__last = text; }
+}).observe(document.body, { subtree: true, childList: true, characterData: true });
+function App() {
+  const [code, setCode] = React.useState(false);
+  React.useEffect(() => { const timer = setTimeout(() => setCode(true), 600); return () => clearTimeout(timer); }, []);
+  return code ? <B.LoadingShape loading label="Loading incidents" shape={() => <p>{B.standIn(4, 40)}</p>}>{() => null}</B.LoadingShape> : <B.PageWait />;
+}
+createRoot(document.getElementById("root")).render(<App />);`);
+    await until(page, () => document.querySelector(".basalt-page-wait .basalt-spinner"));
+    assert.equal(await count(page, () => document.querySelectorAll('.basalt-page-wait [role="status"]').length), 0, "the ring is not a status of its own");
+    await until(page, () => window.bones().length > 0);
+    await page.waitForTimeout(200);
+    assert.deepEqual(await page.evaluate(() => window.said), ["Loading"], "said once, by the page's wait, and not again by the region it handed to");
+    await page.close();
+  });
+});
+
+describe("review: a remembered count", () => {
+  test("only a whole number of rows, none or more, is stored; anything a JavaScript caller passes besides is dropped", async () => {
+    // An address of its own: a page set from a string (about:blank) may not use storage.
+    const page = await browser.newPage();
+    const script = await bundleFixture(`window.B = B; createRoot(document.getElementById("root")).render(<p>Counts</p>);`);
+    await page.route("http://basalt.test/", (route) => route.fulfill({ contentType: "text/html", body: `<html><body><div id="root"></div><script>${script.replaceAll("</script", "<\\/script")}</script></body></html>` }));
+    await page.goto("http://basalt.test/");
+    const got = await page.evaluate(() => {
+      localStorage.clear();
+      const tries = [["text", "12"], ["negative", -1], ["fraction", 1.5], ["nan", Number.NaN], ["huge", Number.MAX_VALUE], ["object", { valueOf: () => 3 }]];
+      for (const [key, value] of tries) B.rememberCount(key, value);
+      B.rememberCount("rows", 12);
+      B.rememberCount("none", 0);
+      localStorage.setItem("basalt-shape:planted", "1e3");
+      return { stored: Object.keys(localStorage).sort(), rows: B.rememberedCount("rows"), none: B.rememberedCount("none"), planted: B.rememberedCount("planted") };
+    });
+    assert.deepEqual(got, { stored: ["basalt-shape:none", "basalt-shape:planted", "basalt-shape:rows"], rows: 12, none: 0, planted: null });
+    await page.close();
+  });
+});
+
+describe("review: scrolling", () => {
+  test("a scroll elsewhere does no work: an unrelated pane, or the page when nothing in the shape is sticky; a scroll inside the shape, or the page with a sticky part in it, measures again", async () => {
+    const page = await open(`${HELPERS}
+window.measures = 0;
+const Rows = ({ sticky }) => <div>{sticky && <div style={{ position: "sticky", top: 0, background: "var(--basalt-surface-page)" }}>{B.standIn(9, 20)}</div>}<div id={sticky ? "inner-sticky" : "inner"} style={{ width: 300, overflowX: "auto" }}><div style={{ width: 900 }}>{B.standIn(8, 90)}</div></div>{Array.from({ length: 30 }, (_, i) => <p key={i}>{B.standIn(i, 30)}</p>)}</div>;
+createRoot(document.getElementById("root")).render(<div>
+  <div id="pane" style={{ position: "fixed", right: 0, top: 0, width: 200, height: 200, overflow: "auto" }}><div style={{ height: 4000 }}>pane</div></div>
+  <div id="plain"><B.LoadingShape loading shape={() => <Rows />}>{() => null}</B.LoadingShape></div>
+  <div id="stuck"><B.LoadingShape loading shape={() => <Rows sticky />}>{() => null}</B.LoadingShape></div>
+  <div style={{ height: 3000 }} />
+</div>);
+window.watch = () => {
+  for (const id of ["plain", "stuck"]) {
+    const shape = document.querySelector("#" + id + " .basalt-bones");
+    window["m_" + id] = 0;
+    // A measure sets data-bone-measuring and takes it off in the same task: count the times it was set.
+    new MutationObserver((records) => { for (const r of records) if (r.oldValue === null) window["m_" + id]++; }).observe(shape, { attributes: true, attributeOldValue: true, attributeFilter: ["data-bone-measuring"] });
+  }
+};`);
+    await until(page, () => document.querySelectorAll(".basalt-bones[data-shown]").length === 2);
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.watch());
+    const scroll = (target) => page.evaluate((t) => new Promise((resolve) => {
+      window.m_plain = 0; window.m_stuck = 0;
+      let n = 0;
+      const step = () => { if (t === "window") window.scrollBy(0, 40); else document.getElementById(t).scrollLeft !== undefined && (t === "pane" ? (document.getElementById(t).scrollTop += 40) : (document.getElementById(t).scrollLeft += 40)); if (++n < 10) requestAnimationFrame(step); else requestAnimationFrame(() => requestAnimationFrame(() => resolve({ plain: window.m_plain, stuck: window.m_stuck }))); };
+      requestAnimationFrame(step);
+    }), target);
+    assert.deepEqual(await scroll("pane"), { plain: 0, stuck: 0 }, "an unrelated pane");
+    const page_ = await scroll("window");
+    assert.equal(page_.plain, 0, "the page, with nothing sticky in the shape");
+    assert.ok(page_.stuck > 0, "the page, with a sticky part in the shape: its bones follow it");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(100);
+    const inner = await scroll("inner");
+    assert.ok(inner.plain > 0 && inner.stuck === 0, `a scroll inside the shape measures that shape alone: ${JSON.stringify(inner)}`);
+    await page.close();
+  });
+});
 
 describe("the form dialog's entry", () => {
   test("under reduced motion it only fades: its box never moves (it slid down half its height as its held top landed)", async () => {

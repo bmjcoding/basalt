@@ -2094,8 +2094,8 @@ breathe together on Skeleton's 2s pulse, one animation for the region.
 
 **What is known shows at once, field by field** (`prefill`). The region is drawn twice, from `fillIn(known, standIns(variant))` with two different fillings
 of what is unknown: variant 0 on the page and variant 1 in an unseen twin at the same width. A word, mark or control that comes out the same in both, in
-its words and its place, depends only on what is known and keeps its ink; whatever differs is a bone, and an element whose own attributes differ is a bone
-with all it holds. A line is never part ink, part bone. `shape` is the form for a region where nothing is known.
+its words, its painted box and its drawing (fill, edge, ink, transform, and a painted pseudo-element), depends only on what is known and keeps its ink; whatever differs is a bone, and an element whose own attributes differ is a bone
+with all it holds. A value drawn by CSS (a meter's fill, a status dot) that differs is one bone in its box. A line is never part ink, part bone. `shape` is the form for a region where nothing is known.
 
 **The stand-in contract.** An app's stand-ins (`standIn(seed, length, variant)` for words) take values from a different set in each variant (other words,
 other severities, the other role, a different hour), so no guess can match in both however the view sorts; they keep the same rows and branches, except
@@ -2109,7 +2109,7 @@ nothing else), else what fits the window, never more than a page.
 1. **No stand-in words, anywhere.** No app name in place of a page's title, no reference in place of a title, no "Loading…". What isn't known keeps its seat
    empty or is a bone; a known word shows only if its text and its place are final.
 2. **A status word for a wait waits too.** "Connecting" waits a second, as a bone waits 300ms.
-3. **A reload paints once if its data is quick.** `holdFirstPaint` holds a client-rendered app's first paint until nothing is loading, at most 250ms from the
+3. **A reload paints once if its data is quick.** `holdFirstPaint` holds a client-rendered app's first paint (by opacity, so its shapes are measured while held) until nothing is loading, at most 250ms from the
    navigation; after that the page shows with its bones drawn together, never its structure and then bones a moment later.
 4. **A move never blanks.** The next page's code is preloaded; if it isn't here yet the page on screen stays until it is (the router's gate, never a lazy
    fallback in its place), the router calls `markPageStart`, and the new page answers at once with what is known and fills in once. `PageWait` (nothing for
@@ -2122,7 +2122,7 @@ nothing else), else what fits the window, never more than a page.
 6. **What changes after the page has settled is the page living** (presence, a running agent, a last copy refreshed), and is not loading.
 
 **Timing.** Waiting (the structure and what is known, no bones) → shown → content. Bones appear 300ms after the page's start (`showAfter`: the navigation,
-or the last `markPageStart`; a region drawn more than a second after its page began, such as a sheet the reader opens, counts from itself), and once shown
+or the last `markPageStart`; a region drawn more than a second after its page began, or after a press or key since it began, such as a tab switched to or a sheet the reader opens, counts from itself), and once shown
 stay at least 400ms (`minShown`). The content takes the shape's place at once and the last bones fade out over it: an exit, 0.75 of `duration-base` on
 `ease-in`, opacity only. Content never goes back to bones. Under reduced motion and `data-loops="held"` the bones stand still at full strength.
 
@@ -2140,11 +2140,12 @@ a live region. There is no "last updated" stamp.
 words included, because a stand-in word read aloud would be wrong. "Loading" (the region's `label`) is said once for the page by one polite status line made
 on first need, by the first region to show bones; nothing is said per phase, when the page completes, or for a load under 300ms. In forced colours the
 unknown drawing is hidden by `visibility` (a transparent fill comes back in `CanvasText`), what is known is drawn as itself, and each bone is Skeleton's 1px
-`ButtonBorder` edge in its place; the space is held.
+`ButtonBorder` edge in its place; the space is held. A `PageWait` and the shapes of the page it hands over to share the one announcement.
 
 **Engineering.** `useInShape()` is 0 outside a shape, 1 in a drawn shape (a part that writes does nothing there) and 2 in the twin (a part that draws
 outside itself, a portal, draws nothing); a shape renders parts, not effects. `data-bone="keep"` draws an element as it is, `"none"` skips it, `"box"` makes it
-one bone. `Bones` is the painting alone, for a place a region can't wrap. Bones are measured in the browser: a server-rendered shape is its structure with no
+one bone in its box, painted or not. Bones are cut to the boxes that clip them; a shape measures again on a scroll inside it, and on a scroll of
+the page only when it holds a sticky or fixed part. `Bones` is the painting alone, for a place a region can't wrap. Bones are measured in the browser: a server-rendered shape is its structure with no
 bones until hydration. A prefilled region is drawn twice while it loads (the twin is laid out, never painted). Stand-ins that break the contract show a guess
 as if it were known, which Basalt can't detect.
 

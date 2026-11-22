@@ -32,13 +32,50 @@ const FIELD = "input, textarea";
 const IGNORED = /^(id|for|style|tabindex|inert|title|aria-(label|labelledby|describedby|controls|owns|activedescendant)|data-bone.*|data-boned.*)$/;
 const MARKS = ["data-bone-keep", "data-bone-ink", "data-boned", "data-boned-mark"];
 
-/** A colour that paints: not transparent, and more than 4% opaque. */
-function paints(color: string): boolean {
-  if (!color || color === "transparent") return false;
-  const alpha = /rgba?\([^)]*,\s*([\d.]+)\)$/.exec(color) ?? /\/\s*([\d.]+%?)\)$/.exec(color);
-  if (!alpha?.[1]) return true;
-  const value = alpha[1];
-  return (value.endsWith("%") ? Number.parseFloat(value) / 100 : Number.parseFloat(value)) > 0.04;
+/**
+ * A colour's alpha, from a computed value: `rgba(r, g, b, a)` and any `/ a` form carry one; `rgb(r, g, b)` and a colour with no alpha are opaque.
+ * (Reading the last number of `rgb(0, 0, 0)` as its alpha made black, and every fill with no blue, count as unpainted.)
+ */
+export function alphaOf(color: string): number {
+  const value = color.trim();
+  if (!value || value === "transparent") return 0;
+  const number = (text: string): number => (text.endsWith("%") ? Number.parseFloat(text) / 100 : Number.parseFloat(text));
+  const slash = /\/\s*([\d.]+%?)\s*\)$/.exec(value);
+  if (slash?.[1]) return number(slash[1]);
+  const legacy = /^rgba\(([^)]*)\)$/.exec(value);
+  const parts = legacy?.[1]?.split(",");
+  if (parts?.length === 4 && parts[3]) return number(parts[3].trim());
+  return 1;
+}
+
+/** A colour that paints: more than 4% opaque. */
+const paints = (color: string): boolean => alphaOf(color) > 0.04;
+
+/** Whether an element draws something with a pseudo-element: a fill or an edge (a meter drawn by its ::before). */
+function paintsMark(element: Element): boolean {
+  return (["::before", "::after"] as const).some((which) => {
+    const pseudo = getComputedStyle(element, which);
+    if (pseudo.content === "none" || pseudo.content === "normal") return false;
+    return paints(pseudo.backgroundColor) || (Number.parseFloat(pseudo.borderTopWidth) > 0 && paints(pseudo.borderTopColor));
+  });
+}
+
+// What a value can be drawn with besides words: an element's ink, fill, edge and transform (a meter's width, a status's colour, a bar turned by a
+// value). Compared between the two drawings with the element's painted box, so a value drawn by CSS from a stand-in differs and is a bone.
+const DRAWING = ["color", "background-color", "background-image", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "border-top-width", "border-right-width", "border-bottom-width", "border-left-width", "transform", "opacity", "clip-path"] as const;
+const PSEUDO_DRAWING = ["content", "width", "height", "left", "top", ...DRAWING] as const;
+
+function drawnAlike(a: Element, b: Element): boolean {
+  const sa = getComputedStyle(a);
+  const sb = getComputedStyle(b);
+  if (DRAWING.some((name) => sa.getPropertyValue(name) !== sb.getPropertyValue(name))) return false;
+  for (const which of ["::before", "::after"] as const) {
+    const pa = getComputedStyle(a, which);
+    const pb = getComputedStyle(b, which);
+    if (pa.content === "none" && pb.content === "none") continue;
+    if (PSEUDO_DRAWING.some((name) => pa.getPropertyValue(name) !== pb.getPropertyValue(name))) return false;
+  }
+  return true;
 }
 
 const meaningful = (node: Node): boolean => node.nodeType === Node.ELEMENT_NODE || (node.nodeType === Node.TEXT_NODE && (node as Text).data.trim() !== "");
@@ -55,12 +92,14 @@ function rectOf(node: Node): DOMRect {
  * attributes and all it holds), is known. A word whose place depends on something unknown above it (a known heading under a summary of unknown
  * length) is not: shown, it would move when the summary arrived.
  */
-function compare(a: Node, b: Node | undefined, same: Set<Node>, origin: { a: DOMRect; b: DOMRect }): boolean {
+function compare(a: Node, b: Node | undefined, same: Set<Node>, origin: { a: DOMRect; b: DOMRect }, apart: Set<Element>): boolean {
   if (!b || a.nodeType !== b.nodeType) return false;
+  // The same painted box: the same place and the same size (a bar drawn as wide as a stand-in value is not the same bar).
   const samePlace = (): boolean => {
     const ra = rectOf(a);
     const rb = rectOf(b);
-    return Math.abs(Math.round(ra.left - origin.a.left) - Math.round(rb.left - origin.b.left)) <= 1 && Math.abs(Math.round(ra.top - origin.a.top) - Math.round(rb.top - origin.b.top)) <= 1;
+    const near = (x: number, y: number): boolean => Math.abs(Math.round(x) - Math.round(y)) <= 1;
+    return near(ra.left - origin.a.left, rb.left - origin.b.left) && near(ra.top - origin.a.top, rb.top - origin.b.top) && near(ra.width, rb.width) && near(ra.height, rb.height);
   };
   if (a.nodeType === Node.TEXT_NODE) {
     if ((a as Text).data !== (b as Text).data || !samePlace()) return false;
@@ -75,15 +114,22 @@ function compare(a: Node, b: Node | undefined, same: Set<Node>, origin: { a: DOM
   // its badge's status).
   for (const name of new Set([...ea.getAttributeNames(), ...eb.getAttributeNames()])) {
     if (IGNORED.test(name)) continue;
-    if (ea.getAttribute(name) !== eb.getAttribute(name)) return false;
+    if (ea.getAttribute(name) !== eb.getAttribute(name)) return void apart.add(ea), false;
   }
+  // So is one drawn differently: another fill, edge, ink or transform, or for an element that holds nothing another box (a value set through `style`,
+  // which is not compared as text because measuring effects write it too: a meter's width, a status's colour). Such an element is drawn apart, and its
+  // own box is a bone. One that holds something and only differs in size differs by what it holds, which is compared next.
+  const empty = ![...ea.childNodes].some(meaningful);
+  if (!drawnAlike(ea, eb) || (empty && !samePlace())) return void apart.add(ea), false;
   const ka = [...ea.childNodes].filter(meaningful);
   const kb = [...eb.childNodes].filter(meaningful);
   let all = ka.length === kb.length;
   ka.forEach((kid, index) => {
-    if (!compare(kid, kb[index], same, origin)) all = false;
+    if (!compare(kid, kb[index], same, origin, apart)) all = false;
   });
-  if (all && ka.length === 0 && !samePlace()) all = false;
+  // What it holds is compared whatever its own size (a known heading in a panel whose summary is unknown stays known); the element itself is known
+  // only if its box is the same too.
+  if (all && !samePlace()) all = false;
   if (all) same.add(ea);
   return all;
 }
@@ -92,11 +138,12 @@ function compare(a: Node, b: Node | undefined, same: Set<Node>, origin: { a: DOM
  * Walk the drawing in `root` (a `.basalt-bones`): mark what is known (`data-bone-keep` for a whole part, `data-bone-ink` for an element's own
  * words), hide what a bone stands for (`data-boned`, `data-boned-mark`), and return the bones. `keep` is a selector of words drawn as they are.
  */
-export function measureBones(root: HTMLElement, keep: string): Bone[] {
+export function measureBones(root: HTMLElement, keep: string): { bones: Bone[]; moving: boolean } {
   for (const element of root.querySelectorAll(MARKS.map((name) => `[${name}]`).join(", "))) for (const name of MARKS) element.removeAttribute(name);
   if (keep) for (const element of root.querySelectorAll(keep)) if (!element.closest(".basalt-bones-twin")) element.setAttribute("data-bone-keep", "");
   // A prefill: compare its drawing with the twin, child by child.
   const same = new Set<Node>();
+  const apart = new Set<Element>();
   const twin = root.querySelector<HTMLElement>(":scope > .basalt-bones-twin");
   const drawn = [...root.childNodes].filter((node) => meaningful(node) && !(node as Element).classList?.contains("basalt-bones-twin") && !(node as Element).classList?.contains("basalt-bones-layer"));
   if (twin) {
@@ -106,7 +153,7 @@ export function measureBones(root: HTMLElement, keep: string): Bone[] {
     const first = drawn[0];
     const twinFirst = other[0];
     const origin = first && twinFirst ? { a: rectOf(first), b: rectOf(twinFirst) } : { a: root.getBoundingClientRect(), b: twin.getBoundingClientRect() };
-    drawn.forEach((node, index) => compare(node, other[index], same, origin));
+    drawn.forEach((node, index) => compare(node, other[index], same, origin, apart));
   }
   // In forced colours the unknown drawing is hidden (stand-in words would come back in CanvasText); it is shown for the measure, in this task, so it never paints.
   root.setAttribute("data-bone-measuring", "");
@@ -116,6 +163,8 @@ export function measureBones(root: HTMLElement, keep: string): Bone[] {
   const hide = (element: Element): void => element.setAttribute("data-boned", "");
   // What is known is marked once the walk is done: marked during it, the forced-colours rules would hide what is under it from the walk.
   const marks: [Element, string][] = [];
+  // A part that stays put while the page scrolls (sticky or fixed) moves against the rest of the shape: its bones are measured again on a scroll.
+  let moving = false;
   const box = (element: Element, radius?: string): void => {
     const rect = element.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2) return;
@@ -145,6 +194,9 @@ export function measureBones(root: HTMLElement, keep: string): Bone[] {
     if (style.visibility === "hidden" || style.opacity === "0") return;
     // Words for a screen reader only (visually hidden: clipped to nothing) are not seen either.
     if ((style.clip !== "auto" && style.clip !== "") || (style.clipPath !== "none" && style.overflow === "hidden")) return;
+    if (style.position === "sticky" || style.position === "fixed") moving = true;
+    // An element the app marks as one bone is one bone in its box, painted or not.
+    if (element !== root && element.getAttribute("data-bone") === "box") return box(element);
     if (element.matches(FIELD)) return; // A field keeps its frame and holds nothing.
     if (element.matches(MEDIA)) {
       // An icon in an unknown part is not a bone: its control's words or box say it. It is hidden, and its seat is kept.
@@ -153,18 +205,28 @@ export function measureBones(root: HTMLElement, keep: string): Bone[] {
       return box(element);
     }
     const framed = paints(style.backgroundColor) || (Number.parseFloat(style.borderTopWidth) > 0 && paints(style.borderTopColor));
+    // Drawn apart in the two drawings (its own attributes or its drawing differ): a value drawn by CSS. Holding nothing and painted, by itself or by a
+    // mark, it is one bone in its box (a meter's fill, a status dot of any size). Holding words, its painted marks go and its words are bars as usual
+    // (a row whose attributes differ keeps its structure; a badge or a small chip is one bone below).
+    const isApart = element !== root && apart.has(element);
+    const holds = [...element.childNodes].some(meaningful);
+    if (isApart && !holds && (framed || paintsMark(element))) return box(element);
     // A control with a box is one bone; a control that holds a field (a combobox around its text area) is the field's frame.
     if (element !== root && framed && element.matches(CONTROL) && !element.querySelector(FIELD)) return box(element);
     // A small painted box with something in it (an avatar's disc and its initials, a filled chip) is one bone too.
     if (element !== root && framed && !element.querySelector(FIELD) && small(element)) return box(element);
-    // A mark drawn as ::before or ::after (a badge's dot, an unread dot) is hidden; a pseudo-element that draws a line is structure.
+    // A mark drawn as ::before or ::after (a badge's dot, an unread dot) is hidden, and so is any painted one on an element drawn apart (a meter's fill);
+    // a pseudo-element that draws a line is structure.
+    const marked: string[] = [];
     for (const which of ["::before", "::after"] as const) {
       const pseudo = getComputedStyle(element, which);
       if (pseudo.content === "none" || pseudo.content === "normal") continue;
       const w = Number.parseFloat(pseudo.width);
       const h = Number.parseFloat(pseudo.height);
-      if (w > 2 && h > 2 && w <= 16 && h <= 16) element.setAttribute("data-boned-mark", which === "::before" ? "before" : "after");
+      const value = isApart && (paints(pseudo.backgroundColor) || (Number.parseFloat(pseudo.borderTopWidth) > 0 && paints(pseudo.borderTopColor)));
+      if (value || (w > 2 && h > 2 && w <= 16 && h <= 16)) marked.push(which === "::before" ? "before" : "after");
     }
+    if (marked.length) element.setAttribute("data-boned-mark", marked.join(" "));
     // Its own words: all known, they keep their ink; any unknown, they are bones together (a line can't be part ink, part bone).
     const own = [...element.childNodes].filter((kid): kid is Text => kid.nodeType === Node.TEXT_NODE && (kid as Text).data.trim() !== "");
     if (own.length > 0 && own.every((kid) => same.has(kid))) marks.push([element, "data-bone-ink"]);
@@ -235,9 +297,11 @@ export function measureBones(root: HTMLElement, keep: string): Bone[] {
     if (cx < 0 || cy < 0 || cx >= window.innerWidth || cy >= window.innerHeight) return true;
     const hit = document.elementFromPoint(cx, cy);
     if (!hit || hit === layer || layer?.contains(hit)) return true;
+    // Something outside the shape on top of it paints over the bones too (the shape is its own stacking context): only a part of the shape can cover one.
+    if (!root.contains(hit)) return true;
     return bone.source.contains(hit) || hit.contains(bone.source);
   });
   root.inert = wasInert;
   root.removeAttribute("data-bone-measuring");
-  return seen.map(({ x, y, w, h, r }) => ({ x, y, w, h, r }));
+  return { bones: seen.map(({ x, y, w, h, r }) => ({ x, y, w, h, r })), moving };
 }
