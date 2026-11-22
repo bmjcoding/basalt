@@ -21,6 +21,12 @@
       "types": "./dist/tooling/phosphor.d.ts",
       "default": "./dist/tooling/phosphor.js"
     },
+    "./imports": {
+      "types": "./dist/tooling/imports.d.ts",
+      "default": "./dist/tooling/imports.js"
+    },
+    "./head/theme.js": "./dist/head/theme.js",
+    "./head/loops.js": "./dist/head/loops.js",
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
     "./fonts.css": "./dist/fonts.css"

@@ -42,6 +42,18 @@ export interface CommandMenuProps {
   placeholder?: string;
   /** Show a footer naming the keys (↵ Run, Esc Close). Off by default: they're universal. */
   hints?: boolean;
+  /**
+   * What is typed in the search field, for a menu that controls it: pass it with `onSearchChange`. Left out, the menu keeps its own, which starts empty
+   * at every opening. A controlled search is the app's to clear: the menu changes it only as the person types (clear it in `onOpenChange` for a fresh
+   * search at every opening). Words typed while the panel loads are part of it.
+   */
+  search?: string;
+  /**
+   * Called with the search as it changes: as the person types, and (in a menu that keeps its own) with `""` once it has closed. A command may carry the
+   * words, as a "Search this page for …" row does (its `label` holds the words, and `keywords: [search]` keeps it found), and the list filters and orders
+   * it with the rest.
+   */
+  onSearchChange?: (search: string) => void;
 }
 
 type PanelModule = typeof import("./command-panel");
@@ -119,25 +131,38 @@ export function CommandMenu(props: CommandMenuProps) {
  * state, and the review walkthrough passes a fixed one to show the loading and error looks.
  * @internal
  */
-export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", hints = false, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
+export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
   const popupRef = useModalOutside<HTMLDivElement>(popup);
   const loadingId = React.useId();
-  // What is typed while the panel loads is kept, and becomes the panel's first search.
-  const [early, setEarly] = React.useState("");
-  React.useEffect(() => { if (!open) setEarly(""); }, [open]);
+  // The search is held here, not in the panel, so what is typed while the panel loads is the panel's search when it arrives, and so an app can control it.
+  // A menu that keeps its own clears it once it has closed (after the closing transition, so the list does not change on its way out), and says so to
+  // `onSearchChange`; a controlled one is the app's to clear.
+  const [own, setOwn] = React.useState("");
+  const search = controlled ?? own;
+  const heard = React.useRef(onSearchChange);
+  heard.current = onSearchChange;
+  const setSearch = React.useCallback((next: string) => {
+    if (controlled === undefined) setOwn(next);
+    heard.current?.(next);
+  }, [controlled]);
+  const closed = (isOpen: boolean) => {
+    if (isOpen || controlled !== undefined || own === "") return;
+    setOwn("");
+    heard.current?.("");
+  };
   const Panel = state.status === "ready" ? state.Panel : null;
   return (
     <ModalDepth.Provider value={layer.depth}>
-      <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
+      <BaseDialog.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={closed}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
           <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label="Command menu">
             {inLevel(
               MODAL_LEVEL,
               Panel ? (
-                <Panel groups={groups} placeholder={placeholder} hints={hints} onOpenChange={onOpenChange} initialSearch={early} />
+                <Panel groups={groups} placeholder={placeholder} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
               ) : state.status === "error" ? (
                 // The alert is the sentence alone: the buttons are not read out with it. A browser keeps a failed
                 // file for the life of the page, so after a second failure Reload page comes first and has focus.
@@ -167,8 +192,8 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck={false}
-                    value={early}
-                    onChange={(event) => setEarly(event.target.value)}
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
                   />
                   <span className="basalt-command-slot" aria-hidden="true"><LoadingRing /></span>
                   <span id={loadingId} className="basalt-visually-hidden">Loading commands</span>

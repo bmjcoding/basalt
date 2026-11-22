@@ -164,6 +164,8 @@ export { TRAVEL_IN_FLIGHT, TRAVEL_LONG_LEG, TRAVEL_MIN_LEG, TRAVEL_MS_PER_PX, TR
 export type { Flight, TravelRun, TravelTokens, Travellers } from "./travel";
 export { useTheme } from "./theme";
 export { themeBootstrap } from "./theme-bootstrap";
+export { CSPProvider } from "./csp";
+export type { CSPProviderProps } from "./csp";
 export type { ThemeChoice, ThemeName, ThemeState } from "./theme";
 export { useMediaQuery } from "./use-media";
 export { GlidePlate } from "./plate";

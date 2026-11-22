@@ -1,235 +1,192 @@
-// Round 56: the composer, the mention, the mention picker and the public plate (cimip-gaps-2, batch B3). Decided and built by Opus on the
-// no-council path (DECISIONS 226 and 265); the code review is Astra's and the pixels are the lead's, and neither has happened yet. Every part
-// is shown in two unlike domains, a support inbox and a build pipeline, with synthetic names only. States: at rest (`default`), `typing`
-// (words in the field and someone typing), `long` (the field at its cap, scrolling), `sending` (a send held out, Send's ring up),
-// `picker` (@ typed, the picker open under the field's line), `picker-keys` (↓ twice), `picker-foot` (the composers at the page's foot: the
-// picker above the line), and forced colours and reduced
-// motion for each that moves or marks.
+// Round 56: engineering inside the decided design (DECISIONS 265, batch B0). Nothing here is a new look: the one pixel change restores a documented rule (a cut
+// link in a still table's pinned row head now ends in an ellipsis, as one in a data cell always has); the command menu's search is an API; the content-policy
+// provider draws what Base UI's inline style drew. Each part in two unlike domains, with synthetic data only. Built by Opus; Astra reviews the code and the lead
+// the pixels. States: `open` (the docs domain) and `open-inbox` for the menu; `open` for each Select under the provider, with forced colours and reduced motion.
 
 import * as React from "react";
 
-import { Button, Card, CardContent, Composer, Mention, MentionPicker, Text, typingStatus } from "../../packages/react/src/index";
-import type { MentionOption } from "../../packages/react/src/index";
+import {
+  Button,
+  CommandMenu,
+  CSPProvider,
+  Link,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableRowHead,
+  Text,
+} from "../../packages/react/src/index";
+import type { CommandGroup } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
-const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "").replace(/-foot$/, "");
+const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
 
-const SUPPORT: MentionOption[] = [
-  { label: "Ana Ruiz", value: "u1", description: "Support lead · Online", group: "People" },
-  { label: "Anders Holm", value: "u2", description: "Billing · Away until 2 pm", group: "People" },
-  { label: "Ben Okafor", value: "u3", description: "Support · Online", group: "People" },
-  { label: "billing", value: "t1", description: "Team of 4 · Refunds and invoices", group: "Teams" },
-  { label: "android-app", value: "t2", description: "Team of 6 · Mobile reports", group: "Teams" },
-  { label: "analytics", value: "t3", description: "Reaches nobody yet", group: "Teams", disabled: true },
-  { label: "tier-2", value: "r1", description: "Whoever takes escalations this week", group: "Roles" },
+// ---- A still table with a pinned row head that holds a link, in two domains ----
+
+const JOBS: Array<[string, string, string, string]> = [
+  ["integration-tests-linux-arm64-large", "release-engineering", "Waiting for a runner", "4m 12s"],
+  ["lint", "web-platform", "Passed", "38s"],
+  ["package-signing-and-notarisation", "release-engineering", "Passed", "2m 05s"],
+  ["docs-preview", "docs", "Failed", "1m 47s"],
 ];
-const PIPELINE: MentionOption[] = [
-  { label: "Lee Park", value: "u1", description: "Owns the arm64 runners", group: "People" },
-  { label: "Lena Varga", value: "u2", description: "Release manager", group: "People" },
-  { label: "Mira Sato", value: "u3", description: "Build tooling", group: "People" },
-  { label: "linker", value: "t1", description: "Team of 3 · Toolchain", group: "Teams" },
-  { label: "release", value: "t2", description: "Team of 5 · Signs and ships", group: "Teams" },
-  { label: "on-call", value: "r1", description: "Whoever holds the pager this week", group: "Roles" },
+const DOCUMENTS: Array<[string, string, string, string]> = [
+  ["Quarterly planning notes and budget draft", "finance-and-operations", "Shared with 4 people", "Nov 20, 2026"],
+  ["Readme", "docs", "Only you", "Nov 19, 2026"],
+  ["Onboarding checklist for new contributors", "people-team", "Anyone with the link", "Nov 14, 2026"],
+  ["Roadmap", "product", "Shared with 12 people", "Nov 2, 2026"],
 ];
+
+function PinnedTable({ label, heads, rows, newTab = false }: { label: string; heads: [string, string, string, string]; rows: Array<[string, string, string, string]>; newTab?: boolean }) {
+  return (
+    <TableContainer label={label}>
+      <Table columns={[{ width: 180 }, { width: 160 }, {}, { width: 120 }]} minWidth={640} pinned={1}>
+        <TableHeader>
+          <TableRow>
+            {heads.map((head) => <TableHead key={head}>{head}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(([name, owner, note, last]) => (
+            <TableRow key={name}>
+              <TableRowHead><Link href="#" target={newTab ? "_blank" : undefined}>{name}</Link></TableRowHead>
+              <TableCell><Link href="#">{owner}</Link></TableCell>
+              <TableCell>{note}</TableCell>
+              <TableCell>{last}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function Tables() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      <PinnedTable label="Jobs" heads={["Job", "Owner", "Status", "Took"]} rows={JOBS} />
+      <PinnedTable label="Documents" heads={["Document", "Folder", "Sharing", "Edited"]} rows={DOCUMENTS} newTab />
+    </div>
+  );
+}
+
+// ---- CommandMenu's search, carried by a row, in two domains ----
 
 const DOMAINS = {
-  support: {
-    title: "Order 4471: refund not received",
-    label: "Reply to the customer",
-    placeholder: "Reply to the customer. Type @ to bring someone in.",
-    options: SUPPORT,
-    typed: "Hi Jordan, the refund went out this morning. It takes three to five business days to reach your card.",
-    long: ["Hi Jordan,", "", "The refund went out this morning.", "It takes three to five business days", "to reach your card, and your bank", "may show it as pending first.", "", "If it hasn't arrived by Friday,", "reply here and we'll trace it."].join("\n"),
-    query: "Thanks, @an",
-    typing: ["Ana Ruiz"],
-    actions: <Button variant="ghost" size="sm">Attach</Button>,
-    sendKey: "Enter" as const,
+  docs: {
+    button: "Document commands",
+    word: "budget",
+    group: { label: "Document", commands: [{ id: "share", label: "Share document" }, { id: "export", label: "Export as PDF" }, { id: "history", label: "Version history" }] },
+    find: (search: string) => `Search this document for “${search}”`,
   },
-  pipeline: {
-    title: "Nightly build #2291 failed on arm64",
-    label: "Comment on the build",
-    placeholder: "Comment on the build. Type @ to ask someone.",
-    options: PIPELINE,
-    typed: "The linker ran out of memory on the arm64 runner. Rerunning with the larger runner now.",
-    long: ["The linker ran out of memory on arm64:", "", "  ld: error: out of memory", "  allocating 2147483648 bytes", "", "Rerunning on the 32 GB runner.", "If that passes I'll raise the default", "for every arm64 job in the matrix", "and close this."].join("\n"),
-    query: "@l",
-    typing: ["Lee Park", "Mira Sato"],
-    actions: <Button variant="ghost" size="sm">Code block</Button>,
-    sendKey: "Mod+Enter" as const,
+  inbox: {
+    button: "Inbox commands",
+    word: "refund",
+    group: { label: "Inbox", commands: [{ id: "assign", label: "Assign to me" }, { id: "close", label: "Close ticket" }, { id: "refund-policy", label: "Open the refund policy" }] },
+    find: (search: string) => `Search all tickets for “${search}”`,
   },
 };
 
-function Thread({ domain, state }: { domain: keyof typeof DOMAINS; state: string }) {
-  const d = DOMAINS[domain];
+function Commands({ state }: { state: string }) {
   const kind = kindOf(state);
-  const [text, setText] = React.useState(kind === "typing" || kind === "sending" ? d.typed : kind === "long" ? d.long : "");
-  const field = React.useRef<HTMLTextAreaElement | null>(null);
-  React.useEffect(() => {
-    const ta = field.current;
-    if (!ta) return undefined;
-    if (kind === "picker" || kind === "picker-keys") {
-      // A real focus and a real input event, so the picker reads the field as it would a person's typing, once the picker has taken the field.
-      const timers: number[] = [];
-      const start = () => {
-        if (!ta.hasAttribute("aria-autocomplete")) { timers.push(window.setTimeout(start, 20)); return; }
-        ta.focus();
-        ta.value = d.query;
-        ta.setSelectionRange(d.query.length, d.query.length);
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
-        setText(d.query);
-        if (kind === "picker-keys") {
-          timers.push(window.setTimeout(() => {
-            for (let i = 0; i < 2; i++) ta.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
-          }, 200));
-        }
-      };
-      start();
-      return () => timers.forEach(window.clearTimeout);
-    }
-    if (kind === "long") { ta.scrollTop = ta.scrollHeight; }
-    if (kind === "sending") {
-      const timer = window.setTimeout(() => ta.closest(".basalt-composer")?.querySelector<HTMLButtonElement>(".basalt-composer-send")?.click(), 50);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [kind, d]);
+  const domain = kind === "open-inbox" ? DOMAINS.inbox : DOMAINS.docs;
+  const shown = kind.startsWith("open");
+  const [open, setOpen] = React.useState(shown);
+  const [search, setSearch] = React.useState(shown ? domain.word : "");
+  const groups: CommandGroup[] = [domain.group, ...(search ? [{ label: "Search", commands: [{ id: "find", label: domain.find(search), keywords: [search] }] }] : [])];
   return (
-    <section style={{ display: "grid", gap: "var(--basalt-space-3)", minWidth: 0 }}>
-      <Text size="sm" weight="medium">{d.title}</Text>
-      {domain === "support" ? (
-        <Text size="sm" tone="secondary">
-          <Mention>Ben Okafor</Mention> checked the payment provider: the refund was issued at 09:12. <Mention you>Ana Ruiz</Mention>, can you confirm the card it went to?
-        </Text>
-      ) : (
-        <Text size="sm" tone="secondary">
-          <Mention>Mira Sato</Mention> retried once with the same runner and it failed at the same step. <Mention you>Lee Park</Mention>, is the 32 GB pool free tonight?
-        </Text>
-      )}
-      <Composer
-        label={d.label}
-        placeholder={d.placeholder}
-        value={text}
-        onValueChange={setText}
-        inputRef={field}
-        sendKey={d.sendKey}
-        actions={d.actions}
-        status={typingStatus(kind === "default" ? [] : d.typing)}
-        // The review holds a send out, so the ring can be seen; it never settles.
-        onSend={() => (kind === "sending" ? new Promise(() => {}) : undefined)}
-        mentions={(field) => <MentionPicker field={field} options={d.options} label="Mention someone" />}
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <Button onClick={() => setOpen(true)}>{domain.button}</Button>
+      <CommandMenu
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setSearch("");
+        }}
+        groups={groups}
+        search={search}
+        onSearchChange={setSearch}
       />
-    </section>
-  );
-}
-
-function Composers({ state }: { state: string }) {
-  const at = state.includes("-foot") ? "foot" : "top";
-  return (
-    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "grid", gap: "var(--basalt-space-8)", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", alignContent: at === "foot" ? "end" : "start", minHeight: at === "foot" ? 700 : undefined }}>
-      <Thread domain="support" state={state} />
-      <Thread domain="pipeline" state={state} />
     </div>
   );
 }
 
-// An app's own list, drawn with the public plate: the active row is `var(--basalt-plate)` at whatever level the list sits on.
-function OwnList({ title, rows, active }: { title: string; rows: string[]; active: number }) {
+// ---- Select under CSPProvider disableStyleElements, in two domains ----
+
+function Selects({ state }: { state: string }) {
+  const open = kindOf(state) === "open";
   return (
-    <div style={{ display: "grid", gap: "var(--basalt-space-1)", minWidth: 0 }}>
-      <Text size="xs" tone="tertiary" weight="medium">{title}</Text>
-      <div role="listbox" aria-label={title} aria-activedescendant={`${title}-${active}`} tabIndex={0} style={{ display: "grid", gap: "var(--basalt-space-0-5)" }}>
-        {rows.map((r, i) => (
-          <div key={r} id={`${title}-${i}`} role="option" aria-selected={i === active} style={{ padding: "var(--basalt-space-2) var(--basalt-space-3)", borderRadius: "var(--basalt-radius-md)", background: i === active ? "var(--basalt-plate)" : undefined, color: i === active ? "var(--basalt-text-primary)" : "var(--basalt-text-secondary)", fontSize: "var(--basalt-text-base-size)", lineHeight: "var(--basalt-text-base-line-height)" }}>
-            {r}
-          </div>
-        ))}
+    <CSPProvider disableStyleElements>
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 220 }}>
+          <Text size="sm" tone="secondary">A build pipeline</Text>
+          <Select aria-label="Runner" defaultOpen={open} defaultValue="arm" options={[{ value: "linux", label: "Linux x64" }, { value: "arm", label: "Linux arm64" }, { value: "mac", label: "macOS" }, { value: "win", label: "Windows" }]} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 220 }}>
+          <Text size="sm" tone="secondary">A shared folder</Text>
+          <Select aria-label="Sort documents" defaultValue="edited" options={[{ value: "edited", label: "Last edited" }, { value: "name", label: "Name" }, { value: "owner", label: "Owner" }]} />
+        </div>
       </div>
-    </div>
-  );
-}
-
-function Plates() {
-  const inbox = ["Unassigned", "Mine", "Waiting on customer", "Closed"];
-  const runs = ["main · #2291", "release/4.2 · #2290", "main · #2289"];
-  return (
-    <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", display: "grid", gap: "var(--basalt-space-6)", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))" }}>
-      <OwnList title="Inbox views (the page)" rows={inbox} active={1} />
-      <Card><CardContent><OwnList title="Recent runs (a card, level 1)" rows={runs} active={0} /></CardContent></Card>
-      <Card><CardContent><Card><CardContent><OwnList title="Queues (level 2)" rows={inbox} active={2} /></CardContent></Card></CardContent></Card>
-    </div>
+    </CSPProvider>
   );
 }
 
 export const ROUND_56: Round = {
   id: "56",
-  title: "The composer, the mention, the mention picker and the public plate (cimip-gaps-2, B3)",
+  title: "Engineering: a pinned link's ellipsis, the command menu's search, and a page under a content policy (DECISIONS 265, B0)",
   reviewed: false,
   summary:
-    "Four parts any app that lets people write to each other needs: a composer (a message field with no visible label, its actions and Send, and a line for who is typing), a mention (a name that calls on someone, marked by its @ and a weight), a mention picker (Combobox's rows in a popup over the field, focus left in the field), and the lit row's plate as public tokens, so an app's own list draws its active row as Basalt does. Decided and built by Opus on the no-council path (DECISIONS 226 and 265); Astra's code review and the lead's pixel check have not happened yet, and no design panel reviewed it. Shown in a support inbox and a build pipeline, synthetic names only, at 1440 and at 390 on touch, in both themes, with forced colours and reduced motion. No space step at 160 was added: the 160 that was asked for is a label column, and `size-description-label` is that.",
+    "Engineering inside the decided design. One pixel change, and it restores a documented rule: a cut link in a still table's pinned row head ends in an ellipsis, as one in a data cell always has. CommandMenu's search is now the app's to read or control, so a row can carry the words typed. Under a content policy, the head scripts ship as files, and CSPProvider turns off Base UI's one inline style while Basalt's sheet draws the same rule. Built by Opus; Astra reviews the code and the lead the pixels; no design panel, because nothing new is drawn. Synthetic data, in two unlike domains each.",
   steps: [
     {
-      id: "composer",
-      name: "The composer",
-      intro: "Where a person writes a message: the field (its name is its label, and there is no visible one), the app's actions and Send under it, and one line for who is typing.",
+      id: "pinned-links",
+      name: "A cut link in a pinned row head",
+      intro: "Two still tables, a build pipeline's jobs and a shared folder's documents, each with its name column pinned and every name a link; the documents open in a new tab, with the new-tab arrow.",
       decisions: [
-        "Built from parts that are already decided: Basalt's Textarea, a primary Button for Send at the row's end, the app's own ghost buttons at its start, and the status line in text-xs tertiary ink. No new look.",
-        "The status line is one line tall even when empty, so nothing moves when someone starts typing; it is a polite live region. `typingStatus` writes \"Ana is typing\", \"Ana and Ben are typing\", \"Ana, Ben, and Cy are typing\" and \"4 people are typing\"; an app can write its own words.",
-        "The field starts at two lines (the Textarea's own least) and grows a line at a time to eight, then scrolls; both are props (`rows`, `maxRows`). No resize handle: its height is its text's. Where the browser cannot size a field to its content it is measured instead, within the same bounds.",
-        "Enter sends and Shift+Enter is a new line, and the soft keyboard's key says Send. With `sendKey=\"Mod+Enter\"` (the build pipeline) Enter is a new line and ⌘↵ or Ctrl Enter sends, shown as chips beside Send (ActionShortcut, hidden on touch until a hardware key is pressed). A key presses Send, so a key and a press are one send, guarded by the button's own wait: while a send is out, a second Enter sends nothing.",
-        "On success the field is cleared, unless the person changed the text while it was out; a refusal keeps the words. A press on Send keeps focus (and a phone's keyboard) in the field.",
-        "Not reviewed: no design panel, and Astra and the lead have not looked yet.",
+        "Restores \"a cut cell keeps its ellipsis\" (foundations, the still table): the rule that makes a link its own truncating box was written for `td > a` only, so a long link in the pinned `th` was cut hard mid-letter. It is now `:is(td, th) > a`, in React and in the HTML skill's still table, with the same specificity. The hard cut showed on a new-tab link (its label and arrow are a row of their own, so the cell's own ellipsis cannot reach them): its label now truncates and the arrow stays whole, as in a data cell.",
+        "Nothing else moves: column widths, the 40px row, the pinned edge and the link's own ring are as they were. A short name is whole.",
+        "Not reviewed by the design panel: it restores documented behaviour (engineering, AGENTS.md). The cut link is not yet a cut cell with a plate: the cell's link is its one stop, as in a data cell (unchanged; noted for the owner in the report).",
       ],
-      tryIt: [
-        "Type a reply and press Enter in the support thread; in the build thread press Enter for a new line and ⌘↵ (Ctrl Enter) to send.",
-        "Paste ten lines: the field grows to eight and then scrolls.",
-        "Type @ and a letter: the picker opens over the field's line (the next step).",
-      ],
-      states: ["typing", "long", "sending", "typing-forced-colours", "sending-reduced-motion"],
+      tryIt: ["At 390, scroll a table sideways: the pinned names keep their ellipsis.", "Tab through the names: each link takes its ring."],
+      states: ["forced-colours", "reduced-motion"],
       widths: [1440, 390],
-      scales: [2],
-      height: 560,
+      height: 720,
       touch: true,
-      demo: ({ state }) => <Composers state={state} />,
+      demo: () => <Tables />,
     },
     {
-      id: "picker",
-      name: "The mention picker",
-      intro: "Typing @ at the start of a word offers who can be named: people, teams and roles, two lines a row, under the trigger's line, with focus left in the field.",
+      id: "command-search",
+      name: "The command menu's search, carried by a row",
+      intro: "A document's commands and a support inbox's, each with the app's own last row that searches for the words typed.",
       decisions: [
-        "Combobox's popup and rows, reused: the popup's level, rim, shadow and radius 12, the 58px two-line rows (54 plate), group labels, the plate and its glide, and the lift from secondary to primary. `Listbox` is a list in the page that holds focus, so it is not the picker.",
-        "Focus stays in the field, which carries `aria-activedescendant` to the active row, `aria-controls` to the list while it is open, and `aria-autocomplete=\"list\"`. ↑ and ↓ move the plate and pass over a row that cannot be picked; Enter or Tab writes \"@Name \" (the browser's own undo takes it back); a press on a row picks it; Esc closes it until another @ is typed, and a dialog round the field stays open.",
-        "It sits under the trigger's line, 6px from it, and above the line when there is more room there (a composer at a page's foot), inside the window at 390.",
-        "A name may hold a space (\"@ana r\") while something matches; once nothing does it closes, so a sentence is never held. An @ inside a word (an address) opens nothing. A query that matches nothing opens nothing, and the app still hears it (`onQueryChange`) to look names up on its server.",
-        "Rows are cut, never wrapped, as every popup row is today. Whether described rows may wrap is another batch's question (B6).",
+        "`search` and `onSearchChange` on `CommandMenu`: the app hears what is typed and may control it. Uncontrolled, the search starts empty at each opening, and the app hears `\"\"` once the menu has closed (after its closing transition, so the list does not change on its way out). Words typed while the panel loads are part of the search.",
+        "No pixel change: the row is an ordinary command the app adds, with the words in its label and `keywords: [search]` so it stays found.",
       ],
-      tryIt: [
-        "Type @an in the support thread, ↓ twice, Enter.",
-        "Type @an and press Esc; type more: it stays closed until the next @.",
-      ],
-      states: ["picker", "picker-keys", "picker-foot", "picker-forced-colours", "picker-reduced-motion"],
+      tryIt: ["Open either menu and type: the last row follows the words.", "Close and open again: the search starts empty."],
+      states: ["open", "open-inbox", "open-forced-colours", "open-reduced-motion"],
       widths: [1440, 390],
-      scales: [2],
       height: 640,
       touch: true,
-      demo: ({ state }) => <Composers state={state} />,
+      demo: ({ state }) => <Commands state={state} />,
     },
     {
-      id: "mention",
-      name: "The mention, and the public plate",
-      intro: "A name in running text that calls on someone, and the plate an app's own list can draw its active row with.",
+      id: "policy-select",
+      name: "A Select under a content policy",
+      intro: "Two Selects inside `CSPProvider disableStyleElements`, a build pipeline's runner and a shared folder's sort.",
       decisions: [
-        "A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour, and it wraps with its text. The trigger is a prop (\"#billing\").",
-        "A mention of the reader (`you`) sits on its level's plate as well, radius 4 and 2px each side of its own, drawn on every line it wraps to (given back by a margin, the plate ate half the space before it); in forced colours it is Mark with MarkText.",
-        "The plate is public: tokens plate-0 to plate-3 (the selected wash over each level as one opaque colour, in both themes and in Swift), and `--basalt-plate`, which follows the level a part sits in. Basalt's pressed toggle, chosen card and chosen peek now read it; a test proves they paint the same pixel the private recipe did.",
-        "No space step above 128: the 160 that was asked for is a label column, which `size-description-label` already names. Space steps are gaps; past 64 the scale has only the section gaps (96 and 128).",
+        "Base UI writes one inline `<style>` when a Select opens; `style-src 'self'` refuses it. With the provider, Base UI writes none, and Basalt's sheet draws the same two declarations on `.base-ui-disable-scrollbar` in `@layer basalt`. Measured with Base UI's style and without it: the open popup's box, and its list's scrollbar width and client width, are the same; no style element is written (tested under a real policy).",
+        "The head scripts (`themeBootstrap`, `loopsBootstrap`) ship as files too (`head/theme.js`, `head/loops.js`) for `script-src 'self'`; nothing to see.",
       ],
-      tryIt: ["Look at the three lists: each active row is `var(--basalt-plate)`, a step lighter at each level in dark and one grey in light. These are an app's own markup with inline styles, so in forced colours their fill goes: an app gives its own active row `Highlight` there, as Basalt's rows do."],
-      states: ["forced-colours"],
+      tryIt: ["Open the runner Select and choose: it behaves as any Select."],
+      states: ["open", "open-forced-colours", "open-reduced-motion"],
       widths: [1440, 390],
-      scales: [2],
-      height: 520,
+      height: 480,
       touch: true,
-      demo: () => <><Composers state="default" /><Plates /></>,
+      demo: ({ state }) => <Selects state={state} />,
     },
   ],
 };

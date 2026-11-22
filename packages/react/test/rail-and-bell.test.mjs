@@ -57,3 +57,90 @@ describe("The notification bell's unread dot", () => {
     await page.close();
   });
 });
+
+// The owner, 2026-11-22 (DECISIONS 268): popups open below their opener, never beside it. Base UI's popover default let a centre
+// taller than the room above and below jump to the bell's left; it now stays under the bell and scrolls inside.
+describe("A popup taller than the room stays below its opener", () => {
+  const entries = Array.from({ length: 20 }, (_, i) => `{ id: "e${i}", title: "Synthetic entry ${i + 1}", description: "A second line of synthetic words", time: "${i + 1}m ago", unread: ${i < 3} }`).join(",");
+  for (const theme of ["dark", "light"]) {
+    test(`the notification centre opens under the bell at its end edge, and scrolls (${theme})`, async () => {
+      const { page } = await fixturePage(browser, `document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<header style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.NotificationCentre entries={[${entries}]} /></header>);`, { theme, viewport: { width: 1440, height: 700 } });
+      await settle(page);
+      await page.locator(".basalt-notifications-trigger").click();
+      await page.waitForTimeout(400);
+      const m = await page.evaluate(() => {
+        const bell = document.querySelector(".basalt-notifications-trigger").getBoundingClientRect();
+        const pop = document.querySelector(".basalt-notifications").getBoundingClientRect();
+        const scroll = document.querySelector(".basalt-notifications-scroll");
+        return { side: document.querySelector(".basalt-notifications").closest(".basalt-positioner").getAttribute("data-side"), bell: { bottom: bell.bottom, right: bell.right }, pop: { top: pop.top, bottom: pop.bottom, right: pop.right }, scrolls: scroll.scrollHeight > scroll.clientHeight, vh: innerHeight };
+      });
+      assert.equal(m.side, "bottom", "placed below");
+      assert.ok(m.pop.top >= m.bell.bottom, `the popup's top ${m.pop.top} is under the bell's bottom ${m.bell.bottom}`);
+      assert.ok(Math.abs(m.pop.right - m.bell.right) < 0.5, `its end edge ${m.pop.right} is the bell's ${m.bell.right}`);
+      assert.ok(m.pop.bottom <= m.vh, `it fits the window (${m.pop.bottom} of ${m.vh})`);
+      assert.ok(m.scrolls, "the list scrolls inside");
+      await page.close();
+    });
+  }
+
+  test("a plain popover taller than the room stays below and scrolls", async () => {
+    const lines = Array.from({ length: 60 }, (_, i) => `<p>Synthetic line ${i + 1}</p>`).join("");
+    const { page } = await fixturePage(browser, `document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.Popover><B.PopoverTrigger render={<B.Button>Details</B.Button>} /><B.PopoverContent align="end">${lines}</B.PopoverContent></B.Popover></div>);`, { theme: "dark", viewport: { width: 1024, height: 600 } });
+    await settle(page);
+    await page.getByRole("button", { name: "Details" }).click();
+    await page.waitForTimeout(400);
+    const m = await page.evaluate(() => {
+      const pop = document.querySelector(".basalt-popover");
+      const r = pop.getBoundingClientRect();
+      const t = [...document.querySelectorAll("button")].find((b) => b.textContent === "Details").getBoundingClientRect();
+      return { side: pop.closest(".basalt-positioner").getAttribute("data-side"), top: r.top, bottom: r.bottom, trigger: t.bottom, scrolls: pop.scrollHeight > pop.clientHeight, vh: innerHeight };
+    });
+    assert.equal(m.side, "bottom");
+    assert.ok(m.top >= m.trigger, `under the trigger (${m.top} against ${m.trigger})`);
+    assert.ok(m.bottom <= m.vh && m.scrolls, `fits the window and scrolls (${m.bottom} of ${m.vh})`);
+    await page.close();
+  });
+});
+
+// The owner, 2026-11-22 (DECISIONS 269): "Clear all" at the footer's start, "View all" at its end.
+describe("The notification centre's Clear all", () => {
+  for (const theme of ["dark", "light"]) {
+    test(`sits at the footer's start, View all at its end; clearing keeps focus on it, disabled in place (${theme})`, async () => {
+      const { page } = await fixturePage(browser, `document.body.style.margin = "0";
+        function App() {
+          const [entries, setEntries] = React.useState([{ id: "a", title: "Invoice 1093 paid", time: "2m ago", unread: true }, { id: "b", title: "Backup completed", time: "9m ago" }]);
+          return <div style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.NotificationCentre entries={entries} onClearAll={() => setEntries([])} onViewAll={() => {}} /></div>;
+        }
+        createRoot(document.getElementById("root")).render(<App />);`, { theme, viewport: { width: 1024, height: 700 } });
+      await settle(page);
+      await page.locator(".basalt-notifications-trigger").click();
+      await page.waitForTimeout(400);
+      const m = await page.evaluate(() => {
+        const foot = document.querySelector(".basalt-notifications-foot").getBoundingClientRect();
+        const clear = [...document.querySelectorAll(".basalt-notifications-foot button")].find((b) => b.textContent === "Clear all").getBoundingClientRect();
+        const view = [...document.querySelectorAll(".basalt-notifications-foot button")].find((b) => b.textContent === "View all").getBoundingClientRect();
+        return { footLeft: foot.left, footRight: foot.right, clearLeft: clear.left, viewRight: view.right };
+      });
+      assert.ok(m.clearLeft - m.footLeft < 16, `Clear all at the start (${m.clearLeft - m.footLeft}px in)`);
+      assert.ok(m.footRight - m.viewRight < 16, `View all at the end (${m.footRight - m.viewRight}px in)`);
+      const clear = page.getByRole("button", { name: "Clear all" });
+      await clear.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(200);
+      assert.equal(await clear.getAttribute("aria-disabled"), "true", "disabled in place");
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Clear all", "keeps focus");
+      assert.equal(await page.locator(".basalt-notification").count(), 0, "the entries are gone");
+      assert.equal(await page.locator(".basalt-notifications-trigger").getAttribute("aria-expanded"), "true", "the centre stays open");
+      await page.close();
+    });
+  }
+
+  test("without onClearAll the footer holds View all alone, at its end", async () => {
+    const { page } = await fixturePage(browser, `document.body.style.margin = "0"; createRoot(document.getElementById("root")).render(<div style={{ display: "flex", justifyContent: "flex-end", padding: 12 }}><B.NotificationCentre entries={[{ id: "a", title: "Synthetic entry", time: "2m ago" }]} /></div>);`, { theme: "dark", viewport: { width: 1024, height: 700 } });
+    await settle(page);
+    await page.locator(".basalt-notifications-trigger").click();
+    await page.waitForTimeout(400);
+    assert.equal(await page.getByRole("button", { name: "Clear all" }).count(), 0);
+    await page.close();
+  });
+});
