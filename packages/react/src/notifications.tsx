@@ -37,6 +37,8 @@ export interface NotificationCentreProps {
   onSelect?: (entry: NotificationEntry) => void;
   /** "Mark all as read" was pressed. Update `unread` on your entries: the rows change ink and nothing moves. */
   onMarkAllRead?: () => void;
+  /** "Clear all" was pressed: remove the entries (the app owns them). Given, the footer shows "Clear all" at its start, "View all" stays at its end; with nothing left it stays, disabled in place, and keeps focus. */
+  onClearAll?: () => void;
   /** "View all" was pressed (the app's own page). With `viewAllHref` it is a link as well. */
   onViewAll?: () => void;
   viewAllHref?: string;
@@ -60,7 +62,7 @@ const MARKS: Record<Exclude<ToastStatus, "neutral">, IconComponent> = { success:
  * This is what lets a toast time out: a toast may close after five seconds when the information, and any action, also has a
  * home here (`home: "center"` on the toast). Keep an entry's action reachable for as long as it is valid.
  */
-export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCentreProps) {
+export function NotificationCentre({ entries, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCentreProps) {
   const unread = entries.reduce((count, entry) => count + (entry.unread ? 1 : 0), 0);
   const popup = React.useRef<PopupActions | null>(null);
   // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
@@ -97,6 +99,12 @@ export function NotificationCentre({ entries, onSelect, onMarkAllRead, onViewAll
           </div>
         )}
         <div className="basalt-notifications-foot">
+          {onClearAll ? (
+            // At the footer's start, apart from View all; stays mounted and keeps focus when nothing is left, as Mark all as read does.
+            <Button variant="ghost" size="sm" className="basalt-notifications-clear" disabled={entries.length === 0} focusableWhenDisabled onClick={() => onClearAll()}>
+              Clear all
+            </Button>
+          ) : null}
           {viewAllHref ? (
             <a className="basalt-button" data-variant="ghost" data-size="sm" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
               <span className="basalt-button-label">View all</span>
