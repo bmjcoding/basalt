@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { WAIT_MIN_SHOWN_MS, WAIT_SHOW_AFTER_MS } from "./constants";
 
-// A control that asks the server is busy until the answer, and never sends twice (DECISIONS 255, 257). A press whose handler returns a promise
+// A control that asks the server is busy until the answer, and never sends twice (DECISIONS 255, 260). A press whose handler returns a promise
 // waits for it: further presses are ignored, the control is `aria-busy` and keeps its focus, label and width, and its mark (the ring, or a
 // TextButton's breathing underline) shows only once the wait has run WAIT_SHOW_AFTER_MS, then stays at least WAIT_MIN_SHOWN_MS. Nothing here runs at
 // import: every part is a hook or a function.
