@@ -131,6 +131,15 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     const node = root.current;
     if (!node) return undefined;
     let frame = 0;
+    // The shape draws the app's own parts (twice with a prefill: the drawing and its twin), so it would hold the app's ids: duplicate ids are invalid, and
+    // the app's `getElementById` during loading found the inert copy. Each id inside the shape moves to `data-shape-id`, now and whenever one is set again.
+    const unId = (): void => {
+      for (const el of node.querySelectorAll("[id]")) {
+        el.setAttribute("data-shape-id", el.id);
+        el.removeAttribute("id");
+      }
+    };
+    unId();
     // Whether the shape holds a part that stays put while the page scrolls (sticky or fixed): only then does a scroll outside the shape move its bones.
     let moving = false;
     const measure = (): void => {
@@ -149,7 +158,8 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     // A part that settles its own layout after it is drawn moves what is inside without changing the region's size, and a prefill whose known part
     // grows changes its words: measure again when the drawing changes, but not for the marks the measure sets.
     const changed = new MutationObserver((records) => {
-      if (records.some((record) => record.attributeName !== "inert" && !record.attributeName?.startsWith("data-bone") && !(record.target as Element).closest?.(".basalt-bones-layer"))) again();
+      if (records.some((record) => record.type === "childList" || record.attributeName === "id")) unId();
+      if (records.some((record) => record.attributeName !== "inert" && record.attributeName !== "id" && record.attributeName !== "data-shape-id" && !record.attributeName?.startsWith("data-bone") && !(record.target as Element).closest?.(".basalt-bones-layer"))) again();
     });
     changed.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
     window.addEventListener("resize", again);

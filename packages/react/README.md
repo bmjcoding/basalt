@@ -454,7 +454,7 @@ const landed = useStaged({ people: Boolean(people), stream: Boolean(stream) });
 
 | Export | What it does |
 |---|---|
-| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`. |
+| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`, and the ids of what it draws move to `data-shape-id` so `getElementById` never finds the shape's copy. A text query in a test can skip it with `.basalt-bones`. |
 | `Bones` | The painting alone (`shown`, `keep`, `twin`), for a place a region can't wrap. |
 | `useStaged(ready, gap = 120, together = 250)` | Releases parts in phases. |
 | `useRefreshing(on, after = 1000)`, `Refreshing` | "Updating" for a refresh that takes more than a second: braille and its word, or the ring alone with `compact`. |
