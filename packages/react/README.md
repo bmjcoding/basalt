@@ -52,6 +52,47 @@ and then drawn draws nothing**. Measured with esbuild's minifier on this package
 common components, and about 28 KB (7.5 KB gzipped) less for one that imports everything. Without the plugin the icons ship whole, as before; nothing
 else changes.
 
+**Split bundles with esbuild: the imports plugin (experimental).** An app that splits its bundle (`splitting: true`) and imports from the package's root pays
+up front for every Basalt module a later route draws: esbuild places a module by which entry points reach it before tree shaking, and each `export … from` in the
+root is a path. `@srasyndicate/basalt/imports` gives each of your files a small barrel of the names it imports, each from the module that holds it, so your imports
+stay as they are:
+
+```ts
+import { basaltImportsEsbuild } from "@srasyndicate/basalt/imports";
+await esbuild.build({ splitting: true, plugins: [basaltImportsEsbuild()] /* … */ });
+```
+
+Measured with esbuild 0.28 on a first screen that draws `AppShell`, `Nav` and a `Table`, with a route loaded later that draws `Combobox`, `Select`, `Menu`,
+`Dialog` and a `Field`: 341 KB minified up front without it (Base UI's combobox, select and menu among it), 160 KB with it, none of them. It changes which chunk
+code lands in, never what runs; a bundle without splitting gains nothing from it. It is **experimental**: esbuild only (Rollup and Vite have not been measured),
+and it keeps to two rules:
+
+- **It falls back to the whole root when it cannot read a file.** A file is read through esbuild's own parser, and its imports from the root by their grammar. A
+  file esbuild cannot transform with the loader it would use, or one that names the root in any other form (a namespace import, `export *`, a default import, the
+  name in a string), keeps the full root: a slower first screen, never a missing import.
+- **It never rewrites a dependency that resolves another copy of Basalt.** Each import is resolved as esbuild would resolve it for that file, and only one that
+  reaches the copy beside the plugin is rewritten.
+
+**Under a content security policy.** Two things Basalt or Base UI write inline have a form for a policy that forbids inline code:
+
+- **The head scripts** (`themeBootstrap`, `loopsBootstrap`) are also files: `@srasyndicate/basalt/head/theme.js` and `@srasyndicate/basalt/head/loops.js`, each
+  the exported string exactly. Under `script-src 'self'`, copy them into what your server serves and load them in `<head>` with a plain
+  `<script src="/basalt-theme.js"></script>` (no `async`, `defer` or `type="module"`, which would run them after the first frame). With a nonce, keep the
+  inline form and give it the nonce: `<script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`.
+- **Base UI's one inline `<style>`** (a hidden scrollbar on `.base-ui-disable-scrollbar`, written when a `Select` opens) is refused by `style-src 'self'`.
+  Wrap the app in `<CSPProvider disableStyleElements>`: Base UI writes no style element, and Basalt's stylesheet draws the same two declarations in
+  `@layer basalt` (measured: the open popup's box, and its list's scrollbar width and client width, are the same with Base UI's style and without it). Or pass the policy's nonce, `<CSPProvider nonce={nonce}>`, and Base UI writes it on its style and script elements.
+  `CSPProvider` takes `nonce`, `disableStyleElements` and `children`, and draws nothing of its own: it is Base UI's provider with Basalt's types.
+
+```ts
+// At build time: the head scripts beside your other static files.
+import fs from "node:fs";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+fs.copyFileSync(require.resolve("@srasyndicate/basalt/head/theme.js"), "public/basalt-theme.js");
+fs.copyFileSync(require.resolve("@srasyndicate/basalt/head/loops.js"), "public/basalt-loops.js");
+```
+
 **Browsers.** The floor is Chrome 123, Safari 17.5 and Firefox 121 (the owner's decision, DECISIONS 140). `light-dark()` sets Chrome's and
 Safari's number and `:has()` sets Firefox's; `docs/foundations.md` (Browser support) has the full list and the three known uses above it, and
 `test/browser-floor.test.mjs` fails when the built CSS uses a feature past the floor. The opaque header under reduced transparency is drawn
@@ -71,7 +112,7 @@ only where `prefers-reduced-transparency` is evaluated (Chromium 118 and later);
 | `Combobox` | Search a single selection from `{ value, label, disabled? }` options; labelled by Field. |
 | `NumberField` | Locale-aware number entry; min, max, step, format and bounded increment/decrement. |
 | `Slider` | Required `label`; scalar or range; `thumbLabels` and `getValueText` for meaningful spoken values. |
-| `Menu`, `MenuTrigger`, `MenuContent`, `MenuItem`, `MenuGroup`, `MenuGroupLabel`, `MenuSeparator` | Items take `icon`, `shortcut`, `danger`. An item whose `onClick` returns a promise closes the menu as ever, and the menu waits: its trigger is busy and the menu does not open again until the answer (`waitForAnswer={false}` on the item turns it off). |
+| `Menu`, `MenuTrigger`, `MenuContent`, `MenuItem`, `MenuGroup`, `MenuGroupLabel`, `MenuSeparator` | Items take `icon`, `shortcut`, `danger`. An item whose `onClick` returns a promise closes the menu as ever, and the menu waits: its trigger is busy and the menu does not open again until the answer (`waitForAnswer={false}` on the item turns it off). A trigger that does nothing for now keeps its place and its focus: see [a menu trigger that is off for now](#a-menu-trigger-that-is-off-for-now). |
 | `MenuCheckboxItem`, `MenuRadioGroup`, `MenuRadioItem`, `MenuSubmenu`, `MenuSubmenuTrigger` | Persistent settings and nested actions, with state marks and keyboard navigation. |
 | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogTitle`, `DialogDescription`, `DialogActions`, `DialogClose` | Focus is trapped; Esc closes; focus returns to the trigger. `DialogContent size="wide"` is a reference dialog's width (992px, decided in DECISIONS 158 Q1: 118 characters of Geist Mono at 14px rounded up, kept in px; capped by the viewport) and its first focus is its title (a reading dialog, so Enter on opening runs nothing; a wide `form` keeps a form's first focus on its first field, DECISIONS 242). A title takes `tabIndex={-1}` and draws no ring. A form or task opens in the center (DECISIONS 222): `DialogContent form` takes the sheet's `SheetHeader`, `SheetBody` and `SheetFooter` in a 480px box (a held head with the title and a 44px Close, a scrolling body that opens with the description, a held foot with Cancel, then the primary), at most the window less 16px above and below, its top held where it opened (it re-centres only on a window resize); a press on the scrim closes it only while nothing has been entered; focus on opening goes to the first field, or to the title when a touch opened it; under 720 it is a full-screen modal rising from the bottom. An alert dialog stays centred. |
 | `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogActions`, `AlertDialogCancel`, `AlertDialogAction` | Explicit confirmation; cancel receives initial focus, outside clicks do not dismiss. |
@@ -103,8 +144,8 @@ only where `prefers-reduced-transparency` is evaluated (Chromium 118 and later);
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
 | `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. `numeric` makes a Select of numbers (a page size) as wide as its widest option, below `size-select-min`, whatever is chosen. |
 | `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, home?, group?, running? })`, then `update(id, patch)`, `close(id)` or `promise(work, { running, success, error })`. A toast stays until dismissed unless it names a `home` for what it says (`"centre"`, `"row"`, `"key"` or `"page"`; an action needs one that is not the page), and then it closes after 5s. Level 1, three deep, danger announced assertively. A toast with an `action` is announced with one more sentence: "Undo is available. Press F6 to reach it." (F6 moves to the stack's named region, where the action is a stop.) Pass `actionWords={(label) => string}` to `ToastProvider` to say it in another language or other words; a toast with no action says nothing extra. Nothing extra is drawn, and it is said once. |
-| `NotificationCentre` | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, status?, unread?, href? }`), "Mark all as read" and "View all". Presentational: you own the entries, their read state and the page. |
-| `CommandMenu` | ⌘K: `groups` of `{ label, commands }`, each command `{ id, label, icon?, description?, shortcut?, keywords?, danger?, onSelect? }`; you bind the shortcut. A `description` is a second line, and is searched below the label; `danger` draws the command in the danger colour, as in `Menu`. |
+| `NotificationCentre` | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, status?, unread?, href? }`), "Mark all as read", "View all" and, with `onClearAll`, "Clear all" at the footer's start. Presentational: you own the entries, their read state and the page. |
+| `CommandMenu` | ⌘K: `groups` of `{ label, commands }`, each command `{ id, label, icon?, description?, shortcut?, keywords?, danger?, onSelect? }`; you bind the shortcut. A `description` is a second line, and is searched below the label; `danger` draws the command in the danger colour, as in `Menu`. `onSearchChange` hears what is typed and `search` controls it, so a command can carry the words ("Search this document for “budget”", with `keywords: [search]` so it stays found). Left uncontrolled, the search starts empty at every opening and `onSearchChange` hears `""` once the menu has closed; a controlled one is yours to clear (in `onOpenChange`). |
 | `CommandList` | The same panel set in the page (no dialog): a level-1 panel whose field keeps focus, with a count in its foot. `label` names it; `detail={(command) => pane}` adds a preview beside the list (a push under 816px); `bindShortcut` gives it ⌘K. One command surface per page owns ⌘K. |
 | `SearchTrigger`, `SearchDialog`, `SearchResults`, `SearchResult` | Search by following links. `SearchTrigger` is a button shaped like a field (a 1px input boundary, the glyph and the word, 200 by 44) from 720 and a 44px icon button under it; it opens whatever you open. `SearchDialog` is a centred dialog: a `type="search"` field and a close button (one ×: the browser's is hidden), a count line (`count` is a string, drawn at once and spoken once) and a results area of a fixed height, a full result's, so the field and the count never move. `SearchResults` holds `SearchResult` links: each a tab stop, `media` (96 by 48 with `mediaShape="logo"`, 48 by 60 by default), a name and a `detail` line, a `trailing` value, as tall as its picture plus 6px above and below (never under 48). Enter in the field calls `onSubmit(query)`. There is no active row and no arrow-key movement. |
 | `Listbox`, `ListboxGroup`, `ListboxOption` | One choice from a list that stays in the page: `role="listbox"` with one tab stop and `aria-activedescendant`, whose choice follows ↑ ↓ Home End. Options have a `detail` second line and a `trailing` cell; groups are named by their header. The chosen option has a chevron in its gutter and primary ink, never a heavier weight. Focus is a ring on the list's own box, 2px at +2 with radius 8 (DECISIONS 159: the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2); `flush` draws it inside at −2 where the list meets a clipping edge. The rows scroll in a box inside the focused one (`.basalt-listbox-scroll`), so the corners clip nothing and a script that scrolls the list scrolls that box. |
@@ -122,6 +163,31 @@ only where `prefers-reduced-transparency` is evaluated (Chromium 118 and later);
 | `Toolbar`, `ToolbarButton`, `ToolbarIconButton`, `ToolbarLink`, `ToolbarInput`, `ToolbarGroup`, `ToolbarSeparator` | One tab stop for a row (or column) of controls, as the WAI-ARIA toolbar pattern describes: the arrow keys along its `orientation` move between the controls and wrap (`loopFocus={false}` stops at the ends), Home and End go to the first and last, and in a right-to-left page the arrows follow the page. See [Toolbar](#toolbar). |
 | The core glyphs | `HomeGlyph` and `ArrowDownGlyph`, `ArrowLeftGlyph`, `ArrowRightGlyph`, `ArrowUpGlyph`, `CalendarGlyph`, `CheckGlyph`, `ChevronDownGlyph`, `ChevronLeftGlyph`, `ChevronRightGlyph`, `ChevronUpGlyph`, `CloseGlyph`, `CopyGlyph`, `DownloadGlyph`, `EditGlyph`, `ExternalGlyph`, `HistoryGlyph`, `MenuGlyph`, `MessagesGlyph`, `MinusGlyph`, `MoreGlyph`, `MoreNavGlyph`, `NotificationsGlyph`, `PauseGlyph`, `PlanGlyph`, `PlayGlyph`, `PlusGlyph`, `PolicyGlyph`, `ProfileGlyph`, `RecordsGlyph`, `RoutesGlyph`, `RunsGlyph`, `SandboxesGlyph`, `SearchGlyph`, `SettingsGlyph`, `SourcesGlyph`, `TrashGlyph`, `TrendsGlyph`: one module each, drawn by `Icon` (next row) or passed to any `icon` prop. |
 | `Icon`, `Kbd` | `Kbd` draws one chip per key from a string (`"⌘K"`), with ⌘ ⌥ ⌃ as Phosphor icons; show real shortcuts only. Write a shortcut with `Mod` (`"Mod+Enter"`) and it is ⌘↵ on Apple's systems and Ctrl Enter on Windows, Linux and ChromeOS, in `Kbd`, `ActionShortcut`, `MenuItem`, `CommandMenu` rows and `Tooltip`, with `aria-keyshortcuts` `Meta+Enter` or `Control+Enter` and the words "Command" or "Control" (DECISIONS 244). Bind the key with `isModKey(event)` (Command alone on Apple's systems, Control alone elsewhere; `CommandList`'s `bindShortcut` does), from the same `isApplePlatform()` (`navigator.userAgentData.platform`, else `navigator.platform`, else the user agent; `useApplePlatform()` is the hook), so the hint and the binding can't disagree. A client render (`createRoot`) reads the platform at its first render, so a `Mod` chip is right on the first frame and as wide as a hand-written one; a server-rendered page draws Control and its `Mod` chips settle at hydration, with no mismatch warning. A toast's `action.keys` takes `Mod` too. Strings written the old way (`"⌘K"`, `"Ctrl Enter"`) read as before. `Icon` draws a core glyph (`HomeGlyph`, one module each, 2.25 units on 24 at every size; `selected` closes its opening and fills) or a long-tail Phosphor icon in Bold at 16, 20 and 24 (Fill only when `selected` and `fillSafe`). Every `icon` prop takes any component that accepts `size` and `weight` (the core glyphs and Phosphor's do), and Basalt's declarations name no icon or primitive package. |
+
+### A menu trigger that is off for now
+
+A trigger with nothing to act on yet (no rows chosen, no file open) stays where it is and keeps the focus, so a keyboard user can still find it and read
+why: render a `Button` with `disabled` and `focusableWhenDisabled` (it is `aria-disabled`, keeps its place in the Tab order and ignores a press), and control
+the menu so it cannot open while the button is off. Base UI's trigger opens on its own key and pointer handlers, so the open state is where it is held:
+
+```tsx
+function BulkActions({ selected }: { selected: number }) {
+  const [open, setOpen] = React.useState(false);
+  const off = selected === 0;
+  return (
+    <Menu open={open && !off} onOpenChange={(next) => setOpen(next && !off)}>
+      <MenuTrigger render={<Button size="sm" iconEnd={ChevronDownGlyph} disabled={off} focusableWhenDisabled>Move to</Button>} />
+      <MenuContent>
+        <MenuItem onClick={() => move("archive")}>Archive</MenuItem>
+        <MenuItem onClick={() => move("shared")}>Shared folder</MenuItem>
+      </MenuContent>
+    </Menu>
+  );
+}
+```
+
+The same holds in a build pipeline's toolbar ("Run on", off until a branch is chosen) or a team chat's message bar. Say why it is off in the words beside it
+(a count, "Choose a branch first"): the disabled look alone does not.
 
 ## Toolbar
 
@@ -157,7 +223,7 @@ A toolbar draws nothing. It has no class that styles anything: no gap, no separa
 
 None of these changes how anything looks: each is an option Base UI already had, opened up, with Basalt's own types.
 
-**Placement props** on `PopoverContent` and `MenuContent`, each optional. Left out, a popup is placed as before: against its trigger, `side="bottom"`, `align="start"`, `sideOffset` 6, flipped and shifted to stay 5px inside the viewport.
+**Placement props** on `PopoverContent` and `MenuContent`, each optional. Left out, a popup is placed as before: against its trigger, `side="bottom"`, `align="start"`, `sideOffset` 6, flipped and shifted to stay 5px inside the viewport. A popup stays on its axis: below its trigger, or above it when that has more room, and never beside it (`PopoverContent` passes `collisionAvoidance={{ fallbackAxisSide: "none" }}` unless you give your own; a menu already did). A tall one fits the room and scrolls inside.
 
 | Prop | What it does |
 |---|---|
@@ -197,7 +263,7 @@ None of these changes how anything looks: each is an option Base UI already had,
 | `TimeChart`'s `entrance` | Makes a chart its page's one entrance (see `docs/motion.md`). `entranceVerdict`, `entranceSeen`, `markEntranceSeen`, `forgetEntrance` and `entranceKey` are the rule's parts (`ENTRANCE_LATE_MS`, 1000, is how late a page's script may start and still draw the figure's entrance); `entranceStep` is the stagger's step; `markPageChange()` is what a router calls when a page change without a reload begins, so the next chart's gates run from the change. |
 | `travelLeg`, `travelRun`, `createTravellers`, `travelTokens`, `TRAVEL_SHORT_LEG`, `TRAVEL_LONG_LEG`, `TRAVEL_MS_PER_PX`, `TRAVEL_MIN_LEG`, `TRAVEL_RUN_LIMIT`, `TRAVEL_IN_FLIGHT` | The timing of a travel the eye follows (a leg of `duration-slower` up to 150px, 2ms a pixel above, `duration-figure` from 300px, a 200ms rest, a run inside five seconds) and its in-flight rule (one traveller a trigger; a third lands the oldest at once). The `TRAVEL_*` constants are those numbers: 150 and 300 px, 2 ms a pixel, a 100 ms shortest leg, a 5,000 ms run and 2 travellers in flight. |
 
-**The theme.** `useTheme()` returns `{ theme, choice, setChoice, ready }`: `theme` is `"light"` or `"dark"`, what the stylesheet is showing; `choice` is `"light"`, `"dark"` or `"system"` (no stored value); `setChoice(choice)` stores it and writes `data-theme` on `<html>`; `"system"` removes the stored value. While the choice is `system` the theme follows the device's colour scheme as it changes, and a change made in another tab arrives by the `storage` event. The key is `basalt-theme` with the values `light` and `dark`: the same as the HTML skill's, so a React app and a skill page on one origin agree (anything else stored counts as `system`, as it does there). **Before the client knows the theme** (a server render, and the first render of a hydrating page) it returns `{ theme: "light", choice: "system", ready: false }`, the stylesheet's own default with no `data-theme`, so the first render is the same on both; the real values follow at once with `ready: true`. Hold back a control that would flash the wrong choice until `ready`. With storage blocked, the choice lasts for the page. Nothing runs at import: the listeners are installed by the first `useTheme()` and removed with the last. Put the head script in the document so the theme applies before the first frame, the way `loopsBootstrap` does: `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`. It applies the stored choice, else the system's, exactly as the skill's head snippet does for the theme (the skill's goes on to restore the keyboard hint; this one does not). Basalt draws no toggle: the control is the app's.
+**The theme.** `useTheme()` returns `{ theme, choice, setChoice, ready }`: `theme` is `"light"` or `"dark"`, what the stylesheet is showing; `choice` is `"light"`, `"dark"` or `"system"` (no stored value); `setChoice(choice)` stores it and writes `data-theme` on `<html>`; `"system"` removes the stored value. While the choice is `system` the theme follows the device's colour scheme as it changes, and a change made in another tab arrives by the `storage` event. The key is `basalt-theme` with the values `light` and `dark`: the same as the HTML skill's, so a React app and a skill page on one origin agree (anything else stored counts as `system`, as it does there). **Before the client knows the theme** (a server render, and the first render of a hydrating page) it returns `{ theme: "light", choice: "system", ready: false }`, the stylesheet's own default with no `data-theme`, so the first render is the same on both; the real values follow at once with `ready: true`. Hold back a control that would flash the wrong choice until `ready`. With storage blocked, the choice lasts for the page. Nothing runs at import: the listeners are installed by the first `useTheme()` and removed with the last. Put the head script in the document so the theme applies before the first frame, the way `loopsBootstrap` does: `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`, or, under a policy that forbids inline scripts, the same line as a file (`@srasyndicate/basalt/head/theme.js`; see [Use](#use)). It applies the stored choice, else the system's, exactly as the skill's head snippet does for the theme (the skill's goes on to restore the keyboard hint; this one does not). Basalt draws no toggle: the control is the app's.
 
 ## A skip link, reserved room and a page's own sticky bar
 
@@ -402,6 +468,35 @@ import { ActivityList, ActivityStep, DisclosureRow, EventLogRule, Presence, Stre
 | `ActivityList`, `ActivityStep` | A sentence a step: `status` (`running`, `done`, `failed`, `waiting`), `word`, `meta`, `detail` (then the step is a disclosure row). |
 | `Presence`, `Elapsed`, `formatElapsed` | "Away 6 min": `status` (`active`, `away`, `offline`), `label`, `since`, `now`, `format`, `variant` (`plain` or `outline`). `Elapsed` is the length alone after any word; `formatElapsed` writes it (plain, safe on a server). |
 
+## Writing to someone
+
+The composer, the mention and the mention picker (cimip-gaps-2, B3; decided and built by Opus on the no-council path, not yet reviewed). See foundations, "Writing to
+someone".
+
+```tsx
+{/* A support inbox: Enter sends, Shift+Enter is a new line; the send waits for the server and keeps the words if it is refused */}
+<Composer
+  label="Reply to the customer"
+  placeholder="Reply to the customer. Type @ to bring someone in."
+  actions={<Button variant="ghost" size="sm" onClick={attach}>Attach</Button>}
+  status={typingStatus(typingNames)}
+  onSend={(text) => api.reply(ticket, text)}
+  mentions={(field) => <MentionPicker field={field} options={[{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }]} onPick={(o) => picked.add(o.value)} />}
+/>
+
+{/* A build's comments: Mod+Enter sends (⌘↵ or Ctrl Enter, shown beside Send) */}
+<Composer label="Comment on the build" sendKey="Mod+Enter" onSend={comment} />
+
+{/* In the stream: a mention, and one that calls on the reader (on the plate) */}
+<p>Thanks <Mention>Ana Ruiz</Mention>; <Mention you>Lee Park</Mention>, can you look? Routed to <Mention trigger="#">billing</Mention>.</p>
+
+{/* An app's own text field with the picker: its handlers see defaultPrevented on a key the picker used */}
+<MentionPicker field={ref} options={people} filter={null} onQueryChange={lookUp} />
+```
+
+An app's own list draws its active row with the plate Basalt's popups use: `background: var(--basalt-plate)` follows the level the row sits in, and the tokens
+`--basalt-plate-0` to `--basalt-plate-3` are each level's.
+
 ## Loading in the page's own shape
 
 A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;
@@ -432,7 +527,7 @@ const landed = useStaged({ people: Boolean(people), stream: Boolean(stream) });
 
 | Export | What it does |
 |---|---|
-| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`. |
+| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`, and the ids of what it draws move to `data-shape-id` so `getElementById` never finds the shape's copy. A text query in a test can skip it with `.basalt-bones`. |
 | `Bones` | The painting alone (`shown`, `keep`, `twin`), for a place a region can't wrap. |
 | `useStaged(ready, gap = 120, together = 250)` | Releases parts in phases. |
 | `useRefreshing(on, after = 1000)`, `Refreshing` | "Updating" for a refresh that takes more than a second: braille and its word, or the ring alone with `compact`. |

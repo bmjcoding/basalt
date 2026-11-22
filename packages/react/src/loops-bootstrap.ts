@@ -3,6 +3,7 @@
 
 /**
  * A line for the document's head, beside the theme's, so a stored hold applies before the first frame. The app inlines it
- * as a script in `<head>`: `<script dangerouslySetInnerHTML={{ __html: loopsBootstrap }} />`.
+ * as a script in `<head>`: `<script dangerouslySetInnerHTML={{ __html: loopsBootstrap }} />`. Under a policy that forbids inline scripts, the
+ * same line is a file, `@srasyndicate/basalt/head/loops.js`, for a plain `<script src>` in `<head>`; with a nonce, give the inline script the nonce.
  */
 export const loopsBootstrap = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;

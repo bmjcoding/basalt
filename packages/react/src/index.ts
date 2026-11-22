@@ -172,6 +172,8 @@ export { TRAVEL_IN_FLIGHT, TRAVEL_LONG_LEG, TRAVEL_MIN_LEG, TRAVEL_MS_PER_PX, TR
 export type { Flight, TravelRun, TravelTokens, Travellers } from "./travel";
 export { useTheme } from "./theme";
 export { themeBootstrap } from "./theme-bootstrap";
+export { CSPProvider } from "./csp";
+export type { CSPProviderProps } from "./csp";
 export type { ThemeChoice, ThemeName, ThemeState } from "./theme";
 export { useMediaQuery } from "./use-media";
 export { GlidePlate } from "./plate";
@@ -257,3 +259,8 @@ export { CaptionedColumn, CaptionedColumns } from "./captioned-columns";
 export type { CaptionedColumnProps, CaptionedColumnsProps, CaptionedColumnsSize } from "./captioned-columns";
 export { PeriodStepper } from "./period-stepper";
 export type { PeriodStepperProps } from "./period-stepper";
+export { Composer } from "./composer";
+export { typingStatus } from "./typing-status";
+export type { ComposerProps } from "./composer";
+export { Mention, MentionPicker } from "./mention";
+export type { MentionOption, MentionPickDetails, MentionPickerProps, MentionProps } from "./mention";
