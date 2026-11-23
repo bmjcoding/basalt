@@ -416,6 +416,9 @@ describe("measured again (first)", () => {
     await untilState(page, "sequence", "running");
     await page.setViewportSize({ width: 390, height: 900 });
     await frames(page, 8);
+    // A participant's head becomes a chip in the stack, and its border's colour changes from the rim to the hairline over duration-fast, as a still
+    // figure's does: a CSS transition of the layout, not motion. Sampled within its 100ms it was there (a flake, on main too): let it end first.
+    await page.evaluate(() => Promise.all(document.getElementById("fig-sequence").getAnimations({ subtree: true }).filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {}))));
     const seen = await page.evaluate(() => { const f = document.getElementById("fig-sequence"); return { state: f.getAttribute("data-entrance"), anims: f.getAnimations({ subtree: true }).length, controls: f.querySelectorAll(".basalt-diagram-play, .basalt-diagram-pause").length }; });
     assert.notEqual(seen.state, "pending");
     assert.notEqual(seen.state, "running");
@@ -938,4 +941,214 @@ describe("section 7's remaining checks", () => {
       assert.deepEqual(seen.filter((s) => !s.right).map((s) => s.id), []);
     });
   }
+});
+
+// The checks round 66's PR listed as not yet written (Neon's item 7 of round 65's code review), added in batch A of the backlog (DECISIONS 301).
+describe("section 7's checks, batch A", () => {
+  /** Finishes every finite animation running on a figure, frame by frame, `n` times, calling `look` after each frame. */
+  const runOut = async (page, key, n, look) => {
+    for (let k = 0; k < n; k++) {
+      await page.evaluate((key) => { for (const a of document.getElementById(`fig-${key}`).getAnimations({ subtree: true })) if (a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity) a.finish(); }, key);
+      await frames(page, 1);
+      await look?.();
+    }
+  };
+  const settleNow = (page, key) => page.evaluate((key) => { const f = document.getElementById(`fig-${key}`); f.setAttribute("data-entrance", "done"); f.dispatchEvent(new Event("basalt-diagram-settle")); }, key);
+
+  test("with a packet in flight, one send waits and a second is dropped: two messages go, each to the last stop, then nothing", async () => {
+    const { page } = await motionPage();
+    const spec = (send) => `{ ...S.animated("dataFlow"), packet: { path: ["send", "append", "row", "hear", "see"], send: ${send} } }`;
+    await draw(page, [["send", spec(0)]]);
+    await until(page, () => document.querySelector("#fig-send .basalt-diagram-pause") || document.querySelector("#fig-send").getAttribute("data-entrance"));
+    await settleNow(page, "send");
+    await frames(page, 2);
+    const dotShown = () => page.evaluate(() => { const d = document.querySelector("#fig-send .basalt-diagram-packet"); return Boolean(d && getComputedStyle(d).display !== "none"); });
+    // The first render sends none.
+    assert.equal(await dotShown(), false);
+    await draw(page, [["send", spec(1)]]);
+    await until(page, () => { const d = document.querySelector("#fig-send .basalt-diagram-packet"); return d && getComputedStyle(d).display !== "none"; });
+    // Two more sends while the first dot flies: the first of them waits, the second is dropped.
+    await draw(page, [["send", spec(2)]]);
+    await draw(page, [["send", spec(3)]]);
+    // Count the messages that land: the last stop lifts once a message. The legs, the rests and the fades are animations on the figure, run out here.
+    let landed = 0, lit = false, quiet = 0;
+    await runOut(page, "send", 400, async () => {
+      const now = await page.evaluate(() => document.querySelector("#fig-send [data-node='see']").hasAttribute("data-arrival"));
+      if (now && !lit) landed++;
+      lit = now;
+      const busy = await page.evaluate(() => document.getElementById("fig-send").getAnimations({ subtree: true }).some((a) => a.playState === "running"));
+      quiet = busy || (await dotShown()) ? 0 : quiet + 1;
+    });
+    assert.equal(landed, 2, "the first message and the one that waited");
+    assert.ok(quiet > 10, "and then nothing moves");
+    // A later send, with nothing in flight, goes at once.
+    await draw(page, [["send", spec(4)]]);
+    await until(page, () => { const d = document.querySelector("#fig-send .basalt-diagram-packet"); return d && getComputedStyle(d).display !== "none"; });
+  });
+
+  test("a flow line's cuts stop space-1 short of its head; a flow line with under 48px showing has none, one with more has them", async () => {
+    const { page } = await motionPage();
+    // A stream into the card below (a 48px row gap: 40px of it shows past the head) and one into the card beside (a 64px column gap: 56px shows).
+    await draw(page, [["short", JSON.stringify({ type: "architecture", motion: "animated", title: "Streams", summary: "Two streams.", nodes: [
+      { id: "a", name: "A", kind: "part", col: 1, row: 1 }, { id: "b", name: "B", kind: "part", col: 2, row: 1 }, { id: "c", name: "C", kind: "part", col: 1, row: 2 }],
+      edges: [{ from: "a", to: "b", flow: true }, { from: "a", to: "c", flow: true }] })], ["architecture", `S.animated("architecture")`, 80]]);
+    for (const key of ["short", "architecture"]) await settleNow(page, key);
+    await until(page, () => [...document.querySelectorAll("#fig-short .basalt-diagram-flow, #fig-architecture .basalt-diagram-flow")].filter((x) => getComputedStyle(x).display !== "none").length >= 2);
+    await frames(page, 4);
+    const seen = await page.evaluate(() => [...document.querySelectorAll("figure")].flatMap((f) => [...f.querySelectorAll(".basalt-diagram-svg .basalt-diagram-edge")].map((g) => {
+      const i = g.dataset.edge;
+      const line = g.querySelector(".basalt-diagram-line"), tip = g.querySelector(".basalt-diagram-tip");
+      const nums = (d) => d.match(/-?[\d.]+/g).map(Number);
+      const t = nums(tip.getAttribute("d"));
+      const tipAt = { x: t[0], y: t[1] };
+      // The line's path stops under its head, 7 short of the tip (size-diagram-head less 1): what shows of it runs to the head's base, 8 short.
+      const len = line.getTotalLength();
+      // Its flow overlay, if it has one shown: the overlay's path starts where the line does.
+      const start = nums(line.getAttribute("d"));
+      const flow = [...f.querySelectorAll(".basalt-diagram-flow")].find((x) => { const p = nums(x.querySelector("path").getAttribute("d")); return Math.hypot(p[0] - start[0], p[1] - start[1]) < 1 && getComputedStyle(x).display !== "none"; });
+      let cutEnd = null;
+      if (flow) { const p = nums(flow.querySelector("path").getAttribute("d")); cutEnd = { x: p.at(-2), y: p.at(-1) }; }
+      return { fig: f.id, from: g.dataset.from, to: g.dataset.to, visible: len - 1, on: [...f.querySelectorAll(`.basalt-diagram-label[data-edge="${i}"][data-on]`)].map((x) => x.getBoundingClientRect().width), tip: tipAt, cutEnd };
+    })));
+    const short = seen.find((s) => s.fig === "fig-short" && s.to === "c"), long = seen.find((s) => s.fig === "fig-short" && s.to === "b");
+    assert.ok(short.visible < 48 && short.on.length === 0, JSON.stringify(short));
+    assert.equal(short.cutEnd, null, "under 48px showing: solid");
+    assert.ok(long.visible >= 48 && long.cutEnd, JSON.stringify(long));
+    const cut = seen.filter((s) => s.cutEnd);
+    assert.ok(cut.length >= 2, JSON.stringify(seen));
+    for (const s of cut) {
+      // The head is size-diagram-head (8) long: its base is 8 from the tip, and the cuts end at least space-1 (4) before it.
+      const fromTip = Math.hypot(s.cutEnd.x - s.tip.x, s.cutEnd.y - s.tip.y);
+      assert.ok(fromTip >= 8 + 4 - 0.5, `${s.fig} ${s.from} to ${s.to}: the cuts end ${fromTip.toFixed(1)} from the tip`);
+      // And a line that flows shows at least 48px (its plates taken off).
+      assert.ok(s.visible - s.on.reduce((a, b) => a + b, 0) >= 48, `${s.fig} ${s.from} to ${s.to} flows with ${s.visible}px showing`);
+    }
+  });
+
+  test("the data flow's, the flowchart's and the schema's totals are the decision's (1.3): 2.0s, 2.4s and 2.66s to the last line, 0.14s more at most to the last head", async () => {
+    const { page } = await motionPage();
+    const want = { dataFlow: 2000, flowchart: 2400, schema: 2660 };
+    for (const key of Object.keys(want)) {
+      await draw(page, [[key, `S.animated("${key}")`]]);
+      await untilState(page, key, "running");
+      const t = await page.evaluate((key) => {
+        const f = document.getElementById(`fig-${key}`);
+        const end = (a) => Number(a.effect.getComputedTiming().endTime);
+        // Each line's reveal is the first path of its own mask (as the architecture's total above reads it); its head fades in on the elements after.
+        const lines = [...f.querySelectorAll(".basalt-diagram-motion-defs mask")].map((m) => end(m.querySelector("path").getAnimations()[0]));
+        return { lines: Math.max(...lines), all: Math.max(...f.getAnimations({ subtree: true }).filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map(end)) };
+      }, key);
+      assert.ok(Math.abs(t.lines - want[key]) <= 50, `${key}: the last line ends at ${t.lines}`);
+      assert.ok(t.all - t.lines <= 140 + 1, `${key}: the last head ends ${t.all - t.lines}ms after it`);
+    }
+  });
+
+  for (const [theme, scheme] of [["light", "dark"], ["dark", "light"]]) {
+    test(`more contrast under a ${theme} theme chosen with the toggle (the system ${scheme}): a card's arrival rim is the theme's primary ink, not a traced neighbour's`, async () => {
+      const { page } = await motionPage({ theme, colorScheme: scheme, contrast: "more" });
+      await draw(page, [["architecture", `S.animated("architecture")`]]);
+      const seen = await page.evaluate(() => {
+        const f = document.getElementById("fig-architecture");
+        const n = f.querySelector("[data-node='alb']");
+        n.style.transition = "none";
+        n.setAttribute("data-arrival", "");
+        const rim = getComputedStyle(n).borderTopColor;
+        const probe = (v) => { const s = document.createElement("span"); s.style.color = v; f.append(s); const c = getComputedStyle(s).color; s.remove(); return c; };
+        const near = f.querySelector(".basalt-diagram-node:not([data-focal]):not([data-node='alb'])");
+        near.style.transition = "none";
+        near.setAttribute("data-near", "");
+        const traced = getComputedStyle(near).borderTopColor;
+        // Luminance of the rim, read through a canvas, so an oklch() value compares as a colour.
+        const c = document.createElement("canvas"); c.width = c.height = 1; const ctx = c.getContext("2d", { willReadFrequently: true });
+        ctx.fillStyle = rim; ctx.fillRect(0, 0, 1, 1); const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        return { rim, primary: probe("var(--basalt-text-primary)"), traced, light: (r + g + b) / 3 > 128, system: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", more: matchMedia("(prefers-contrast: more)").matches };
+      });
+      assert.equal(seen.system, scheme);
+      assert.ok(seen.more);
+      assert.equal(seen.rim, seen.primary);
+      assert.notEqual(seen.rim, seen.traced);
+      // The theme's own primary ink: light on the dark theme, dark on the light one, whatever the system says.
+      assert.equal(seen.light, theme === "dark");
+    });
+  }
+
+  test("the fit rule counts a mark's padding: a card whose widest word is its name, with a mark and no kind, is drawn from space-6 a column later", async () => {
+    const { page } = await motionPage();
+    const word = "Supercalifragilisticexpialidocious";
+    const spec = (mark) => JSON.stringify({ type: "architecture", title: "Wide", summary: "A wide name.", nodes: [{ id: "a", name: word, col: 1, row: 1, ...(mark ? { mark: "aws-s3-bucket" } : {}) }, ...["b", "c", "d"].map((id, k) => ({ id, name: id.toUpperCase(), col: k + 2, row: 1 }))], edges: [{ from: "a", to: "b" }] });
+    await page.addStyleTag({ content: "#root{max-width:none;width:var(--w)}" });
+    const first = async (mark) => {
+      await draw(page, [["wide", spec(mark)]]);
+      let lo = 640, hi = 1400;
+      const drawnAt = async (w) => { await page.evaluate((w) => document.getElementById("root").style.setProperty("--w", `${w}px`), w); await frames(page, 3); return (await page.getAttribute("#fig-wide", "data-layout")) === "drawn"; };
+      assert.ok(await drawnAt(hi) && !(await drawnAt(lo)));
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (await drawnAt(mid)) hi = mid; else lo = mid; }
+      return hi;
+    };
+    const plain = await first(false), marked = await first(true);
+    // Four columns, each track at least the widest word: the name's space-6 (24) seat is in every track's minimum.
+    assert.ok(Math.abs(marked - plain - 4 * 24) <= 4, `drawn from ${plain} without the mark and ${marked} with it`);
+    // At its first drawn width, the name keeps clear of the mark.
+    const clear = await page.evaluate(() => {
+      const n = document.querySelector("#fig-wide [data-node='a']"), m = n.querySelector(".basalt-diagram-mark").getBoundingClientRect();
+      const range = document.createRange(); range.selectNodeContents(n.querySelector(".basalt-diagram-name"));
+      return [...range.getClientRects()].every((r) => r.right <= m.left || r.left >= m.right || r.bottom <= m.top || r.top >= m.bottom);
+    });
+    assert.ok(clear);
+  });
+
+  test("the motion code fails to load: the figure settles, every line whole as still, with no motion control and no error", async () => {
+    // An app's own build, split: the motion module is a chunk of its own, loaded on demand, which this page cannot fetch.
+    const built = await (await import("esbuild")).build({
+      stdin: { contents: `import * as React from "react"; import { createRoot } from "react-dom/client"; import { flushSync } from "react-dom"; import * as B from "./dist/index.js"; ${HOST}`, resolveDir: pkg, loader: "tsx" },
+      bundle: true, format: "esm", splitting: true, outdir: path.join(pkg, ".motion-fail"), write: false, jsx: "automatic", platform: "browser", logLevel: "silent", define: { "process.env.NODE_ENV": '"production"' },
+      entryNames: "main", chunkNames: "[name]-[hash]",
+    });
+    const files = new Map(built.outputFiles.map((f) => [`/${path.basename(f.path)}`, f.text]));
+    const motion = [...files.keys()].filter((name) => name !== "/main.js" && files.get(name).includes("Play the run"));
+    assert.equal(motion.length, 1, `the motion code is one chunk: ${[...files.keys()].join(", ")}`);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    const css = fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
+    let refused = 0;
+    await page.route("http://basalt.test/**", (route) => {
+      const name = new URL(route.request().url()).pathname;
+      if (name === "/") return route.fulfill({ contentType: "text/html", body: `<!doctype html><html data-theme="dark"><head><style>${css}${FONTS}${PAGE}</style></head><body><div id="root"></div><script type="module" src="/main.js"></script></body></html>` });
+      if (motion.includes(name)) { refused++; return route.abort("failed"); }
+      if (files.has(name)) return route.fulfill({ contentType: "text/javascript", body: files.get(name) });
+      return route.fulfill({ status: 404, body: "" });
+    });
+    await page.goto("http://basalt.test/");
+    await page.waitForFunction(() => typeof window.__set === "function");
+    await draw(page, [["architecture", `S.animated("architecture")`], ["dataFlow", `S.animated("dataFlow")`, 80]]);
+    await until(page, () => ["architecture", "dataFlow"].every((k) => document.getElementById(`fig-${k}`)?.getAttribute("data-entrance") === "done"));
+    await frames(page, 4);
+    assert.ok(refused >= 1, "the motion chunk was asked for and refused");
+    const seen = await page.evaluate(() => [...document.querySelectorAll("figure")].map((f) => ({
+      edges: getComputedStyle(f.querySelector(".basalt-diagram-edges")).visibility,
+      masked: f.querySelectorAll(".basalt-diagram-edge[mask], .basalt-diagram-motion-defs").length,
+      parts: f.querySelectorAll(".basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet, .basalt-diagram-play, .basalt-diagram-pause").length,
+      foot: f.querySelector(".basalt-diagram-foot").children.length,
+      lines: f.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line").length,
+      animations: f.getAnimations({ subtree: true }).length,
+    })));
+    for (const s of seen) assert.deepEqual({ ...s, lines: s.lines > 0 }, { edges: "visible", masked: 0, parts: 0, foot: 1, lines: true, animations: 0 });
+
+    // A figure that mounts hidden (an unselected tab, a closed disclosure) is not measured and has no entrance when the load fails. Shown later, its
+    // lines are drawn then, and settled in that frame: never left pending behind a module that will not come (Neon's blocking finding 2 on #126).
+    const hide = await page.addStyleTag({ content: "#root > div > div:nth-child(3) { display: none; }" });
+    await draw(page, [["architecture", `S.animated("architecture")`], ["dataFlow", `S.animated("dataFlow")`, 80], ["late", `S.animated("architecture")`, 80]]);
+    await until(page, () => document.getElementById("fig-late") !== null);
+    // The browser keeps the failed module: the hidden figure's import is refused without a second request. Give it a moment to reject.
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate(() => { const f = document.getElementById("fig-late"); return { entrance: f.getAttribute("data-entrance"), measured: f.hasAttribute("data-measured") }; }), { entrance: null, measured: false }, "hidden: not measured, no entrance");
+    await hide.evaluate((s) => s.remove());
+    await until(page, () => document.querySelector("#fig-late .basalt-diagram-edges"));
+    await frames(page, 4);
+    const shown = await page.evaluate(() => { const f = document.getElementById("fig-late"); return { entrance: f.getAttribute("data-entrance"), edges: getComputedStyle(f.querySelector(".basalt-diagram-edges")).visibility, lines: f.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line").length > 0, parts: f.querySelectorAll(".basalt-diagram-play, .basalt-diagram-pause").length }; });
+    assert.deepEqual(shown, { entrance: "done", edges: "visible", lines: true, parts: 0 });
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
 });

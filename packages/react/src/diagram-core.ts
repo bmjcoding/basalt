@@ -6,6 +6,12 @@
 //
 // What the author writes is placement on a grid and one record per part; everything else is derived: the sides and slots a line uses, its
 // route and jogs, the lanes it shares, a group's box, a foreign key's line, the stacked drawing's routes and gaps, and every label's seat.
+//
+// The development checks and warnings are written behind `process.env.NODE_ENV !== "production"` where they are made, so an app's production build,
+// whose bundler sets NODE_ENV, drops them and their words (DECISIONS 281, 4.1: they cost production nothing). The HTML skill bundles this file as a
+// development build: compose.mjs reports the warnings when it writes a page.
+
+declare const process: { env: { NODE_ENV?: string } };
 
 // ============================================================================================================================================
 // Public shapes (the components re-export these types; no third-party type appears in them)
@@ -191,7 +197,9 @@ export interface BuildOptions {
  * few values (or the default, with a warning), and a track is a whole number from 1.
  */
 export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model {
-  const checks = options.checks !== false;
+  // Development only: a bundler that sets NODE_ENV to production folds `dev` to false and drops every check below, its words included.
+  const dev = process.env.NODE_ENV !== "production";
+  const checks = dev && options.checks !== false;
   const warnings: string[] = [];
   const warn = (message: string) => { warnings.push(message); };
   const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
@@ -201,22 +209,22 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const stepWord = typeof stepLabel === "function" ? (n: number) => String(stepLabel(n)) : typeof stepLabel === "string" ? ((n: number) => stepLabel.replace("{n}", String(n))) : (n: number) => `Step ${n}`;
   const shapeIn = (spec.shapeLabels ?? {}) as Record<string, unknown>;
   const shapeLabels = { terminal: txt(shapeIn.terminal) ?? "Start or end", step: txt(shapeIn.step) ?? "Step", decision: txt(shapeIn.decision) ?? "Decision" };
-  const heading = spec.heading === undefined ? 3 : HEADINGS.includes(spec.heading as number) ? spec.heading : (warn(`heading ${String(spec.heading)} is not a level from 2 to 6: the title is an h3`), 3);
+  const heading = spec.heading === undefined ? 3 : HEADINGS.includes(spec.heading as number) ? spec.heading : (dev && warn(`heading ${String(spec.heading)} is not a level from 2 to 6: the title is an h3`), 3);
   const kindOf = (k: unknown, where: string): DiagramLineKind => {
     if (k === undefined || k === null) return "plain";
     if (LINE_KINDS.includes(k as DiagramLineKind)) return k as DiagramLineKind;
-    warn(`"${String(k)}" is not a kind of line (main, plain or dashed): ${where} is drawn plain`);
+    dev && warn(`"${String(k)}" is not a kind of line (main, plain or dashed): ${where} is drawn plain`);
     return "plain";
   };
   const sideOf = (v: unknown): DiagramSide | undefined => {
     if (v === undefined || v === null) return undefined;
     if (SIDES.includes(v as DiagramSide)) return v as DiagramSide;
-    warn(`"${String(v)}" is not a side (top, right, bottom or left): the derived side is used`);
+    dev && warn(`"${String(v)}" is not a side (top, right, bottom or left): the derived side is used`);
     return undefined;
   };
   const trackOf = (v: unknown, what: string): number => {
     if (typeof v === "number" && Number.isInteger(v) && v >= 1) return v;
-    warn(`${what} is ${JSON.stringify(v)}, not a whole number from 1: it is placed at 1`);
+    dev && warn(`${what} is ${JSON.stringify(v)}, not a whole number from 1: it is placed at 1`);
     return 1;
   };
   const nodes: MNode[] = [];
@@ -225,7 +233,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const groups: Model["groups"] = [];
   const steps: MStep[] = [];
   const type = spec.type;
-  if (!(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
+  if (dev && !(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
 
   if (type === "architecture" || type === "flowchart") {
     for (const raw of (spec.nodes ?? []) as Array<ArchitectureNode & FlowchartNode>) {
@@ -246,7 +254,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const id = String(raw.id ?? "");
       const laneId = String(raw.lane ?? "");
       const lane = laneIndex.get(laneId);
-      if (lane === undefined) warn(`a node (${id}) names the lane "${laneId}", which is not in lanes`);
+      if (lane === undefined) dev && warn(`a node (${id}) names the lane "${laneId}", which is not in lanes`);
       const n = nodes.length + 1;
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: stepWord(n), detail: txt(raw.detail), mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
@@ -266,18 +274,18 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const [r1, r2] = Array.isArray(t.row) ? t.row : [t.row, t.row];
       const row = trackOf(r1, `the row of ${name}`);
       const row2 = Math.max(row, trackOf(r2, `the last row of ${name}`));
-      const more = t.more === undefined || t.more === null ? undefined : Number.isInteger(t.more) && t.more > 0 ? t.more : (warn(`${name}'s "more" is ${JSON.stringify(t.more)}, not a whole number from 1: it is left out`), undefined);
+      const more = t.more === undefined || t.more === null ? undefined : Number.isInteger(t.more) && t.more > 0 ? t.more : (dev && warn(`${name}'s "more" is ${JSON.stringify(t.more)}, not a whole number from 1: it is left out`), undefined);
       nodes.push({
         id: name, i: nodes.length, name, mono: true, focal: Boolean(t.focal), col: trackOf(t.col, `the column of ${name}`), row, row2, branch: false, shape: "table", more,
-        columns: (t.columns ?? []).map((c) => ({ name: String(c.name ?? ""), type: txt(c.type), key: c.key === "PK" || c.key === "FK" ? c.key : (c.key !== undefined && c.key !== null && warn(`${name}.${String(c.name)}'s key is "${String(c.key)}", not PK or FK: it is left out`), undefined) })),
+        columns: (t.columns ?? []).map((c) => ({ name: String(c.name ?? ""), type: txt(c.type), key: c.key === "PK" || c.key === "FK" ? c.key : (c.key !== undefined && c.key !== null && dev && warn(`${name}.${String(c.name)}'s key is "${String(c.key)}", not PK or FK: it is left out`), undefined) })),
       });
     }
   }
 
   const byId = new Map<string, MNode>();
   for (const n of nodes) {
-    if (!n.id) warn("a node has no id");
-    else if (byId.has(n.id)) warn(`the id "${n.id}" is used twice`);
+    if (dev && !n.id) warn("a node has no id");
+    else if (dev && byId.has(n.id)) warn(`the id "${n.id}" is used twice`);
     byId.set(n.id, n);
   }
 
@@ -289,7 +297,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const [table, column] = ref.split(".");
       const target = byId.get(table ?? "");
       const row = target?.columns?.findIndex((x) => x.name === column) ?? -1;
-      if (!target || row < 0) { warn(`${String(t.name)}.${String(c.name)} references ${ref}, which is not a shown column`); return; }
+      if (!target || row < 0) { dev && warn(`${String(t.name)}.${String(c.name)} references ${ref}, which is not a shown column`); return; }
       const source = byId.get(String(t.name ?? ""))!;
       source.columns![k]!.ref = { table: table!, column: column!, row };
       edges.push({ i: edges.length, from: source.id, to: table!, kind: "plain", fromRow: k, toRow: row, fk: true });
@@ -297,12 +305,12 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   } else if (type !== "sequence") {
     for (const e of spec.edges ?? []) {
       const from = String(e.from ?? ""), to = String(e.to ?? "");
-      if (!byId.has(from) || !byId.has(to)) { warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
+      if (!byId.has(from) || !byId.has(to)) { dev && warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
       const label = txt(e.label);
-      if (label && label.length > MAX_LABEL) warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
+      if (label && label.length > MAX_LABEL) dev && warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
-  } else {
+  } else if (dev) {
     for (const s of steps) if ("n" in s) {
       if (!byId.has(s.from) || !byId.has(s.to)) warn(`message ${s.n} names ${!byId.has(s.from) ? s.from : s.to}, which is not a participant`);
     }
@@ -477,6 +485,8 @@ export interface Dyn {
   keep?: string;
   /** A decision's measured height, by node id, in px. */
   heights?: Record<string, number>;
+  /** A decision's words' box, widened from 62% of its track so the diamond is no taller than it is wide, by node id, in px (unset where 62% is). */
+  words?: Record<string, number>;
   /** Extra lines of 16 added to the gap above a stacked card, when a label did not fit its seat. */
   grow?: Record<string, number>;
   /** The schema's stacked track: its widest row, measured. */
@@ -719,6 +729,8 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   }
   const height = own(dyn.heights, n.id);
   if (height) style.push(`--_h:${height}px`);
+  const wordsWidth = own(dyn.words, n.id);
+  if (wordsWidth) style.push(`--_ww:${wordsWidth}px`);
   const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
   return h("div", {
     class: `${P}-node`,
@@ -887,6 +899,9 @@ export interface FigureOptions {
 }
 
 /** The whole figure. Before script runs `dyn` is empty; the same tree, with the measured `dyn`, is what script settles on. */
+/** A schema of one column whose foreign keys are drawn as turn-backs on its end side, where it has no gutter. */
+const oneColumnTurnBacks = (m: Model) => m.type === "schema" && m.cols === 1 && m.edges.length > 0;
+
 export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   const P = o.prefix;
   const ids = idsOf(o.base);
@@ -905,6 +920,9 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     const block = drawn && dyn.pad ? "3" : undefined;
     style.push(`--_gpad:${pad(members.some((n) => n.row === 1), "8", block)} ${pad(members.some((n) => n.col === m.cols), "4")} ${pad(members.some((n) => n.row2 === m.rows), "4", block)} ${pad(members.some((n) => n.col === 1), "4")}`);
   }
+  // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
+  // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).
+  if (oneColumnTurnBacks(m)) style.push("--_gpad:0px var(--basalt-space-5) 0px 0px");
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
     class: o.className ? `${P} ${o.className}` : P,
@@ -981,6 +999,8 @@ export interface Geo {
   unseated: number[];
   /** Lines (by edge index) that leave the drawing: a route the fit must refuse. */
   outside: number[];
+  /** Lines (by edge index) laid on another line that does not end where it ends (not a bus): two lines read as one, so the fit refuses them. */
+  overlaps?: number[];
   /** The offset of the drawing's origin from the device pixel grid, so lines can be snapped to it. */
   ox: number;
   oy: number;
@@ -1121,7 +1141,7 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   const n = columnCount(m);
   let least: number;
   if (m.type === "data-flow") least = tk.lane + n * (track + s("12"));
-  else if (m.type === "schema") least = n * table + (n - 1) * s("12");
+  else if (m.type === "schema") least = n * table + (n - 1) * s("12") + (oneColumnTurnBacks(m) ? s("5") : 0);
   // A sequence's columns hold its participants: measured once script runs (the stylesheet before script has only the token floor).
   else if (m.type === "sequence") least = n * track + (n - 1) * s("5");
   else least = n * track + (n - 1) * s("16") + groupReach(m) * s("4");
@@ -1233,16 +1253,24 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
     const straight = list.filter((p) => p.straight), rest = list.filter((p) => !p.straight);
     // Nested: the line whose far end is farther along takes the slot nearer that way.
     rest.sort((x, y) => along(x) - along(y) || (isH(x.side) ? x.far.col - y.far.col : x.far.row - y.far.row) * (along(x) < 0 ? 1 : -1));
-    if (list.length > 3) warn(`${key.replace(".", "'s ")} side has ${list.length} lines; more than three is an error: use another side`);
-    if (straight.length) rest.forEach((p) => { p.f = along(p) < 0 ? 0.25 : 0.75; });
-    else if (rest.length === 2) { rest[0]!.f = 0.25; rest[1]!.f = 0.75; }
-    else if (rest.length === 3) { rest[0]!.f = 0.25; rest[1]!.f = 0.5; rest[2]!.f = 0.75; }
-    else if (rest.length > 3) rest.forEach((p, j) => { p.f = (j + 1) / (rest.length + 1); });
+    if (process.env.NODE_ENV !== "production" && list.length > 3) warn(`${key.replace(".", "'s ")} side has ${list.length} lines; more than three is an error: use another side`);
+    if (!straight.length) {
+      if (rest.length === 2) { rest[0]!.f = 0.25; rest[1]!.f = 0.75; }
+      else if (rest.length === 3) { rest[0]!.f = 0.25; rest[1]!.f = 0.5; rest[2]!.f = 0.75; }
+      else if (rest.length > 3) rest.forEach((p, j) => { p.f = (j + 1) / (rest.length + 1); });
+      continue;
+    }
     // Two or more straight lines to one node (one each way) cannot all keep the middle: they would lie on one another. They take the side's slots by
     // their count, in the author's order; the far end does the same, so each stays straight.
     const byFar = new Map<string, Port[]>();
     for (const p of straight) { if (!byFar.has(p.far.id)) byFar.set(p.far.id, []); byFar.get(p.far.id)!.push(p); }
     for (const same of byFar.values()) if (same.length > 1) same.sort((x, y) => x.edge - y.edge).forEach((p, j) => { p.f = same.length === 2 ? (j === 0 ? 0.25 : 0.75) : (j + 1) / (same.length + 1); });
+    // Beside a straight line the others take the part of the side nearer their far end: one alone there takes the quarter point, as decided; two or more
+    // share that part evenly, nested (the one whose far end is farther along nearer that end), so no two lines leave one point.
+    const lo = Math.min(...straight.map((p) => p.f)), hi = Math.max(...straight.map((p) => p.f));
+    const before = rest.filter((p) => along(p) < 0), after = rest.filter((p) => along(p) >= 0);
+    before.forEach((p, j) => { p.f = (lo * (j + 1)) / (before.length + 1); });
+    after.forEach((p, j) => { p.f = hi + ((1 - hi) * (j + 1)) / (after.length + 1); });
   }
   return ports;
 }
@@ -1283,7 +1311,22 @@ function headBox(line: GLine, tk: Tokens): Rect {
 const segRect = (a: Pt, b: Pt, w: number): Rect => ({ l: Math.min(a.x, b.x) - w / 2, r: Math.max(a.x, b.x) + w / 2, t: Math.min(a.y, b.y) - w / 2, b: Math.max(a.y, b.y) + w / 2 });
 
 /** Seats labels by 1.8: runs longest first, their clear shaft's middle then thirds; on the line, above, below (or beside). */
-function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacles, groups: Rect[], bounds: Rect, tk: Tokens, measure: ReturnType<typeof ruler>): { labels: GLabel[]; unseated: number[]; bounded: number[] } {
+/**
+ * A seated label's box moved onto the page's whole pixels, so its words are never drawn on a half pixel at 1x (a label on a 1px line sat on them): to the
+ * nearest such place that `clear` accepts, which is the test the seat itself passed. Where none is, the seat stays as it was found. The seat is chosen
+ * before this, against the line's own centre, so whether a label seats never turns on where the pixel grid falls.
+ */
+function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => boolean): Rect {
+  const moves = (v: number, o: number) => { const f = v + o - Math.floor(v + o); return f < 0.005 || f > 0.995 ? [0] : f <= 0.5 ? [-f, 1 - f] : [1 - f, -f]; };
+  for (const dy of moves(box.t, oy)) for (const dx of moves(box.l, ox)) {
+    if (!dx && !dy) return box;
+    const moved = { l: box.l + dx, r: box.r + dx, t: box.t + dy, b: box.b + dy };
+    if (clear(moved)) return moved;
+  }
+  return box;
+}
+
+function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacles, groups: Rect[], bounds: Rect, tk: Tokens, measure: ReturnType<typeof ruler>, grid: { ox: number; oy: number }): { labels: GLabel[]; unseated: number[]; bounded: number[] } {
   const s = tk.space;
   const placed: Rect[] = [];
   const labels: GLabel[] = [];
@@ -1346,8 +1389,9 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
       if (chosen) break;
     }
     if (!chosen) { unseated.push(line.i); if (inBounds) bounded.push(line.i); continue; }
-    placed.push(chosen.box);
-    labels.push({ i: line.i, text, box: chosen.box, on: chosen.on });
+    const box = wholePixels(chosen.box, grid.ox, grid.oy, (b) => clear(b));
+    placed.push(box);
+    labels.push({ i: line.i, text, box, on: chosen.on });
   }
   return { labels, unseated, bounded };
 }
@@ -1374,6 +1418,7 @@ function obstaclesOf(drawing: HTMLElement, origin: DOMRect, P: string, rowGap: n
 }
 
 function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Geo {
+  const dev = process.env.NODE_ENV !== "production";
   const { m, tk, P, drawing, origin, warn } = input;
   const s = tk.space;
   const map = gNodes(m, drawing, origin, P);
@@ -1394,12 +1439,14 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   if (m.type === "schema") {
     sides = m.edges.map((e) => {
       const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
-      if (a.col === b.col) { const side: DiagramSide = a.col === m.cols ? "left" : "right"; return [side, side]; }
+      // One column: a turn-back on the end side (the start side in the last column, where the end is the drawing's edge). A schema of one column has no
+      // gutter on either side, so its turn-backs take the end side and the drawing keeps room for them there (figureTree).
+      if (a.col === b.col) { const side: DiagramSide = a.col === m.cols && m.cols > 1 ? "left" : "right"; return [side, side]; }
       return b.col > a.col ? ["right", "left"] : ["left", "right"];
     });
   } else {
     sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2]; });
-    ports = assignSlots(m, sides, warn ?? (() => {}));
+    ports = assignSlots(m, sides, (dev && warn) || (() => {}));
   }
 
   // End points.
@@ -1536,12 +1583,12 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       if (last && last.some((q) => q.run[0] < p.run[1] + s("8") && p.run[0] < q.run[1] + s("8"))) last.push(p); else clusters.push([p]);
     }
     for (const cluster of clusters) {
-      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog, the two share the gutter's lanes.
-      if (cluster.every((c) => c.members.every((k) => turnBacks.has(k)))) continue;
+      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog or another turn-back, they share the gutter's lanes.
+      if (cluster.length === 1 && cluster[0]!.members.every((k) => turnBacks.has(k))) continue;
       const groupsOf = cluster.map((c) => c.members);
       const count = groupsOf.length;
       const step = (g.span[1] - g.span[0]) / (count + 1);
-      if (step < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
+      if (dev && step < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
       const inGutter = new Set(groupsOf.flat());
       let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
@@ -1554,26 +1601,33 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     }
   }
   geo.lines = build();
-  for (const k of dropped) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
+  if (dev) for (const k of dropped) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
   geo.outside = outsideOf(geo.lines, W, H, tk);
   const { obstacles, groups } = obstaclesOf(drawing, origin, P, rowGap);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
-  const seats = seatLabels(m, geo.lines, nodes, obstacles, groups, { l: 0, t: 0, r: W, b: H }, tk, measure);
+  const seats = seatLabels(m, geo.lines, nodes, obstacles, groups, { l: 0, t: 0, r: W, b: H }, tk, measure, { ox, oy });
   geo.labels = seats.labels;
   geo.unseated = seats.unseated;
   geo.bounded = seats.bounded;
+  // Two lines on one another that are not a bus (a one-column schema's turn-backs to different keys, with no gutter to give each a lane) read as
+  // one line: the drawn layout is refused, as a line through a node is.
+  geo.overlaps = [...new Set(overlapPairs(geo.lines, null).flat())];
   return geo;
 }
 
 /** Runs of two lines laid on one another (collinear and overlapping by more than a pixel), for lines in `only`. Lines that end on one point
  *  share a lane by design (a bus, 1.7), so they are not counted. */
 function overlapsOf(lines: GLine[], only: Set<number>): number {
-  let count = 0;
+  return overlapPairs(lines, only).length;
+}
+/** Each such run as the pair of lines (by edge index) that lie on one another, once a run; `only` null takes every line. */
+function overlapPairs(lines: GLine[], only: Set<number> | null): Array<[number, number]> {
+  const pairs: Array<[number, number]> = [];
   for (let a = 0; a < lines.length; a++) for (let b = a + 1; b < lines.length; b++) {
     const A = lines[a]!, B = lines[b]!;
-    if (!only.has(A.i) && !only.has(B.i)) continue;
+    if (only && !only.has(A.i) && !only.has(B.i)) continue;
     if (A.to === B.to && Math.abs(A.tip.x - B.tip.x) < 1 && Math.abs(A.tip.y - B.tip.y) < 1) continue;
     const near = (A.width + B.width) / 2 + 0.5;
     for (const [p1, p2] of segmentsOf(A.pts)) for (const [q1, q2] of segmentsOf(B.pts)) {
@@ -1582,10 +1636,10 @@ function overlapsOf(lines: GLine[], only: Set<number>): number {
       const [ac, bc] = aH ? [p1.y, q1.y] : [p1.x, q1.x];
       if (Math.abs(ac - bc) >= near) continue;
       const [a1, a2] = aH ? [p1.x, p2.x] : [p1.y, p2.y], [b1, b2] = aH ? [q1.x, q2.x] : [q1.y, q2.y];
-      if (Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1) count++;
+      if (Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1) pairs.push([A.i, B.i]);
     }
   }
-  return count;
+  return pairs;
 }
 
 function* permutations<T>(items: T[]): Generator<T[]> {
@@ -1775,7 +1829,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     };
     const box = seat.cands.find((c) => !bad(c));
     if (!box) { growBy[seat.card] = (growBy[seat.card] ?? 0) + 1; geo.unseated.push(seat.k); }
-    const use = box ?? seat.cands[0]!;
+    const use = box ? wholePixels(box, ox, oy, (b) => !bad(b)) : seat.cands[0]!;
     placed.push(use);
     geo.labels.push({ i: seat.k, text: m.edges[seat.k]!.label!, box: use, on: seat.on });
   }
@@ -1864,6 +1918,8 @@ export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Toke
  * tree gives for it), so each try is measured as it would be drawn.
  */
 export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void): Measured {
+  // Development only (the warnings): first, so a minifier sees it is a constant and drops what it guards.
+  const dev = process.env.NODE_ENV !== "production";
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
   // A figure with no width (inside a closed disclosure or an unselected tab) is not laid out: its resize observer lays it out once it is shown.
   if (!drawing || fig.clientWidth === 0) return { dyn: current, geo: null, ink: "", tokens: null };
@@ -1878,19 +1934,44 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   };
   const heightsFor = (d: Dyn): Dyn => {
     if (m.type !== "flowchart") return d;
-    apply({ ...d, heights: undefined });
+    apply({ ...d, heights: undefined, words: undefined });
     const heights = record<number>();
+    const widened = record<number>();
     drawing.querySelectorAll<HTMLElement>(`.${P}-node[data-shape="decision"]`).forEach((el) => {
       const words = el.querySelector(`.${P}-words`);
       if (!words) return;
-      const nr = el.getBoundingClientRect(), wr = words.getBoundingClientRect();
-      const box = { w: wr.width + 2 * tk.space("2-5"), h: wr.height + 2 * tk.space("2") };
-      const a = nr.width / 2;
-      const denom = 1 - box.w / 2 / a;
-      const half = denom > 0.05 ? box.h / 2 / denom : box.h * 10;
-      heights[el.dataset.node!] = Math.max(tk.space("16"), Math.ceil(nr.width / 5), Math.ceil(2 * half));
+      const nr = el.getBoundingClientRect();
+      // The diamond is the track's width, and as tall as it must be for the words' box (grown space-2-5 each side and space-2 above and below) to lie
+      // inside it; never under space-16, nor under a fifth of its width (1.12).
+      const heightFor = (wr: DOMRect) => {
+        const box = { w: wr.width + 2 * tk.space("2-5"), h: wr.height + 2 * tk.space("2") };
+        const denom = 1 - box.w / nr.width;
+        const half = denom > 0.05 ? box.h / 2 / denom : box.h * 10;
+        return Math.max(tk.space("16"), Math.ceil(nr.width / 5), Math.ceil(2 * half));
+      };
+      const first = words.getBoundingClientRect();
+      let height = heightFor(first);
+      // The ceiling (DECISIONS 301): a diamond is no taller than it is wide. Its words wrap at 62% of the track; where that makes it taller than wide, the
+      // words' box widens, to the narrowest width that puts them on fewer lines, and again, until the diamond fits under the ceiling. Where no width does,
+      // the 62% box stays and the diamond is as tall as it must be.
+      if (height > nr.width) {
+        const at = (x: number) => { el.style.setProperty("--_ww", `${x}px`); return words.getBoundingClientRect(); };
+        const widest = Math.floor(el.clientWidth - 2 * tk.space("2-5"));
+        let from = Math.ceil(first.width), tall = first.height;
+        while (from < widest && at(widest).height < tall - 0.5) {
+          // The narrowest whole width with fewer lines than `tall`: a wider box never wraps onto more lines.
+          let lo = from, hi = widest;
+          while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid).height < tall - 0.5) hi = mid; else lo = mid; }
+          const wr = at(hi), next = heightFor(wr);
+          if (next <= nr.width) { height = next; widened[el.dataset.node!] = hi; break; }
+          from = hi;
+          tall = wr.height;
+        }
+        el.style.removeProperty("--_ww");
+      }
+      heights[el.dataset.node!] = height;
     });
-    return { ...d, heights };
+    return { ...d, heights, words: Object.keys(widened).length ? widened : undefined };
   };
   const input = (): DrawnInput => ({ m, tk, P, drawing, origin: drawing.getBoundingClientRect(), warn });
   // A list a bare stack opened closes when the figure is laid out again (it opens again if the stack is still bare).
@@ -1905,18 +1986,21 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     };
     let { dd: d, g: geo } = drawnTry(false);
     // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
-    if (!geo.through.length && !geo.outside.length && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
+    // A route the drawn layout refuses: through a node, off the drawing, or laid on another line.
+    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0;
+    if (!refused(geo) && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
       const padded = drawnTry(true);
-      if (!padded.g.through.length && !padded.g.unseated.length && !padded.g.outside.length) ({ dd: d, g: geo } = padded);
+      if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
     }
-    if (!geo.through.length && !geo.unseated.length && !geo.outside.length) {
-      if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
+    if (!refused(geo) && !geo.unseated.length) {
+      if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
       return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
-    if (geo.through.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
-    if (geo.outside.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
-    if (geo.unseated.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
+    if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
+    if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
+    if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
+    if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
   }
   let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined });
   d = heightsFor(d);
@@ -1937,16 +2021,16 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // labels, as the stacked schema's do, and the list holds every connection.
   const failed = geo.unseated.length > 0 || geo.through.length > 0 || geo.outside.length > 0 || plan.third;
   if (failed) {
-    if (geo.unseated.length) warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
-    if (geo.through.length) warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
-    if (geo.outside.length) warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
-    if (plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
+    if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
+    if (geo.through.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
+    if (geo.outside.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
+    if (dev && plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
     return { dyn, geo: bare, ink: "", tokens: tk };
   }
-  if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
+  if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
 }
 
@@ -2054,7 +2138,7 @@ export function keyTarget(m: Model, from: string, key: string): string | null {
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_gap", "--_ggrow", "--_gpad"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

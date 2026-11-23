@@ -173,6 +173,9 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   // follows the lines each time they are drawn again. What it follows is the drawing itself, not the string: if React wrote the ink again for any reason
   // (a remount, the faces arriving with the same lines), the reveal and the loops are built again on the new elements.
   const drawn = React.useRef<{ svg: Element | null; controller: MotionController | null } | null>(null);
+  // The motion code failed to load. A figure hidden when it failed (inside a closed disclosure, an unselected tab) had no lines and no entrance to settle
+  // then: the lines it draws when it is shown are settled in the frame they are drawn, so they are never left pending.
+  const motionFailed = React.useRef(false);
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (!fig || !animated || !measured.current?.tokens) return;
@@ -180,13 +183,20 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     if (drawn.current && drawn.current.svg === svg && drawn.current.controller === controller) return;
     drawn.current = { svg, controller };
     entranceDrawn(fig, Boolean(measured.current.geo?.lines.length));
+    if (motionFailed.current) settleEntrance(fig);
     controller?.redrawn();
   });
   React.useEffect(() => {
     if (!animated) return undefined;
     let live = true;
-    // If the motion code cannot load, the figure settles: every line whole, as still.
-    loadMotion().then((mod) => { if (live) setMotionModule(() => mod); }, () => { const fig = figRef.current; if (fig && live) settleEntrance(fig); });
+    motionFailed.current = false;
+    // If the motion code cannot load, the figure settles: every line whole, as still, now and whenever its lines are drawn later.
+    loadMotion().then((mod) => { if (live) setMotionModule(() => mod); }, () => {
+      if (!live) return;
+      motionFailed.current = true;
+      const fig = figRef.current;
+      if (fig) settleEntrance(fig);
+    });
     return () => { live = false; };
   }, [animated]);
   React.useLayoutEffect(() => {

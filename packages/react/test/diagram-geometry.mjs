@@ -51,6 +51,22 @@ function inspect(P, selector) {
   });
   const segs = (l) => l.pts.slice(1).map((p, k) => [l.pts[k], p]);
   const segRect = (a, b, w) => ({ l: Math.min(a.x, b.x) - w / 2, r: Math.max(a.x, b.x) + w / 2, t: Math.min(a.y, b.y) - w / 2, b: Math.max(a.y, b.y) + w / 2 });
+  // Two lines laid on one another (collinear for more than a pixel) read as one line, unless they share an end: lines to one port share a lane (a bus),
+  // and lines leaving one card in the stacked drawing share its trunk.
+  for (let a = 0; a < lines.length; a++) for (let b = a + 1; b < lines.length; b++) {
+    const A = lines[a], B = lines[b];
+    if (Math.abs(A.tip.x - B.tip.x) < 1 && Math.abs(A.tip.y - B.tip.y) < 1) continue;
+    if (Math.abs(A.pts[0].x - B.pts[0].x) < 1 && Math.abs(A.pts[0].y - B.pts[0].y) < 1) continue;
+    const near = (A.width + B.width) / 2 + 0.5;
+    const on = segs(A).some(([p1, p2]) => segs(B).some(([q1, q2]) => {
+      const aH = Math.abs(p1.y - p2.y) < 0.01, bH = Math.abs(q1.y - q2.y) < 0.01, aV = Math.abs(p1.x - p2.x) < 0.01, bV = Math.abs(q1.x - q2.x) < 0.01;
+      if (!((aH && bH) || (aV && bV))) return false;
+      if (Math.abs(aH ? p1.y - q1.y : p1.x - q1.x) >= near) return false;
+      const [a1, a2, b1, b2] = aH ? [p1.x, p2.x, q1.x, q2.x] : [p1.y, p2.y, q1.y, q2.y];
+      return Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1;
+    }));
+    if (on) problems.push(`${A.from} to ${A.to} lies on ${B.from} to ${B.to}`);
+  }
   const heads = lines.map((l) => ({ i: l.i, ...R(l.tipEl) }));
   const labels = [...drawing.querySelectorAll(`.${P}-label`)].map((el) => ({ i: el.dataset.edge, text: el.textContent, el, ...R(el) }));
   const rules = [];

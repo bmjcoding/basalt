@@ -4557,7 +4557,8 @@
      box plus 62% of the padding and border, 1.24 of each side's). Before script it is a plain box of its words at least space-16 tall; once
      measured it is as tall as its words need, never under space-16 nor flatter than 5:1. */
   .basalt-diagram-node[data-shape="decision"] { justify-content: center; align-items: center; height: var(--_h, auto); min-height: var(--basalt-space-16); padding: var(--basalt-space-2) var(--basalt-space-2-5); text-align: center; }
-  .basalt-diagram-words { position: relative; max-width: calc(62% + (var(--basalt-space-2-5) + var(--basalt-size-hairline)) * 1.24); }
+  /* Its words wrap at 62% of the track; a diamond that would be taller than it is wide has its words' box widened by the engine (--_ww, DECISIONS 301). */
+  .basalt-diagram-words { position: relative; max-width: var(--_ww, calc(62% + (var(--basalt-space-2-5) + var(--basalt-size-hairline)) * 1.24)); }
   .basalt-diagram-node[data-shape="decision"] .basalt-diagram-name { font-weight: var(--basalt-font-weight-medium); text-wrap: balance; }
   .basalt-diagram-diamond { display: none; position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .basalt-diagram-diamond path { fill: var(--_surface, var(--basalt-surface-1)); stroke: var(--basalt-diagram-structure); stroke-width: var(--basalt-size-hairline); vector-effect: non-scaling-stroke; transition: stroke var(--basalt-duration-fast) var(--basalt-ease-out); }
