@@ -280,6 +280,33 @@ describe("the fit rule (1.11) and seats (1.8)", () => {
     await page.close();
   });
 
+  // Neon's blocking finding 1 on #126: two turn-backs to different keys, beside each other, were drawn on one lane.
+  test("turn-backs to different keys never lie on one another: in a gutter each takes a lane; with no gutter (one column) the schema stays stacked", async () => {
+    const { page } = await diagramPage();
+    const t = (name, col, row, refs = []) => ({ name, col, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
+    const schema = (key, tables) => ({ key, type: "schema", props: { title: key, summary: "Keys.", legend: { plain: "A foreign key" }, tables } });
+    await page.evaluate((list) => window.__set(list), [
+      // b to c and c to a overlap down the one column's end side.
+      schema("crossed", [t("a", 1, 1), t("b", 1, 2, ["c"]), t("c", 1, 3, ["a"])]),
+      // Two that do not overlap share the side and are drawn.
+      schema("apart", [t("a", 1, 1), t("b", 1, 2, ["a"]), t("c", 1, 3), t("d", 1, 4, ["c"])]),
+      // The same two in a last column: they turn back into the gutter, each on a lane of its own.
+      schema("gutter", [t("x", 1, 1), t("a", 2, 1), t("b", 2, 2, ["c"]), t("c", 2, 3, ["a"])]),
+    ]);
+    await frames(page, 4);
+    const lanes = (key) => page.evaluate((key) => [...document.querySelectorAll(`#fig-${key} .basalt-diagram-svg .basalt-diagram-line`)].map((p) => { const n = p.getAttribute("d").match(/-?[\d.]+/g).map(Number); return Math.min(...n.filter((_, k) => k % 2 === 0)); }), key);
+    for (const width of [1440, 1000]) {
+      await resize(page, width);
+      assert.equal(await page.getAttribute("#fig-crossed", "data-layout"), "stacked", `at ${width}: no lane for both, so no drawing`);
+      assert.equal(await page.getAttribute("#fig-apart", "data-layout"), "drawn", `at ${width}`);
+      assert.equal(await page.getAttribute("#fig-gutter", "data-layout"), "drawn", `at ${width}`);
+      for (const key of ["crossed", "apart", "gutter"]) assert.deepEqual((await inspect(page, key)).problems, [], `${key} at ${width}`);
+      const x = await lanes("gutter");
+      assert.equal(new Set(x.map((v) => Math.round(v))).size, 2, `at ${width}: two lanes in the gutter (${x})`);
+    }
+    await page.close();
+  });
+
   test("no decision is flatter than 5:1 or under 64 tall: a two-column flowchart on the page row, and at 480 and 607", async () => {
     const { page } = await diagramPage();
     await page.evaluate(() => window.__set([{ key: "two", type: "flowchart", props: { title: "Two", summary: "Two columns.", legend: { main: "Usual" }, nodes: [

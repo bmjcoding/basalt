@@ -1117,6 +1117,20 @@ describe("section 7's checks, batch A", () => {
       animations: f.getAnimations({ subtree: true }).length,
     })));
     for (const s of seen) assert.deepEqual({ ...s, lines: s.lines > 0 }, { edges: "visible", masked: 0, parts: 0, foot: 1, lines: true, animations: 0 });
+
+    // A figure that mounts hidden (an unselected tab, a closed disclosure) is not measured and has no entrance when the load fails. Shown later, its
+    // lines are drawn then, and settled in that frame: never left pending behind a module that will not come (Neon's blocking finding 2 on #126).
+    const hide = await page.addStyleTag({ content: "#root > div > div:nth-child(3) { display: none; }" });
+    await draw(page, [["architecture", `S.animated("architecture")`], ["dataFlow", `S.animated("dataFlow")`, 80], ["late", `S.animated("architecture")`, 80]]);
+    await until(page, () => document.getElementById("fig-late") !== null);
+    // The browser keeps the failed module: the hidden figure's import is refused without a second request. Give it a moment to reject.
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate(() => { const f = document.getElementById("fig-late"); return { entrance: f.getAttribute("data-entrance"), measured: f.hasAttribute("data-measured") }; }), { entrance: null, measured: false }, "hidden: not measured, no entrance");
+    await hide.evaluate((s) => s.remove());
+    await until(page, () => document.querySelector("#fig-late .basalt-diagram-edges"));
+    await frames(page, 4);
+    const shown = await page.evaluate(() => { const f = document.getElementById("fig-late"); return { entrance: f.getAttribute("data-entrance"), edges: getComputedStyle(f.querySelector(".basalt-diagram-edges")).visibility, lines: f.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line").length > 0, parts: f.querySelectorAll(".basalt-diagram-play, .basalt-diagram-pause").length }; });
+    assert.deepEqual(shown, { entrance: "done", edges: "visible", lines: true, parts: 0 });
     assert.deepEqual(errors, []);
     await page.close();
   });

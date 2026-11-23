@@ -233,7 +233,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const groups: Model["groups"] = [];
   const steps: MStep[] = [];
   const type = spec.type;
-  if (!(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) dev && warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
+  if (dev && !(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
 
   if (type === "architecture" || type === "flowchart") {
     for (const raw of (spec.nodes ?? []) as Array<ArchitectureNode & FlowchartNode>) {
@@ -284,8 +284,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
 
   const byId = new Map<string, MNode>();
   for (const n of nodes) {
-    if (!n.id) dev && warn("a node has no id");
-    else if (byId.has(n.id)) dev && warn(`the id "${n.id}" is used twice`);
+    if (dev && !n.id) warn("a node has no id");
+    else if (dev && byId.has(n.id)) warn(`the id "${n.id}" is used twice`);
     byId.set(n.id, n);
   }
 
@@ -310,9 +310,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (label && label.length > MAX_LABEL) dev && warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
-  } else {
+  } else if (dev) {
     for (const s of steps) if ("n" in s) {
-      if (!byId.has(s.from) || !byId.has(s.to)) dev && warn(`message ${s.n} names ${!byId.has(s.from) ? s.from : s.to}, which is not a participant`);
+      if (!byId.has(s.from) || !byId.has(s.to)) warn(`message ${s.n} names ${!byId.has(s.from) ? s.from : s.to}, which is not a participant`);
     }
   }
 
@@ -999,6 +999,8 @@ export interface Geo {
   unseated: number[];
   /** Lines (by edge index) that leave the drawing: a route the fit must refuse. */
   outside: number[];
+  /** Lines (by edge index) laid on another line that does not end where it ends (not a bus): two lines read as one, so the fit refuses them. */
+  overlaps?: number[];
   /** The offset of the drawing's origin from the device pixel grid, so lines can be snapped to it. */
   ox: number;
   oy: number;
@@ -1581,8 +1583,8 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       if (last && last.some((q) => q.run[0] < p.run[1] + s("8") && p.run[0] < q.run[1] + s("8"))) last.push(p); else clusters.push([p]);
     }
     for (const cluster of clusters) {
-      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog, the two share the gutter's lanes.
-      if (cluster.every((c) => c.members.every((k) => turnBacks.has(k)))) continue;
+      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog or another turn-back, they share the gutter's lanes.
+      if (cluster.length === 1 && cluster[0]!.members.every((k) => turnBacks.has(k))) continue;
       const groupsOf = cluster.map((c) => c.members);
       const count = groupsOf.length;
       const step = (g.span[1] - g.span[0]) / (count + 1);
@@ -1609,16 +1611,23 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   geo.labels = seats.labels;
   geo.unseated = seats.unseated;
   geo.bounded = seats.bounded;
+  // Two lines on one another that are not a bus (a one-column schema's turn-backs to different keys, with no gutter to give each a lane) read as
+  // one line: the drawn layout is refused, as a line through a node is.
+  geo.overlaps = [...new Set(overlapPairs(geo.lines, null).flat())];
   return geo;
 }
 
 /** Runs of two lines laid on one another (collinear and overlapping by more than a pixel), for lines in `only`. Lines that end on one point
  *  share a lane by design (a bus, 1.7), so they are not counted. */
 function overlapsOf(lines: GLine[], only: Set<number>): number {
-  let count = 0;
+  return overlapPairs(lines, only).length;
+}
+/** Each such run as the pair of lines (by edge index) that lie on one another, once a run; `only` null takes every line. */
+function overlapPairs(lines: GLine[], only: Set<number> | null): Array<[number, number]> {
+  const pairs: Array<[number, number]> = [];
   for (let a = 0; a < lines.length; a++) for (let b = a + 1; b < lines.length; b++) {
     const A = lines[a]!, B = lines[b]!;
-    if (!only.has(A.i) && !only.has(B.i)) continue;
+    if (only && !only.has(A.i) && !only.has(B.i)) continue;
     if (A.to === B.to && Math.abs(A.tip.x - B.tip.x) < 1 && Math.abs(A.tip.y - B.tip.y) < 1) continue;
     const near = (A.width + B.width) / 2 + 0.5;
     for (const [p1, p2] of segmentsOf(A.pts)) for (const [q1, q2] of segmentsOf(B.pts)) {
@@ -1627,10 +1636,10 @@ function overlapsOf(lines: GLine[], only: Set<number>): number {
       const [ac, bc] = aH ? [p1.y, q1.y] : [p1.x, q1.x];
       if (Math.abs(ac - bc) >= near) continue;
       const [a1, a2] = aH ? [p1.x, p2.x] : [p1.y, p2.y], [b1, b2] = aH ? [q1.x, q2.x] : [q1.y, q2.y];
-      if (Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1) count++;
+      if (Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1) pairs.push([A.i, B.i]);
     }
   }
-  return count;
+  return pairs;
 }
 
 function* permutations<T>(items: T[]): Generator<T[]> {
@@ -1977,16 +1986,19 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     };
     let { dd: d, g: geo } = drawnTry(false);
     // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
-    if (!geo.through.length && !geo.outside.length && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
+    // A route the drawn layout refuses: through a node, off the drawing, or laid on another line.
+    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0;
+    if (!refused(geo) && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
       const padded = drawnTry(true);
-      if (!padded.g.through.length && !padded.g.unseated.length && !padded.g.outside.length) ({ dd: d, g: geo } = padded);
+      if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
     }
-    if (!geo.through.length && !geo.unseated.length && !geo.outside.length) {
+    if (!refused(geo) && !geo.unseated.length) {
       if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
       return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
     if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
+    if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
     if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
   }
