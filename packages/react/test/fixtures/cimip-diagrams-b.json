@@ -14,6 +14,11 @@
       {
         "id": "aws",
         "label": "AWS · your account"
+      },
+      {
+        "id": "data",
+        "label": "Data & logs",
+        "parent": "aws"
       }
     ],
     "nodes": [
@@ -52,7 +57,7 @@
         "name": "Aurora PostgreSQL",
         "detail": "metadata · live window",
         "detailMono": true,
-        "group": "aws",
+        "group": "data",
         "col": 4,
         "row": 1,
         "branch": true
@@ -63,7 +68,7 @@
         "name": "S3",
         "detail": "sealed segments · transcripts",
         "detailMono": true,
-        "group": "aws",
+        "group": "data",
         "col": 4,
         "row": 2,
         "branch": true

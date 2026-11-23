@@ -52,7 +52,8 @@ export interface DiagramEdge {
   toSide?: DiagramSide;
 }
 
-export interface DiagramGroup { id: string; label: string }
+/** A group of an architecture. `parent` names the group it is in (DECISIONS 306, 1.3): two levels at most, a node naming its innermost group. */
+export interface DiagramGroup { id: string; label: string; parent?: string }
 /**
  * A service's own mark for an architecture card (DECISIONS 292, 2.7): its owner's file for light grounds and, if it has one, for dark grounds, each
  * a URL the app has the right to show (a file path or a data URI). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner
@@ -161,7 +162,8 @@ export interface Model {
   nodes: MNode[];
   byId: Map<string, MNode>;
   edges: MEdge[];
-  groups: Array<DiagramGroup & { members: string[] }>;
+  /** `members` are a group's own nodes; `all` adds its child groups' (its box's extent); `depth` is 1 or 2. Outer groups come first. */
+  groups: Array<DiagramGroup & { members: string[]; all: string[]; depth: number }>;
   lanes: DataFlowLane[];
   steps: MStep[];
   cols: number;
@@ -246,7 +248,23 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
         mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark) : undefined,
       });
     }
-    if (type === "architecture") for (const g of spec.groups ?? []) { const gid = String(g.id ?? ""); groups.push({ id: gid, label: String(g.label ?? ""), members: nodes.filter((n) => n.group === gid).map((n) => n.id) }); }
+    if (type === "architecture") {
+      const raw = (spec.groups ?? []).map((g) => ({ id: String(g.id ?? ""), label: String(g.label ?? ""), parent: txt(g.parent) }));
+      const byGroup = new Map(raw.map((g) => [g.id, g]));
+      // Depth by the parent chain: an unknown parent or a cycle is an error, and the group is drawn at the top level.
+      const depthOf = (g: (typeof raw)[number]): number => {
+        if (!g.parent) return 1;
+        const p = byGroup.get(g.parent);
+        if (!p) { dev && warn(`the group "${g.label}" names the parent "${g.parent}", which is not a group`); g.parent = undefined; return 1; }
+        if (p.parent === g.id || p.id === g.id) { dev && warn(`the groups "${g.label}" and "${p.label}" are each other's parent`); g.parent = undefined; return 1; }
+        if (p.parent) { dev && warn(`the group "${g.label}" is a third level: groups nest two deep`); g.parent = undefined; return 1; }
+        return 2;
+      };
+      const depths = raw.map(depthOf);
+      raw.forEach((g, k) => groups.push({ ...g, depth: depths[k]!, members: nodes.filter((n) => n.group === g.id).map((n) => n.id), all: [] }));
+      for (const g of groups) g.all = [...g.members, ...groups.filter((c) => c.parent === g.id).flatMap((c) => c.members)];
+      groups.sort((a, b) => a.depth - b.depth);
+    }
   } else if (type === "data-flow") {
     lanes = (spec.lanes ?? []).map((l) => ({ id: String(l.id ?? ""), label: String(l.label ?? "") }));
     const laneIndex = new Map(lanes.map((l, k) => [l.id, k + 1]));
@@ -335,10 +353,10 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
   if (checks) {
     for (const g of groups) {
-      const m = g.members.map((id) => byId.get(id)!);
+      const m = g.all.map((id) => byId.get(id)!);
       if (!m.length) continue;
       const box = { c1: Math.min(...m.map((n) => n.col)), c2: Math.max(...m.map((n) => n.col)), r1: Math.min(...m.map((n) => n.row)), r2: Math.max(...m.map((n) => n.row2)) };
-      for (const n of nodes) if (n.group !== g.id && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
+      for (const n of nodes) if (!g.all.includes(n.id) && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
       const idx = m.map((n) => n.i);
       if (Math.max(...idx) - Math.min(...idx) + 1 !== idx.length) warn(`the members of the group "${g.label}" are not next to each other in the author's order, so the stacked drawing cannot wrap them in one box`);
     }
@@ -437,7 +455,8 @@ function writeSentence(m: Model, n: MNode): string {
     const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
     if (n.detail) parts.push(sentence(n.detail));
-    if (n.group) { const g = m.groups.find((x) => x.id === n.group); if (g) parts.push(`In ${g.label}.`); }
+    // The chain, innermost first: "In Data & logs, in AWS · your account." (1.3)
+    if (n.group) { const g = m.groups.find((x) => x.id === n.group); const outer = g?.parent ? m.groups.find((x) => x.id === g.parent) : undefined; if (g) parts.push(outer ? `In ${g.label}, in ${outer.label}.` : `In ${g.label}.`); }
     const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
     const to = m.edges.filter((e) => e.from === n.id).map((e) => `${m.byId.get(e.to)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
     if (from.length) parts.push(`From: ${from.join(", ")}.`);
@@ -530,16 +549,40 @@ function nodesAreImages(m: Model, dyn: Dyn): boolean {
   return true;
 }
 
-/** How many sides a group reaches (the start or the end column): each adds space-4 to the least width. */
+/** A group's cells, its own members' and its child groups'. */
+function groupCells(m: Model, g: Model["groups"][number]) {
+  const mem = g.all.map((id) => m.byId.get(id)!);
+  if (!mem.length) return null;
+  return { c1: Math.min(...mem.map((n) => n.col)), c2: Math.max(...mem.map((n) => n.col)), r1: Math.min(...mem.map((n) => n.row)), r2: Math.max(...mem.map((n) => n.row2)) };
+}
+/**
+ * How many group levels reach each edge of the grid (DECISIONS 306, 1.3): the top row, the end column, the bottom row and the start column. A nested
+ * group's box is space-4 inside its parent's at the sides and below and space-8 below its top, so each level that reaches an edge takes that room again.
+ */
+export function groupEdges(m: Model): [number, number, number, number] {
+  return memo(m, "group-edges", () => {
+    const out: [number, number, number, number] = [0, 0, 0, 0];
+    for (const g of m.groups) {
+      const c = groupCells(m, g);
+      if (!c) continue;
+      const at = [c.r1 === 1, c.c2 === m.cols, c.r2 === m.rows, c.c1 === 1];
+      // A group reaches an edge with its own depth when its child does too, or alone at depth 1.
+      at.forEach((on, k) => { if (on) out[k] = Math.max(out[k]!, groupLevels(m, g, k)); });
+    }
+    return out;
+  });
+}
+/** How many boxes a group draws past its cells on one side: 1, and 1 more for a child group that reaches that side of it. */
+function groupLevels(m: Model, g: Model["groups"][number], side: number): number {
+  const c = groupCells(m, g)!;
+  const kids = m.groups.filter((k) => k.parent === g.id);
+  const reaches = kids.some((k) => { const kc = groupCells(m, k); return kc && [kc.r1 === c.r1, kc.c2 === c.c2, kc.r2 === c.r2, kc.c1 === c.c1][side]; });
+  return reaches ? 2 : 1;
+}
+/** How many group levels reach the start and the end columns: each adds space-4 to the least width. */
 export function groupReach(m: Model): number {
-  let reach = 0;
-  for (const g of m.groups) {
-    const cols = g.members.map((id) => m.byId.get(id)!.col);
-    if (!cols.length) continue;
-    if (Math.min(...cols) === 1) reach |= 1;
-    if (Math.max(...cols) === m.cols) reach |= 2;
-  }
-  return (reach & 1) + ((reach >> 1) & 1);
+  const e = groupEdges(m);
+  return e[1] + e[3];
 }
 
 /** The figure's columns as the least-width rules count them: a sequence's participants, a data flow's step columns, everyone else's tracks. */
@@ -775,10 +818,11 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
   }
   if (m.type === "architecture") {
     for (const g of m.groups) {
-      const mem = g.members.map((id) => m.byId.get(id)!);
-      if (!mem.length) continue;
-      const c1 = Math.min(...mem.map((n) => n.col)), c2 = Math.max(...mem.map((n) => n.col)), r1 = Math.min(...mem.map((n) => n.row)), r2 = Math.max(...mem.map((n) => n.row2));
-      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, style: `--_c:${c1};--_c2:${c2 + 1};--_r:${r1};--_r2:${r2 + 1}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
+      const c = groupCells(m, g);
+      if (!c) continue;
+      // A box grown past its cells by one level on each side, and by two where a child group reaches that side of it (1.3).
+      const lv = [0, 1, 2, 3].map((k) => groupLevels(m, g, k));
+      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
     }
   }
   if (m.type === "sequence") {
@@ -786,17 +830,30 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     out.push(sequenceSteps(ctx, m));
     return out;
   }
-  // Nodes in the author's order; a group's members are wrapped once, so the stacked drawing can draw its box around them.
+  // Nodes in the author's order; a group's members are wrapped once, so the stacked drawing can draw its box around them. A nested group is a wrapper
+  // inside its parent's (1.3).
+  const outerOf = (n: MNode) => { const g = n.group ? m.groups.find((x) => x.id === n.group) : undefined; return g?.parent ? m.groups.find((x) => x.id === g.parent) : g; };
+  const wrap = (g: Model["groups"][number], run: MNode[], kids: VNode[]) => {
+    // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
+    const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+  };
   let k = 0;
   while (k < m.nodes.length) {
     const n = m.nodes[k]!;
-    const g = n.group ? m.groups.find((x) => x.id === n.group) : undefined;
+    const g = outerOf(n);
     if (!g) { out.push(nodeTree(ctx, m, n, dyn)); k++; continue; }
     const run: MNode[] = [];
-    while (k < m.nodes.length && m.nodes[k]!.group === g.id) run.push(m.nodes[k++]!);
-    // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
-    const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
-    out.push(h("div", { class: `${P}-group`, "data-group": g.id, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), run.map((x) => nodeTree(ctx, m, x, dyn))));
+    while (k < m.nodes.length && outerOf(m.nodes[k]!)?.id === g.id) run.push(m.nodes[k++]!);
+    const kids: VNode[] = [];
+    for (let j = 0; j < run.length;) {
+      const inner = run[j]!.group !== g.id ? m.groups.find((x) => x.id === run[j]!.group) : undefined;
+      if (!inner) { kids.push(nodeTree(ctx, m, run[j]!, dyn)); j++; continue; }
+      const sub: MNode[] = [];
+      while (j < run.length && run[j]!.group === inner.id) sub.push(run[j++]!);
+      kids.push(wrap(inner, sub, sub.map((x) => nodeTree(ctx, m, x, dyn))));
+    }
+    out.push(wrap(g, run, kids));
   }
   return out;
 }
@@ -841,9 +898,14 @@ function buildList(P: string, m: Model): VNode[] {
     const out: VNode[] = [H("Parts")];
     const loose = m.nodes.filter((n) => !n.group);
     if (loose.length) out.push(h("ul", { class: `${P}-list-items` }, loose.map(part)));
-    for (const g of m.groups) {
+    // Direct members, then each child group under its label (1.3).
+    for (const g of m.groups.filter((x) => x.depth === 1)) {
       out.push(h("p", { class: `${P}-list-group` }, g.label));
-      out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
+      if (g.members.length) out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
+      for (const c of m.groups.filter((x) => x.parent === g.id)) {
+        out.push(h("p", { class: `${P}-list-group`, "data-depth": 2 }, c.label));
+        out.push(h("ul", { class: `${P}-list-items`, "data-depth": 2 }, c.members.map((id) => part(m.byId.get(id)!))));
+      }
     }
     out.push(H("Connections"));
     out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", `${kw(e.kind)}.`))));
@@ -975,10 +1037,11 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   if ((m.type === "architecture" && m.groups.length) || (drawn && dyn.pad)) {
     // The drawn layout keeps room for a group's box where it reaches an edge: space-8 above, space-4 at a side and below. A padded layout
     // (Dyn.pad) keeps at least space-3 above and below, for the seats beside a line in the first or the last row.
-    const members = m.type === "architecture" ? m.groups.flatMap((g) => g.members.map((id) => m.byId.get(id)!)) : [];
-    const pad = (on: boolean, step: string, least?: string) => (on ? `var(--basalt-space-${step})` : least ? `var(--basalt-space-${least})` : "0px");
+    // Each group level that reaches an edge takes its room again (1.3): space-8 above, space-4 at a side and below.
+    const e: [number, number, number, number] = m.type === "architecture" ? groupEdges(m) : [0, 0, 0, 0];
+    const pad = (levels: number, step: string, least?: string) => (levels ? (levels > 1 ? `calc(${levels} * var(--basalt-space-${step}))` : `var(--basalt-space-${step})`) : least ? `var(--basalt-space-${least})` : "0px");
     const block = drawn && dyn.pad ? "3" : undefined;
-    style.push(`--_gpad:${pad(members.some((n) => n.row === 1), "8", block)} ${pad(members.some((n) => n.col === m.cols), "4")} ${pad(members.some((n) => n.row2 === m.rows), "4", block)} ${pad(members.some((n) => n.col === 1), "4")}`);
+    style.push(`--_gpad:${pad(e[0], "8", block)} ${pad(e[1], "4")} ${pad(e[2], "4", block)} ${pad(e[3], "4")}`);
   }
   // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
   // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).

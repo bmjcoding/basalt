@@ -4584,17 +4584,24 @@
   .basalt-diagram-group > .basalt-diagram-glabel + .basalt-diagram-node { --_d-mt: 0; }
   .basalt-diagram-glabel { position: absolute; top: var(--basalt-space-2); inset-inline-start: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); white-space: nowrap; }
   .basalt-diagram-group > .basalt-diagram-glabel { --_d-gl: var(--_drawn) none; display: var(--_d-gl, block); }
+  /* Stacked, a group's label sits on a ground plate over the lines, so a line that crosses it stops either side (DECISIONS 306, 1.3). */
+  .basalt-diagram-group > .basalt-diagram-glabel { z-index: 1; margin-inline-start: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); background: var(--_ground); }
   .basalt-diagram-gbox {
     --_d-gb: var(--_drawn) block;
     position: relative;
     display: var(--_d-gb, none);
     grid-column: var(--_c) / var(--_c2);
     grid-row: var(--_r) / var(--_r2);
-    margin: calc(-1 * var(--basalt-space-8)) calc(-1 * var(--basalt-space-4)) calc(-1 * var(--basalt-space-4));
+    /* One level past the cells on each side, two where a child group reaches that side (DECISIONS 306, 1.3: --_gt, --_ge, --_gb, --_gs). */
+    margin-block: calc(-1 * var(--_gt, 1) * var(--basalt-space-8)) calc(-1 * var(--_gb, 1) * var(--basalt-space-4));
+    margin-inline: calc(-1 * var(--_gs, 1) * var(--basalt-space-4)) calc(-1 * var(--_ge, 1) * var(--basalt-space-4));
     border: var(--basalt-size-hairline) dashed var(--basalt-diagram-structure);
     border-radius: var(--basalt-radius-lg);
     pointer-events: none;
   }
+  /* A nested group (1.3): space-4 inside its parent at the sides and below, space-8 below its top, radius 8. Its label is the merged label. */
+  .basalt-diagram-gbox[data-depth="2"], .basalt-diagram-group[data-depth="2"] { border-radius: var(--basalt-radius-md); }
+  .basalt-diagram-list-group[data-depth="2"], .basalt-diagram-list-items[data-depth="2"] { margin-inline-start: var(--basalt-space-5); }
 
   /* A data flow's lanes: bands ruled apart with the divider, centred in the row gap, the first unruled; the name carries the lane. */
   .basalt-diagram-lane { --_d-ln: var(--_drawn) flex; position: relative; display: var(--_d-ln, none); grid-column: 1 / -1; grid-row: var(--_r); align-items: center; pointer-events: none; }
@@ -4784,6 +4791,10 @@
   @container (width >= 784px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 4 columns reaching both sides: 4 × 144 + 3 × 64 + 2 × 16 = 800px; a sequence of 5: 5 × size-diagram-node (144) + 4 × space-5 (20) = 800px */
   @container (width >= 800px) { .basalt-diagram:not([data-layout]):is([data-type="architecture"][data-cols="4"][data-reach="2"], [data-type="sequence"][data-cols="5"]) > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 4 columns with three group levels at its sides (DECISIONS 306, 1.3): 4 × 144 + 3 × 64 + 3 × 16 = 816px */
+  @container (width >= 816px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="3"] > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 4 columns with four group levels at its sides: 4 × 144 + 3 × 64 + 4 × 16 = 832px */
+  @container (width >= 832px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 4 step columns: 120 + 4 × (144 + 48) = 888px */
   @container (width >= 888px) { .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a sequence of 6: 6 × 144 + 5 × 20 = 964px */
@@ -4794,6 +4805,10 @@
   @container (width >= 992px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 5 columns reaching both sides: 5 × 144 + 4 × 64 + 2 × 16 = 1008px */
   @container (width >= 1008px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="2"] > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 5 columns with three group levels at its sides: 5 × 144 + 4 × 64 + 3 × 16 = 1024px */
+  @container (width >= 1024px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="3"] > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 5 columns with four group levels: 5 × 144 + 4 × 64 + 4 × 16 = 1040px */
+  @container (width >= 1040px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a schema of 4: 4 × size-diagram-table (224) + 3 × space-12 (48) = 1040px */
   @container (width >= 1040px) { .basalt-diagram:not([data-layout])[data-type="schema"][data-cols="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 5 step columns: 120 + 5 × (144 + 48) = 1080px */
@@ -4804,6 +4819,10 @@
   @container (width >= 1200px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 6 columns reaching both sides: 6 × 144 + 5 × 64 + 2 × 16 = 1216px */
   @container (width >= 1216px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="2"] > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 6 columns with three group levels at its sides: 6 × 144 + 5 × 64 + 3 × 16 = 1232px */
+  @container (width >= 1232px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="3"] > .basalt-diagram-drawing { --_drawn: ; } }
+  /* stylelint-disable-next-line basalt/container-length -- an architecture of 6 columns with four group levels at its sides: 6 × 144 + 5 × 64 + 4 × 16 = 1248px */
+  @container (width >= 1248px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 6 step columns: 120 + 6 × (144 + 48) = 1272px */
   @container (width >= 1272px) { .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="6"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a schema of 5: 5 × 224 + 4 × 48 = 1312px */
