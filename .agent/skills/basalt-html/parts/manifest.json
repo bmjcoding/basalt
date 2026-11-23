@@ -778,7 +778,7 @@
         "art",
         "kbd"
       ],
-      "budget": 123300,
+      "budget": 127150,
       "usage": 4300,
       "builds": [
         "kbd"
@@ -804,7 +804,7 @@
         "loops",
         "toggle"
       ],
-      "budget": 27500,
+      "budget": 27850,
       "usage": 1300,
       "builds": [
         "loops",
@@ -835,7 +835,7 @@
         "dialog-form",
         "sheet"
       ],
-      "budget": 16900,
+      "budget": 17000,
       "usage": 900,
       "builds": [
         "dialog",
