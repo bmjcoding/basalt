@@ -97,7 +97,7 @@ describe("slots on a side (Neon's finding 13)", () => {
 describe("the development checks cost production nothing (Neon's finding 14)", () => {
   // Phrases only the checks write (a property name such as `crossings` is code, not a check's words).
   const WORDS = ["share the cell at column", "main lines are drawn but", "is not a kind of line", "more than three is an error", "would leave the drawing", "in the drawn layout",
-    "fifth end lane", "stands for", "is used twice", "two columns apart", "closer than space-3"];
+    "fifth end lane", "stands for", "is used twice", "a third lane in its corridor", "closer than space-3", "states a cardinality but references nothing"];
   const bundle = async (entry, mode) => (await esbuild.build({
     stdin: { contents: entry, resolveDir: pkg, loader: "js" }, bundle: true, minify: true, format: "esm", write: false, logLevel: "silent",
     external: ["react", "react-dom", "react/jsx-runtime"], define: { "process.env.NODE_ENV": JSON.stringify(mode) },
