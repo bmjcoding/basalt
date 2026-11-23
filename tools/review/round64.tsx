@@ -1,8 +1,9 @@
 // Round 64: Basalt's diagrams (DECISIONS 281, revised by 282). A heavy council round decided on one draft (Draft A, Neon's; the second drafter sat out on a
 // usage limit), checked by Astra and decided by Fable, who revised six objections after the final positions. Built by Opus from the decision; the
 // implementation has not been reviewed. The content is CIMIP's five diagrams (the owner's prototype, with the decision's corrections). States: at rest
-// (`default`), a node traced by the pointer (`hover`), the list open (`list`), forced colours and more contrast. Each is shot at 1440 (drawn), at 672 (a
-// 640px figure: the stack, 480 wide), at 390 and at 360.
+// (`default`), a node traced by the pointer (`hover`), the list open (`list`), forced colours and more contrast. Each is shot at window widths 1440
+// (drawn), 672, 390 and 360; a shot is labelled by the window's width, and below 1440 the walkthrough's own padding makes the figure 96px narrower
+// (576, 294 and 264 wide).
 
 import * as React from "react";
 
@@ -55,7 +56,7 @@ export const ROUND_64: Round = {
   title: "Diagrams: architecture, flowchart, data flow, sequence and schema (DECISIONS 281, 282)",
   reviewed: false,
   summary:
-    "Five diagram components and the HTML skill's diagram module, built from the council's decision (DECISIONS 281, revised by 282 after the final positions): Draft A's grammar with a measured fit rule, derived routes, a 3:1 contour on flowchart shapes, cut crossings, tracing by ink only, and the words in the page before script. CIMIP's five diagrams are the content. Built by Opus; the implementation has not been reviewed, and the tests were written but not run (DECISIONS 271 paused test runs). Shot at 1440, at a 640px figure, at 390 and at 360, in both themes, with a trace, the list, forced colours and more contrast.",
+    "Five diagram components and the HTML skill's diagram module, built from the council's decision (DECISIONS 281, revised by 282 after the final positions): Draft A's grammar with a measured fit rule, derived routes, a 3:1 contour on flowchart shapes, cut crossings, tracing by ink only, and the words in the page before script. CIMIP's five diagrams are the content. Built by Opus; the implementation has not been reviewed, and the tests were written but not run (DECISIONS 271 paused test runs). Shot at window widths 1440, 672, 390 and 360 (each shot is labelled by the window; the figures in the three narrow shots are 576, 294 and 264 wide), in both themes, with a trace, the list, forced colours and more contrast.",
   steps: [
     {
       id: "architecture",
@@ -82,7 +83,7 @@ export const ROUND_64: Round = {
       decisions: [
         ...COMMON,
         "A step is the box, a start or end a capsule, a decision a diamond behind its words (the name at 500, wrapping at 62% of the track). A decision is at least space-16 tall and never flatter than 5:1, drawn or stacked.",
-        "Built differently from the decision's estimate: the decision measured the flowchart drawing from 880 on Draft A's geometry; here it draws from 946. At a 177px track \"Risk medium or lower?\" wraps to two lines, its diamond (sized exactly as 1.12 says) is 109 tall, and its slope reaches 0.6px into the clean seat of \"responder\", so by \"no seat, no drawn layout\" the stack holds until 946. The options are in the PR's notes; nothing was changed to move it.",
+        "The decision estimated the flowchart drawing from 880 on Draft A's geometry; measured here it draws from a 960px figure, at every whole width from there to 1,104, and is stacked below it. Under about 960 \"Risk medium or lower?\" wraps to two lines and the slope of \"Who is deciding?\" reaches into the clean seat of \"responder\". Labels are seated against the line's place before its half-pixel snap, so the fit no longer flips between 935 and 951 (the decider accepted the measured width in review round 64).",
       ],
       tryIt: TRY_COMMON,
       states: [...STATES],

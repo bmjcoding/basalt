@@ -236,7 +236,12 @@ function diagramCss() {
   const css = react.slice(start, end)
     .replaceAll("var(--_surface, var(--basalt-surface-1))", "var(--panel-next, var(--basalt-surface-1))")
     .replaceAll("var(--_surface, var(--basalt-surface-page))", "var(--panel-bg, var(--basalt-surface-page))")
-    .replaceAll(".basalt-diagram", ".diagram");
+    .replaceAll(".basalt-diagram", ".diagram")
+    // A type role written out in full is the core's own role variable (core.css, "Type roles"), the same value in a third of the bytes.
+    .replace(/var\(--basalt-text-(xs|sm|md)-size\) \/ var\(--basalt-text-\1-line-height\) var\(--basalt-font-family-(sans|mono)\)/g, (all, size, family) => (family === "mono" && size !== "xs" ? all : `var(--bh-${size}${family === "mono" ? "-mono" : ""})`))
+    // The private switch and the properties that read it, shorter (nothing outside this stylesheet names them; a capital never collides with another).
+    .replaceAll("--_drawn", "--_D")
+    .replace(/--_d-([a-z])/g, (_, c) => `--_${c.toUpperCase()}`);
   if (css.includes("--_surface")) throw new Error("html-skill: the diagrams section reads --_surface in a form diagramCss does not rename");
   return `@layer basalt {\n${css}\n}\n`;
 }

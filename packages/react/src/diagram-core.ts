@@ -142,6 +142,10 @@ const HEADINGS = [2, 3, 4, 5, 6];
 
 /** Text from the author's data: always a string (or nothing), so a value that is not one can never be read as markup. */
 const txt = (v: unknown): string | undefined => (v === undefined || v === null || v === "" ? undefined : String(v));
+/** A record keyed by the author's ids, with no prototype, so an id such as "toString" or "constructor" is only ever its own key. */
+const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign(Object.create(null) as Record<string, T>, from);
+/** A value an id keys in a record, never one the record inherits. */
+const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
 
 export interface BuildOptions {
   /** Run the checks a development build reports (placement, groups, the key's words). Off, the model is read the same and nothing is checked. */
@@ -315,7 +319,6 @@ const MAX_LABEL = 28;
 // ============================================================================================================================================
 
 const sentence = (s: string) => { const t = s.trim(); return !t ? "" : /[.!?]$/.test(t) ? t : `${t}.`; };
-const upperFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A kind's word, from the key (none when the author gave none: an unkeyed plain line says "goes to"). */
 export function kindWord(m: Model, kind: DiagramLineKind): string | undefined { return m.legend[kind]; }
@@ -415,6 +418,13 @@ export interface Dyn {
   /** The schema's stacked track: its widest row, measured. */
   track?: number;
   open?: boolean;
+  /** A stack that still overlaps after every try draws no lines (1.13): it is dressed as where scripting is off, with no line in the key, no
+   *  key hint, no stops and the list open. */
+  bare?: boolean;
+  /** The list was opened by a bare stack, not by the reader: it closes again when lines are drawn. A press of the toggle clears it. */
+  autoOpen?: boolean;
+  /** The drawn layout keeps space-3 above its first row and below its last, so a label beside a line in a 40px row has a seat (1.8). */
+  pad?: boolean;
 }
 
 export interface TreeIds { base: string }
@@ -422,7 +432,7 @@ const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-sum
 
 /** Whether the figure's nodes are stops (a roving tab index) in this state. */
 export function hasStops(m: Model, dyn: Dyn): boolean {
-  if (!dyn.layout) return false;
+  if (!dyn.layout || dyn.bare) return false;
   if (dyn.layout === "drawn") return true;
   return m.type !== "sequence" && m.type !== "schema";
 }
@@ -500,12 +510,13 @@ function planStack(m: Model): StackPlan {
     if (leaving.length < 2) continue;
     const down = leaving.filter(({ k }) => routes[k] === "end-down").sort((x, y) => travel(y.e) - travel(x.e) || x.k - y.k);
     const up = leaving.filter(({ k }) => routes[k] === "end-up").sort((x, y) => travel(x.e) - travel(y.e) || y.k - x.k);
-    [...down, ...up].forEach(({ k }, j, all) => { exits[k] = all.length === 2 ? (j === 0 ? 1 / 3 : 2 / 3) : (j + 1) / (all.length + 1); });
+    // The lines going up leave above the lines going down, so a line out each way from one card never runs on the other in the lane.
+    [...up, ...down].forEach(({ k }, j, all) => { exits[k] = all.length === 2 ? (j === 0 ? 1 / 3 : 2 / 3) : (j + 1) / (all.length + 1); });
   }
   // The gap above each card (1.13): 32 for a plain entry, 40 for a branch entry with its label beside the elbow, 48 for a labelled stem, rail
   // entry or end-line turn, 64 when two labelled entries share it or a turn from the card above and a turn into the card below share it.
   // A data flow keeps 48 between every step.
-  const gaps: Record<string, number> = {};
+  const gaps = record<number>();
   for (let b = 1; b < order.length; b++) {
     const card = order[b]!, above = order[b - 1]!;
     let labelled = 0, gap = m.type === "data-flow" ? 48 : 32, turnInto = false, turnFrom = false;
@@ -559,6 +570,13 @@ function keyTree(P: string, m: Model): VElement | null {
 function buildKey(P: string, m: Model): VElement | null {
   const entries: VElement[] = [];
   const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, words)));
+  if (m.type === "schema") {
+    // The key seats' letters first, each where a seat holds it, set as the seat sets them, then their words.
+    const keys = new Set(m.nodes.flatMap((n) => (n.columns ?? []).map((c) => c.key)));
+    for (const [k, words] of [["PK", "Primary key"], ["FK", "Foreign key"]] as const) {
+      if (keys.has(k)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "aria-hidden": "true" }, k), h("span", null, words)));
+    }
+  }
   if (m.type === "flowchart") {
     const used = new Set(m.nodes.map((n) => n.shape));
     if (used.has("terminal")) entry(boxSwatch(P, "terminal"), m.shapeLabels.terminal);
@@ -573,7 +591,7 @@ function buildKey(P: string, m: Model): VElement | null {
   if (m.type === "schema" && m.edges.length) {
     // The foreign-key line where it is drawn; where it is not, the row says it, and so does the key.
     entry(lineSwatch(P, "fk"), m.legend.plain ?? "A foreign key, to the key it references", { "data-line": "", "data-when": "drawn" });
-    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, "→"), h("span", null, "A foreign key, written in the row")));
+    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, "→"), h("span", null, "The table a foreign key references")));
   }
   if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
@@ -599,7 +617,8 @@ function nodeText(P: string, m: Model, n: MNode): VChild[] {
   if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, n.kind!, h("span", { class: `${P}-lane-word` }, ` · ${n.laneLabel}`)));
   else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
   kids.push(h("span", { class: `${P}-name` }, n.name));
-  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.detail));
+  // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
+  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)]) : n.detail));
   return kids;
 }
 
@@ -630,11 +649,12 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   if (m.type === "sequence") style.push(`--_c2:${n.col + 1}`);
   const plan = ctx.plan;
   if (plan && n.i > 0) {
-    const base = plan.gaps[n.id] ?? 32;
-    const grow = dyn.grow?.[n.id] ?? 0;
+    const base = own(plan.gaps, n.id) ?? 32;
+    const grow = own(dyn.grow, n.id) ?? 0;
     style.push(`--_gap:${grow ? `calc(${gapVar(base)} + var(--basalt-space-4) * ${grow})` : gapVar(base)}`);
   }
-  if (dyn.heights?.[n.id]) style.push(`--_h:${dyn.heights[n.id]}px`);
+  const height = own(dyn.heights, n.id);
+  if (height) style.push(`--_h:${height}px`);
   const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
   return h("div", {
     class: `${P}-node`,
@@ -679,7 +699,9 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     if (!g) { out.push(nodeTree(ctx, m, n, dyn)); k++; continue; }
     const run: MNode[] = [];
     while (k < m.nodes.length && m.nodes[k]!.group === g.id) run.push(m.nodes[k++]!);
-    out.push(h("div", { class: `${P}-group`, "data-group": g.id }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), run.map((x) => nodeTree(ctx, m, x, dyn))));
+    // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
+    const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
+    out.push(h("div", { class: `${P}-group`, "data-group": g.id, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), run.map((x) => nodeTree(ctx, m, x, dyn))));
   }
   return out;
 }
@@ -752,17 +774,18 @@ function buildList(P: string, m: Model): VNode[] {
     out.push(H("Messages"));
     let list: VElement | null = null;
     for (const s of m.steps) {
-      // A band names a phase: a sub-heading, one level under the title's (4.4), drawn as the list's group line.
-      if ("band" in s) { list = null; out.push(h(`h${sub}`, { class: `${P}-list-group` }, s.band)); continue; }
+      // A band names a phase: a sub-heading one level under "Messages" (never past h6), drawn as the list's group line.
+      if ("band" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group` }, s.band)); continue; }
       if (!list) { list = h("ol", { class: `${P}-list-items`, start: s.n }); out.push(list); }
-      list.c.push(h("li", null, code(s.label), ": ", strong(name(s.from)), " to ", strong(name(s.to)), `${kw(s.kind)}.`, s.note ? ` ${sentence(upperFirst(s.note))}` : ""));
+      list.c.push(h("li", null, code(s.label), ": ", strong(name(s.from)), " to ", strong(name(s.to)), `${kw(s.kind)}.`, s.note ? ` ${sentence(s.note)}` : ""));
     }
     return out;
   }
   // schema
   const out: VNode[] = [];
   for (const n of m.nodes) {
-    out.push(h("p", { class: `${P}-list-group` }, code(n.name), focal(n)));
+    // A table's name is a sub-heading one level under the title's, as "Parts" and "Connections" are.
+    out.push(h(`h${sub}`, { class: `${P}-list-group` }, code(n.name), focal(n)));
     out.push(h("ul", { class: `${P}-list-items` }, [
       ...(n.columns ?? []).map((c) => h("li", null, code(c.name), c.key === "PK" ? ", primary key" : c.key === "FK" ? ", foreign key" : "", c.ref ? [", references ", code(`${c.ref.table}.${c.ref.column}`)] : c.type ? `, ${c.type}` : "")),
       ...(n.more ? [h("li", null, `and ${n.more} more ${n.more === 1 ? "column" : "columns"}`)] : []),
@@ -807,11 +830,13 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   const group = m.type === "sequence" || m.type === "schema" ? drawn : true;
   const Head = `h${m.heading}`;
   const style: string[] = [`--_cols:${columnCount(m)}`];
-  if (m.type === "architecture" && m.groups.length) {
-    // The drawn layout keeps room for a group's box where it reaches an edge: space-8 above, space-4 at a side and below.
-    const members = m.groups.flatMap((g) => g.members.map((id) => m.byId.get(id)!));
-    const pad = (on: boolean, step: string) => (on ? `var(--basalt-space-${step})` : "0px");
-    style.push(`--_gpad:${pad(members.some((n) => n.row === 1), "8")} ${pad(members.some((n) => n.col === m.cols), "4")} ${pad(members.some((n) => n.row2 === m.rows), "4")} ${pad(members.some((n) => n.col === 1), "4")}`);
+  if ((m.type === "architecture" && m.groups.length) || (drawn && dyn.pad)) {
+    // The drawn layout keeps room for a group's box where it reaches an edge: space-8 above, space-4 at a side and below. A padded layout
+    // (Dyn.pad) keeps at least space-3 above and below, for the seats beside a line in the first or the last row.
+    const members = m.type === "architecture" ? m.groups.flatMap((g) => g.members.map((id) => m.byId.get(id)!)) : [];
+    const pad = (on: boolean, step: string, least?: string) => (on ? `var(--basalt-space-${step})` : least ? `var(--basalt-space-${least})` : "0px");
+    const block = drawn && dyn.pad ? "3" : undefined;
+    style.push(`--_gpad:${pad(members.some((n) => n.row === 1), "8", block)} ${pad(members.some((n) => n.col === m.cols), "4")} ${pad(members.some((n) => n.row2 === m.rows), "4", block)} ${pad(members.some((n) => n.col === 1), "4")}`);
   }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
@@ -823,6 +848,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-gutter": plan?.gutter ? "" : undefined,
     "data-layout": dyn.layout,
     "data-measured": dyn.layout ? "" : undefined,
+    "data-bare": dyn.bare ? "" : undefined,
     style: style.join(";"),
   },
   h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
@@ -831,7 +857,8 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     role: group ? "group" : undefined,
     "aria-roledescription": group ? "diagram" : undefined,
     "aria-labelledby": group ? ids.title : undefined,
-    "aria-describedby": group ? `${ids.summary} ${ids.keys}` : undefined,
+    // The keys sentence describes the drawing only where it has stops (a bare stack has none).
+    "aria-describedby": group ? (stops ? `${ids.summary} ${ids.keys}` : ids.summary) : undefined,
     "data-stops": stops ? "" : undefined,
   }, drawingChildren(ctx, m, dyn), h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keyTree(P, m),
@@ -865,10 +892,15 @@ export interface GLine {
   /** A foreign key's dot, on the row it leaves. */
   dot?: Pt;
   width: number;
+  /** Each run's place across its axis before it was snapped (a run out of a decision is on the diamond's own centre line), by segment: labels
+   *  are seated against these, so a seat never turns on which way a half pixel fell. */
+  axes?: number[];
 }
 export interface GLabel { i: number; text: string; box: Rect; on: boolean }
 export interface GCross { top: number; under: number; at: Pt; underVertical: boolean }
 export interface Geo {
+  /** Labels refused only because every seat left the drawing (a padded layout gives them room). */
+  bounded?: number[];
   w: number;
   h: number;
   nodes: GNode[];
@@ -1129,7 +1161,7 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
     const straight = list.filter((p) => p.straight), rest = list.filter((p) => !p.straight);
     // Nested: the line whose far end is farther along takes the slot nearer that way.
     rest.sort((x, y) => along(x) - along(y) || (isH(x.side) ? x.far.col - y.far.col : x.far.row - y.far.row) * (along(x) < 0 ? 1 : -1));
-    if (list.length > 3) warn(`${key.replace(".", " has ")} has ${list.length} lines on one side; more than three is an error: use another side`);
+    if (list.length > 3) warn(`${key.replace(".", "'s ")} side has ${list.length} lines; more than three is an error: use another side`);
     if (straight.length) rest.forEach((p) => { p.f = along(p) < 0 ? 0.25 : 0.75; });
     else if (rest.length === 2) { rest[0]!.f = 0.25; rest[1]!.f = 0.75; }
     else if (rest.length === 3) { rest[0]!.f = 0.25; rest[1]!.f = 0.5; rest[2]!.f = 0.75; }
@@ -1179,11 +1211,12 @@ function headBox(line: GLine, tk: Tokens): Rect {
 const segRect = (a: Pt, b: Pt, w: number): Rect => ({ l: Math.min(a.x, b.x) - w / 2, r: Math.max(a.x, b.x) + w / 2, t: Math.min(a.y, b.y) - w / 2, b: Math.max(a.y, b.y) + w / 2 });
 
 /** Seats labels by 1.8: runs longest first, their clear shaft's middle then thirds; on the line, above, below (or beside). */
-function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacles, groups: Rect[], bounds: Rect, tk: Tokens, measure: ReturnType<typeof ruler>): { labels: GLabel[]; unseated: number[] } {
+function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacles, groups: Rect[], bounds: Rect, tk: Tokens, measure: ReturnType<typeof ruler>): { labels: GLabel[]; unseated: number[]; bounded: number[] } {
   const s = tk.space;
   const placed: Rect[] = [];
   const labels: GLabel[] = [];
   const unseated: number[] = [];
+  const bounded: number[] = [];
   const GROW = s("1");
   const order = lines.filter((l) => m.edges[l.i]?.label).sort((a, b) => Number(m.edges[b.i]!.kind === "main") - Number(m.edges[a.i]!.kind === "main") || a.i - b.i);
   for (const line of order) {
@@ -1205,13 +1238,15 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
         parts = parts.flatMap(([p, q]) => (edgeAt > Math.min(p, q) + 1 && edgeAt < Math.max(p, q) - 1 ? [[p, edgeAt], [edgeAt, q]] as Array<[number, number]> : [[p, q]] as Array<[number, number]>));
       }
       const outside = (p: number, q: number) => { const mid = (p + q) / 2; const pt = horiz ? { x: mid, y: a.y } : { x: a.x, y: mid }; return !groups.some((g) => pt.x > g.l && pt.x < g.r && pt.y > g.t && pt.y < g.b); };
-      for (const [p, q] of parts) runs.push({ horiz, c: horiz ? a.y : a.x, p, q, len: Math.abs(q - p), pri: parts.length > 1 && outside(p, q) ? 1 : 0 });
+      const c = line.axes?.[k] ?? (horiz ? a.y : a.x);
+      for (const [p, q] of parts) runs.push({ horiz, c, p, q, len: Math.abs(q - p), pri: parts.length > 1 && outside(p, q) ? 1 : 0 });
     });
     runs.sort((x, y) => y.pri - x.pri || y.len - x.len);
     let chosen: { box: Rect; on: boolean } | null = null;
-    const clear = (box: Rect) => {
+    let inBounds = false;
+    const clear = (box: Rect, bounded = true) => {
       const G = grow(box, GROW);
-      if (box.l < bounds.l || box.r > bounds.r || box.t < bounds.t || box.b > bounds.b) return false;
+      if (bounded && (box.l < bounds.l || box.r > bounds.r || box.t < bounds.t || box.b > bounds.b)) return false;
       if (nodes.some((n) => boxHitsShape(G, n))) return false;
       if (placed.some((p) => hit(G, p))) return false;
       if (obstacles.heads.some((h0) => hit(G, h0))) return false;
@@ -1234,14 +1269,15 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
         }
         chosen = cands.find((c) => clear(c.box)) ?? null;
         if (chosen) break;
+        if (!inBounds && cands.some((c) => clear(c.box, false))) inBounds = true;
       }
       if (chosen) break;
     }
-    if (!chosen) { unseated.push(line.i); continue; }
+    if (!chosen) { unseated.push(line.i); if (inBounds) bounded.push(line.i); continue; }
     placed.push(chosen.box);
     labels.push({ i: line.i, text, box: chosen.box, on: chosen.on });
   }
-  return { labels, unseated };
+  return { labels, unseated, bounded };
 }
 
 function obstaclesOf(drawing: HTMLElement, origin: DOMRect, P: string, rowGap: number): { obstacles: Obstacles; groups: Rect[] } {
@@ -1301,41 +1337,62 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const r = rectOf(el, origin);
     return (r.t + r.b) / 2;
   };
+  // Each end's place across the axis it leaves or enters on, before it is snapped (`r1`, `r2`): what its label is seated against.
   const ends = m.edges.map((e, k) => {
     const [s1, s2] = sides[k]!;
     const a = map.get(e.from)!, b = map.get(e.to)!;
     const w = strokeOf(e.kind, tk);
     if (e.fk) {
-      const y1 = sn.y(rowY(e.from, e.fromRow!), w), y2 = sn.y(rowY(e.to, e.toRow!), w);
-      return { p1: { x: s1 === "right" ? a.rect.r : a.rect.l, y: y1 }, p2: { x: s2 === "right" ? b.rect.r : b.rect.l, y: y2 } };
+      const r1 = rowY(e.from, e.fromRow!), r2 = rowY(e.to, e.toRow!);
+      const y1 = sn.y(r1, w), y2 = sn.y(r2, w);
+      return { p1: { x: s1 === "right" ? a.rect.r : a.rect.l, y: y1 }, p2: { x: s2 === "right" ? b.rect.r : b.rect.l, y: y2 }, r1, r2: Math.abs(y1 - y2) < 0.01 ? r1 : r2 };
     }
     const f1 = ports.find((p) => p.edge === k && p.end === "from")!.f, f2 = ports.find((p) => p.edge === k && p.end === "to")!.f;
     let p1 = portPoint(a, s1, f1), p2 = portPoint(b, s2, f2);
+    const r1 = isH(s1) ? p1.y : p1.x;
+    let r2 = isH(s2) ? p2.y : p2.x;
     // Snap the axis the line leaves and enters on; a straight line shares one.
     if (isH(s1)) p1 = { ...p1, y: sn.y(p1.y, w) }; else p1 = { ...p1, x: sn.x(p1.x, w) };
     if (isH(s2)) p2 = { ...p2, y: sn.y(p2.y, w) }; else p2 = { ...p2, x: sn.x(p2.x, w) };
-    if (isH(s1) && isH(s2) && Math.abs(p1.y - p2.y) < 1.01) p2 = { ...p2, y: p1.y };
-    if (!isH(s1) && !isH(s2) && Math.abs(p1.x - p2.x) < 1.01) p2 = { ...p2, x: p1.x };
+    if (isH(s1) && isH(s2) && Math.abs(p1.y - p2.y) < 1.01) { p2 = { ...p2, y: p1.y }; r2 = r1; }
+    if (!isH(s1) && !isH(s2) && Math.abs(p1.x - p2.x) < 1.01) { p2 = { ...p2, x: p1.x }; r2 = r1; }
     // The end that a snap moved sits on the contour again.
     p1 = isH(s1) ? contour(a, s1, p1.y) : contour(a, s1, p1.x);
     p2 = isH(s2) ? contour(b, s2, p2.y) : contour(b, s2, p2.x);
-    return { p1, p2 };
+    return { p1, p2, r1, r2 };
   });
+  // Relations two columns apart are not drawn: the row writes its target (1.12). They are left out before any lane is given, so they take none.
+  const dropped = new Set<number>();
+  if (m.type === "schema") m.edges.forEach((e, k) => { if (Math.abs(m.byId.get(e.from)!.col - m.byId.get(e.to)!.col) > 1) dropped.add(k); });
 
-  // Jogs: which gutter each two-elbow line turns in, and which lines share a lane (lines to one port, a foreign key's bus).
+  // Jogs: which gutter each two-elbow line turns in, and which lines share a lane (lines to one port, a foreign key's bus). A turn-back (out and
+  // back in on one side) runs in the gutter beside that side too, so it is given a lane with the jogs it runs beside.
   const jogs = new Map<string, { span: [number, number]; vertical: boolean; members: Map<string, number[]> }>();
+  const turnBacks = new Set<number>();
   m.edges.forEach((e, k) => {
+    if (dropped.has(k)) return;
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
     const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
     let key: string | null = null, span: [number, number] | null = null, vertical = false;
-    if (isH(s1) && isH(s2) && s1 !== s2 && Math.abs(p1.y - p2.y) > 0.5) {
+    if (s1 === s2) {
+      if (isH(s1)) {
+        const ti = s1 === "right" ? Math.max(trackOf(a), trackOf(b)) : Math.min(trackOf(a), trackOf(b)) - 1;
+        const t1 = grid.cols[ti - 1], t2 = grid.cols[ti];
+        if (t1 && t2) { key = `c${ti}`; span = [t1[1], t2[0]]; vertical = true; }
+      } else {
+        const ri = s1 === "bottom" ? Math.max(a.row2, b.row2) : Math.min(a.row, b.row) - 1;
+        const r1 = grid.rows[ri - 1], r2 = grid.rows[ri];
+        if (r1 && r2) { key = `r${ri}`; span = [r1[1], r2[0]]; vertical = false; }
+      }
+      if (key) turnBacks.add(k);
+    } else if (isH(s1) && isH(s2) && Math.abs(p1.y - p2.y) > 0.5) {
       const ti = trackOf(b);
       const leftSide = s2 === "left";
       const t1 = grid.cols[(leftSide ? ti - 1 : ti) - 1], t2 = grid.cols[(leftSide ? ti : ti + 1) - 1];
       if (t1 && t2) { key = `c${leftSide ? ti - 1 : ti}`; span = [t1[1], t2[0]]; vertical = true; }
       void a;
-    } else if (!isH(s1) && !isH(s2) && s1 !== s2 && Math.abs(p1.x - p2.x) > 0.5) {
+    } else if (!isH(s1) && !isH(s2) && Math.abs(p1.x - p2.x) > 0.5) {
       const topSide = s2 === "top";
       const ri = topSide ? b.row - 1 : b.row2;
       const r1 = grid.rows[ri - 1], r2 = grid.rows[ri];
@@ -1354,13 +1411,13 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
     if (isH(s1) && isH(s2)) {
-      if (s1 === s2) { const x = s1 === "right" ? Math.max(p1.x, p2.x) + s("4") : Math.min(p1.x, p2.x) - s("4"); return [p1, { x, y: p1.y }, { x, y: p2.y }, p2]; }
+      if (s1 === s2) { const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + s("4") : Math.min(p1.x, p2.x) - s("4")); return [p1, { x, y: p1.y }, { x, y: p2.y }, p2]; }
       if (Math.abs(p1.y - p2.y) <= 0.5) return [p1, { x: p2.x, y: p1.y }];
       const x = lanes.get(k) ?? (p1.x + p2.x) / 2;
       return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
     }
     if (!isH(s1) && !isH(s2)) {
-      if (s1 === s2) { const y = s1 === "bottom" ? Math.max(p1.y, p2.y) + s("4") : Math.min(p1.y, p2.y) - s("4"); return [p1, { x: p1.x, y }, { x: p2.x, y }, p2]; }
+      if (s1 === s2) { const y = lanes.get(k) ?? (s1 === "bottom" ? Math.max(p1.y, p2.y) + s("4") : Math.min(p1.y, p2.y) - s("4")); return [p1, { x: p1.x, y }, { x: p2.x, y }, p2]; }
       if (Math.abs(p1.x - p2.x) <= 0.5) return [p1, { x: p1.x, y: p2.y }];
       const y = lanes.get(k) ?? (p1.y + p2.y) / 2;
       return [p1, { x: p1.x, y }, { x: p2.x, y }, p2];
@@ -1371,17 +1428,26 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   const buildOne = (k: number): GLine => {
     const e = m.edges[k]!;
     const w = strokeOf(e.kind, tk);
-    const pts = snapRoute(route(k), w, sn);
-    return { i: k, from: e.from, to: e.to, kind: e.kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), dot: e.fk ? pts[0] : undefined, width: w };
+    const raw = route(k);
+    const pts = snapRoute(raw, w, sn);
+    // The runs' places before the snap: the ends' own, and a lane's as given. Where the snap merged a run, the snapped places stand.
+    let axes: number[] | undefined;
+    if (raw.length === pts.length) {
+      axes = segmentsOf(raw).map(([a, b]) => (Math.abs(a.y - b.y) < 0.75 ? (a.y + b.y) / 2 : (a.x + b.x) / 2));
+      axes[0] = ends[k]!.r1;
+      if (axes.length > 1) axes[axes.length - 1] = ends[k]!.r2;
+    }
+    return { i: k, from: e.from, to: e.to, kind: e.kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), dot: e.fk ? pts[0] : undefined, width: w, axes };
   };
-  const build = (): GLine[] => m.edges.map((_, k) => buildOne(k));
+  const build = (): GLine[] => m.edges.flatMap((_, k) => (dropped.has(k) ? [] : [buildOne(k)]));
   // A gutter's lanes are scored by the lines in it alone: their crossings with every line, and the nodes they pass through. The other
   // lines are not rebuilt or compared with each other, since a permutation of this gutter cannot change them.
   let current: GLine[] | null = null;
   const score = (members: Set<number>) => {
     current ??= build();
     const lines = current.map((l) => (members.has(l.i) ? buildOne(l.i) : l));
-    return { lines, score: findCrossings(lines, undefined, members).length * 1000 + throughOf(lines.filter((l) => members.has(l.i)), nodes, m).length };
+    // A run laid on another line's run is worse than a crossing (a crossing is cut; lines on one another read as one), so it counts most.
+    return { lines, score: overlapsOf(lines, members) * 100000 + findCrossings(lines, undefined, members).length * 1000 + throughOf(lines.filter((l) => members.has(l.i)), nodes, m).length };
   };
   // Each gutter: its lanes evenly spaced (at least space-3 apart), in the order that crosses least.
   // Lanes are needed only where jogs run beside each other: jogs whose runs along the gutter do not overlap each take its middle.
@@ -1398,6 +1464,8 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       if (last && last.some((q) => q.run[0] < p.run[1] + s("8") && p.run[0] < q.run[1] + s("8"))) last.push(p); else clusters.push([p]);
     }
     for (const cluster of clusters) {
+      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog, the two share the gutter's lanes.
+      if (cluster.every((c) => c.members.every((k) => turnBacks.has(k)))) continue;
       const groupsOf = cluster.map((c) => c.members);
       const count = groupsOf.length;
       const step = (g.span[1] - g.span[0]) / (count + 1);
@@ -1414,14 +1482,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     }
   }
   geo.lines = build();
-  // Relations two columns apart are not drawn: the row writes its target (1.12).
-  if (m.type === "schema") {
-    geo.lines = geo.lines.filter((l) => {
-      const a = m.byId.get(l.from)!, b = m.byId.get(l.to)!;
-      if (Math.abs(a.col - b.col) > 1) { warn?.(`${l.from} to ${l.to} is two columns apart, so its line is not drawn; its row still writes the target`); return false; }
-      return true;
-    });
-  }
+  for (const k of dropped) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
   geo.outside = outsideOf(geo.lines, W, H, tk);
@@ -1430,7 +1491,29 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   const seats = seatLabels(m, geo.lines, nodes, obstacles, groups, { l: 0, t: 0, r: W, b: H }, tk, measure);
   geo.labels = seats.labels;
   geo.unseated = seats.unseated;
+  geo.bounded = seats.bounded;
   return geo;
+}
+
+/** Runs of two lines laid on one another (collinear and overlapping by more than a pixel), for lines in `only`. Lines that end on one point
+ *  share a lane by design (a bus, 1.7), so they are not counted. */
+function overlapsOf(lines: GLine[], only: Set<number>): number {
+  let count = 0;
+  for (let a = 0; a < lines.length; a++) for (let b = a + 1; b < lines.length; b++) {
+    const A = lines[a]!, B = lines[b]!;
+    if (!only.has(A.i) && !only.has(B.i)) continue;
+    if (A.to === B.to && Math.abs(A.tip.x - B.tip.x) < 1 && Math.abs(A.tip.y - B.tip.y) < 1) continue;
+    const near = (A.width + B.width) / 2 + 0.5;
+    for (const [p1, p2] of segmentsOf(A.pts)) for (const [q1, q2] of segmentsOf(B.pts)) {
+      const aH = Math.abs(p1.y - p2.y) < 0.01, bH = Math.abs(q1.y - q2.y) < 0.01;
+      if (aH !== bH) continue;
+      const [ac, bc] = aH ? [p1.y, q1.y] : [p1.x, q1.x];
+      if (Math.abs(ac - bc) >= near) continue;
+      const [a1, a2] = aH ? [p1.x, p2.x] : [p1.y, p2.y], [b1, b2] = aH ? [q1.x, q2.x] : [q1.y, q2.y];
+      if (Math.min(Math.max(a1, a2), Math.max(b1, b2)) - Math.max(Math.min(a1, a2), Math.min(b1, b2)) > 1) count++;
+    }
+  }
+  return count;
 }
 
 function* permutations<T>(items: T[]): Generator<T[]> {
@@ -1503,7 +1586,7 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
 
 // ---- The stacked drawing (1.13) ----
 
-function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, plan: StackPlan): { geo: Geo; grow: Record<string, number> } {
+function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, plan: StackPlan, grown: Record<string, number> = record()): { geo: Geo; grow: Record<string, number> } {
   const { m, tk, P, drawing, origin } = input;
   const s = tk.space;
   const map = gNodes(m, drawing, origin, P);
@@ -1512,8 +1595,17 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   const sn = snapper(ox, oy);
   const W = drawing.clientWidth, H = drawing.clientHeight;
   const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], outside: [], ox, oy };
-  const growBy: Record<string, number> = {};
+  const growBy = record<number>();
   if (m.type === "sequence" || m.type === "schema") return { geo, grow: growBy };
+  // The end gutter is outside the spine cards, from the drawing's end less its padding (where a group's box ends too), never from a card inside a group.
+  const spineEnd = W - (parseFloat(getComputedStyle(drawing).paddingRight) || 0);
+  // A fixed seat that does not fit takes a line of its own (1.13): each line of 16 the gap above its card has grown gives the seat one more
+  // place, a line further from the card, into the room the growth made (up for a seat above a card, down for one under the card above).
+  const lineSeats = (box: Rect, id: string, dir: 1 | -1): Rect[] => {
+    const out = [box];
+    for (let j = 1; j <= (own(grown, id) ?? 0); j++) out.push({ ...box, t: box.t + dir * s("4") * j, b: box.b + dir * s("4") * j });
+    return out;
+  };
   // The right edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
   const columnRight = new Map<string, number>();
   drawing.querySelectorAll<HTMLElement>(`.${P}-node`).forEach((el) => {
@@ -1567,24 +1659,25 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
       const start = contour(a, "bottom", x);
       if (r === "rail") {
         pts = [start, contour(b, "top", x)];
-        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: [{ l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }], on: false, card: e.to }); }
+        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: lineSeats({ l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }, e.to, -1), on: false, card: e.to }); }
       } else {
         const ex = sn.x(b.rect.l + s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, cands: [{ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }], on: false, card: e.to });
+        if (label) labelSeats.push({ k, cands: lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1), on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
       const right = Math.min(columnRight.get(e.from) ?? W, columnRight.get(e.to) ?? W);
-      const laneX = sn.x(plan.gutter ? right + (plan.lanes[k] ? 2 * s("3-5") : s("3-5")) : right - s("2-5"), w);
+      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k] ? 2 * s("3-5") : s("3-5")) : right - s("2-5"), w);
       const yExit = sn.y(a.rect.t + (a.rect.b - a.rect.t) * plan.exits[k]!, w);
       const exit = contour(a, "right", yExit);
       const ex = sn.x(b.rect.r - s("6"), w);
       const down = r === "end-down";
       const ty = sn.y(down ? b.rect.t - turn : b.rect.b + turn, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
-      if (label) labelSeats.push({ k, cands: [{ l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }], on: false, card: down ? e.to : order[b.i + 1]?.id ?? e.to });
+      const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
+      if (label) labelSeats.push({ k, cands: lineSeats({ l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }, into, down ? -1 : 1), on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -1700,7 +1793,8 @@ export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Toke
  */
 export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void): Measured {
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
-  if (!drawing) return { dyn: current, geo: null, ink: "", tokens: null };
+  // A figure with no width (inside a closed disclosure or an unselected tab) is not laid out: its resize observer lays it out once it is shown.
+  if (!drawing || fig.clientWidth === 0) return { dyn: current, geo: null, ink: "", tokens: null };
   const tk = readTokens(fig);
   const measure = ruler(drawing, P);
   const mins = minimums(m, tk, measure);
@@ -1713,7 +1807,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   const heightsFor = (d: Dyn): Dyn => {
     if (m.type !== "flowchart") return d;
     apply({ ...d, heights: undefined });
-    const heights: Record<string, number> = {};
+    const heights = record<number>();
     drawing.querySelectorAll<HTMLElement>(`.${P}-node[data-shape="decision"]`).forEach((el) => {
       const words = el.querySelector(`.${P}-words`);
       if (!words) return;
@@ -1727,12 +1821,22 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     return { ...d, heights };
   };
   const input = (): DrawnInput => ({ m, tk, P, drawing, origin: drawing.getBoundingClientRect(), warn });
+  // A list a bare stack opened closes when the figure is laid out again (it opens again if the stack is still bare).
+  const closed: Dyn = current.autoOpen ? { open: false, autoOpen: undefined } : {};
   const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
   if (W >= mins.least) {
-    let d = stopOf({ ...current, layout: "drawn", grow: undefined, track: undefined });
-    d = heightsFor(d);
-    apply(d);
-    const geo = drawnGeometry(input(), measure);
+    const drawnTry = (pad: boolean) => {
+      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined });
+      dd = heightsFor(dd);
+      apply(dd);
+      return { dd, g: drawnGeometry(input(), measure) };
+    };
+    let { dd: d, g: geo } = drawnTry(false);
+    // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
+    if (!geo.through.length && !geo.outside.length && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
+      const padded = drawnTry(true);
+      if (!padded.g.through.length && !padded.g.unseated.length && !padded.g.outside.length) ({ dd: d, g: geo } = padded);
+    }
     if (!geo.through.length && !geo.unseated.length && !geo.outside.length) {
       if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
       return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
@@ -1742,18 +1846,18 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.outside.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
     if (geo.unseated.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
   }
-  let d = stopOf({ ...current, layout: "stacked", heights: undefined, grow: {}, track: m.type === "schema" ? mins.table : undefined });
+  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined });
   d = heightsFor(d);
   apply(d);
   if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk };
   const plan = stackPlan(m);
-  let out = stackedGeometry(input(), measure, plan);
+  let out = stackedGeometry(input(), measure, plan, d.grow);
   for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
-    const grown = { ...(d.grow ?? {}) };
-    for (const [id, n] of Object.entries(out.grow)) grown[id] = (grown[id] ?? 0) + n;
+    const grown = record(d.grow);
+    for (const [id, n] of Object.entries(out.grow)) grown[id] = (own(grown, id) ?? 0) + n;
     d = { ...d, grow: grown };
     apply(d);
-    out = stackedGeometry(input(), measure, plan);
+    out = stackedGeometry(input(), measure, plan, grown);
   }
   const geo = out.geo;
   // The stack is the last layout there is. If it still holds an overlap (a label with no clean seat after every try, a line through a node or
@@ -1765,8 +1869,10 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.through.length) warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
     if (geo.outside.length) warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
     if (plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
+    // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
-    return { dyn: { ...d, grow: {} }, geo: bare, ink: "", tokens: tk };
+    const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
+    return { dyn, geo: bare, ink: "", tokens: tk };
   }
   if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
@@ -1848,8 +1954,8 @@ export function keyTarget(m: Model, from: string, key: string): string | null {
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
-const ROOT_MANAGED = ["data-layout", "data-measured"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_gap"];
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

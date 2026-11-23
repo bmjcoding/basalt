@@ -1691,7 +1691,8 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
 - Text is `text-xs` or `text-sm`. Nothing is under 12px. The drawing is laid out in real CSS pixels at its own measured width, never
   scaled through a `viewBox`, and nothing scrolls sideways.
 - A node is a panel one level above what the figure sits in: the rim, no shadow, radius 8, `space-2-5` by `space-3`. Its lines are a
-  kind (`text-xs` Mono, tertiary), a name (`text-sm` 600) and a detail (`text-xs` secondary, Mono only for an identifier).
+  kind (`text-xs` Mono, tertiary), a name (`text-sm` 600) and a detail (`text-xs` secondary, Mono only for an identifier). A Mono
+  detail breaks only at its spaces, never at a hyphen, and keeps the ordinary hyphen so a copy is exact (the decider's answers, review round 64).
 - **The focal node** is inverted: `diagram-focal` under `diagram-focal-ink`, its quiet lines at `opacity-amount`. One at most. The key
   says what it marks.
 
@@ -1710,7 +1711,8 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
 - **A label** is `text-xs` Mono in secondary ink, one line, never cut. On its own line it has a ground-colour plate; beside its line
   it is `space-2` clear of the stroke. Seats are taken along the run's clear shaft (the run without its head). A seat is taken only if
   the label, grown `space-1`, overlaps no node as drawn (the diamond or the capsule, not its box), label, head, boundary, rule or other
-  line.
+  line. A seat is measured from its line's place before the half-pixel snap, so whether it fits never turns on which way a half pixel
+  fell, and from the first width a diagram draws at, it draws at every wider one (the decider's answers, review round 64).
 
 ### Fit
 
@@ -1722,6 +1724,10 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
   A line that leaves or passes a spine card runs in an end gutter outside the cards (`space-10`, two lanes at most), down into a card's
   top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target.
+- **A stack that would still overlap draws no lines** (the decider's answers, review round 64): a drawing known to overlap is never drawn, and all its lines go,
+  not some. It is dressed as where scripting is off: no line in the key, no key hint, no roving stops, and the list open (the toggle
+  stays and reads "Hide the list"). This is the one exception to every edge and label being present at every width; a development
+  build says so.
 - A name or a label is never cut at any width.
 
 ### The types
@@ -1741,7 +1747,8 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
 ### The key, the summary and the list
 
 - The key is under the drawing and is built from the marks actually drawn, each swatch drawn like its mark. The author writes the
-  words. Main, dashed and the focal node must have them.
+  words. Main, dashed and the focal node must have them. A schema's key starts with the key seats it uses, the letters set as the
+  seat sets them, then "Primary key" and "Foreign key" (built in; the decider's answers, review round 64).
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
 - The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is

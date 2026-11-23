@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { Kbd } from "./kbd";
+import { useShortcutsVisible } from "./keyboard";
 import { usePanelLevel } from "./layers";
 import {
   applyTrace, buildModel, figureTree, hasStops, hintEntries, keyTarget, measureFigure, syncAttributes,
@@ -72,6 +73,8 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
 export function DiagramFigure({ spec, component, title: _title, heading: _heading, legend: _legend, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
+  // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
+  useShortcutsVisible();
   // The development checks (placement, groups, the key's words) cost production nothing: a bundler that sets NODE_ENV drops them.
   const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production" }), [spec]);
   const figRef = React.useRef<HTMLElement>(null);
@@ -104,6 +107,8 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     dynRef.current = result.dyn;
     setDyn(result.dyn);
     setInk(result.ink);
+    // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
+    if (!hasStops(model, result.dyn)) setHoverTrace(null);
   }, [model, base, options, component]);
 
   // Measured before the first paint, then whenever the figure's width changes or the real faces arrive.
@@ -190,7 +195,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
       data-size="sm"
       aria-expanded={Boolean(dyn.open)}
       aria-controls={`${base}-list`}
-      onClick={() => { const next = { ...dynRef.current, open: !dynRef.current.open }; dynRef.current = next; setDyn(next); }}
+      onClick={() => { const next = { ...dynRef.current, open: !dynRef.current.open, autoOpen: undefined }; dynRef.current = next; setDyn(next); }}
     >
       <span className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
     </button>

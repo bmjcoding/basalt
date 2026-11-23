@@ -4434,6 +4434,8 @@
     margin: 0;
     font-family: var(--basalt-font-family-sans);
   }
+  /* The figure sets its own display, so the attribute's own rule is written out for it. */
+  .basalt-diagram[hidden] { display: none; }
   .basalt-diagram-head { display: flex; flex-direction: column; gap: var(--basalt-space-0-5); min-width: 0; }
   .basalt-diagram-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-diagram-source { margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
@@ -4514,6 +4516,8 @@
   .basalt-diagram-name { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-detail { margin-block-start: var(--basalt-space-0-5); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-detail[data-mono] { font-family: var(--basalt-font-family-mono); }
+  /* An identifier breaks only at its spaces: each run is kept whole, and is one word for the track's least width; break-word stays the net. */
+  .basalt-diagram-run { display: inline-block; max-width: 100%; }
 
   /* The focal node: inverted ink; its quiet lines at opacity-amount, at full strength under more contrast. */
   .basalt-diagram-node[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); }
@@ -4546,7 +4550,7 @@
     box-sizing: border-box;
     display: var(--_d-gd, flex);
     flex-direction: column;
-    margin-block-start: var(--basalt-space-12);
+    margin-block-start: calc(var(--basalt-space-12) + var(--basalt-space-4) * var(--_ggrow, 0));
     padding: var(--basalt-space-8) var(--basalt-space-3) var(--basalt-space-3-5);
     border: var(--basalt-size-hairline) dashed var(--basalt-diagram-structure);
     border-radius: var(--basalt-radius-lg);
@@ -4709,17 +4713,22 @@
   .basalt-diagram-swatch[data-shape="focal"] .basalt-diagram-swatch-shape { fill: var(--basalt-diagram-focal); stroke: var(--basalt-diagram-focal); }
   .basalt-diagram-swatch[data-shape="group"] .basalt-diagram-swatch-shape { fill: none; stroke-dasharray: var(--basalt-space-1) var(--basalt-space-0-5); }
   .basalt-diagram-fk-mark { color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-mono); }
+  /* A schema's key seats, set in the key as the seat sets them. */
+  .basalt-diagram-key-letters { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
 
   .basalt-diagram-hint { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-4); margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-hint > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1); }
   .basalt-diagram[data-layout="stacked"]:is([data-type="sequence"], [data-type="schema"]) .basalt-diagram-hint { display: none; }
+  /* A stack drawn with no lines (1.13) is dressed as where scripting is off: no line in the key and no key hint (the list is open by script). */
+  .basalt-diagram[data-bare] :is(.basalt-diagram-entry[data-line], .basalt-diagram-hint) { display: none; }
   .basalt-diagram-summary { order: 1; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); text-wrap: pretty; }
   .basalt-diagram-foot { order: 2; display: flex; }
   /* "View as list": real lists, no box round them. */
   .basalt-diagram-list { order: 3; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-list[hidden] { display: none; }
   .basalt-diagram-list strong { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
-  .basalt-diagram-code { color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); }
+  /* Plain text-xs Mono: no box, whatever a page's own code element carries. */
+  .basalt-diagram-code { padding: 0; border-radius: 0; background: none; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); }
   .basalt-diagram-list-head { margin: var(--basalt-space-4) 0 var(--basalt-space-2); color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-list-head:first-child { margin-block-start: 0; }
   .basalt-diagram-list-group { margin: var(--basalt-space-3) 0 var(--basalt-space-1); color: var(--basalt-text-primary); font-size: inherit; font-weight: var(--basalt-font-weight-medium); line-height: inherit; }
@@ -4738,46 +4747,21 @@
   /* Before script: the stack, and the author's grid only from the figure's least width (1.11, 1.19): the track minimums and gaps summed from
      the tokens, never under 640. One rule per least width for two to six columns; a figure of more columns stays stacked until script. */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px), the floor of every least width: architecture and flowchart up to 3 columns, data flow and schema 2, sequence up to 4 */
-  @container (width >= 640px) {
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="1"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="3"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="1"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="3"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="1"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="schema"][data-cols="1"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="schema"][data-cols="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="1"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="3"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="4"] > .basalt-diagram-drawing { --_drawn: ; }
-  }
+  @container (width >= 640px) { .basalt-diagram:not([data-layout]):is(:is([data-type="architecture"], [data-type="flowchart"]):is([data-cols="1"], [data-cols="2"], [data-cols="3"]), :is([data-type="data-flow"], [data-type="schema"]):is([data-cols="1"], [data-cols="2"]), [data-type="sequence"]:is([data-cols="1"], [data-cols="2"], [data-cols="3"], [data-cols="4"])) > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 3 step columns: size-diagram-lane (120) + 3 × (size-diagram-node 144 + space-12 48) = 696px */
   @container (width >= 696px) { .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="3"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- 4 columns: 4 × size-diagram-node (144) + 3 × space-16 (64) = 768px; and a schema of 3: 3 × size-diagram-table (224) + 2 × space-12 (48) = 768px */
-  @container (width >= 768px) {
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="0"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="4"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="schema"][data-cols="3"] > .basalt-diagram-drawing { --_drawn: ; }
-  }
+  @container (width >= 768px) { .basalt-diagram:not([data-layout]):is([data-type="architecture"][data-cols="4"][data-reach="0"], [data-type="flowchart"][data-cols="4"], [data-type="schema"][data-cols="3"]) > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 4 columns whose group reaches one side: 4 × 144 + 3 × 64 + space-4 (16) = 784px */
   @container (width >= 784px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 4 columns reaching both sides: 4 × 144 + 3 × 64 + 2 × 16 = 800px; a sequence of 5: 5 × size-diagram-node (144) + 4 × space-5 (20) = 800px */
-  @container (width >= 800px) {
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="4"][data-reach="2"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="5"] > .basalt-diagram-drawing { --_drawn: ; }
-  }
+  @container (width >= 800px) { .basalt-diagram:not([data-layout]):is([data-type="architecture"][data-cols="4"][data-reach="2"], [data-type="sequence"][data-cols="5"]) > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 4 step columns: 120 + 4 × (144 + 48) = 888px */
   @container (width >= 888px) { .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="4"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- a sequence of 6: 6 × 144 + 5 × 20 = 964px */
   @container (width >= 964px) { .basalt-diagram:not([data-layout])[data-type="sequence"][data-cols="6"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- 5 columns: 5 × 144 + 4 × 64 = 976px */
-  @container (width >= 976px) {
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="0"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="5"] > .basalt-diagram-drawing { --_drawn: ; }
-  }
+  @container (width >= 976px) { .basalt-diagram:not([data-layout]):is([data-type="architecture"][data-cols="5"][data-reach="0"], [data-type="flowchart"][data-cols="5"]) > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 5 columns reaching one side: 5 × 144 + 4 × 64 + 16 = 992px */
   @container (width >= 992px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="5"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 5 columns reaching both sides: 5 × 144 + 4 × 64 + 2 × 16 = 1008px */
@@ -4787,10 +4771,7 @@
   /* stylelint-disable-next-line basalt/container-length -- a data flow of 5 step columns: 120 + 5 × (144 + 48) = 1080px */
   @container (width >= 1080px) { .basalt-diagram:not([data-layout])[data-type="data-flow"][data-cols="5"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- 6 columns: 6 × 144 + 5 × 64 = 1184px */
-  @container (width >= 1184px) {
-    .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="0"] > .basalt-diagram-drawing,
-    .basalt-diagram:not([data-layout])[data-type="flowchart"][data-cols="6"] > .basalt-diagram-drawing { --_drawn: ; }
-  }
+  @container (width >= 1184px) { .basalt-diagram:not([data-layout]):is([data-type="architecture"][data-cols="6"][data-reach="0"], [data-type="flowchart"][data-cols="6"]) > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 6 columns reaching one side: 6 × 144 + 5 × 64 + 16 = 1200px */
   @container (width >= 1200px) { .basalt-diagram:not([data-layout])[data-type="architecture"][data-cols="6"][data-reach="1"] > .basalt-diagram-drawing { --_drawn: ; } }
   /* stylelint-disable-next-line basalt/container-length -- an architecture of 6 columns reaching both sides: 6 × 144 + 5 × 64 + 2 × 16 = 1216px */
@@ -4805,7 +4786,8 @@
   @media (scripting: none) {
     /* An id's weight in a :not(), so this outweighs every least-width rule above. */
     .basalt-diagram:not(#basalt-diagram-no-id) > .basalt-diagram-drawing { --_drawn: initial; }
-    .basalt-diagram-list[hidden] { display: block; }
+    /* Important, so it also beats a page's own [hidden] rule (the HTML skill's core hides [hidden] with one). */
+    .basalt-diagram-list[hidden] { display: block !important; }
     .basalt-diagram-foot, .basalt-diagram-entry[data-line], .basalt-diagram-hint { display: none; }
   }
 
@@ -4838,7 +4820,7 @@
     .basalt-diagram .basalt-diagram-group, .basalt-diagram .basalt-diagram-gbox { border-color: GrayText; }
     .basalt-diagram .basalt-diagram-lane + .basalt-diagram-lane::before, .basalt-diagram .basalt-diagram-band::before { border-color: GrayText; }
     .basalt-diagram .basalt-diagram-hint { color: GrayText; }
-    .basalt-diagram :is(.basalt-diagram-kind, .basalt-diagram-name, .basalt-diagram-detail, .basalt-diagram-glabel, .basalt-diagram-lane-name, .basalt-diagram-title, .basalt-diagram-source, .basalt-diagram-num, .basalt-diagram-mlabel, .basalt-diagram-route, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more, .basalt-diagram-legend, .basalt-diagram-fk-mark) { color: CanvasText; }
+    .basalt-diagram :is(.basalt-diagram-kind, .basalt-diagram-name, .basalt-diagram-detail, .basalt-diagram-glabel, .basalt-diagram-lane-name, .basalt-diagram-title, .basalt-diagram-source, .basalt-diagram-num, .basalt-diagram-mlabel, .basalt-diagram-route, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more, .basalt-diagram-legend, .basalt-diagram-fk-mark, .basalt-diagram-key-letters) { color: CanvasText; }
     .basalt-diagram .basalt-diagram-node:focus-visible { outline-color: Highlight; }
     /* The focal node is CanvasText under Canvas ink with forced-color-adjust: none, every colour set by hand, so no backplate sits under its words. */
     .basalt-diagram .basalt-diagram-node[data-focal], .basalt-diagram .basalt-diagram-node[data-focal][data-near] { forced-color-adjust: none; background: CanvasText; border-color: CanvasText; }

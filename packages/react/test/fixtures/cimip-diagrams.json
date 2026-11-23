@@ -68,7 +68,7 @@
     "title": "How one message reaches everyone in the room",
     "source": "\"The log\"",
     "summary": "Marcus's browser posts a message to cimip task A, which inserts an event row and fires NOTIFY in one Aurora transaction. Every cimip task listens and streams the event over SSE to Priya's browser, while Aurora keeps the newest 300 rows and seals older batches of 200 to S3.",
-    "legend": { "main": "The message's path", "plain": "Housekeeping", "dashed": "Later, in a batch", "focal": "The one transaction" },
+    "legend": { "main": "The message's path", "plain": "Housekeeping", "dashed": "Later, in a batch", "focal": "Where the event is written" },
     "lanes": [
       { "id": "marcus", "label": "Marcus's browser" },
       { "id": "task-a", "label": "cimip task A" },
@@ -130,7 +130,7 @@
     "title": "The tables an incident and its runs live in",
     "source": "server/db/schema.ts; each table shows its keys and a few columns",
     "summary": "Eight PostgreSQL tables center on incidents: memberships, room_events, log_segments, sandboxes and agent_runs reference incidents.id; memberships and incidents reference users.id; agent_runs references sandboxes.id; and approvals references agent_runs.id.",
-    "legend": { "plain": "A foreign key, to the key it references", "focal": "The table the others reference" },
+    "legend": { "plain": "A foreign key, to the key it references", "focal": "The table most of the others reference" },
     "tables": [
       { "name": "memberships", "col": 1, "row": 3, "more": 8, "columns": [
         { "name": "incident_id", "key": "PK", "references": "incidents.id" },

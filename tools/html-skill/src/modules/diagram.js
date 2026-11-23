@@ -35,7 +35,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
   }
 
   // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
-  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-layout', 'data-measured'];
+  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-layout', 'data-measured', 'data-bare'];
   var OWN_STYLE = ['--_cols', '--_gpad', '--_track'];
 
   /**
@@ -73,17 +73,26 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     var state = {};
     var measured = null;
     var focusTrace = null, hoverTrace = null;
-    var warned = {};
+    var warned = Object.create(null);
     var warn = function (m) { if (!warned[m]) { warned[m] = 1; console.warn('Basalt diagram: ' + m); } };
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
     var ink = figure.querySelector('.diagram-ink');
     var toggle = figure.querySelector('.diagram-toggle');
 
     function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || hoverTrace); }
+    // The toggle's words and state follow the list's (a stack drawn with no lines opens it).
+    function syncToggle() {
+      if (!toggle) return;
+      toggle.setAttribute('aria-expanded', String(Boolean(state.open)));
+      toggle.firstElementChild.textContent = state.open ? 'Hide the list' : 'View as list';
+    }
     function layout() {
       measured = measureFigure(figure, model, P, base, state, apply, warn);
       state = measured.dyn;
       apply(state);
+      syncToggle();
+      // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
+      if (!hasStops(model, state)) hoverTrace = null;
       if (ink) ink.innerHTML = measured.ink;
       retrace();
     }
@@ -128,10 +137,8 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     }
     function onLeave() { if (hoverTrace) { hoverTrace = null; retrace(); } }
     function onToggle() {
-      var open = !state.open;
-      setState(Object.assign({}, state, { open: open }));
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.firstElementChild.textContent = open ? 'Hide the list' : 'View as list';
+      setState(Object.assign({}, state, { open: !state.open, autoOpen: undefined }));
+      syncToggle();
     }
 
     figure.addEventListener('keydown', onKey);
