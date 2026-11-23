@@ -140,6 +140,10 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const placements = React.useMemo(() => (given.length ? given : loaded ?? []), [given, loaded]);
   const order = React.useMemo<Array<"right" | "down">>(() => (spec.direction ? [spec.direction] : spec.type === "flowchart" ? ["down", "right"] : ["right", "down"]), [spec.direction, spec.type]);
   const [dirAt, setDirAt] = React.useState(0);
+  // The reasons last warned when no direction draws (DECISIONS 322, rule 5): a new width with the same reasons is not a new warning.
+  const autoWarned = React.useRef<string | null>(null);
+  // The viewer's figure takes the placements this figure has (DECISIONS 306, 8.4: elk runs once a direction), loaded ones included (DECISIONS 322).
+  const viewerSpec = React.useMemo<DiagramSpec>(() => (auto && !given.length && loaded ? { ...spec, placement: loaded } : spec), [auto, given, loaded, spec]);
   const placementFor = React.useCallback((k: number) => placements.find((p) => p.direction === order[k]), [placements, order]);
   const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production", rtl, placement: auto ? placementFor(dirAt) : undefined }), [spec, rtl, auto, placementFor, dirAt]);
   const animated = model.motion.animated;
@@ -190,7 +194,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     if (dirRtl !== rtl) { setRtl(dirRtl); return; }
     // An automatic figure with no placement loads the layout module once it is measured at 640 or wider (never at a phone's width); until it answers, and
     // if it fails, the figure is stacked with every word present. elk runs once a direction: a resize or the faces arriving never run it again.
-    if (auto && !given.length && !loaded && fig.clientWidth >= 640) {
+    // The viewer's figure is laid out at its least drawn width whatever the window (9.3), so on a phone it loads the module the page's stacked figure did not.
+    if (auto && !given.length && !loaded && (viewer || fig.clientWidth >= 640)) {
       const input = { type: spec.type as "architecture" | "flowchart" | "schema", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups };
       loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => setLoaded(all), (error: unknown) => {
         if (process.env.NODE_ENV !== "production") warnOnce(component, `the automatic layout could not load (${String(error)}), so the figure is stacked`);
@@ -198,13 +203,29 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     }
     // The direction: the first, in order, whose drawn layout fits at this width (each placement measured as it would be drawn); none fits, the first, stacked.
     if (auto && placements.length > 1 && !viewer) {
-      let pick = 0;
+      let pick = 0, drew = false, fitsByWidth = false;
+      // What an author sees when no direction draws (DECISIONS 322, rule 5): one warning that gives each direction's reason, where at least one direction
+      // had the width it needs. A figure that is only too narrow for both says nothing, as an authored figure does.
+      const why: string[] = [];
       for (let k = 0; k < order.length; k++) {
         const place = placementFor(k);
         if (!place) continue;
         const trial = buildModel(spec, { rtl, placement: place });
-        const t = measureFigure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
-        if (t.dyn.layout === "drawn") { pick = k; break; }
+        const said: string[] = [];
+        const t = measureFigure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)), process.env.NODE_ENV !== "production" ? (w) => said.push(w) : undefined);
+        if (t.dyn.layout === "drawn") { pick = k; drew = true; break; }
+        if (process.env.NODE_ENV !== "production") {
+          const reasons = said.filter((w) => w.startsWith("the drawn layout does not fit")).map((w) => w.replace(/^the drawn layout does not fit at \d+px: /, ""));
+          if (reasons.length) fitsByWidth = true;
+          why.push(`laid ${order[k]} ${reasons.length ? reasons.join("; ") : `it needs ${Math.ceil(t.least ?? 0)}px`}`);
+        }
+      }
+      if (process.env.NODE_ENV !== "production" && !drew && fitsByWidth) {
+        const reasons = why.join("; ").replace(/\d+px/g, "");
+        if (autoWarned.current !== reasons) {
+          autoWarned.current = reasons;
+          console.warn(`Basalt ${component}: layout="auto" draws in neither direction at ${Math.round(fig.clientWidth)}px, so the figure is stacked: ${why.join("; ")}. Name a side on a line named here (fromSide, toSide), shorten a label named here, or write the figure authored: placeDiagram returns every cell to start from`);
+        }
       }
       if (pick !== dirAt) { setDirAt(pick); return; }
     }
@@ -476,7 +497,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>
       {viewerOpen && viewerModule ? (
-        <viewerModule.DiagramViewer kit={kitOf()} spec={spec} component={component} source={source} summary={summary} opener={expandRef} onClose={closeViewer} />
+        <viewerModule.DiagramViewer kit={kitOf()} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} onClose={closeViewer} />
       ) : null}
     </>
   ) : null;

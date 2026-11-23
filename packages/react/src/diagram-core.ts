@@ -137,7 +137,13 @@ export interface DiagramSpec {
 export type DiagramUnplaced<T> = Omit<T, "col" | "row"> & { col?: number; row?: number | [number, number] };
 
 /** Where an automatic figure's cards go in one direction (1.8): `placeDiagram`'s answer. */
-export interface DiagramPlacement { direction: "right" | "down"; cells: Record<string, { col: number; row: number }> }
+export interface DiagramPlacement {
+  direction: "right" | "down";
+  cells: Record<string, { col: number; row: number }>;
+  /** The grid's tracks (DECISIONS 322, rule 1): at least the cards' own, and more where a track holds only a main line's way. */
+  cols?: number;
+  rows?: number;
+}
 
 // ============================================================================================================================================
 // The model
@@ -552,7 +558,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
   const fl = (spec.frameLabels ?? {}) as Record<string, unknown>;
   const frameWords = { opt: txt(fl.opt) ?? "Only if", loop: txt(fl.loop) ?? "Repeats", alt: txt(fl.alt) ?? "One of these", else: txt(fl.else) ?? "Otherwise" };
-  let cols = Math.max(1, ...nodes.map((n) => n.col));
+  // An automatic figure's tracks include those that hold only a main line's way (DECISIONS 322, rule 1).
+  const placed = spec.layout === "auto" && !unplaced ? options.placement : undefined;
+  let cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
   // Right to left (1.7): column 1 at the right. Columns are mirrored, a frame's span with them, and a named left or right side swaps.
   if (options.rtl) {
     for (const n of nodes) n.col = cols - n.col + 1;
@@ -561,7 +569,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     for (const st of steps) if ("open" in st) { const [a, b] = [cols - st.b + 1, cols - st.a + 1]; st.a = a; st.b = b; }
     cols = Math.max(1, ...nodes.map((n) => n.col));
   }
-  const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
+  const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
   const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
@@ -585,8 +593,11 @@ function chooseSides(m: Model) {
     const ex: DiagramSide = b.col > a.col ? "left" : "right", ey: DiagramSide = b.row > a.row ? "top" : "bottom";
     const along = (lo: number, hi: number, at: number, horizontal: boolean) => between(lo, hi).map((k) => (horizontal ? [k, at] : [at, k]) as [number, number]);
     let list: Shape[];
-    if (a.row === b.row) list = [{ sides: [sx, ex], cells: along(a.col, b.col, a.row, true) }, { sides: ["bottom", "bottom"], cells: [] }, { sides: ["top", "top"], cells: [] }];
-    else if (a.col === b.col) list = [{ sides: [sy, ey], cells: along(a.row, b.row, a.col, false) }, { sides: ["right", "right"], cells: [] }, { sides: ["left", "left"], cells: [] }];
+    // A turn-back runs in the gutter beside its side (DECISIONS 322, rule 4): it is a shape only where a track lies beyond that side, so none is chosen on
+    // the drawing's own edge, where it would leave the drawing.
+    const turn = (side: DiagramSide): Shape[] => ((side === "right" ? a.col < m.cols : side === "left" ? a.col > 1 : side === "bottom" ? a.row < m.rows : a.row > 1) ? [{ sides: [side, side], cells: [] }] : []);
+    if (a.row === b.row) list = [{ sides: [sx, ex], cells: along(a.col, b.col, a.row, true) }, ...turn("bottom"), ...turn("top")];
+    else if (a.col === b.col) list = [{ sides: [sy, ey], cells: along(a.row, b.row, a.col, false) }, ...turn("right"), ...turn("left")];
     else list = [
       { sides: [sx, ey], cells: [...along(a.col, b.col, a.row, true), [b.col, a.row], ...along(a.row, b.row, b.col, false)] },
       { sides: [sy, ex], cells: [...along(a.row, b.row, a.col, false), [a.col, b.row], ...along(a.col, b.col, b.row, true)] },
@@ -596,12 +607,29 @@ function chooseSides(m: Model) {
     return list.filter((c) => c.cells.every(([x, y]) => !taken.has(`${x},${y}`)));
   };
   const load = new Map<string, number>();
+  const left = new Set<string>();
+  // Sides the author named count before any line chooses (DECISIONS 322, rule 3).
+  for (const e of m.edges) if (e.fromSide || e.toSide) {
+    const [d1, d2] = defaultSides(m.byId.get(e.from)!, m.byId.get(e.to)!);
+    const s1 = e.fromSide ?? d1, s2 = e.toSide ?? d2;
+    left.add(`${e.from}.${s1}`);
+    for (const [id, side] of [[e.from, s1], [e.to, s2]] as const) load.set(`${id}.${side}`, (load.get(`${id}.${side}`) ?? 0) + 1);
+  }
   const order = m.edges.map((_, k) => k).sort((p, q) => shapes(m.edges[p]!).length - shapes(m.edges[q]!).length || Number(m.edges[q]!.kind === "main") - Number(m.edges[p]!.kind === "main") || p - q);
   for (const k of order) {
     const e = m.edges[k]!;
     if (e.fromSide || e.toSide) continue;
-    const ok = shapes(e).find((c) => (load.get(`${e.from}.${c.sides[0]}`) ?? 0) < 3 && (load.get(`${e.to}.${c.sides[1]}`) ?? 0) < 3);
+    // A decision's lines meet at its four points (DECISIONS 322, rule 3): a point a line leaves takes no other line, so two lines never leave one point on
+    // one another and a line never arrives where one leaves. Lines that arrive at one point join, three at most, as on any side.
+    const room = (id: string, side: DiagramSide, leaving: boolean) => {
+      const key = `${id}.${side}`;
+      if ((load.get(key) ?? 0) >= 3) return false;
+      if (m.byId.get(id)!.shape !== "decision") return true;
+      return leaving ? !load.has(key) : !left.has(key);
+    };
+    const ok = shapes(e).find((c) => room(e.from, c.sides[0], true) && room(e.to, c.sides[1], false));
     if (!ok) continue;
+    left.add(`${e.from}.${ok.sides[0]}`);
     for (const [id, side] of [[e.from, ok.sides[0]], [e.to, ok.sides[1]]] as const) load.set(`${id}.${side}`, (load.get(`${id}.${side}`) ?? 0) + 1);
     e.fromSide = ok.sides[0];
     e.toSide = ok.sides[1];
@@ -2088,7 +2116,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   // A line that is not drawn: its row still writes the target, and a development build names it. One tight line never stacks the figure.
   const drop = (k: number, why: string) => { if (dropped.has(k)) return; dropped.add(k); if (dev) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} ${why}, so its line is not drawn; its row still writes the target`); };
   // A one-column schema's third lane of turn-backs is not drawn (call 2).
-  for (const k of turnBackLanes(m).dropped) drop(k, "would need a third lane of turn-backs");
+  for (const k of turnBackLanes(m).dropped) drop(k, dev ? "would need a third lane of turn-backs" : "");
 
   // Foreign keys two or more columns away (1.1): out of the row's facing side, a turn in the gutter beside its own table, a run along a corridor (a
   // row gap no table of the columns between stands in, or the margin above or below), a turn in the gutter beside the referenced table into the key.
@@ -2122,7 +2150,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const groups = corridorGroups.get(f.corridor) ?? [];
     const bus = groups.find((g) => { const o = m.edges[g[0]!]!; return o.to === e.to && o.toRow === e.toRow && sides[g[0]!]![1] === sides[k]![1] && Math.abs(ends[g[0]!]!.p2.y - ends[k]!.p2.y) < 0.5; });
     if (bus) bus.push(k);
-    else if (groups.length >= 2) drop(k, "would need a third lane in its corridor");
+    else if (groups.length >= 2) drop(k, dev ? "would need a third lane in its corridor" : "");
     else groups.push([k]);
     corridorGroups.set(f.corridor, groups);
   }
@@ -2298,7 +2326,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     if (!over) break;
     const latest = (group: number[]) => Math.max(...group);
     const victim = over.filter((group) => group.some((k) => far.has(k))).sort((p, q) => latest(q) - latest(p))[0] ?? over.slice().sort((p, q) => latest(q) - latest(p))[0]!;
-    for (const k of victim) { drop(k, "would need a fourth lane in a marked gutter"); far.delete(k); }
+    for (const k of victim) { drop(k, dev ? "would need a fourth lane in a marked gutter" : ""); far.delete(k); }
     gather();
   }
   // Lanes in a marked gutter (1.1): none nearer a table than the zone plus radius-xs (18), centred and evenly spaced at the merged pitch or the pitch
@@ -2370,7 +2398,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const len = ([a, b]: readonly [Pt, Pt]) => Math.hypot(b.x - a.x, b.y - a.y);
     const need = segs.length === 1 ? 2 * tk.foot : tk.foot + tk.radiusXs - 0.5;
     if (len(segs[0]!) >= need && len(segs[segs.length - 1]!) >= need) return true;
-    drop(l.i, "has no room for its marks at an end");
+    drop(l.i, dev ? "has no room for its marks at an end" : "");
     return false;
   });
   // The rows a far line's corridor needs (1.1): a row gap that carries one is space-10 (space-8 otherwise); a margin corridor adds space-8.
@@ -2858,7 +2886,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
     if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
-    if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
+    if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${said(m.edges[k]?.label ?? "")}"`)).join(", ")}`);
   }
   let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined });
   d = heightsFor(d);
@@ -2880,7 +2908,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   if (dev && !plan.third && plan.laneCount > 2) warn?.(`the stacked drawing uses ${plan.laneCount} end lanes (four at most)`);
   const failed = geo.unseated.length > 0 || geo.through.length > 0 || geo.outside.length > 0 || plan.third;
   if (failed) {
-    if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
+    if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${said(m.edges[k]?.label ?? "")}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
     if (geo.through.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
     if (geo.outside.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
     if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn");

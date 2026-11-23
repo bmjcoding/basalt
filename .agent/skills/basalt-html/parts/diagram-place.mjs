@@ -33,6 +33,7 @@ import { workerData } from "node:worker_threads";
 // packages/react/src/diagram-layout.ts
 var W = 200;
 var H = 80;
+var STRAIGHT = "10";
 var options = (direction) => ({
   "elk.algorithm": "layered",
   "elk.direction": direction === "right" ? "RIGHT" : "DOWN",
@@ -40,15 +41,37 @@ var options = (direction) => ({
   "elk.hierarchyHandling": "INCLUDE_CHILDREN",
   "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
   "elk.layered.cycleBreaking.strategy": "MODEL_ORDER",
-  "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+  "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
   "elk.layered.spacing.nodeNodeBetweenLayers": "64",
   "elk.spacing.nodeNode": "48",
   "elk.edgeRouting": "ORTHOGONAL"
 });
-function elkGraph(input, direction) {
-  const cards = input.type === "schema" ? (input.tables ?? []).map((t) => ({ id: String(t.name), group: void 0 })) : (input.nodes ?? []).map((n) => ({ id: String(n.id), group: n.group }));
-  const edges = input.type === "schema" ? (input.tables ?? []).flatMap((t) => (t.columns ?? []).filter((c) => c.references).map((c) => ({ from: String(t.name), to: String(c.references).split(".")[0] }))) : (input.edges ?? []).map((e) => ({ from: String(e.from), to: String(e.to) }));
-  const groups = input.type === "architecture" ? input.groups ?? [] : [];
+function partsOf(input) {
+  const cards = input.type === "schema" ? (input.tables ?? []).map((t) => ({ id: String(t.name) })) : (input.nodes ?? []).map((n) => ({ id: String(n.id), group: n.group }));
+  const raw = input.type === "schema" ? (input.tables ?? []).flatMap((t) => (t.columns ?? []).filter((c) => c.references).map((c) => ({ from: String(t.name), to: String(c.references).split(".")[0], main: false }))) : (input.edges ?? []).map((e) => ({ from: String(e.from), to: String(e.to), main: e.kind === "main" }));
+  const ids = new Set(cards.map((c) => c.id));
+  const lines = raw.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e, k) => ({ ...e, k }));
+  return { cards, lines, groups: input.type === "architecture" ? input.groups ?? [] : [] };
+}
+function mainInTheMiddle(lines) {
+  const bySource = /* @__PURE__ */ new Map();
+  lines.forEach((e, k) => {
+    if (!bySource.has(e.from)) bySource.set(e.from, []);
+    bySource.get(e.from).push(k);
+  });
+  const out = lines.slice();
+  for (const slots of bySource.values()) {
+    const main = slots.filter((k) => lines[k].main);
+    if (slots.length < 3 || main.length !== 1) continue;
+    const rest = slots.filter((k) => k !== main[0]);
+    const order = [...rest.slice(0, Math.floor(rest.length / 2)), main[0], ...rest.slice(Math.floor(rest.length / 2))];
+    slots.forEach((slot, j) => {
+      out[slot] = lines[order[j]];
+    });
+  }
+  return out;
+}
+function graphOf(cards, lines, groups, direction) {
   const kids = /* @__PURE__ */ new Map([["", []]]);
   for (const g of groups) kids.set(g.id, []);
   for (const c of cards) (kids.get(c.group ?? "") ?? kids.get("")).push({ id: c.id, width: W, height: H });
@@ -57,8 +80,7 @@ function elkGraph(input, direction) {
     const box = { id: `group:${g.id}`, children: kids.get(g.id), layoutOptions: { "elk.padding": "[top=32,left=16,bottom=16,right=16]" } };
     (g.parent && kids.has(g.parent) ? kids.get(g.parent) : children).push(box);
   }
-  const ids = new Set(cards.map((c) => c.id));
-  return { id: "root", layoutOptions: options(direction), children, edges: edges.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to] })) };
+  return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {} })) };
 }
 function absolute(node, ox = 0, oy = 0, out = /* @__PURE__ */ new Map()) {
   for (const c of node.children ?? []) {
@@ -84,17 +106,83 @@ function bands(rects, lo, hi) {
   return out;
 }
 var elkMade;
-async function placeDiagram(input, direction) {
+async function cellsOf(graph) {
   if (!elkMade) {
     const mod = await Promise.resolve().then(() => (init_diagram_elk(), diagram_elk_exports));
     elkMade = new mod.default();
   }
-  const laid = await elkMade.layout(elkGraph(input, direction));
-  const rects = absolute(laid);
+  const rects = absolute(await elkMade.layout(graph));
   const col = bands(rects, (r) => r.x, (r) => r.x + r.w), row = bands(rects, (r) => r.y, (r) => r.y + r.h);
   const cells = {};
   for (const id of rects.keys()) cells[id] = { col: col.get(id), row: row.get(id) };
-  return { direction, cells };
+  return cells;
+}
+function unusable(cards, groups, cells) {
+  const seen = /* @__PURE__ */ new Set();
+  for (const c of cards) {
+    const at = cells[c.id];
+    if (!at) return true;
+    const key = `${at.col},${at.row}`;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  const chain = (id) => {
+    const out = [];
+    for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g);
+    return out;
+  };
+  for (const g of groups) {
+    const mine = cards.filter((c) => chain(c.group).includes(g.id));
+    if (!mine.length) continue;
+    const at = mine.map((c) => cells[c.id]);
+    const box = { c1: Math.min(...at.map((a) => a.col)), c2: Math.max(...at.map((a) => a.col)), r1: Math.min(...at.map((a) => a.row)), r2: Math.max(...at.map((a) => a.row)) };
+    if (cards.some((c) => !mine.includes(c) && cells[c.id].col >= box.c1 && cells[c.id].col <= box.c2 && cells[c.id].row >= box.r1 && cells[c.id].row <= box.r2)) return true;
+  }
+  return false;
+}
+async function placeDiagram(input, direction) {
+  const { cards, lines: authored, groups } = partsOf(input);
+  const lines = mainInTheMiddle(authored);
+  const first = await cellsOf(graphOf(cards, lines, groups, direction));
+  const layer = (id) => direction === "down" ? first[id].row : first[id].col;
+  const chain = (id) => {
+    const out = [];
+    for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g);
+    return out;
+  };
+  const groupOf = new Map(cards.map((c) => [c.id, c.group]));
+  const all = cards.slice();
+  const chained = [];
+  let ways = 0;
+  for (const e of lines) {
+    const a = layer(e.from), b = layer(e.to);
+    if (!e.main || Math.abs(b - a) < 2) {
+      chained.push(e);
+      continue;
+    }
+    const inA = chain(groupOf.get(e.from)), inB = chain(groupOf.get(e.to));
+    const both = inA.find((g) => inB.includes(g));
+    const boxes = [];
+    let prev = e.from;
+    for (let l = a + Math.sign(b - a); l !== b; l += Math.sign(b - a)) {
+      const id = `way:${e.k}:${l}`;
+      const here = new Set(cards.filter((c) => layer(c.id) === l).flatMap((c) => chain(c.group)));
+      const group = inB.find((g) => here.has(g)) ?? inA.find((g) => here.has(g)) ?? both;
+      boxes.push({ id, group, way: true });
+      chained.push({ ...e, from: prev, to: id });
+      prev = id;
+    }
+    chained.push({ ...e, from: prev });
+    all.splice(all.findIndex((c) => c.id === e.to), 0, ...boxes);
+    ways++;
+  }
+  const span = (c) => ({ cols: Math.max(...Object.values(c).map((x) => x.col)), rows: Math.max(...Object.values(c).map((x) => x.row)) });
+  if (!ways) return { direction, ...span(first), cells: first };
+  const second = await cellsOf(graphOf(all, chained, groups, direction));
+  const cells = {};
+  for (const c of cards) cells[c.id] = second[c.id];
+  const layers = (c) => Math.max(...cards.map((x) => direction === "down" ? c[x.id].row : c[x.id].col));
+  return unusable(cards, groups, cells) || layers(cells) > layers(first) ? { direction, ...span(first), cells: first } : { direction, ...span(second), cells };
 }
 
 // tools/html-skill/src/diagram-place.mjs
