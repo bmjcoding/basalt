@@ -5,7 +5,7 @@ import { runSteps } from "./run-steps.mjs";
 export const STEPS = [
   { label: "react typecheck", command: "npm run typecheck" },
   // The build comes first in this step: a failed build would leave the tests reading an old dist, so they do not run on it.
-  { label: "react build and tests", command: "node build.mjs && node --test test/*.test.mjs" },
+  { label: "react build and tests", command: "node build.mjs && node --test --test-timeout=120000 test/*.test.mjs" },
 ];
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) await runSteps(STEPS, { title: "react tests" });
