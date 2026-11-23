@@ -4,6 +4,8 @@ import * as React from "react";
 import { TooltipProvider } from "./display";
 import { DotLine } from "./dot-sep";
 import { NavRailContext } from "./nav";
+import { usePinnedEdges } from "./pinned-edges";
+import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { useMediaQuery } from "./use-media";
 import { join } from "./utils";
 
@@ -33,6 +35,14 @@ export interface AppShellProps extends Omit<React.ComponentProps<"div">, "childr
   header: React.ReactNode;
   /** The phone `TabBar`, for an app with three or more destinations. Content pads past it, and toasts sit above it. */
   tabBar?: React.ReactNode;
+  /**
+   * A foot pinned to the bottom of the content column: a message field, an action bar. It holds still: on a short page it rests at the
+   * window's bottom (the column is at least the window's height and the page takes the room between), and on a long page it sticks there
+   * while the page scrolls under it. Under 720 it sits on the tab bar, and while an on-screen keyboard is up, on the keyboard. A solid band
+   * on `surface-page` with a divider on top; at most the window less what is pinned at the top and one 44px row, then it scrolls. With a foot
+   * the shell measures what is pinned (`usePinnedEdges`), so focus, anchors and the toast stack stay clear of it.
+   */
+  foot?: React.ReactNode;
   /** Props for the `main` element, e.g. an `id` for a skip link. */
   mainProps?: Omit<React.ComponentProps<"main">, "children">;
   /**
@@ -53,10 +63,12 @@ export interface AppShellProps extends Omit<React.ComponentProps<"div">, "childr
  * content column and sticks to the document, which is what scrolls: set `scrollbar-gutter: stable` on the page (the shell
  * does for the document it is in), and give the viewport meta `viewport-fit=cover` so the safe-area insets work.
  */
-export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar, account, header, tabBar, mainProps, capped = false, className, children, ...props }: AppShellProps) {
+export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar, account, header, tabBar, foot, mainProps, capped = false, className, children, ...props }: AppShellProps) {
   const rail = useMediaQuery(`(width < ${breakpoint.lg}px)`);
+  useScreenKeyboardLayout();
+  usePinnedEdges(foot != null);
   return (
-    <div {...props} data-tabbar={tabBar ? "" : undefined} data-capped={capped ? "" : undefined} className={join("basalt-app-shell", className)}>
+    <div {...props} data-tabbar={tabBar ? "" : undefined} data-capped={capped ? "" : undefined} data-foot={foot != null ? "" : undefined} className={join("basalt-app-shell", className)}>
       <aside className="basalt-app-sidebar">
         <div className="basalt-app-brand">
           <a href={homeHref} aria-label={brandLabel} className="basalt-site-brand">
@@ -74,6 +86,7 @@ export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar
       <div className="basalt-app-column">
         {header}
         <main {...mainProps} className={join("basalt-app-main", mainProps?.className)}>{children}</main>
+        {foot != null ? <div className="basalt-app-foot" data-pinned-edge="bottom">{foot}</div> : null}
       </div>
       {tabBar}
     </div>
@@ -113,7 +126,7 @@ export function AppHeader({ title, actions, facts, solid = false, className, ...
   // A fact that is null, undefined, false or empty is left out with its dot, as DotLine leaves out its own.
   const shown = facts?.filter((fact) => fact !== null && fact !== undefined && fact !== false && fact !== "") ?? [];
   return (
-    <header {...props} data-solid={solid ? "" : undefined} className={join("basalt-chrome basalt-app-header", className)}>
+    <header {...props} data-solid={solid ? "" : undefined} data-pinned-edge="top" className={join("basalt-chrome basalt-app-header", className)}>
       <div className="basalt-app-bar">
         {shown.length > 0 ? (
           <div className="basalt-app-heading">

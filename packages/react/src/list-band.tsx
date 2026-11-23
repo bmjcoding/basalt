@@ -5,7 +5,7 @@ import { Select } from "./choice";
 import { StatusLine } from "./filter-result";
 import { Pagination } from "./navigation";
 import { Reserve } from "./reserve";
-import { contentTop, scrollOwnerTo, useScrollElement } from "./scroll-owner";
+import { contentTop, scrollOwnerTo, useMarkScrollOwner, useScrollElement } from "./scroll-owner";
 import type { ScrollOwner } from "./scroll-owner";
 import { join } from "./utils";
 
@@ -126,6 +126,7 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   const asked = React.useRef<Asked | null>(null);
   const ask = (what: Asked["what"], page: number, pageSize: number) => { asked.current = { what, page, size: pageSize, from: { page: own, size } }; };
   const owner = useScrollElement(scroller);
+  useMarkScrollOwner(owner);
 
   // From 720 the band is `position: sticky`: a sentinel just above it says when it is stuck. A hidden sentinel, or a band that does not stick (under 720), is never stuck.
   React.useEffect(() => {
@@ -191,7 +192,7 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   return (
     <div className="basalt-list-band-wrap" data-scroller={scroller ? "" : undefined}>
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
-      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} className={join("basalt-list-band", className)}>
+      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
           <p className="basalt-list-band-range">{range}</p>
           <Pagination

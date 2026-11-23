@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { ArrowUpGlyph } from "./glyphs/arrow-up";
-import { scrolled, scrollOwnerTo, scrollTarget, useScrollElement, viewHeight, viewTop } from "./scroll-owner";
+import { scrolled, scrollOwnerTo, scrollTarget, useMarkScrollOwner, useScrollElement, viewHeight, viewTop } from "./scroll-owner";
 import type { ScrollOwner } from "./scroll-owner";
 import { join } from "./utils";
 
@@ -33,6 +33,7 @@ const TURN = 8;
  */
 export function BackToTop({ list, band, heading, label = "Back to top", scroller, className, ...props }: BackToTopProps) {
   const owner = useScrollElement(scroller);
+  useMarkScrollOwner(owner);
   const dock = React.useRef<HTMLDivElement>(null);
   const button = React.useRef<HTMLButtonElement>(null);
   const [shown, setShown] = React.useState(false);

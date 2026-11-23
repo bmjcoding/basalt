@@ -7,6 +7,7 @@ import { IconButton } from "./button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "./overlays";
 import { Nav } from "./nav";
 import type { IconComponent } from "./types";
+import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { useKeysMark } from "./use-media";
 import { join } from "./utils";
 
@@ -29,6 +30,8 @@ export interface TabBarProps extends Omit<React.ComponentProps<"nav">, "aria-lab
 export function TabBar({ "aria-label": label = "Primary", className, children, ref, ...props }: TabBarProps) {
   const node = React.useRef<HTMLElement | null>(null);
   useKeysMark(node);
+  // While an on-screen keyboard is up the bar is covered, as a platform's own tab bar is: it is not drawn, and what it pushed up comes down.
+  useScreenKeyboardLayout();
   const setRef = React.useCallback(
     (element: HTMLElement | null) => {
       node.current = element;
@@ -38,7 +41,7 @@ export function TabBar({ "aria-label": label = "Primary", className, children, r
     [ref],
   );
   return (
-    <nav {...props} ref={setRef} aria-label={label} className={join("basalt-tabbar", className)}>
+    <nav {...props} ref={setRef} aria-label={label} data-pinned-edge="bottom" className={join("basalt-tabbar", className)}>
       <ul className="basalt-tabbar-list">{children}</ul>
     </nav>
   );

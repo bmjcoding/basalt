@@ -66,3 +66,17 @@ export function useScrollElement(owner: ScrollOwner): HTMLElement | null {
   });
   return element;
 }
+
+/**
+ * Marks a pane that a list scrolls as a scroll owner (`data-scroll-owner`) while the list uses it, so an on-screen keyboard's share of it and what
+ * is pinned inside it are written on the pane itself (screen-keyboard.ts, pinned-edges.ts) and the pane is padded by them. A mark the app set
+ * itself is left as it is.
+ */
+export function useMarkScrollOwner(element: HTMLElement | null): void {
+  React.useEffect(() => {
+    if (!element || element.hasAttribute("data-scroll-owner")) return undefined;
+    element.setAttribute("data-scroll-owner", "");
+    return () => element.removeAttribute("data-scroll-owner");
+  }, [element]);
+}
+

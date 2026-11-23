@@ -10,7 +10,7 @@
   .disclosure::after, details > summary::after { content: ""; flex: none; margin-inline-start: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: currentColor; mask: url("%glyph-mask:chevron-down%") center / contain no-repeat; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
   .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: rotate(180deg); }
   @media (forced-colors: active) { .disclosure::after, details > summary::after { forced-color-adjust: none; } }
-  @media (pointer: coarse) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
   /* ---- Show all (DECISIONS 152, D6): the rest of a list opens in place ----
      A button[data-disclosure][data-reveal] controls a root; each .reveal under it is a grid whose one track goes 0fr to 1fr over duration-slow on ease-out, and

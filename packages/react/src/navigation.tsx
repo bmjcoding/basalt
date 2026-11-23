@@ -31,22 +31,26 @@ export interface LinkProps extends React.ComponentProps<"a"> {
  */
 export function Link({ className, target, rel, children, newTabLabel, arrow, ...props }: LinkProps) {
   const newTab = opensNewTab(target);
+  // The words, as a label of their own in every form of the link (see below).
+  const words = <span className="basalt-link-label">{children}</span>;
   const relationship = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
   if (!newTab && arrow) {
     return (
       <a {...props} target={target} rel={relationship} data-arrow={arrow} className={join("basalt-link", "basalt-link-go", className)}>
         {arrow === "start" ? <GoArrow side="start" /> : null}
-        <span className="basalt-link-label">{children}</span>
+        {words}
         {arrow === "end" ? <GoArrow /> : null}
       </a>
     );
   }
-  if (!newTab) return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)}>{children}</a>;
+  // The words are a label of their own, so that on touch the link's own line is painted over a neighbouring link's 44px box: two links
+  // stacked one per line never take each other's taps.
+  if (!newTab) return <a {...props} target={target} rel={relationship} className={join("basalt-link", className)}>{words}</a>;
   // An aria-label replaces the content, so the words join the label itself. A link that holds only a logo keeps the words and skips the arrow.
   const label = props["aria-label"];
   return (
     <a {...props} target={target} rel={relationship} aria-label={label ? `${label}${newTabWords(newTabLabel)}` : undefined} data-new-tab="" data-arrow={arrow} className={join("basalt-link", arrow && "basalt-link-go", className)}>
-      <span className="basalt-link-label">{children}</span>
+      {words}
       {hasVisibleText(children) ? <NewTabGlyph /> : null}
       {label ? null : <NewTabWords label={newTabLabel} />}
     </a>

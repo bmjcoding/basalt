@@ -16,7 +16,7 @@
   .tab [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); }
   @media (hover: hover) { .tab:hover { color: var(--basalt-text-primary); } }
-  @media (pointer: coarse) { .tab { height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .tab { height: var(--basalt-size-tap-min); } }
   /* A label that is not plain text is drawn twice in one box, the second copy at 600, unseen (aria-hidden, inert): the box is the content's width at 600. */
   .tab [data-reserve] { display: inline-grid; justify-items: start; }
   .tab [data-reserve] > * { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); white-space: nowrap; }

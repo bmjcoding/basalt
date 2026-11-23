@@ -1,5 +1,7 @@
 // The second audit fix batch, the HTML skill's half: A3-02 (a page with the phone tab bar scrolls focus clear of it) and A5-01 (the
 // selected fills paint in a browser without light-dark()). The React half is packages/react/test/audit-fixes-b.test.mjs. Synthetic data.
+// The page pads past the bar as foundations says (the bar, the inset and space-6, as the shell does): with the bar alone, a standalone link's 44px
+// box at the page's end, drawn under 720 whatever the pointer since cimip-gaps-2 B5, reached 10px under the bar.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
@@ -15,7 +17,7 @@ const THEMES = ["light", "dark"];
 const html = (body) => compose(`<title>Fixes</title>${body}`, { fonts: false }).html;
 
 const LINKS = Array.from({ length: 40 }, (_, i) => `<a href="#l${i}" style="display:block;padding:10px 0">Filler link ${i + 1}</a>`).join("");
-const TAB_BAR = `<main style="padding-bottom: var(--basalt-bottom-offset)">${LINKS}</main><nav class="tab-bar" aria-label="Primary"><ul class="tab-bar-list"><li><a class="tab-bar-item" href="#home" aria-current="page"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Home</span></a></li><li><a class="tab-bar-item" href="#inbox"><span class="tab-bar-glyph"><span data-glyph="notifications" data-size="24"></span></span><span class="tab-bar-label">Inbox</span></a></li><li><a class="tab-bar-item" href="#plan"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Plan</span></a></li></ul></nav>`;
+const TAB_BAR = `<main style="padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6))">${LINKS}</main><nav class="tab-bar" aria-label="Primary"><ul class="tab-bar-list"><li><a class="tab-bar-item" href="#home" aria-current="page"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Home</span></a></li><li><a class="tab-bar-item" href="#inbox"><span class="tab-bar-glyph"><span data-glyph="notifications" data-size="24"></span></span><span class="tab-bar-label">Inbox</span></a></li><li><a class="tab-bar-item" href="#plan"><span class="tab-bar-glyph"><span data-glyph="home" data-size="24"></span></span><span class="tab-bar-label">Plan</span></a></li></ul></nav>`;
 
 for (const scheme of THEMES) {
   test(`A3-02 the skill's page scrolls focus clear of its tab bar (${scheme})`, async () => {

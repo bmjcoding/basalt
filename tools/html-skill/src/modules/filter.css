@@ -60,7 +60,7 @@
   .chip:has(> .chip-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .chip:has(> .chip-input:disabled) { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; background: transparent; }
   .chip:has(> .chip-input:disabled) .chip-seat { color: var(--basalt-text-disabled); }
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .chip { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-base-size); }
     /* The target is 44px; rows sit 8px apart, so targets meet and never overlap. The box is placed against the chip's padding box, which is the hairline inside the
        border on every side, so the inset takes the hairline back: 36 less 2, plus 5 above and 5 below, is 44. */
@@ -108,7 +108,7 @@
   .filter-row[data-highlighted] { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .filter-row[data-highlighted]::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .filter-row:has(> input:disabled) { color: var(--basalt-text-disabled); }
-  @media (pointer: coarse) { .filter-row { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); } }
+  @media (pointer: coarse), (width < %bp-md%) { .filter-row { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); } }
   .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
   .filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }

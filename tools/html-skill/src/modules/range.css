@@ -23,7 +23,7 @@
     input[type="range"]::-webkit-slider-thumb { width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); margin-top: calc((var(--basalt-size-track) - var(--basalt-size-icon-sm)) / 2); border: 0; border-radius: var(--basalt-radius-full); background: var(--_on); appearance: none; }
     input[type="range"]:focus-visible::-webkit-slider-thumb { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
     input[type="range"]:disabled { --_on: var(--basalt-text-disabled); cursor: not-allowed; }
-    @media (pointer: coarse) { input[type="range"] { min-height: var(--basalt-size-tap-min); } }
+    @media (pointer: coarse), (width < %bp-md%) { input[type="range"] { min-height: var(--basalt-size-tap-min); } }
     /* Forced colours: system colours for the fill, the rest of the track and the thumb. */
     @media (forced-colors: active) {
       input[type="range"] { forced-color-adjust: none; --_on: Highlight; --_off: ButtonText; }

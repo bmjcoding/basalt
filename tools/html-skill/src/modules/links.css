@@ -33,7 +33,7 @@
   /* On touch each link is at least 44 by 44 as real layout, and the 16px gap becomes 8px of hit area on either side, so a wrapped line touches the
      next and never overlaps it (the page's negative block margin on a standalone link is cancelled here). The row's negative margin keeps
      the first glyph on the content edge. An icon-only row is ghost icon buttons, which size themselves. */
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .links:not([data-icon-only]) { gap: 0; margin-inline: calc(-1 * var(--basalt-space-2)); }
     .links:not([data-icon-only]) > li > a { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); justify-content: center; margin-block: 0; padding-inline: var(--basalt-space-2); }
   }

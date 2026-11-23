@@ -77,7 +77,7 @@
   .menu-item:is([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-disabled); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .menu:has(.menu-item-description) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .menu-item { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     .menu-item:has(> .menu-item-description) { height: auto; min-height: max(calc(var(--_h) + var(--_desc) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
   }

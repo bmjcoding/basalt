@@ -65,7 +65,7 @@
   .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
   .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
   .option-chip:is([data-checked][data-unavailable], :has(> .option-chip-input:disabled:checked)) { background: transparent; }
-  @media (pointer: coarse) { .option-chip { min-height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .option-chip { min-height: var(--basalt-size-tap-min); } }
 
   @media (forced-colors: active) {
     .option-chip { border-color: ButtonText; color: ButtonText; }

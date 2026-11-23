@@ -14,7 +14,7 @@
   /* The steppers are ghost icon buttons that keep the colour step and never scale. */
   .number-field > .btn { flex: none; height: auto; align-self: stretch; }
   .number-field > .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
-  @media (pointer: coarse) { .number-field { border-radius: var(--basalt-radius-md); } }
+  @media (pointer: coarse), (width < %bp-md%) { .number-field { border-radius: var(--basalt-radius-md); } }
 
   /* Forced colours: the group is a real border, and the value keeps only its two dividers. */
   @media (forced-colors: active) {
