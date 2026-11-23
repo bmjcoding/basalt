@@ -234,21 +234,9 @@ fs.writeFileSync(path.join(dist, "head", "loops.js"), loopsBootstrap);
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
 const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");
-// `%glyph-mask:name%` in the stylesheet is a data URI of that core glyph, drawn with the set's 2.25 round stroke on the 24 grid, for a CSS mask (a diagram's
-// link cue, DECISIONS 306, 1.4): the same drawing as the HTML skill's (tools/html-skill/build.mjs), from the same source, never redrawn by hand.
-const { GLYPHS: CORE_GLYPHS, slots: glyphSlots } = await import(pathToFileURL(path.join(here, "glyphs", "source.mjs")).href);
-const glyphMaskUri = (name) => {
-  const glyph = CORE_GLYPHS[name];
-  if (!glyph || !(glyph.s || glyph.of)) throw new Error(`build: "${name}" is not a core glyph with a drawing`);
-  const near = (a, b) => Math.abs(a - b) < 1e-6;
-  const d = (glyph.s ?? glyphSlots(name)).filter((slot) => slot[8]).map(([x0, y0, x1, y1, x2, y2, x3, y3]) => {
-    const straight = near(x1, x0 + (x3 - x0) / 3) && near(y1, y0 + (y3 - y0) / 3) && near(x2, x0 + (2 * (x3 - x0)) / 3) && near(y2, y0 + (2 * (y3 - y0)) / 3);
-    return straight ? `M${x0} ${y0}L${x3} ${y3}` : `M${x0} ${y0}C${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`;
-  }).join("");
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='${d}' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
-  return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
-};
-const components = `${fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8").replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name))}\n${accents}`;
+// `%glyph-mask:name%` in the stylesheet is a core glyph's drawing as a mask (glyph-mask.mjs).
+const { withGlyphMasks } = await import(pathToFileURL(path.join(here, "glyph-mask.mjs")).href);
+const components = `${withGlyphMasks(fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8"))}\n${accents}`;
 
 // Geist Sans and Mono, variable (SIL OFL 1.1, licence shipped beside the files).
 const geist = path.join(packageDir("geist"), "dist", "fonts");

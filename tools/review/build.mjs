@@ -12,6 +12,8 @@
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+
+import { withGlyphMasks } from "../../packages/react/glyph-mask.mjs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -134,7 +136,8 @@ const css = [
   // comes after `basalt` on purpose: it is where a round shows an option the owner has not decided ("Option, not
   // shipped"), scoped to a wrapper that says so.
   "@layer review, basalt, review-options;",
-  fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
+  // The source stylesheet, with its core-glyph masks written in, as the package's build writes them.
+  withGlyphMasks(fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8")),
   // The accent classes are generated with the tokens; Badge's accent tone reads them.
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
   `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,

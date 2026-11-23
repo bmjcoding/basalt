@@ -29,7 +29,7 @@ function Diagram({ k, state }: { k: Key; state: string }) {
       await new Promise((r) => setTimeout(r, 400));
       if (state === "viewer-200") {
         const level = () => Number(document.querySelector(".basalt-diagram-level > span")?.textContent?.replace("%", "") ?? 0);
-        for (let i = 0; i < 12 && level() < 200; i++) document.querySelector<HTMLButtonElement>('dialog.basalt-diagram-viewer button[aria-label="Zoom in"]')?.click();
+        for (let i = 0; i < 12 && level() < 200; i++) { document.querySelector<HTMLButtonElement>('dialog.basalt-diagram-viewer button[aria-label="Zoom in"]')?.click(); await frames(2); }
       }
       await frames(4);
       ready();
