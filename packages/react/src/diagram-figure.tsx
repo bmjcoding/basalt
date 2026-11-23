@@ -50,8 +50,12 @@ function styleObject(style: string): Record<string, string> {
   return out;
 }
 
-/** The engine's tree as React elements; slots are React's own, the ink is set as HTML (it is the same string the skill writes). */
-function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: string, root?: Record<string, unknown>): React.ReactNode {
+/**
+ * The engine's tree as React elements; slots are React's own, the ink is set as HTML (it is the same string the skill writes). `ink` is one object for one
+ * string: React writes the HTML again whenever the object changes, and the motion module's overlays and masks live inside it, so a render that draws the
+ * same lines must hand React the same object.
+ */
+function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html: string }, root?: Record<string, unknown>): React.ReactNode {
   if (typeof v === "string") return v;
   if ("slot" in v) return slots[v.slot] ?? null;
   const props: Record<string, unknown> = {};
@@ -61,7 +65,7 @@ function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: string, 
     else props[CAMEL[k] ?? k] = value === true ? (k === "hidden" ? true : "") : value;
   }
   if (typeof v.a.class === "string" && v.a.class.endsWith("-ink")) {
-    props.dangerouslySetInnerHTML = { __html: ink };
+    props.dangerouslySetInnerHTML = ink;
     return React.createElement(v.t, props);
   }
   if (root) Object.assign(props, root, { className: [props.className, root.className].filter(Boolean).join(" "), style: { ...(props.style as object), ...(root.style as object) } });
@@ -99,6 +103,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   }, [callerRef]);
   const [dyn, setDyn] = React.useState<Dyn>({});
   const [ink, setInk] = React.useState("");
+  const inkHtml = React.useMemo(() => ({ __html: ink }), [ink]);
   const measured = React.useRef<Measured | null>(null);
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
@@ -128,8 +133,9 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const result = measureFigure(fig, model, P, base, dynRef.current, (d) => syncAttributes(fig, figureTree(model, d, options)), warn);
     measured.current = result;
-    dynRef.current = result.dyn;
-    setDyn(result.dyn);
+    // The same layout is the same state: a measure that changes nothing renders nothing.
+    // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
+    if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }
     setInk(result.ink);
     // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
     if (!hasStops(model, result.dyn)) setHoverTrace(null);
@@ -164,13 +170,18 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     if (fig) applyTrace(fig, P, measured.current?.geo ?? null, measured.current?.tokens ?? null, base, trace);
   }, [trace, ink, base]);
   // In the frame an animated figure's lines are first drawn it is marked pending, before any paint (DECISIONS 292, 1.5); the module, once loaded,
-  // follows the lines each time they are drawn again differently.
+  // follows the lines each time they are drawn again. What it follows is the drawing itself, not the string: if React wrote the ink again for any reason
+  // (a remount, the faces arriving with the same lines), the reveal and the loops are built again on the new elements.
+  const drawn = React.useRef<{ svg: Element | null; controller: MotionController | null } | null>(null);
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (!fig || !animated || !measured.current?.tokens) return;
+    const svg = fig.querySelector(`.${P}-ink > .${P}-svg`);
+    if (drawn.current && drawn.current.svg === svg && drawn.current.controller === controller) return;
+    drawn.current = { svg, controller };
     entranceDrawn(fig, Boolean(measured.current.geo?.lines.length));
     controller?.redrawn();
-  }, [ink, animated, controller]);
+  });
   React.useEffect(() => {
     if (!animated) return undefined;
     let live = true;
@@ -265,5 +276,5 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   // The foot (1.9): "View as list", then the run button and "Pause animations", which the motion module draws when it has loaded.
   const Foot = motionModule?.MotionFoot;
   const foot = Foot && controller ? <>{toggle}<Foot controller={controller} /></> : toggle;
-  return toReact(tree, { source, summary, hint, toggle: foot }, ink, root) as React.ReactElement;
+  return toReact(tree, { source, summary, hint, toggle: foot }, inkHtml, root) as React.ReactElement;
 }

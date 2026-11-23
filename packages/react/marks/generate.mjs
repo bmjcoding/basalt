@@ -70,7 +70,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       `/** ${mark.name}'s own mark for an architecture card (\`mark\` on ArchitectureNode). The card's words must name the service: ${mark.says.map((s) => `"${s}"`).join(", ")}. */`,
       `export const ${exportName(mark.id)}: DiagramMark = {`,
       `  onLight: ${JSON.stringify(onLight)},`,
-      `  onDark: ${JSON.stringify(onDark)},`,
+      // A mark with one form for both grounds writes it once: onDark defaults to onLight.
+      ...(onDark === onLight ? [] : [`  onDark: ${JSON.stringify(onDark)},`]),
+      `  says: ${JSON.stringify(mark.says)},`,
       "};",
       "",
     ].join("\n"));

@@ -33,7 +33,6 @@ function apply(held: boolean) {
   if (held) root.setAttribute("data-loops", HELD);
   else root.removeAttribute("data-loops");
   if (!held) rejoinClock();
-  for (const notify of subscribers ?? []) notify();
 }
 
 function onStorage(event: StorageEvent) {
@@ -51,6 +50,9 @@ function install() {
     if (localStorage.getItem(KEY) === HELD && !isHeld()) document.documentElement.setAttribute("data-loops", HELD);
   } catch { /* storage can be blocked; the hold then lasts for this page */ }
   window.addEventListener("storage", onStorage);
+  // Every change of the hold reaches the subscribers through the attribute, whoever wrote it: this module, or another copy of it (a lazy module carries
+  // its own, as the diagrams' motion does).
+  new MutationObserver(() => { for (const notify of subscribers ?? []) notify(); }).observe(document.documentElement, { attributeFilter: ["data-loops"] });
 }
 
 function subscribe(notify: () => void) {

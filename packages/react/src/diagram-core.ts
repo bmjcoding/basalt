@@ -52,7 +52,12 @@ export interface DiagramGroup { id: string; label: string }
  * a URL the app has the right to show (a file path or a data URI). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner
  * and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
  */
-export interface DiagramMark { onLight: string; onDark?: string }
+export interface DiagramMark {
+  onLight: string;
+  onDark?: string;
+  /** The words the mark stands for (each bundled mark carries them): a development build warns when a card's words say none of them. */
+  says?: readonly string[];
+}
 export type ArchitectureNode = DiagramNode & { group?: string; mark?: DiagramMark };
 /** A line of an architecture or a data flow. `flow` marks a live stream (main or plain only): an animated figure marches it. */
 export type DiagramFlowEdge = DiagramEdge & { flow?: boolean };

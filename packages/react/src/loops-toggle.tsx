@@ -24,6 +24,8 @@ export type LoopsToggleProps =
   | (Common & {
       /** A pressed-toggle `Button` labelled "Pause animations", for the head band of the view that shows running work (the icon form fits there too). `SiteHeader` draws it as its narrow menu's first row. */
       form: "button";
+      /** The Button's size: `md` (the default), or `sm` beside other small buttons, as in a diagram's foot. */
+      size?: "sm" | "md";
     })
   | (Common & {
       /**
@@ -39,7 +41,7 @@ export type LoopsToggleProps =
  * of these on a page, and the command that does the same, stay in step.
  */
 export function LoopsToggle(props: LoopsToggleProps) {
-  if (props.form === "button") return <LoopsToggleButton className={props.className} />;
+  if (props.form === "button") return <LoopsToggleButton className={props.className} size={props.size} />;
   if (props.form === "switch") return <LoopsToggleSwitch className={props.className} description={props.description} />;
   return <LoopsToggleIcon className={props.className} />;
 }

@@ -4867,7 +4867,7 @@
      Only on a figure that asks for it (data-motion="animated"); a still figure is the drawing above, unchanged. The motion code is a module of its
      own (diagram-motion), loaded on demand; the still engine marks a figure pending in the frame its lines are first drawn (data-entrance). Every
      moving part is hidden from assistive technology. Order, back to front: lines; flow cuts, the bead and the dot; labels and their plates; nodes.
-     The implementation hasn't been reviewed. */
+     Reviewed once (round 65: Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again. */
   /* Pending: the lines are not shown until the figure comes into view, and a sequence's labels are in their quieter ink, still 4.5:1. */
   .basalt-diagram[data-motion="animated"][data-entrance="pending"] .basalt-diagram-edges { visibility: hidden; }
   .basalt-diagram[data-motion="animated"]:is([data-entrance="pending"], [data-entrance="running"]) .basalt-diagram-mlabel { color: var(--basalt-text-secondary); }
@@ -4911,9 +4911,10 @@
     .basalt-diagram .basalt-diagram-msg[data-arrival] .basalt-diagram-num { color: Highlight; }
     .basalt-diagram :is(.basalt-diagram-flow, .basalt-diagram-bead) { display: none; }
   }
-  /* Print, with or without script: every line whole and shown, every label in its resting ink, no mover. Important, so it outranks a running
-     animation and the pending rule. */
+  /* Print, with or without script: every line whole and shown, every label in its resting ink, no mover, and no motion control (a pause or a run
+     button on paper says nothing). Important, so it outranks a running animation and the pending rule. */
   @media print {
+    .basalt-diagram :is(.basalt-diagram-play, .basalt-diagram-pause) { display: none !important; }
     .basalt-diagram .basalt-diagram-edges { visibility: visible !important; }
     .basalt-diagram .basalt-diagram-edge { mask: none !important; }
     .basalt-diagram .basalt-diagram-mlabel { color: var(--basalt-text-primary) !important; }

@@ -265,12 +265,14 @@ class Figure implements MotionController {
     if (this.traced()) {
       // A run the reader started ends when a node is traced: the reader has turned to something else (1.13).
       this.stopRun();
+      clearTimeout(this.resumeTimer);
       this.resumeAt = Infinity;
     } else if (this.resumeAt === Infinity) {
-      // Loops start again duration-diagram-pause after a trace ends, so a pointer crossing the cards does not flicker them.
+      // Loops start again duration-diagram-pause after a trace ends, so a pointer crossing the cards does not flicker them. The timer ends the pause
+      // itself: the timeline's clock moves only on a frame, so a timer can fire before it reads the pause as over.
       this.resumeAt = now() + this.t.pause;
       clearTimeout(this.resumeTimer);
-      this.resumeTimer = window.setTimeout(() => this.sync(), this.t.pause);
+      this.resumeTimer = window.setTimeout(() => { this.resumeAt = 0; this.sync(); }, this.t.pause);
     }
     this.sync();
   }
@@ -560,6 +562,8 @@ class Figure implements MotionController {
     if (!l) return;
     const tk = this.host.tokens();
     let made = this.flowEls.get(i);
+    // An overlay lives in the ink: one the host wrote over is made again.
+    if (made && !made.isConnected) { this.flowEls.delete(i); made = undefined; }
     if (!made) {
       // The cuts stop space-1 short of the line's end, so a head is never cut off its shaft (1.6).
       const space1 = tk?.space("1") ?? 4;
@@ -612,6 +616,7 @@ class Figure implements MotionController {
         const l = this.edgeFor(route[k - 1]!, route[k]!);
         if (!l || gen !== this.loopGen) return;
         let el = this.beadEls.get(l.i);
+        if (el && !el.isConnected) { this.beadEls.delete(l.i); el = undefined; }
         if (!el) {
           const o = this.overlay(l, l.width + 2, "bead");
           if (!o) return;
@@ -691,13 +696,25 @@ class Figure implements MotionController {
 
   private async repeat(gen: number, path: string[]) {
     const live = () => gen === this.loopGen;
-    while (live()) {
-      this.inFlight = true;
-      try { await this.packetRun(path, this.loops, live); } finally { this.inFlight = false; }
-      if (!live()) return;
-      await this.wait(this.t.repeat, this.loops);
+    try {
+      while (live()) {
+        this.inFlight = true;
+        this.waiting = false;
+        try { await this.packetRun(path, this.loops, live); } finally { this.inFlight = false; }
+        if (!live()) return;
+        // An app's send while the dot flew waited for it, and goes now; the next self-send is duration-diagram-repeat after the last landing (1.8, 1.9).
+        if (this.waiting) continue;
+        const gap = this.track(this.host.fig.animate([], { duration: Math.max(1, this.t.repeat) }), this.loops);
+        this.repeatGap = gap;
+        try { await gap.finished; } finally { if (this.repeatGap === gap) this.repeatGap = null; gap.cancel(); }
+      }
+    } finally {
+      // Cleared to rest (the hold, a trace, out of motion): a send that was waiting on the loop is dropped with it.
+      if (!live() && !this.looping) this.waiting = false;
     }
   }
+  /** The rest between a repeating packet's self-sends: a send in it ends it, so the message goes at once. */
+  private repeatGap: Animation | null = null;
 
   // ---- What the app and the reader start: a send, and the sequence's run (1.8, 1.10, 1.11) ----
 
@@ -719,10 +736,11 @@ class Figure implements MotionController {
       // Nothing sends itself under the hold, and nothing travels under reduced motion: the last stop takes its arrival step for the rest.
       const stop = this.node(path[path.length - 1]!);
       this.arrive(stop);
-      window.setTimeout(() => this.depart(stop), this.t.rest);
+      this.wait(this.t.rest, this.runAnims).then(() => this.depart(stop), () => this.depart(stop));
       return;
     }
-    if (this.looping && m.motion.packet?.repeat) return;
+    // A repeating packet is the one mover: a send rides it, at once in its rest, or after the dot in flight lands.
+    if (this.looping && m.motion.packet?.repeat) { this.waiting = true; this.repeatGap?.finish(); return; }
     this.inFlight = true;
     const gen = ++this.runGen;
     this.packetRun(path, this.runAnims, () => gen === this.runGen).catch((e) => { if (!aborted(e)) throw e; }).finally(() => {

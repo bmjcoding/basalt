@@ -1,8 +1,7 @@
 import * as React from "react";
 
 import { Button } from "./button";
-import { LOOPS_TOGGLE_NAME } from "./constants";
-import { useLoops } from "./loops";
+import { LoopsToggleButton } from "./loops-toggle-button";
 import type { MotionController } from "./diagram-motion-core";
 
 export { attachMotion, motionErrors } from "./diagram-motion-core";
@@ -16,18 +15,17 @@ const RUN_STOP = "Stop the run";
 
 /**
  * The foot's motion controls (1.9, 1.10), after "View as list": the run button, where the sequence names `run` and lines are drawn, and "Pause
- * animations", the page's hold (`useLoops`), where the figure can loop. Each is a secondary small button, at least 44px on touch.
+ * animations", the page's hold (`LoopsToggle`'s button form at the small size), where the figure can loop. Each is a secondary small button, at least 44px on touch.
  */
 export function MotionFoot({ controller }: { controller: MotionController }) {
   const state = React.useSyncExternalStore(controller.subscribe, controller.state, controller.state);
-  const { held, setHeld } = useLoops();
   return (
     <>
       {state.runShown ? (
         <Button variant="secondary" size="sm" className="basalt-diagram-play" onClick={() => controller.toggleRun()}>{state.running ? RUN_STOP : RUN_PLAY}</Button>
       ) : null}
       {state.canLoop ? (
-        <Button variant="secondary" size="sm" pressed={held} className="basalt-diagram-pause" onClick={() => setHeld(!held)}>{LOOPS_TOGGLE_NAME}</Button>
+        <LoopsToggleButton size="sm" className="basalt-diagram-pause" />
       ) : null}
     </>
   );

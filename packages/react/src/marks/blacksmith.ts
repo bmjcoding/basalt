@@ -7,4 +7,5 @@ import type { DiagramMark } from "../diagram-core";
 export const blacksmith: DiagramMark = {
   onLight: "data:image/svg+xml,%3Csvg width='144' height='96.05' viewBox='0 0 144 96.05' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M144 0H0V48C26.5097 48 48 69.4903 48 96H144V0Z' fill='%23202020'/%3E%3C/svg%3E",
   onDark: "data:image/svg+xml,%3Csvg width='144' height='96.05' viewBox='0 0 144 96.05' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M144 0H0V48C26.5097 48 48 69.4903 48 96H144V0Z' fill='%23ffffff'/%3E%3C/svg%3E",
+  says: ["Blacksmith"],
 };
