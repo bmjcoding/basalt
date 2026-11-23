@@ -103,7 +103,8 @@ describe("still is untouched (first)", () => {
     const seen = await page.evaluate(() => [...document.querySelectorAll("figure")].map((f) => ({
       entrance: f.getAttribute("data-entrance"), motion: f.getAttribute("data-motion"),
       parts: f.querySelectorAll(".basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet, .basalt-diagram-motion-defs, .basalt-diagram-play, .basalt-diagram-pause, [mask^='url(#dg']").length,
-      foot: f.querySelector(".basalt-diagram-foot").children.length,
+      // "View as list" alone of the motion's concern: "Expand" (DECISIONS 310, 9.1) is every figure's and is not counted.
+      foot: f.querySelectorAll(".basalt-diagram-foot > :not(.basalt-diagram-expand)").length,
     })));
     for (const s of seen) assert.deepEqual(s, { entrance: null, motion: null, parts: 0, foot: 1 });
     assert.deepEqual(errors, []);
@@ -1129,7 +1130,8 @@ describe("section 7's checks, batch A", () => {
       edges: getComputedStyle(f.querySelector(".basalt-diagram-edges")).visibility,
       masked: f.querySelectorAll(".basalt-diagram-edge[mask], .basalt-diagram-motion-defs").length,
       parts: f.querySelectorAll(".basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet, .basalt-diagram-play, .basalt-diagram-pause").length,
-      foot: f.querySelector(".basalt-diagram-foot").children.length,
+      // "View as list" alone of the motion's concern: "Expand" (DECISIONS 310, 9.1) is every figure's and is not counted.
+      foot: f.querySelectorAll(".basalt-diagram-foot > :not(.basalt-diagram-expand)").length,
       lines: f.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line").length,
       animations: f.getAnimations({ subtree: true }).length,
     })));

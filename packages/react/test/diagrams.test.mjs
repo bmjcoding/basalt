@@ -466,7 +466,9 @@ describe("accessibility (1.14)", () => {
     assert.equal(await page.locator(`#fig-architecture .${P}-svg`).evaluate((svg) => svg.closest("[aria-hidden='true']") !== null), true, "the SVG is hidden");
     await page.focus(`#fig-architecture .${P}-node[data-node="browser"]`);
     const at = () => page.evaluate(() => document.activeElement?.dataset.node);
-    for (const [key, to] of [["ArrowRight", "alb"], ["ArrowDown", "svc"], ["ArrowLeft", "alb"], ["ArrowUp", "browser"], ["ArrowUp", "browser"], ["End", "sys"], ["ArrowRight", "sys"], ["Home", "browser"]]) {
+    // Drawn, the arrows are spatial (DECISIONS 306, 1.5; the decision's table in test/fixtures/diagram-spatial-cells.json): down from the ALB is ECS, up
+    // from Aurora goes nowhere. Home and End are the ends, as before.
+    for (const [key, to] of [["ArrowRight", "alb"], ["ArrowDown", "ecs"], ["ArrowLeft", "browser"], ["ArrowUp", "aurora"], ["ArrowUp", "aurora"], ["End", "sys"], ["ArrowRight", "cw"], ["Home", "browser"]]) {
       await page.keyboard.press(key);
       assert.equal(await at(), to, `${key}`);
     }
