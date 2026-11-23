@@ -25,6 +25,10 @@
       "types": "./dist/tooling/imports.d.ts",
       "default": "./dist/tooling/imports.js"
     },
+    "./marks/*": {
+      "types": "./dist/marks/*.d.ts",
+      "default": "./dist/marks/*.js"
+    },
     "./head/theme.js": "./dist/head/theme.js",
     "./head/loops.js": "./dist/head/loops.js",
     "./styles.css": "./dist/styles.css",
@@ -32,7 +36,8 @@
     "./fonts.css": "./dist/fonts.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "THIRD-PARTY-MARKS.md"
   ],
   "scripts": {
     "build": "node build.mjs",
