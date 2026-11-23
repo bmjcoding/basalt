@@ -80,7 +80,7 @@
   "DialogDescription": 69877,
   "DialogTitle": 69890,
   "DialogTrigger": 69869,
-  "DirectoryList": 19879,
+  "DirectoryList": 19896,
   "DirectoryRow": 5065,
   "DisclosureRow": 24902,
   "DotLine": 584,
@@ -169,7 +169,9 @@
   "NavGroup": 514,
   "NavItem": 110643,
   "NoticeBar": 813,
-  "NotificationCentre": 147263,
+  "NotificationCenter": 151993,
+  "NotificationCentre": 152003,
+  "NotificationList": 32602,
   "NotificationsGlyph": 3066,
   "NumberField": 43928,
   "NumberTicker": 2587,
@@ -211,16 +213,20 @@
   "ReflowItem": 470,
   "Refreshing": 1911,
   "Reserve": 441,
-  "Reveal": 19475,
+  "Reveal": 19494,
   "RoutesGlyph": 3009,
   "RunsGlyph": 3128,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
-  "SearchDialog": 85332,
+  "SearchDialog": 85372,
+  "SearchField": 18295,
   "SearchGlyph": 3181,
-  "SearchResult": 684,
-  "SearchResults": 304,
-  "SearchTrigger": 3868,
+  "SearchMatch": 248,
+  "SearchPassage": 784,
+  "SearchPassages": 375,
+  "SearchResult": 722,
+  "SearchResults": 342,
+  "SearchTrigger": 3907,
   "SectionActions": 226,
   "SectionIntro": 224,
   "Segment": 15718,
@@ -242,7 +248,7 @@
   "ShortcutList": 10032,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 14780,
+  "SiteFooter": 14782,
   "SiteHeader": 175837,
   "SiteLockupDefs": 694,
   "SiteMenu": 168176,
@@ -352,6 +358,7 @@
   "lockupDrawing": 1008,
   "loopsBootstrap": 164,
   "markEntranceSeen": 165,
+  "markMatches": 741,
   "markPageChange": 58,
   "markPageStart": 383,
   "preloadCodeLanguages": 2143,
@@ -387,11 +394,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 785182,
-  "gzip": 258485
+  "bytes": 791912,
+  "gzip": 260374
  },
  "styles": {
-  "bytes": 318192,
-  "gzip": 41734
+  "bytes": 323487,
+  "gzip": 42369
  }
 }
