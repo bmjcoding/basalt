@@ -2207,7 +2207,7 @@ Windows contrast theme.
 ## Lists and facts
 
 **Status.** Gaps found by building CIMIP on Basalt (cimip-gaps-2, batch B6), decided and built by Opus on the no-council path (DECISIONS 226 and 265); Astra reviews the
-code and the lead checks the pixels, and neither has happened yet. Every part is general and is shown in the review round (62) in at least two unlike
+code and the lead checks the pixels (both done; the menu rows' wrap is the owner's pick, DECISIONS 275). Every part is general and is shown in the review round (62) in at least two unlike
 domains. React's alone (see [What the HTML skill does not draw](#what-the-html-skill-does-not-draw)).
 
 - **A panel of rows** (`PanelList`, `PanelRow`). Rows of one list in one panel: the panel's level (one above what it sits in, 3 at most), its one rim, radius 12 (a card's),
