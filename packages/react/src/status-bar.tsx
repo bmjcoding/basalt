@@ -113,6 +113,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
       {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
       <p
         ref={band}
+        data-pinned-extent=""
         className="basalt-status-bar-message"
         aria-hidden={cut ? undefined : "true"}
         role={cut ? "note" : undefined}

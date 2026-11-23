@@ -169,7 +169,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the
   foot, sheets, dialogs, the command menu and the toasts are laid out on what is seen. A page that pins more than the bar opts into measured sizes
   (`usePinnedEdges`, `data-pinned-edge`). `AppShell`'s `foot` holds still; a `Tray` docks the rows that wait on the reader (a sheet under 720). A toast whose
-  only home is the page closes when the page changes.
+  only home is the page closes when the page changes; under 720 the toast stack hangs from the bar, `space-2` below it (DECISIONS 274).
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
   light.
 - **Styling comes from tokens.** No raw colours in component CSS. Lengths come from

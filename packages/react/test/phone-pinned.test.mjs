@@ -97,20 +97,26 @@ describe("an on-screen keyboard", () => {
     assert.equal(await page.evaluate(() => document.documentElement.hasAttribute("data-screen-keyboard")), false, "80px of bars");
   });
 
-  test("under 720 the tab bar is covered; the toasts stand on the keyboard; the root's scroll padding clears it", async () => {
+  test("under 720 the tab bar is covered and the toasts stay under the bar (DECISIONS 274); from 720 the toasts stand on the keyboard; the scroll padding clears it", async () => {
     const page = await open(SHELL(), { width: 390, height: 844 });
     await page.evaluate(() => window.toast.show({ title: "Reply sent", home: "page", timeout: 0 }));
     await settle(page);
-    const before = await box(page, ".basalt-toast-viewport");
-    assert.ok(Math.abs(before.bottom - (844 - 56 - 16)) <= 1, `above the tab bar: ${before.bottom}`);
-    await page.evaluate(() => window.keyboard(300));
+    const before = await box(page, ".basalt-toast");
+    assert.ok(Math.abs(before.top - (56 + 8)) <= 1, `under the bar: ${before.top}`);
+    await page.evaluate(() => window.keyboard(300, 40));
     await frames(page);
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".basalt-tabbar")).display), "none");
-    const raised = await box(page, ".basalt-toast-viewport");
-    assert.ok(Math.abs(raised.bottom - (844 - 300 - 16)) <= 1, `on the keyboard: ${raised.bottom}`);
+    const up = await box(page, ".basalt-toast");
+    assert.ok(Math.abs(up.top - (40 + 56 + 8)) <= 1, `under the bar, on what is seen: ${up.top}`);
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingBottom), "316px");
-    // The bar's 56 plus space-4 above, as before.
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop), "72px");
+    // The bar's 56, what is panned past (40), and space-4.
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop), "112px");
+    const wide = await open(SHELL(), { width: 1024, height: 700 });
+    await wide.evaluate(() => { window.toast.show({ title: "Reply sent", home: "page", timeout: 0 }); window.keyboard(300); });
+    await settle(wide);
+    await frames(wide);
+    const raised = await box(wide, ".basalt-toast-viewport");
+    assert.ok(Math.abs(raised.bottom - (700 - 300 - 16)) <= 1, `from 720, on the keyboard: ${raised.bottom}`);
   });
 
   test("a bottom sheet stands on the keyboard at 90% of what is seen; a side sheet is what is seen; a dialog is centred in it; with no keyboard each is as it was", async () => {
@@ -274,7 +280,7 @@ function App() {
   const [rows, setRows] = React.useState([{ id: "a", who: "Customer 1042", what: "asked to reopen a closed ticket" }, { id: "b", who: "Customer 1077", what: "is waiting on a refund approval" }, { id: "c", who: "Build 412", what: "needs approval to deploy to production" }]);
   const field = React.useRef(null);
   const answer = (id) => setRows((all) => all.filter((r) => r.id !== id));
-  React.useEffect(() => { window.answer = answer; window.rows = () => rows.length; });
+  React.useEffect(() => { window.answer = answer; window.answerMany = (ids) => setRows((all) => all.filter((r) => !ids.includes(r.id))); window.rows = () => rows.length; });
   return (
     <div style={{ padding: 16, maxWidth: 680 }}>
       <B.Tray label="Waiting on you" summary={(n) => n + " waiting on you"} returnFocus={field}>
@@ -319,8 +325,8 @@ describe("a tray of rows that wait on the reader", () => {
     assert.notEqual(lines.ellipsis, "ellipsis");
   });
 
-  test("under 720 the rows that wait are one band that opens them in a sheet; a row that only reports stays", async () => {
-    const page = await open(TRAY, { width: 390, height: 844, theme: "light" });
+  for (const theme of ["dark", "light"]) test(`under 720 the rows that wait are one band that opens them in a sheet; a row that only reports stays; the open sheet passes axe (${theme})`, async () => {
+    const page = await open(TRAY, { width: 390, height: 844, theme });
     const band = page.locator(".basalt-tray-band");
     assert.equal(await band.textContent(), "3 waiting on youShow");
     assert.equal(await band.getAttribute("aria-haspopup"), "dialog");
@@ -504,3 +510,185 @@ describe("a scroller that is an element", () => {
     assert.equal(await page.evaluate(() => document.getElementById("pane").style.getPropertyValue("--basalt-keyboard-inset")), "");
   });
 });
+
+// ---- The toast stack on a phone hangs from the bar (DECISIONS 274) ----
+
+const STACK = (strip = false) => `${VIEWPORT}
+function Strip() { B.usePinnedEdges(); return <div id="strip" data-pinned-edge="top" style={{ position: "sticky", top: "var(--basalt-sticky-offset)", height: 44, zIndex: 5, background: "var(--basalt-surface-page)" }}>Week 31</div>; }
+function App() {
+  const toast = B.useToast();
+  React.useEffect(() => { window.toast = toast; }, [toast]);
+  return (
+    <B.AppShell brand={<span>Coach</span>} brandLabel="Coach home" sidebar={<B.Nav aria-label="Main"><B.NavGroup label="Coach"><B.NavItem href="#a" icon={B.HomeGlyph} current>Today</B.NavItem></B.NavGroup></B.Nav>}
+      header={<B.AppHeader title="Weekly check-in" />}
+      tabBar={<B.TabBar><B.TabBarItem href="#a" icon={B.HomeGlyph} current>Today</B.TabBarItem><B.TabBarItem href="#b" icon={B.SearchGlyph}>Search</B.TabBarItem><B.TabBarItem href="#c" icon={B.HomeGlyph}>Plan</B.TabBarItem></B.TabBar>}>
+      ${strip ? "<Strip />" : ""}
+      <div style={{ height: 1600 }} />
+      <B.Button id="send" variant="primary">Send check-in</B.Button>
+    </B.AppShell>
+  );
+}
+createRoot(document.getElementById("root")).render(<B.ToastProvider><App /></B.ToastProvider>);`;
+
+describe("the toast stack on a phone", () => {
+  test("under 720 it hangs from the bar, full width, space-2 below its line; the front toast is at the top and the one behind peeks below it", async () => {
+    const page = await open(STACK(), { width: 390, height: 844, ...COARSE });
+    await page.evaluate(() => { window.scrollTo(0, document.documentElement.scrollHeight); window.toast.show({ title: "Draft saved", home: "page", timeout: 0 }); window.toast.show({ title: "Check-in sent", home: "page", timeout: 0 }); });
+    await settle(page);
+    const got = await page.evaluate(() => {
+      const [behind, front] = [...document.querySelectorAll(".basalt-toast")].map((t) => t.getBoundingClientRect());
+      const send = document.getElementById("send").getBoundingClientRect();
+      return { front: { top: front.top, left: front.left, right: front.right }, behindBottom: behind.bottom, frontBottom: front.bottom, send: { top: send.top, bottom: send.bottom } };
+    });
+    assert.ok(Math.abs(got.front.top - 64) <= 1, `space-2 under the 56px bar: ${got.front.top}`);
+    assert.ok(Math.abs(got.front.left - 16) <= 1 && Math.abs(got.front.right - (390 - 16)) <= 1, `full width less the insets: ${got.front.left}..${got.front.right}`);
+    assert.ok(got.behindBottom > got.frontBottom, `the toast behind peeks below the front one: ${got.behindBottom} > ${got.frontBottom}`);
+    assert.ok(got.send.top >= got.behindBottom, `the form's last action is clear of the stack: ${got.send.top}`);
+  });
+
+  test("a band stuck under the bar, measured, moves it down; from 720 it is bottom right as before", async () => {
+    const page = await open(STACK(true), { width: 390, height: 844, ...COARSE });
+    await frames(page, 3);
+    await page.evaluate(() => window.toast.show({ title: "Draft saved", home: "page", timeout: 0 }));
+    await settle(page);
+    assert.ok(Math.abs((await box(page, ".basalt-toast")).top - (56 + 44 + 8)) <= 1);
+    const wide = await open(STACK(), { width: 1440, height: 900 });
+    await wide.evaluate(() => window.toast.show({ title: "Draft saved", home: "page", timeout: 0 }));
+    await settle(wide);
+    const t = await box(wide, ".basalt-toast");
+    assert.ok(Math.abs(t.bottom - (900 - 16)) <= 1 && Math.abs(t.right - (1440 - 16)) <= 1, `bottom right: ${t.bottom}, ${t.right}`);
+  });
+
+  test("a toast enters from the top edge (and under reduced motion only fades)", async () => {
+    const page = await open(STACK(), { width: 390, height: 844, ...COARSE });
+    const starting = await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.className = "basalt-toast";
+      probe.setAttribute("data-starting-style", "");
+      document.querySelector(".basalt-toast-viewport")?.append(probe) ?? document.body.append(probe);
+      const m = new DOMMatrix(getComputedStyle(probe).transform);
+      probe.remove();
+      return m.m42;
+    });
+    assert.ok(starting < 0, `it starts above its place: ${starting}`);
+    const still = await open(STACK(), { width: 390, height: 844, reducedMotion: "reduce", ...COARSE });
+    const held = await still.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.className = "basalt-toast";
+      probe.setAttribute("data-starting-style", "");
+      document.body.append(probe);
+      const m = new DOMMatrix(getComputedStyle(probe).transform);
+      probe.remove();
+      return m.m42;
+    });
+    assert.ok(held >= 0, `under reduced motion it starts in its place: ${held}`);
+  });
+});
+
+// ---- Astra's fix pass 1 (B5): the focus handoff without focusout, an ordinary close, the status message, a page's own bar, panes, a strip
+// that becomes sticky ----
+
+describe("fix pass 1", () => {
+  test("the tray's focus handoff does not need a focusout (WebKit can drop a removed element's focus without one), and several rows leaving at once is the same case", async () => {
+    const page = await open(TRAY, { width: 1024, height: 700 });
+    // Swallow every focusout before the document hears it, as WebKit does when a focused element is removed.
+    await page.evaluate(() => window.addEventListener("focusout", (event) => event.stopImmediatePropagation(), true));
+    await page.locator("#row-b .basalt-button").focus();
+    await page.evaluate(() => window.answer("b"));
+    await frames(page);
+    assert.equal(await page.evaluate(() => document.activeElement?.closest(".basalt-tray-row")?.id), "row-c");
+    await page.evaluate(() => window.answerMany(["a", "c"]));
+    await frames(page);
+    // No row that waits is left: the field.
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "field");
+  });
+
+  test("an ordinary close of the tray's sheet (Esc) returns focus to the band that opened it; the field takes it only after the last row leaves", async () => {
+    const page = await open(TRAY, { width: 390, height: 844 });
+    await page.locator(".basalt-tray-band").click();
+    await page.waitForSelector(".basalt-tray-sheet");
+    await settle(page);
+    await page.keyboard.press("Escape");
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-tray-band")), true);
+  });
+
+  test("the measured bottom counts the status bar's message band, stacked above the bar under 720", async () => {
+    const page = await open(`
+function Page() {
+  B.usePinnedEdges();
+  return <><div style={{ height: 1600 }} /><B.StatusBar start={<span>Build 412</span>} message={{ text: "Deploy paused: waiting for an approval" }} /></>;
+}
+document.body.style.margin = "0";
+createRoot(document.getElementById("root")).render(<Page />);`, { width: 390, height: 844 });
+    await frames(page, 3);
+    const got = await page.evaluate(() => {
+      const bar = document.querySelector(".basalt-status-bar").getBoundingClientRect();
+      const message = document.querySelector(".basalt-status-bar-message").getBoundingClientRect();
+      return { measured: document.documentElement.style.getPropertyValue("--basalt-pinned-bottom"), union: Math.ceil(bar.bottom - Math.min(bar.top, message.top)), message: message.height };
+    });
+    assert.ok(got.message > 0, "the message band is drawn");
+    assert.equal(got.measured, `${got.union}px`);
+  });
+
+  test("a page's own sticky bar (.basalt-sticky-bar, README) keeps its clearance when an AppShell foot turns measuring on", async () => {
+    const page = await open(`
+document.body.style.margin = "0";
+const style = document.createElement("style"); style.textContent = ":root { --basalt-sticky-offset: 80px; }"; document.head.append(style);
+createRoot(document.getElementById("root")).render(
+  <B.AppShell brand={<span>Docs</span>} brandLabel="Docs home" sidebar={<B.Nav aria-label="Main"><B.NavGroup label="Docs"><B.NavItem href="#a" icon={B.HomeGlyph} current>Pages</B.NavItem></B.NavGroup></B.Nav>}
+    header={<header className="basalt-chrome basalt-sticky-bar" style={{ height: 80, display: "flex", alignItems: "center" }}>A shared document</header>}
+    foot={<B.Button>Publish</B.Button>}>
+    <div style={{ height: 1600 }} />
+  </B.AppShell>
+);`, { width: 1440, height: 900 });
+    await frames(page, 3);
+    assert.equal(await rootVar(page, "--basalt-pinned-top"), "80px");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop), "96px");
+  });
+
+  test("a strip that becomes sticky by a class, with no change of size, is measured", async () => {
+    const page = await open(`
+const style = document.createElement("style"); style.textContent = ".stuck { position: sticky; top: 0; }"; document.head.append(style);
+function Page() { B.usePinnedEdges(); return <><div id="strip" data-pinned-edge="top" style={{ height: 40 }}>Build 412</div><div style={{ height: 1600 }} /></>; }
+document.body.style.margin = "0";
+createRoot(document.getElementById("root")).render(<Page />);`, { width: 1024, height: 700 });
+    await frames(page, 3);
+    assert.equal(await rootVar(page, "--basalt-pinned-top"), "0px");
+    await page.evaluate(() => document.getElementById("strip").classList.add("stuck"));
+    await frames(page, 3);
+    assert.equal(await rootVar(page, "--basalt-pinned-top"), "40px");
+  });
+
+  test("a pane inside a scroller that scrolls, and a pane mounted after the keyboard rose, each carry their own share of it", async () => {
+    const page = await open(`${VIEWPORT}
+function Page() {
+  const [late, setLate] = React.useState(false);
+  B.useScreenKeyboardLayout();
+  React.useEffect(() => { window.mountLate = () => setLate(true); }, []);
+  return (
+    <div id="outer" style={{ height: "100vh", overflowY: "auto" }}>
+      <div style={{ height: 300 }} />
+      <div id="pane" data-scroll-owner="" style={{ height: 500, overflowY: "auto" }}><div style={{ height: 2000 }} /></div>
+      <div style={{ height: 1200 }} />
+      {late ? <div id="late" data-scroll-owner="" style={{ position: "fixed", left: 0, right: 0, bottom: 0, height: 400, overflowY: "auto" }}><div style={{ height: 900 }} /></div> : null}
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<Page />);`, { width: 390, height: 844 });
+    await page.evaluate(() => window.keyboard(300));
+    await frames(page, 3);
+    const share = (id) => page.evaluate((i) => document.getElementById(i)?.style.getPropertyValue("--basalt-keyboard-inset"), id);
+    // The pane runs from 300 to 800; the keyboard covers from 544: 256 of it.
+    assert.equal(await share("pane"), "256px");
+    await page.evaluate(() => document.getElementById("outer").scrollTo(0, 200));
+    await frames(page, 3);
+    // Scrolled up by 200 it runs from 100 to 600: 56 of it is under the keyboard.
+    assert.equal(await share("pane"), "56px");
+    await page.evaluate(() => window.mountLate());
+    await frames(page, 3);
+    // Fixed at the bottom, 444 to 844: 300 of it is under the keyboard.
+    assert.equal(await share("late"), "300px");
+  });
+});
+

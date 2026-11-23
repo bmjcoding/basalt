@@ -23,10 +23,28 @@ import * as React from "react";
 let users = 0;
 let teardown: (() => void) | undefined;
 
-const PINNED = "[data-pinned-edge]";
+// A page's own sticky bar (`.basalt-sticky-bar`, the documented class for a custom header) covers the top without the attribute.
+const PINNED = "[data-pinned-edge], .basalt-sticky-bar";
+const edgeOf = (element: Element) => ["top", "bottom"].indexOf(element.getAttribute("data-pinned-edge") ?? (element.classList.contains("basalt-sticky-bar") ? "top" : ""));
+const drawn = (style: CSSStyleDeclaration) => style.display !== "none" && style.visibility !== "hidden";
 
-/** The height an element covers now: it is pinned (sticky or fixed) and drawn. A list's band that sticks only from 720 counts only there. */
-const covering = (style: CSSStyleDeclaration, element: Element) => (style.display !== "none" && style.visibility !== "hidden" && /^(sticky|fixed)$/.test(style.position) ? element.getBoundingClientRect().height : 0);
+/**
+ * The height an element covers now: it is pinned (sticky or fixed) and drawn. A list's band that sticks only from 720 counts only there. A part
+ * it carries outside its own box (the status bar's message band, stacked above the bar under 720) is marked `data-pinned-extent`, and the cover
+ * is the union of the two.
+ */
+function covering(style: CSSStyleDeclaration, element: Element): number {
+  if (!drawn(style) || !/^(sticky|fixed)$/.test(style.position)) return 0;
+  const box = element.getBoundingClientRect();
+  let [top, bottom] = [box.top, box.bottom];
+  for (const part of element.querySelectorAll("[data-pinned-extent]")) {
+    const rect = part.getBoundingClientRect();
+    if (!drawn(getComputedStyle(part)) || !rect.height) continue;
+    top = Math.min(top, rect.top);
+    bottom = Math.max(bottom, rect.bottom);
+  }
+  return bottom - top;
+}
 const CLIPS = /auto|scroll|hidden|overlay/;
 
 /** The scroller a sticky element is pinned to: its nearest ancestor that clips overflow (any value but `visible` and `clip`), else the root. */
@@ -63,7 +81,7 @@ function install(): () => void {
     // The root is always measured while the page opts in: its fixed values give way to the measured ones even with nothing pinned.
     const totals = new Map<HTMLElement, number[]>([[root, [0, 0]]]);
     for (const element of found) {
-      const edge = ["top", "bottom"].indexOf(element.getAttribute("data-pinned-edge") ?? "");
+      const edge = edgeOf(element);
       const style = getComputedStyle(element);
       const height = covering(style, element);
       if (edge < 0 || !height) continue;
@@ -78,9 +96,14 @@ function install(): () => void {
     totals.forEach((values, owner) => mark(owner, values));
   };
   const schedule = () => { frame ||= requestAnimationFrame(measure); };
-  // Pinned parts come and go with the page's state (a strip that appears, a foot on one screen), and change their position at a breakpoint.
-  const changes = new MutationObserver(schedule);
-  changes.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-pinned-edge"] });
+  // Pinned parts come and go with the page's state (a strip that appears, a foot on one screen), and change their position at a breakpoint. A
+  // part can also become pinned, or stop, with no change of size (a class or a style that makes it sticky, `hidden`): such a change on a pinned
+  // part or on anything that holds one is measured; the same change anywhere else is not (an animated style elsewhere costs nothing here).
+  const changes = new MutationObserver((records) => {
+    const relevant = records.some((record) => record.type === "childList" || record.attributeName === "data-pinned-edge" || watched.some((element) => record.target === element || record.target.contains(element)));
+    if (relevant) schedule();
+  });
+  changes.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-pinned-edge", "class", "style", "hidden"] });
   addEventListener("resize", schedule);
   measure();
   return () => {

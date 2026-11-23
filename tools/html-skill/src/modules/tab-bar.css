@@ -2,11 +2,11 @@
    navigation, so a `nav` of links with aria-current="page", never a tablist. A module: compose.mjs adds it when the markup has a .tab-bar. Solid surface-page
    with a hairline on top: the header is the one smoked surface, and nothing translucent sits under the thumb. 56 with the hairline inside plus the bottom safe
    area, and the side insets in landscape; fixed to the bottom under 720, not shown from 720 up or in print. Content pads past it by the bar, the inset and
-   space-6 (the app shell does), and toasts sit above it. More's bottom sheet is a .sheet (the sheet module) holding Nav rows. */
+   space-6 (the app shell does); under 720 the toasts hang from the header (the toast module). More's bottom sheet is a .sheet (the sheet module) holding Nav rows. */
 
 @layer basalt {
 
-  /* --basalt-bottom-offset is the tab bar plus the bottom safe area under 720, in a page with one, else 0: the page's bottom padding and where the toasts sit.
+  /* --basalt-bottom-offset is the tab bar plus the bottom safe area under 720, in a page with one, else 0: the page's bottom padding. (Under 720 the toasts hang from the bar: the toast module.)
      --bh-inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
   :root {
     --bh-inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--bh-inset-bottom-sim, var(--basalt-space-0)));
@@ -17,8 +17,6 @@
   @media (width < %bp-md%) {
     /* The bar is fixed over the page, so focus and anchors scroll clear of it, as they do of the sticky header (WCAG 2.4.11). */
     :root:has(.tab-bar) { --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--bh-inset-bottom)); scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
-    /* Toasts sit above the tab bar. */
-    :root:has(.tab-bar) .toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
 
   .tab-bar { display: none; }

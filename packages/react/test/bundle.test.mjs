@@ -95,7 +95,9 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleto
 
 // The overlays and search batch (DECISIONS 155). A sheet's head and the search dialog are Base UI's dialog plus a Button for the close, and nothing else:
 // no cmdk (the command panel is the one lazy module), no Phosphor, and the listbox, the opening list, the notice bar and the trigger load no Base UI at all.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_000]]) {
+// cimip-gaps-2 B5 (DECISIONS 246: trim first, then the raise a feature needs): every modal lays itself out above an on-screen keyboard (the shared
+// watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; its limit is 88,200.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_200]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -346,7 +348,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
 // so its limit is 146,000.
-for (const [name, limit] of [["ToastProvider", 93_000], ["useToast", 4_000], ["NotificationCentre", 147_600]]) {
+// cimip-gaps-2 B5 (DECISIONS 246, 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a
+// page change, and swipes upward under 720 where it hangs from the bar; ToastProvider measures 93,451, so its limit is 93,500.
+for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 147_600]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);

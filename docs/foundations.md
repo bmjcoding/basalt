@@ -440,9 +440,13 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
     named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
     While the region itself holds focus, its box draws nothing and the control ring follows the front toast's box at +2, so the next Tab moves the ring 0px, including in forced colours (DECISIONS 156).
-  - **The stack.** Three at most, bottom right at `space-4` from the edges, and the bottom edge, full width and above the
-    safe area at phone widths. It stands above what is pinned at the bottom (the tab bar, an app's foot, and an on-screen keyboard). Where the stack
-    sits under 720 when a form's last action is at the window's bottom is the owner's open question (cimip-gaps-2, B5). Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
+  - **The stack.** Three at most, bottom right at `space-4` from the edges; from 720 it stands above what is pinned at the bottom (an app's
+    foot, and an on-screen keyboard). **Under 720 it hangs from the bar** (DECISIONS 274, the owner's pick of option B; found by CoachStakk's
+    CS19, where a stack at the bottom took the tap meant for a form's last action): full width, `space-2` below the bar's line, or `space-4`
+    from the top edge and its safe area with no bar. What covers the top moves it down: a band stuck under the bar when the page measures what
+    is pinned, and the part of the page an on-screen keyboard's view has panned past, so it stays under the bar while a keyboard is up. The front
+    toast is at the top and the ones behind peek below it; a toast enters from the top edge it hangs from and leaves to it (opacity only under
+    reduced motion), and a swipe up or to the side dismisses it. The bottom (the tab bar, a foot, a form's last action) is never under it. Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
     even behind a taller toast. It expands on hover and focus. A toast that is the only copy, and a focused one, is never
     removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
     oldest first. Repeats group ("×3", on a `group` key) and errors never do. A drag of more than 40px dismisses it, by
@@ -844,7 +848,8 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   sentence (a paragraph, a list item, prose, a hint, an error, a callout's text) keeps its line, as WCAG 2.5.8 allows, because a taller
   box would lie over the lines above and below it, and no two targets overlap. Links stacked one per line keep their lines too: each link's words
   are a label painted over every neighbour's box, so a box only takes room that no words are in and a tap on a link's own words is always that link's
-  (the same for a link in a description value and a `TextButton`). Status of the width rule and the stacked links: decided on the no-council path
+  (the same for a link in a description value and a `TextButton`). The HTML skill's bare anchors have no label to raise: links stacked in a
+  column (`.stack`) each give up the side of their box that meets a neighbour, so their boxes meet and never overlap; a row of links keeps whole boxes. Status of the width rule and the stacked links: decided on the no-council path
   (DECISIONS 265, batch B5); not yet reviewed. **Status:** decided by the council (DECISIONS 138) and
   approved by the owner (DECISIONS 139); the implementation has not been reviewed. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
@@ -1067,7 +1072,8 @@ implementation hasn't been reviewed.
 - **Scrim.** Dialogs and sheets keep Basalt's `scrim` (black at 80% in dark, 40% in light); a product may re-point the token (4 to 0).
 - **A sheet's anatomy.** A head band (the title at `text-xl` 20/28, a count at `text-sm` in tertiary, a 44px close), a scrolling body and a foot, edge to edge with
   no padding of the sheet's own; a `border-divider` under the head and above the foot; the head and the foot keep the safe areas. Motion is the sheet's own (300ms in,
-  225ms out). A sheet that swaps its body in place (`step`) moves focus to its own title and scrolls the body to the top, so the new title is read out.
+  225ms out). A sheet that swaps its body in place (`step`) moves focus to its own title and scrolls the body to the top, so the new title is read out. A focused control's ring is never cut by the sheet: the scrolling body keeps `space-1-5` at each end, and a sheet's held actions keep
+  `space-1-5` of clear room above their divider (B5 fix pass 1).
 - **The drawer** is a region in the flow with two titled halves: no portal, scrim, level reset, sheet motion, shadow, fill, rim or corner radius. Its top is a
   `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
   replaces the record, with a Back button, its halves stacked on a divider.
@@ -1280,7 +1286,7 @@ is in).
 - **The surface** is solid `surface-page` for every product, a hairline on top, no shadow and no blur; `Canvas` with a `CanvasText`
   line in forced colours; not shown in print. The header is the one smoked surface, and nothing translucent sits under the thumb.
 - **Height:** 56 with the hairline inside, plus `env(safe-area-inset-bottom)` below and the side insets in landscape. Content pads
-  past it by the bar, the inset and `space-6`. At phone widths toasts sit above it. A cell's glyph circle sits 2px below the cell's top, with the label under it.
+  past it by the bar, the inset and `space-6`. At phone widths the toasts hang from the header, never over it (DECISIONS 274). A cell's glyph circle sits 2px below the cell's top, with the label under it.
 - **The cells:** three to five equal, each a link filling its cell, with `aria-current="page"` on the current one, in a `nav` named
   "Primary", never a `tablist`. Each is the glyph at 24 over a 12/16 label, always both; glyph and label are primary ink at rest, the
   label at 400. The current one is the selected glyph and the label at 600, with no wash, no pill and no bar.
@@ -1300,8 +1306,8 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   viewport shrinks; `100dvh` does not. While one is up (the visual viewport is at least 120px shorter than the window, at a scale of 1, so a
   pinch or a browser's own bars are not one) the root carries `data-screen-keyboard`, `--basalt-keyboard-inset`, `--basalt-viewport-top` and
   `--basalt-viewport-height`, and what is fixed to the window is laid out on what is seen. **Chrome is covered:** the tab bar and the phone's
-  status bar are not drawn, as a platform's own bars are covered, and `--basalt-bottom-offset` is 0. **The task rides above it:** the foot and
-  the toasts stand on the keyboard; a bottom sheet stands on it at 90% of what is seen; a side sheet, a full-screen form and the sidebar are what is
+  status bar are not drawn, as a platform's own bars are covered, and `--basalt-bottom-offset` is 0. **The task rides above it:** the foot stands on
+  the keyboard (from 720 the toasts do too; under 720 they hang from the bar); a bottom sheet stands on it at 90% of what is seen; a side sheet, a full-screen form and the sidebar are what is
   seen; a dialog is centred in it; a held form keeps its top while it is seen; the command menu hangs from the top of what is seen; the header and a
   band stuck under it stay at the top of what is seen; the safe area the keyboard covers is not padded. The root's scroll padding adds what the
   keyboard covers, the field that raised it is brought out from under what is pinned, and a page scrolled to its end stays at its end. Popups
@@ -1312,13 +1318,17 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   `data-pinned-edge="top"` or `"bottom"` that is sticky or fixed and drawn now is counted, and the root carries `data-pinned-measured`,
   `--basalt-pinned-top` and `--basalt-pinned-bottom`. They take the fixed values' place in the root's scroll padding (plus `space-4`, as before), so a
   control that focus brings into view is never under them (WCAG 2.4.11), and the toast stack stands above what is at the bottom. Basalt's bars,
-  `ListBand`, the tab bar, the status bar and the foot carry the mark; an app marks its own.
+  `ListBand`, the tab bar, the status bar and the foot carry the mark (a page's own `.basalt-sticky-bar` counts as a top part without it); an app
+  marks its own. A part that carries something outside its own box marks it `data-pinned-extent` (the status bar's message band, stacked above it
+  under 720), and the cover is the union. A part that becomes pinned or stops (a class, a style or `hidden`, with no change of size) is measured
+  again.
 - **A scroller that is an element** (a pane, a column an app scrolls, a sheet's body) is a scroll owner, and reads the same properties as its own.
   A sticky part is pinned to the box it sticks in (its nearest ancestor that clips overflow), so the measured form writes `data-pinned-measured`,
   `--basalt-pinned-top` and `--basalt-pinned-bottom` on that box, and the stylesheet pads it as it pads the root; a fixed part counts for the
   window. While a keyboard is up, every scroll owner (one that measures its own parts, or any element marked `data-scroll-owner`) also carries
   `--basalt-keyboard-inset`, `--basalt-viewport-top` and `--basalt-viewport-height` as its own share: what of its box the keyboard covers, what is
-  hidden above what is seen, and how much of it is still seen, and is padded by them. Custom properties inherit, so a part inside a scroll owner
+  hidden above what is seen, and how much of it is still seen, and is padded by them. Its share is written again when the page or any
+  scroller scrolls, and when a scroll owner mounts or changes size while the keyboard is up. Custom properties inherit, so a part inside a scroll owner
   (a sticky foot, a band) reads that owner's values and needs no other source.
 - **The foot** (`AppShell`'s `foot`) holds still: the content column is at least the window's height and the page takes the room between, so on a
   short page the foot rests at the window's bottom and on a long page it sticks in the same place. Under 720 it sits on the tab bar, and on the
@@ -1333,7 +1343,8 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   button (`aria-haspopup="dialog"`) that says how many in the app's words at 500 and "Show" in secondary, with the hover wash and the flush −2 ring,
   which opens them in a bottom sheet titled with the tray's name; a row that only reports (work under way, a connection) stays a row of the tray.
   Focus is never lost to a row that leaves: the row now at its place takes it (or the one before); after the last the sheet closes by itself and
-  focus goes to the app's field. The tray is a named region, not a live region: the app says a new row through its one `StatusLine`.
+  focus goes to the app's field (an ordinary close, Esc or Close, returns it to the band). The handoff remembers the focused row itself, not a blur
+  event, so it holds where a browser drops a removed element's focus without one. The tray is a named region, not a live region: the app says a new row through its one `StatusLine`.
 - **The HTML skill** draws none of these: the keyboard's layout, the measured sizes, the foot and the tray are React's alone (they need a script that
   watches the page, and the skill's pages have no app foot). The skill does take the 44px targets under 720 whatever the pointer.
 

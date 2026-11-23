@@ -1838,8 +1838,6 @@
     /* The header's one primary leaves the bar under 720, as the site header's does; the app puts it elsewhere. */
     .basalt-app-header .basalt-button[data-variant="primary"] { display: none; }
     .basalt-app-shell[data-tabbar] .basalt-app-main { padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6)); }
-    /* Toasts sit above the tab bar. */
-    :root:has(.basalt-tabbar) .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
 
   /* The phone tab bar: solid surface-page for every product, a hairline on top, no shadow and no blur. 56 with the hairline
@@ -2962,8 +2960,8 @@
 
   /* ---- Toast ---- */
 
-  /* Bottom right, inset space-4 (more where a notch or the home indicator needs it). At phone widths the width cap
-     is the screen less both insets, so the stack is the bottom edge, full width, above the safe area. */
+  /* Bottom right, inset space-4 (more where a notch or the home indicator needs it). Under 720 the stack hangs from the top instead
+     (DECISIONS 274; the end of this sheet): full width, space-2 under the bar, so it never takes the tap meant for a form's last action. */
   .basalt-toast-viewport {
     --_inset: max(var(--basalt-space-4), env(safe-area-inset-left), env(safe-area-inset-right));
     position: fixed;
@@ -4586,9 +4584,13 @@
     margin-top: auto;
     margin-inline: calc(-1 * var(--basalt-space-6));
     margin-bottom: calc(-1 * var(--_sheet-floor));
-    padding: var(--basalt-space-4) var(--basalt-space-6) var(--_sheet-floor);
+    /* The box reaches space-1-5 above the band it draws, and that strip is clipped away: the content gets space-1-5 of clearance above the held
+       actions, so a focused field right before them shows its whole ring at the end of the scroll. The band itself (the divider, then space-4)
+       is where it was. */
+    padding: calc(var(--basalt-space-4) + var(--basalt-space-1-5)) var(--basalt-space-6) var(--_sheet-floor);
     background: var(--_surface, var(--basalt-surface-overlay));
-    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
+    box-shadow: inset 0 calc(var(--basalt-space-1-5) + var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
+    clip-path: inset(var(--basalt-space-1-5) 0 0 0);
   }
   .basalt-sheet[data-ending-style], .basalt-sheet-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); transition-timing-function: var(--basalt-ease-in); }
 
@@ -4629,6 +4631,8 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left)) max(var(--basalt-space-5), env(safe-area-inset-right));
+    /* The body clips what it scrolls: space-1-5 at each end keeps a focused control's ring (2px at +2) whole against the head and the foot. */
+    padding-block: var(--basalt-space-1-5);
   }
   .basalt-sheet-body[tabindex]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   .basalt-sheet-foot {
@@ -6006,7 +6010,6 @@
     .basalt-status-bar-message[data-empty] { display: none; }
     /* A page has one foot. The bar marks the root (`data-status-bar`) when it mounts, and writes the message band's height as `--basalt-status-band` (zero here until it does), so no rule here asks the document what it holds (a `:root:has()` is re-checked on every change on every page). */
     :root[data-status-bar] { --basalt-status-band: var(--basalt-space-0); --basalt-bottom-offset: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); scroll-padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-status-band) + var(--basalt-space-4)); }
-    :root[data-status-bar] .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
   }
 
   /* ---- Description list: a stacked form and a three-column form (D15; R9, R10, V8), and whole lists in columns ---- */
@@ -6356,6 +6359,37 @@
   @media (width < 720px) {
     :root[data-screen-keyboard] .basalt-dialog[data-form],
     :root[data-screen-keyboard] .basalt-dialog[data-form][data-held] { inset: var(--basalt-viewport-top) 0 auto; height: var(--basalt-viewport-height); max-height: none; }
+  }
+
+  /* ---- The toast stack on a phone (DECISIONS 274, the owner's pick of option B) ----
+     Under 720 the stack hangs from the bar: full width (the width cap is the screen less both insets), `space-2` below the bar's line, or
+     space-4 from the top edge (and the top safe area) with no bar. What covers the top moves it down: a band stuck under the bar while the page
+     measures what is pinned (`--basalt-pinned-top`), and what is hidden above an on-screen keyboard's view (`--basalt-viewport-top`), so it stays
+     under the bar while a keyboard is up. The front toast is at the top and the ones behind peek below it; a toast enters from the top edge it
+     hangs from and leaves to it (opacity only under reduced motion), and a swipe up or to the side dismisses it. From 720 nothing changes. The
+     bottom is left to the page: the tab bar, a foot and a form's last action are never under it. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */
+  @media (width < 720px) {
+    :is(:root, :root[data-screen-keyboard]) .basalt-toast-viewport {
+      top: max(max(var(--basalt-space-4), env(safe-area-inset-top)), calc(var(--_cover-top, var(--basalt-space-0)) + var(--basalt-viewport-top, var(--basalt-space-0)) + var(--basalt-space-2)));
+      bottom: auto;
+    }
+    .basalt-toast {
+      --_offset-y: calc(var(--toast-offset-y) + (var(--toast-index) * var(--_gap)) + var(--toast-swipe-movement-y));
+      --_rest: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) + (var(--toast-index) * var(--_peek)) + (var(--_shrink) * var(--_height)))) scale(var(--_scale));
+      top: 0;
+      bottom: auto;
+      transform-origin: top center;
+    }
+    .basalt-toast[data-expanded] { --_rest: translateX(var(--toast-swipe-movement-x)) translateY(var(--_offset-y)); }
+    .basalt-toast[data-starting-style],
+    .basalt-toast[data-ending-style] { transform: translateY(calc(-100% - var(--basalt-space-4))); }
+    .basalt-toast[data-ending-style][data-swipe-direction="up"] { transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - 120%)); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */
+  @media (width < 720px) and (prefers-reduced-motion: reduce) {
+    .basalt-toast[data-starting-style],
+    .basalt-toast[data-ending-style] { transform: var(--_rest); }
   }
 
 }

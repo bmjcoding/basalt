@@ -34,7 +34,7 @@ export interface ScreenKeyboardState {
   inset: number;
   /** How far the seen part of the page sits below the window's top, in px. */
   top: number;
-  /** The height still seen, in px: the window's when no keyboard is up. */
+  /** The height still seen, in px, while a keyboard is up; 0 when none is (read the window's own height then). */
   height: number;
 }
 
@@ -47,8 +47,9 @@ let subscribers: Set<() => void> | undefined;
 let teardown: (() => void) | undefined;
 
 const NAMES = ["--basalt-keyboard-inset", "--basalt-viewport-top", "--basalt-viewport-height"];
-/** A field that raises the keyboard: a text area, something editable, or an input that takes typing. */
-const TEXT_ENTRY = "textarea, [contenteditable]:not([contenteditable=false]), input:not([type=button], [type=checkbox], [type=radio], [type=submit], [type=reset], [type=file], [type=image], [type=range], [type=color], [type=hidden])";
+/** A field that raises the keyboard: a text area, something editable, or an input that takes typing (not a button, a box, a file or a range). */
+const TEXT_ENTRY = "textarea, [contenteditable]:not([contenteditable=false]), input";
+const NOT_TYPED = /button|checkbox|radio|submit|reset|file|image|range|color|hidden/;
 /** A scroll owner: an element that scrolls (marked, or measuring its own pinned parts), not the window. */
 const OWNERS = "[data-scroll-owner], [data-pinned-measured]:not(html)";
 const px = Math.round;
@@ -64,6 +65,8 @@ function read(viewport: VisualViewport): ScreenKeyboardState {
 
 // The scroll owners last written to, so one that leaves, or the keyboard going, cleans them.
 let owned: HTMLElement[] = [];
+// While installed: watches an owner's size (set by install).
+let watch: ((owner: HTMLElement) => void) | undefined;
 const put = (element: HTMLElement, values?: number[]) => NAMES.forEach((name, i) => (values ? element.style.setProperty(name, `${values[i]}px`) : element.style.removeProperty(name)));
 
 function write(next: ScreenKeyboardState) {
@@ -76,6 +79,7 @@ function write(next: ScreenKeyboardState) {
   // Each element scroller's own share: what of its box is under the keyboard, what is hidden above what is seen, and what is still seen.
   const bottom = next.top + next.height;
   for (const owner of document.querySelectorAll<HTMLElement>(OWNERS)) {
+    watch?.(owner);
     const box = owner.getBoundingClientRect();
     put(owner, [box.bottom - bottom, next.top - box.top, Math.min(box.bottom, bottom) - Math.max(box.top, next.top)].map((n) => Math.max(0, px(n))));
     owned.push(owner);
@@ -88,7 +92,7 @@ function write(next: ScreenKeyboardState) {
  */
 function reveal() {
   const active = document.activeElement;
-  if (state.open && active?.matches(TEXT_ENTRY) && !active.closest("[data-pinned-edge]")) active.scrollIntoView({ block: "nearest", behavior: "instant" });
+  if (state.open && active?.matches(TEXT_ENTRY) && !NOT_TYPED.test((active as HTMLInputElement).type) && !active.closest("[data-pinned-edge]")) active.scrollIntoView({ block: "nearest", behavior: "instant" });
 }
 
 function install(): () => void {
@@ -112,12 +116,24 @@ function install(): () => void {
   };
   // Read at once, then at most once a frame: a panned viewport sends a scroll event for every frame it moves.
   const schedule = () => { frame ||= requestAnimationFrame(apply); };
-  const targets: Array<[EventTarget, string, () => void]> = [[viewport, "resize", schedule], [viewport, "scroll", schedule], [window, "scroll", schedule], [document, "focusin", reveal]];
+  // Any scroll in the document moves a scroll owner under the keyboard (a pane inside a scroller that scrolls, the page itself): the capture phase
+  // hears an element's scroll, which does not bubble. Only while a keyboard is up does a scroll write anything (apply returns early otherwise).
+  const targets: Array<[EventTarget, string, () => void]> = [[viewport, "resize", schedule], [viewport, "scroll", schedule], [document, "scroll", schedule], [document, "focusin", reveal]];
+  // A scroll owner that mounts, or changes size, while a keyboard is up gets its share at once.
+  // Each owner is observed once: observing an element again makes it report again, and that report would write again, every frame.
+  const owners = new ResizeObserver(() => state.open && schedule());
+  const seen = new WeakSet<Element>();
+  const mounts = new MutationObserver(() => state.open && schedule());
+  watch = (owner) => { if (!seen.has(owner)) { seen.add(owner); owners.observe(owner); } };
   apply();
-  for (const [target, type, listener] of targets) target.addEventListener(type, listener, { passive: true });
+  for (const [target, type, listener] of targets) target.addEventListener(type, listener, { passive: true, capture: true });
+  mounts.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-scroll-owner", "data-pinned-measured"] });
   return () => {
     cancelAnimationFrame(frame);
-    for (const [target, type, listener] of targets) target.removeEventListener(type, listener);
+    watch = undefined;
+    owners.disconnect();
+    mounts.disconnect();
+    for (const [target, type, listener] of targets) target.removeEventListener(type, listener, true);
     state = CLOSED;
     write(CLOSED);
   };

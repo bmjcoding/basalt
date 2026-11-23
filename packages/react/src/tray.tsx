@@ -59,38 +59,52 @@ function rowsOf(children: React.ReactNode): React.ReactElement<TrayRowProps>[] {
 const focusable = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
 const resolve = (target: FocusTarget | undefined) => (typeof target === "function" ? target() : target?.current) ?? null;
 
+const ROW_KEY = "data-tray-key";
+
 /**
- * Keeps focus when a row it was in leaves. Before React commits, `focusout` tells whether focus left a row with nowhere to go (a removed row
- * blurs with no related target); after the commit it goes to the row now at that place, or the one before, or to the app's field.
+ * Keeps focus when a row it was in leaves. It does not wait for a `focusout` (WebKit can drop a removed element's focus without one): it
+ * remembers the row that holds focus, by its key, from every `focusin` and from `document.activeElement` read in each render (before React
+ * commits), and after the commit, if that row is gone and focus is on nothing, the body or the box itself (a modal's trap takes it there), it
+ * focuses the row now at that row's place, or the last row if fewer remain, or the app's field when none are left. Several rows leaving at once
+ * are the same case: only the focused row's place counts.
  */
-function useRowFocus(box: React.RefObject<HTMLElement | null>, keys: string, returnFocus: FocusTarget | undefined, fallback: () => HTMLElement | null) {
-  const lost = React.useRef<number | null>(null);
-  // On the document, so a box that mounts later than the tray (a sheet's portalled popup) is watched too; it is read when focus leaves.
+function useRowFocus(boxes: () => Array<HTMLElement | null>, keys: string, returnFocus: FocusTarget | undefined, fallback: () => HTMLElement | null) {
+  const held = React.useRef<{ key: string; index: number } | null>(null);
+  const read = React.useCallback((element: Element | null) => {
+    for (const box of boxes()) {
+      const row = box && element ? element.closest(`.basalt-tray-row[${ROW_KEY}]`) : null;
+      if (!box || !row || !box.contains(row)) continue;
+      held.current = { key: row.getAttribute(ROW_KEY) ?? "", index: [...box.querySelectorAll(`.basalt-tray-row[${ROW_KEY}]`)].indexOf(row) };
+      return;
+    }
+    // Focus is somewhere else: a row that leaves later took nothing with it.
+    held.current = null;
+  }, [boxes]);
+  // In render, while the DOM is still the one before this commit: the row that holds focus now.
+  if (typeof document !== "undefined") read(document.activeElement);
+  // On the document, so a box that mounts after the tray (a sheet's portalled popup) is watched too.
   React.useEffect(() => {
-    const out = (event: FocusEvent) => {
-      const element = box.current;
-      if (event.relatedTarget || !element) return;
-      const row = (event.target as Element | null)?.closest?.(".basalt-tray-row");
-      if (!row || !element.contains(row)) return;
-      lost.current = [...element.querySelectorAll(".basalt-tray-row")].indexOf(row);
-    };
-    document.addEventListener("focusout", out, true);
-    return () => document.removeEventListener("focusout", out, true);
-  }, [box]);
+    const into = (event: FocusEvent) => read(event.target as Element | null);
+    document.addEventListener("focusin", into, true);
+    return () => document.removeEventListener("focusin", into, true);
+  }, [read]);
   const target = React.useRef(returnFocus);
   target.current = returnFocus;
   React.useLayoutEffect(() => {
-    const at = lost.current;
-    lost.current = null;
-    if (at === null) return;
-    // Lost: on nothing, or taken by the box itself (a modal's focus trap takes it to the sheet when the focused row goes).
+    const was = held.current;
+    if (!was) return;
+    const present = keys.split("\u0000");
+    if (present.includes(was.key)) return;
+    held.current = null;
     const active = document.activeElement;
-    if (active && active !== document.body && active !== box.current) return;
-    const rows = [...(box.current?.querySelectorAll<HTMLElement>(".basalt-tray-row") ?? [])];
-    const row = rows[Math.min(at, rows.length - 1)];
+    const live = boxes().filter((box): box is HTMLElement => !!box?.isConnected);
+    if (active && active !== document.body && !live.includes(active as HTMLElement)) return;
+    const box = live.at(-1);
+    const rows = [...(box?.querySelectorAll<HTMLElement>(`.basalt-tray-row[${ROW_KEY}]`) ?? [])];
+    const row = rows[Math.min(was.index, rows.length - 1)];
     const next = row?.querySelector<HTMLElement>(focusable) ?? resolve(target.current) ?? fallback();
     next?.focus({ preventScroll: false });
-  }, [keys, box, fallback]);
+  }, [keys, boxes, fallback]);
 }
 
 /**
@@ -103,22 +117,27 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
   const phone = useMediaQuery(`(width < ${breakpoint.md}px)`);
   const rows = rowsOf(children);
   const gathered = rows.filter((row) => !row.props.stay);
-  const kept = rows.filter((row) => row.props.stay);
   const count = gathered.length;
   const [open, setOpen] = React.useState(false);
   const panel = React.useRef<HTMLElement | null>(null);
   const sheet = React.useRef<HTMLDivElement | null>(null);
+  // Each row carries its key, so the row that held focus is found by identity, not by place.
+  const keyed = (row: React.ReactElement<TrayRowProps>, i: number) => React.cloneElement(row as React.ReactElement<TrayRowProps & { [ROW_KEY]?: string }>, { [ROW_KEY]: String(row.key ?? i) });
+  const all = rows.map(keyed);
   const keys = rows.map((row, i) => String(row.key ?? i)).join("\u0000");
   const band = React.useRef<HTMLButtonElement | null>(null);
   const fallback = React.useCallback(() => panel.current?.querySelector<HTMLElement>(focusable) ?? null, []);
-  useRowFocus(panel, keys, returnFocus, fallback);
-  useRowFocus(sheet, keys, returnFocus, fallback);
+  const boxes = React.useCallback(() => [panel.current, sheet.current], []);
+  useRowFocus(boxes, keys, returnFocus, fallback);
+  // The sheet closing because its last row left sends focus to the app's field; any other close (Esc, Close) returns to the band that opened it.
+  const emptied = React.useRef(false);
+  emptied.current = count === 0;
   // The last row that waited is answered, or the window grew past 720: the sheet closes by itself, and its focus goes to the field.
   React.useEffect(() => {
     if (open && (count === 0 || !phone)) setOpen(false);
   }, [open, count, phone]);
   if (rows.length === 0) return null;
-  const finalFocus = () => resolve(returnFocus) ?? (band.current?.isConnected ? band.current : true);
+  const finalFocus = () => (emptied.current ? resolve(returnFocus) : null) ?? (band.current?.isConnected ? band.current : true);
   return (
     <section {...props} ref={panel} aria-label={label} data-level={level} className={join("basalt-tray", className)}>
       {inLevel(level, (
@@ -131,7 +150,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
             </button>
           ) : null}
           {/* The server and the first render draw the wide form; under 720 the stylesheet hides the gathered rows until the script knows. */}
-          {phone ? kept : rows}
+          {phone ? all.filter((row) => row.props.stay) : all}
         </>
       ))}
       {phone ? (
@@ -141,7 +160,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
               <SheetTitle>{label}</SheetTitle>
             </SheetHeader>
             <SheetBody>
-              <div className="basalt-tray-sheet-rows">{gathered}</div>
+              <div className="basalt-tray-sheet-rows">{all.filter((row) => !row.props.stay)}</div>
             </SheetBody>
           </SheetContent>
         </Sheet>

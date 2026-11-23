@@ -2,7 +2,7 @@
 // Astra's and the pixels are the lead's, and neither has happened yet. The on-screen keyboard (a stand-in: a screenshot cannot raise one, so the root is given
 // the geometry a phone's visual viewport reports and a grey block stands where the keyboard would be), measured pinned sizes, the app's foot that holds still,
 // the tray of rows that wait on the reader with its phone sheet, 44px targets under 720 with a mouse (and stacked links that never take each other's taps),
-// and the owner's open question: where the toast stack sits on a phone over a form's last action. Two unlike domains: a support inbox and a build pipeline
+// and the toast stack hanging from the bar on a phone (DECISIONS 274, the owner's pick). Two unlike domains: a support inbox and a build pipeline
 // (and a shared document for the links). Every name and number is synthetic.
 
 import * as React from "react";
@@ -276,30 +276,36 @@ function Targets({ state }: { state: string }) {
   );
 }
 
-// ---- the owner's question: the toast stack on a phone over a form's last action ----
+// ---- the toast stack on a phone (DECISIONS 274, the owner's pick of option B): it hangs from the bar under 720 ----
 
-const OPTION_STYLE: Record<string, string> = {
-  "option-a": "",
-  // Under the bar: the stack hangs from the header, space-2 below its line, full width.
-  "option-b": "@media (width < 720px) { .basalt-toast-viewport { top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); bottom: auto !important; } .basalt-toast-viewport .basalt-toast { top: 0; bottom: auto; } }",
-  // Over the tab bar: the stack covers the navigation, never the page.
-  "option-c": "@media (width < 720px) { .basalt-toast-viewport { bottom: calc(var(--_inset-bottom) + var(--basalt-space-1-5)) !important; } }",
-};
-function ToastOption({ state }: { state: string }) {
+function CheckInStrip() {
+  usePinnedEdges();
+  return (
+    <div data-pinned-edge="top" style={{ position: "sticky", top: "var(--basalt-sticky-offset)", zIndex: 5, display: "flex", gap: 12, alignItems: "center", minHeight: 44, margin: "calc(-1 * var(--basalt-space-6)) calc(-1 * var(--basalt-gutter)) var(--basalt-space-6)", padding: "0 var(--basalt-gutter)", background: "var(--basalt-surface-page)", borderBottom: "1px solid var(--basalt-border-divider)" }}>
+      <Badge variant="plain" status="pending">Draft</Badge><Text size="sm" tone="secondary">Week 31 · due Sunday</Text>
+    </div>
+  );
+}
+function ToastStack({ state }: { state: string }) {
   const kind = kindOf(state);
   const toast = useToast();
+  const keyboard = kind === "keyboard";
+  useStandInKeyboard(keyboard);
   React.useEffect(() => {
     window.scrollTo(0, document.documentElement.scrollHeight);
-    const id = toast.show({ title: "Check-in sent", description: "Your coach sees it in the morning.", status: "success", home: "page", timeout: 0 });
-    return () => toast.close(id);
+    const ids = [
+      toast.show({ title: "Draft saved", home: "page", timeout: 0 }),
+      toast.show({ title: "Check-in sent", description: "Your coach sees it in the morning.", status: "success", home: "page", timeout: 0 }),
+    ];
+    return () => ids.forEach((id) => toast.close(id));
   }, [toast]);
   return (
     <>
-      <style>{OPTION_STYLE[kind] ?? ""}</style>
       <AppShell brand={<>{MARK}<span>Coach</span></>} brandMark={MARK} brandLabel="Coach home"
         sidebar={<Nav aria-label="Main"><NavGroup label="Workspace"><NavItem href="#today" icon={HomeGlyph} current>Today</NavItem></NavGroup></Nav>}
         tabBar={<TabBar><TabBarItem href="#today" icon={HomeGlyph} current>Today</TabBarItem><TabBarItem href="#messages" icon={MessagesGlyph}>Messages</TabBarItem><TabBarItem href="#settings" icon={SettingsGlyph}>Settings</TabBarItem></TabBar>}
         header={<AppHeader title="Weekly check-in" />}>
+        {kind === "measured" ? <CheckInStrip /> : null}
         <div style={{ display: "grid", gap: 16, maxWidth: 480 }}>
           {["Weight this morning", "Waist", "Steps, daily average", "Sleep, nightly average", "Water, daily average", "Hunger, 1 to 5", "Energy, 1 to 5", "How did training feel?", "Anything for your coach?"].map((label) => (
             <Field key={label} label={label}><Input /></Field>
@@ -307,6 +313,7 @@ function ToastOption({ state }: { state: string }) {
           <div style={{ display: "flex", gap: 8 }}><Button variant="secondary">Save a draft</Button><Button variant="primary">Send check-in</Button></div>
         </div>
       </AppShell>
+      {keyboard ? <StandInKeyboard /> : null}
     </>
   );
 }
@@ -319,7 +326,7 @@ export const ROUND_56: Round = {
   title: "The phone and what is pinned (cimip-gaps-2, B5)",
   reviewed: false,
   summary:
-    "The no-council path (DECISIONS 226 and 265): Opus decided and built it inside foundations; Astra's code review and the lead's pixel check have not happened, and the design panel did not review it. An on-screen keyboard lays Basalt's fixed parts out on what is still seen; a page can measure what is pinned over it; AppShell's foot holds still; a tray docks the rows that wait on the reader, with a phone sheet; targets are 44px under 720 whatever the pointer, and stacked links never take each other's taps; a toast that echoed a page closes when the page changes. One question is the owner's: where the toast stack sits on a phone over a form's last action (three pictures). Two unlike domains, a support inbox and a build pipeline, and every name and number is synthetic.",
+    "The no-council path (DECISIONS 226 and 265): Opus decided and built it inside foundations; Astra's code review and the lead's pixel check have not happened, and the design panel did not review it. An on-screen keyboard lays Basalt's fixed parts out on what is still seen; a page can measure what is pinned over it; AppShell's foot holds still; a tray docks the rows that wait on the reader, with a phone sheet; targets are 44px under 720 whatever the pointer, and stacked links never take each other's taps; a toast that echoed a page closes when the page changes. Under 720 the toast stack hangs from the bar (DECISIONS 274, the owner's pick of option B). Two unlike domains, a support inbox and a build pipeline, and every name and number is synthetic.",
   steps: [
     {
       id: "keyboard",
@@ -401,19 +408,23 @@ export const ROUND_56: Round = {
       demo: ({ state }) => <Targets state={state} />,
     },
     {
-      id: "toast-question",
-      name: "For the owner: the toast stack on a phone",
-      intro: "CoachStakk's CS19: on a phone, Basalt's toast stack sits above the tab bar, where a form's last action is when the page is scrolled to its end, so the toast takes the next tap. Three options; the stack's place under 720 is a rule the owner approved, so it is his to change.",
+      id: "toast-stack",
+      name: "The toast stack on a phone hangs from the bar",
+      intro: "The owner's pick (DECISIONS 274, option B, from CoachStakk's CS19): under 720 the stack hangs from the bar, so a form's last action, the tab bar and a foot are never under it. From 720 nothing changes.",
       decisions: [
-        "Option A (today, kept): the stack stays above the tab bar; the toast that only echoed the page closes when the page changes (built), and the reader can swipe it away. It still covers Send check-in while it shows.",
-        "Option B (the builder's recommendation): under 720 the stack hangs from the header, space-2 under its line, full width; the thumb's zone stays clear. Two of CoachStakk's four takes did this by hand.",
-        "Option C: under 720 the stack sits over the tab bar, covering the navigation and never the page; a tab is lost while it shows.",
-        "Whatever is picked, the toast that echoed a page now closes when the page changes (useRouteFocus, or useToast().pageChanged()).",
+        "Under 720: full width, space-2 below the bar's line (space-4 from the top edge and its safe area with no bar). The front toast is at the top and the ones behind peek below it.",
+        "What covers the top moves it down: a band stuck under the bar when the page measures what is pinned (usePinnedEdges), and while an on-screen keyboard is up it stays under the bar.",
+        "A toast enters from the top edge it hangs from and leaves to it (opacity only under reduced motion); a swipe up or to the side dismisses it. The same in the HTML skill's toast module.",
+        "A toast whose only home is the page closes when the page changes (useRouteFocus, or useToast().pageChanged()).",
       ],
-      tryIt: ["Compare the three shots at 390: where Send check-in is, and what the toast covers."],
-      states: ["option-a", "option-b", "option-c"],
-      ...PHONE,
-      demo: ({ state }) => <ToastOption state={state === "default" ? "option-a" : state} />,
+      tryIt: ["At 390, scroll to Send check-in: the toasts are at the top, under the bar.", "Hover or focus the stack: it opens downward."],
+      states: ["measured@390", "keyboard@390", "default-forced-colours", "default-reduced-motion"],
+      widths: [1440, 390],
+      scales: [2],
+      bleed: true,
+      touch: true,
+      height: 844,
+      demo: ({ state }) => <ToastStack state={state} />,
     },
   ],
 };

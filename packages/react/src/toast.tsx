@@ -1,3 +1,4 @@
+import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import { Toast as BaseToast } from "@base-ui/react/toast";
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
@@ -10,6 +11,7 @@ import { isApplePlatform } from "./platform";
 import { onPageChange, pageChanged } from "./page-change";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { Spinner } from "./spinner";
+import { useMediaQuery } from "./use-media";
 import type { IconComponent } from "./types";
 
 export type ToastStatus = "neutral" | "success" | "warning" | "danger";
@@ -306,7 +308,7 @@ export interface ToastProviderProps {
 }
 
 /**
- * Place once near the root of the app. Toasts appear bottom-right (the bottom edge, full width, at phone widths), stack three
+ * Place once near the root of the app. Toasts appear bottom-right (under 720, full width and hanging from the bar, space-2 under it), stack three
  * deep with the ones behind peeking, expand on hover or focus, and pause their clocks while hovered, focused, in a blurred window
  * or in a hidden tab. Results are announced from text-only live regions: danger assertively, the rest politely, once each.
  * The stack itself stays a named region (F6 reaches it).
@@ -462,13 +464,18 @@ function useToastTimer(ms: number, restart: number, paused: boolean, done: () =>
   }, [ms, restart, paused]);
 }
 
+// Under 720 the stack hangs from the bar (DECISIONS 274), so a toast is swiped away upward, toward the edge it came from; from 720, downward.
+const SWIPE_PHONE = ["up", "right"] as const;
+const SWIPE_WIDE = ["down", "right"] as const;
+
 function ToastList() {
   const { toasts } = BaseToast.useToastManager<ToastData>();
+  const phone = useMediaQuery(`(width < ${breakpoint.md}px)`);
   const front = toasts.find((toast) => toast.transitionStatus !== "ending");
-  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} front={toast === front} />);
+  return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} front={toast === front} swipe={phone ? SWIPE_PHONE : SWIPE_WIDE} />);
 }
 
-function ToastItem({ toast, front }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean }) {
+function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean; swipe: readonly ("up" | "down" | "right")[] }) {
   const { close: closeToast } = BaseToast.useToastManager();
   const expanded = React.useContext(ExpandedContext);
   const away = React.useContext(AwayContext);
@@ -482,6 +489,7 @@ function ToastItem({ toast, front }: { toast: ReturnType<typeof BaseToast.useToa
   return (
     <BaseToast.Root
       toast={toast}
+      swipeDirection={[...swipe]}
       data-level={1}
       data-toast-id={toast.id}
       data-front={front ? "" : undefined}
