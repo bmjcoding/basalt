@@ -119,7 +119,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();
   // The development checks (placement, groups, the key's words) cost production nothing: a bundler that sets NODE_ENV drops them.
-  const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production" }), [spec]);
+  // Right to left (DECISIONS 306, 1.7): no prop; the figure follows its computed direction, read as it is measured, and the model is mirrored.
+  const [rtl, setRtl] = React.useState(false);
+  const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production", rtl }), [spec, rtl]);
   const animated = model.motion.animated;
   const figRef = React.useRef<HTMLElement>(null);
   // The figure's own ref, which measuring reads, and the caller's, both set: a caller's ref never replaces the figure's.
@@ -161,6 +163,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const measure = React.useCallback(() => {
     const fig = figRef.current;
     if (!fig) return;
+    const dirRtl = getComputedStyle(fig).direction === "rtl";
+    if (dirRtl !== rtl) { setRtl(dirRtl); return; }
     const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const apply = (d: Dyn) => syncAttributes(fig, figureTree(model, d, options));
     const result = (viewer ? viewer.measure : measureFigure)(fig, model, P, base, dynRef.current, apply, warn);
@@ -173,7 +177,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had.
     if (viewer && result.tokens) viewer.onMeasured(result, fig);
-  }, [model, base, options, component, viewer]);
+  }, [model, base, options, component, viewer, rtl]);
 
   // Measured before the first paint, then whenever the figure's width changes or the real faces arrive.
   React.useLayoutEffect(() => {
@@ -294,7 +298,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog.
       if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); } return; }
       if (!stops) return;
-      const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn", getComputedStyle(node).direction === "rtl");
+      // The model is mirrored right to left, so the table is already physical.
+      const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");
       if (!to) return;
       event.preventDefault();
       const next = { ...dynRef.current, stop: to };

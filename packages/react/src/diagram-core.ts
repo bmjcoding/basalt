@@ -206,6 +206,8 @@ export interface Model {
   motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean; firstVisit?: boolean };
   /** Work that depends on the model alone, done once (see `memo`). */
   memo: Map<string, unknown>;
+  /** Mirrored for a right-to-left figure (1.7). */
+  rtl?: boolean;
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
@@ -220,6 +222,9 @@ const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign
 const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
 
 export interface BuildOptions {
+  /** The figure's computed direction is right to left (DECISIONS 306, 1.7): the model is mirrored, so column 1 is drawn at the right and a named left or
+   *  right side swaps. The engine then lays out and routes as it does any figure; the words do not mirror. */
+  rtl?: boolean;
   /** Run the checks a development build reports (placement, groups, the key's words). Off, the model is read the same and nothing is checked. */
   checks?: boolean;
 }
@@ -493,9 +498,17 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
   const fl = (spec.frameLabels ?? {}) as Record<string, unknown>;
   const frameWords = { opt: txt(fl.opt) ?? "Only if", loop: txt(fl.loop) ?? "Repeats", alt: txt(fl.alt) ?? "One of these", else: txt(fl.else) ?? "Otherwise" };
-  const cols = Math.max(1, ...nodes.map((n) => n.col));
+  let cols = Math.max(1, ...nodes.map((n) => n.col));
+  // Right to left (1.7): column 1 at the right. Columns are mirrored, a frame's span with them, and a named left or right side swaps.
+  if (options.rtl) {
+    for (const n of nodes) n.col = cols - n.col + 1;
+    const swap = (side?: DiagramSide) => (side === "left" ? "right" : side === "right" ? "left" : side);
+    for (const e of edges) { e.fromSide = swap(e.fromSide); e.toSide = swap(e.toSide); }
+    for (const st of steps) if ("open" in st) { const [a, b] = [cols - st.b + 1, cols - st.a + 1]; st.a = a; st.b = b; }
+    cols = Math.max(1, ...nodes.map((n) => n.col));
+  }
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined };
   if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
 }
@@ -856,7 +869,7 @@ function buildKey(P: string, m: Model): VElement | null {
   if (m.type === "schema" && m.edges.length) {
     // The foreign-key line where it is drawn; where it is not, the row says it, and so does the key.
     entry(lineSwatch(P, "fk"), m.legend.plain ?? "A foreign key, to the key it references", { "data-line": "", "data-when": "drawn" });
-    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, "→"), h("span", null, "The table a foreign key references")));
+    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, m.rtl ? "←" : "→"), h("span", null, "The table a foreign key references")));
   }
   if (m.type === "sequence") {
     // A bar on a dashed lifeline, where one is drawn (1.2); then each frame operator drawn, its letters set as the tab sets them, and its words.
@@ -900,13 +913,13 @@ function nodeText(P: string, m: Model, n: MNode): VChild[] {
   return kids;
 }
 
-function tableText(P: string, n: MNode): VChild[] {
+function tableText(P: string, n: MNode, m: Model): VChild[] {
   return [
     h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, linkName(P, n))),
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
       h("span", { class: `${P}-cname` }, c.name),
-      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `→ ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
+      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
     n.more ? h("span", { class: `${P}-more` }, `+ ${n.more} more`) : null,
   ];
 }
@@ -957,7 +970,7 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
   // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
   n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
-  n.shape === "table" ? tableText(P, n) : nodeText(P, m, n));
+  n.shape === "table" ? tableText(P, n, m) : nodeText(P, m, n));
 }
 
 function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
@@ -1039,7 +1052,8 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
     const a = m.byId.get(s.from), b = m.byId.get(s.to);
     const ca = a?.col ?? 1, cb = b?.col ?? 1;
     const self = ca === cb;
-    const last = self && ca === m.nodes.length;
+    // A self-call goes to the end side, the start side on the last participant: logical, so mirrored right to left (1.7).
+    const last = self && (m.rtl ? ca !== 1 : ca === m.nodes.length);
     const word = kindWord(m, s.kind);
     list.c.push(h("li", { class: `${P}-msg`, "data-kind": s.kind, "data-from": s.from, "data-to": s.to, "data-self": self ? (last ? "start" : "end") : undefined, style: `--_a:${Math.min(ca, cb)};--_b:${Math.max(ca, cb) + 1}` },
       h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, s.label)),
@@ -1151,7 +1165,7 @@ type Way = "right" | "left" | "down" | "up";
 /** Lexicographic order of two ranks. */
 const less = (a: number[], b: number[]) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k]! < b[k]!; return false; };
 /** A card's tracks: its column and its rows (a data flow's row is its lane, a sequence's heads are one row). */
-const tracksOf = (m: Model, n: MNode) => ({ col: m.type === "sequence" ? n.i + 1 : n.col, rows: [n.row, n.row2] as [number, number] });
+const tracksOf = (_m: Model, n: MNode) => ({ col: n.col, rows: [n.row, n.row2] as [number, number] });
 /**
  * Where each arrow goes from each card, or null when some card cannot be reached from another by the arrows: then the arrows are the author's order.
  * A card is "that way" when it starts past the focused card's last track on the arrow's axis. Among those sharing a track across the arrow, the nearest;
@@ -1238,6 +1252,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-bare": dyn.bare ? "" : undefined,
     "data-motion": m.motion.animated ? "animated" : undefined,
     "data-first-visit": m.motion.animated && m.motion.firstVisit ? "" : undefined,
+    "data-rtl": m.rtl ? "" : undefined,
     "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
@@ -1434,7 +1449,7 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   for (const n of m.nodes) {
     if (n.shape === "table") {
       for (const c of n.columns ?? []) {
-        const type = c.ref ? `→ ${c.ref.table}` : c.type ?? "";
+        const type = c.ref ? `${m.rtl ? "←" : "→"} ${c.ref.table}` : c.type ?? "";
         const row = s("6") + measure(c.name, "mono") + (type ? s("3") + measure(type, "mono") : 0) + 2 * s("3") + 2 * tk.hair;
         table = Math.max(table, Math.ceil(row));
       }
@@ -2012,7 +2027,8 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const who = m.byId.get(bar.who);
     if (!who) return null;
     const lx = xOf(bar.who);
-    const dir = who.i === m.nodes.length - 1 && m.nodes.length > 1 ? -1 : 1;
+    const lastOne = who.i === m.nodes.length - 1 && m.nodes.length > 1;
+    const dir = (lastOne ? -1 : 1) * (m.rtl ? -1 : 1);
     const off = (bar.depth - 1) * s("1") * dir;
     const y1 = rowY.get(bar.from) ?? 0, y2 = rowY.get(bar.to) ?? y1;
     const one = bar.from === bar.to;
@@ -2518,7 +2534,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit"];
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {

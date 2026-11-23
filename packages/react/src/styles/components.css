@@ -4481,6 +4481,15 @@
   }
   .basalt-diagram[data-type="sequence"] > .basalt-diagram-drawing { display: flex; gap: 0; }
 
+  /* Right to left (DECISIONS 306, 1.7): the engine lays out a mirrored model on a left-to-right grid, so the drawing is set left to right and what is in it
+     is set right to left again; identifiers are isolated left to right as runs, never as blocks, so they keep the card's start edge. */
+  .basalt-diagram[data-rtl] > .basalt-diagram-drawing { direction: ltr; }
+  .basalt-diagram[data-rtl] > .basalt-diagram-drawing :is(.basalt-diagram-node > :not(.basalt-diagram-mark), .basalt-diagram-lane-name, .basalt-diagram-said, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-fhead, .basalt-diagram-felse) { direction: rtl; }
+  .basalt-diagram[data-rtl] .basalt-diagram-gbox > .basalt-diagram-glabel { inset-inline: auto var(--basalt-space-3); }
+  .basalt-diagram[data-rtl] :is(.basalt-diagram-run, .basalt-diagram-mlabel, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-ctype, .basalt-diagram-label, .basalt-diagram-glabel, .basalt-diagram-kind) { unicode-bidi: isolate; }
+  .basalt-diagram[data-rtl] :is(.basalt-diagram-run, .basalt-diagram-mlabel, .basalt-diagram-cname, .basalt-diagram-label) { direction: ltr; }
+  .basalt-diagram[data-rtl] .basalt-diagram-arrow { scale: -1 1; }
+
   /* A node: a panel with the rim, radius 8, space-2-5 by space-3; its kind, name and detail wrap inside it, with break-word only as the net. */
   .basalt-diagram-node {
     --_d-gc: var(--_drawn) var(--_c);

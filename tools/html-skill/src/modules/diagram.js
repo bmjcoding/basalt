@@ -46,7 +46,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
   function draw(figure, spec, attach, viewer) {
     if (figure.__diagram) figure.__diagram.stop();
     var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
-    var model = buildModel(spec);
+    // Right to left (DECISIONS 306, 1.7): the figure follows its computed direction, and the model is mirrored.
+    var model = buildModel(spec, { rtl: getComputedStyle(figure).direction === 'rtl' });
     if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
       // Keep the figure's base when it has ours, so its ids stay; otherwise take the next free one.
       if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
@@ -150,7 +151,7 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
       if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
-      var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn', getComputedStyle(node).direction === 'rtl');
+      var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
       event.preventDefault();
       setStop(to);
