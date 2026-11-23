@@ -132,58 +132,106 @@ export interface Model {
   shapeLabels: Required<DiagramShapeLabels>;
   stepWord: (n: number) => string;
   warnings: string[];
+  /** Work that depends on the model alone, done once (see `memo`). */
+  memo: Map<string, unknown>;
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
+const LINE_KINDS: DiagramLineKind[] = ["main", "plain", "dashed"];
+const HEADINGS = [2, 3, 4, 5, 6];
 
-/** Reads the author's data into the model. A problem the decision calls a development error is collected in `warnings`. */
-export function buildModel(spec: DiagramSpec): Model {
+/** Text from the author's data: always a string (or nothing), so a value that is not one can never be read as markup. */
+const txt = (v: unknown): string | undefined => (v === undefined || v === null || v === "" ? undefined : String(v));
+
+export interface BuildOptions {
+  /** Run the checks a development build reports (placement, groups, the key's words). Off, the model is read the same and nothing is checked. */
+  checks?: boolean;
+}
+
+/**
+ * Reads the author's data into the model. A problem the decision calls a development error is collected in `warnings`. Every value that
+ * reaches markup is checked here, at the boundary: text is made a string, a heading level, a line's kind, a side and a key are one of their
+ * few values (or the default, with a warning), and a track is a whole number from 1.
+ */
+export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model {
+  const checks = options.checks !== false;
   const warnings: string[] = [];
   const warn = (message: string) => { warnings.push(message); };
-  const legend = { ...(spec.legend ?? {}) };
-  const stepWord = typeof spec.stepLabel === "function" ? spec.stepLabel : typeof spec.stepLabel === "string" ? ((n: number) => (spec.stepLabel as string).replace("{n}", String(n))) : (n: number) => `Step ${n}`;
-  const shapeLabels = { terminal: "Start or end", step: "Step", decision: "Decision", ...(spec.shapeLabels ?? {}) };
+  const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
+  const legend: DiagramLegend = {};
+  for (const k of ["main", "plain", "dashed", "focal", "group"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
+  const stepLabel = spec.stepLabel;
+  const stepWord = typeof stepLabel === "function" ? (n: number) => String(stepLabel(n)) : typeof stepLabel === "string" ? ((n: number) => stepLabel.replace("{n}", String(n))) : (n: number) => `Step ${n}`;
+  const shapeIn = (spec.shapeLabels ?? {}) as Record<string, unknown>;
+  const shapeLabels = { terminal: txt(shapeIn.terminal) ?? "Start or end", step: txt(shapeIn.step) ?? "Step", decision: txt(shapeIn.decision) ?? "Decision" };
+  const heading = spec.heading === undefined ? 3 : HEADINGS.includes(spec.heading as number) ? spec.heading : (warn(`heading ${String(spec.heading)} is not a level from 2 to 6: the title is an h3`), 3);
+  const kindOf = (k: unknown, where: string): DiagramLineKind => {
+    if (k === undefined || k === null) return "plain";
+    if (LINE_KINDS.includes(k as DiagramLineKind)) return k as DiagramLineKind;
+    warn(`"${String(k)}" is not a kind of line (main, plain or dashed): ${where} is drawn plain`);
+    return "plain";
+  };
+  const sideOf = (v: unknown): DiagramSide | undefined => {
+    if (v === undefined || v === null) return undefined;
+    if (SIDES.includes(v as DiagramSide)) return v as DiagramSide;
+    warn(`"${String(v)}" is not a side (top, right, bottom or left): the derived side is used`);
+    return undefined;
+  };
+  const trackOf = (v: unknown, what: string): number => {
+    if (typeof v === "number" && Number.isInteger(v) && v >= 1) return v;
+    warn(`${what} is ${JSON.stringify(v)}, not a whole number from 1: it is placed at 1`);
+    return 1;
+  };
   const nodes: MNode[] = [];
   const edges: MEdge[] = [];
   let lanes: DataFlowLane[] = [];
   const groups: Model["groups"] = [];
   const steps: MStep[] = [];
   const type = spec.type;
+  if (!(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
 
   if (type === "architecture" || type === "flowchart") {
     for (const raw of (spec.nodes ?? []) as Array<ArchitectureNode & FlowchartNode>) {
       const shape: Shape = type === "flowchart" && raw.shape === "decision" ? "decision" : type === "flowchart" && raw.shape === "terminal" ? "terminal" : "box";
+      const id = String(raw.id ?? "");
+      const row = trackOf(raw.row, `the row of ${id}`);
       nodes.push({
-        id: raw.id, i: nodes.length, name: raw.name, kind: shape === "decision" ? undefined : raw.kind, detail: shape === "decision" ? undefined : raw.detail, mono: Boolean(raw.detailMono),
-        focal: Boolean(raw.focal), col: raw.col, row: raw.row, row2: raw.row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? raw.group : undefined,
+        id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
+        focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? txt(raw.group) : undefined,
       });
     }
-    if (type === "architecture") for (const g of spec.groups ?? []) groups.push({ ...g, members: nodes.filter((n) => n.group === g.id).map((n) => n.id) });
+    if (type === "architecture") for (const g of spec.groups ?? []) { const gid = String(g.id ?? ""); groups.push({ id: gid, label: String(g.label ?? ""), members: nodes.filter((n) => n.group === gid).map((n) => n.id) }); }
   } else if (type === "data-flow") {
-    lanes = spec.lanes ?? [];
+    lanes = (spec.lanes ?? []).map((l) => ({ id: String(l.id ?? ""), label: String(l.label ?? "") }));
     const laneIndex = new Map(lanes.map((l, k) => [l.id, k + 1]));
     for (const raw of (spec.nodes ?? []) as DataFlowNode[]) {
-      const lane = laneIndex.get(raw.lane);
-      if (lane === undefined) warn(`a node (${raw.id}) names the lane "${raw.lane}", which is not in lanes`);
+      const id = String(raw.id ?? "");
+      const laneId = String(raw.lane ?? "");
+      const lane = laneIndex.get(laneId);
+      if (lane === undefined) warn(`a node (${id}) names the lane "${laneId}", which is not in lanes`);
       const n = nodes.length + 1;
       nodes.push({
-        id: raw.id, i: nodes.length, name: raw.name, kind: stepWord(n), detail: raw.detail, mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
-        col: raw.col, row: lane ?? 1, row2: lane ?? 1, branch: false, shape: "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? raw.lane, step: n,
+        id, i: nodes.length, name: String(raw.name ?? ""), kind: stepWord(n), detail: txt(raw.detail), mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
+        col: trackOf(raw.col, `the column of ${id}`), row: lane ?? 1, row2: lane ?? 1, branch: false, shape: "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? laneId, step: n,
       });
     }
   } else if (type === "sequence") {
-    (spec.participants ?? []).forEach((p, k) => nodes.push({ id: p.id, i: k, name: p.name, kind: p.kind, mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: p.short ?? p.name }));
+    (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name }); });
     let n = 0;
     for (const s of spec.steps ?? []) {
-      if ("band" in s) steps.push({ band: s.band });
-      else steps.push({ n: ++n, from: s.from, to: s.to, label: s.label, note: s.note, kind: s.kind ?? "plain" });
+      if ("band" in s) steps.push({ band: String(s.band ?? "") });
+      else { n++; steps.push({ n, from: String(s.from ?? ""), to: String(s.to ?? ""), label: String(s.label ?? ""), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`) }); }
     }
   } else if (type === "schema") {
     for (const t of spec.tables ?? []) {
+      const name = String(t.name ?? "");
       const [r1, r2] = Array.isArray(t.row) ? t.row : [t.row, t.row];
+      const row = trackOf(r1, `the row of ${name}`);
+      const row2 = Math.max(row, trackOf(r2, `the last row of ${name}`));
+      const more = t.more === undefined || t.more === null ? undefined : Number.isInteger(t.more) && t.more > 0 ? t.more : (warn(`${name}'s "more" is ${JSON.stringify(t.more)}, not a whole number from 1: it is left out`), undefined);
       nodes.push({
-        id: t.name, i: nodes.length, name: t.name, mono: true, focal: Boolean(t.focal), col: t.col, row: r1, row2: r2, branch: false, shape: "table", more: t.more,
-        columns: t.columns.map((c) => ({ name: c.name, type: c.type, key: c.key })),
+        id: name, i: nodes.length, name, mono: true, focal: Boolean(t.focal), col: trackOf(t.col, `the column of ${name}`), row, row2, branch: false, shape: "table", more,
+        columns: (t.columns ?? []).map((c) => ({ name: String(c.name ?? ""), type: txt(c.type), key: c.key === "PK" || c.key === "FK" ? c.key : (c.key !== undefined && c.key !== null && warn(`${name}.${String(c.name)}'s key is "${String(c.key)}", not PK or FK: it is left out`), undefined) })),
       });
     }
   }
@@ -197,22 +245,24 @@ export function buildModel(spec: DiagramSpec): Model {
 
   // Schema: a foreign key is one record, `references` on the column; its line, its row's words, the sentence and the list all come from it.
   if (type === "schema") {
-    (spec.tables ?? []).forEach((t) => t.columns.forEach((c, k) => {
-      if (!c.references) return;
-      const [table, column] = c.references.split(".");
+    (spec.tables ?? []).forEach((t) => (t.columns ?? []).forEach((c, k) => {
+      const ref = txt(c.references);
+      if (!ref) return;
+      const [table, column] = ref.split(".");
       const target = byId.get(table ?? "");
       const row = target?.columns?.findIndex((x) => x.name === column) ?? -1;
-      if (!target || row < 0) { warn(`${t.name}.${c.name} references ${c.references}, which is not a shown column`); return; }
-      const source = byId.get(t.name)!;
+      if (!target || row < 0) { warn(`${String(t.name)}.${String(c.name)} references ${ref}, which is not a shown column`); return; }
+      const source = byId.get(String(t.name ?? ""))!;
       source.columns![k]!.ref = { table: table!, column: column!, row };
-      edges.push({ i: edges.length, from: t.name, to: table!, kind: "plain", fromRow: k, toRow: row, fk: true });
+      edges.push({ i: edges.length, from: source.id, to: table!, kind: "plain", fromRow: k, toRow: row, fk: true });
     }));
   } else if (type !== "sequence") {
     for (const e of spec.edges ?? []) {
-      if (!byId.has(e.from) || !byId.has(e.to)) { warn(`a line names ${!byId.has(e.from) ? e.from : e.to}, which is not a node`); continue; }
-      if (e.label && e.label.length > MAX_LABEL) warn(`the label "${e.label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
-      for (const side of [e.fromSide, e.toSide]) if (side && !SIDES.includes(side)) warn(`"${side}" is not a side (top, right, bottom or left)`);
-      edges.push({ i: edges.length, from: e.from, to: e.to, kind: e.kind ?? "plain", label: e.label || undefined, fromSide: e.fromSide, toSide: e.toSide });
+      const from = String(e.from ?? ""), to = String(e.to ?? "");
+      if (!byId.has(from) || !byId.has(to)) { warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
+      const label = txt(e.label);
+      if (label && label.length > MAX_LABEL) warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
+      edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide) });
     }
   } else {
     for (const s of steps) if ("n" in s) {
@@ -220,8 +270,8 @@ export function buildModel(spec: DiagramSpec): Model {
     }
   }
 
-  // Placement checks: two nodes in one cell, a non-member inside a group's box, more than one focal node.
-  if (type !== "sequence") {
+  // Placement checks (development only): two nodes in one cell, a non-member inside a group's box, more than one focal node.
+  if (checks && type !== "sequence") {
     const cells = new Map<string, string>();
     for (const n of nodes) for (let r = n.row; r <= n.row2; r++) {
       const key = `${n.col}:${r}`;
@@ -229,26 +279,33 @@ export function buildModel(spec: DiagramSpec): Model {
       cells.set(key, n.id);
     }
   }
-  for (const g of groups) {
-    const m = g.members.map((id) => byId.get(id)!);
-    if (!m.length) continue;
-    const box = { c1: Math.min(...m.map((n) => n.col)), c2: Math.max(...m.map((n) => n.col)), r1: Math.min(...m.map((n) => n.row)), r2: Math.max(...m.map((n) => n.row2)) };
-    for (const n of nodes) if (n.group !== g.id && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
-    const idx = m.map((n) => n.i);
-    if (Math.max(...idx) - Math.min(...idx) + 1 !== idx.length) warn(`the members of the group "${g.label}" are not next to each other in the author's order, so the stacked drawing cannot wrap them in one box`);
+  if (checks) {
+    for (const g of groups) {
+      const m = g.members.map((id) => byId.get(id)!);
+      if (!m.length) continue;
+      const box = { c1: Math.min(...m.map((n) => n.col)), c2: Math.max(...m.map((n) => n.col)), r1: Math.min(...m.map((n) => n.row)), r2: Math.max(...m.map((n) => n.row2)) };
+      for (const n of nodes) if (n.group !== g.id && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
+      const idx = m.map((n) => n.i);
+      if (Math.max(...idx) - Math.min(...idx) + 1 !== idx.length) warn(`the members of the group "${g.label}" are not next to each other in the author's order, so the stacked drawing cannot wrap them in one box`);
+    }
+    for (const n of nodes) if (n.group && !groups.some((g) => g.id === n.group)) warn(`${n.id} names the group "${n.group}", which is not in groups`);
+    if (nodes.filter((n) => n.focal).length > 1) warn("more than one node is focal: a diagram has one at most");
+    // The key's words: main, dashed and the focal node must have them when drawn.
+    const kinds = new Set<DiagramLineKind>(type === "sequence" ? steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : edges.map((e) => e.kind));
+    if (kinds.has("main") && !legend.main) warn("main lines are drawn but the legend has no words for them (legend.main)");
+    if (kinds.has("dashed") && !legend.dashed) warn("dashed lines are drawn but the legend has no words for them (legend.dashed)");
+    if (nodes.some((n) => n.focal) && !legend.focal) warn("a focal node is drawn but the legend has no words for what it marks (legend.focal)");
   }
-  for (const n of nodes) if (n.group && !groups.some((g) => g.id === n.group)) warn(`${n.id} names the group "${n.group}", which is not in groups`);
-  if (nodes.filter((n) => n.focal).length > 1) warn("more than one node is focal: a diagram has one at most");
-
-  // The key's words: main, dashed and the focal node must have them when drawn.
-  const kinds = new Set<DiagramLineKind>(type === "sequence" ? steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : edges.map((e) => e.kind));
-  if (kinds.has("main") && !legend.main) warn("main lines are drawn but the legend has no words for them (legend.main)");
-  if (kinds.has("dashed") && !legend.dashed) warn("dashed lines are drawn but the legend has no words for them (legend.dashed)");
-  if (nodes.some((n) => n.focal) && !legend.focal) warn("a focal node is drawn but the legend has no words for what it marks (legend.focal)");
 
   const cols = Math.max(1, ...nodes.map((n) => n.col));
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  return { type, title: spec.title, heading: spec.heading ?? 3, legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings };
+  return { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, memo: new Map() };
+}
+
+/** A value worked out once a model (the stack's plan, the sentences, the key and the list), kept on the model so a state change does not redo it. */
+function memo<T>(m: Model, key: string, make: () => T): T {
+  if (!m.memo.has(key)) m.memo.set(key, make());
+  return m.memo.get(key) as T;
 }
 
 const MAX_LABEL = 28;
@@ -272,6 +329,9 @@ function shapeWord(m: Model, n: MNode): string {
 
 /** The sentence a focusable node is named by: what it is, where it sits, what it connects from and to. */
 export function nodeSentence(m: Model, n: MNode): string {
+  return memo(m, `sentence:${n.i}`, () => writeSentence(m, n));
+}
+function writeSentence(m: Model, n: MNode): string {
   const parts: string[] = [];
   if (m.type === "schema") {
     parts.push(`${n.name}, table.`);
@@ -328,9 +388,12 @@ const VOID = " br img input meta link hr path polygon polyline circle rect line 
 export function toHtml(v: VNode, slots: Partial<Record<VSlot["slot"], string>> = {}): string {
   if (typeof v === "string") return escapeHtml(v);
   if ("slot" in v) return slots[v.slot] ?? "";
+  // Names are the engine's own; a name that is not a plain one never reaches the page as syntax.
+  if (!/^[a-z][a-z0-9]*$/.test(v.t)) throw new Error(`diagram: "${v.t}" is not an element name`);
   let attrs = "";
   for (const [k, value] of Object.entries(v.a)) {
     if (value === undefined || value === null || value === false) continue;
+    if (!/^[a-z][a-z0-9:-]*$/i.test(k)) throw new Error(`diagram: "${k}" is not an attribute name`);
     attrs += value === true ? ` ${k}` : ` ${k}="${escapeHtml(String(value))}"`;
   }
   if (VOID.includes(` ${v.t} `) && !v.c.length) return v.t === "path" || v.t === "polygon" || v.t === "polyline" || v.t === "circle" || v.t === "rect" || v.t === "line" ? `<${v.t}${attrs}/>` : `<${v.t}${attrs}>`;
@@ -391,6 +454,9 @@ export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: numbe
 
 /** The stacked drawing's routes, end lanes and the gap above each card (in px of the space scale), from the author's order. */
 export function stackPlan(m: Model): StackPlan {
+  return memo(m, "plan", () => planStack(m));
+}
+function planStack(m: Model): StackPlan {
   const order = m.nodes;
   const spine = (i: number) => m.type === "data-flow" || !order[i]!.branch;
   const routes: StackRoute[] = m.edges.map((e) => {
@@ -413,18 +479,19 @@ export function stackPlan(m: Model): StackPlan {
     return !spine(a) && order.slice(lo + 1, hi).every((n) => !spine(n.i)) && ends.every((o) => o.e === e || !overlaps(o.e, e));
   });
   const gutter = ends.length > 0 && (m.type === "data-flow" || !laneOk);
-  // Lanes in the gutter: nested (1.7 rule 3): of two overlapping lines the one that travels farther takes the outer lane; equal travel, the earlier is inside.
+  // Lanes in the gutter, nested (1.7 rule 3): of two overlapping lines the one that travels farther takes the outer lane; equal travel, the
+  // earlier is inside. Allocated across each overlapping set: shortest first, each one lane outside every overlapping line already placed,
+  // so no two overlapping lines share a lane. A line that would need a third lane is the development error (`third`).
   const travel = (e: MEdge) => { const [a, b] = span(e); return b - a; };
   const lanes = m.edges.map(() => 0);
   let third = false;
-  for (const { e, k } of ends) {
-    const inner = ends.filter((o) => o.e !== e && overlaps(o.e, e) && (travel(o.e) < travel(e) || (travel(o.e) === travel(e) && o.k < k)));
-    lanes[k] = inner.length ? 1 : 0;
-    if (inner.length > 1 || ends.filter((o) => o.e !== e && overlaps(o.e, e)).length > 1) {
-      // Three overlapping end lines at once need a third lane.
-      const others = ends.filter((o) => o.e !== e && overlaps(o.e, e));
-      if (others.some((o) => others.some((p) => p !== o && overlaps(o.e, p.e)))) third = true;
-    }
+  const placed: typeof ends = [];
+  for (const it of [...ends].sort((x, y) => travel(x.e) - travel(y.e) || x.k - y.k)) {
+    let lane = 0;
+    for (const o of placed) if (overlaps(o.e, it.e)) lane = Math.max(lane, lanes[o.k]! + 1);
+    lanes[it.k] = lane;
+    if (lane > 1) third = true;
+    placed.push(it);
   }
   // Where an end line leaves its card: the middle, or the thirds when two leave one card (the farther one nearer the top going down, nearer the bottom going up).
   const exits = m.edges.map(() => 0.5);
@@ -487,6 +554,9 @@ function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" |
 
 /** The key, built from the marks the model draws: shapes, main, plain, dashed, the foreign-key line, the focal node, the group. */
 function keyTree(P: string, m: Model): VElement | null {
+  return memo(m, `key:${P}`, () => buildKey(P, m));
+}
+function buildKey(P: string, m: Model): VElement | null {
   const entries: VElement[] = [];
   const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, words)));
   if (m.type === "flowchart") {
@@ -637,6 +707,9 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
 // ---- The list ("View as list") ----
 
 function listTree(P: string, m: Model): VNode[] {
+  return memo(m, `list:${P}`, () => buildList(P, m));
+}
+function buildList(P: string, m: Model): VNode[] {
   const sub = Math.min(6, m.heading + 1);
   const H = (text: string) => h(`h${sub}`, { class: `${P}-list-head` }, text);
   const strong = (s: string) => h("strong", null, s);
@@ -664,7 +737,7 @@ function listTree(P: string, m: Model): VNode[] {
       const what = n.shape === "decision" ? "Decision" : n.shape === "terminal" ? (exits.length ? "Start" : "End") : "Step";
       const stop = !n.detail && /[.!?]$/.test(n.name) ? " " : ". ";
       return h("li", null, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
-        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${e.label}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), e.kind === "main" && m.legend.main ? ` (${m.legend.main})` : ""))) : null);
+        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${e.label}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
     }))];
   }
   if (m.type === "data-flow") {
@@ -679,7 +752,8 @@ function listTree(P: string, m: Model): VNode[] {
     out.push(H("Messages"));
     let list: VElement | null = null;
     for (const s of m.steps) {
-      if ("band" in s) { list = null; out.push(h("p", { class: `${P}-list-group` }, s.band)); continue; }
+      // A band names a phase: a sub-heading, one level under the title's (4.4), drawn as the list's group line.
+      if ("band" in s) { list = null; out.push(h(`h${sub}`, { class: `${P}-list-group` }, s.band)); continue; }
       if (!list) { list = h("ol", { class: `${P}-list-items`, start: s.n }); out.push(list); }
       list.c.push(h("li", null, code(s.label), ": ", strong(name(s.from)), " to ", strong(name(s.to)), `${kw(s.kind)}.`, s.note ? ` ${sentence(upperFirst(s.note))}` : ""));
     }
@@ -805,6 +879,8 @@ export interface Geo {
   /** Lines that pass through a node (by edge index), labels that found no seat, words that do not fit their span. */
   through: number[];
   unseated: number[];
+  /** Lines (by edge index) that leave the drawing: a route the fit must refuse. */
+  outside: number[];
   /** The offset of the drawing's origin from the device pixel grid, so lines can be snapped to it. */
   ox: number;
   oy: number;
@@ -942,7 +1018,8 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   let least: number;
   if (m.type === "data-flow") least = tk.lane + n * (track + s("12"));
   else if (m.type === "schema") least = n * table + (n - 1) * s("12");
-  else if (m.type === "sequence") least = n * tk.node + (n - 1) * s("5");
+  // A sequence's columns hold its participants: measured once script runs (the stylesheet before script has only the token floor).
+  else if (m.type === "sequence") least = n * track + (n - 1) * s("5");
   else least = n * track + (n - 1) * s("16") + groupReach(m) * s("4");
   return { track, table, least: Math.max(tk.wide, least) };
 }
@@ -988,11 +1065,12 @@ function snapRoute(pts: Pt[], w: number, sn: ReturnType<typeof snapper>): Pt[] {
 
 const segmentsOf = (pts: Pt[]) => pts.slice(1).map((p, k) => [pts[k]!, p] as const);
 
-function findCrossings(lines: GLine[], lit?: (line: GLine) => boolean): GCross[] {
+function findCrossings(lines: GLine[], lit?: (line: GLine) => boolean, only?: Set<number>): GCross[] {
   const out: GCross[] = [];
   const e = 0.75;
   for (let a = 0; a < lines.length; a++) for (let b = a + 1; b < lines.length; b++) {
     const A = lines[a]!, B = lines[b]!;
+    if (only && !only.has(A.i) && !only.has(B.i)) continue;
     for (const [p1, p2] of segmentsOf(A.pts)) for (const [q1, q2] of segmentsOf(B.pts)) {
       const aH = Math.abs(p1.y - p2.y) < 0.01, bH = Math.abs(q1.y - q2.y) < 0.01;
       if (aH === bH) continue;
@@ -1056,6 +1134,11 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
     else if (rest.length === 2) { rest[0]!.f = 0.25; rest[1]!.f = 0.75; }
     else if (rest.length === 3) { rest[0]!.f = 0.25; rest[1]!.f = 0.5; rest[2]!.f = 0.75; }
     else if (rest.length > 3) rest.forEach((p, j) => { p.f = (j + 1) / (rest.length + 1); });
+    // Two or more straight lines to one node (one each way) cannot all keep the middle: they would lie on one another. They take the side's slots by
+    // their count, in the author's order; the far end does the same, so each stays straight.
+    const byFar = new Map<string, Port[]>();
+    for (const p of straight) { if (!byFar.has(p.far.id)) byFar.set(p.far.id, []); byFar.get(p.far.id)!.push(p); }
+    for (const same of byFar.values()) if (same.length > 1) same.sort((x, y) => x.edge - y.edge).forEach((p, j) => { p.f = same.length === 2 ? (j === 0 ? 0.25 : 0.75) : (j + 1) / (same.length + 1); });
   }
   return ports;
 }
@@ -1072,7 +1155,7 @@ function portPoint(n: GNode, side: DiagramSide, f: number): Pt {
   return isH(side) ? contour(n, side, t + (b - t) * f) : contour(n, side, l + (r - l) * f);
 }
 
-interface DrawnInput { m: Model; tk: Tokens; P: string; drawing: HTMLElement; origin: DOMRect; warn: (s: string) => void }
+interface DrawnInput { m: Model; tk: Tokens; P: string; drawing: HTMLElement; origin: DOMRect; warn?: (s: string) => void }
 
 function gNodes(m: Model, drawing: HTMLElement, origin: DOMRect, P: string): Map<string, GNode> {
   const out = new Map<string, GNode>();
@@ -1193,7 +1276,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   const W = drawing.clientWidth, H = drawing.clientHeight;
   const trackOf = (n: MNode) => (m.type === "data-flow" ? n.col + 1 : n.col);
   const rowGap = parseFloat(getComputedStyle(drawing).rowGap) || 0;
-  const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], ox, oy };
+  const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], outside: [], ox, oy };
 
   if (m.type === "sequence") return sequenceGeometry(input, geo, sn);
 
@@ -1208,7 +1291,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     });
   } else {
     sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2]; });
-    ports = assignSlots(m, sides, warn);
+    ports = assignSlots(m, sides, warn ?? (() => {}));
   }
 
   // End points.
@@ -1285,12 +1368,21 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     if (isH(s1)) return [p1, { x: p2.x, y: p1.y }, p2];
     return [p1, { x: p1.x, y: p2.y }, p2];
   };
-  const build = (): GLine[] => m.edges.map((e, k) => {
+  const buildOne = (k: number): GLine => {
+    const e = m.edges[k]!;
     const w = strokeOf(e.kind, tk);
     const pts = snapRoute(route(k), w, sn);
     return { i: k, from: e.from, to: e.to, kind: e.kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), dot: e.fk ? pts[0] : undefined, width: w };
-  });
-  const score = (lines: GLine[]) => findCrossings(lines).length * 1000 + throughOf(lines, nodes, m).length;
+  };
+  const build = (): GLine[] => m.edges.map((_, k) => buildOne(k));
+  // A gutter's lanes are scored by the lines in it alone: their crossings with every line, and the nodes they pass through. The other
+  // lines are not rebuilt or compared with each other, since a permutation of this gutter cannot change them.
+  let current: GLine[] | null = null;
+  const score = (members: Set<number>) => {
+    current ??= build();
+    const lines = current.map((l) => (members.has(l.i) ? buildOne(l.i) : l));
+    return { lines, score: findCrossings(lines, undefined, members).length * 1000 + throughOf(lines.filter((l) => members.has(l.i)), nodes, m).length };
+  };
   // Each gutter: its lanes evenly spaced (at least space-3 apart), in the order that crosses least.
   // Lanes are needed only where jogs run beside each other: jogs whose runs along the gutter do not overlap each take its middle.
   const runOf = (members: number[], vertical: boolean): [number, number] => {
@@ -1309,14 +1401,16 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       const groupsOf = cluster.map((c) => c.members);
       const count = groupsOf.length;
       const step = (g.span[1] - g.span[0]) / (count + 1);
-      if (step < s("3")) warn(`a gutter holds ${count} lanes side by side, closer than space-3`);
-      let best: number[][] = groupsOf, bestScore = Infinity;
+      if (step < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
+      const inGutter = new Set(groupsOf.flat());
+      let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
         perm.forEach((members, j) => members.forEach((k) => lanes.set(k, g.span[0] + step * (j + 1))));
-        const sc = score(build());
-        if (sc < bestScore) { bestScore = sc; best = perm; }
+        const tried = score(inGutter);
+        if (tried.score < bestScore) { bestScore = tried.score; best = perm; bestLines = tried.lines; }
       }
       best.forEach((members, j) => members.forEach((k) => lanes.set(k, g.span[0] + step * (j + 1))));
+      current = bestLines;
     }
   }
   geo.lines = build();
@@ -1324,12 +1418,13 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   if (m.type === "schema") {
     geo.lines = geo.lines.filter((l) => {
       const a = m.byId.get(l.from)!, b = m.byId.get(l.to)!;
-      if (Math.abs(a.col - b.col) > 1) { warn(`${l.from} to ${l.to} is two columns apart, so its line is not drawn; its row still writes the target`); return false; }
+      if (Math.abs(a.col - b.col) > 1) { warn?.(`${l.from} to ${l.to} is two columns apart, so its line is not drawn; its row still writes the target`); return false; }
       return true;
     });
   }
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
+  geo.outside = outsideOf(geo.lines, W, H, tk);
   const { obstacles, groups } = obstaclesOf(drawing, origin, P, rowGap);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
   const seats = seatLabels(m, geo.lines, nodes, obstacles, groups, { l: 0, t: 0, r: W, b: H }, tk, measure);
@@ -1345,6 +1440,16 @@ function* permutations<T>(items: T[]): Generator<T[]> {
     const rest = items.slice(0, k).concat(items.slice(k + 1));
     for (const p of permutations(rest)) yield [items[k]!, ...p];
   }
+}
+
+/** Lines any part of which (the stroke, or the head's width) is outside the drawing: the fit refuses them, so no route is drawn off the figure. */
+function outsideOf(lines: GLine[], W: number, H: number, tk: Tokens): number[] {
+  const out: number[] = [];
+  for (const l of lines) {
+    // The stroke's half width round every point, and the head's half width round its tip.
+    if (l.pts.some((p, k) => { const pad = k === l.pts.length - 1 ? Math.max(l.width / 2, tk.head / 2) : l.width / 2; return p.x - pad < -0.5 || p.x + pad > W + 0.5 || p.y - pad < -0.5 || p.y + pad > H + 0.5; })) out.push(l.i);
+  }
+  return out;
 }
 
 function throughOf(lines: GLine[], nodes: GNode[], m: Model): number[] {
@@ -1399,14 +1504,14 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
 // ---- The stacked drawing (1.13) ----
 
 function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, plan: StackPlan): { geo: Geo; grow: Record<string, number> } {
-  const { m, tk, P, drawing, origin, warn } = input;
+  const { m, tk, P, drawing, origin } = input;
   const s = tk.space;
   const map = gNodes(m, drawing, origin, P);
   const nodes = [...map.values()];
   const ox = origin.left - Math.floor(origin.left), oy = origin.top - Math.floor(origin.top);
   const sn = snapper(ox, oy);
   const W = drawing.clientWidth, H = drawing.clientHeight;
-  const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], ox, oy };
+  const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], outside: [], ox, oy };
   const growBy: Record<string, number> = {};
   if (m.type === "sequence" || m.type === "schema") return { geo, grow: growBy };
   // The right edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
@@ -1419,7 +1524,9 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
-  const labelSeats: Array<{ k: number; box: Rect; on: boolean; card: string }> = [];
+  // Each label's seats, in the order they are tried: a stem's are its clear shaft's middle and then its thirds (1.8's order); every other
+  // route has its one fixed seat (1.13).
+  const labelSeats: Array<{ k: number; cands: Rect[]; on: boolean; card: string }> = [];
   const lineW = (k: number) => strokeOf(m.edges[k]!.kind, tk);
   m.edges.forEach((e, k) => {
     const r = plan.routes[k]!;
@@ -1432,7 +1539,12 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     const turn = s("4");
     if (r === "down" || r === "up") {
       const lo = Math.max(a.rect.l, b.rect.l), hi = Math.min(a.rect.r, b.rect.r);
-      const x = sn.x((lo + hi) / 2, w);
+      // One stem between two cards keeps the middle. Two or more (one each way, say) would lie on one another there, so they take the side's
+      // slots as 1.6 gives them: the quarter points for two, quarter, middle, quarter for three, in the author's order.
+      const pair = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === "down" || plan.routes[j] === "up") && ((o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from)));
+      const at = pair.findIndex((p) => p.j === k);
+      const slot = pair.length < 2 ? 0.5 : pair.length === 2 ? (at === 0 ? 0.25 : 0.75) : (at + 1) / (pair.length + 1);
+      const x = sn.x(lo + (hi - lo) * slot, w);
       pts = r === "down" ? [contour(a, "bottom", x), contour(b, "top", x)] : [contour(a, "top", x), contour(b, "bottom", x)];
       if (label) {
         // Centred on the stem's clear shaft, with a plate; a stem split by a group's boundary takes its outside part.
@@ -1447,20 +1559,20 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
           const pick = (outer.length ? outer : parts).reduce((best, part) => (part[1] - part[0] > best[1] - best[0] ? part : best));
           [y1, y2] = pick;
         }
-        const cy = (y1 + y2) / 2;
-        labelSeats.push({ k, box: { l: x - lw / 2 - s("1"), r: x + lw / 2 + s("1"), t: cy - lh / 2, b: cy + lh / 2 }, on: true, card: r === "down" ? e.to : e.from });
+        const cands = [1 / 2, 1 / 3, 2 / 3].map((f) => { const cy = y1 + (y2 - y1) * f; return { l: x - lw / 2 - s("1"), r: x + lw / 2 + s("1"), t: cy - lh / 2, b: cy + lh / 2 }; });
+        labelSeats.push({ k, cands, on: true, card: r === "down" ? e.to : e.from });
       }
     } else if (r === "trunk" || r === "rail") {
       const x = sn.x(Math.max(a.rect.l, r === "rail" ? b.rect.l : a.rect.l) + (r === "trunk" ? s("8") : s("3")), w);
       const start = contour(a, "bottom", x);
       if (r === "rail") {
         pts = [start, contour(b, "top", x)];
-        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, box: { l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }, on: false, card: e.to }); }
+        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: [{ l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }], on: false, card: e.to }); }
       } else {
         const ex = sn.x(b.rect.l + s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, box: { l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, on: false, card: e.to });
+        if (label) labelSeats.push({ k, cands: [{ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }], on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
@@ -1472,34 +1584,36 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
       const down = r === "end-down";
       const ty = sn.y(down ? b.rect.t - turn : b.rect.b + turn, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
-      if (label) labelSeats.push({ k, box: { l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }, on: false, card: down ? e.to : order[b.i + 1]?.id ?? e.to });
+      if (label) labelSeats.push({ k, cands: [{ l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }], on: false, card: down ? e.to : order[b.i + 1]?.id ?? e.to });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
   });
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
-  // Fixed seats, checked: a label that does not fit takes a line of its own above its card, and the gap grows 16.
-  const { obstacles, groups } = obstaclesOf(drawing, origin, P, 0);
+  geo.outside = outsideOf(geo.lines, W, H, tk);
+  // Seats, checked by 1.8's rule (a head counts, its own line's included): a label whose every seat fails grows the gap above its card by 16,
+  // and the figure is measured again; measureFigure draws no lines at all if any label is still without a clean seat after the last try.
+  const { obstacles } = obstaclesOf(drawing, origin, P, 0);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
   const placed: Rect[] = [];
   const bounds = { l: 0, t: 0, r: W, b: H };
   for (const seat of labelSeats) {
-    const line = geo.lines.find((l) => l.i === seat.k)!;
-    const G = grow(seat.box, s("1"));
-    const ownHead = headBox(line, tk);
-    const bad = seat.box.l < bounds.l - 0.5 || seat.box.r > bounds.r + 0.5
-      || nodes.some((n) => boxHitsShape(G, n))
-      || placed.some((p) => hit(G, p))
-      || obstacles.heads.some((h0) => h0 !== ownHead && hit(G, h0))
-      || obstacles.rects.some((r) => hit(G, r))
-      || geo.lines.some((o) => o.i !== seat.k && segmentsOf(o.pts).some(([a, b]) => hit(G, segRect(a, b, o.width))));
-    if (bad) { growBy[seat.card] = (growBy[seat.card] ?? 0) + 1; geo.unseated.push(seat.k); }
-    placed.push(seat.box);
-    geo.labels.push({ i: seat.k, text: m.edges[seat.k]!.label!, box: seat.box, on: seat.on });
+    const bad = (box: Rect) => {
+      const G = grow(box, s("1"));
+      return box.l < bounds.l - 0.5 || box.r > bounds.r + 0.5 || box.t < bounds.t - 0.5 || box.b > bounds.b + 0.5
+        || nodes.some((n) => boxHitsShape(G, n))
+        || placed.some((p) => hit(G, p))
+        || obstacles.heads.some((h0) => hit(G, h0))
+        || obstacles.rects.some((r) => hit(G, r))
+        || geo.lines.some((o) => o.i !== seat.k && segmentsOf(o.pts).some(([a, b]) => hit(G, segRect(a, b, o.width))));
+    };
+    const box = seat.cands.find((c) => !bad(c));
+    if (!box) { growBy[seat.card] = (growBy[seat.card] ?? 0) + 1; geo.unseated.push(seat.k); }
+    const use = box ?? seat.cands[0]!;
+    placed.push(use);
+    geo.labels.push({ i: seat.k, text: m.edges[seat.k]!.label!, box: use, on: seat.on });
   }
-  void groups;
-  if (plan.third) warn("three end lines overlap in the stacked drawing; two lanes is the most (use the drawn layout or reorder)");
   return { geo, grow: growBy };
 }
 
@@ -1535,11 +1649,13 @@ function lineMarkup(P: string, l: GLine, tk: Tokens, maskId: string | null, radi
   const bx = l.tip.x - u.x * L, by = l.tip.y - u.y * L;
   const px = -u.y * W2, py = u.x * W2;
   const r2 = (n: number) => Math.round(n * 100) / 100;
+  // Every value written into an attribute is escaped: a kind is one of three by the model, and the ids come from the page.
+  const kind = escapeHtml(l.kind);
   const head = open
-    ? `<path class="${P}-tip" data-kind="${l.kind}" data-open="" d="M${r2(bx + px)} ${r2(by + py)}L${r2(l.tip.x)} ${r2(l.tip.y)}L${r2(bx - px)} ${r2(by - py)}"/>`
-    : `<path class="${P}-tip" data-kind="${l.kind}" d="M${r2(l.tip.x)} ${r2(l.tip.y)}L${r2(bx + px)} ${r2(by + py)}L${r2(bx - px)} ${r2(by - py)}Z"/>`;
+    ? `<path class="${P}-tip" data-kind="${kind}" data-open="" d="M${r2(bx + px)} ${r2(by + py)}L${r2(l.tip.x)} ${r2(l.tip.y)}L${r2(bx - px)} ${r2(by - py)}"/>`
+    : `<path class="${P}-tip" data-kind="${kind}" d="M${r2(l.tip.x)} ${r2(l.tip.y)}L${r2(bx + px)} ${r2(by + py)}L${r2(bx - px)} ${r2(by - py)}Z"/>`;
   const dot = l.dot ? `<circle class="${P}-dot" cx="${r2(l.dot.x)}" cy="${r2(l.dot.y)}" r="${tk.dot / 2}"/>` : "";
-  return `<g class="${P}-edge" data-edge="${l.i}" data-from="${escapeHtml(l.from)}" data-to="${escapeHtml(l.to)}"><path class="${P}-line" data-kind="${l.kind}" d="${pathD(pts, radius)}"${maskId ? ` mask="url(#${maskId})"` : ""}/>${head}${dot}</g>`;
+  return `<g class="${P}-edge" data-edge="${l.i}" data-from="${escapeHtml(l.from)}" data-to="${escapeHtml(l.to)}"><path class="${P}-line" data-kind="${kind}" d="${pathD(pts, radius)}"${maskId ? ` mask="url(#${escapeHtml(maskId)})"` : ""}/>${head}${dot}</g>`;
 }
 
 function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: string; ids: Map<number, string> } {
@@ -1557,7 +1673,7 @@ function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: str
         ? `<rect x="${c.at.x - beside}" y="${c.at.y - across}" width="${2 * beside}" height="${2 * across}" fill="black"/>`
         : `<rect x="${c.at.x - across}" y="${c.at.y - beside}" width="${2 * across}" height="${2 * beside}" fill="black"/>`;
     }).join("");
-    defs += `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${geo.w}" height="${geo.h}"><rect x="0" y="0" width="${geo.w}" height="${geo.h}" fill="white"/>${holes}</mask>`;
+    defs += `<mask id="${escapeHtml(id)}" maskUnits="userSpaceOnUse" x="0" y="0" width="${geo.w}" height="${geo.h}"><rect x="0" y="0" width="${geo.w}" height="${geo.h}" fill="white"/>${holes}</mask>`;
   }
   void P;
   return { defs, ids };
@@ -1582,7 +1698,7 @@ export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Toke
  * word, every label seats and no line passes through a node; otherwise the stack. `apply` writes a state into the DOM (the same markup the
  * tree gives for it), so each try is measured as it would be drawn.
  */
-export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn: (s: string) => void): Measured {
+export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void): Measured {
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
   if (!drawing) return { dyn: current, geo: null, ink: "", tokens: null };
   const tk = readTokens(fig);
@@ -1611,18 +1727,20 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     return { ...d, heights };
   };
   const input = (): DrawnInput => ({ m, tk, P, drawing, origin: drawing.getBoundingClientRect(), warn });
+  const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
   if (W >= mins.least) {
     let d = stopOf({ ...current, layout: "drawn", grow: undefined, track: undefined });
     d = heightsFor(d);
     apply(d);
     const geo = drawnGeometry(input(), measure);
-    if (!geo.through.length && !geo.unseated.length) {
-      if (geo.crossings.length) warn(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
+    if (!geo.through.length && !geo.unseated.length && !geo.outside.length) {
+      if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
       return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
-    if (geo.through.length) warn(`the drawn layout does not fit at ${Math.round(W)}px: ${geo.through.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ")} would pass through a node`);
-    if (geo.unseated.length) warn(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
+    if (geo.through.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
+    if (geo.outside.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
+    if (geo.unseated.length) warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
   }
   let d = stopOf({ ...current, layout: "stacked", heights: undefined, grow: {}, track: m.type === "schema" ? mins.table : undefined });
   d = heightsFor(d);
@@ -1638,8 +1756,19 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     out = stackedGeometry(input(), measure, plan);
   }
   const geo = out.geo;
-  if (geo.crossings.length) warn(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-  if (geo.through.length) warn(`in the stacked drawing ${geo.through.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ")} passes through a node`);
+  // The stack is the last layout there is. If it still holds an overlap (a label with no clean seat after every try, a line through a node or
+  // off the drawing, or a third end lane), no drawing is returned that is known to overlap: the cards stay, in order, with no lines and no
+  // labels, as the stacked schema's do, and the list holds every connection.
+  const failed = geo.unseated.length > 0 || geo.through.length > 0 || geo.outside.length > 0 || plan.third;
+  if (failed) {
+    if (geo.unseated.length) warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
+    if (geo.through.length) warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
+    if (geo.outside.length) warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
+    if (plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
+    const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
+    return { dyn: { ...d, grow: {} }, geo: bare, ink: "", tokens: tk };
+  }
+  if (geo.crossings.length) warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
 }
 
@@ -1712,13 +1841,25 @@ export function keyTarget(m: Model, from: string, key: string): string | null {
 /**
  * Brings the DOM's attributes in line with the tree for a new state: the figure, the drawing, every node and the list, walked in step. Text,
  * slots and the ink are left alone; the attributes tracing sets (data-lit, data-dim, data-near, data-tracing) are kept.
+ *
+ * The root is the caller's element as much as the engine's: on it only the state's own attributes (the layout, whether it is measured, and the
+ * custom properties the state sets) are written, so a caller's `hidden`, ARIA, id, class and style stay. Inside it every element is the engine's.
+ * A tree element is paired with the next DOM element of its tag and class, so an element the tree does not hold (the HTML skill's JSON
+ * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
+const ROOT_MANAGED = ["data-layout", "data-measured"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_gap"];
-export function syncAttributes(el: Element, v: VNode): void {
+const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
+function pairs(el: Element, v: VElement): boolean {
+  if (el.tagName.toLowerCase() !== v.t) return false;
+  const cls = typeof v.a.class === "string" ? v.a.class.split(" ")[0] : "";
+  return !cls || el.classList.contains(cls);
+}
+export function syncAttributes(el: Element, v: VNode, root = true): void {
   if (typeof v === "string" || "slot" in v) return;
-  // Only what a state changes is managed: an attribute or style the caller added (an id, a class, its own style) stays.
-  for (const name of MANAGED) if (!(name in v.a) || v.a[name] === undefined || v.a[name] === null || v.a[name] === false) el.removeAttribute(name);
+  const managed = root ? ROOT_MANAGED : MANAGED;
+  for (const name of managed) if (absent(v.a[name])) el.removeAttribute(name);
   for (const [k, value] of Object.entries(v.a)) {
     if (k === "class") continue;
     if (k === "style") {
@@ -1728,13 +1869,25 @@ export function syncAttributes(el: Element, v: VNode): void {
       for (const n of MANAGED_STYLE) if (!decls.has(n)) style.removeProperty(n);
       continue;
     }
-    if (value === undefined || value === null || value === false) { el.removeAttribute(k); continue; }
+    if (root && !ROOT_MANAGED.includes(k)) continue;
+    if (absent(value)) { el.removeAttribute(k); continue; }
     const s = value === true ? "" : String(value);
     if (el.getAttribute(k) !== s) el.setAttribute(k, s);
   }
   if (v.t === "svg" || (typeof v.a.class === "string" && /-(ink|ruler)$/.test(v.a.class))) return;
-  const kids = v.c.filter((c): c is VElement => typeof c !== "string" && !("slot" in c));
-  const els = [...el.children];
   if (v.c.some((c) => typeof c !== "string" && "slot" in c)) return;
-  kids.forEach((c, k) => { const child = els[k]; if (child && child.tagName.toLowerCase() === c.t) syncAttributes(child, c); });
+  const els = [...el.children];
+  let at = 0;
+  for (const c of v.c) {
+    if (typeof c === "string" || "slot" in c) continue;
+    for (let j = at; j < els.length; j++) if (pairs(els[j]!, c)) { syncAttributes(els[j]!, c, false); at = j + 1; break; }
+  }
+}
+
+/** Moves the roving stop from one node to another with no walk of the tree: the only attributes a stop changes are the two nodes' tab indexes. */
+export function moveStop(fig: Element, P: string, from: string | undefined, to: string): void {
+  if (from === to) return;
+  const node = (id: string) => fig.querySelector(`.${P}-node[data-node="${CSS.escape(id)}"]`);
+  if (from) node(from)?.setAttribute("tabindex", "-1");
+  node(to)?.setAttribute("tabindex", "0");
 }

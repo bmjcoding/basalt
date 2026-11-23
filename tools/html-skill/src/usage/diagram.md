@@ -6,7 +6,8 @@
   { "type": "architecture", "title": "How a request reaches the agent", "source": "docs/architecture.md",
     "summary": "…", "legend": { "main": "Request path", "plain": "Call", "dashed": "Async or one-way", "focal": "The service" },
     "groups": [{ "id": "aws", "label": "AWS · your account" }],
-    "nodes": [{ "id": "svc", "kind": "ECS service", "name": "api service", "detail": "N tasks", "detailMono": true,
+    "nodes": [{ "id": "alb", "kind": "Load balancer", "name": "ALB", "col": 2, "row": 2 },
+              { "id": "svc", "kind": "ECS service", "name": "api service", "detail": "N tasks", "detailMono": true,
                 "focal": true, "group": "aws", "col": 3, "row": 2 }],
     "edges": [{ "from": "alb", "to": "svc", "kind": "main", "label": "HTTP" }] }
   </script>

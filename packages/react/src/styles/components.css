@@ -4520,14 +4520,16 @@
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-name, .basalt-diagram-kind, .basalt-diagram-detail, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more) { color: var(--basalt-diagram-focal-ink); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-kind, .basalt-diagram-detail, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more) { opacity: var(--basalt-opacity-amount); }
 
-  /* A flowchart's shapes carry its types, so each has a 3:1 contour in place of the rim: one colour on every side. */
+  /* A flowchart's shapes carry its types, so each has a 3:1 contour in place of the rim: one colour on every side. A measured decision's contour
+     is its diamond, so its box's border is never lifted (the diamond's stroke is, below). */
   .basalt-diagram[data-type="flowchart"] .basalt-diagram-node:not([data-focal]) { border-color: var(--basalt-diagram-structure); }
-  .basalt-diagram[data-type="flowchart"] .basalt-diagram-node:not([data-focal])[data-near] { border-color: var(--basalt-text-secondary); }
+  .basalt-diagram[data-type="flowchart"] .basalt-diagram-node:not([data-focal], [data-shape="decision"])[data-near] { border-color: var(--basalt-text-secondary); }
   .basalt-diagram-node[data-shape="terminal"] { align-items: center; padding-inline: var(--basalt-space-5); border-radius: var(--basalt-radius-full); text-align: center; }
-  /* A decision: a diamond behind its words, the words at 500 within 62% of its width. Before script it is a plain box of its words at least
-     space-16 tall; once measured it is as tall as its words need, never under space-16 nor flatter than 5:1. */
+  /* A decision: a diamond behind its words, the words at 500 within 62% of its width (the track's: the box's border-box, so 62% of the content
+     box plus 62% of the padding and border, 1.24 of each side's). Before script it is a plain box of its words at least space-16 tall; once
+     measured it is as tall as its words need, never under space-16 nor flatter than 5:1. */
   .basalt-diagram-node[data-shape="decision"] { justify-content: center; align-items: center; height: var(--_h, auto); min-height: var(--basalt-space-16); padding: var(--basalt-space-2) var(--basalt-space-2-5); text-align: center; }
-  .basalt-diagram-words { position: relative; max-width: 62%; }
+  .basalt-diagram-words { position: relative; max-width: calc(62% + (var(--basalt-space-2-5) + var(--basalt-size-hairline)) * 1.24); }
   .basalt-diagram-node[data-shape="decision"] .basalt-diagram-name { font-weight: var(--basalt-font-weight-medium); text-wrap: balance; }
   .basalt-diagram-diamond { display: none; position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .basalt-diagram-diamond path { fill: var(--_surface, var(--basalt-surface-1)); stroke: var(--basalt-diagram-structure); stroke-width: var(--basalt-size-hairline); vector-effect: non-scaling-stroke; transition: stroke var(--basalt-duration-fast) var(--basalt-ease-out); }
@@ -4720,7 +4722,7 @@
   .basalt-diagram-code { color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); }
   .basalt-diagram-list-head { margin: var(--basalt-space-4) 0 var(--basalt-space-2); color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-list-head:first-child { margin-block-start: 0; }
-  .basalt-diagram-list-group { margin: var(--basalt-space-3) 0 var(--basalt-space-1); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-diagram-list-group { margin: var(--basalt-space-3) 0 var(--basalt-space-1); color: var(--basalt-text-primary); font-size: inherit; font-weight: var(--basalt-font-weight-medium); line-height: inherit; }
   .basalt-diagram-list-items { display: flex; flex-direction: column; gap: var(--basalt-space-1); margin: 0; padding-inline-start: var(--basalt-space-5); }
   .basalt-diagram-list-exits { margin: var(--basalt-space-1) 0 0; padding-inline-start: var(--basalt-space-5); }
   @media (pointer: coarse) {
@@ -4827,6 +4829,10 @@
     .basalt-diagram .basalt-diagram-swatch[data-shape="group"] .basalt-diagram-swatch-shape { fill: none; stroke: GrayText; }
     .basalt-diagram .basalt-diagram-swatch[data-shape="focal"] .basalt-diagram-swatch-shape { fill: CanvasText; stroke: CanvasText; }
     .basalt-diagram[data-type="flowchart"] .basalt-diagram-node:not([data-focal]), .basalt-diagram[data-type="flowchart"] .basalt-diagram-node:not([data-focal])[data-near] { border-color: CanvasText; }
+    /* A measured decision is drawn by its diamond alone: its box is not forced, so the transparent border (which a forced palette would paint)
+       and the focal fill stay off it, at rest, traced or focal. Its words take their colours from the rules here. The shape is named twice for the
+       weight of the traced and focal rules above. */
+    .basalt-diagram[data-measured][data-type="flowchart"] .basalt-diagram-node[data-shape="decision"][data-shape] { forced-color-adjust: none; background: none; border-color: transparent; }
     .basalt-diagram .basalt-diagram-diamond { forced-color-adjust: none; }
     .basalt-diagram .basalt-diagram-diamond path, .basalt-diagram .basalt-diagram-node[data-near] .basalt-diagram-diamond path { fill: Canvas; stroke: CanvasText; }
     .basalt-diagram .basalt-diagram-group, .basalt-diagram .basalt-diagram-gbox { border-color: GrayText; }

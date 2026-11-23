@@ -69,11 +69,18 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   component: string;
 }
 
-export function DiagramFigure({ spec, component, title: _title, heading: _heading, legend: _legend, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, title: _title, heading: _heading, legend: _legend, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
-  const model = React.useMemo(() => buildModel(spec), [spec]);
+  // The development checks (placement, groups, the key's words) cost production nothing: a bundler that sets NODE_ENV drops them.
+  const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production" }), [spec]);
   const figRef = React.useRef<HTMLElement>(null);
+  // The figure's own ref, which measuring reads, and the caller's, both set: a caller's ref never replaces the figure's.
+  const setRef = React.useCallback((el: HTMLElement | null) => {
+    figRef.current = el;
+    if (typeof callerRef === "function") callerRef(el);
+    else if (callerRef) callerRef.current = el;
+  }, [callerRef]);
   const [dyn, setDyn] = React.useState<Dyn>({});
   const [ink, setInk] = React.useState("");
   const measured = React.useRef<Measured | null>(null);
@@ -91,7 +98,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   const measure = React.useCallback(() => {
     const fig = figRef.current;
     if (!fig) return;
-    const warn = (message: string) => { if (process.env.NODE_ENV !== "production") warnOnce(component, message); };
+    const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const result = measureFigure(fig, model, P, base, dynRef.current, (d) => syncAttributes(fig, figureTree(model, d, options)), warn);
     measured.current = result;
     dynRef.current = result.dyn;
@@ -131,10 +138,10 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   const stops = hasStops(model, dyn);
 
   const root = {
-    ref: figRef,
+    ...props,
+    ref: setRef,
     className,
     style,
-    ...props,
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       onKeyDown?.(event);
       const node = nodeOf(event.target);

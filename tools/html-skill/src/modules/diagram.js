@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -21,7 +21,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       source: escapeHtml(String(spec.source || '')),
       summary: escapeHtml(String(spec.summary || '')),
       hint: hintEntries(model).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''),
-      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + base + '-list"><span>' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
+      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list"><span>' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
     };
   }
 
@@ -34,18 +34,31 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.warnings };
   }
 
-  function draw(figure, spec) {
+  // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
+  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-layout', 'data-measured'];
+  var OWN_STYLE = ['--_cols', '--_gpad', '--_track'];
+
+  /**
+   * Draws a figure. `attach` is the page's own wiring: a figure compose.mjs already wrote is measured as it is. Otherwise (a figure with no
+   * markup, or `Basalt.diagram(figure, spec)` drawing new data into one that has some) the markup is written from the spec first, so the
+   * words, the list and the sentences are the new data's.
+   */
+  function draw(figure, spec, attach) {
     if (figure.__diagram) figure.__diagram.stop();
-    var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '');
+    var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
     var model = buildModel(spec);
-    if (!figure.querySelector(':scope > .diagram-drawing')) {
-      // No markup from compose (a figure drawn from script): write it now, keeping the JSON and the figure's own attributes.
-      while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
-      base = 'dg' + serial;
+    if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
+      // Keep the figure's base when it has ours, so its ids stay; otherwise take the next free one.
+      if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
+        while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
+        base = 'dg' + serial;
+      }
       var made = markup(spec, base);
       var holder = document.createElement('div');
       holder.innerHTML = made.open + '</figure>';
       var fresh = holder.firstChild;
+      OWN.forEach(function (n) { figure.removeAttribute(n); });
+      OWN_STYLE.forEach(function (n) { figure.style.removeProperty(n); });
       for (var a = 0; a < fresh.attributes.length; a++) {
         var at = fresh.attributes[a];
         if (at.name === 'class') figure.classList.add.apply(figure.classList, at.value.split(' '));
@@ -75,6 +88,8 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       retrace();
     }
     function setState(next) { state = next; apply(state); }
+    // A move of the roving stop touches the two nodes it moves between, not the whole figure.
+    function setStop(id) { var from = state.stop; state = Object.assign({}, state, { stop: id }); moveStop(figure, P, from, id); }
     var nodeOf = function (t) { var el = t && t.closest ? t.closest('.diagram-node') : null; return el && figure.contains(el) ? el : null; };
 
     function onKey(event) {
@@ -85,7 +100,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       var to = keyTarget(model, node.getAttribute('data-node'), event.key);
       if (!to) return;
       event.preventDefault();
-      setState(Object.assign({}, state, { stop: to }));
+      setStop(to);
       var el = figure.querySelector('.diagram-node[data-node="' + CSS.escape(to) + '"]');
       if (el) el.focus();
     }
@@ -95,7 +110,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       var id = node.getAttribute('data-node');
       // Tracing follows the keyboard's focus (:focus-visible), so a press that focuses a node traces nothing.
       focusTrace = node.matches(':focus-visible') ? id : null;
-      if (hasStops(model, state) && state.stop !== id) setState(Object.assign({}, state, { stop: id }));
+      if (hasStops(model, state) && state.stop !== id) setStop(id);
       retrace();
     }
     function onFocusOut(event) {
@@ -151,7 +166,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       if (figure.__diagram) return;
       var source = figure.querySelector(':scope > script[data-diagram]');
       if (!source) return;
-      try { draw(figure, JSON.parse(source.textContent)); } catch (e) { console.error('Basalt diagram: this figure could not be drawn', e); }
+      try { draw(figure, JSON.parse(source.textContent), true); } catch (e) { console.error('Basalt diagram: this figure could not be drawn', e); }
     });
   }
 
