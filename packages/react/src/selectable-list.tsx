@@ -39,7 +39,12 @@ function heirs(row: HTMLElement): HTMLElement[] {
   return [...walk("nextElementSibling"), ...walk("previousElementSibling"), ...(all ? [all] : []), ...(action ? [action] : [])];
 }
 
-const handOn = (to: HTMLElement[]) => to.find((box) => box.isConnected)?.focus();
+/** Focus the first heir still on the page, and remember its row: a focus moved inside React's commit does not reach the row's onFocus. */
+const handOn = (to: HTMLElement[], focused: React.RefObject<HTMLElement | null>) => {
+  const box = to.find((heir) => heir.isConnected);
+  box?.focus();
+  focused.current = box?.closest<HTMLElement>(".basalt-selectable-item") ?? null;
+};
 
 const SelectionContext = React.createContext<Selection | null>(null);
 
@@ -130,7 +135,7 @@ export function SelectableItem({ value, label, children, className, ref, ...prop
   // A row dealt with while its box holds focus (a refresh marks it done) hands focus on to the next row that can still be chosen, so it is never lost.
   React.useLayoutEffect(() => {
     const element = row.current;
-    if (was.current && !open && element && selection.focused.current === element && lost()) handOn(heirs(element));
+    if (was.current && !open && element && selection.focused.current === element && lost()) handOn(heirs(element), selection.focused);
     was.current = open;
   }, [open, selection.focused]);
   // A row taken out of the list while its box holds focus does the same, once the list has settled.
@@ -140,7 +145,7 @@ export function SelectableItem({ value, label, children, className, ref, ...prop
     return () => {
       if (!element || focused.current !== element) return;
       const to = heirs(element);
-      queueMicrotask(() => { if (lost()) handOn(to); });
+      queueMicrotask(() => { if (lost()) handOn(to, focused); });
     };
   }, [selection.focused]);
   return (

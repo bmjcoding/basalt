@@ -5071,6 +5071,8 @@
   .basalt-chrome .basalt-profile-handle,
   .basalt-chrome .basalt-framed-credit,
   .basalt-chrome .basalt-link-tile-details,
+  /* LoadingShape's Refreshing is made for a bar (its compact form is a phone's): on the smoked bar its word and ring take secondary ink. */
+  .basalt-chrome .basalt-refreshing,
   .basalt-chrome .basalt-field-necessity { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */

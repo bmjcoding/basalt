@@ -1150,7 +1150,13 @@ describe("Layout tokens", () => {
     const lines = css.split("\n");
     lines.forEach((line, i) => {
       if (/@media \(width [<>]=? \d+px\)|@media \(\d+px <= width/.test(line)) assert.match(lines[i - 1], /size-breakpoint-(md|lg)/, `line ${i + 1}: ${line.trim()}`);
-      if (/@container \(width < \d+/.test(line)) assert.match(lines[i - 1], /size-breakpoint-container/, `line ${i + 1}`);
+      if (!/@container \(width < \d+/.test(line)) return;
+      // One container query is at size-breakpoint-md: ListBand's narrow form on touch (foundations, Lists: "under size-breakpoint-md, 720, on a coarse
+      // pointer", and under 720 whatever the pointer since B5), inside that media query. Every other names a container token.
+      if (/@container \(width < 720px\)/.test(line)) {
+        assert.match(lines[i - 1], /size-breakpoint-md \(720px\)/, `line ${i + 1}`);
+        assert.match(lines[i - 2], /@media \(pointer: coarse\), \(width < 720px\)/, `line ${i + 1}: the 720 container query is the band's touch form`);
+      } else assert.match(lines[i - 1], /size-breakpoint-container/, `line ${i + 1}`);
     });
     assert.ok(!/@container \(width < 30rem\)/.test(css), "the 30rem container queries read the token's 480px now");
   });

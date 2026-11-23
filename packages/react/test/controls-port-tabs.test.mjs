@@ -178,8 +178,10 @@ describe("D12, A15: under 720 the row is a Select of the same links (3 to 1)", (
     });
   }
 
-  test("the Select is Castle's 44 for the 48 row, 36 for the 36 row and 48 for the 56 row, and a coarse pointer makes none less than 44", async () => {
-    for (const [size, h] of [["lg", 36], ["3xl", 44], ["5xl", 48]]) {
+  // B5: every 44px target rule applies under 720 whatever the pointer, and the Select is only drawn under 720 (or in a container under 640), so the 36
+  // row's Select is 44 at 390 with a mouse too.
+  test("the Select is Castle's 44 for the 48 row, 44 for the 36 row under 720 (B5) and 48 for the 56 row, and a coarse pointer makes none less than 44", async () => {
+    for (const [size, h] of [["lg", 44], ["3xl", 44], ["5xl", 48]]) {
       const { page } = await open(`<div style={{ padding: "0 16px" }}><B.LinkTabs aria-label="What it is" size="${size}"><B.LinkTab href="#a" current>One</B.LinkTab><B.LinkTab href="#b">Two</B.LinkTab></B.LinkTabs></div>`, view(390));
       const trigger = page.locator(".basalt-select-trigger");
       assert.equal((await box(trigger)).height, h, `${size}`);
@@ -189,8 +191,8 @@ describe("D12, A15: under 720 the row is a Select of the same links (3 to 1)", (
     }
   });
 
-  test("across 719 and 720 what is below the component moves by the row's height less the Select's: 0 at 36, 4px at 48, 8px at 56, and 0 for a 56 row in a container under 640", async () => {
-    for (const [size, wrap, move] of [["lg", "", 0], ["3xl", "", 4], ["5xl", "", 8], ["5xl", 'containerType: "inline-size", width: 600, ', 0]]) {
+  test("across 719 and 720 what is below the component moves by the row's height less the Select's: -8px at 36 (its Select is 44 under 720, B5), 4px at 48, 8px at 56, and 0 for a 56 row in a container under 640", async () => {
+    for (const [size, wrap, move] of [["lg", "", -8], ["3xl", "", 4], ["5xl", "", 8], ["5xl", 'containerType: "inline-size", width: 600, ', 0]]) {
       const heights = {};
       for (const width of [719, 720]) {
         const { page } = await open(`<div style={{ ${wrap}padding: 0 }}><B.LinkTabs aria-label="k" size="${size}"><B.LinkTab href="#a" current>One</B.LinkTab><B.LinkTab href="#b">Two</B.LinkTab></B.LinkTabs><p id="under" style={{ margin: 0 }}>Under</p></div>`, view(width));

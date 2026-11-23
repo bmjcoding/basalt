@@ -668,17 +668,24 @@ describe("two-line rows", () => {
           const label = el.querySelector(".basalt-menu-item-label")?.getBoundingClientRect();
           const description = el.querySelector(".basalt-menu-item-description");
           const d = description?.getBoundingClientRect();
-          return { text: el.textContent.slice(0, 18), described: !!description, row: el.getBoundingClientRect().height, plate: Number.parseFloat(getComputedStyle(el, "::before").height), touch: label && d ? Math.abs(label.bottom - d.top) : null, titleTop: label ? label.top - el.getBoundingClientRect().top : null };
+          return { text: el.textContent.slice(0, 18), described: !!description, row: el.getBoundingClientRect().height, plate: Number.parseFloat(getComputedStyle(el, "::before").height), touch: label && d ? Math.abs(label.bottom - d.top) : null, titleTop: label ? label.top - el.getBoundingClientRect().top : null, descriptionHeight: d?.height ?? 0, labelHeight: label?.height ?? 0 };
         }));
         const [one, onePlate, two, twoPlate] = EXPECTED[density][surface.command ? "command" : "menu"];
         const lone = measured.filter((m) => !m.described);
         const described = measured.filter((m) => m.described);
         assert.ok(lone.length && described.length, "one-line and two-line rows are mixed in one list");
         for (const m of lone) assert.deepEqual([m.row, m.plate], [one, onePlate], `${m.text} (one line)`);
+        // In a Menu the description wraps (DECISIONS 275): the row and its plate grow by the description's line for each line it takes, and the title stays one
+        // line. Select, Combobox and the command menu keep the cut, so every described row there is two lines.
+        const descriptionLine = two - one;
         for (const m of described) {
-          assert.deepEqual([m.row, m.plate], [two, twoPlate], `${m.text} (two lines)`);
+          const lines = name === "menu" ? Math.round(m.descriptionHeight / descriptionLine) : 1;
+          assert.equal(m.descriptionHeight, lines * descriptionLine, `${m.text}: the description is whole lines`);
+          assert.deepEqual([m.row, m.plate], [two + (lines - 1) * descriptionLine, twoPlate + (lines - 1) * descriptionLine], `${m.text} (${lines + 1} lines)`);
+          assert.equal(m.labelHeight, density === "compact" ? 18 : 20, `${m.text}: the title is one line`);
           assert.equal(m.touch, 0, `${m.text}: the title and description line boxes touch`);
         }
+        if (name === "menu") assert.ok(described.some((m) => m.descriptionHeight > descriptionLine), "the long description wraps in a Menu");
         // the title sits at the same place from the plate's top in both kinds of row, so a mixed list keeps one rhythm
         assert.equal(new Set(measured.map((m) => Math.round(m.titleTop * 10))).size, 1, "the title line sits 10px (8 in a menu) from the plate's top in every row");
         await page.close();
@@ -691,7 +698,9 @@ describe("two-line rows", () => {
       await settle(page);
       const first = page.locator(surface.rows).filter({ has: page.locator(".basalt-menu-item-description") }).first();
       assert.deepEqual(await style(first.locator(".basalt-menu-item-label"), "fontSize", "lineHeight", "fontWeight"), { fontSize: "14px", lineHeight: "20px", fontWeight: "400" });
-      assert.deepEqual(await style(first.locator(".basalt-menu-item-description"), "fontSize", "lineHeight", "fontWeight", "whiteSpace", "textOverflow"), { fontSize: "13px", lineHeight: "18px", fontWeight: "400", whiteSpace: "nowrap", textOverflow: "ellipsis" });
+      // A Menu's description wraps (DECISIONS 275); every other popup's is cut with an ellipsis.
+      const cut = name === "menu" ? { whiteSpace: "normal", textOverflow: "clip" } : { whiteSpace: "nowrap", textOverflow: "ellipsis" };
+      assert.deepEqual(await style(first.locator(".basalt-menu-item-description"), "fontSize", "lineHeight", "fontWeight", "whiteSpace", "textOverflow"), { fontSize: "13px", lineHeight: "18px", fontWeight: "400", ...cut });
       assert.deepEqual(await rgba(page, (await style(first.locator(".basalt-menu-item-description"), "color")).color), await token(page, "text-tertiary") && (await rgba(page, (await style(first.locator(".basalt-menu-item-description"), "color")).color)));
       await page.evaluate(() => { document.documentElement.dataset.density = "compact"; });
       await settle(page);
@@ -700,17 +709,26 @@ describe("two-line rows", () => {
       await page.close();
     });
 
-    test(`${name}: both lines truncate with an ellipsis and never wrap`, async () => {
+    // DECISIONS 275: in a Menu the description wraps inside the menu's 320 and nothing is cut; Select, Combobox and the command menu keep the cut.
+    test(name === "menu" ? `${name}: the title truncates and the description wraps inside the menu's size-popover-max, never cut` : `${name}: both lines truncate with an ellipsis and never wrap`, async () => {
       const { page } = await open(surface.body);
       await page.waitForSelector(surface.rows);
       await settle(page);
       const rows = page.locator(surface.rows).filter({ has: page.locator(".basalt-menu-item-description") });
       const longest = await rows.evaluateAll((els) => {
-        const cut = els.map((el) => { const d = el.querySelector(".basalt-menu-item-description"); return { text: d.textContent, cut: d.scrollWidth > d.clientWidth, height: d.getBoundingClientRect().height }; });
+        const cut = els.map((el) => { const d = el.querySelector(".basalt-menu-item-description"); const label = getComputedStyle(el.querySelector(".basalt-menu-item-label")); return { text: d.textContent, cut: d.scrollWidth > d.clientWidth, height: d.getBoundingClientRect().height, title: [label.whiteSpace, label.textOverflow] }; });
         return cut.find((c) => c.text.length > 60);
       });
-      assert.ok(longest?.cut, "the long description is cut");
-      assert.equal(longest.height, 18, "on one line");
+      assert.deepEqual(longest.title, ["nowrap", "ellipsis"], "the title is one line, cut with an ellipsis");
+      if (name === "menu") {
+        assert.equal(longest.cut, false, "the long description is not cut");
+        assert.ok(longest.height > 18 && longest.height % 18 === 0, `it wraps to whole lines (${longest.height}px)`);
+        const width = await page.locator(".basalt-menu").first().evaluate((el) => el.getBoundingClientRect().width);
+        assert.ok(width <= 320, `the menu stays at most size-popover-max wide (${width}px)`);
+      } else {
+        assert.ok(longest?.cut, "the long description is cut");
+        assert.equal(longest.height, 18, "on one line");
+      }
       await page.close();
     });
   }

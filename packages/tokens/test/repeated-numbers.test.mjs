@@ -55,13 +55,36 @@ const WIDTHS = new Set([
   ...DIAGRAM_WIDTHS,
 ]);
 
+/** A selector list split at its own commas, never at one inside parentheses. */
+const topLevel = (list) => {
+  const out = [];
+  let depth = 0;
+  let from = 0;
+  for (let i = 0; i < list.length; i += 1) {
+    if (list[i] === "(") depth += 1;
+    else if (list[i] === ")") depth -= 1;
+    else if (list[i] === "," && depth === 0) { out.push(list.slice(from, i)); from = i + 1; }
+  }
+  return [...out, list.slice(from)];
+};
+/** Every compound a selector names, with each `:is()` written out as its alternatives: `:is([a], [b]):is([c])` is `[a][c]` and `[b][c]`. */
+const expandIs = (selector) => {
+  const at = selector.indexOf(":is(");
+  if (at === -1) return [selector];
+  let depth = 0;
+  let end = at + 3;
+  for (; end < selector.length; end += 1) { if (selector[end] === "(") depth += 1; else if (selector[end] === ")" && --depth === 0) break; }
+  return topLevel(selector.slice(at + 4, end)).flatMap((alternative) => expandIs(selector.slice(0, at) + alternative + selector.slice(end + 1)));
+};
+
 test("each of the diagrams' least-width rules is the sum of tokens for every figure it names (DECISIONS 282, 1.19)", () => {
   const css = read("packages", "react", "src", "styles", "components.css");
   const rules = [...css.matchAll(/@container \(width >= (\d+)px\) \{([^@]*?--_drawn: ; \})/g)].filter((m) => m[2].includes("basalt-diagram"));
   assert.ok(rules.length >= 15, `found ${rules.length} least-width rules`);
   const covered = new Set();
   for (const [, width, body] of rules) {
-    for (const selector of body.split(",")) {
+    // Each figure the rule names: its selector list at its own commas, and every `:is()` in it written out, so one compound is one type and one count.
+    for (const selector of topLevel(body.slice(0, body.indexOf("{"))).flatMap(expandIs)) {
       const types = [...selector.matchAll(/data-type="([a-z-]+)"/g)].map((m) => m[1]);
       const cols = [...selector.matchAll(/data-cols="(\d)"/g)].map((m) => Number(m[1]));
       const reach = selector.match(/data-reach="(\d)"/)?.[1];

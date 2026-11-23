@@ -36,6 +36,9 @@ const LEFT_IN_A_CLIENT_MODULE = {
   createPopoverHandle: "feedback.js",
   // Still beside `CoverageStrip` in coverage-strip.tsx (that file is being changed by another batch, audit-fix-c7): moving it is one hunk, to a module of its own.
   coverageWords: "coverage-strip.js",
+  // B7's search over a server: it returns React nodes (each match a SearchMatch element), and a module without the directive may import no React, so it stays
+  // beside SearchPassage, where the passages render.
+  markMatches: "search.js",
 };
 
 test("the package entry is a barrel with no directive, and the plain values come from modules with none", async () => {

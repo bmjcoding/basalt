@@ -255,7 +255,9 @@ describe("the bytes, with the plugin and without it", () => {
   // cimip-gaps-2, B7 (DECISIONS 265): the center draws the pending ring (Phosphor's Circle), a group's core chevron and the reveal's track, so with the
   // plugin it rose from 143,793 to 147,187, and DECISIONS 268's popover default (18 bytes) brings it to 147,224, with Clear all (DECISIONS 269) 147,477, and with the
   // review's disclosure chevron and lifted errors 148,015 (143,800 to 148,050).
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 87_000, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
+  // cimip-gaps-2, B5 (DECISIONS 246 and 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a page change,
+  // and swipes upward under 720; B5 raised ToastProvider's own limit in bundle.test.mjs and not this one. Measured with the plugin, 89,698 (87,000 to 89,700).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
