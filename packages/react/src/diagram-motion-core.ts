@@ -75,7 +75,7 @@ function join(fig: Figure): Page {
   }
   page.figs.add(fig);
   if (fig.drawing) page.io.observe(fig.drawing);
-  page.mo.observe(fig.host.fig, { attributes: true, attributeFilter: ["data-tracing"] });
+  page.mo.observe(fig.host.fig, { attributes: true, attributeFilter: ["data-tracing", "data-viewing"] });
   return page;
 }
 
@@ -247,7 +247,8 @@ class Figure implements MotionController {
   }
   private entrance() { return this.host.fig.getAttribute("data-entrance"); }
   private hasLines() { return Boolean(this.host.geo()?.lines.length); }
-  private traced() { return this.host.fig.hasAttribute("data-tracing"); }
+  // A figure whose viewer is open holds its loops as a traced one does (DECISIONS 310, 9.7), and they start again when it closes.
+  private traced() { return this.host.fig.hasAttribute("data-tracing") || this.host.fig.hasAttribute("data-viewing"); }
 
   seen(entry: IntersectionObserverEntry) {
     this.inView = entry.isIntersecting;

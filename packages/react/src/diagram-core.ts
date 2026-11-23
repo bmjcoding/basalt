@@ -641,6 +641,8 @@ function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" |
 function keyTree(P: string, m: Model): VElement | null {
   return memo(m, `key:${P}`, () => buildKey(P, m));
 }
+/** The key alone, for the viewer's foot (DECISIONS 310, 9.2): the same entries the figure draws under its drawing. */
+export const figureKey = keyTree;
 function buildKey(P: string, m: Model): VElement | null {
   const entries: VElement[] = [];
   const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, words)));
@@ -810,6 +812,8 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
 function listTree(P: string, m: Model): VNode[] {
   return memo(m, `list:${P}`, () => buildList(P, m));
 }
+/** The list alone, for the viewer's stage (DECISIONS 310, 9.9): the page's own list, in place of the drawing. */
+export const figureList = listTree;
 function buildList(P: string, m: Model): VNode[] {
   const sub = Math.min(6, m.heading + 1);
   const H = (text: string) => h(`h${sub}`, { class: `${P}-list-head` }, text);
@@ -879,10 +883,13 @@ function keysSentence(m: Model): string {
   return `Arrow keys move to the next or the previous ${noun}, in the author's order; Home and End go to the ends; Escape clears the trace.`;
 }
 
-/** The key hint's entries: the keys and their words. */
-export function hintEntries(m: Model): Array<{ keys: string[]; words: string }> {
+/** The key hint's entries: the keys and their words. In the viewer (DECISIONS 310, 9.8) Esc closes, and the zoom keys are added. */
+export function hintEntries(m: Model, viewer = false): Array<{ keys: string[]; words: string }> {
+  if (viewer) return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["+", "−"], words: "zoom" }, { keys: ["0"], words: "fit" }, { keys: ["Esc"], words: "close" }];
   return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
 }
+/** The viewer's addition to the keys sentence (DECISIONS 310, 9.8). */
+export const VIEWER_KEYS = "Plus and minus zoom, zero fits the drawing, Escape closes.";
 
 export interface FigureOptions {
   /** The class prefix: "basalt-diagram" in React, "diagram" in the HTML skill. */
@@ -896,6 +903,8 @@ export interface FigureOptions {
   hasSource?: boolean;
   /** The class of the hidden text. */
   hiddenClass: string;
+  /** The figure is the viewer's (DECISIONS 310): only its drawing shows, and the keys sentence says the zoom keys. */
+  viewer?: boolean;
 }
 
 /** The whole figure. Before script runs `dyn` is empty; the same tree, with the measured `dyn`, is what script settles on. */
@@ -935,6 +944,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
     "data-motion": m.motion.animated ? "animated" : undefined,
+    "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
   h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
@@ -951,7 +961,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  h("span", { id: ids.keys, class: o.hiddenClass }, keysSentence(m)),
+  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m)} ${VIEWER_KEYS}` : keysSentence(m)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
@@ -1910,14 +1920,14 @@ export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
 
 // ---- Laying a figure out ----
 
-export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Tokens | null }
+export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Tokens | null; least?: number }
 
 /**
  * Measures the figure and settles its layout (1.11): the drawn layout when the figure is at least 640 wide, every track holds its widest
  * word, every label seats and no line passes through a node; otherwise the stack. `apply` writes a state into the DOM (the same markup the
  * tree gives for it), so each try is measured as it would be drawn.
  */
-export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void): Measured {
+export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void, sizeTo?: (least: number) => void): Measured {
   // Development only (the warnings): first, so a minifier sees it is a constant and drops what it guards.
   const dev = process.env.NODE_ENV !== "production";
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
@@ -1926,13 +1936,18 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   const tk = readTokens(fig);
   const measure = ruler(drawing, P);
   const mins = minimums(m, tk, measure);
+  // The viewer (DECISIONS 310, 9.3) sizes its figure from the least drawn width before it is measured: never under it, so the drawn layout is tried.
+  sizeTo?.(mins.least);
   const W = fig.clientWidth;
   const focusedId = (() => { const a = document.activeElement as HTMLElement | null; return a && drawing.contains(a) && a.dataset.node ? a.dataset.node : undefined; })();
   const stopOf = (d: Dyn): Dyn => {
     if (!hasStops(m, d)) return { ...d, stop: d.stop ?? m.nodes[0]?.id, keep: focusedId && !(d.layout === "drawn") ? focusedId : undefined };
     return { ...d, stop: d.stop && m.byId.has(d.stop) ? d.stop : m.nodes[0]?.id, keep: undefined };
   };
+  // A decision that is taller than it is wide at this width (call 1 of DECISIONS 306, section 4): the drawn layout is refused, as any fit failure is.
+  let tall = false;
   const heightsFor = (d: Dyn): Dyn => {
+    tall = false;
     if (m.type !== "flowchart") return d;
     apply({ ...d, heights: undefined, words: undefined });
     const heights = record<number>();
@@ -1970,6 +1985,8 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
         el.style.removeProperty("--_ww");
       }
       heights[el.dataset.node!] = height;
+      // Taller than wide after every width its words can take (DECISIONS 306, section 4, call 1): a width the flowchart is not drawn at.
+      if (height > nr.width) tall = true;
     });
     return { ...d, heights, words: Object.keys(widened).length ? widened : undefined };
   };
@@ -1987,16 +2004,17 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     let { dd: d, g: geo } = drawnTry(false);
     // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
     // A route the drawn layout refuses: through a node, off the drawing, or laid on another line.
-    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0;
+    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0 || tall;
     if (!refused(geo) && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
       const padded = drawnTry(true);
       if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
     }
     if (!refused(geo) && !geo.unseated.length) {
       if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
+      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
+    if (tall) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: a decision would be taller than it is wide`);
     if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
     if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
@@ -2005,7 +2023,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined });
   d = heightsFor(d);
   apply(d);
-  if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk };
+  if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
   const plan = stackPlan(m);
   let out = stackedGeometry(input(), measure, plan, d.grow);
   for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
@@ -2028,10 +2046,10 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
-    return { dyn, geo: bare, ink: "", tokens: tk };
+    return { dyn, geo: bare, ink: "", tokens: tk, least: mins.least };
   }
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
+  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
 }
 
 function lineName(m: Model, l: GLine): string {

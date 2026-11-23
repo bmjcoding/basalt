@@ -4923,6 +4923,84 @@
     .basalt-diagram :is(.basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet, .basalt-diagram-motion-defs) { display: none !important; }
   }
 
+  /* ---- Diagram viewer (DECISIONS 310; part 9 of DECISIONS 301): "Expand", and the dialog where a figure's drawn layout is zoomed and panned ----
+     The form dialog's box with the sheet's head, body and foot (DECISIONS 155, 222): from 720 the window less space-4 on every side, under it the whole
+     window. The body is the stage: it scrolls both ways, so a pan is a scroll. The figure in it is laid out once at 100% (the layer's width) and zoomed
+     with one transform: never a viewBox, CSS zoom, a canvas or a picture, and no layer is held (no will-change). Nothing in it moves: a zoom step lands
+     at once. Decided by the council's decider alone; no draft, check or position. The implementation hasn't been reviewed. */
+  .basalt-diagram-expand > .basalt-icon { flex: none; }
+  @media (pointer: coarse) {
+    .basalt-diagram-expand { min-height: var(--basalt-size-tap-min); }
+  }
+  /* From 720 the window less space-4 on every side; under it the form dialog's full-screen modal, unchanged. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) {
+    /* stylelint-disable-next-line unit-disallowed-list -- the window less space-4 on every side (viewport units); a fixed-length token cannot say it */
+    .basalt-dialog[data-form].basalt-diagram-viewer, .basalt-dialog[data-form][data-held].basalt-diagram-viewer { width: calc(100vw - 2 * var(--basalt-space-4)); max-width: none; height: calc(100dvh - 2 * var(--basalt-space-4)); max-height: none; }
+  }
+  .basalt-diagram-viewer .basalt-sheet-head { flex: none; }
+  .basalt-diagram-viewer-source { overflow-wrap: break-word; }
+  .basalt-diagram-stage {
+    /* The stage's padding round the drawing (9.4), the travel that makes a press a drag (space-1), the margin a focused card keeps from the edge (space-4),
+       and the rest before the zoom is spoken (duration-slower), read by the script. */
+    --_pad: var(--basalt-space-4);
+    --_travel: var(--basalt-space-1);
+    --_clear: var(--basalt-space-4);
+    --_rest: var(--basalt-duration-slower);
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    touch-action: none;
+    outline: none;
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width >= 720px) { .basalt-diagram-stage { --_pad: var(--basalt-space-6); } }
+  /* The flush field's ring: the stage meets the dialog's clipping edges, so its ring is inset at -2. */
+  .basalt-diagram-stage:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-diagram-stage[data-pannable] { cursor: grab; }
+  .basalt-diagram-stage[data-pannable][data-dragging] { cursor: grabbing; }
+  /* The list is the page's list, in the stage at 100%: ordinary touch scrolling, its words selectable. */
+  .basalt-diagram-stage[data-list] { display: block; touch-action: pan-y; }
+  .basalt-diagram-probe { position: absolute; top: 0; left: 0; height: 0; visibility: hidden; pointer-events: none; }
+  .basalt-diagram-probe[data-probe="row"] { width: calc(var(--basalt-size-page-width) - 2 * var(--basalt-size-gutter)); }
+  .basalt-diagram-probe[data-probe="contain"] { width: var(--basalt-size-breakpoint-container); }
+  /* The sizer is as large as the zoomed drawing, plus the padding; its auto margins centre a drawing smaller than the stage and resolve to 0 past it. */
+  .basalt-diagram-sizer { position: relative; flex: none; box-sizing: content-box; margin: auto; padding: var(--_pad); }
+  .basalt-diagram-sizer[hidden] { display: none; }
+  .basalt-diagram-layer { position: absolute; top: var(--_pad); inset-inline-start: var(--_pad); transform-origin: 0 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .basalt-diagram-layer:dir(rtl) { transform-origin: 100% 0; }
+  /* The viewer's figure shows its drawing alone: the dialog holds its title, its key, its hint and its controls. */
+  .basalt-diagram[data-viewer] { gap: 0; }
+  .basalt-diagram[data-viewer] > :is(.basalt-diagram-head, .basalt-diagram-key, .basalt-diagram-hint, .basalt-diagram-foot, .basalt-diagram-list, .basalt-diagram-summary) { display: none; }
+  .basalt-diagram-viewer-list { box-sizing: border-box; max-width: calc(var(--basalt-size-page-width) - 2 * var(--basalt-size-gutter) + 2 * var(--_pad)); padding: var(--_pad); }
+  .basalt-diagram-viewer-foot { display: flex; flex-direction: column; gap: var(--basalt-space-3); padding-block-start: var(--basalt-space-3); }
+  .basalt-diagram-viewer-key { --_ground: var(--_surface, var(--basalt-surface-overlay)); }
+  .basalt-diagram-viewer-key .basalt-diagram-key { padding-block-start: 0; border-top: 0; }
+  .basalt-diagram-viewer-key[data-layout="drawn"] .basalt-diagram-entry[data-when="stacked"], .basalt-diagram-viewer-key[data-layout="stacked"] .basalt-diagram-entry[data-when="drawn"], .basalt-diagram-viewer-key[data-bare] .basalt-diagram-entry[data-line] { display: none; }
+  .basalt-diagram-viewer-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-diagram-zoom { display: flex; align-items: center; gap: var(--basalt-space-1); }
+  /* The level between the two buttons, its width held for "400%" so the buttons never move. */
+  .basalt-diagram-level { display: inline-grid; justify-items: center; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-diagram-level::before { content: attr(data-reserve); grid-area: 1 / 1; visibility: hidden; }
+  .basalt-diagram-level > span { grid-area: 1 / 1; }
+  .basalt-diagram-viewer-hint { flex: 1 1 auto; min-width: 0; }
+  .basalt-diagram-viewer-end { display: flex; gap: var(--basalt-space-2); margin-inline-start: auto; }
+  @media (pointer: coarse) {
+    .basalt-diagram-zoom .basalt-button, .basalt-diagram-viewer-end .basalt-button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); }
+  }
+  @media (forced-colors: active) {
+    .basalt-diagram-level { color: CanvasText; }
+    .basalt-diagram-viewer-foot [aria-disabled="true"] { color: GrayText; }
+  }
+  /* The viewer and its scrim do not print: the page prints its own figure, untraced and light. "Expand" does not print. */
+  @media print {
+    .basalt-diagram-expand, .basalt-diagram-viewer, :root:has(.basalt-diagram-viewer) .basalt-dialog-backdrop { display: none !important; }
+  }
+
   /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----
      Ported from the owner's approved prototypes, with the council's changes. The lit gradient is three neutral stops that each hold 3:1 on levels 0 to 3; a lit line is
      one stroke in the top stop; there is no area under a line, no cursor, no halo and no plate on a trend. The implementation hasn't been reviewed. */
