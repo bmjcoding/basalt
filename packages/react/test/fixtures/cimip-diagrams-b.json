@@ -638,7 +638,7 @@
     "type": "schema",
     "title": "The tables an incident and its runs live in",
     "source": "server/db/schema.ts; each table shows its keys and a few columns",
-    "summary": "Eight PostgreSQL tables center on incidents: memberships, room_events, log_segments, sandboxes and agent_runs reference incidents.id; memberships and incidents reference users.id; agent_runs references sandboxes.id; and approvals references agent_runs.id.",
+    "summary": "Eight PostgreSQL tables center on incidents: memberships, room_events, log_segments, sandboxes, agent_runs and approvals reference incidents.id; memberships, incidents and approvals reference users.id; agent_runs references sandboxes.id; and approvals references agent_runs.id. Each foreign key says how many rows each end allows.",
     "legend": {
       "plain": "A foreign key, to the key it references",
       "focal": "The table most of the others reference"
@@ -653,12 +653,20 @@
           {
             "name": "incident_id",
             "key": "PK",
-            "references": "incidents.id"
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "one-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "user_id",
             "key": "PK",
-            "references": "users.id"
+            "references": "users.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "role",
@@ -683,7 +691,11 @@
           {
             "name": "incident_id",
             "key": "PK",
-            "references": "incidents.id"
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "seq",
@@ -709,7 +721,11 @@
           {
             "name": "incident_id",
             "key": "PK",
-            "references": "incidents.id"
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "first_seq",
@@ -760,7 +776,11 @@
           {
             "name": "commander_id",
             "key": "FK",
-            "references": "users.id"
+            "references": "users.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "zero-or-one"
+            }
           },
           {
             "name": "last_seq",
@@ -812,7 +832,11 @@
           {
             "name": "incident_id",
             "key": "FK",
-            "references": "incidents.id"
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "zero-or-one",
+              "to": "one"
+            }
           },
           {
             "name": "state",
@@ -841,12 +865,20 @@
           {
             "name": "incident_id",
             "key": "FK",
-            "references": "incidents.id"
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "sandbox_id",
             "key": "FK",
-            "references": "sandboxes.id"
+            "references": "sandboxes.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
           },
           {
             "name": "kind",
@@ -870,7 +902,7 @@
         "name": "approvals",
         "col": 4,
         "row": 1,
-        "more": 8,
+        "more": 6,
         "columns": [
           {
             "name": "id",
@@ -878,9 +910,31 @@
             "type": "text"
           },
           {
+            "name": "incident_id",
+            "key": "FK",
+            "references": "incidents.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
+          },
+          {
             "name": "run_id",
             "key": "FK",
-            "references": "agent_runs.id"
+            "references": "agent_runs.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "one"
+            }
+          },
+          {
+            "name": "decided_by",
+            "key": "FK",
+            "references": "users.id",
+            "cardinality": {
+              "from": "zero-or-many",
+              "to": "zero-or-one"
+            }
           },
           {
             "name": "command",

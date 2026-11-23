@@ -412,6 +412,15 @@ class Figure implements MotionController {
         const copy = svgEl("circle", { cx: dot.getAttribute("cx") ?? 0, cy: dot.getAttribute("cy") ?? 0, r: Number(dot.getAttribute("r") ?? 3) + 1, fill: "#fff" }, mask);
         clocked(copy.animate([{ opacity: 0 }, { opacity: 1 }], { duration: t.fast, delay: plan.start, easing: t.out, fill: "both" }));
       }
+      // Cardinality marks (DECISIONS 306, 1.1): the foreign-key end's fade in as the dot does, the referenced end's as a head does.
+      g.querySelectorAll(`.${P}-crow, .${P}-ring`).forEach((mark) => {
+        const ring = mark.tagName.toLowerCase() === "circle";
+        const copy = ring
+          ? svgEl("circle", { cx: mark.getAttribute("cx") ?? 0, cy: mark.getAttribute("cy") ?? 0, r: Number(mark.getAttribute("r") ?? 3) + 1, fill: "#fff" }, mask)
+          : svgEl("path", { d: mark.getAttribute("d") ?? "", fill: "none", stroke: "#fff", "stroke-width": 3 }, mask);
+        const from = mark.getAttribute("data-end") === "from";
+        clocked(copy.animate([{ opacity: 0 }, { opacity: 1 }], from ? { duration: t.fast, delay: plan.start, easing: t.out, fill: "both" } : { duration: t.slow, delay: plan.start + 0.85 * plan.dur, easing: t.out, fill: "both" }));
+      });
       g.setAttribute("mask", `url(#${id})`);
     }
     // A sequence's labels are drawn in secondary ink before their turn and lift to primary over duration-slower (1.4). Built once, on the clock.

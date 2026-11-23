@@ -35,7 +35,7 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
   }
 
   // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
-  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-layout', 'data-measured', 'data-bare'];
+  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-marks', 'data-layout', 'data-measured', 'data-bare'];
   var OWN_STYLE = ['--_cols', '--_gpad', '--_track'];
 
   /**
