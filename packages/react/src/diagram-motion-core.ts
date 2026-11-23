@@ -50,8 +50,6 @@ export interface MotionController {
 interface Page { figs: Set<Figure>; io: IntersectionObserver; mo: MutationObserver; media: MediaQueryList[]; onChange: () => void; onPrint: () => void }
 let page: Page | undefined;
 
-const THRESHOLDS = Array.from({ length: 21 }, (_, k) => k / 20);
-
 function join(fig: Figure): Page {
   if (!page) {
     const onChange = () => { for (const f of page?.figs ?? []) f.sync(); };
@@ -59,7 +57,7 @@ function join(fig: Figure): Page {
     const onPrint = () => { for (const f of page?.figs ?? []) settleEntrance(f.host.fig); onChange(); };
     const io = new IntersectionObserver((entries) => {
       for (const entry of entries) for (const f of page?.figs ?? []) if (f.drawing === entry.target) f.seen(entry);
-    }, { threshold: THRESHOLDS });
+    }, { threshold: Array.from({ length: 21 }, (_, k) => k / 20) });
     const mo = new MutationObserver((records) => {
       for (const r of records) {
         if (r.target === document.documentElement) { for (const f of page?.figs ?? []) f.holdChanged(); continue; }
