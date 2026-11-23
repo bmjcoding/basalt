@@ -101,7 +101,7 @@ const alone = (name) => `import { ${name} } from "./dist/index.js"; console.log(
 // of a core glyph), so Pagination draws none either.
 const CASES = [
   ["Kbd", ["Command", "Control", "Option"]],
-  ["Terminal", ["CheckCircle", "Warning", "XCircle"]],
+  ["Terminal", ["CheckCircle", "Prohibit", "Warning", "XCircle"]],
   ["Callout", ["Info", "CheckCircle", "Warning", "XCircle"]],
   ["ToastProvider", ["CheckCircle", "Warning", "XCircle"]],
   ["NotificationCentre", ["CheckCircle", "Warning", "XCircle", "Circle"]],
@@ -258,7 +258,10 @@ describe("the bytes, with the plugin and without it", () => {
   // cimip-gaps-2, B5 (DECISIONS 246 and 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a page change,
   // and swipes upward under 720; B5 raised ToastProvider's own limit in bundle.test.mjs and not this one. Measured with the plugin, 89,698 (87,000 to 89,700).
   // The full-run fix (DECISIONS 246): a control that is not disabled no longer writes aria-disabled="false", 4 bytes a site; Terminal measures 28,655 (28,650 to 28,700).
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_700, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
+  // Stages and runs (DECISIONS 316, 1.7): Terminal's stage lines bring RunTimer (its shared interval, its seats and the head's held form, which formats a
+  // clock and a day), the canceled line's Prohibit and the core minus, so with the plugin it rose from 28,655 to 35,865 (28,700 to 35,900). Reported on the
+  // PR: more than the 5% margin, so it is the decider's to accept or to ask for the stage lines in a module of their own.
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 35_900, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
@@ -368,6 +371,7 @@ function App() {
       <Site name="breadcrumbs"><B.Breadcrumbs items={[{ label: "Home", href: "#" }, { label: "Runs", href: "#" }, { label: "Run 1" }]} /></Site>
       <Site name="kbd"><B.Kbd>⌘K</B.Kbd><B.Kbd>⌥⌃⇧↵</B.Kbd></Site>
       <Site name="terminal"><B.Terminal title="Deploy" lines={LINES} /><B.Terminal title="Done" lines={LINES} status="done" /><B.Terminal title="Failed" lines={LINES} status="failed" /></Site>
+      <Site name="runs">{["queued", "running", "success", "failed", "skipped", "canceled"].map((s) => <B.StageMark key={s} state={s} />)}<B.Terminal title="Stages" stages lines={[{ kind: "stage", state: "done", text: "Cloned" }, { kind: "stage", state: "failed", text: "Build failed" }, { kind: "stage", state: "skipped", text: "cache" }, { kind: "stage", state: "canceled", text: "upload" }]} /></Site>
       <Site name="code-block"><B.CodeBlock title="x" code="npm i" language="sh" /></Site>
       <Site name="social"><B.SocialLinks>{["github", "x", "linkedin", "instagram", "youtube", "email"].map((s) => <B.SocialLink key={s} service={s} href="#">{s}</B.SocialLink>)}</B.SocialLinks><B.ProfileLinks><B.ProfileLink service="github" handle="basalt" href="#">GitHub</B.ProfileLink></B.ProfileLinks></Site>
       <Site name="table-sort"><B.Table><B.TableHeader><tr><B.TableHead sort="ascending" onSortChange={() => {}}>Name</B.TableHead><B.TableHead numeric sort="descending" onSortChange={() => {}}>Cost</B.TableHead></tr></B.TableHeader><B.TableBody><tr><td>a</td><td>1</td></tr></B.TableBody></B.Table></Site>
@@ -450,7 +454,7 @@ describe("every icon's markup is byte-identical to before, in every component an
       assert.ok(markup.includes(d), `${name} is drawn in the fixture`);
     }
     const sites = new Set(reference.icons.map(([site]) => site));
-    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "theme-menu", "notifications", "portal"]) {
+    for (const site of ["callouts", "accordion", "checkbox", "select-closed", "number-field", "pagination", "breadcrumbs", "kbd", "terminal", "runs", "code-block", "social", "table-sort", "multi-select-chips", "multi-select-list", "app-icons", "theme-menu", "notifications", "portal"]) {
       assert.ok(sites.has(site), `${site} draws an icon`);
     }
     // the toasts, the open Menu, its submenu, the open Select and Combobox and the command menu are portalled, outside any site

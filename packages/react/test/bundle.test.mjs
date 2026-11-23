@@ -439,7 +439,8 @@ test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no S
 
 test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
   const { bytes, inputs } = await graph("Terminal");
-  assert.ok(bytes < 40_000, `Terminal bundle is ${bytes} bytes`);
+  // Stages and runs (DECISIONS 316): stage lines, RunTimer and the Prohibit mark took it from about 32,300 to 40,670 (40,000 to 40,700); reported on the PR.
+  assert.ok(bytes < 40_700, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });

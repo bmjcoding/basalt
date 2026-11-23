@@ -4459,6 +4459,38 @@
   .basalt-progress > .basalt-progress-head > .basalt-progress-value { display: inline-grid; justify-items: end; }
   .basalt-progress > .basalt-progress-head > .basalt-progress-value::before { content: "100%"; block-size: 0; overflow: hidden; visibility: hidden; }
 
+  /* Terminal's stage lines (1.7). The gutter: braille while running (in the 16px seat, centred), the core check in secondary when done, XCircle in
+     danger when failed (the error line: its text in danger too), the core minus and Prohibit in tertiary when skipped or canceled. Running text is
+     primary, done secondary, skipped and canceled tertiary with their word first. The duration stands at the line's end in tertiary, tabular: lines
+     are as wide as the log, so the durations are one column and a long line arriving moves none of them. */
+  .basalt-terminal .basalt-code-line[data-kind="stage"] .basalt-code-gutter { display: flex; align-items: center; }
+  .basalt-terminal-braille { display: inline-flex; inline-size: var(--basalt-size-icon-sm); justify-content: center; }
+  .basalt-terminal .basalt-code-line[data-kind="stage"] { color: var(--basalt-text-primary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="done"] { color: var(--basalt-text-secondary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="done"] .basalt-terminal-mark { color: var(--basalt-text-secondary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) .basalt-terminal-mark { color: var(--basalt-text-tertiary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="failed"] :is(.basalt-terminal-mark, .basalt-code-text) { color: var(--basalt-status-danger); }
+  .basalt-terminal-stage { display: flex; justify-content: space-between; gap: var(--basalt-space-4); }
+  .basalt-code-pre[data-stages] > .basalt-code-lines { width: 100%; }
+  .basalt-terminal-duration { flex: none; }
+  .basalt-terminal-duration .basalt-run-timer { font: inherit; color: var(--basalt-text-tertiary); }
+  .basalt-terminal-time { display: inline-flex; }
+  .basalt-terminal-time .basalt-run-timer { color: var(--basalt-text-secondary); font-size: inherit; line-height: inherit; }
+  /* keep: a line older than the newest keep stage lines, and its output, steps back once to tertiary, its mark and duration too; a failed one is
+     danger at opacity-recede-danger. A colour step over duration-fast; nothing moves. Never under more contrast or in forced colours. */
+  .basalt-terminal .basalt-code-line { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media not ((prefers-contrast: more) or (forced-colors: active)) {
+    .basalt-terminal .basalt-code-line[data-receded],
+    .basalt-terminal .basalt-code-line[data-receded] :is(.basalt-code-gutter, .basalt-terminal-mark, .basalt-code-text, .basalt-terminal-duration .basalt-run-timer) { color: var(--basalt-text-tertiary); }
+    .basalt-terminal .basalt-code-line[data-receded][data-state="failed"] :is(.basalt-terminal-mark, .basalt-code-text) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+  }
+  :root[data-loops="held"] .basalt-terminal .basalt-code-line { transition: none; }
+  /* No scrollbar on a live transcript's window, on either axis, from its first frame (the owner, DECISIONS 312): it stays a named tab stop the keys,
+     the wheel and a finger scroll. A static Terminal and CodeBlock keep the system's. */
+  .basalt-terminal[data-live] .basalt-code-pre { scrollbar-width: none; scrollbar-gutter: auto; }
+  .basalt-terminal[data-live] .basalt-code-pre::-webkit-scrollbar { display: none; }
+
 
   /* A prose page's column is size-prose-width on the row's start edge, never centred. */
   .basalt-prose { box-sizing: border-box; max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; min-width: 0; }

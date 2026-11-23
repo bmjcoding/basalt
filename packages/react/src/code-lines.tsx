@@ -96,6 +96,8 @@ export interface CodeLineProps {
   /** What sits in the gutter: a prompt, a status mark, or nothing (an empty seat). */
   gutter?: React.ReactNode;
   kind?: string;
+  /** In a stage transcript given `keep`, a line older than the newest stages: it steps back once, to tertiary ink. */
+  receded?: boolean;
   children?: React.ReactNode;
 }
 
@@ -104,9 +106,9 @@ export interface CodeLineProps {
  * `user-select: none`, so a selection never takes it, and what is in it that is only a symbol (a prompt) is `aria-hidden`.
  * `CodeBlock` with a prompt and `Terminal` draw their lines with this one.
  */
-export function CodeLine({ gutter, kind, children }: CodeLineProps) {
+export function CodeLine({ gutter, kind, receded, children }: CodeLineProps) {
   return (
-    <span className="basalt-code-line" data-kind={kind}>
+    <span className="basalt-code-line" data-kind={kind} data-receded={receded ? "" : undefined}>
       <span className="basalt-code-gutter">{gutter}</span>
       <span className="basalt-code-text">{children}</span>
     </span>
