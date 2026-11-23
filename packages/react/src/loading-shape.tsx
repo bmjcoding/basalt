@@ -3,7 +3,7 @@
 //
 // Two forms:
 //   shape={() => <Rows items={standIns} />}                  everything a bone but known words (KEEP): nothing about the data is known
-//   prefill={(v) => <Room room={fillIn(known, standInRoom(v))} />}
+//   prefill={(v) => <Order order={fillIn(known, standInOrder(v))} />}
 //                                                           what is known shows as itself, and only what is unknown is a bone
 //
 // How a prefill knows what is known, with no marking by the app: it is drawn twice, with two different fillings of what is unknown (`variant` 0,

@@ -394,7 +394,9 @@ export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClic
   firstSort?: SortDirection;
   /**
    * A `TableHeadExplainer` for a column a reader could misread without one (a term of art, a coined name, a measurement whose method
-   * changes the reading). Only a sortable header takes one; a table without explainers loads none of its code.
+   * changes the reading). A sortable header opens it from its sort button; a header that does not sort becomes a focus stop of its own
+   * (`tabindex="0"`, the −2 inset ring of the still table's other stops) described by the explainer's words. A table without explainers
+   * loads none of its code.
    */
   explainer?: React.ReactNode;
 }
@@ -405,7 +407,7 @@ export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClic
  * indicator shows.
  */
 export function TableHead({ numeric, sort, onSortChange, firstSort, explainer, className, children, ...props }: TableHeadProps) {
-  if (!onSortChange) return <th scope="col" {...props} aria-sort={sort} data-numeric={numeric ? "" : undefined} className={className}>{children}</th>;
+  if (!onSortChange) return <th scope="col" {...props} aria-sort={sort} data-numeric={numeric ? "" : undefined} className={className}>{children}{explainer}</th>;
   const first: SortDirection = firstSort ?? (numeric ? "descending" : "ascending");
   const next: SortDirection | undefined = sort === undefined ? first : sort === first ? (first === "ascending" ? "descending" : "ascending") : undefined;
   return (

@@ -713,7 +713,7 @@ createRoot(document.getElementById("root")).render(<App />);`);
 });
 
 describe("review: a remembered count", () => {
-  test("only a whole number of rows, none or more, is stored; anything a JavaScript caller passes besides is dropped", async () => {
+  test("only a whole number of rows, none or more, is stored in the store the app passes; anything a JavaScript caller passes besides is dropped; with no store, the origin's storage is untouched", async () => {
     // An address of its own: a page set from a string (about:blank) may not use storage.
     const page = await browser.newPage();
     const script = await bundleFixture(`window.B = B; createRoot(document.getElementById("root")).render(<p>Counts</p>);`);
@@ -722,13 +722,17 @@ describe("review: a remembered count", () => {
     const got = await page.evaluate(() => {
       localStorage.clear();
       const tries = [["text", "12"], ["negative", -1], ["fraction", 1.5], ["nan", Number.NaN], ["huge", Number.MAX_VALUE], ["object", { valueOf: () => 3 }]];
-      for (const [key, value] of tries) B.rememberCount(key, value);
-      B.rememberCount("rows", 12);
-      B.rememberCount("none", 0);
+      // The app's own store (DECISIONS 266: the count is the app's data, kept where it says): here the origin's localStorage, passed on purpose.
+      for (const [key, value] of tries) B.rememberCount(key, value, localStorage);
+      B.rememberCount("rows", 12, localStorage);
+      B.rememberCount("none", 0, localStorage);
       localStorage.setItem("basalt-shape:planted", "1e3");
-      return { stored: Object.keys(localStorage).sort(), rows: B.rememberedCount("rows"), none: B.rememberedCount("none"), planted: B.rememberedCount("planted") };
+      const stored = Object.keys(localStorage).sort();
+      // With no store, a count lasts for the page and nothing is written to the origin's storage.
+      B.rememberCount("page-only", 5);
+      return { stored, after: Object.keys(localStorage).sort(), rows: B.rememberedCount("rows", localStorage), none: B.rememberedCount("none", localStorage), planted: B.rememberedCount("planted", localStorage), pageOnly: B.rememberedCount("page-only"), notInStorage: B.rememberedCount("rows") };
     });
-    assert.deepEqual(got, { stored: ["basalt-shape:none", "basalt-shape:planted", "basalt-shape:rows"], rows: 12, none: 0, planted: null });
+    assert.deepEqual(got, { stored: ["basalt-shape:none", "basalt-shape:planted", "basalt-shape:rows"], after: ["basalt-shape:none", "basalt-shape:planted", "basalt-shape:rows"], rows: 12, none: 0, planted: null, pageOnly: 5, notInStorage: null });
     await page.close();
   });
 });

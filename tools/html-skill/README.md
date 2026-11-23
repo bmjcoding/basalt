@@ -19,7 +19,7 @@ src/
                            build.mjs copies them into the skill's parts/usage/
   icons.json               the Phosphor names a page can draw (Bold paths, at every size, are read from @phosphor-icons/react; the build fails for a name it hasn't got)
   compose.mjs              the tool an agent runs; copied into the skill folder as it is
-  examples/*.body.html     two example bodies, copied into the skill folder
+  examples/*.body.html     the example bodies (two reports of unlike kinds and an interactive page), copied into the skill folder
 build.mjs                  writes the skill folder: minified parts/, compose.mjs, examples/ (npm run build runs it)
 test/                      html-skill (behaviour, both themes, axe), compose (detection, budgets, cheat-sheet mapping),
                            pixel (the example pages and a page with every component match #26), parity (against React)

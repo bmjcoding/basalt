@@ -2577,6 +2577,9 @@
   .basalt-explainer-body > * { margin: 0; }
   .basalt-explainer-body > * + * { margin-block-start: var(--basalt-space-2); }
   .basalt-table th[data-explained] .basalt-sort { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  /* A header that does not sort and has an explainer is the opener itself: a focus stop with the still table's other inset ring (a header band clips +2), and no selection on a long press. */
+  .basalt-table th[data-explained]:not([data-sortable]) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .basalt-table th[data-explained]:not([data-sortable]):focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   @media print { .basalt-explainer { display: none; } }
 
   /* The empty row: one cell across every column, under the unchanged header. It is not a pinned or hoverable row; its
@@ -5511,6 +5514,10 @@
      its own width (720 on a coarse pointer) the numbers go and the page size follows the pager, or is the end of a second row where they do not fit. */
   /* The sentinel's scroll-margin-top is the bar's room as a length (script reads it: where the band rests); it scrolls nothing itself. */
   .basalt-list-band-sentinel { height: 0; scroll-margin-top: var(--basalt-sticky-offset); }
+  /* A list in a pane that scrolls on its own (`scroller`): the pane has no bar over it, so the band, the sentinel and Back to top's dock rest at the pane's top edge. The default is
+     set once, on the wrap, and the band's own Back to top inherits it: an app with a sticky header of its own inside the pane sets the property on the wrap in its own CSS (which
+     wins over this layer), and the band, the return to rest and Back to top all move under that header together. A standalone BackToTop in a pane takes the same default itself. */
+  .basalt-list-band-wrap[data-scroller], .basalt-back-to-top-dock[data-scroller]:not(.basalt-list-band-wrap > *) { --basalt-sticky-offset: var(--basalt-space-0); }
   .basalt-list-band { container-type: inline-size; background: var(--basalt-surface-page); z-index: var(--basalt-layer-sticky); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) {
@@ -6439,7 +6446,7 @@
     .basalt-source-stamp { color: CanvasText; }
   }
 
-  /* ---- Declare's gaps (DECISIONS 237, 239 to 242: the owner's decisions on CIMIP's Declare dialog; the implementation hasn't been reviewed) ---- */
+  /* ---- Form gaps (DECISIONS 237, 239 to 242; found by the first app's multi-column form dialog; the implementation hasn't been reviewed) ---- */
 
   /* A hint or an error whose words change (a `Reserve`) lays out as a block that wraps, not the inline grid a `Reserve` is: all its wordings share one cell as wide as the line, so
      the longest sets the height and the line never moves what is under it. */
@@ -6468,13 +6475,18 @@
 
   /* ---- FormGrid: fields in columns that line up ---- */
   /* Each cell takes four tracks a row (label, control, hint, error) and is a subgrid on them, so cells beside each other share every track. The spaces are Basalt's and each is held by
-     its track as a margin: the field gap inside a cell, the form gap above a label that is not in the first row. Under 720 it is one column in the markup's order. */
+     its track as a margin: the field gap inside a cell, the form gap above a label that is not in the first row. It answers the room it has, not the window: its frame is the container,
+     and it is columns only where that frame is at least size-breakpoint-container-lg (640px) wide and the window at least size-breakpoint-md (720px); anywhere else (a phone, a 480
+     dialog, a narrow pane) it is one column in the markup's order. */
+  .basalt-form-grid-frame { container: basalt-form-grid / inline-size; min-width: 0; }
   .basalt-form-grid { display: flex; flex-direction: column; gap: var(--basalt-space-4); min-width: 0; }
   .basalt-form-grid-item { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; }
   .basalt-switch-field > .basalt-choice { align-self: flex-start; }
 
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) {
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container basalt-form-grid (width >= 640px) {
     .basalt-form-grid { display: grid; grid-template-columns: var(--_fg-columns, minmax(0, 1fr) minmax(0, 1fr)); gap: 0 var(--basalt-space-8); }
     .basalt-form-grid > :is(.basalt-field, .basalt-form-grid-item) {
       display: grid;
@@ -6507,9 +6519,13 @@
     .basalt-form-grid > .basalt-form-grid-item .basalt-switch-field > .basalt-choice,
     .basalt-form-grid > .basalt-form-grid-item > .basalt-choice { align-self: center; justify-self: start; }
   }
+  }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) and (pointer: fine) {
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container basalt-form-grid (width >= 640px) {
     .basalt-form-grid .basalt-choice { min-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  }
   }
 
   /* ==== The conversation stream (the second gaps batch, B2): messages, notes, quotes, the entry you came to, the disclosure row, the activity list and

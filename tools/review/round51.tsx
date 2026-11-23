@@ -42,6 +42,7 @@ import {
   TableRowHead,
   Text,
 } from "../../packages/react/src/index";
+import { PaneList } from "./af-demos";
 import type { Round } from "./rounds";
 
 const SEV = ["SEV1", "SEV2", "SEV3", "SEV4"] as const;
@@ -300,6 +301,21 @@ export const ROUND_51: Round = {
       ...SHOT,
       height: 900,
       demo: ({ state }) => <PastTable state={state} />,
+    },
+    {
+      id: "catalog",
+      name: "A second domain: a shop's catalog in a pane that scrolls on its own",
+      intro: "138 synthetic products in an app's main pane, which scrolls by itself beside a narrow aside (cimip-gaps-2, AF). The band is given the pane as its `scroller`: it sticks to the pane's top, a page change returns the pane to where the band rests, and Back to top watches and moves the pane.",
+      decisions: [
+        "The scroller is the window unless the app names one (`scroller`, an element or a ref). In a pane the band rests at the pane's top edge (`--basalt-sticky-offset` is 0 there).",
+        "The return to rest waits for the page or size the press asked for, however long the app takes, and is forgotten when a filter changes (`filterKey`) or the app goes elsewhere.",
+        "The rest is the incident rows' band: the same count, pager, page size, foot and Back to top. Every word is the app's (“Products per page”, “Product pages, end of list”).",
+      ],
+      tryIt: ["Scroll the pane, not the page: the band sticks to the pane's top.", "Press Next while stuck: the pane returns to the band's rest.", "Scroll the pane past one screen: Back to top appears; press it."],
+      states: ["page-4", "filtered", "back-down", "foot-end", "page-4-forced-colours", "back-down-reduced-motion"],
+      ...SHOT,
+      height: 900,
+      demo: ({ state }) => <PaneList domain="catalog" state={state} />,
     },
     {
       id: "pager-links",

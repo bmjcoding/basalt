@@ -9,6 +9,7 @@ import type { FormGridPlacement } from "./form-grid";
 import type { ChangeDetails, PartProps, ValidateActions } from "./types";
 import { withClass } from "./utils";
 import { useJoinedRef, useWriting } from "./wait";
+import type { WritingEmpty } from "./wait";
 
 export type InputProps = PartProps<"input"> & {
   /** Called with the new text, and why it changed. Prefer it to `onChange` inside a `Field`. */
@@ -19,19 +20,21 @@ export type InputProps = PartProps<"input"> & {
    * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
    * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
    * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
-   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
+   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts (`writingEmpty`).
    */
   writing?: boolean;
+  /** What an empty `value` shows while `writing`: `"keep"` (the default) keeps the text that was there; `"clear"` shows the field empty, the busy look kept. */
+  writingEmpty?: WritingEmpty;
 };
 
 // Whether the `Field` an input sits in is required: the input then carries `required`, which is what a screen reader says.
 const FieldRequiredContext = React.createContext(false);
 
 /** A text input. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
-export function Input({ controlSize = "md", className, required, writing = false, value, readOnly, ref, ...props }: InputProps) {
+export function Input({ controlSize = "md", className, required, writing = false, writingEmpty, value, readOnly, ref, ...props }: InputProps) {
   const inRequiredField = React.useContext(FieldRequiredContext);
   const own = React.useRef<HTMLInputElement | null>(null);
-  const written = useWriting(writing, value, own);
+  const written = useWriting(writing, value, own, writingEmpty);
   return (
     <BaseInput
       {...props}
@@ -74,7 +77,7 @@ export interface FieldProps extends Omit<PartProps<"div">, "children">, FormGrid
    */
   optional?: boolean;
   /**
-   * A node at the end of the label's row, on the label track: the Title's "Generate a title" `TextButton`. It is not inside the `<label>`, so a press on
+   * A node at the end of the label's row, on the label track: a `TextButton` such as "Suggest a name" beside a Name field, or "Use my address". It is not inside the `<label>`, so a press on
    * it never focuses the control, and the label stays as wide as its words and "Required" (DECISIONS 233). In a `FormGrid` the row is the label track, so
    * it lines up with the fields beside it. It names its own action: give a button words that say what it does, beside this field's label.
    */

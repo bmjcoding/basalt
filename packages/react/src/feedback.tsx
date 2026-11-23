@@ -22,6 +22,7 @@ import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeD
 import { join, withClass } from "./utils";
 import { CONFIRM_MS } from "./constants";
 import { useJoinedRef, useWriting } from "./wait";
+import type { WritingEmpty } from "./wait";
 
 // ---- Textarea ----
 
@@ -33,15 +34,17 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
    * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
    * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
    * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
-   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
+   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts (`writingEmpty`).
    */
   writing?: boolean;
+  /** What an empty `value` shows while `writing`: `"keep"` (the default) keeps the text that was there; `"clear"` shows the field empty, the busy look kept. */
+  writingEmpty?: WritingEmpty;
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
-export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, ref, ...props }: TextareaProps) {
+export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, ...props }: TextareaProps) {
   const own = React.useRef<HTMLTextAreaElement | null>(null);
-  const written = useWriting(writing, value, own);
+  const written = useWriting(writing, value, own, writingEmpty);
   return (
     <BaseField.Control
       id={id}
