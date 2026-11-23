@@ -61,17 +61,20 @@
   [data-level="2"] { --_surface: var(--basalt-surface-2); --_well: var(--basalt-surface-well-2); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
   [data-level="3"] { --_surface: var(--basalt-surface-3); --_well: var(--basalt-surface-well-3); --_plate: light-dark(var(--basalt-state-selected), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
 
-  /* --_plate-solid is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle) rather than
-     laying over a panel: one opaque colour, so nothing shows through it. In dark it is --_plate; in light it is the 7% selected
-     wash (black at state-selected's own alpha) mixed over the level's own white. */
-  /* The page (no data-level ancestor) has its own: in dark the next level plus the wash, as level 0 would be; in light the 7% wash over
-     surface-page, one opaque colour (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it. */
-  :root { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); }
-  [data-level="1"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2))); }
-  [data-level="2"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
-  [data-level="3"] { --_plate-solid: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3))); }
+  /* --basalt-plate is the same plate for a surface that REPLACES its own fill (a choice card, a pressed toggle, an app's own list row)
+     rather than laying over a panel: one opaque colour per level, so nothing shows through it. It is public: the tokens plate-0 to plate-3
+     hold it (in dark --_plate, the next level plus the wash; in light the 7% selected wash, black at state-selected's own alpha, mixed over
+     the level's own white), and this alias follows the level, so a row anywhere reads `var(--basalt-plate)` and gets its level's plate.
+     The page (no data-level ancestor) and a nested theme root start at plate-0: in dark the next level plus the wash, as level 0 would be;
+     in light the 7% wash over surface-page (about #e8e8e8, the same 1.17:1 step #ededed has on white). Every level below overrides it.
+     The tokens are plain colours themed by selector, so no light-dark() and no fallback is needed for them. */
+  :root, [data-theme], .light, .dark { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="0"] { --basalt-plate: var(--basalt-plate-0); }
+  [data-level="1"] { --basalt-plate: var(--basalt-plate-1); }
+  [data-level="2"] { --basalt-plate: var(--basalt-plate-2); }
+  [data-level="3"] { --basalt-plate: var(--basalt-plate-3); }
 
-  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate, plate-solid
+  /* A browser without light-dark() (Safari before 17.5, Chrome before 123, Firefox before 120) would read each of the plate
      and pill variables above as an unknown function and paint nothing. There the same values are mixed instead of picked:
      --_dkp is how much of the dark value a mix takes, 0% in a light theme and 100% in a dark one, set where the theme tokens set
      the theme, so a nested theme root and the OS preference resolve as they do for the tokens. color-mix reaches every browser that
@@ -85,10 +88,6 @@
     [data-level="1"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="2"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
     [data-level="3"] { --_plate: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), var(--basalt-state-selected)); }
-    :root { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page))); }
-    [data-level="1"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-2)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1))); }
-    [data-level="2"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-2))); }
-    [data-level="3"] { --_plate-solid: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-3)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-3))); }
   }
 
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
@@ -384,7 +383,7 @@
   .basalt-button-swap:has(> .basalt-glyph-frame) > .basalt-icon { visibility: hidden; }
 
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
-     level (--_plate-solid: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
+     level (--basalt-plate: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
      surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
      hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
      label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
@@ -395,11 +394,11 @@
   .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
   }
   .basalt-button[aria-pressed="true"][data-variant="secondary"]:not([data-disabled]):not([data-loading]),
   .basalt-button[aria-pressed="true"][data-variant="ghost"]:not([data-disabled]):not([data-loading]) {
-    background: var(--_plate-solid, light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-page)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))));
+    background: var(--basalt-plate);
     color: var(--basalt-text-primary);
   }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"] { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
@@ -1293,6 +1292,21 @@
   .basalt-nav[data-collapsed] .basalt-nav-pill { width: var(--_nav-height); padding-inline: 0; justify-content: center; }
   .basalt-nav[data-collapsed] .basalt-nav-item { justify-content: center; }
 
+  /* The second size (size="sm"): a quieter list under the main one. The same item, hover, glide, current page and ring, a step
+     smaller: a 32px pill (control-md, so compact gives 28 and touch 44), the label at 13/18 (text-sm), the glyph at 16, 8 before the
+     glyph and 12 after the label, 8 between; a count at 12/16. Each row still carries 2px above and below its pill. */
+  .basalt-nav[data-size="sm"] { --_nav-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  .basalt-nav[data-size="sm"] .basalt-nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
+  .basalt-nav[data-size="sm"] .basalt-nav-item[data-glyphless] .basalt-nav-pill { padding-inline: var(--basalt-space-3); }
+  .basalt-nav[data-size="sm"] .basalt-nav-label {
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  .basalt-nav[data-size="sm"] .basalt-nav-count { margin-inline-start: 0; font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-nav[data-size="sm"] .basalt-nav-dot { margin-inline-start: 0; }
+  .basalt-nav[data-size="sm"][data-collapsed] .basalt-nav-pill { padding-inline: 0; }
+
   /* Hover, and pressed, are the hugging pill at the selected wash (9% white, 7% black): hover already sits at the wash,
      so a press has no further step, and on touch, where nothing hovers, the pill is the press. In at once, out over
      duration-fast. */
@@ -1315,6 +1329,7 @@
 
   @media (pointer: coarse) {
     .basalt-nav { --_nav-height: max(var(--_basalt-nav-row, var(--basalt-space-12)), var(--basalt-size-tap-min)); }
+    .basalt-nav[data-size="sm"] { --_nav-height: max(var(--_basalt-control-md, var(--basalt-size-control-md)), var(--basalt-size-tap-min)); }
   }
 
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current
@@ -1337,6 +1352,9 @@
      with a lint exception that names its token. */
   :root {
     --basalt-gutter: var(--basalt-size-gutter);
+    /* The capped app shell's width (AppShell capped): the sidebar plus the page's own cap, so at the cap the page is exactly
+       size-page-width. Derived, not a token: an app sets it on the root for another cap. */
+    --basalt-shell-width: calc(var(--basalt-size-sidebar-width) + var(--basalt-size-page-width));
     --_inset-top: env(safe-area-inset-top, var(--basalt-space-0));
     --_inset-left: env(safe-area-inset-left, var(--basalt-space-0));
     --_inset-right: env(safe-area-inset-right, var(--basalt-space-0));
@@ -1404,6 +1422,23 @@
   :root:has(.basalt-site-header) .basalt-skip-link {
     inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
   }
+  /* In an app shell the skip link starts on the brand link's start edge, as it does under a site header: from 1024 that is the sidebar's
+     space-3 and the brand band's space-1-5 + space-3 in from the shell's start (and a capped shell starts half the window's spare width
+     in); in the rail it is the 44px link centred in the 72px rail. Under 720 there is no brand in the bar, and it stays on the gutter. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it the sidebar holds the brand */
+  @media (width >= 1024px) {
+    :root:has(.basalt-app-shell) .basalt-skip-link {
+      --_brand-start: calc(2 * var(--basalt-space-3) + var(--basalt-space-1-5));
+      inset-inline-start: var(--_brand-start);
+    }
+    :root:has(.basalt-app-shell[data-capped]) .basalt-skip-link {
+      inset-inline-start: calc(max(var(--basalt-space-0), (100% - var(--basalt-shell-width)) / 2) + var(--_brand-start));
+    }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; between them the rail holds the brand */
+  @media (width >= 720px) and (width < 1024px) {
+    :root:has(.basalt-app-shell) .basalt-skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
+  }
   /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
   .basalt-skip-link:not(:focus) { box-shadow: none; }
   :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link:not(:focus) { clip-path: inset(50%); }
@@ -1453,6 +1488,25 @@
     font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
     letter-spacing: var(--basalt-text-lg-tracking);
   }
+  /* Facts under the title (AppHeader facts): one line at 13/18 in secondary ink, joined by dots and cut with an ellipsis. The title
+     and the line are 26 + 18 = 44 together, centred in the bar's row like a 44 target. Only primary and secondary ink sit on the
+     smoked bar. */
+  .basalt-app-heading { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; }
+  .basalt-app-facts {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-sm-tracking);
+  }
+  /* A fact in another face or box (inline code, a plain status badge) would set its own baseline and grow the line: each sits at the
+     line's top, so the line is its own line height (18) whatever it holds. Its height is never fixed: under a reader's text spacing
+     (WCAG 1.4.12) the line grows with its line height and nothing is clipped; it stays one line, cut at its end, and the bar's
+     centring takes the difference. */
+  .basalt-app-facts > .basalt-dot-line > * { vertical-align: top; }
 
   /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
      start, drawing nothing new). Identity, not a nav item: no wash. */
@@ -1782,6 +1836,10 @@
     /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     min-height: 100dvh;
   }
+  /* The capped form: the shell at most --basalt-shell-width and centred, so on a wide window the navigation and the page stay
+     together. The page then fills its column: at the default cap the column is exactly size-page-width, so the page's own cap and
+     the shell's meet, and under the cap nothing differs from the uncapped shell. */
+  .basalt-app-shell[data-capped] { max-width: var(--basalt-shell-width); margin-inline: auto; }
   .basalt-app-column { min-width: 0; }
   .basalt-app-sidebar {
     position: sticky;
@@ -1819,6 +1877,7 @@
     max-width: var(--basalt-size-page-width);
     padding: var(--basalt-space-6) var(--_pad-right) var(--basalt-space-16) var(--_pad-left);
   }
+  .basalt-app-shell[data-capped] .basalt-app-main { max-width: none; }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
   @media (width >= 720px) and (width < 1024px) {
@@ -1836,11 +1895,47 @@
   @media (width < 720px) {
     .basalt-app-shell { grid-template-columns: minmax(0, 1fr); }
     .basalt-app-sidebar { display: none; }
-    /* The header's one primary leaves the bar under 720, as the site header's does; the app puts it elsewhere. */
-    .basalt-app-header .basalt-button[data-variant="primary"] { display: none; }
+    /* The header's one primary stays in the bar under 720 with its words, 44 tall like the bar's other buttons (the rule above);
+       it never shrinks, and the title is what gives way. */
+    .basalt-app-header .basalt-bar-actions > .basalt-button[data-variant="primary"] { flex: none; }
     .basalt-app-shell[data-tabbar] .basalt-app-main { padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6)); }
     /* Toasts sit above the tab bar. */
     :root:has(.basalt-tabbar) .basalt-toast-viewport { bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-4)); }
+  }
+
+  /* A page with a pane (PaneLayout): the page, and a size-sidebar-width column at its end, the gutter between. The pane is sticky under
+     the bar (space-6 below it, the main's own top padding), at most the window less the bar and space-6 above and below, and scrolls
+     inside only when it is taller; the document stays the scroller. Sticky is also the containing block for what is placed inside it,
+     so a visually hidden label cannot escape the box and stretch the page. Its content ends space-16 above the window's foot (the main's
+     own bottom padding), so when the page is read to its end the pane still fits under the bar. It keeps space-1-5 round its content (and takes it back
+     with a negative margin), so a ring inside never clips. Beside the page from 920px of the layout's own width
+     (size-sidebar-width 256 + size-gutter 24 + size-breakpoint-container-lg 640), so the page is never under 640 beside it; below,
+     it follows the page in the flow with no height of its own. */
+  .basalt-pane-layout { container-type: inline-size; min-width: 0; }
+  /* A second, quieter Nav (size="sm") under the main one in the sidebar starts a group label's step below it. */
+  .basalt-nav + .basalt-nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
+  .basalt-pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
+  .basalt-pane-page { min-width: 0; }
+  .basalt-pane { min-width: 0; }
+  .basalt-pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
+  @container (width >= 920px) {
+    .basalt-pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
+    .basalt-pane {
+      position: sticky;
+      /* The content's edge, not the box's, is space-6 under the bar and above the window's foot: the box reaches space-1-5 past it. */
+      top: calc(var(--basalt-sticky-offset) + var(--basalt-space-6) - var(--basalt-space-1-5));
+      box-sizing: border-box;
+      /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+      max-height: calc(100dvh - var(--basalt-sticky-offset) - (var(--basalt-space-6) - var(--basalt-space-1-5)) - (var(--basalt-space-16) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset));
+      margin: calc(-1 * var(--basalt-space-1-5));
+      padding: var(--basalt-space-1-5);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+  @media print {
+    .basalt-pane { position: static; max-height: none; overflow: visible; }
   }
 
   /* The phone tab bar: solid surface-page for every product, a hairline on top, no shadow and no blur. 56 with the hairline
@@ -2120,7 +2215,7 @@
   /* ---- Choice card: a native radio or checkbox wearing a card ----
      The whole card is the label; the input is visually hidden (it covers the card, invisible, so it stays focusable) and a real
      choice box sits in a seat on the header line, reserved on every choice card, so choosing moves no title. Selected is the
-     selected wash as one solid fill at the card's own level (--_plate-solid, the active-row recipe made opaque), with the rim and the level
+     selected wash as one solid fill at the card's own level (--basalt-plate, the active-row recipe made opaque), with the rim and the level
      unchanged and the title still primary. Hover on an unselected card is the hover wash alone; a selected card takes no further
      step. No press scale. Focus is the control ring at +2, outside the card. State changes crossfade over duration-fast. */
   .basalt-choice-card {
@@ -2146,7 +2241,7 @@
   @media (hover: hover) {
     .basalt-choice-card:hover:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled))::before { opacity: 1; }
   }
-  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--_plate-solid); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) { background-color: var(--basalt-plate); }
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-choice-card:has(> .basalt-choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
@@ -2301,8 +2396,8 @@
   /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
   .basalt-table[data-fixed] :is(th, td):has(> :is(.basalt-button, .basalt-checkbox, .basalt-choice, .basalt-menu-trigger, [role="checkbox"])) { overflow: visible; }
   .basalt-table[data-fixed] thead th { height: var(--_head-h); }
-  /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
-  .basalt-table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. A link, in a data cell or a row's head (`th`, the pinned name column), is that box. */
+  .basalt-table[data-fixed] :is(td, th) > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (pointer: coarse) {
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
@@ -2376,7 +2471,7 @@
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
   .basalt-peek[data-kind="row"] { cursor: pointer; }
-  .basalt-peek[data-chosen] { background: var(--_plate-solid); }
+  .basalt-peek[data-chosen] { background: var(--basalt-plate); }
   .basalt-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-peek-text { display: block; }
   .basalt-peek-seat { float: inline-end; }
@@ -3111,6 +3206,8 @@
     padding: var(--basalt-space-2-5);
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
+  /* Clear all at the start, View all at the end (the owner, DECISIONS 269). */
+  .basalt-notifications-clear { margin-inline-end: auto; }
   .basalt-notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
   .basalt-notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
@@ -3161,7 +3258,8 @@
     background-color: transparent;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  .basalt-notification:hover::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  /* In a popover the plate is its level's; in the page (NotificationList, no level of its own) it is the page's solid plate. */
+  .basalt-notification:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
   /* The hover glide, navigation's rules: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it
      and the resting hover, so only the ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced
      colours, where each entry paints its own. */
@@ -3191,6 +3289,8 @@
   .basalt-notification[data-status="success"] .basalt-notification-mark { color: var(--basalt-status-success); }
   .basalt-notification[data-status="warning"] .basalt-notification-mark { color: var(--basalt-status-warning); }
   .basalt-notification[data-status="danger"] .basalt-notification-mark { color: var(--basalt-status-danger); }
+  /* Pending (waiting, in review, queued) is the empty ring of the same drawing, in secondary ink: waiting is not a warning, and the title says it. */
+  .basalt-notification[data-status="pending"] .basalt-notification-mark { color: var(--basalt-text-secondary); }
   .basalt-notification-text { display: flex; flex-direction: column; min-width: 0; }
   .basalt-notification-title,
   .basalt-notification-line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3201,6 +3301,26 @@
   .basalt-notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
   .basalt-notification:hover .basalt-notification-line,
   .basalt-notification:hover .basalt-notification-time { color: var(--basalt-text-secondary); }
+  /* The entry for the page on screen (a list in a sidebar): its title at 600 from 400. It is one cut line, so nothing moves. */
+  .basalt-notification[data-current] .basalt-notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+
+  /* A group of repeats: the title is cut first, then the count (the toast's "×3") and the core chevron (to the end, then down). Its entries
+     open in place under it (the reveal's track), indented by the dot's and the mark's seats, so their seats sit under the group's words. The clip
+     keeps space-1 beside them, room enough for a ring at +2 inside the list's own space-1-5. */
+  .basalt-notification-head { display: flex; align-items: center; min-width: 0; }
+  /* The spoken ", 3 times" is visually hidden at the end of a title that may be cut: the title is its containing block, so the cut hides it and it never
+     widens the page. */
+  .basalt-notification-head > .basalt-notification-title { position: relative; flex: 0 1 auto; }
+  .basalt-notification-count { flex: none; margin-inline-start: var(--basalt-space-1-5); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
+  /* The disclosure's chevron, as DisclosureRow's: to the end while closed (mirrored right to left), down while open, the change drawn by the control glyph. */
+  .basalt-notification-caret { display: flex; flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); }
+  .basalt-notification[aria-expanded="false"] .basalt-notification-caret:dir(rtl) { transform: scaleX(-1); }
+  .basalt-notification-group > .basalt-reveal-panel > .basalt-reveal-clip { margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); }
+  .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
+
+  /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
+  .basalt-notification-list > .basalt-notifications-foot { padding: var(--basalt-space-2) var(--basalt-space-1-5); }
+  .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
 
   /* ---- Command menu ---- */
 
@@ -3418,12 +3538,76 @@
     resize: vertical;
   }
 
+  /* ---- Composer, Mention and MentionPicker (cimip-gaps-2, B3) ----
+     A composer is the textarea, a row of actions under it with Send last, and a status line under that. The field has no visible label
+     (its name is the aria-label) and grows with its text, a line at a time, from --_rows to --_max-rows (set by the component), then
+     scrolls; it never takes a resize handle, since its height is the text's. The status line is text-xs in tertiary ink, one line tall
+     even when empty, so nothing above or below moves when someone starts typing. */
+  .basalt-composer { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-input.basalt-textarea.basalt-composer-field {
+    --_line: var(--basalt-text-base-line-height);
+    resize: none;
+    field-sizing: content;
+    min-height: calc(var(--_line) * var(--_rows, 2) + var(--basalt-space-4));
+    max-height: calc(var(--_line) * var(--_max-rows, 8) + var(--basalt-space-4));
+    overflow-y: auto;
+  }
+  .basalt-composer-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); flex-wrap: wrap; }
+  .basalt-composer-extra { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; min-width: 0; }
+  /* Send is the row's last, at its end, whether or not the app gave other actions. */
+  .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { margin-inline-start: auto; }
+  /* One line, always: a long list of names is cut with an ellipsis rather than wrapped, so nothing under it moves. The cut is a look only:
+     the live region holds the whole text, and that is what is read. */
+  .basalt-composer-status {
+    margin: 0;
+    min-height: var(--basalt-text-xs-line-height);
+    font-size: var(--basalt-text-xs-size);
+    line-height: var(--basalt-text-xs-line-height);
+    color: var(--basalt-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A mention is the trigger and the name at 500 in primary ink: a glyph and a weight mark it, never a colour. It wraps with its text. One
+     that calls on the reader (data-you) also sits on the plate of its level, the opaque --basalt-plate, with radius 4 and 2px each side,
+     drawn on every line it wraps to. The 2px are its own (no margin gives them back): given back, the plate ate half the space before it
+     and the name read as joined to the word ahead. A mention never changes state, so nothing moves. */
+  .basalt-mention { font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-primary); }
+  .basalt-mention[data-you] {
+    padding-inline: var(--basalt-space-0-5);
+    border-radius: var(--basalt-radius-xs);
+    background-color: var(--basalt-plate);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  @media (forced-colors: active) {
+    .basalt-mention[data-you] { forced-color-adjust: none; background-color: Mark; color: MarkText; }
+  }
+  @media print {
+    .basalt-mention[data-you] { background-color: transparent; }
+  }
+
+  /* The picker is a popup of Combobox's rows, placed by the component (fixed, beside the trigger's line) and as wide as its content up to
+     the popover maximum. Focus stays in the field, so the rows' plate follows aria-activedescendant through data-highlighted. */
+  .basalt-mention-positioner { position: fixed; }
+  .basalt-mention-picker {
+    width: max-content;
+    /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
+    max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-2)));
+  }
+  .basalt-mention-option { cursor: pointer; }
+  .basalt-mention-option[aria-disabled="true"] { cursor: default; }
+
   /* ---- Popover ---- */
 
   .basalt-popover {
     box-sizing: border-box;
     width: max-content;
     max-width: min(var(--basalt-size-popover-max), var(--available-width));
+    /* It stays below its opener (or above), never beside it, so a tall one fits the room it has and scrolls inside. */
+    max-height: var(--available-height);
+    overflow-y: auto;
     padding: var(--basalt-space-4);
     border-radius: var(--basalt-radius-lg);
     background: var(--_surface, var(--basalt-surface-overlay));
@@ -3888,6 +4072,11 @@
   .basalt-code-title { display: flex; align-items: center; justify-content: space-between; min-height: var(--basalt-size-control-sm); }
   .basalt-code-title .basalt-code-copy { position: static; margin: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2-5)) calc(-1 * var(--basalt-space-1)) 0; }
 
+  /* Base UI's one inline style, drawn here so a page under `style-src 'self'` can turn Base UI's style elements off (`CSPProvider disableStyleElements`) and see
+     the same thing: the element Base UI marks scrolls with no scrollbar. Base UI's own rule is these two declarations; with its style element on, both agree. */
+  .base-ui-disable-scrollbar { scrollbar-width: none; }
+  .base-ui-disable-scrollbar::-webkit-scrollbar { display: none; }
+
   /* stylelint-disable-next-line unit-disallowed-list -- the standard screen-reader-only clip; not a design length */
   .basalt-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
@@ -3899,8 +4088,10 @@
      Select inserts; the `uncheckedValue` input), not the Slider's range input (a real focus target, and already inside its transformed thumb, so
      not a layer), and not the checklist rows' inputs: in the open popup absolute inputs move the AA of its corners, which is a pixel. It is an inline
      style, so the override takes !important. If a Base UI release stops passing `inputRef` to this input, nothing matches and nothing is exposed (the input is
-     as hidden as Base UI makes it); a test fails when the rule matches nothing. */
-  [data-basalt-mirror] { position: absolute !important; inset: auto !important; }
+     as hidden as Base UI makes it); a test fails when the rule matches nothing. It sits at the top start of its containing block, as Base UI's fixed
+     input sat at the viewport's, never at its place in the flow: an absolute box at its static place escapes a scroller that is not itself positioned,
+     so a list of checkboxes under a sticky or positioned ancestor stretched the page by the list's whole scrolled height (found by the first app). */
+  [data-basalt-mirror] { position: absolute !important; inset: 0 auto auto 0 !important; }
   /* In the checklist's rows the inputs sit at the rows' own top start, so they add nothing to the rows' scrollable height (DECISIONS 167, Q9j). */
   .basalt-filter-rows > [data-basalt-mirror] { top: 0 !important; left: 0 !important; }
 
@@ -4809,6 +5000,82 @@
   .basalt-search-result[data-centered] { justify-content: center; }
   .basalt-search-result[data-centered] .basalt-search-name { flex: none; }
 
+  /* ---- Search in a page or a panel (SearchField, SearchPassages) ---- */
+
+  /* The field: an Input with the core search glyph at its start and, while there are words, a 24px clear button at its end. Both seats are
+     padding, kept whether the button shows or not, so the words never move. */
+  .basalt-search-box { position: relative; display: flex; align-items: center; min-width: 0; margin: 0; }
+  .basalt-search-box-glyph { position: absolute; inset-inline-start: var(--basalt-space-2-5); color: var(--basalt-text-tertiary); pointer-events: none; }
+  .basalt-input.basalt-search-box-input {
+    flex: 1;
+    min-width: 0;
+    padding-inline: calc(var(--basalt-space-2-5) + var(--basalt-size-icon-sm) + var(--basalt-space-2)) calc(var(--basalt-space-1) + var(--basalt-size-control-xs) + var(--basalt-space-1));
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .basalt-search-box-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  .basalt-search-box-input::-webkit-search-cancel-button,
+  .basalt-search-box-input::-webkit-search-decoration,
+  .basalt-search-box-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
+  .basalt-search-box-clear { position: absolute; inset-inline-end: var(--basalt-space-1); }
+
+  /* The results: an ordered list that keeps space-1-5 from its edges, so a ring at +2 is never cut by the panel that scrolls it. */
+  .basalt-passages { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
+  .basalt-passages-item { margin: 0; padding: 0; list-style: none; }
+  /* A results budget (rows, lines): as tall as that many passages (the row's padding, its head line, the gap and its lines of text), plus the list's own
+     padding, scrolling inside, so the field and the count above never move. Unset, the list grows with its results. */
+  .basalt-passages[data-budget] {
+    box-sizing: border-box;
+    height: calc(2 * var(--basalt-space-1-5) + var(--_rows, 5) * (2 * (var(--basalt-space-2) + var(--basalt-space-0-5)) + var(--basalt-text-sm-line-height) + var(--basalt-space-0-5) + var(--_lines, 2) * var(--basalt-text-base-line-height)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: var(--basalt-space-1-5);
+  }
+  /* A passage is a link or a button with popup-row geometry: a plate inset 2px above and below, radius 8, 12px from the edge to the words. The head
+     is the source (one cut line, primary, 400) and the meta at its end (tertiary, tabular); the passage wraps under it in secondary ink. */
+  .basalt-passage {
+    --_plate-inset: var(--basalt-space-0-5);
+    box-sizing: border-box;
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: var(--basalt-space-0-5);
+    width: 100%;
+    margin: 0;
+    padding: calc(var(--basalt-space-2) + var(--_plate-inset)) var(--basalt-space-3);
+    border: 0;
+    border-radius: calc(var(--basalt-radius-md) + var(--_plate-inset));
+    background: none;
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .basalt-passage::before {
+    content: "";
+    position: absolute;
+    inset: var(--_plate-inset) 0;
+    z-index: -1;
+    border-radius: var(--basalt-radius-md);
+    background-color: transparent;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  @media (hover: hover) {
+    .basalt-passage:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
+    .basalt-passage:hover .basalt-passage-meta { color: var(--basalt-text-secondary); }
+  }
+  .basalt-passage:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(var(--basalt-size-focus-offset) - var(--_plate-inset)); }
+  .basalt-passage-head { display: flex; align-items: baseline; gap: var(--basalt-space-3); min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-passage-source { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-primary); }
+  .basalt-passage[data-current] .basalt-passage-source { font-weight: var(--basalt-font-weight-semibold); }
+  .basalt-passage-meta { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); }
+  .basalt-passage-text { overflow-wrap: anywhere; text-wrap: pretty; }
+  /* A match: the passage's own words in primary ink at 600, with no fill, no colour and no underline (monochrome; the weight and the ink are the mark). */
+  .basalt-search-match { padding: 0; background: none; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+
   /* The notice bar (D16): one short notice across the top of a page, in the level-1 fill with a divider under it. */
   .basalt-notice-bar {
     box-sizing: border-box;
@@ -4941,10 +5208,10 @@
   .basalt-link > .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
   .basalt-button > .basalt-external { display: inline-flex; align-items: center; color: inherit; }
   .basalt-button > .basalt-external > .basalt-icon { vertical-align: baseline; margin-block: 0; }
-  /* In a still-table cell the label truncates and the arrow stays whole. */
-  .basalt-table[data-fixed] td > a[data-new-tab] { display: flex; align-items: center; }
-  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .basalt-table[data-fixed] td > a[data-new-tab] > .basalt-external { flex: none; }
+  /* In a still-table cell (a data cell or a row's head) the label truncates and the arrow stays whole. */
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] { display: flex; align-items: center; }
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] > .basalt-link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-table[data-fixed] :is(td, th) > a[data-new-tab] > .basalt-external { flex: none; }
   .basalt-breadcrumbs { font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
   .basalt-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); margin: 0; padding: 0; list-style: none; }
   .basalt-breadcrumbs li { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }
@@ -5600,7 +5867,15 @@
     .basalt-notification:hover .basalt-notification-title,
     .basalt-notification:hover .basalt-notification-line,
     .basalt-notification:hover .basalt-notification-time,
-    .basalt-notification:hover .basalt-notification-mark { color: HighlightText; }
+    .basalt-notification:hover .basalt-notification-mark,
+    .basalt-notification:hover .basalt-notification-count,
+    .basalt-notification:hover .basalt-notification-caret { color: HighlightText; }
+    .basalt-notification-count, .basalt-notification-caret { color: CanvasText; }
+    /* A passage is the same: a hovered one is Highlight with HighlightText; a match keeps its weight (a mark's system fill is not drawn). */
+    .basalt-passage:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .basalt-passage:hover::before { background-color: transparent; }
+    .basalt-passage:hover :is(.basalt-passage-source, .basalt-passage-meta, .basalt-search-match) { color: HighlightText; }
+    .basalt-search-match { color: CanvasText; background: none; }
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
        glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .basalt-chip { color: ButtonText; }
@@ -6235,6 +6510,123 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) and (pointer: fine) {
     .basalt-form-grid .basalt-choice { min-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  }
+
+  /* ==== The conversation stream (the second gaps batch, B2): messages, notes, quotes, the entry you came to, the disclosure row, the activity list and
+     presence. Decided by Opus on the no-council path (DECISIONS 226 and 265); the implementation is reviewed by Astra. ==== */
+
+  /* ---- The stream: one column, oldest first. A new author's message starts space-4 below the last entry; a joined one space-1; a note space-2. ---- */
+  .basalt-stream { box-sizing: border-box; display: flow-root; margin: 0; padding: 0; list-style: none; min-width: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .basalt-stream > li { margin: 0; }
+  .basalt-stream > li + li { margin-top: var(--basalt-space-4); }
+  .basalt-stream > li + .basalt-stream-message[data-joined] { margin-top: var(--basalt-space-1); }
+  .basalt-stream > .basalt-stream-note + .basalt-stream-note { margin-top: var(--basalt-space-2); }
+  .basalt-stream > .basalt-event-rule { padding-inline: 0; }
+
+  /* A message: the avatar's gutter (32, as the avatar is), space-3, then the head and the words. The head is the name at 500 in primary and the time
+     in tertiary at 12, on one baseline; meta follows the time and the actions sit at the end. */
+  .basalt-stream-message,
+  .basalt-stream-note { display: grid; grid-template-columns: var(--basalt-size-control-md) minmax(0, 1fr); column-gap: var(--basalt-space-3); align-items: start; }
+  .basalt-stream-gutter { display: flex; justify-content: center; min-width: 0; color: var(--basalt-text-secondary); }
+  .basalt-stream-body { display: grid; min-width: 0; }
+  .basalt-stream-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-height: var(--basalt-text-base-line-height); min-width: 0; }
+  .basalt-stream-author { min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-stream-time { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-stream-meta { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-stream-actions { display: inline-flex; align-items: center; gap: var(--basalt-space-1); margin-inline-start: auto; align-self: center; }
+  /* Block flow, so words and a link or a badge among them stay on one line; blocks inside (a paragraph, a list, a quote, a disclosure row, a card)
+     stand space-2 apart. */
+  .basalt-stream-text { display: block; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-stream-text > :where(p, ul, ol), .basalt-stream-block > :where(p, ul, ol) { margin-block: 0; }
+  .basalt-stream-text > :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) + :where(p, ul, ol, pre, figure, div, blockquote, table, section, details, h2, h3, h4, h5, h6, hr) { margin-block-start: var(--basalt-space-2); }
+
+  /* A note: a sentence in secondary at 13 in the text column, its time after it; a mark (an icon at 16) centres in the gutter on its first line. */
+  .basalt-stream-note-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-stream-note-text { min-width: 0; overflow-wrap: anywhere; }
+  .basalt-stream-note > .basalt-stream-gutter { align-items: center; height: var(--basalt-text-sm-line-height); }
+
+  /* An entry of the app's own stands in the text column, under the words; with bleed it spans the stream. */
+  .basalt-stream-entry { display: grid; min-width: 0; padding-inline-start: calc(var(--basalt-size-control-md) + var(--basalt-space-3)); }
+  .basalt-stream-entry[data-bleed] { padding-inline-start: 0; }
+  .basalt-stream-block { min-width: 0; }
+
+  /* ---- The quote: the other side of an exchange, a fill one step from its ground and no rim. Dark: the level above (data-level is the quote's own,
+     one above what it sits in). Light: the sunken band's grey, because light's levels 1 to 3 are one white. Radius 8, as a callout's. ---- */
+  .basalt-stream-quote { box-sizing: border-box; display: grid; gap: var(--basalt-space-0-5); min-width: 0; margin: 0; padding: var(--basalt-space-2) var(--basalt-space-3); border-radius: var(--basalt-radius-md); background: light-dark(var(--basalt-surface-sunken-strong), var(--_surface, var(--basalt-surface-1))); }
+  .basalt-stream-quote-cite { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; }
+  .basalt-stream-quote-text { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
+  .basalt-stream-quote-text > p { margin: 0; }
+
+  /* ---- The entry you came to. A plate in the selected wash (one solid fill per level, the choice card's recipe), radius 8, reaching space-2 past the
+     entry at the sides and space-1 above and below, behind what it holds; a panel takes the wash on its own fill instead, inside its one rim. It comes
+     at once and goes over 0.75 of duration-slow on ease-in. The word says it in the head; tertiary words on the wash step up to secondary. ---- */
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel]) { position: relative; isolation: isolate; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:not([data-panel])::before {
+    content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
+    background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
+  }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived]:not([data-panel])::before { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrival] > :not(.basalt-visually-hidden, .basalt-stream-word) { transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrived] > :not(.basalt-visually-hidden, .basalt-stream-word) { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:focus { outline: none; }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived] :is(.basalt-stream-time, .basalt-stream-meta, .basalt-stream-quote-cite, .basalt-text[data-tone="tertiary"], .basalt-disclosure-meta, .basalt-activity-meta) { color: var(--basalt-text-secondary); }
+  .basalt-stream-word { color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-slow) * 0.75); }
+  .basalt-stream-word[data-on] { opacity: 1; visibility: visible; transition-duration: var(--basalt-duration-instant); transition-delay: var(--basalt-duration-instant); }
+  .basalt-stream-word-line { display: block; margin-bottom: var(--basalt-space-1); }
+  @media (forced-colors: active) {
+    :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]::before { display: none; }
+    .basalt-stream-word { color: CanvasText; }
+  }
+
+  /* ---- The disclosure row: a button on one line (cut while closed, wrapped when open), its mark, its meta and the core chevron, which morphs from
+     right to down. Hover lifts the ink; there is no wash. Focus is the control ring at +2. 28 tall (44 on touch), text at 13. ---- */
+  .basalt-disclosure { min-width: 0; }
+  .basalt-disclosure-row {
+    box-sizing: border-box; display: flex; align-items: flex-start; gap: var(--basalt-space-2); width: 100%; min-width: 0; min-height: var(--basalt-size-control-sm); margin: 0;
+    padding: calc((var(--basalt-size-control-sm) - var(--basalt-text-sm-line-height)) / 2) 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; cursor: pointer;
+    color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); text-align: start;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  @media (hover: hover) { .basalt-disclosure-row:hover:not([data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); } .basalt-disclosure-row:hover:not([data-disabled]) .basalt-disclosure-meta { color: var(--basalt-text-secondary); } }
+  .basalt-disclosure-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-disclosure-row[data-disabled] { color: var(--basalt-text-disabled); cursor: default; }
+  @media (pointer: coarse) { .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
+  .basalt-disclosure-mark, .basalt-disclosure-chevron { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-text-sm-line-height); }
+  .basalt-disclosure-title { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-disclosure-row[data-panel-open] .basalt-disclosure-title, .basalt-disclosure[data-wrap] .basalt-disclosure-title { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .basalt-disclosure-meta { flex: none; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-disclosure-row:not([data-panel-open]) .basalt-disclosure-chevron:dir(rtl) { transform: scaleX(-1); }
+  /* The panel opens by height (Base UI's measured height) and clips while it moves; it reaches space-1-5 past the detail on each side so a ring inside is whole. */
+  .basalt-disclosure-panel { height: var(--collapsible-panel-height); overflow: hidden; margin-inline: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); transition: height var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-disclosure-panel[data-starting-style], .basalt-disclosure-panel[data-ending-style] { height: 0; }
+  .basalt-disclosure-panel[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+  .basalt-disclosure-detail { display: grid; gap: var(--basalt-space-2); min-width: 0; padding-block: var(--basalt-space-1) var(--basalt-space-3); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  .basalt-disclosure-detail > p { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .basalt-disclosure-panel { transition: none; } }
+
+  /* ---- The activity list: a sentence a step at 13, wrapping, behind the plain badge's status seat (6, and a gap as wide): braille while it runs, the
+     tertiary dot once done, the danger dot when it failed, the hollow ring while it waits. The running step is primary; done steps are secondary. ---- */
+  .basalt-activity { display: grid; margin: 0; padding: 0; list-style: none; min-width: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-activity-step { margin: 0; min-width: 0; }
+  .basalt-activity-line { display: flex; align-items: flex-start; gap: var(--basalt-size-dot); min-width: 0; padding-block: var(--basalt-space-1); }
+  .basalt-activity .basalt-disclosure-row { gap: var(--basalt-size-dot); min-height: 0; padding-block: var(--basalt-space-1); }
+  @media (pointer: coarse) { .basalt-activity .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
+  .basalt-activity .basalt-disclosure-mark { width: var(--basalt-size-dot); }
+  .basalt-activity .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-dot) * 2); }
+  .basalt-activity-seat { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-dot); height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
+  .basalt-activity-dot { box-sizing: border-box; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-text-tertiary); }
+  .basalt-activity-step[data-status="failed"] .basalt-activity-dot { background: var(--basalt-status-danger); }
+  .basalt-activity-step[data-status="waiting"] .basalt-activity-dot { background: transparent; border: var(--basalt-size-hairline) solid currentColor; }
+  .basalt-activity-sentence { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-activity-step:is([data-status="running"], [data-status="failed"], [data-status="waiting"]) .basalt-activity-sentence { color: var(--basalt-text-primary); }
+  .basalt-activity-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-activity-meta { flex: none; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-activity-chevron-seat { display: none; flex: none; width: var(--basalt-size-icon-sm); }
+  .basalt-activity:has(.basalt-disclosure) .basalt-activity-chevron-seat { display: block; }
+  @media (forced-colors: active) {
+    .basalt-activity-dot { background: CanvasText; }
+    .basalt-activity-step[data-status="waiting"] .basalt-activity-dot { background: transparent; border-color: CanvasText; }
   }
 
 }

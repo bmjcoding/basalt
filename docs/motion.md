@@ -217,6 +217,8 @@ Pass `label` when the spinner is the status (`role="status"`). Omit it when a wo
 | Toast | Enters on `duration-slow` and `ease-out`, leaves at 0.75 on `ease-in`. Running work shows braille in the mark seat and updates the same toast in place to its result: the title never moves, because the seat is kept. Swipe is Base UI's 40px, by distance alone, with no spring. | Opacity only, at the resting offsets |
 | Toast drain | A countdown, not a loop, so the hold does not stop it. A 1px line, drawn on the straight part of the bottom rim, shrinks for the timeout (only a toast that is not the only copy of what it says has one). Hover, focus, a blurred window and a hidden tab pause it and the toast's own clock together. No glow. | The line is not drawn |
 | `CommandMenu` | cmdk filters and selects. It loads the first time the menu opens, so an app that never opens one does not download it. No open or close animation. | No extra motion |
+| `DisclosureRow` | The chevron morphs from right to down (a rotation group) over `slow`; the detail opens by height over `slow` on `ease-out` and closes at 0.75 on `ease-in`. Hover lifts the ink over `fast`, in at once. | The detail is there at once; the chevron swaps |
+| The entry you came to (`arrived`) | Its plate (or a panel's wash) and its word come at once, and go over 0.75 of `slow` on `ease-in` when the reader acts. Nothing moves: the plate is behind the entry and the word's room is kept. | The same fade (colour and opacity only) |
 | `LivePreview` | The draft is shown in a panel before Save commits it. | The preview text changes in place |
 
 `SharedElement` was withdrawn from the public API by the panel: nothing in Basalt needs an element to keep its identity across places. It remains as an internal module.

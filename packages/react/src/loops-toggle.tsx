@@ -15,14 +15,14 @@ interface Common {
 export type LoopsToggleProps =
   | (Common & {
       /**
-       * `icon` (the default): an icon-only ghost toggle with the core `pause` glyph, for a site header's end cluster, before the theme toggle; its name is the fixed
+       * `icon` (the default): an icon-only ghost toggle with the core `pause` glyph, for a site header's end cluster (first in it) or an app's head band; its name is the fixed
        * "Pause animations", taken from its `title`, which is also the browser's own tooltip. Show it only on a page that has an ambient loop or a loop that can run past
        * five seconds. Import `LoopsToggleIcon` instead of `LoopsToggle` where only this form is drawn, so the page does not load the settings row's `Switch`.
        */
       form?: "icon";
     })
   | (Common & {
-      /** A pressed-toggle `Button` labelled "Pause animations", for the head band of the view that shows running work. `SiteHeader` draws it as its narrow menu's first row. */
+      /** A pressed-toggle `Button` labelled "Pause animations", for the head band of the view that shows running work (the icon form fits there too). `SiteHeader` draws it as its narrow menu's first row. */
       form: "button";
     })
   | (Common & {

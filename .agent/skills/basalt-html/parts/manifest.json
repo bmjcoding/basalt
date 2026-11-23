@@ -1061,6 +1061,7 @@
         "notifications-count",
         "notifications-mark",
         "notifications-foot",
+        "notifications-clear",
         "notifications-empty",
         "notifications-scroll",
         "notifications-list",
@@ -1071,7 +1072,11 @@
         "notification-text",
         "notification-title",
         "notification-line",
-        "notification-time"
+        "notification-time",
+        "notification-head",
+        "notification-count",
+        "notification-caret",
+        "notification-entries"
       ],
       "text": [
         "Basalt\\s*\\.\\s*notifications\\b"
@@ -1086,9 +1091,10 @@
       "icons": [
         "CheckCircle",
         "Warning",
-        "XCircle"
+        "XCircle",
+        "Circle"
       ],
-      "budget": 9250,
+      "budget": 12450,
       "usage": 1100,
       "builds": [
         "popover",
@@ -1109,8 +1115,8 @@
       "requires": [
         "glide"
       ],
-      "budget": 4800,
-      "usage": 1700
+      "budget": 5350,
+      "usage": 1900
     },
     "topbar-nav": {
       "classes": [
@@ -1156,7 +1162,9 @@
         "app-header",
         "app-bar",
         "app-title",
-        "app-actions"
+        "app-actions",
+        "app-heading",
+        "app-facts"
       ],
       "requires": [
         "topbar",
@@ -1164,8 +1172,18 @@
         "tooltip"
       ],
       "viewportFit": true,
-      "budget": 3250,
-      "usage": 2100
+      "budget": 4300,
+      "usage": 2600
+    },
+    "pane": {
+      "classes": [
+        "pane-layout",
+        "pane-grid",
+        "pane-page",
+        "pane"
+      ],
+      "budget": 1700,
+      "usage": 1000
     },
     "tab-bar": {
       "classes": [

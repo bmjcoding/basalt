@@ -17,7 +17,7 @@ A search dialog on the dialog's rules (`--usage dialog`): `<dialog class="panel 
 </dialog>
 ```
 
-- `.search-results` has a fixed height, a full result's: 3 logo rows, 5 picture rows and a "See all" row. It never changes with the results, so the field and the count never move; it scrolls inside. Fewer rows leave it empty.
+- `.search-results` has a fixed height, a full result's, so the field and the count never move; it scrolls inside. The counts are presets (a shop's: 3 logo rows, 5 picture rows, a "See all" row); set yours: `style="--_logos: 0; --_packs: 6; --_alls: 0"`.
 - A row is as tall as its `.search-media` plus 6px each side: 72 for a pack (the default, 48 by 60), 60 for a logo (`data-shape="logo"`, 96 by 48), 48 at least with none. A row of its own words, centred: `data-centered` on the link.
-- The count is one line, a `role="status"` (spoken when you rewrite it), that you rewrite after a pause, not per keystroke; change only its text.
+- The count is one `role="status"` line you rewrite after a pause, not per keystroke; change only its text.
 - One close button: the browser's clear × is hidden. The title is read on opening and never drawn.

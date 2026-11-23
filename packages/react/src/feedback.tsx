@@ -18,7 +18,7 @@ import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
-import type { Align, ChangeDetails, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
+import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { CONFIRM_MS } from "./constants";
 import { useJoinedRef, useWriting } from "./wait";
@@ -122,13 +122,18 @@ export interface PopoverContentProps extends PartProps<"div">, PlacementProps {
   finalFocus?: FocusTarget;
 }
 
+// A popover stays on the axis it was asked for: below its opener (or above, when that has more room), never beside it. Base UI's
+// own default lets a popover taller than the room above and below jump to the opener's side; its dropdowns (Menu, Select,
+// Combobox) already stay. The popup then fits the room it has and scrolls inside (`--available-height`).
+const KEEP_AXIS: CollisionAvoidance = { fallbackAxisSide: "none" };
+
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
   // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
     <BasePopover.Portal>
-      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
+      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance ?? KEEP_AXIS} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{inLevel(level, children)}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>

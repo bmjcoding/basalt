@@ -13,6 +13,11 @@ export interface RevealOptions {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * A keyboard open moves focus to the first new row once the clip has let go (the default: the button is under the rows it opens). Off for a
+   * disclosure whose rows follow its button, where the next Tab already reaches them.
+   */
+  focusFirst?: boolean;
 }
 
 /** A transition longer than zero will run, so the end of it is worth waiting for. */
@@ -25,7 +30,7 @@ const animates = (el: Element) => {
  * The state behind a reveal: open, and settled (open and done opening, so nothing clips and a ring is whole). The root element
  * carries `data-reveal`, `data-open` and `data-settled`; the clips inside it read them.
  */
-export function useReveal({ open: controlled, defaultOpen = false, onOpenChange }: RevealOptions) {
+export function useReveal({ open: controlled, defaultOpen = false, onOpenChange, focusFirst = true }: RevealOptions) {
   const [inner, setInner] = React.useState(defaultOpen);
   const open = controlled ?? inner;
   const [settled, setSettled] = React.useState(open);
@@ -57,7 +62,7 @@ export function useReveal({ open: controlled, defaultOpen = false, onOpenChange 
   const toggle = (event: React.MouseEvent) => {
     const next = !open;
     // A click that came from the keyboard (Enter, Space) has no pointer position: its detail is 0.
-    focusOnSettle.current = next && event.detail === 0;
+    focusOnSettle.current = focusFirst && next && event.detail === 0;
     if (controlled === undefined) setInner(next);
     onOpenChange?.(next);
   };
