@@ -853,7 +853,7 @@
       "requires": [
         "diagram"
       ],
-      "budget": 7450,
+      "budget": 7850,
       "usage": 700
     },
     "diagram-text": {

@@ -528,7 +528,6 @@ describe("one mover (then)", () => {
     "a pulse id that is no node": `{ ...S.animated("architecture"), pulse: ["browser", "nowhere"] }`,
     "two ids no line joins that way": `{ ...S.animated("architecture"), pulse: ["svc", "alb"] }`,
     "both a pulse and a packet": `{ ...S.animated("architecture"), packet: { path: ["browser", "alb"] } }`,
-    "flow on a dashed line": `{ ...S.animated("architecture"), edges: S.animated("architecture").edges.map((e) => (e.kind === "dashed" ? { ...e, flow: true } : e)) }`,
     "flow on the mover's line": `{ ...S.animated("architecture"), edges: S.animated("architecture").edges.map((e) => (e.from === "alb" ? { ...e, flow: true } : e)) }`,
   };
   for (const [name, expr] of Object.entries(cases)) {
@@ -539,6 +538,17 @@ describe("one mover (then)", () => {
       assert.match(await page.textContent("#error-bad"), /Basalt ArchitectureDiagram:/);
     });
   }
+
+  // Flow on a dashed line is allowed (DECISIONS 306, 1.5): its own dashes march toward the head, one period at speed-diagram-flow; no error.
+  test("a dashed line that flows marches its own dashes, with no error", async () => {
+    const { page, warnings } = await devPage();
+    await draw(page, [["arch", `{ ...S.animated("architecture"), pulse: undefined, edges: S.animated("architecture").edges.map((e) => (e.kind === "dashed" ? { ...e, flow: true } : e)) }`]]);
+    await until(page, () => document.querySelector("#fig-arch .basalt-diagram-pause"));
+    await page.evaluate(() => { const f = document.getElementById("fig-arch"); f.setAttribute("data-entrance", "done"); f.dispatchEvent(new Event("basalt-diagram-settle")); });
+    await until(page, () => [...document.querySelectorAll('#fig-arch .basalt-diagram-line[data-kind="dashed"]')].some((l) => l.getAnimations().length > 0));
+    assert.equal(await page.locator("#error-arch").count(), 0);
+    assert.ok(!warnings.some((w) => /dashed and flows/.test(w)));
+  });
 
   test("a flow line with no label warns", async () => {
     const { page, warnings } = await devPage();

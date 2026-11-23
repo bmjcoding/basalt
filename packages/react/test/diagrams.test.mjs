@@ -588,11 +588,19 @@ describe("tracing (1.15)", () => {
     await page.close();
   });
 
-  test("on touch (no hover) a tap traces nothing", async () => {
+  // A trace on touch comes back (DECISIONS 306, 1.5): a tap traces a card, the same card clears it, and "Clear highlight" is mounted, aria-disabled until then.
+  test("on touch (no hover) a tap traces, the same tap clears, and Clear highlight follows", async () => {
     const { page } = await diagramPage({ hasTouch: true, isMobile: true, viewport: { width: 1440, height: 1000 } });
+    const clear = page.locator(`#fig-architecture .${P}-clear`);
+    assert.equal(await clear.getAttribute("aria-disabled"), "true");
+    await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
+    await page.waitForTimeout(150);
+    assert.ok((await page.locator(`#fig-architecture .${P}-edge[data-lit]`).count()) > 0);
+    assert.equal(await clear.getAttribute("aria-disabled"), null);
     await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
     await page.waitForTimeout(150);
     assert.equal(await page.locator(`#fig-architecture .${P}-edge[data-lit]`).count(), 0);
+    assert.equal(await page.locator(`#fig-architecture [aria-live]`).count(), 0);
     await page.close();
   });
 });
