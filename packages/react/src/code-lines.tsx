@@ -51,23 +51,37 @@ const SPACE = /([ \t]+)/;
  * One line's runs as words for a block that wraps (`CodeBlock wrap`): each run of characters between spaces is one `basalt-code-word`, which never
  * breaks inside, and the spaces stand between the words, so a wrapped line breaks at a space and nowhere else (never after a hyphen or a slash).
  * A word longer than the line is not broken: the block scrolls sideways for it, as an unwrapped block does. Colours are kept inside the words.
+ *
+ * The words are the same whatever the colours, so a server that sent coloured spans and a client that has not loaded the grammar yet draw the
+ * same tree down to the words: spaces are joined into one text node across runs, and a word with no colour is one string child. React hydrates a
+ * string child by its text alone, so the server's coloured spans inside a word are kept (the same trick the unwrapped lines use).
  */
 export function codeWords(line: CodeRun[]): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   let word: React.ReactNode[] = [];
+  let coloured = false;
   const flush = () => {
     if (!word.length) return;
-    out.push(<span key={out.length} className="basalt-code-word">{word}</span>);
+    const children = coloured ? word : word.join("");
+    out.push(<span key={out.length} className="basalt-code-word">{children}</span>);
     word = [];
+    coloured = false;
   };
   for (const run of line) {
     for (const piece of run.text.split(SPACE)) {
       if (!piece) continue;
       if (SPACE.test(piece)) {
         flush();
-        out.push(piece);
+        const last = out.length - 1;
+        if (typeof out[last] === "string") out[last] = out[last] + piece;
+        else out.push(piece);
+      } else if (run.color) {
+        coloured = true;
+        word.push(<span key={word.length} style={{ color: run.color }}>{piece}</span>);
+      } else if (typeof word[word.length - 1] === "string") {
+        word[word.length - 1] = (word[word.length - 1] as string) + piece;
       } else {
-        word.push(run.color ? <span key={word.length} style={{ color: run.color }}>{piece}</span> : piece);
+        word.push(piece);
       }
     }
   }

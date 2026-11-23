@@ -1,7 +1,6 @@
 // Round 56: lists and facts (cimip-gaps-2, batch B6). Found by building CIMIP on Basalt; every part here is general and shown in at least two unlike domains
 // (a support inbox, a build pipeline, a shared document, a team chat). Synthetic data only. Decided and built by Opus on the no-council path (DECISIONS 226 and 265);
-// Astra reviews the code and the lead checks the pixels; nothing here has been reviewed yet. The described-menu step is the owner's call and ships nothing: its
-// three options are pictures (unlayered demo CSS on purpose, so the option can override `@layer basalt`).
+// Astra reviews the code and the lead checks the pixels; nothing here has been reviewed yet. The described-menu step is the owner's pick, option B (DECISIONS 275), as built.
 // States: `held-focus` and `held-hover` hold a row with Chromium's forced pseudo-classes (`data-wt-force`); `open` opens the step's dialog or menus; each may end in
 // `-forced-colours` or `-reduced-motion`.
 
@@ -30,6 +29,7 @@ import {
   Input,
   Menu,
   MenuContent,
+  MenuItem,
   MenuRadioGroup,
   MenuRadioItem,
   MenuTrigger,
@@ -320,13 +320,8 @@ function Dialogs({ state }: { state: string }) {
   );
 }
 
-// ---- 7. The owner's call: described menu rows ----
+// ---- 7. Described menu rows that wrap (DECISIONS 275, option B) ----
 
-const OPTION_CSS = `
-.r56-wrap .basalt-menu-item[data-described] { grid-template-rows: var(--_line) auto; }
-.r56-wrap .basalt-menu-item-description { white-space: normal; overflow: visible; text-overflow: clip; text-wrap: pretty; }
-.r56-wide.basalt-menu:has(.basalt-menu-item[data-described]) { max-width: calc(100vw - 32px); }
-`;
 const ROLES = [
   { value: "view", label: "Can view", description: "Reads the document and its comments, and cannot change anything" },
   { value: "comment", label: "Can comment", description: "Adds comments and suggestions that an editor accepts or declines" },
@@ -335,35 +330,33 @@ const ROLES = [
 const ALERTS = [
   { value: "all", label: "Every message", description: "A notification for each new message in the channel, on every device" },
   { value: "mentions", label: "Mentions only", description: "Only when someone names you or the whole channel, and replies to your threads" },
-  { value: "off", label: "Off", description: "Nothing, except direct messages and anything you have marked as urgent" },
+  { value: "off", label: "Off", description: "Nothing" },
 ];
 
-function OptionMenu({ option, items, label, open }: { option: "a" | "b" | "c"; items: typeof ROLES; label: string; open: boolean }) {
+function DescribedMenu({ items, label, after, open }: { items: typeof ROLES; label: string; after: string; open: boolean }) {
   const [value, setValue] = React.useState(items[1]!.value);
   return (
     <Menu defaultOpen={open} modal={false}>
       <MenuTrigger render={<Button variant="secondary">{label}</Button>} />
-      <MenuContent className={option === "a" ? undefined : option === "b" ? "r56-wrap" : "r56-wrap r56-wide"}>
+      <MenuContent>
         <MenuRadioGroup value={value} onValueChange={(v) => setValue(String(v))}>
           {items.map((item) => <MenuRadioItem key={item.value} value={item.value} description={item.description}>{item.label}</MenuRadioItem>)}
         </MenuRadioGroup>
+        {/* A one-line row after the described ones: the plate glides between rows of different heights. */}
+        <MenuItem>{after}</MenuItem>
       </MenuContent>
     </Menu>
   );
 }
 
-function MenuOptions({ state }: { state: string }) {
-  const kind = kindOf(state);
-  const option = kind.startsWith("menu-") ? (kind.slice(5, 6) as "a" | "b" | "c") : "a";
-  const chat = kind.endsWith("-chat");
+function MenuWrap({ state }: { state: string }) {
+  const open = state.startsWith("menu");
+  const chat = state.includes("chat");
   return (
     <div style={stack}>
-      <style>{OPTION_CSS}</style>
-      <Caption>
-        {option === "a" ? "Option A, as shipped: up to 320 wide, both lines cut with an ellipsis." : option === "b" ? "Option B: still up to 320, the description wraps; a row grows a line." : "Option C: as wide as its longest line up to the window less 16px each side, wrapping only when the window is narrower."}
-      </Caption>
+      <Caption>{chat ? "A team chat's notifications: a short description stays one line; a long one wraps." : "A shared document's access: each description wraps inside the 320 menu; the title stays one line."}</Caption>
       <div style={{ display: "flex", gap: "var(--basalt-space-2)" }}>
-        {chat ? <OptionMenu option={option} items={ALERTS} label="Notifications" open={kind.startsWith("menu-")} /> : <OptionMenu option={option} items={ROLES} label="Access" open={kind.startsWith("menu-")} />}
+        {chat ? <DescribedMenu items={ALERTS} label="Notifications" after="Mute for an hour" open={open} /> : <DescribedMenu items={ROLES} label="Access" after="Copy link" open={open} />}
       </div>
     </div>
   );
@@ -391,7 +384,7 @@ export const ROUND_56: Round = {
   title: "Lists and facts (cimip-gaps-2, B6): a panel of rows, a list to choose from, one-line facts, code that wraps, a select at its own width",
   reviewed: false,
   summary:
-    "Gaps found by building CIMIP on Basalt, closed as general parts and shown in two unlike domains each (a support inbox, a build pipeline, a shared document, a team chat). Decided and built by Opus on the no-council path (DECISIONS 226 and 265); the code review is Astra's and the pixels are the lead's, and neither has happened yet. The described-menu step is the owner's call: it ships nothing, and its three options are pictures. Entries outside the notification centre are closed by B7's NotificationList, not here.",
+    "Gaps found by building CIMIP on Basalt, closed as general parts and shown in two unlike domains each (a support inbox, a build pipeline, a shared document, a team chat). Decided and built by Opus on the no-council path (DECISIONS 226 and 265); the code review is Astra's and the pixels are the lead's, and neither has happened yet. Described menu rows wrap inside 320, the owner's pick (DECISIONS 275). Entries outside the notification centre are closed by B7's NotificationList, not here.",
   steps: [
     {
       id: "panel-list",
@@ -495,20 +488,20 @@ export const ROUND_56: Round = {
     },
     {
       id: "menu-wrap",
-      name: "The owner's call: described menu rows that are longer than 320",
-      intro: "Foundations says both lines of a described row are cut and never wrap, so a row's height is known. Reversing that is yours, so nothing is built: three options, as pictures.",
+      name: "Described menu rows that wrap (DECISIONS 275)",
+      intro: "The owner's pick, option B: a Menu stays at most 320 wide, and a described row's description wraps inside it, the row growing a line for each.",
       decisions: [
-        "Option A (as shipped): up to size-popover-max (320); both lines cut with an ellipsis. Every row's height is known; a long description is not read whole by sight.",
-        "Option B: still up to 320; the description wraps, so a row grows by a line (58 to 76). The menu's width never changes, and the plate's glide changes height between rows, as in a mixed list.",
-        "Option C (CIMIP's meanwhile): as wide as its longest line up to the window less space-4 each side, then wrapping. Reads in one line on a desktop (this reverses DECISIONS 155's 'the popover stays 320' for described menus) and wraps on a phone.",
-        "No recommendation is built; the builder leans to B, which keeps the 320 the council chose and only drops the cut.",
+        "The owner picked option B from the three pictured in this round (DECISIONS 275); A (cut at 320) and C (wider, up to the window) are dropped.",
+        "A Menu stays at most size-popover-max (320) wide. A description longer than that wraps; the row grows by the description's 18px line for each line it takes. The title stays one line, cut with an ellipsis, with its glyph, check and chip on it.",
+        "The row's own plate covers the whole taller row, and the shared plate takes each row's own height as it glides between a wrapped row and a one-line row; the keyboard moves it at once.",
+        "Menus only: Select, Combobox and the command menu keep their descriptions to one cut line. React (MenuContent) and the HTML skill's menu module both draw it.",
       ],
-      tryIt: ["Compare the shots: menu-a, menu-b and menu-c, for a shared document's access and a team chat's notifications."],
-      states: ["menu-a", "menu-b", "menu-c", "menu-a-chat", "menu-b-chat", "menu-c-chat"],
+      tryIt: ["Open Access and move the pointer from Can view to Copy link: the plate glides and changes height.", "At 390, the descriptions take two or three lines; the menu is never wider than the window less 16px each side."],
+      states: ["menu", "menu-lit", "menu-glide@1440", "menu-chat", "menu-chat-lit", "menu-forced-colours-lit", "menu-reduced-motion"],
       widths: [1440, 390],
       touch: true,
       height: 480,
-      demo: ({ state }) => <MenuOptions state={state} />,
+      demo: ({ state }) => <MenuWrap state={state} />,
     },
     {
       id: "badge-size",

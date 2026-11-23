@@ -54,7 +54,7 @@
   "ChoiceCardGroup": 294,
   "Clock": 2826,
   "CloseGlyph": 2836,
-  "CodeBlock": 22949,
+  "CodeBlock": 23122,
   "Columns": 265,
   "ColumnsItem": 257,
   "Combobox": 164576,
@@ -67,7 +67,7 @@
   "CoverageStrip": 1570,
   "DateAge": 2527,
   "DescriptionColumns": 216,
-  "DescriptionItem": 581,
+  "DescriptionItem": 593,
   "DescriptionList": 326,
   "Dialog": 70433,
   "DialogActions": 234,
@@ -122,9 +122,9 @@
   "Link": 5148,
   "LinkCard": 5040,
   "LinkTab": 3764,
-  "LinkTabs": 141149,
+  "LinkTabs": 141116,
   "LinkTile": 4463,
-  "ListBand": 157530,
+  "ListBand": 157497,
   "Listbox": 3240,
   "ListboxGroup": 405,
   "ListboxOption": 4052,
@@ -139,7 +139,7 @@
   "MarksRow": 886,
   "Menu": 181593,
   "MenuCheckboxItem": 184918,
-  "MenuContent": 186365,
+  "MenuContent": 186383,
   "MenuGlyph": 2823,
   "MenuGroup": 181223,
   "MenuGroupLabel": 181407,
@@ -218,10 +218,10 @@
   "SectionIntro": 224,
   "Segment": 15718,
   "SegmentedControl": 19383,
-  "Select": 140172,
-  "SelectableItem": 25536,
-  "SelectableList": 794,
-  "SelectionBar": 25827,
+  "Select": 140139,
+  "SelectableItem": 26537,
+  "SelectableList": 821,
+  "SelectionBar": 25913,
   "Separator": 4531,
   "SettingsGlyph": 3100,
   "ShareBar": 1411,
@@ -299,7 +299,7 @@
   "TextMorph": 4504,
   "Textarea": 26909,
   "ThemeChoiceControl": 4794,
-  "ThemeMenu": 206297,
+  "ThemeMenu": 206315,
   "TimeChart": 48001,
   "ToastProvider": 89803,
   "Toolbar": 22915,
@@ -374,11 +374,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 765042,
-  "gzip": 251652
+  "bytes": 766331,
+  "gzip": 252214
  },
  "styles": {
-  "bytes": 312773,
-  "gzip": 40874
+  "bytes": 313124,
+  "gzip": 40943
  }
 }

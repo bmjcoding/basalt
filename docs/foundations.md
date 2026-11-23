@@ -1043,7 +1043,11 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
   and secondary when lit (in light tertiary on the plate falls under 4.5:1; in dark the step is kept as a rule, DECISIONS 166), with no weight change; compact is 13/18 over 12/16. The 20 and 18
   line boxes touch, with no gap.
 - **Where things sit.** The glyph, a check seat, a key chip and a time sit on the title line, centred on it; the description runs from the
-  text's edge to the row's end, under the chip's column too. Both lines truncate with an ellipsis and never wrap, so a row's height is known.
+  text's edge to the row's end, under the chip's column too. The title is one line and truncates with an ellipsis. In Select, Combobox and the command menu
+  and list the description truncates too and never wraps, so a row's height is known. **In a Menu the description wraps** (DECISIONS 275, the owner's option B, from
+  the pictures in round 56): the menu stays at most `size-popover-max` (320) wide, a description longer than that wraps inside it, and the row grows by the
+  description's line (18) for each line it takes. The row's own plate covers the whole taller row, the shared plate takes each row's own height as it glides
+  (as between a one-line and a two-line row), and the title line keeps its glyph, check and chip.
 - **Mixed lists.** One-line and two-line rows may share a list, each its own height, and the shared plate changes height as it glides.
   A row with no description is one line: it holds no empty second line.
 - **Danger.** The title and the glyph take the danger ink; the description keeps its own.
@@ -1051,7 +1055,7 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
 - **Search.** Descriptions are search keywords, ranked below title matches. There is no match highlighting: bold letters change widths as you type.
 - **Where to use it.** Freely in the command menu and the list. In Menu and Select, describe a choice only when the label alone can't tell the
   choices apart (a visibility, a role, a plan, a model), never to explain an obvious action ("Copy link" stays one line). A described
-  menu is as wide as its content, up to `size-popover-max` (320), and then descriptions truncate. (Whether a longer description wraps or the menu widens is open for the owner: see [Lists and facts](#lists-and-facts).)
+  menu is as wide as its content, up to `size-popover-max` (320), and then a Menu's descriptions wrap (Select's and Combobox's truncate).
 
 ### Overlays and search
 
@@ -2128,11 +2132,12 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
   row is the selected wash as a band and its checked box carries the state, and rows are divided by `border-divider` as a table's are. The row is its checkbox's label, so a
   press anywhere on it chooses it; focus is the box's own ring at +2, inside the row's padding (`space-2-5` by `space-3`), as a band that holds its own control focuses that
   control. The **bar** holds the all box (checked when every row is chosen, mixed while some are, disabled when none can be; its words are the app's, "Select all" by
-  default), the count in words in a polite `role="status"` line ("2 of 8 selected" by default, or the app's own noun) whose room is held for its widest form, and the actions
+  default), the count in words in a polite `role="status"` line ("2 of 8 selected" by default, or the app's own noun) whose room is held for the widest of its wordings for none, one, all but one and all (or the app's `widest`), and the actions
   at the end, which stay mounted and are `aria-disabled` at zero so focus stays. It sticks to its edge of the scroller (`barSide`: above the rows, or under them for a list at
   a sheet's foot), opaque in its surface's colour on a `border-divider` (it is not the smoked surface), and is static in print. The app owns the data: `values` lists what can
   be chosen now, and a row whose value has left it (one dealt with) keeps its place and its box with an empty check seat, so nothing moves under a pointer, and it is no longer
-  counted. The value is always in the list's order.
+  counted. A row that leaves, or is dealt with, while its box holds focus hands focus to the next row that can still be chosen (else the one before, else the all box),
+  so focus is never lost to the page. A chosen row keeps the selected wash under the pointer: hover is for rows that are not chosen. The value is always in the list's order.
 - **Entries outside the notification centre** are B7's `NotificationList` (the centre's rows in the page, with no head, a current entry and a name), not a part of this batch.
 - **One-line facts in a narrow column** (`DescriptionList narrow="line"`). Under 480 of its own width a list stacks by default, which doubles a narrow column's height. With
   `narrow="line"` each label and value stay on one row there, and the label column narrows to `size-field-label-inline` (80px, the inline field label's width, so no token is
@@ -2148,15 +2153,15 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
   does. With no prompt each source line is a row whose continuation is indented 2ch (an empty line keeps its 20px), so a wrapped line never reads as a new one; beside a
   prompt the gutter already marks where a line starts and the continuation starts at the text's edge. Copy takes the code as given. The default still scrolls.
 - **A select at its own width** (`Select toolbar`). In a toolbar row a `Select` is as wide as its widest label, not its container's width: every option and the placeholder
-  stand unseen in the value's one cell (as `MultiSelect toolbar` does), so a choice moves nothing after it, and two selects and a search share a row. In a column narrower than
-  that it fills the column and cuts the value with an ellipsis; in `FilterToolbar` under 720 it fills its column, as the filters' triggers do. `numeric` stays the form for numbers.
+  stand unseen in the value's one cell (as `MultiSelect toolbar` does), so a choice moves nothing after it, and two selects and a search share a row. With a `valuePrefix` the label leads and the seat follows it, holding the
+  same width. In a column narrower than that it fills the column and cuts the value with an ellipsis; in `FilterToolbar` under 720 it fills its column, as the filters' triggers do. `numeric` stays the form for numbers.
 - **What sits between a form dialog's description and its first field.** A spacing rule, not a slot: the body's blocks after the description are one stack at the form gap
   (`space-4`), so a block between the description and the first field (a row of ready answers, a callout, a sentence) sits `space-4` above the field's label, as one field
   sits above the next, and the description keeps its own `space-5` under it (the two margins collapse). The body already takes any children; a slot would only fix their order.
   A group of ready answers is named by the app.
-- **Described menu rows that are longer than 320 are the owner's call** and nothing is built. Foundations says both lines are cut and never wrap so a row's height is known
-  ([Two-line rows](#two-line-rows)); reversing it, or widening a described menu past `size-popover-max` (DECISIONS 155 kept the popover at 320), is his. The options are
-  pictured in round 56: as shipped; wrapping inside 320; or as wide as the longest line up to the window, then wrapping (what CIMIP does meanwhile).
+- **Described menu rows longer than 320** wrap (DECISIONS 275: the owner picked option B of three pictured in round 56). A Menu stays at most `size-popover-max` (320)
+  wide; a described row's description wraps and the row grows; the title stays one line. Menus only: Select, Combobox and the command menu keep the cut. React and the
+  HTML skill's `menu` module both draw it; see [Two-line rows](#two-line-rows).
 - **A plain `Badge`'s size** is kept by design (see the status marks under [Lines, states and actions](#lines-states-and-actions)).
 
 ## Loading in the page's own shape

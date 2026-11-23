@@ -235,20 +235,24 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
+  // A toolbar select holds the width of its widest label: each option (and the placeholder) stands unseen in the value's one cell, so choosing moves nothing after it.
+  const value = <BaseSelect.Value id={valuePrefix ? ids.value : undefined} className="basalt-select-value" placeholder={placeholder} />;
+  const seat = toolbar ? (
+    <span className="basalt-select-seat">
+      {value}
+      {[placeholder, ...options.map((o) => o.label)].map((label, i) => <span key={i} aria-hidden="true">{label}</span>)}
+    </span>
+  ) : null;
   return (
     <BaseSelect.Root {...props} inputRef={mirror} items={items}>
       <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         {valuePrefix ? (
           <span className="basalt-select-lead">
             <span id={ids.prefix} className="basalt-select-prefix">{valuePrefix}</span>
-            <BaseSelect.Value id={ids.value} className="basalt-select-value" placeholder={placeholder} />
+            {seat ?? value}
           </span>
-        ) : toolbar ? (
-          // A toolbar select holds the width of its widest label: each option (and the placeholder) stands unseen in the value's one cell, so choosing moves nothing after it.
-          <span className="basalt-select-seat">
-            <BaseSelect.Value className="basalt-select-value" placeholder={placeholder} />
-            {[placeholder, ...options.map((o) => o.label)].map((label, i) => <span key={i} aria-hidden="true">{label}</span>)}
-          </span>
+        ) : seat ? (
+          seat
         ) : (
           // A numeric select holds the width of its widest option: the value's cell carries it as eights in an attribute that a pseudo-element paints, so choosing moves nothing and the DOM holds the words once.
           <BaseSelect.Value data-widest={numeric ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />

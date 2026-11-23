@@ -123,14 +123,18 @@ const PEOPLE = [["a", "Ada Byrne"], ["k", "Kofi Mensah"], ["l", "Lena Ishikawa"]
 function App() {
   const [chosen, setChosen] = React.useState([]);
   const [done, setDone] = React.useState([]);
+  const [gone, setGone] = React.useState([]);
   window.chosen = chosen;
+  // A refresh from the server: a row is dealt with elsewhere, or leaves the list, while focus stays where the reader left it.
+  window.markDone = (id) => setDone((d) => [...d, id]);
+  window.remove = (id) => setGone((g) => [...g, id]);
   const open = PEOPLE.map((p) => p[0]).filter((id) => !done.includes(id));
   const n = chosen.filter((id) => open.includes(id)).length;
   return (
     <div id="scroller" style={{ margin: 24, width: 420, height: 220, overflowY: "auto" }}>
       <B.SelectableList id="list" label="People asking to edit" values={open} value={chosen} onValueChange={(v) => { window.changes = [...(window.changes ?? []), v]; setChosen(v); }} barSide="${bar}"
         bar={<B.SelectionBar id="bar" allLabel="Everyone asking" count={(c, t) => c + " of " + t + " chosen"}><B.Button id="admit" size="sm" disabled={n === 0} focusableWhenDisabled onClick={() => { setDone([...done, ...chosen]); setChosen([]); }}>Let in</B.Button></B.SelectionBar>}>
-        {PEOPLE.map(([id, name]) => <B.SelectableItem key={id} value={id} id={"row-" + id} label={"Choose " + name}><span>{name}</span></B.SelectableItem>)}
+        {PEOPLE.filter(([id]) => !gone.includes(id)).map(([id, name]) => <B.SelectableItem key={id} value={id} id={"row-" + id} label={"Choose " + name}><span>{name}</span></B.SelectableItem>)}
       </B.SelectableList>
     </div>
   );
@@ -188,6 +192,89 @@ describe("SelectableList", () => {
     await page.close();
   });
 
+  test("a row dealt with, or taken out, while its box holds focus hands focus to the next row that can be chosen, else the one before, else the all box", async () => {
+    const page = await open(PICK());
+    const focused = () => page.evaluate(() => document.activeElement?.closest(".basalt-selectable-item")?.id ?? (document.activeElement?.closest(".basalt-selection-bar") ? "all" : document.activeElement?.tagName));
+    // Focus in the row by the keyboard, then a refresh marks it dealt with.
+    await page.locator("#row-k [role='checkbox']").focus();
+    await page.evaluate(() => window.markDone("k"));
+    await settle(page);
+    assert.equal(await focused(), "row-l", "the next row's box");
+    // A row taken out of the list while focused.
+    await page.evaluate(() => window.remove("l"));
+    await settle(page);
+    assert.equal(await focused(), "row-r");
+    // The last row hands focus back to the one before it, skipping a row already dealt with.
+    await page.evaluate(() => window.markDone("u"));
+    await page.locator("#row-v [role='checkbox']").focus();
+    await page.evaluate(() => window.markDone("v"));
+    await settle(page);
+    assert.equal(await focused(), "row-t");
+    // When none is left, the all box is disabled: focus goes to the first action, which stays focusable.
+    await page.evaluate(() => { for (const id of ["a", "r", "s"]) window.markDone(id); });
+    await page.locator("#row-t [role='checkbox']").focus();
+    await page.evaluate(() => window.markDone("t"));
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "admit");
+    // Focus that the reader moved elsewhere (the action) is never taken back.
+    const again = await open(PICK());
+    await again.locator("#row-a [role='checkbox']").click();
+    await again.locator("#admit").focus();
+    await again.evaluate(() => window.markDone("a"));
+    await settle(again);
+    assert.equal(await again.evaluate(() => document.activeElement?.id), "admit");
+    await again.close();
+    await page.close();
+  });
+
+  test("a chosen row keeps the selected wash under the pointer; hover is for rows not chosen", async () => {
+    const page = await open(PICK());
+    await page.locator("#row-a [role='checkbox']").click();
+    await page.mouse.move(0, 0);
+    await settle(page);
+    const rest = await page.evaluate(() => getComputedStyle(document.getElementById("row-a")).backgroundColor);
+    await page.hover("#row-a");
+    await settle(page);
+    const hovered = await page.evaluate(() => getComputedStyle(document.getElementById("row-a")).backgroundColor);
+    assert.equal(hovered, rest, "the selected wash, not the hover wash");
+    await page.hover("#row-k");
+    await settle(page);
+    const other = await page.evaluate(() => [getComputedStyle(document.getElementById("row-k")).backgroundColor, getComputedStyle(document.getElementById("row-a")).backgroundColor]);
+    assert.notEqual(other[0], other[1], "an unchosen row's hover wash is not the selected wash");
+    await page.close();
+  });
+
+  test("the count's room holds the widest of its wordings for none, one, all but one and all, or the app's own widest", async () => {
+    const COUNT = `${PAGE}
+function App() {
+  const [v, setV] = React.useState([]);
+  window.setV = setV;
+  const ids = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"];
+  return (
+    <div style={{ width: 600, padding: 24 }}>
+      <B.SelectableList label="Files" values={ids} value={v} onValueChange={setV} bar={<B.SelectionBar id="bar1" count={(c, t) => (c === 0 ? "Nothing chosen yet" : c + " of " + t)}><B.Button id="act1" size="sm">Move</B.Button></B.SelectionBar>}>
+        {ids.map((id) => <B.SelectableItem key={id} value={id}>{"File " + id}</B.SelectableItem>)}
+      </B.SelectableList>
+      <B.SelectableList label="Files" values={ids} bar={<B.SelectionBar id="bar2" widest="Every file in the folder" count={(c, t) => (c === t ? "Every file" : c + " of " + t)}><B.Button id="act2" size="sm">Move</B.Button></B.SelectionBar>}>
+        {ids.map((id) => <B.SelectableItem key={id} value={id}>{"File " + id}</B.SelectableItem>)}
+      </B.SelectableList>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+    const page = await open(COUNT);
+    const at = () => page.evaluate(() => document.getElementById("act1").getBoundingClientRect().left);
+    const start = await at();
+    for (const v of [["a"], ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], []]) {
+      await page.evaluate((v) => window.setV(v), v);
+      await settle(page);
+      assert.equal(await at(), start, `the action held still at ${v.length}`);
+    }
+    const words = await page.evaluate(() => [...document.querySelectorAll("#bar2 .basalt-selection-count .basalt-reserve > *")].map((el) => el.textContent));
+    assert.ok(words.includes("Every file in the folder"), "the app's widest wording is reserved");
+    await page.close();
+  });
+
   test("the bar sticks to its edge of the scroller, opaque, on a divider", async () => {
     for (const [side, edge] of [["top", "borderBottomWidth"], ["bottom", "borderTopWidth"]]) {
       const page = await open(PICK(side));
@@ -234,6 +321,8 @@ const items = (
     <B.DescriptionItem id="i4" term="Customer" values={["Juno Halvorsen", "Annual plan since Mar 2024"]} />
     <B.DescriptionItem id="i5" term="Time to first reply" missing>No reply yet</B.DescriptionItem>
     <B.DescriptionItem id="i6" term="Contacts" missing values={["No email on file", "No phone on file"]} />
+    <B.DescriptionItem id="i7" term="Phone" missing values={[]}>No phone on file</B.DescriptionItem>
+    <B.DescriptionItem id="i8" term="Uptime" missing values={[]} />
   </>
 );
 createRoot(document.getElementById("root")).render(
@@ -277,6 +366,8 @@ describe("DescriptionList", () => {
       return { observed: dd("i2").textContent, own: dd("i3").textContent, same: getComputedStyle(dd("i2")).color === getComputedStyle(dd("i3")).color, differs: getComputedStyle(dd("i3")).color !== getComputedStyle(p).color, mono: dd("i3").hasAttribute("data-mono"), missing: dd("i3").hasAttribute("data-missing") };
     });
     assert.equal(info.observed, "Not observed");
+    // An empty `values` in the missing state falls back to the children, or to "Not observed": one dd, never none.
+    assert.deepEqual(await page.evaluate(() => ["i7", "i8"].map((id) => [...document.querySelectorAll(`#line #${id} dd`)].map((d) => d.textContent))), [["No phone on file"], ["Not observed"]]);
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll("#line #i6 dd")].map((d) => [d.textContent, d.hasAttribute("data-missing")])), [["No email on file", true], ["No phone on file", true]], "supplied values are what a missing row says");
     assert.equal(info.own, "None yet");
     assert.ok(info.same, "the same ink for both");
@@ -360,6 +451,10 @@ function App() {
         <B.Select toolbar aria-label="Status" value={v} onValueChange={setV} options={STATUS} />
         <B.Select toolbar aria-label="Result" defaultValue="any" options={[{ value: "any", label: "Any result" }, { value: "failed", label: "Failed" }]} />
       </div>
+      <div id="prefixed" style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <B.Select toolbar valuePrefix="Status" value={v} onValueChange={setV} options={STATUS} />
+        <B.Button id="after-prefixed">Apply</B.Button>
+      </div>
       <div id="narrow" style={{ width: 120, marginTop: 16 }}><B.Select toolbar aria-label="Narrow" defaultValue="waiting" options={STATUS} /></div>
       <B.FilterToolbar label="Filter" filter={[<B.Select key="a" toolbar aria-label="In toolbar" defaultValue="open" options={STATUS} />]} />
     </div>
@@ -382,6 +477,17 @@ describe("Select toolbar", () => {
     assert.equal(c.w, a.w);
     assert.equal(b.next, a.next, "choosing moves nothing after it");
     assert.ok(a.w < 300, `not stretched: ${a.w}`);
+    // With a prefix the seat follows it and holds the same reservation: across every value the trigger keeps one width and the button after it never moves.
+    const prefixed = async () => page.evaluate(() => [document.querySelector("#prefixed .basalt-select-trigger").getBoundingClientRect().width, document.getElementById("after-prefixed").getBoundingClientRect().left, Boolean(document.querySelector("#prefixed .basalt-select-lead > .basalt-select-seat"))]);
+    const seen = [];
+    for (const value of ["open", "waiting", "any"]) {
+      await page.evaluate((value) => window.setStatus(value), value);
+      await settle(page);
+      seen.push(await prefixed());
+    }
+    assert.ok(seen.every((x) => x[2]), "the seat is kept after the prefix");
+    assert.equal(new Set(seen.map((x) => x[0])).size, 1, `one width: ${JSON.stringify(seen)}`);
+    assert.equal(new Set(seen.map((x) => x[1])).size, 1, "nothing after it moves");
     const name = await page.locator("#row .basalt-select-trigger").first().evaluate((el) => el.textContent);
     assert.ok(name.includes("Any status"));
     const narrow = await page.evaluate(() => { const t = document.querySelector("#narrow .basalt-select-trigger"); const v = t.querySelector(".basalt-select-value"); return { w: t.getBoundingClientRect().width, cut: v.scrollWidth > v.clientWidth, ellipsis: getComputedStyle(v).textOverflow }; });
@@ -433,6 +539,79 @@ describe("Form dialog body", () => {
     // Values beyond a text field keep the form's own gap: the multi-select and the checked group are space-4 apart, as fields are.
     const more = await page.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); return [r("many").top - document.querySelector("#f .basalt-field").getBoundingClientRect().bottom, r("group").top - r("many").bottom]; });
     assert.deepEqual(more.map(Math.round), [16, 16]);
+    await page.close();
+  });
+});
+
+// ---- Described menu rows wrap (DECISIONS 275, the owner's option B) ----
+
+const MENU = `${PAGE}
+createRoot(document.getElementById("root")).render(
+  <div style={{ padding: 24, display: "flex", gap: 16 }}>
+    <B.Menu defaultOpen modal={false}>
+      <B.MenuTrigger render={<B.Button>Access</B.Button>} />
+      <B.MenuContent id="menu">
+        <B.MenuRadioGroup defaultValue="edit">
+          <B.MenuRadioItem id="view" value="view" description="Reads the document and its comments, and cannot change anything at all in it">Can view</B.MenuRadioItem>
+          <B.MenuRadioItem id="edit" value="edit" description="Changes the text">Can edit</B.MenuRadioItem>
+        </B.MenuRadioGroup>
+        <B.MenuItem id="copy">Copy link</B.MenuItem>
+      </B.MenuContent>
+    </B.Menu>
+  </div>
+);`;
+const SELECT_DESCRIBED = `${PAGE}
+createRoot(document.getElementById("root")).render(
+  <div style={{ padding: 24 }}>
+    <B.Select aria-label="Plan" defaultOpen defaultValue="team" options={[{ value: "team", label: "Team", description: "Every seat in the workspace, billed each month, with the admin controls and the audit log" }, { value: "solo", label: "Solo" }]} />
+  </div>
+);`;
+
+describe("Described menu rows", () => {
+  for (const width of [1440, 390]) {
+    test(`at ${width}: a Menu stays at most 320 wide; a description wraps, the row grows, the label stays one line, and the plates cover the taller row`, async () => {
+      const page = await open(MENU, { width, ...(width === 390 ? COARSE : {}) });
+      const info = await page.evaluate(() => {
+        const box = (el) => el.getBoundingClientRect();
+        const view = document.getElementById("view");
+        const edit = document.getElementById("edit");
+        const before = getComputedStyle(view, "::before");
+        return {
+          menu: box(document.getElementById("menu")).width,
+          viewH: box(view).height, editH: box(edit).height,
+          label: box(view.querySelector(".basalt-menu-item-label")).height,
+          desc: box(view.querySelector(".basalt-menu-item-description")).height,
+          white: getComputedStyle(view.querySelector(".basalt-menu-item-description")).whiteSpace,
+          plate: parseFloat(before.height), inset: parseFloat(before.top),
+        };
+      });
+      assert.ok(info.menu <= 320, `menu ${info.menu}`);
+      assert.equal(info.white, "normal");
+      assert.ok(info.desc >= 36, `the long description wraps: ${info.desc}`);
+      assert.equal(Math.round(info.label), 20, "the label is one line");
+      assert.ok(info.viewH >= info.editH + 18, `the row grows: ${info.viewH} against ${info.editH}`);
+      assert.equal(Math.round(info.plate + 2 * info.inset), Math.round(info.viewH), "the row's own plate covers the whole row");
+      if (width === 1440) {
+        // The shared plate glides between rows of different heights, taking each row's own.
+        await page.hover("#view");
+        await settle(page);
+        const tall = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector("#menu .basalt-plate")).height));
+        await page.hover("#copy");
+        await settle(page);
+        const short = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector("#menu .basalt-plate")).height));
+        assert.equal(Math.round(tall), Math.round(info.plate));
+        assert.ok(short < tall - 18, `the plate changes height: ${tall} then ${short}`);
+      }
+      assert.deepEqual(page.errors, []);
+      await page.close();
+    });
+  }
+
+  test("Select keeps its description to one cut line (menus only)", async () => {
+    const page = await open(SELECT_DESCRIBED);
+    await settle(page);
+    const desc = await page.evaluate(() => { const d = document.querySelector(".basalt-select-popup .basalt-menu-item-description"); return [getComputedStyle(d).whiteSpace, getComputedStyle(d).textOverflow, Math.round(d.getBoundingClientRect().height)]; });
+    assert.deepEqual(desc, ["nowrap", "ellipsis", 18]);
     await page.close();
   });
 });

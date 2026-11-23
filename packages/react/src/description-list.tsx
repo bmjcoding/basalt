@@ -65,8 +65,8 @@ export interface DescriptionItemProps extends Omit<React.ComponentProps<"div">, 
 
 /** One row: a `div` holding one `dt` and one or more `dd`. */
 export function DescriptionItem({ term, children, values, mono, missing, detail, className, ...props }: DescriptionItemProps) {
-  // Missing or not, the caller's own words win; "Not observed" is only what a missing row says when it is given none.
-  const details = values ?? [missing ? children ?? NOT_OBSERVED : children];
+  // Missing or not, the caller's own words win; "Not observed" is only what a missing row says when it is given none (no children, and no or empty `values`).
+  const details = missing ? (values?.length ? values : [children ?? NOT_OBSERVED]) : values ?? [children];
   return (
     <div {...props} className={join("basalt-description-item", className)}>
       <dt className="basalt-description-term">{term}</dt>

@@ -322,7 +322,9 @@ for (const id of rounds) {
           if (state.endsWith("reduced-transparency")) await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
           // Enabling the CSS agent (the filmstrip needs it to hold :active) makes the inspector re-read the page's own file:
           // stylesheet, which Chromium logs as an unsafe file: load. It is the tooling's, not the page's, so only that is skipped.
-          const inspectorNoise = (text) => (state === "film" || state === "ghost" || id === "34" || Number(id) >= 56) && /^Unsafe attempt to load URL file:/.test(text);
+          // A capture that holds parts with the inspector (round 34, and from round 56 a page with [data-wt-force]) sets `inspected` before it enables the CSS agent.
+          let inspected = id === "34";
+          const inspectorNoise = (text) => (state === "film" || state === "ghost" || inspected) && /^Unsafe attempt to load URL file:/.test(text);
           // Round 34 draws the skill's page with the script off, in a frame that may not run scripts: the browser says so, once for each script it blocked (the timer count this file installs in every frame is one of them, in the frame's `about:blank` first).
           const scriptsOff = (text) => id === "34" && /^Blocked script execution in 'about:(srcdoc|blank)'/.test(text);
           const refused = (text) => id === "25" && /basalt\.invalid|ERR_FAILED|ERR_BLOCKED/.test(text);
@@ -385,6 +387,7 @@ for (const id of rounds) {
             await page.waitForTimeout(700);
             // The movement readouts click each control through in turn: the shot waits until every one has written its answer.
             await page.waitForFunction(() => ![...document.querySelectorAll("[data-wt-movement]")].some((el) => el.textContent === "measuring"), undefined, { timeout: 60000 });
+            inspected = true;
             const client = await page.context().newCDPSession(page);
             await client.send("DOM.enable");
             await client.send("CSS.enable");

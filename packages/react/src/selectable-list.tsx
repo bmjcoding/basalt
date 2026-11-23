@@ -11,7 +11,35 @@ interface Selection {
   values: readonly string[];
   chosen: ReadonlySet<string>;
   set: (next: string[]) => void;
+  /** The row focus was last in, so a row that leaves while holding focus can hand it on. */
+  focused: React.RefObject<HTMLElement | null>;
 }
+
+const BOX = '[role="checkbox"]';
+
+/** Focus has gone nowhere: the element that held it left the page. */
+const lost = () => {
+  const at = document.activeElement;
+  return !at || at === document.body || !at.isConnected;
+};
+
+/** The boxes focus can go to when a row's own box leaves: the next row that can still be chosen, else the one before, else the all box, else the first action. */
+function heirs(row: HTMLElement): HTMLElement[] {
+  const walk = (step: "nextElementSibling" | "previousElementSibling") => {
+    const found: HTMLElement[] = [];
+    for (let at = row[step]; at; at = at[step]) {
+      const box = at.hasAttribute("data-done") ? null : at.querySelector<HTMLElement>(BOX);
+      if (box) found.push(box);
+    }
+    return found;
+  };
+  const list = row.closest(".basalt-selectable-list");
+  const all = list?.querySelector<HTMLElement>(`.basalt-selection-bar ${BOX}:not([data-disabled])`);
+  const action = list?.querySelector<HTMLElement>(".basalt-selection-actions :is(button, a[href])");
+  return [...walk("nextElementSibling"), ...walk("previousElementSibling"), ...(all ? [all] : []), ...(action ? [action] : [])];
+}
+
+const handOn = (to: HTMLElement[]) => to.find((box) => box.isConnected)?.focus();
 
 const SelectionContext = React.createContext<Selection | null>(null);
 
@@ -62,7 +90,8 @@ export function SelectableList({ label, values, value, defaultValue, onValueChan
     },
     [values, value, onValueChange],
   );
-  const selection = React.useMemo(() => ({ values, chosen, set }), [values, chosen, set]);
+  const focused = React.useRef<HTMLElement | null>(null);
+  const selection = React.useMemo(() => ({ values, chosen, set, focused }), [values, chosen, set]);
   const list = (
     <ul className="basalt-selectable-items" aria-label={label}>
       {children}
@@ -92,12 +121,38 @@ export interface SelectableItemProps extends Omit<React.ComponentProps<"li">, "c
  * One row: a checkbox and the row's words, the whole row its label. Chosen, it takes the selected wash as a band and its box is checked. A row
  * whose value is no longer in the list's `values` keeps its box with an empty check seat, so nothing moves when a row is dealt with.
  */
-export function SelectableItem({ value, label, children, className, ...props }: SelectableItemProps) {
+export function SelectableItem({ value, label, children, className, ref, ...props }: SelectableItemProps) {
   const selection = useSelection("SelectableItem");
   const open = selection.values.includes(value);
   const on = open && selection.chosen.has(value);
+  const row = React.useRef<HTMLLIElement>(null);
+  const was = React.useRef(open);
+  // A row dealt with while its box holds focus (a refresh marks it done) hands focus on to the next row that can still be chosen, so it is never lost.
+  React.useLayoutEffect(() => {
+    const element = row.current;
+    if (was.current && !open && element && selection.focused.current === element && lost()) handOn(heirs(element));
+    was.current = open;
+  }, [open, selection.focused]);
+  // A row taken out of the list while its box holds focus does the same, once the list has settled.
+  React.useLayoutEffect(() => {
+    const element = row.current;
+    const focused = selection.focused;
+    return () => {
+      if (!element || focused.current !== element) return;
+      const to = heirs(element);
+      queueMicrotask(() => { if (lost()) handOn(to); });
+    };
+  }, [selection.focused]);
   return (
-    <li {...props} data-selected={on ? "" : undefined} data-done={open ? undefined : ""} className={join("basalt-selectable-item", className)}>
+    <li
+      {...props}
+      ref={(element: HTMLLIElement | null) => {
+        row.current = element;
+        if (typeof ref === "function") return ref(element);
+        if (ref) ref.current = element;
+      }}
+      onFocus={(event) => { props.onFocus?.(event); selection.focused.current = row.current; }}
+      data-selected={on ? "" : undefined} data-done={open ? undefined : ""} className={join("basalt-selectable-item", className)}>
       {open ? (
         <Checkbox
           checked={on}
@@ -119,8 +174,13 @@ export function SelectableItem({ value, label, children, className, ...props }: 
 export interface SelectionBarProps extends Omit<React.ComponentProps<"div">, "children"> {
   /** The all box's words: what it chooses ("All waiting"). Default "Select all". */
   allLabel?: React.ReactNode;
-  /** The count in words. Default "3 of 12 selected"; pass the app's own ("3 of 12 chosen"). Its room is held for the widest count, so it never moves the actions. */
+  /**
+   * The count in words. Default "3 of 12 selected"; pass the app's own ("3 of 12 chosen"). Its room is held for the widest of what it says for none, one, all
+   * but one and all, so it never moves the actions; a formatter whose widest wording is another count passes that wording as `widest`.
+   */
   count?: (chosen: number, total: number) => string;
+  /** The count's widest wording, when it is not one of the counts for none, one, all but one or all ("Nothing chosen" beside "12 of 12"). */
+  widest?: string;
   /** The actions on what is chosen. Keep them mounted at zero, disabled in place with `focusableWhenDisabled`, so focus stays. */
   children?: React.ReactNode;
 }
@@ -131,7 +191,7 @@ const DEFAULT_COUNT = (chosen: number, total: number) => `${chosen} of ${total} 
  * The band at the list's edge: the all box (checked when every row is chosen, mixed when some are, disabled when none can be), the count in words in
  * a polite status line, then the actions at the end. It sticks to its edge of the scroller, opaque in its surface's colour, on a divider.
  */
-export function SelectionBar({ allLabel = "Select all", count = DEFAULT_COUNT, className, children, ...props }: SelectionBarProps) {
+export function SelectionBar({ allLabel = "Select all", count = DEFAULT_COUNT, widest, className, children, ...props }: SelectionBarProps) {
   const selection = useSelection("SelectionBar");
   const total = selection.values.length;
   const n = selection.chosen.size;
@@ -142,7 +202,8 @@ export function SelectionBar({ allLabel = "Select all", count = DEFAULT_COUNT, c
         {allLabel}
       </Checkbox>
       <span className="basalt-selection-count" role="status">
-        <Reserve show="now" alternatives={{ now: count(n, total), widest: count(total, total) }} />
+        {/* Every wording that could be the widest stands unseen in the one cell; a total of one has only "none" and "all". */}
+        <Reserve show="now" alternatives={{ now: count(n, total), none: count(0, total), one: count(Math.min(1, total), total), most: count(Math.max(0, total - 1), total), all: count(total, total), ...(widest ? { widest } : {}) }} />
       </span>
       {children !== undefined ? <span className="basalt-selection-actions">{children}</span> : null}
     </div>
