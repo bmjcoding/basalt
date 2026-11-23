@@ -4,7 +4,7 @@
    bundled into this module by build.mjs); the figure is drawn by the diagram module's engine (Basalt._.diagramKit), so this holds no second copy of it.
    compose.mjs adds this module to a page with a figure unless every figure on it says "zoom": false. The implementation hasn't been reviewed.
    Source: tools/html-skill/src/modules/diagram-zoom.js (do not edit the copy in the skill folder). */
-import { attachZoom, revealIn } from "../../../../packages/react/src/diagram-zoom-core.ts";
+import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } from "../../../../packages/react/src/diagram-zoom-core.ts";
 
 (function (B) {
   'use strict';
@@ -22,7 +22,7 @@ import { attachZoom, revealIn } from "../../../../packages/react/src/diagram-zoo
     var model = kit.buildModel(still);
     var id = 'dgv' + (++serial);
     var key = kit.figureKey('diagram', model);
-    var hint = kit.hintEntries(model, true).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
+    var hint = viewerHint(kit.hintEntries(model)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
     d.className = 'panel float modal dialog diagram-viewer';
     d.setAttribute('data-form', '');
@@ -63,7 +63,8 @@ import { attachZoom, revealIn } from "../../../../packages/react/src/diagram-zoo
     });
     var memo = {};
     var view = {
-      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo,
+      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS,
+      measure: function (f, m, p, base, current, apply, warn) { return measureViewerFigure(f, m, p, base, current, apply, warn, view); },
       onMeasured: function (measured, f) {
         stage.setAttribute('data-layout', measured.dyn.layout || '');
         if (keyBox) { keyBox.setAttribute('data-layout', measured.dyn.layout || ''); keyBox.toggleAttribute('data-bare', Boolean(measured.dyn.bare)); }
@@ -140,7 +141,8 @@ import { attachZoom, revealIn } from "../../../../packages/react/src/diagram-zoo
     button.setAttribute('data-variant', 'secondary');
     button.setAttribute('data-size', 'sm');
     button.setAttribute('aria-haspopup', 'dialog');
-    button.innerHTML = _.icon('ArrowsOutSimple', { size: 16 }) + '<span>Expand</span>';
+    // Words only, as React's (a deviation from 9.1): the core set draws no expand glyph.
+    button.innerHTML = '<span>Expand</span>';
     var toggle = foot.querySelector('.diagram-toggle');
     if (toggle && toggle.nextSibling) foot.insertBefore(button, toggle.nextSibling); else foot.appendChild(button);
     var onClick = function () { openViewer(page, spec, ctx, button); };

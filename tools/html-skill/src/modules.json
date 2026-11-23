@@ -836,9 +836,6 @@
         "dialog-form",
         "sheet"
       ],
-      "icons": [
-        "ArrowsOutSimple"
-      ],
       "budget": 12000,
       "usage": 900,
       "builds": [

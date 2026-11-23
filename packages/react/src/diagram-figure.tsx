@@ -2,14 +2,12 @@ import * as React from "react";
 
 import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
-import { usePanelLevel } from "./layers";
+import { inLevel, usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, measureViewerFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, buildModel, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, ViewerMemo, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
-import { ArrowsOutSimpleIcon } from "@phosphor-icons/react/dist/csr/ArrowsOutSimple";
-import { Icon } from "./icon";
 
 type MotionModule = typeof import("./diagram-motion");
 let motionLoading: Promise<MotionModule> | undefined;
@@ -52,7 +50,7 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
 const P = "basalt-diagram";
 /** What the viewer is handed (diagram-viewer.tsx): this component and the engine, so its chunk holds no second copy of either. Built at the first open. */
 let kitMade: import("./diagram-viewer").ViewerKit | undefined;
-const kitOf = () => (kitMade ??= { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml });
+const kitOf = () => (kitMade ??= { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure });
 declare const process: { env: { NODE_ENV?: string } };
 
 const CAMEL: Record<string, string> = { class: "className", tabindex: "tabIndex", for: "htmlFor", viewbox: "viewBox" };
@@ -96,15 +94,12 @@ function warnOnce(component: string, message: string) {
   console.warn(`Basalt ${key}`);
 }
 
-/** The viewer's own figure (DECISIONS 310, 9.3): laid out at a width the viewer gives, its drawing alone shown, measured only at 100%. */
+/** The viewer's own figure (DECISIONS 310, 9.3): laid out and measured by the viewer, its drawing alone shown. */
 export interface DiagramViewerMode {
-  /** The width it may be laid out at: the stage's inner width, never over the page row (`row`) unless its least drawn width is more. */
-  avail: number;
-  row: number;
-  /** A stack is held at most this wide (`size-breakpoint-container`). */
-  contain: number;
-  /** The layer the figure is laid out in: its width is the layout width. */
-  layer: () => HTMLElement | null;
+  /** Lays the figure out (diagram-zoom-core's measureViewerFigure, with this module's engine). */
+  measure: (fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void) => Measured;
+  /** The words the keys sentence ends with. */
+  keys: string;
   /** After every layout: what was measured, and the figure. */
   onMeasured: (measured: Measured, fig: HTMLElement) => void;
 }
@@ -135,8 +130,6 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
   const [ink, setInk] = React.useState("");
   const inkHtml = React.useMemo(() => ({ __html: ink }), [ink]);
   const measured = React.useRef<Measured | null>(null);
-  // The viewer's figure: the least width the engine was found to draw it at, for this data (measureViewerFigure).
-  const leastMemo = React.useRef<ViewerMemo>({});
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
   const [motionModule, setMotionModule] = React.useState<MotionModule | null>(null);
@@ -152,7 +145,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
   modelRef.current = model;
   const [focusTrace, setFocusTrace] = React.useState<string | null>(null);
   const [hoverTrace, setHoverTrace] = React.useState<string | null>(null);
-  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden", viewer: Boolean(viewer) }), [base, level, source, viewer]);
+  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden", viewer: viewer?.keys }), [base, level, source, viewer]);
 
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
   React.useEffect(() => {
@@ -164,8 +157,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
     if (!fig) return;
     const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const apply = (d: Dyn) => syncAttributes(fig, figureTree(model, d, options));
-    const layer = viewer?.layer();
-    const result = viewer && layer ? measureViewerFigure(fig, model, P, base, dynRef.current, apply, warn, { layer, avail: viewer.avail, row: viewer.row, contain: viewer.contain, memo: leastMemo.current }) : measureFigure(fig, model, P, base, dynRef.current, apply, warn);
+    const result = (viewer ? viewer.measure : measureFigure)(fig, model, P, base, dynRef.current, apply, warn);
     measured.current = result;
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
@@ -368,7 +360,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
         onTouchStart={preloadViewer}
         onClick={openViewer}
       >
-        <Icon icon={ArrowsOutSimpleIcon} size={16} />
+        {/* Words only (a deviation from 9.1, the lead's call): Phosphor's icon cost every still figure 2.2 KB of six weights, and the core set draws no expand glyph. */}
         <span className="basalt-button-label">Expand</span>
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>

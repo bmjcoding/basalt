@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, measureViewerFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -13,7 +13,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
   var serial = 0;
 
   function options(base, spec, viewer) {
-    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden', viewer: Boolean(viewer) };
+    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden', viewer: viewer ? viewer.keys : undefined };
   }
   function slots(model, spec, base, open) {
     var kbd = function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; };
@@ -93,7 +93,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
     }
     function layout() {
       // The viewer's figure (DECISIONS 310, the diagram-zoom module) is laid out at the stage's width and measured only at 100%.
-      measured = viewer ? measureViewerFigure(figure, model, P, base, state, apply, warn, viewer) : measureFigure(figure, model, P, base, state, apply, warn);
+      measured = (viewer ? viewer.measure : measureFigure)(figure, model, P, base, state, apply, warn);
       state = measured.dyn;
       apply(state);
       syncToggle();
@@ -214,7 +214,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
 
   _.diagramMarkup = markup;
   // What the viewer (the diagram-zoom module) draws with: this module's engine, so that module holds no second copy of it.
-  _.diagramKit = { draw: draw, buildModel: buildModel, figureKey: figureKey, figureList: figureList, hintEntries: hintEntries, toHtml: toHtml, escapeHtml: escapeHtml, settleEntrance: settleEntrance };
+  _.diagramKit = { draw: draw, buildModel: buildModel, figureKey: figureKey, figureList: figureList, hintEntries: hintEntries, toHtml: toHtml, escapeHtml: escapeHtml, settleEntrance: settleEntrance, measureFigure: measureFigure };
   B.diagram = function (figure, spec) {
     var d = figure.__diagram;
     var key = d && d.send ? sendless(spec) : null;

@@ -5,6 +5,19 @@
 // (plus the stage's padding) so the stage has something to scroll. A pan is a scroll. Nothing is animated: a step, the wheel and a pinch land at once.
 // The engine never measures a zoomed figure: the viewer gives this the layer's size at 100% (`size`), read with the zoom taken off.
 
+import type { Dyn, Measured, Model } from "./diagram-core";
+
+type MeasureFigure = (fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void, sizeTo?: (least: number) => void) => Measured;
+
+/** The viewer's addition to the figure's keys sentence (9.8). */
+export const VIEWER_KEYS = "Plus and minus zoom, zero fits the drawing, Escape closes.";
+
+/** The viewer's key hint (9.8): the figure's, with Esc closing and the zoom keys added. */
+export function viewerHint(entries: Array<{ keys: string[]; words: string }>): Array<{ keys: string[]; words: string }> {
+  const out = entries.filter((e) => e.keys[0] !== "Esc");
+  return [...out, { keys: ["+", "−"], words: "zoom" }, { keys: ["0"], words: "fit" }, { keys: ["Esc"], words: "close" }];
+}
+
 /** The ladder the buttons and keys step on (9.4): a browser's own, shortened. */
 export const ZOOM_STEPS = [25, 33, 50, 67, 75, 100, 125, 150, 200, 300, 400];
 const MAX = 4;
@@ -320,3 +333,62 @@ export function revealIn(stage: HTMLElement, el: Element, margin: number): void 
   if (r.left < left) stage.scrollLeft -= left - r.left; else if (r.right > right) stage.scrollLeft += Math.min(r.right - right, r.left - left);
   if (r.top < top) stage.scrollTop -= top - r.top; else if (r.bottom > bottom) stage.scrollTop += Math.min(r.bottom - bottom, r.top - top);
 }
+
+/** What the viewer's figure remembers between layouts: the least width the engine was found to draw this data at (0: none). */
+export interface ViewerMemo { model?: unknown; least?: number }
+export interface ViewerLayout {
+  /** The layer the figure is laid out in: its width is the layout width; its transform (the zoom) is taken off while it is measured. */
+  layer: HTMLElement;
+  /** The stage's inner width, the page row and `size-breakpoint-container`, in CSS pixels. */
+  avail: number;
+  row: number;
+  contain: number;
+  memo: ViewerMemo;
+  /** The engine's measure (diagram-core's measureFigure), handed over so this module holds no copy of it. */
+  measureFigure: MeasureFigure;
+}
+
+/**
+ * The viewer's layout (DECISIONS 310, 9.3), for React and the skill alike: the figure is laid out at the stage's inner width, never under its least drawn
+ * width and never over the page row unless that width is more; a stack is held only when nothing is drawn, at most the container's width. The engine
+ * measures only at 100%: the zoom is taken off the layer while it measures and put back before anything paints.
+ */
+export function measureViewerFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn: ((s: string) => void) | undefined, v: ViewerLayout): Measured {
+  const { layer, memo, measureFigure } = v;
+  if (memo.model !== m) { memo.model = m; memo.least = undefined; }
+  const sizeTo = (least: number) => { layer.style.width = `${Math.max(memo.least || least, Math.min(v.avail, v.row))}px`; };
+  // The layer has no width of its own until the first layout: it starts at the stage's, so the figure can be measured.
+  if (!layer.style.width) layer.style.width = `${Math.min(v.avail, v.row)}px`;
+  const zoomed = layer.style.transform;
+  layer.style.transform = "none";
+  // A dialog still opening is scaled (from .98): the layer is scaled by the inverse while it is measured, so what is read is 100% whatever its ancestors do.
+  const ancestors = layer.offsetWidth ? layer.getBoundingClientRect().width / layer.offsetWidth : 1;
+  if (Math.abs(ancestors - 1) > 1e-4) layer.style.transform = `scale(${1 / ancestors})`;
+  // Before the least drawn width is known, a refusal at the token sum is expected and is not the author's to fix: it says nothing.
+  let result = measureFigure(fig, m, P, base, current, apply, memo.least === undefined ? undefined : warn, sizeTo);
+  // The least drawn width is the first width the engine draws the figure at, which the token sum can undercount (a sequence's columns are measured, a
+  // decision may be taller than wide at a width). Found once by trying wider layouts, in steps of 16 and then by the pixel, up to half the row past it. A width
+  // counts when it draws twice running: measured from the stack, then again from its own drawn state, as every later measure is.
+  if (result.dyn.layout === "stacked" && memo.least === undefined && result.least !== undefined) {
+    const from = result.dyn;
+    const at = (w: number) => {
+      layer.style.width = `${w}px`;
+      const first = measureFigure(fig, m, P, base, from, apply);
+      return first.dyn.layout === "drawn" ? measureFigure(fig, m, P, base, first.dyn, apply) : first;
+    };
+    const start = Math.max(result.least, Math.min(v.avail, v.row));
+    const cap = Math.max(v.row, start) * 1.5;
+    let found: number | undefined;
+    for (let w = start + 16; w <= cap && found === undefined; w += 16) if (at(w).dyn.layout === "drawn") found = w;
+    if (found !== undefined) for (let w = found - 15; w < found; w++) if (at(w).dyn.layout === "drawn") { found = w; break; }
+    memo.least = found ?? 0;
+    result = found !== undefined ? at(found) : measureFigure(fig, m, P, base, from, apply, warn, sizeTo);
+  }
+  if (result.dyn.layout === "stacked" && fig.clientWidth > v.contain) {
+    layer.style.width = `${v.contain}px`;
+    result = measureFigure(fig, m, P, base, result.dyn, apply, warn);
+  }
+  layer.style.transform = zoomed;
+  return result;
+}
+

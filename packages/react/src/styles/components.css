@@ -4928,7 +4928,6 @@
      window. The body is the stage: it scrolls both ways, so a pan is a scroll. The figure in it is laid out once at 100% (the layer's width) and zoomed
      with one transform: never a viewBox, CSS zoom, a canvas or a picture, and no layer is held (no will-change). Nothing in it moves: a zoom step lands
      at once. Decided by the council's decider alone; no draft, check or position. The implementation hasn't been reviewed. */
-  .basalt-diagram-expand > .basalt-icon { flex: none; }
   @media (pointer: coarse) {
     .basalt-diagram-expand { min-height: var(--basalt-size-tap-min); }
   }
@@ -4998,7 +4997,47 @@
   }
   /* The viewer and its scrim do not print: the page prints its own figure, untraced and light. "Expand" does not print. */
   @media print {
-    .basalt-diagram-expand, .basalt-diagram-viewer, :root:has(.basalt-diagram-viewer) .basalt-dialog-backdrop { display: none !important; }
+    .basalt-diagram-expand, .basalt-diagram-viewer { display: none !important; }
+  }
+
+  /* ---- Diagram viewer, React's dialog (DECISIONS 310): the form dialog's box on a native modal <dialog>, as the HTML skill's is ----
+     Base UI's dialog is not imported by the viewer's chunk (it would widen the Base UI chunk every component shares), so the box's motion is written here for
+     the native element: from 720 a scale from .98 and a fade over duration-slow, under it the sheet's rise over duration-slower, each out at three quarters on
+     ease-in, and a fade alone under reduced motion. The scrim is its ::backdrop. The page behind does not scroll while it is open. */
+  dialog.basalt-dialog.basalt-diagram-viewer {
+    --_out: calc(var(--basalt-duration-slow) * 0.75);
+    margin: 0;
+    border: 0;
+    max-width: none;
+    max-height: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.98);
+    transition-property: opacity, transform, overlay, display;
+    transition-behavior: allow-discrete;
+    transition-duration: var(--_out);
+    transition-timing-function: var(--basalt-ease-in);
+  }
+  dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 1; transform: translate(-50%, -50%); transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 0; transform: translate(-50%, -50%) scale(0.98); } }
+  dialog.basalt-dialog.basalt-diagram-viewer::backdrop { background: var(--basalt-scrim); opacity: 0; transition: opacity var(--_out) var(--basalt-ease-in), overlay var(--_out) allow-discrete, display var(--_out) allow-discrete; }
+  dialog.basalt-dialog.basalt-diagram-viewer[open]::backdrop { opacity: 1; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
+  @starting-style { dialog.basalt-dialog.basalt-diagram-viewer[open]::backdrop { opacity: 0; } }
+  :root:has(dialog.basalt-diagram-viewer[open]) { overflow: hidden; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) {
+    dialog.basalt-dialog.basalt-diagram-viewer { --_out: calc(var(--basalt-duration-slower) * 0.75); opacity: 1; transform: translateY(100%); }
+    dialog.basalt-dialog.basalt-diagram-viewer[open] { transform: none; transition-duration: var(--basalt-duration-slower); }
+    @starting-style { dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 1; transform: translateY(100%); } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    dialog.basalt-dialog.basalt-diagram-viewer, dialog.basalt-dialog.basalt-diagram-viewer[open] { transform: translate(-50%, -50%); }
+    @starting-style { dialog.basalt-dialog.basalt-diagram-viewer[open] { transform: translate(-50%, -50%); } }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
+  @media (width < 720px) and (prefers-reduced-motion: reduce) {
+    dialog.basalt-dialog.basalt-diagram-viewer, dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 0; transform: none; }
+    dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 1; }
+    @starting-style { dialog.basalt-dialog.basalt-diagram-viewer[open] { opacity: 0; transform: none; } }
   }
 
   /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----

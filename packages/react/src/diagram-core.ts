@@ -883,13 +883,10 @@ function keysSentence(m: Model): string {
   return `Arrow keys move to the next or the previous ${noun}, in the author's order; Home and End go to the ends; Escape clears the trace.`;
 }
 
-/** The key hint's entries: the keys and their words. In the viewer (DECISIONS 310, 9.8) Esc closes, and the zoom keys are added. */
-export function hintEntries(m: Model, viewer = false): Array<{ keys: string[]; words: string }> {
-  if (viewer) return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["+", "−"], words: "zoom" }, { keys: ["0"], words: "fit" }, { keys: ["Esc"], words: "close" }];
+/** The key hint's entries: the keys and their words. */
+export function hintEntries(m: Model): Array<{ keys: string[]; words: string }> {
   return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
 }
-/** The viewer's addition to the keys sentence (DECISIONS 310, 9.8). */
-export const VIEWER_KEYS = "Plus and minus zoom, zero fits the drawing, Escape closes.";
 
 export interface FigureOptions {
   /** The class prefix: "basalt-diagram" in React, "diagram" in the HTML skill. */
@@ -903,8 +900,8 @@ export interface FigureOptions {
   hasSource?: boolean;
   /** The class of the hidden text. */
   hiddenClass: string;
-  /** The figure is the viewer's (DECISIONS 310): only its drawing shows, and the keys sentence says the zoom keys. */
-  viewer?: boolean;
+  /** The figure is the viewer's (DECISIONS 310): only its drawing shows, and its keys sentence ends with these words (the zoom keys). */
+  viewer?: string;
 }
 
 /** The whole figure. Before script runs `dyn` is empty; the same tree, with the measured `dyn`, is what script settles on. */
@@ -961,7 +958,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m)} ${VIEWER_KEYS}` : keysSentence(m)),
+  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m)} ${o.viewer}` : keysSentence(m)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
@@ -2050,62 +2047,6 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   }
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
-}
-
-/** What the viewer's figure remembers between layouts: the least width the engine was found to draw this data at (0: none). */
-export interface ViewerMemo { model?: Model; least?: number }
-export interface ViewerLayout {
-  /** The layer the figure is laid out in: its width is the layout width; its transform (the zoom) is taken off while it is measured. */
-  layer: HTMLElement;
-  /** The stage's inner width, the page row and `size-breakpoint-container`, in CSS pixels. */
-  avail: number;
-  row: number;
-  contain: number;
-  memo: ViewerMemo;
-}
-
-/**
- * The viewer's layout (DECISIONS 310, 9.3), for React and the skill alike: the figure is laid out at the stage's inner width, never under its least drawn
- * width and never over the page row unless that width is more; a stack is held only when nothing is drawn, at most the container's width. The engine
- * measures only at 100%: the zoom is taken off the layer while it measures and put back before anything paints.
- */
-export function measureViewerFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn: ((s: string) => void) | undefined, v: ViewerLayout): Measured {
-  const { layer, memo } = v;
-  if (memo.model !== m) { memo.model = m; memo.least = undefined; }
-  const sizeTo = (least: number) => { layer.style.width = `${Math.max(memo.least || least, Math.min(v.avail, v.row))}px`; };
-  // The layer has no width of its own until the first layout: it starts at the stage's, so the figure can be measured.
-  if (!layer.style.width) layer.style.width = `${Math.min(v.avail, v.row)}px`;
-  const zoomed = layer.style.transform;
-  layer.style.transform = "none";
-  // A dialog still opening is scaled (from .98): the layer is scaled by the inverse while it is measured, so what is read is 100% whatever its ancestors do.
-  const ancestors = layer.offsetWidth ? layer.getBoundingClientRect().width / layer.offsetWidth : 1;
-  if (Math.abs(ancestors - 1) > 1e-4) layer.style.transform = `scale(${1 / ancestors})`;
-  // Before the least drawn width is known, a refusal at the token sum is expected and is not the author's to fix: it says nothing.
-  let result = measureFigure(fig, m, P, base, current, apply, memo.least === undefined ? undefined : warn, sizeTo);
-  // The least drawn width is the first width the engine draws the figure at, which the token sum can undercount (a sequence's columns are measured, a
-  // decision may be taller than wide at a width). Found once by trying wider layouts, in steps of 16 and then by the pixel, up to half the row past it. A width
-  // counts when it draws twice running: measured from the stack, then again from its own drawn state, as every later measure is.
-  if (result.dyn.layout === "stacked" && memo.least === undefined && result.least !== undefined) {
-    const from = result.dyn;
-    const at = (w: number) => {
-      layer.style.width = `${w}px`;
-      const first = measureFigure(fig, m, P, base, from, apply);
-      return first.dyn.layout === "drawn" ? measureFigure(fig, m, P, base, first.dyn, apply) : first;
-    };
-    const start = Math.max(result.least, Math.min(v.avail, v.row));
-    const cap = Math.max(v.row, start) * 1.5;
-    let found: number | undefined;
-    for (let w = start + 16; w <= cap && found === undefined; w += 16) if (at(w).dyn.layout === "drawn") found = w;
-    if (found !== undefined) for (let w = found - 15; w < found; w++) if (at(w).dyn.layout === "drawn") { found = w; break; }
-    memo.least = found ?? 0;
-    result = found !== undefined ? at(found) : measureFigure(fig, m, P, base, from, apply, warn, sizeTo);
-  }
-  if (result.dyn.layout === "stacked" && fig.clientWidth > v.contain) {
-    layer.style.width = `${v.contain}px`;
-    result = measureFigure(fig, m, P, base, result.dyn, apply, warn);
-  }
-  layer.style.transform = zoomed;
-  return result;
 }
 
 function lineName(m: Model, l: GLine): string {
