@@ -4628,6 +4628,8 @@
   /* An edge label: one line of Mono in the line's secondary ink; on its own line it sits on a plate of the ground, with no radius. */
   .basalt-diagram-label { position: absolute; box-sizing: border-box; height: var(--basalt-text-xs-line-height); color: var(--basalt-diagram-edge); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); text-align: center; white-space: nowrap; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-diagram-label[data-on] { background: var(--_ground); }
+  /* A label of two lines (DECISIONS 306, 1.4): its author's break, both lines in one ink on one plate, each on a 16px line. */
+  .basalt-diagram-label[data-lines="2"] { height: calc(2 * var(--basalt-text-xs-line-height)); }
   .basalt-diagram-label[data-lit] { color: var(--basalt-diagram-edge-main); }
 
   /* The sequence: drawn, a head per participant in equal columns space-5 apart and a 56px row a message; stacked, a strip of chips and a

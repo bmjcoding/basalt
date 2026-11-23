@@ -266,7 +266,13 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     let n = 0;
     for (const s of spec.steps ?? []) {
       if ("band" in s) steps.push({ band: String(s.band ?? "") });
-      else { n++; steps.push({ n, from: String(s.from ?? ""), to: String(s.to ?? ""), label: String(s.label ?? ""), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`) }); }
+      else {
+        n++;
+        const label = String(s.label ?? "");
+        // A message's second line is its note (1.4): a break in its label is an error, and it is drawn on one line.
+        if (label.includes("\n")) dev && warn(`message ${n}'s label has a break: a message's second line is its note`);
+        steps.push({ n, from: String(s.from ?? ""), to: String(s.to ?? ""), label: said(label), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`) });
+      }
     }
   } else if (type === "schema") {
     for (const t of spec.tables ?? []) {
@@ -307,7 +313,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const from = String(e.from ?? ""), to = String(e.to ?? "");
       if (!byId.has(from) || !byId.has(to)) { dev && warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
       const label = txt(e.label);
-      if (label && label.length > MAX_LABEL) dev && warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
+      const lines = label?.split("\n") ?? [];
+      if (lines.length > 2) dev && warn(`the label "${said(label!)}" has more than one break: a label is two lines at most`);
+      if (lines.some((l) => l.length > MAX_LABEL)) dev && warn(`a line of the label "${said(label!)}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
   } else if (dev) {
@@ -387,6 +395,10 @@ function memo<T>(m: Model, key: string, make: () => T): T {
 }
 
 const MAX_LABEL = 28;
+/** How many lines a label is drawn on: one, or two where its author wrote a break (DECISIONS 306, 1.4). The engine never breaks one. */
+const labelLines = (text: string) => (text.includes("\n") ? 2 : 1);
+/** A label as words: its lines joined with a space (the list and the sentences). */
+const said = (text: string) => text.replace(/\n/g, " ");
 
 // ============================================================================================================================================
 // Words: sentences, the key, the list
@@ -426,8 +438,8 @@ function writeSentence(m: Model, n: MNode): string {
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
     if (n.detail) parts.push(sentence(n.detail));
     if (n.group) { const g = m.groups.find((x) => x.id === n.group); if (g) parts.push(`In ${g.label}.`); }
-    const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${e.label})` : ""}`);
-    const to = m.edges.filter((e) => e.from === n.id).map((e) => `${m.byId.get(e.to)!.name}${e.label ? ` (${e.label})` : ""}`);
+    const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
+    const to = m.edges.filter((e) => e.from === n.id).map((e) => `${m.byId.get(e.to)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
     if (from.length) parts.push(`From: ${from.join(", ")}.`);
     if (to.length) parts.push(`To: ${to.join(", ")}.`);
   }
@@ -834,7 +846,7 @@ function buildList(P: string, m: Model): VNode[] {
       out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
     }
     out.push(H("Connections"));
-    out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(e.label)] : "", `${kw(e.kind)}.`))));
+    out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", `${kw(e.kind)}.`))));
     return out;
   }
   if (m.type === "flowchart") {
@@ -844,14 +856,14 @@ function buildList(P: string, m: Model): VNode[] {
       const what = n.shape === "decision" ? "Decision" : n.shape === "terminal" ? (exits.length ? "Start" : "End") : "Step";
       const stop = !n.detail && /[.!?]$/.test(n.name) ? " " : ". ";
       return h("li", null, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
-        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${e.label}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
+        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${said(e.label)}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
     }))];
   }
   if (m.type === "data-flow") {
     return [h("ol", { class: `${P}-list-items` }, m.nodes.map((n) => {
       const exits = m.edges.filter((e) => e.from === n.id);
       return h("li", null, `${n.laneLabel}: `, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
-        exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(e.label)] : "", kw(e.kind)]), "."] : "");
+        exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", kw(e.kind)]), "."] : "");
     }))];
   }
   if (m.type === "sequence") {
@@ -1385,7 +1397,8 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
   const order = lines.filter((l) => m.edges[l.i]?.label).sort((a, b) => Number(m.edges[b.i]!.kind === "main") - Number(m.edges[a.i]!.kind === "main") || a.i - b.i);
   for (const line of order) {
     const text = m.edges[line.i]!.label!;
-    const w = measure(text, "label"), hgt = 16;
+    // A label may hold one break of its author's (DECISIONS 306, 1.4): its box is its widest line, and 16 a line tall.
+    const w = measure(text, "label"), hgt = 16 * labelLines(text);
     const last = line.pts.length - 2;
     const runs: Array<{ horiz: boolean; c: number; p: number; q: number; len: number; pri: number }> = [];
     segmentsOf(line.pts).forEach(([a, b], k) => {
@@ -1802,7 +1815,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     let pts: Pt[] = [];
     const label = e.label;
     const lw = label ? measure(label, "label") : 0;
-    const lh = 16;
+    const lh = label ? 16 * labelLines(label) : 16;
     const turn = s("4");
     if (r === "down" || r === "up") {
       const lo = Math.max(a.rect.l, b.rect.l), hi = Math.min(a.rect.r, b.rect.r);
@@ -1953,7 +1966,7 @@ export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("");
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
   const svg = `<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${lifelines}<g class="${P}-edges">${lines}</g></svg>`;
-  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${escapeHtml(l.text)}</span>`).join("");
+  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
   return svg + labels;
 }
 
