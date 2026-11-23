@@ -685,3 +685,34 @@ describe("fix pass 1", () => {
     await withPicker.close();
   });
 });
+
+// Found adopting B3 (2026-11-22): at 390 a picker with many rows opened over the app's bar and a strip stuck under it. Opening above, it now
+// stops under the lowest pinned part above the caret (data-pinned-edge="top" or .basalt-sticky-bar), measured whether or not the page
+// measures its pinned edges.
+describe("The picker under what is pinned", () => {
+  test("opening above, it never covers a pinned bar or strip", async () => {
+    const page = await open(`
+window.picks = [];
+const OPTIONS = ${PEOPLE};
+function App() {
+  const ref = React.useRef(null);
+  return (
+    <div>
+      <header data-pinned-edge="top" style={{ position: "sticky", top: 0, height: 56, background: "var(--basalt-surface-page)" }}>Synthetic bar</header>
+      <div data-pinned-edge="top" style={{ position: "sticky", top: 56, height: 44, background: "var(--basalt-surface-page)" }}>Synthetic strip</div>
+      <div style={{ height: 400 }} />
+      <textarea id="own" ref={ref} rows={2} aria-label="Notes" style={{ width: 300, font: "16px/24px sans-serif" }} />
+      <B.MentionPicker field={ref} options={OPTIONS} onPick={(o) => window.picks.push(o.value)} />
+      <div style={{ height: 40 }} />
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`, { width: 390, height: 600 });
+    await page.locator(own).click();
+    await page.keyboard.type("@");
+    await opened(page);
+    const m = await page.evaluate(() => ({ list: document.querySelector('[role="listbox"]').getBoundingClientRect().top, strip: [...document.querySelectorAll('[data-pinned-edge="top"]')].at(-1).getBoundingClientRect().bottom }));
+    assert.ok(m.list >= m.strip, `the list's top ${m.list} is under the strip's bottom ${m.strip}`);
+    await page.close();
+  });
+});
