@@ -1041,3 +1041,21 @@ for (const theme of THEMES) {
     }
   });
 }
+
+// ---- Print (DECISIONS 306, 1.7): the light set, last, on every selector that sets a theme ----
+
+test("print: the token CSS ends with a print block that sets every light colour token to its light value, with color-scheme light, on every theme selector", () => {
+  const at = tokensCss.lastIndexOf("@media print {");
+  assert.ok(at > tokensCss.indexOf("prefers-contrast: more") && at > tokensCss.indexOf("prefers-reduced-motion"), "the print block is last");
+  const block = tokensCss.slice(at);
+  assert.equal(block.trim().split("\n").at(-1), "}", "nothing follows the print block");
+  for (const selector of [":root", '[data-theme="light"]', '[data-theme="dark"]', ".light", ".dark", ':root:not([data-theme="light"]):not(.light)']) assert.ok(block.includes(selector), `print is not declared on ${selector}`);
+  assert.match(block, /color-scheme: light;/);
+  assert.match(block, /--_dkm: initial;/);
+  // Every colour declared by the light theme's block is declared again in print, with the same value.
+  const lightBlock = tokensCss.match(/:root, \[data-theme="light"\], \.light \{([\s\S]*?)\n\}/)[1];
+  const decls = (text) => Object.fromEntries([...text.matchAll(/(--basalt-[\w-]+): ([^;]+);/g)].map((m) => [m[1], m[2]]));
+  const light = decls(lightBlock), print = decls(block);
+  assert.ok(Object.keys(light).length > 50);
+  for (const [name, value] of Object.entries(light)) assert.equal(print[name], value, `${name} in print`);
+});

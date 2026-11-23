@@ -52,7 +52,9 @@ function tokensFile(name) {
   if (!fs.existsSync(file)) throw new Error("html-skill: packages/tokens/dist is missing; run `npm run build` first");
   return fs.readFileSync(file, "utf8").trim();
 }
-const tokensCss = () => tokensFile("tokens.css");
+// The token CSS's print block (DECISIONS 306, 1.7) is React's: the skill keeps its own beforeprint switch to the light theme (core.js), so a page does not
+// carry the light set twice. Unifying the two is backlog.
+const tokensCss = () => tokensFile("tokens.css").replace(/\/\* Print \(DECISIONS 306[\s\S]*?\*\/\n@media print \{[\s\S]*?\n\}(\n|$)/, "");
 
 /**
  * The generated tokens declare every alias again in the dark `prefers-color-scheme` block, because a nested
