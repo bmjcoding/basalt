@@ -1682,6 +1682,12 @@ owner's prototype, one draft, a check and a decision, revised after the final po
 
 **Status:** decided by the council (DECISIONS 281, a handoff); the implementation has not been reviewed.
 
+The parts of DECISIONS 301 (cardinality and far keys, activations and frames, the text art, nested groups, four end lanes, link cards,
+two-line labels, spatial keys, a trace on touch, marks on steps and participants, right to left, export and automatic layout) were
+decided by the council from two drafts and a check (DECISIONS 306, revised by 313). **Status:** the implementation has not been reviewed,
+and cardinality and far keys are not built yet. Automatic layout leads with build time: place with `placeDiagram` and pass `placement`, and
+elkjs (EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0) never reaches the browser.
+
 **The idea: the words are in the boxes, the lines say how they connect, and the key says what each line means.** A diagram is
 monochrome. Nothing takes a colour, the accent or a status, with one exception: a service's own mark on an architecture
 card keeps its owner's colours ([Service marks](#service-marks)). One node may be focal, and it is inverted ink.
@@ -1689,9 +1695,10 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 ### The figure
 
 - Its order is the chart's: the title and source, the drawing, the key, the key hint, the summary (a required `figcaption`), then
-  "View as list" and the list.
+  "View as list" and the list, with "Expand" beside "View as list".
 - Text is `text-xs` or `text-sm`. Nothing is under 12px. The drawing is laid out in real CSS pixels at its own measured width, never
-  scaled through a `viewBox`, and nothing scrolls sideways.
+  scaled through a `viewBox`, and nothing scrolls sideways. The one place a reader may scale and scroll it is its viewer (below), where the
+  scale is theirs, as a browser's zoom is.
 - A node is a panel one level above what the figure sits in: the rim, no shadow, radius 8, `space-2-5` by `space-3`. Its lines are a
   kind (`text-xs` Mono, tertiary), a name (`text-sm` 600) and a detail (`text-xs` secondary, Mono only for an identifier). A Mono
   detail breaks only at its spaces, never at a hyphen, and keeps the ordinary hyphen so a copy is exact (the decider's answers, review round 64).
@@ -1768,6 +1775,33 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 - A diagram is still unless its author asks for motion (`motion="animated"`); see [Motion in a diagram](#motion-in-a-diagram). A
   trace's ink changes over `duration-fast`, at once under reduced motion.
 
+
+### The viewer
+
+"Expand", in the figure's foot beside "View as list", opens the figure in a dialog: the window less `space-4` from 720, the whole
+window under it, in the form dialog's box with the sheet's head, body and foot. Decided by the council's decider alone as part 9
+of DECISIONS 301 (DECISIONS 310, the owner's ask); no draft and no check. **Status:** the implementation has not been reviewed. Built
+words only (no glyph) and on a native modal `<dialog>`, deviations the PR records.
+
+- **What it holds** is the drawn layout, drawn again from the same data at the stage's inner width, never under the figure's least
+  drawn width and never over the page row unless that is more. The stack is held only when nothing is drawn.
+- **Laid out at 100%, zoomed by the reader.** The layout is made in real CSS pixels and never measured while zoomed. The zoom is
+  one `transform: scale()` on that layer: never a `viewBox`, CSS `zoom`, a canvas or a picture, and no layer is held at an old
+  size. Under `scale(3)` the figure is the pixels a 3x screen draws.
+- **Fit** is the whole drawing in the stage (padding `space-6`, `space-4` under 720), 200% at most, and is how it opens. The limits
+  are Fit or 100%, whichever is less, and 400%. Buttons and keys step through 25, 33, 50, 67, 75, 100, 125, 150, 200, 300 and 400,
+  and a step lands at once. The level is written between the buttons and spoken once it rests.
+- **Zoom:** "Zoom out", "Zoom in" and "Fit"; `+`, `−` and `0` while focus is in the stage; Ctrl or Command with the wheel and a
+  trackpad pinch, about the pointer; two fingers on touch, about their midpoint.
+- **Pan is a scroll:** the stage scrolls both ways. A drag past `space-1`, one finger on touch, the wheel, and the scrolling keys
+  with the stage focused. No momentum and no rubber band. A drag does not select.
+- **The foot** holds the figure's key at its real size, the key hint, and "View as list", which puts the list in the stage in
+  place of the drawing.
+- **Focus** opens on the stage (the flush field's inset ring). Esc always closes, and focus returns to "Expand".
+- **A trace works. Nothing else moves:** no entrance, flow, mover or run plays in the viewer, and the page's figure holds its
+  loops while it is open.
+- **Under 100%** the words are under 12px and a hairline may be thinner than a device pixel: an overview, with no size or
+  contrast claim. It does not print: the page prints as always.
 ### Motion in a diagram
 
 Decided by the council for the owner's handoff (DECISIONS 287 to 291 and 292). **Status:** the implementation has not been reviewed.
