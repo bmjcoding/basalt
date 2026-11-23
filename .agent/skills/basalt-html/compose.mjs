@@ -720,7 +720,7 @@ function ownMark(marks, mark) {
 /** One rule a mark the page uses, in the diagram's layer: the two forms, which the stylesheet picks between by the ground. */
 function markRules(marks) {
   if (!marks.used.size) return "";
-  return `@layer basalt{${[...marks.used].map(([id, m]) => `.diagram-node[data-mark="${id}"]>.diagram-mark{--_ml:${cssUrl(m.onLight)};--_md:${cssUrl(m.onDark ?? m.onLight)}}`).join("")}}`;
+  return `@layer basalt{${[...marks.used].map(([id, m]) => `.diagram-node[data-mark="${id}"]>.diagram-mark{--_ml:${cssUrl(m.onLight)}${m.onDark ? `;--_md:${cssUrl(m.onDark)}` : ""}}`).join("")}}`;
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */

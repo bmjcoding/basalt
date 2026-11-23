@@ -1,7 +1,7 @@
 // The skill's diagram motion and service marks (DECISIONS 292): what compose.mjs writes (the diagram-motion module only for an animated diagram, one rule a
 // mark a page names, a page's own mark read into the file), and the module in a page: pending until in view, the entrance, settling, the hold, print, and
-// React's and the skill's figures at rest drawing the same pixels. Written when test runs were paused (DECISIONS 271): not yet run. The implementation
-// hasn't been reviewed.
+// a one-form mark written once. Written when test runs were paused (DECISIONS 271); fixed and run when the owner lifted the skip for diagrams
+// (DECISIONS 298). React's and the skill's figures at rest drawing the same pixels is not yet here.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -55,7 +55,7 @@ describe("compose.mjs", () => {
     const { html } = compose(`<title>x</title><!-- basalt:marks temporal aws-s3-bucket --><figure class="diagram" id="late"></figure><script>Basalt.diagram(document.getElementById("late"), {})</script>`);
     assert.match(html, /data-mark="temporal"/);
     assert.match(html, /data-mark="aws-s3-bucket"/);
-    assert.throws(() => compose(page([figure({ ...STILL.architecture, nodes: STILL.architecture.nodes.map((n) => ({ ...n, mark: "jenkins" })) })])), /not a bundled service mark/);
+    assert.throws(() => compose(page([figure({ ...STILL.architecture, nodes: STILL.architecture.nodes.map((n) => ({ ...n, mark: "no-such-mark" })) })])), /not a bundled service mark/);
   });
 
   test("a card whose words do not say what its mark stands for is noted", () => {
@@ -104,11 +104,25 @@ describe("the module in a page", () => {
 
   test("Basalt.diagram with a new packet.send sends one message; the first draw sends none", async () => {
     const spec = { ...animated("dataFlow"), packet: { path: ["send", "append", "row", "hear", "see"], send: 1 } };
-    const { page: p } = await openHtml(browser, page([figure(spec, "fig-send")]));
+    // The page composed, as every other page here is: an uncomposed fragment has no Basalt runtime and no styles.
+    const { page: p } = await openHtml(browser, compose(page([figure(spec, "fig-send")])).html);
     await p.evaluate(() => { const f = document.getElementById("fig-send"); f.setAttribute("data-entrance", "done"); f.dispatchEvent(new Event("basalt-diagram-settle")); });
     assert.equal(await p.evaluate(() => document.querySelectorAll("#fig-send .diagram-packet").length), 0);
     await p.evaluate((spec) => window.Basalt.diagram(document.getElementById("fig-send"), { ...spec, packet: { ...spec.packet, send: 2 } }), spec);
     await p.waitForFunction(() => document.querySelector("#fig-send .diagram-packet") && getComputedStyle(document.querySelector("#fig-send .diagram-packet")).display !== "none", null, { polling: "raf", timeout: 3000 });
+  });
+
+  test("a mark with one form is written once and drawn on every card, the focal card too, in both themes", async () => {
+    // CodeRabbit has one form for both grounds; on the focal card it takes the other theme's form, which falls back to its one.
+    const spec = { ...kit(), nodes: kit().nodes.map((n) => (n.id === "coderabbit" ? { ...n, focal: true } : n)), legend: { ...kit().legend, focal: "The review" } };
+    const { html } = compose(page([figure(spec, "fig-kit")]));
+    assert.doesNotMatch(html, /\[data-mark="coderabbit"\]>\.diagram-mark\{[^}]*--_md:/, "no second copy of a one-form mark");
+    for (const scheme of ["dark", "light"]) {
+      const { page: p } = await openHtml(browser, html, { scheme });
+      const seen = await p.evaluate(() => [...document.querySelectorAll("#fig-kit .diagram-node[data-mark]")].map((n) => [n.dataset.node, getComputedStyle(n.querySelector(".diagram-mark")).backgroundImage.startsWith('url("data:image/svg+xml')]));
+      assert.equal(seen.length, kit().nodes.filter((n) => n.mark).length);
+      assert.deepEqual(seen.filter(([, drawn]) => !drawn), [], `${scheme}: every mark draws`);
+    }
   });
 
   test("in forced colours no mark is drawn and the first line keeps no padding; in print every mark computes print-color-adjust: exact", async () => {
@@ -118,6 +132,6 @@ describe("the module in a page", () => {
     assert.ok(forced.every((d) => d === "none"));
     await p.emulateMedia({ forcedColors: "none", media: "print" });
     const print = await p.evaluate(() => [...document.querySelectorAll(".diagram-mark")].map((m) => getComputedStyle(m).printColorAdjust));
-    assert.ok(print.length === 6 && print.every((v) => v === "exact"));
+    assert.ok(print.length === kit().nodes.filter((n) => n.mark).length && print.every((v) => v === "exact"), JSON.stringify(print));
   });
 });

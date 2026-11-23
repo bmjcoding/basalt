@@ -4539,7 +4539,8 @@
     background: var(--_mf, var(--_ml)) center / contain no-repeat;
     pointer-events: none;
   }
-  .basalt-diagram-node[data-focal] > .basalt-diagram-mark { --_mf: var(--_dkm) var(--_ml); background-image: var(--_mf, var(--_md)); }
+  /* A mark with one form for both grounds may set --_ml alone (the skill writes it once): the dark form falls back to it. */
+  .basalt-diagram-node[data-focal] > .basalt-diagram-mark { --_mf: var(--_dkm) var(--_ml); background-image: var(--_mf, var(--_md, var(--_ml))); }
   .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: var(--basalt-space-6); }
 
   /* The focal node: inverted ink; its quiet lines at opacity-amount, at full strength under more contrast. */

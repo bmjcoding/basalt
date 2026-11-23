@@ -116,6 +116,52 @@ describe("the page before script (1.19)", () => {
     await skill.context.close();
     await written.context.close();
   });
+
+  test("a second Basalt.diagram call draws the new data: its words, its list and its sentences", async () => {
+    const skill = await openHtml(browser, compose(`<title>D</title><main style="max-width:1104px;margin:0 auto;padding:16px"><figure class="diagram" id="fig-a"><script type="application/json" data-diagram>${JSON.stringify(DATA.architecture)}</script></figure></main>`).html, { scheme: "dark" });
+    const renamed = structuredClone(DATA.architecture);
+    renamed.nodes[0].name = "Renamed";
+    await skill.page.evaluate((spec) => window.Basalt.diagram(document.getElementById("fig-a"), spec), renamed);
+    await skill.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const id = renamed.nodes[0].id;
+    assert.equal(await skill.page.locator(`#fig-a .diagram-node[data-node="${id}"] .diagram-name`).innerText(), "Renamed");
+    assert.match(await skill.page.getAttribute(`#fig-a .diagram-node[data-node="${id}"]`, "aria-label"), /^Renamed,/);
+    assert.match(await skill.page.locator("#fig-a .diagram-list").textContent(), /Renamed/);
+    assert.equal(await skill.page.locator("#fig-a > .diagram-drawing").count(), 1, "one drawing, not two");
+    assert.equal(await skill.page.locator("#fig-a .diagram-node[tabindex='0']").count(), 1);
+    assert.deepEqual(skill.errors, []);
+    await skill.context.close();
+  });
+});
+
+describe("compose.mjs and the diagram's markup", () => {
+  const bodyOf = (html) => html.slice(html.indexOf("<body>"));
+  const json = JSON.stringify(DATA.architecture);
+  const figure = (attrs) => `<figure ${attrs}><script type="application/json" data-diagram>${json}</script></figure>`;
+
+  test("a figure with an unquoted class is written; a figure written as an example inside a textarea, a comment, code or a text script is not", () => {
+    assert.match(bodyOf(compose(`<h1>x</h1>${figure("class=diagram")}`).html), /class="diagram-drawing"/);
+    const example = figure('class="diagram"');
+    const html = compose(`<h1>x</h1><textarea>${example}</textarea><!-- ${example} --><pre><code>${example.replaceAll("<", "&lt;")}</code></pre><script type="text/plain">${example}</script>`).html;
+    assert.doesNotMatch(bodyOf(html), /class="diagram-drawing"/);
+    assert.ok(html.includes(`<textarea>${example}</textarea>`), "the textarea's text is as written");
+    assert.doesNotMatch(bodyOf(compose(`<h1>x</h1>${figure('class="diagrams"')}`).html), /class="diagram-drawing"/, "the class is matched as a word");
+    assert.equal(compose(`<h1>x</h1>${figure('class="diagram" id="f"')}`).html, compose(`<h1>x</h1>${figure('class="diagram" id="f"')}`).html, "the same input, the same page");
+  });
+
+  test("JSON that is not the documented shape never reaches the page as markup: a heading, a kind, a column and a name are checked", () => {
+    const bad = { type: "architecture", title: "t", heading: "3 onclick=alert(1)", summary: "s", nodes: [{ id: "a", name: "A", col: 1, row: 1 }, { id: "b", name: { t: "script", a: {}, c: ["alert(1)"] }, col: "2;x:y", row: 1 }], edges: [{ from: "a", to: "b", kind: 'main" onload="alert(1)', label: "x" }] };
+    const result = compose(`<h1>x</h1><figure class="diagram"><script type="application/json" data-diagram>${JSON.stringify(bad)}</script></figure>`);
+    const body = bodyOf(result.html).replace(/<script type="application\/json" data-diagram>[\s\S]*?<\/script>/, "");
+    assert.doesNotMatch(body, /<script>alert|onclick|onload/);
+    assert.match(body, /<h3 id="dg1-title"/);
+    assert.ok(result.diagrams.some((n) => /not a level from 2 to 6/.test(n)) && result.diagrams.some((n) => /not a kind of line/.test(n)) && result.diagrams.some((n) => /not a whole number/.test(n)));
+  });
+
+  test("the usage example composes with no warning", () => {
+    const usage = fs.readFileSync(path.join(path.dirname(require.resolve("../../../.agent/skills/basalt-html/compose.mjs")), "parts", "usage", "diagram.md"), "utf8").match(/```\n([\s\S]*?)```/)[1];
+    assert.deepEqual(compose(`<h1>x</h1>${usage}`).diagrams, []);
+  });
 });
 
 describe("behaviour", () => {
@@ -134,6 +180,10 @@ describe("behaviour", () => {
   test("one tab stop, the arrow keys, Esc, the trace by keyboard and the list's toggle", async () => {
     const skill = await openHtml(browser, page(["architecture"]), { scheme: "dark" });
     const p = skill.page;
+    // A composed figure holds its JSON script first: the drawing is still the group, and the heading's wrapper is not.
+    assert.equal(await p.locator("#fig-architecture > script[data-diagram]").count(), 1);
+    assert.equal(await p.getAttribute("#fig-architecture .diagram-drawing", "role"), "group");
+    assert.equal(await p.getAttribute("#fig-architecture .diagram-head", "role"), null);
     assert.equal(await p.locator("#fig-architecture .diagram-node[tabindex='0']").count(), 1);
     await p.focus("#fig-architecture .diagram-node[data-node='browser']");
     await p.keyboard.press("ArrowRight");

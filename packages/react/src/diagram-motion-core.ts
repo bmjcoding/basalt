@@ -352,6 +352,9 @@ class Figure implements MotionController {
     const { P } = this.host;
     const t = this.t;
     if (!geo) return;
+    // The entrance's one clock is its end's animation: built again while it is paused (seeked, or posed for a picture), the new reveal is paused at
+    // the same moment; otherwise it runs from the entrance's start.
+    const posed = this.introEnd?.playState === "paused" && this.introEnd.currentTime !== null ? Number(this.introEnd.currentTime) : null;
     // The lines' reveal is built again; a sequence's labels keep the lift they were given on the clock.
     for (const a of this.intro) a.cancel();
     this.intro.clear();
@@ -362,7 +365,12 @@ class Figure implements MotionController {
     this.defs = svgEl("svg", { class: `${P}-motion-defs`, width: 0, height: 0, "aria-hidden": "true", focusable: "false" }) as SVGSVGElement;
     svg.after(this.defs);
     const defs = svgEl("defs", {}, this.defs);
-    const clocked = (a: Animation, into = this.intro) => { a.startTime = this.t0; into.add(a); return a; };
+    const clocked = (a: Animation, into = this.intro) => {
+      if (posed === null) a.startTime = this.t0;
+      else { a.pause(); a.currentTime = posed; }
+      into.add(a);
+      return a;
+    };
     let last = 0;
     for (const l of geo.lines) {
       const plan = this.plans.get(l.i);
@@ -404,8 +412,7 @@ class Figure implements MotionController {
     }
     this.introEnd?.cancel();
     // The entrance's own end, on the same clock: an animation of nothing on the figure, so finishing or seeking the figure's animations settles it.
-    this.introEnd = fig.animate([], { duration: Math.max(1, last) });
-    this.introEnd.startTime = this.t0;
+    this.introEnd = clocked(fig.animate([], { duration: Math.max(1, last) }), new Set());
     this.introEnd.finished.then(() => this.finishIntro(), () => {});
   }
 
@@ -439,7 +446,9 @@ class Figure implements MotionController {
       } else {
         // Different lines, running: the entrance carries on, on the new lines, from its one clock. A line that was whole stays whole; the stagger
         // never grows, so no line starts later than it was going to; the limit is still counted from the first start.
-        const elapsed = now() - this.t0;
+        // Elapsed on the entrance's own clock (its end's animation), which is the page's time unless the figure's animations were seeked or paused.
+        const clock = this.introEnd?.currentTime;
+        const elapsed = clock !== null && clock !== undefined ? Number(clock) : now() - this.t0;
         const whole = new Set([...this.plans].filter(([, p]) => p.end <= elapsed).map(([i]) => i));
         const { plans, factor } = this.plan(this.ordered(geo), this.factor);
         for (const i of whole) { const old = this.plans.get(i); if (old) plans.set(i, old); }
