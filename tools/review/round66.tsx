@@ -1,15 +1,15 @@
 // Round 66: Basalt's diagrams, batch B (DECISIONS 301; the decision is 306, revised by 313, with part 9, the viewer, as 310). A heavy council round: two
 // drafts and one check, decided by Fable, revised after the final positions. Part 9 (the viewer) is the owner's own addition and skipped three steps: no
 // draft, no check and no seat's position; every value in it is the decider's alone. Built by Opus from the decision; the implementation has not been
-// reviewed. The content is CIMIP's figures extended as each part needs (test/fixtures/cimip-diagrams-b.json). Only the parts built so far are shown:
-// cardinality and far keys, the text art, the touch trace, the first visit, dashed flow, marks on steps and participants, right to left, export and
-// automatic layout are not built yet, so this round has no automatically placed figure.
+// reviewed. The content is CIMIP's figures extended as each part needs (test/fixtures/cimip-diagrams-b.json), with automatic and text-art versions.
+// Cardinality, far keys and section 4's calls 2 and 3 are not built.
 
 import * as React from "react";
 
 import { ArchitectureDiagram, DataFlowDiagram, FlowchartDiagram, SchemaDiagram, SequenceDiagram } from "../../packages/react/src/index";
 import data from "../../packages/react/test/fixtures/cimip-diagrams-b.json";
 import type { Round } from "./rounds";
+import { diagramToSvg } from "../../packages/react/src/diagram-export";
 import { awsEcsService } from "../../packages/react/src/marks/aws-ecs-service";
 import { awsEcsTask } from "../../packages/react/src/marks/aws-ecs-task";
 
@@ -19,6 +19,31 @@ const PARTICIPANT_MARKS: Record<string, unknown> = { svc: awsEcsService, agent: 
 type Key = keyof typeof data;
 const isShot = () => new URLSearchParams(window.location.search).get("shot") === "1";
 const frames = (n: number) => new Promise<void>((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); });
+
+/** A figure exported to SVG (diagram-export) and shown as the file, beside nothing else: what an app's own Download button would write. */
+function Exported({ k, theme }: { k: Key; theme: "light" | "dark" }) {
+  const host = React.useRef<HTMLDivElement>(null);
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    let ready: () => void = () => {};
+    if (isShot()) (window as unknown as { __BASALT_READY__?: Promise<void> }).__BASALT_READY__ = new Promise<void>((resolve) => { ready = resolve; });
+    (async () => {
+      await frames(8);
+      const fig = host.current?.querySelector<HTMLElement>("figure");
+      if (!fig) return;
+      const blob = await diagramToSvg(fig, { theme });
+      setUrl(URL.createObjectURL(blob));
+      await frames(4);
+      ready();
+    })();
+  }, [theme]);
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <div ref={host} style={{ position: "absolute", left: -10000, width: 1104 }}><Diagram k={k} state="" /></div>
+      {url ? <img src={url} alt="" style={{ maxWidth: "100%", border: "1px dashed var(--basalt-border-divider)" }} /> : null}
+    </div>
+  );
+}
 
 /** A figure from the extended fixture. A "viewer" state opens its viewer (and "viewer-200" zooms to 200%) once it is drawn, for the shot. */
 function Diagram({ k, state }: { k: Key; state: string }) {
@@ -62,8 +87,8 @@ const W = [1440, 390];
 
 export const ROUND_66: Round = {
   id: "66",
-  title: "Diagrams, batch B: the viewer, frames and activations, nested groups, link cards, two-line labels and spatial keys (DECISIONS 306 and 310)",
-  summary: "The first half of batch B. The viewer (part 9, the owner's addition) opens any figure's drawn layout in a dialog to zoom and pan; the sequence gains activation bars and opt, loop and alt frames; groups nest two deep; a card may be a link; an edge label may hold its author's break; the arrow keys move by the cards' columns and rows. Not built yet: cardinality and far keys, the text art, the touch trace, the first visit, dashed flow, marks on steps and participants, right to left, export and automatic layout (elkjs).",
+  title: "Diagrams, batch B: the viewer, frames and activations, nested groups, link cards, two-line labels, spatial keys, text art, automatic layout, right to left and export (DECISIONS 306 and 310)",
+  summary: "The first half of batch B. The viewer (part 9, the owner's addition) opens any figure's drawn layout in a dialog to zoom and pan; the sequence gains activation bars and opt, loop and alt frames; groups nest two deep; a card may be a link; an edge label may hold its author's break; the arrow keys move by the cards' columns and rows. Also: a trace on touch, an entrance on a first visit, flow on a dashed line, marks on steps and participants, and print. Not built: cardinality and far keys, and section 4's calls 2 and 3.",
   reviewed: false,
   steps: [
     {
@@ -120,6 +145,56 @@ export const ROUND_66: Round = {
       height: 1200,
       touch: true,
       demo: ({ state }) => <Diagram k="schema" state={state} />,
+    },
+    {
+      id: "auto",
+      name: "Automatic layout: elkjs places, Basalt draws",
+      intro: "The CIMIP schema and architecture with layout=\"auto\" and no col or row: elkjs gives each card a column and a row, and Basalt sizes, routes and seats the figure as it does an authored one.",
+      decisions: [
+        "elkjs (EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0) loads on demand here; an app that places at build time and passes placement ships none of it, and the HTML skill always places at build time.",
+        "The schema draws laid down (3 columns by 5 rows) through Basalt's router. The architecture places as the proof's 6 by 3 and 3 by 6, but stacks at 1104: the turn-back that carries \"HTTP + SSE\" finds no seat. The decision's proof routed on cells only; this is the first drawing of one, for the decider.",
+      ],
+      tryIt: ["Narrow the window: under 640 nothing is loaded and the figure is stacked."],
+      widths: W,
+      scales: [2],
+      height: 1800,
+      touch: true,
+      demo: ({ state }) => <><Diagram k="autoSchema" state={state} /><Diagram k="autoArchitecture" state={state} /></>,
+    },
+    {
+      id: "text",
+      name: "A sequence as text art",
+      intro: "variant=\"text\": the same data as box-drawing characters, where its widest line fits; on a phone the transcript.",
+      decisions: [...COMMON, "No line-by-line reveal and no caret (item 1 for the owner): under motion=\"animated\" it builds by ink, as the drawn sequence does."],
+      tryIt: ["Select the art and copy it: the clipboard holds the art exactly."],
+      widths: W,
+      scales: [2],
+      height: 2000,
+      touch: true,
+      demo: ({ state }) => <Diagram k="textSequence" state={state} />,
+    },
+    {
+      id: "rtl",
+      name: "Right to left",
+      intro: "The architecture and the sequence in a right-to-left page: the figure mirrors, its words do not.",
+      decisions: ["Column 1 is at the right and the first participant at the right; named sides swap; the arrow keys stay physical. The stack is not mirrored (its rail is laid out on the left): drawn, with every line."],
+      tryIt: ["Tab into the architecture and press the arrows: they move where they point."],
+      widths: W,
+      scales: [2],
+      height: 2600,
+      touch: true,
+      demo: ({ state }) => <div dir="rtl"><Diagram k="architecture" state={state} /><Diagram k="sequence" state={state} /></div>,
+    },
+    {
+      id: "export",
+      name: "Export: the file an app's Download button writes",
+      intro: "diagramToSvg on the extended architecture, shown as the SVG file it wrote: native SVG, words as text, the faces embedded, at rest.",
+      decisions: ["@srasyndicate/basalt/diagram-export is a module the app loads on demand and wires to its own button; a figure grows no control. The HTML skill's \"export\": true adds the two buttons."],
+      tryIt: ["Open the image in a new tab: it is an SVG whose words select as text."],
+      widths: [1440],
+      scales: [2],
+      height: 1100,
+      demo: () => <Exported k="architecture" theme={(document.documentElement.getAttribute("data-theme") as "light" | "dark") ?? "dark"} />,
     },
     {
       id: "print",
