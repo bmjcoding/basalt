@@ -87,6 +87,16 @@
   .nav[data-collapsed] .nav-list > li { align-items: center; }
   .nav[data-collapsed] .nav-pill { width: var(--_nav-height); padding-inline: 0; justify-content: center; }
   .nav[data-collapsed] .nav-item { justify-content: center; }
+  /* The second size (data-size="sm" on the .nav; React's Nav size="sm"): a quieter list under the main one, a 32px pill at 13/18 with the glyph at 16. */
+  .nav[data-size="sm"] { --_nav-height: var(--basalt-size-control-md); }
+  .nav + .nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
+  .nav[data-size="sm"] .nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
+  .nav[data-size="sm"] .nav-item:not(:has(.icon, [data-glyph])) .nav-pill { padding-inline: var(--basalt-space-3); }
+  .nav[data-size="sm"] .nav-label { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
+  .nav[data-size="sm"] :is(.nav-count, .nav-dot) { margin-inline-start: 0; }
+  .nav[data-size="sm"] .nav-count { font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  /* In the rail the small item is a 32px circle round its glyph, as the main one is: no inline padding, the glyph centred. */
+  .nav[data-size="sm"][data-collapsed] .nav-pill { padding-inline: 0; }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
   .nav[data-collapsed] :is(.nav-label, .nav-count, .nav-group-label) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
   .nav[data-collapsed] :is(.nav-dot) { display: none; }
@@ -109,8 +119,9 @@
     .nav[data-glide] .nav-item .nav-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .nav { --_nav-height: max(var(--basalt-space-12), var(--basalt-size-tap-min)); }
+    .nav[data-size="sm"] { --_nav-height: max(var(--basalt-size-control-md), var(--basalt-size-tap-min)); }
   }
 
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current page keeps its selected glyph and its 600

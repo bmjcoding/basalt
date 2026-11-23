@@ -83,7 +83,7 @@
      script that sets it writes data-still on the root until the page has painted (selection.js, loops.js), and nothing crossfades meanwhile. */
   :root[data-still] :is(input[type="checkbox"], input[type="radio"]), :root[data-still] input[type="checkbox"]::before { transition: none; }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .choice { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); }
   }
   @media (prefers-reduced-motion: reduce) {

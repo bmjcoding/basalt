@@ -51,15 +51,16 @@
   [aria-checked="true"] > .menu-check > * { visibility: visible; }
   .menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }
 
-  /* A two-line row: a title line and a description line, the padding the one-line row's. The glyph or check seat, a key chip sit on the title
-     line; the description runs from the text's edge to the row's end. Both lines are cut with an ellipsis and never wrap, so a row's height is
-     known; a menu with a described row is as wide as its content, up to the popover maximum. A tertiary hint lifts to secondary on the plate. */
+  /* A described row: a title line and a description, the padding the one-line row's. The glyph or check seat, a key chip sit on the title line;
+     the description runs from the text's edge to the row's end. The title is one line, cut with an ellipsis; a menu with a described row is as wide
+     as its content, up to the popover maximum (320), and a longer description wraps, the row growing by a line for each (DECISIONS 275, option B).
+     The row's plate covers the whole row and the glide takes each row's own height. A tertiary hint lifts to secondary on the plate. */
   .menu-item:has(> .menu-item-description) {
     --_line: var(--basalt-text-base-line-height);
     --_desc: var(--basalt-text-sm-line-height);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
-    grid-template-rows: var(--_line) var(--_desc);
+    grid-template-rows: var(--_line) auto;
     align-items: center;
     align-content: center;
     gap: 0;
@@ -71,12 +72,12 @@
   .menu-item:has(> .menu-item-description) > .menu-item-label { grid-column: 2; grid-row: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .menu-item:has(> .menu-item-description) > .menu-item-description { grid-column: 2 / -1; grid-row: 2; }
   .menu-item:has(> .menu-item-description) > .kbd-group { grid-column: 3; grid-row: 1; }
-  .menu-item-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .menu-item-description { min-width: 0; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .menu-item[data-highlighted] .menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .menu-item:is([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-disabled); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .menu:has(.menu-item-description) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .menu-item { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     .menu-item:has(> .menu-item-description) { height: auto; min-height: max(calc(var(--_h) + var(--_desc) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
   }

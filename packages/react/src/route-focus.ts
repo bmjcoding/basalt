@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { pageChanged } from "./page-change";
+
 export interface UseRouteFocusOptions {
   /** Changes when the page changes (a path, a route id). The first value is the page the app opened on: nothing moves for it. */
   key: string | number;
@@ -17,7 +19,8 @@ export interface UseRouteFocusOptions {
 /**
  * After a client-side page change: scroll to the top, set `document.title`, and move focus to the page's title (X10, DECISIONS 162, B1).
  * It takes no router and names no element by id: the app gives it a key that changes with the page and a ref to the title. Say the change
- * aloud through one `StatusLine`; this moves focus and the title only. It skips the first render.
+ * aloud through one `StatusLine`; this moves focus and the title only, and closes the toasts whose only home was the page that left. It skips the
+ * first render.
  */
 export function useRouteFocus({ key, title, target, fromControl = false }: UseRouteFocusOptions): void {
   // The key the page was last settled on. Only a different key is a page change: a target ref that is a new object on every render is not.
@@ -31,6 +34,8 @@ export function useRouteFocus({ key, title, target, fromControl = false }: UseRo
   React.useEffect(() => {
     if (Object.is(seen.current, key)) return;
     seen.current = key;
+    // What only echoed the page that left goes with it (a toast whose home is the page).
+    pageChanged();
     window.scrollTo(0, 0);
     document.title = heading.current;
     if (!control.current) aim.current.current?.focus({ preventScroll: true });

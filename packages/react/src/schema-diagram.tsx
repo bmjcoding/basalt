@@ -14,7 +14,7 @@ export interface SchemaDiagramProps extends DiagramFigureProps {
   tables: SchemaTable[];
 }
 
-/** A database schema (DECISIONS 269): table cards with keys and a few columns; drawn, a line from each foreign key to the key it references. */
+/** A database schema (DECISIONS 281): table cards with keys and a few columns; drawn, a line from each foreign key to the key it references. */
 export function SchemaDiagram({ tables, title, heading, legend, ...props }: SchemaDiagramProps) {
   const spec = React.useMemo(() => ({ type: "schema" as const, title, heading, legend, tables }), [title, heading, legend, tables]);
   return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="SchemaDiagram" />;

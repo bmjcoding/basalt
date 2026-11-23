@@ -506,7 +506,7 @@ for (const theme of ["dark", "light"]) {
       // Chromium does not report a ::-webkit pseudo's computed style, so the rule itself is read: the stylesheet hides the browser's × and its decoration.
       const hidden = await page.evaluate(() => {
         const found = [];
-        const walk = (rules) => { for (const rule of rules) { if (rule.cssRules) walk(rule.cssRules); if (rule.selectorText?.includes("::-webkit-search-cancel-button")) found.push(rule.style.display); } };
+        const walk = (rules) => { for (const rule of rules) { if (rule.cssRules) walk(rule.cssRules); if (rule.selectorText?.includes(".basalt-search-input::-webkit-search-cancel-button")) found.push(rule.style.display); } };
         for (const sheet of document.styleSheets) walk(sheet.cssRules);
         return found;
       });

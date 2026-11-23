@@ -15,7 +15,7 @@ export interface FlowchartDiagramProps extends DiagramFigureProps {
   shapeLabels?: DiagramShapeLabels;
 }
 
-/** A flowchart (DECISIONS 269): shape carries type, so every shape has a 3:1 contour; a decision is a diamond behind its words. */
+/** A flowchart (DECISIONS 281): shape carries type, so every shape has a 3:1 contour; a decision is a diamond behind its words. */
 export function FlowchartDiagram({ nodes, edges, shapeLabels, title, heading, legend, ...props }: FlowchartDiagramProps) {
   const spec = React.useMemo(() => ({ type: "flowchart" as const, title, heading, legend, nodes, edges, shapeLabels }), [title, heading, legend, nodes, edges, shapeLabels]);
   return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="FlowchartDiagram" />;

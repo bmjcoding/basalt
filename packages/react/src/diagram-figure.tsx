@@ -7,7 +7,7 @@ import {
 } from "./diagram-core";
 import type { DiagramLegend, DiagramSpec, Dyn, Measured, VNode } from "./diagram-core";
 
-// The figure every diagram shares (DECISIONS 269): the title, the drawing, the key, the key hint, the required summary and "View as list".
+// The figure every diagram shares (DECISIONS 281): the title, the drawing, the key, the key hint, the required summary and "View as list".
 // Not exported from the package: each of the five diagrams is its own module on top of it. The markup is the engine's tree, so it is the
 // HTML skill's markup too; the drawing is measured before the first paint and again when the figure's width changes or its fonts arrive.
 

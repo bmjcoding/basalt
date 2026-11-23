@@ -593,7 +593,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 }
 
 /**
- * A diagram's words, written into the page (DECISIONS 269, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
+ * A diagram's words, written into the page (DECISIONS 281, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
  * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
  * attributes stay (its class joins ours, its id stays); the JSON stays for the script. A figure whose JSON does not parse is left for the script, which says why.
  */

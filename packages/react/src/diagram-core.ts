@@ -1,4 +1,4 @@
-// Basalt's diagrams (DECISIONS 269, revised by 270): the one engine behind the five React components and the HTML skill's `diagram` module.
+// Basalt's diagrams (DECISIONS 281, revised by 282): the one engine behind the five React components and the HTML skill's `diagram` module.
 // It is not exported from the package. It holds no React and no state: the model is read from the author's data, the markup is a small tree
 // (React renders it, the skill writes it as HTML at build time), and the drawing is measured from the DOM and returned as one string of
 // SVG and labels, so the two implementations draw the same pixels. Nothing here runs when the module loads: every table, cache and

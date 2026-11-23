@@ -102,7 +102,7 @@
     .chart-table tbody tr:hover > th::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--basalt-state-hover); pointer-events: none; }
     .chart-table tbody tr:hover .chart-not-observed { color: var(--basalt-text-secondary); }
   }
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .chart-table tbody th, .chart-table thead th { height: var(--basalt-size-tap-min); }
   }
   /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */

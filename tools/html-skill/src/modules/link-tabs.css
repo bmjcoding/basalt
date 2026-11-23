@@ -49,7 +49,7 @@
   .link-tab[aria-current] > .link-tab-line { opacity: 1; }
   @media (hover: hover) { .link-tab:hover { color: var(--basalt-text-primary); } }
   .link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  @media (pointer: coarse) { .link-tab { min-height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .link-tab { min-height: var(--basalt-size-tap-min); } }
   /* Under 720 wide the row is replaced by a select of the same links (React's LinkTabs, DECISIONS 154, A15: Castle's form). Both are in the markup and only this
      rule chooses, so nothing moves or flashes on load; display: none takes the hidden one out of the accessibility tree and the Tab order. */
   .link-tabs-select { display: none; min-width: 0; }

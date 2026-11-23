@@ -1,150 +1,192 @@
-// Round 56: Basalt's diagrams (DECISIONS 269, revised by 270). A heavy council round decided on one draft (Draft A, Neon's; the second drafter sat out on a
-// usage limit), checked by Astra and decided by Fable, who revised six objections after the final positions. Built by Opus from the decision; the
-// implementation has not been reviewed. The content is CIMIP's five diagrams (the owner's prototype, with the decision's corrections). States: at rest
-// (`default`), a node traced by the pointer (`hover`), the list open (`list`), forced colours and more contrast. Each is shot at 1440 (drawn), at 672 (a
-// 640px figure: the stack, 480 wide), at 390 and at 360.
+// Round 56: engineering inside the decided design (DECISIONS 265, batch B0). Nothing here is a new look: the one pixel change restores a documented rule (a cut
+// link in a still table's pinned row head now ends in an ellipsis, as one in a data cell always has); the command menu's search is an API; the content-policy
+// provider draws what Base UI's inline style drew. Each part in two unlike domains, with synthetic data only. Built by Opus; Astra reviews the code and the lead
+// the pixels. States: `open` (the docs domain) and `open-inbox` for the menu; `open` for each Select under the provider, with forced colours and reduced motion.
 
 import * as React from "react";
 
-import { ArchitectureDiagram, DataFlowDiagram, FlowchartDiagram, SchemaDiagram, SequenceDiagram } from "../../packages/react/src/index";
-import data from "../../packages/react/test/fixtures/cimip-diagrams.json";
+import {
+  Button,
+  CommandMenu,
+  CSPProvider,
+  Link,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableRowHead,
+  Text,
+} from "../../packages/react/src/index";
+import type { CommandGroup } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
-type Key = keyof typeof data;
-const FOCAL: Record<Key, string> = { architecture: "svc", flowchart: "who", dataFlow: "row", sequence: "svc", schema: "incidents" };
+const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
 
-function Diagram({ k, state }: { k: Key; state: string }) {
-  const host = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    const el = host.current;
-    if (!el) return;
-    // The walkthrough's "hover" state rests a real pointer on the element marked data-wt-hover: here, a node the trace is worth seeing on.
-    el.querySelector(`[data-node="${FOCAL[k]}"]`)?.setAttribute("data-wt-hover", "");
-    if (state === "list") el.querySelector<HTMLButtonElement>(".basalt-diagram-toggle")?.click();
-  }, [k, state]);
-  const { type, ...props } = data[k] as (typeof data)[Key] & { type: string };
-  void type;
-  const figure = (() => {
-    switch (k) {
-      case "architecture": return <ArchitectureDiagram {...(props as React.ComponentProps<typeof ArchitectureDiagram>)} />;
-      case "flowchart": return <FlowchartDiagram {...(props as React.ComponentProps<typeof FlowchartDiagram>)} />;
-      case "dataFlow": return <DataFlowDiagram {...(props as React.ComponentProps<typeof DataFlowDiagram>)} />;
-      case "sequence": return <SequenceDiagram {...(props as React.ComponentProps<typeof SequenceDiagram>)} />;
-      default: return <SchemaDiagram {...(props as React.ComponentProps<typeof SchemaDiagram>)} />;
-    }
-  })();
-  return <div ref={host} style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", maxWidth: 1104 + 48, boxSizing: "border-box" }}>{figure}</div>;
+// ---- A still table with a pinned row head that holds a link, in two domains ----
+
+const JOBS: Array<[string, string, string, string]> = [
+  ["integration-tests-linux-arm64-large", "release-engineering", "Waiting for a runner", "4m 12s"],
+  ["lint", "web-platform", "Passed", "38s"],
+  ["package-signing-and-notarisation", "release-engineering", "Passed", "2m 05s"],
+  ["docs-preview", "docs", "Failed", "1m 47s"],
+];
+const DOCUMENTS: Array<[string, string, string, string]> = [
+  ["Quarterly planning notes and budget draft", "finance-and-operations", "Shared with 4 people", "Nov 20, 2026"],
+  ["Readme", "docs", "Only you", "Nov 19, 2026"],
+  ["Onboarding checklist for new contributors", "people-team", "Anyone with the link", "Nov 14, 2026"],
+  ["Roadmap", "product", "Shared with 12 people", "Nov 2, 2026"],
+];
+
+function PinnedTable({ label, heads, rows, newTab = false }: { label: string; heads: [string, string, string, string]; rows: Array<[string, string, string, string]>; newTab?: boolean }) {
+  return (
+    <TableContainer label={label}>
+      <Table columns={[{ width: 180 }, { width: 160 }, {}, { width: 120 }]} minWidth={640} pinned={1}>
+        <TableHeader>
+          <TableRow>
+            {heads.map((head) => <TableHead key={head}>{head}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(([name, owner, note, last]) => (
+            <TableRow key={name}>
+              <TableRowHead><Link href="#" target={newTab ? "_blank" : undefined}>{name}</Link></TableRowHead>
+              <TableCell><Link href="#">{owner}</Link></TableCell>
+              <TableCell>{note}</TableCell>
+              <TableCell>{last}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 }
 
-const STATES = ["hover@1440", "list", "forced-colours@1440", "forced-colours@390", "more-contrast@1440"];
-const TRY_COMMON = [
-  "Resize the window across the fit width: the drawing turns on only where everything fits, and below it the figure is the stacked drawing, at most 480 wide, on the start edge.",
-  "Tab into the drawing: one stop. → ↓ the next part, ← ↑ the one before, Home and End the ends; the part's lines lift to primary ink and the rest dim. Esc clears the trace and keeps focus; Tab leaves.",
-  "Hover a part with a mouse: the same trace. On a phone nothing traces and nothing is a target.",
-  "Open \"View as list\": the same facts as real lists. Try forced colours (Windows High Contrast, or DevTools' emulation) under both saved themes.",
-];
-const COMMON = [
-  "Decided by the council (DECISIONS 269, revised by 270, a handoff): the owner sees this PR before it merges. The implementation has not been reviewed.",
-  "Monochrome: no colour, no accent, no status. One focal node in inverted ink, which the key names in the author's words. Three lines named by their look: main 2px primary with a filled head, plain 1px secondary, dashed 1px 6 on 4 off with an open head.",
-  "The drawn layout is used only when it fits (1.11): the figure 640 wide, every track as wide as its widest word, every label on a clean seat, no line through a node. Otherwise stacked (1.13). Sides, slots, jogs, lanes, groups and foreign keys are derived; the author places nodes on a grid and names a side only to change it.",
-  "The words are in the HTML before script; before script the grid is used only from the figure's least width (1.19).",
-];
+function Tables() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      <PinnedTable label="Jobs" heads={["Job", "Owner", "Status", "Took"]} rows={JOBS} />
+      <PinnedTable label="Documents" heads={["Document", "Folder", "Sharing", "Edited"]} rows={DOCUMENTS} newTab />
+    </div>
+  );
+}
+
+// ---- CommandMenu's search, carried by a row, in two domains ----
+
+const DOMAINS = {
+  docs: {
+    button: "Document commands",
+    word: "budget",
+    group: { label: "Document", commands: [{ id: "share", label: "Share document" }, { id: "export", label: "Export as PDF" }, { id: "history", label: "Version history" }] },
+    find: (search: string) => `Search this document for “${search}”`,
+  },
+  inbox: {
+    button: "Inbox commands",
+    word: "refund",
+    group: { label: "Inbox", commands: [{ id: "assign", label: "Assign to me" }, { id: "close", label: "Close ticket" }, { id: "refund-policy", label: "Open the refund policy" }] },
+    find: (search: string) => `Search all tickets for “${search}”`,
+  },
+};
+
+function Commands({ state }: { state: string }) {
+  const kind = kindOf(state);
+  const domain = kind === "open-inbox" ? DOMAINS.inbox : DOMAINS.docs;
+  const shown = kind.startsWith("open");
+  const [open, setOpen] = React.useState(shown);
+  const [search, setSearch] = React.useState(shown ? domain.word : "");
+  const groups: CommandGroup[] = [domain.group, ...(search ? [{ label: "Search", commands: [{ id: "find", label: domain.find(search), keywords: [search] }] }] : [])];
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <Button onClick={() => setOpen(true)}>{domain.button}</Button>
+      <CommandMenu
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setSearch("");
+        }}
+        groups={groups}
+        search={search}
+        onSearchChange={setSearch}
+      />
+    </div>
+  );
+}
+
+// ---- Select under CSPProvider disableStyleElements, in two domains ----
+
+function Selects({ state }: { state: string }) {
+  const open = kindOf(state) === "open";
+  return (
+    <CSPProvider disableStyleElements>
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 220 }}>
+          <Text size="sm" tone="secondary">A build pipeline</Text>
+          <Select aria-label="Runner" defaultOpen={open} defaultValue="arm" options={[{ value: "linux", label: "Linux x64" }, { value: "arm", label: "Linux arm64" }, { value: "mac", label: "macOS" }, { value: "win", label: "Windows" }]} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 220 }}>
+          <Text size="sm" tone="secondary">A shared folder</Text>
+          <Select aria-label="Sort documents" defaultValue="edited" options={[{ value: "edited", label: "Last edited" }, { value: "name", label: "Name" }, { value: "owner", label: "Owner" }]} />
+        </div>
+      </div>
+    </CSPProvider>
+  );
+}
 
 export const ROUND_56: Round = {
   id: "56",
-  title: "Diagrams: architecture, flowchart, data flow, sequence and schema (DECISIONS 269, 270)",
+  title: "Engineering: a pinned link's ellipsis, the command menu's search, and a page under a content policy (DECISIONS 265, B0)",
   reviewed: false,
   summary:
-    "Five diagram components and the HTML skill's diagram module, built from the council's decision (DECISIONS 269, revised by 270 after the final positions): Draft A's grammar with a measured fit rule, derived routes, a 3:1 contour on flowchart shapes, cut crossings, tracing by ink only, and the words in the page before script. CIMIP's five diagrams are the content. Built by Opus; the implementation has not been reviewed, and the tests were written but not run (DECISIONS 271 paused test runs). Shot at 1440, at a 640px figure, at 390 and at 360, in both themes, with a trace, the list, forced colours and more contrast.",
+    "Engineering inside the decided design. One pixel change, and it restores a documented rule: a cut link in a still table's pinned row head ends in an ellipsis, as one in a data cell always has. CommandMenu's search is now the app's to read or control, so a row can carry the words typed. Under a content policy, the head scripts ship as files, and CSPProvider turns off Base UI's one inline style while Basalt's sheet draws the same rule. Built by Opus; Astra reviews the code and the lead the pixels; no design panel, because nothing new is drawn. Synthetic data, in two unlike domains each.",
   steps: [
     {
-      id: "architecture",
-      name: "Architecture",
-      intro: "How a request reaches the agent: nodes with a kind, a name and a detail, a group, and all three kinds of line.",
+      id: "pinned-links",
+      name: "A cut link in a pinned row head",
+      intro: "Two still tables, a build pipeline's jobs and a shared folder's documents, each with its name column pinned and every name a link; the documents open in a new tab, with the new-tab arrow.",
       decisions: [
-        ...COMMON,
-        "A group is a transparent box with a 1px dashed structure edge, radius 12, its label at the top start; its box is its members'. Stacked, the box wraps its members.",
-        "Stacked: a spine and indented branches; the rail at space-3 and the trunk at space-8 from the spine's start edge; ECS's \"starts\" runs in the end lane inside the cards because it leaves a branch and passes only a branch. One thing to look at on purpose (decision, section 2): the rail is a 2px vertical line down the start edge, the part nearest the vertical bar the owner ruled out as a mark.",
-        "Corrected from the owner's prototype: the summary says what the lines say (\"puts sealed segments in S3, calls Bedrock for the scribe\"), and the key says \"The service\" where the prototype said \"Focal\".",
+        "Restores \"a cut cell keeps its ellipsis\" (foundations, the still table): the rule that makes a link its own truncating box was written for `td > a` only, so a long link in the pinned `th` was cut hard mid-letter. It is now `:is(td, th) > a`, in React and in the HTML skill's still table, with the same specificity. The hard cut showed on a new-tab link (its label and arrow are a row of their own, so the cell's own ellipsis cannot reach them): its label now truncates and the arrow stays whole, as in a data cell.",
+        "Nothing else moves: column widths, the 40px row, the pinned edge and the link's own ring are as they were. A short name is whole.",
+        "Not reviewed by the design panel: it restores documented behaviour (engineering, AGENTS.md). The cut link is not yet a cut cell with a plate: the cell's link is its one stop, as in a data cell (unchanged; noted for the owner in the report).",
       ],
-      tryIt: TRY_COMMON,
-      states: [...STATES],
-      widths: [1440, 672, 390, 360],
-      scales: [2],
-      height: 2400,
+      tryIt: ["At 390, scroll a table sideways: the pinned names keep their ellipsis.", "Tab through the names: each link takes its ring."],
+      states: ["forced-colours", "reduced-motion"],
+      widths: [1440, 390],
+      height: 720,
       touch: true,
-      demo: ({ state }) => <Diagram k="architecture" state={state} />,
+      demo: () => <Tables />,
     },
     {
-      id: "flowchart",
-      name: "Flowchart",
-      intro: "Who may decide what the agent asks to run: shape carries type, so every shape has a 3:1 contour.",
+      id: "command-search",
+      name: "The command menu's search, carried by a row",
+      intro: "A document's commands and a support inbox's, each with the app's own last row that searches for the words typed.",
       decisions: [
-        ...COMMON,
-        "A step is the box, a start or end a capsule, a decision a diamond behind its words (the name at 500, wrapping at 62% of the track). A decision is at least space-16 tall and never flatter than 5:1, drawn or stacked.",
-        "Built differently from the decision's estimate: the decision measured the flowchart drawing from 880 on Draft A's geometry; here it draws from 946. At a 177px track \"Risk medium or lower?\" wraps to two lines, its diamond (sized exactly as 1.12 says) is 109 tall, and its slope reaches 0.6px into the clean seat of \"responder\", so by \"no seat, no drawn layout\" the stack holds until 946. The options are in the PR's notes; nothing was changed to move it.",
+        "`search` and `onSearchChange` on `CommandMenu`: the app hears what is typed and may control it. Uncontrolled, the search starts empty at each opening, and the app hears `\"\"` once the menu has closed (after its closing transition, so the list does not change on its way out). Words typed while the panel loads are part of the search.",
+        "No pixel change: the row is an ordinary command the app adds, with the words in its label and `keywords: [search]` so it stays found.",
       ],
-      tryIt: TRY_COMMON,
-      states: [...STATES],
-      widths: [1440, 672, 390, 360],
-      scales: [2],
-      height: 2400,
+      tryIt: ["Open either menu and type: the last row follows the words.", "Close and open again: the search starts empty."],
+      states: ["open", "open-inbox", "open-forced-colours", "open-reduced-motion"],
+      widths: [1440, 390],
+      height: 640,
       touch: true,
-      demo: ({ state }) => <Diagram k="flowchart" state={state} />,
+      demo: ({ state }) => <Commands state={state} />,
     },
     {
-      id: "data-flow",
-      name: "Data flow",
-      intro: "How one message reaches everyone in the room: lanes as bands, steps numbered in order.",
+      id: "policy-select",
+      name: "A Select under a content policy",
+      intro: "Two Selects inside `CSPProvider disableStyleElements`, a build pipeline's runner and a shared folder's sort.",
       decisions: [
-        ...COMMON,
-        "Lanes are bands ruled apart with the divider, centred in the row gap, named at the start; a node's kind line is its step number. Stacked, a step says its lane: \"Step 3 · Aurora\".",
-        "Stacked, the two bypasses from step 3 run in the end gutter outside the cards and nest (1.7 rule 3): the one that travels farther leaves higher and takes the outer lane, so they never cross.",
-        "Drawn only from 1,080: below it the five step columns cannot each be 144 wide.",
+        "Base UI writes one inline `<style>` when a Select opens; `style-src 'self'` refuses it. With the provider, Base UI writes none, and Basalt's sheet draws the same two declarations on `.base-ui-disable-scrollbar` in `@layer basalt`. Measured with Base UI's style and without it: the open popup's box, and its list's scrollbar width and client width, are the same; no style element is written (tested under a real policy).",
+        "The head scripts (`themeBootstrap`, `loopsBootstrap`) ship as files too (`head/theme.js`, `head/loops.js`) for `script-src 'self'`; nothing to see.",
       ],
-      tryIt: TRY_COMMON,
-      states: [...STATES],
-      widths: [1440, 672, 390, 360],
-      scales: [2],
-      height: 2400,
+      tryIt: ["Open the runner Select and choose: it behaves as any Select."],
+      states: ["open", "open-forced-colours", "open-reduced-motion"],
+      widths: [1440, 390],
+      height: 480,
       touch: true,
-      demo: ({ state }) => <Diagram k="dataFlow" state={state} />,
-    },
-    {
-      id: "sequence",
-      name: "Sequence",
-      intro: "An @agent run, from the mention to the approved action: a head and a lifeline a participant, a 56px row a message.",
-      decisions: [
-        ...COMMON,
-        "Lifelines are 1px structure ink dashed 4 on 4 off; a message's number and label sit above its line and its note below, on plates that mask the lifelines; a self-call is a small loop; a reply or a stream is dashed; a band is a ruled line of words, never a frame. No emphasis weight (Draft A made message 9 heavier; cut).",
-        "Stacked: a strip of participant chips and a numbered list that names each message's sender, an inline arrow drawn like its kind, its receiver and the kind's word. The list has no stops and no key hint.",
-        "Not cut: where a message passes over another participant's lifeline the lifeline is not broken (the decision's cuts are for lines crossing lines). Noted for the owner.",
-      ],
-      tryIt: TRY_COMMON,
-      states: [...STATES],
-      widths: [1440, 672, 390, 360],
-      scales: [2],
-      height: 2400,
-      touch: true,
-      demo: ({ state }) => <Diagram k="sequence" state={state} />,
-    },
-    {
-      id: "schema",
-      name: "Database schema",
-      intro: "The tables an incident and its runs live in: table cards, and a line from each foreign key to the key it references.",
-      decisions: [
-        ...COMMON,
-        "A foreign key is one record (`references: \"incidents.id\"`): the row's \"→ incidents\", the line, the sentence and the list come from it. Lines to one key share a bus; tables in one column use a turn-back.",
-        "The decision's placement (memberships beside users, agent_runs above sandboxes) draws with no crossing. Stacked, the cards sit in an auto-fit grid with no lines, because every foreign-key row writes its target; the key says so.",
-        "The focal table is inverted, its keys, types and \"+ n more\" at opacity-amount, its header rule diagram-focal-rule.",
-      ],
-      tryIt: TRY_COMMON,
-      states: [...STATES],
-      widths: [1440, 672, 390, 360],
-      scales: [2],
-      height: 2400,
-      touch: true,
-      demo: ({ state }) => <Diagram k="schema" state={state} />,
+      demo: ({ state }) => <Selects state={state} />,
     },
   ],
 };

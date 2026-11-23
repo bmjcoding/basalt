@@ -251,6 +251,30 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.09)
     )
 
+    /// The lit row's plate on the page (level 0), as one opaque colour: state-selected (black at 7%) over surface-0. For a part that replaces its own fill (a pressed toggle, a chosen card) or an app's own list row; --basalt-plate follows the level.
+    public static let plate0 = ThemedColor(
+      light: RGBA(red: 0.911749, green: 0.911749, blue: 0.911749, alpha: 1),
+      dark: RGBA(red: 0.125736, green: 0.125736, blue: 0.125736, alpha: 1)
+    )
+
+    /// The plate on a level-1 surface: state-selected over surface-1. In light, levels 1 to 3 are one white, so their plates are one colour.
+    public static let plate1 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.150617, green: 0.150617, blue: 0.150617, alpha: 1)
+    )
+
+    /// The plate on a level-2 surface: state-selected over surface-2.
+    public static let plate2 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.172036, green: 0.172036, blue: 0.172036, alpha: 1)
+    )
+
+    /// The plate on a level-3 surface: state-selected over surface-3.
+    public static let plate3 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.172036, green: 0.172036, blue: 0.172036, alpha: 1)
+    )
+
     /// The one primary action per view: the inverse of the page.
     public static let actionPrimary = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
@@ -335,7 +359,7 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
-    /// A diagram's main line and its head, and a traced line (DECISIONS 269). 3:1 or better on levels 0 to 3.
+    /// A diagram's main line and its head, and a traced line (DECISIONS 281). 3:1 or better on levels 0 to 3.
     public static let diagramEdgeMain = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
       dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
@@ -377,7 +401,7 @@ extension Basalt {
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08)
     )
 
-    /// Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 269, 1.18). An alias, no new colour.
+    /// Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 281, 1.18). An alias, no new colour.
     public static let diagramFocalRuleContrast = ThemedColor(
       light: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38),
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45)
@@ -656,17 +680,17 @@ extension Basalt {
     public static let chartPlotSm: Double = 96
     /// A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10).
     public static let chartRow: Double = 56
-    /// The least width of a node's track in a diagram's drawn layout; a track is also as wide as its widest unbreakable word, measured (DECISIONS 269).
+    /// The least width of a node's track in a diagram's drawn layout; a track is also as wide as its widest unbreakable word, measured (DECISIONS 281).
     public static let diagramNode: Double = 144
-    /// The least width of a schema diagram's table; a table is also as wide as its widest row on one line, measured (DECISIONS 269).
+    /// The least width of a schema diagram's table; a table is also as wide as its widest row on one line, measured (DECISIONS 281).
     public static let diagramTable: Double = 224
-    /// A data flow diagram's lane-name column, at the start of the drawn layout (DECISIONS 269).
+    /// A data flow diagram's lane-name column, at the start of the drawn layout (DECISIONS 281).
     public static let diagramLane: Double = 120
-    /// A sequence diagram's message row: the line at its middle, the number and label above it, the note below (DECISIONS 269).
+    /// A sequence diagram's message row: the line at its middle, the number and label above it, the note below (DECISIONS 281).
     public static let diagramStep: Double = 56
-    /// A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 269).
+    /// A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 281).
     public static let diagramHead: Double = 8
-    /// A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 269).
+    /// A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 281).
     public static let diagramGuideDash: Double = 4
     /// A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14).
     public static let meterMarker: Double = 12

@@ -16,3 +16,4 @@ A column of links with a glyph and a label (React's `Nav`): the sidebar, the nar
 - Hover is a pill that hugs the glyph and label, never the column's width; one shared pill glides between items, and each item paints its own on touch, under reduced motion and in forced colours. Never write a pill yourself.
 - Leave out the glyph for a row of words alone (the narrow menu's). The rail (`data-collapsed` on the `.nav`, set by the app shell) shows only the glyph and keeps the label as the name, so a list that collapses gives every item a glyph.
 - `.nav-count` is a number in secondary ink; `<span class="nav-dot" aria-hidden="true"></span>` with `<span class="visually-hidden">, New activity</span>` says something is new. Counts are spoken with the name.
+- A second, quieter list under the main one (recent items, saved views): `data-size="sm"` on its `.nav`, a 32px pill at 13/18, glyphs at `data-size="16"`.

@@ -207,7 +207,7 @@
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
     .site-footer-links-host[data-glide] a::before { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
-  @media (pointer: coarse) { .site-footer-links-host a { min-height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .site-footer-links-host a { min-height: var(--basalt-size-tap-min); } }
   /* The line form: one unlabelled list of up to six beside the brand, start-aligned. */
   .site-footer[data-form="line"] .site-footer-top { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-6); row-gap: var(--basalt-space-2); }
   .site-footer[data-form="line"] .site-footer-links { flex: 1 1 auto; }

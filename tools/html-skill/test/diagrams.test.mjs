@@ -1,7 +1,7 @@
-// The skill's `diagram` module (DECISIONS 269, revised by 270): the five CIMIP diagrams composed into a page, against React's components drawn at the same width.
+// The skill's `diagram` module (DECISIONS 281, revised by 282): the five CIMIP diagrams composed into a page, against React's components drawn at the same width.
 // The module bundles React's engine, so the two must lay out, route, seat and draw the same pixels: the ink (every path, head, dot and label) is compared as markup,
 // each node's box to the half pixel, and the parts' computed styles. Then what compose.mjs writes before any script runs, the keys, the trace, the modes and axe.
-// Written for DECISIONS 269 section 7; the implementation hasn't been reviewed.
+// Written for DECISIONS 281 section 7; the implementation hasn't been reviewed.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";

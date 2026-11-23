@@ -301,8 +301,8 @@ const MENU_ROWS = {
   react: `import { DownloadIcon, TrashIcon } from "@phosphor-icons/react";`,
   menuReact: `<MenuItem icon={DownloadIcon} shortcut="⌘D">Duplicate</MenuItem><MenuSeparator /><MenuGroup><MenuGroupLabel>Sort by</MenuGroupLabel><MenuRadioGroup defaultValue="name"><MenuRadioItem value="name">Name</MenuRadioItem><MenuRadioItem value="date" description="Newest first">Date</MenuRadioItem></MenuRadioGroup></MenuGroup><MenuCheckboxItem defaultChecked>Show hidden</MenuCheckboxItem><MenuItem icon={TrashIcon} danger>Delete</MenuItem>`,
 };
-const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }]`;
-const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'");
+const NOTES = `[{ id: "a", title: "Deploy finished", description: "api, production", time: "2m ago", status: "success", unread: true }, { id: "b", title: "Build failed", time: "1h ago", status: "danger", unread: true }, { id: "c", title: "Invoice ready", time: "Yesterday" }, { id: "d", title: "In review: update the cache keys", time: "Yesterday", status: "pending" }, { id: "e", title: "Ines, Tomas and Ruth commented on your change", time: "2d", entries: [{ id: "e1", title: "Ines commented", time: "2d", unread: true }, { id: "e2", title: "Tomas commented", time: "3d" }] }]`;
+const NOTES_SKILL = NOTES.replaceAll('status: "success"', "status: 'success'").replaceAll('status: "pending"', "status: 'pending'");
 
 const OV_RECT = ["rectLeft", "rectTop", "boxWidth", "boxHeight"];
 const OVERLAYS = [
@@ -541,6 +541,11 @@ const OVERLAYS = [
       ["entry plate", ".basalt-notification:not(:hover)", ".notification:not(:hover)", ["top", "bottom", "borderTopLeftRadius", "backgroundColor"], { pseudo: "::before" }],
       ["unread dot", ".basalt-notification[data-unread] .basalt-notification-dot", ".notification[data-unread] .notification-dot", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "marginTop"]],
       ["status mark", ".basalt-notification[data-status=success] .basalt-notification-mark", ".notification[data-status=success] .notification-mark", ["boxWidth", "boxHeight", "color", "marginTop"]],
+      ["pending mark", ".basalt-notification[data-status=pending] .basalt-notification-mark", ".notification[data-status=pending] .notification-mark", ["boxWidth", "boxHeight", "color", "marginTop"]],
+      ["group row", ".basalt-notification[data-group]", ".notification[data-group]", [...GEOMETRY, "color", "boxHeight", "gridTemplateColumns"]],
+      ["group count", ".basalt-notification-count", ".notification-count", [...TYPE, "color", "marginLeft", "fontVariantNumeric", "boxWidth"]],
+      ["group caret", ".basalt-notification-caret", ".notification-caret", ["boxWidth", "boxHeight", "color", "marginLeft"]],
+      ["group entries", ".basalt-notification-entries", ".notification-entries", ["paddingLeft", "listStyleType", "marginTop"]],
       ["unread title", ".basalt-notification[data-unread] .basalt-notification-title", ".notification[data-unread] .notification-title", [...TYPE, "color", "boxHeight"]],
       ["read title", ".basalt-notification:not([data-unread]) .basalt-notification-title", ".notification:not([data-unread]) .notification-title", ["color"]],
       ["line", ".basalt-notification-line", ".notification-line", [...TYPE, "color", "boxHeight", "whiteSpace"]],

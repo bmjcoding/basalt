@@ -1,4 +1,4 @@
-// Basalt's diagrams (DECISIONS 269, revised by 270; review round 56): the five components drawn from CIMIP's five diagrams and from fixtures built to
+// Basalt's diagrams (DECISIONS 281, revised by 282; review round 64): the five components drawn from CIMIP's five diagrams and from fixtures built to
 // test one rule each, in Chromium against the built package with the real stylesheet. Section 7 of the decision is the list this file follows:
 // geometry at every width, the fit rule, seats, the end gutter, derivation, accessibility, tracing, the modes, before script, and the rules.
 // The geometry is read from what is drawn (test/diagram-geometry.mjs). The implementation hasn't been reviewed.
@@ -648,7 +648,7 @@ describe("before script (1.19)", () => {
 
 describe("rules", () => {
   test("the diagrams' styles use tokens, and text is never under 12px", async () => {
-    const section = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8").split("/* ---- Diagrams (DECISIONS 269")[1].split("/* ---- Lit figures")[0];
+    const section = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8").split("/* ---- Diagrams (DECISIONS 281")[1].split("/* ---- Lit figures")[0];
     assert.doesNotMatch(section.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-f]{3,8}\b|rgb\(|hsl\(|oklch\(/i, "no raw colour");
     assert.doesNotMatch(section, /text-(?:2xs|3xs)/, "no type under text-xs");
   });

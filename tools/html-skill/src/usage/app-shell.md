@@ -19,6 +19,7 @@ An app's frame (React's `AppShell` and `AppHeader`): a sidebar at 1024 and up, t
 ```
 
 - The `.nav`s (`--usage nav`) are the sidebar, and the rail from 720 to 1023: the script collapses them and gives each item a tooltip. Every item needs a glyph. Under 720 the sidebar is gone: add a `.tab-bar` (`--usage tab-bar`) and `data-tabbar` on the shell.
-- `.app-header` is the page's one smoked surface (`--usage topbar`): a solid page has `data-solid` on it. The title is the page's `h1`, 18/26 at 600. Actions: ghost icon buttons and at most one primary `.btn`, which leaves the bar under 720. The theme control is the icon button and menu of `--usage theme` (write its `.menu` beside the header).
+- `.app-header` is the page's one smoked surface (`--usage topbar`): a solid page has `data-solid` on it. The title is the page's `h1`, 18/26 at 600. Actions: ghost icon buttons and at most one primary `.btn`, which stays in the bar under 720 with its words (keep them short; the title is cut first). Facts under the title: wrap the `h1` and a `<p class="app-facts">` (short facts joined by `.dot-sep`, e.g. a reference, a plain status badge, a time) in a `div.app-heading`. The theme control is the icon button and menu of `--usage theme` (write its `.menu` beside the header).
 - `.brand-full` is the lockup, `.brand-rail` the mark alone (the rail shows it). The sidebar's brand band draws no line.
 - Don't use `.page` inside `.app-main`; it is already the page's width with the gutter. The shell needs `viewport-fit=cover` for the phone's safe areas: compose adds it.
+- `data-capped` on the shell holds it to the sidebar plus 72rem, centred; the page then fills its column. A page with a pane beside it: `--usage pane`.

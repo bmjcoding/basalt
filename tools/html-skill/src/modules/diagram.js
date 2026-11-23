@@ -1,4 +1,4 @@
-/* Basalt HTML script, diagram module (DECISIONS 269, revised by 270): `<figure class="diagram">` holding `<script type="application/json"
+/* Basalt HTML script, diagram module (DECISIONS 281, revised by 282): `<figure class="diagram">` holding `<script type="application/json"
    data-diagram>` is drawn from that JSON (the React props, key for key), or `Basalt.diagram(figure, spec)` draws one from script. The engine
    is React's own (packages/react/src/diagram-core.ts): build.mjs bundles it into this module, so the skill and React lay out, route, seat
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it

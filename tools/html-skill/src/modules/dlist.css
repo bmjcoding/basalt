@@ -27,7 +27,7 @@
     .dlist dd + dd { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
   }
   /* On touch a link in a value is a 44 by 44 box (the core already gives it 44 tall, with no change to the row). */
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .dlist dd a { min-width: var(--basalt-size-tap-min); }
   }
 }

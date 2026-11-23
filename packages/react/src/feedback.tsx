@@ -12,7 +12,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { CopyGlyph } from "./glyphs/copy";
 import { IconButton } from "./button";
-import { CodeLine, CodePrompt, codeLines, continues } from "./code-lines";
+import { CodeLine, CodePrompt, codeLines, codeWords, continues } from "./code-lines";
 import { loadFlight } from "./control-icon";
 import { Icon } from "./icon";
 import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
@@ -22,6 +22,7 @@ import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeD
 import { join, withClass } from "./utils";
 import { CONFIRM_MS } from "./constants";
 import { useJoinedRef, useWriting } from "./wait";
+import type { WritingEmpty } from "./wait";
 
 // ---- Textarea ----
 
@@ -33,15 +34,17 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
    * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
    * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
    * size, the boundary and the focus stay, and nothing moves when it starts or ends. Empty, it shows the pulse alone. Each new `value` is
-   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts.
+   * painted as it comes, and an empty `value` while writing keeps the text that was there, so the field never blanks between drafts (`writingEmpty`).
    */
   writing?: boolean;
+  /** What an empty `value` shows while `writing`: `"keep"` (the default) keeps the text that was there; `"clear"` shows the field empty, the busy look kept. */
+  writingEmpty?: WritingEmpty;
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
-export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, ref, ...props }: TextareaProps) {
+export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, ...props }: TextareaProps) {
   const own = React.useRef<HTMLTextAreaElement | null>(null);
-  const written = useWriting(writing, value, own);
+  const written = useWriting(writing, value, own, writingEmpty);
   return (
     <BaseField.Control
       id={id}
@@ -277,6 +280,12 @@ export interface CodeBlockProps {
    * exactly as given.
    */
   prompt?: string;
+  /**
+   * Wrap long lines instead of scrolling sideways, so a command can be read whole in a narrow column. Lines break only at a space: each run of
+   * characters between spaces is kept whole (a flag, a path, a hyphenated name), and a word longer than the line still scrolls. A wrapped line's
+   * continuation is indented 2ch (beside a prompt, it starts at the text's edge), so it never reads as a new line. Copy is unchanged.
+   */
+  wrap?: boolean;
   className?: string;
 }
 
@@ -286,8 +295,8 @@ const COLOUR_LATER_FROM = 10_000;
 /** `useSyncExternalStore` with nothing to subscribe to: false in the browser, true on the server and in the hydrating render. */
 const noSubscription = () => () => {};
 
-/** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping. */
-export function CodeBlock({ code, language, title, copyable = true, prompt, className }: CodeBlockProps) {
+/** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping (`wrap` breaks long lines at spaces instead). */
+export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
   const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
@@ -336,7 +345,8 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
     return { nodes, rest: code.slice(cursor) };
   }, [tokens, code]);
   // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
-  const lines = React.useMemo(() => (prompt === undefined ? null : codeLines(code, tokens)), [prompt, code, tokens]);
+  // A block that wraps is cut into lines too, each a row of words that break only at a space.
+  const lines = React.useMemo(() => (prompt === undefined && !wrap ? null : codeLines(code, tokens)), [prompt, wrap, code, tokens]);
   const [copied, setCopied] = React.useState(false);
   React.useEffect(() => {
     if (!copied) return;
@@ -362,7 +372,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
     </span>
   ) : null;
   return (
-    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-level={level}>
+    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-wrap={wrap ? "" : undefined} data-level={level}>
       {title ? (
         <figcaption className="basalt-code-title">
           <span>{title}</span>
@@ -371,15 +381,20 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, clas
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
       <pre className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
-        {lines ? (
+        {lines && prompt !== undefined ? (
           <code data-language={language} className="basalt-code-lines">
             {lines.map((line, i) => (
               <CodeLine key={i} gutter={i > 0 && continues(lines[i - 1]) ? null : <CodePrompt>{prompt}</CodePrompt>}>
                 {/* A line that is one plain run is passed as a string. React hydrates a string child by its text alone, so a cold
                     client (grammar not loaded yet) matches a server that sent coloured spans for the same line. */}
-                {line.length === 1 && line[0] && !line[0].color ? line[0].text : line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
+                {wrap ? codeWords(line) : line.length === 1 && line[0] && !line[0].color ? line[0].text : line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
               </CodeLine>
             ))}
+          </code>
+        ) : lines ? (
+          // A block that wraps, with no prompt: one row a line, its continuation indented so it never reads as a line of its own.
+          <code data-language={language} className="basalt-code-rows">
+            {lines.map((line, i) => <span key={i} className="basalt-code-row">{codeWords(line)}</span>)}
           </code>
         ) : (
           <code data-language={language}>{tokens ? <>{content.nodes}{content.rest}</> : code}</code>

@@ -1,11 +1,15 @@
 import * as React from "react";
 
+import { useScreenKeyboardLayout } from "./screen-keyboard";
+
 // React context crosses portals. Each modal reserves space for its backdrop, content and
 // floating children; a nested modal then covers the entire preceding level.
 export const ModalDepth = React.createContext(0);
 
 export function useModalLayer() {
   const parent = React.useContext(ModalDepth);
+  // A modal is fixed to the window: while an on-screen keyboard is up it is laid out on what is still seen.
+  useScreenKeyboardLayout();
   return {
     depth: parent + 1,
     popup: `calc(var(--basalt-layer-dialog) + ${parent * 4})`,

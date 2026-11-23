@@ -35,7 +35,7 @@ test("the duration export is every duration token with a name, in milliseconds",
 });
 
 /**
- * A diagram's least width (DECISIONS 269 and 270, 1.11 and 1.19): its track minimums and gaps summed from the tokens, never under the drawn layout's floor
+ * A diagram's least width (DECISIONS 281 and 282, 1.11 and 1.19): its track minimums and gaps summed from the tokens, never under the drawn layout's floor
  * (size-breakpoint-container-lg). `reach` is how many sides an architecture's group reaches.
  */
 function leastWidth(type, n, reach = 0) {
@@ -49,7 +49,7 @@ const DIAGRAM_WIDTHS = ["architecture", "flowchart", "data-flow", "schema", "seq
 // The widths a query may name: the breakpoint tokens, the one sum the command list documents (its list column, a gap and the container breakpoint), and a diagram's least widths.
 const WIDTHS = new Set([...Object.values(breakpoint), px("size-list-width") + px("space-4") + breakpoint.container, ...DIAGRAM_WIDTHS]);
 
-test("each of the diagrams' least-width rules is the sum of tokens for every figure it names (DECISIONS 270, 1.19)", () => {
+test("each of the diagrams' least-width rules is the sum of tokens for every figure it names (DECISIONS 282, 1.19)", () => {
   const css = read("packages", "react", "src", "styles", "components.css");
   const rules = [...css.matchAll(/@container \(width >= (\d+)px\) \{([^@]*?--_drawn: ; \})/g)].filter((m) => m[2].includes("basalt-diagram"));
   assert.ok(rules.length >= 15, `found ${rules.length} least-width rules`);

@@ -164,8 +164,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
   Under reduced motion, opacity only. See `docs/motion.md`.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
-  touch, and a `Link` on a line of its own has a 44px hit box with no change to layout; a link in a sentence keeps its line.
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
+- **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the
+  foot, sheets, dialogs, the command menu and the toasts are laid out on what is seen. A page that pins more than the bar opts into measured sizes
+  (`usePinnedEdges`, `data-pinned-edge`). `AppShell`'s `foot` holds still; a `Tray` docks the rows that wait on the reader (a sheet under 720). A toast whose
+  only home is the page closes when the page changes; under 720 the toast stack hangs from the bar, `space-2` below it (DECISIONS 274).
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
   light.
 - **Styling comes from tokens.** No raw colours in component CSS. Lengths come from

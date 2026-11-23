@@ -112,7 +112,7 @@
     select.input option .option-description { display: block; grid-column: 2; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
     select.input option:is(:hover, :focus-visible) .option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
     select.input option:disabled .option-description { color: var(--basalt-text-disabled); }
-    @media (pointer: coarse) {
+    @media (pointer: coarse), (width < %bp-md%) {
       select.input option { min-height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
       select.input option:has(> .option-description) { min-height: max(calc(var(--_h) + var(--basalt-text-sm-line-height) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     }
@@ -123,7 +123,8 @@
   }
 
   /* On touch the trigger is at least 44 and its text 16px (React's Select trigger), whatever its size. */
-  @media (pointer: coarse) { select.input { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); } }
+  @media (pointer: coarse), (width < %bp-md%) { select.input { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  @media (pointer: coarse) { select.input { font-size: var(--basalt-text-md-size); } }
 
   @media (forced-colors: active) {
     select.input:has(> option:checked[value=""]) { color: GrayText; }

@@ -16,7 +16,7 @@ export interface ArchitectureDiagramProps extends DiagramFigureProps {
   edges: DiagramEdge[];
 }
 
-/** An architecture diagram (DECISIONS 269): nodes with a kind, a name and a detail, groups, and three kinds of line. */
+/** An architecture diagram (DECISIONS 281): nodes with a kind, a name and a detail, groups, and three kinds of line. */
 export function ArchitectureDiagram({ nodes, groups, edges, title, heading, legend, ...props }: ArchitectureDiagramProps) {
   const spec = React.useMemo(() => ({ type: "architecture" as const, title, heading, legend, nodes, groups, edges }), [title, heading, legend, nodes, groups, edges]);
   return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="ArchitectureDiagram" />;

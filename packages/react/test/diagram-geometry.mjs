@@ -1,4 +1,4 @@
-// The diagrams' geometry, read from what is drawn (DECISIONS 269 and 270, section 7): the paths and heads of the SVG, the label boxes and the nodes'
+// The diagrams' geometry, read from what is drawn (DECISIONS 281 and 282, section 7): the paths and heads of the SVG, the label boxes and the nodes'
 // boxes, the way the decision's proofs read Draft A. One function, evaluated in the page, so React's tests and the HTML skill's read the same things.
 // `inspect(prefix, figureSelector)` returns the figure's layout and a list of problems, each a sentence; an empty list is a clean drawing.
 

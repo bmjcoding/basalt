@@ -12,7 +12,7 @@
   .combobox { position: relative; min-width: 0; }
   .combobox > .input { padding-inline-end: var(--basalt-space-10); }
   .combobox-trigger { position: absolute; inset-inline-end: 0; top: 0; }
-  @media (pointer: coarse) { .combobox > .input { padding-inline-end: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .combobox > .input { padding-inline-end: var(--basalt-size-tap-min); } }
   .btn.combobox-trigger:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
   .btn.combobox-trigger:active:not([disabled], [aria-disabled="true"], [aria-busy="true"])::after { content: none; }
 
@@ -73,7 +73,7 @@
   .combobox-option-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .combobox-option[data-highlighted] .combobox-option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .combobox-option[aria-disabled="true"] .combobox-option-description { color: var(--basalt-text-disabled); }
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .combobox-option { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     .combobox-option[data-described] { height: auto; min-height: max(calc(var(--_h) + var(--_desc) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
   }

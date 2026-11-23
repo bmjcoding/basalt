@@ -159,6 +159,25 @@
         "$description": "Selected wash: the lit row's plate, the nav pill, a selected table row's band. A wash alone is about 1.2:1, so the state has a second cue: the ink step to primary, a check, a pill or a checked box."
       }
     },
+    "plate": {
+      "$description": "The lit row's plate as one opaque colour per level: the selected wash composited over that level, as a browser draws it. A plate never marks a state alone: it comes with the ink step to primary, a check or a weight. A test holds each to its recipe.",
+      "0": {
+        "$value": { "colorSpace": "oklch", "components": [0.2438, 0, 0] },
+        "$description": "The lit row's plate on the page (level 0), as one opaque colour: the next level (surface-1) plus state-selected (white at 9%). For a part that replaces its own fill (a pressed toggle, a chosen card) or an app's own list row; --basalt-plate follows the level."
+      },
+      "1": {
+        "$value": { "colorSpace": "oklch", "components": [0.2703, 0, 0] },
+        "$description": "The plate on a level-1 surface: surface-2 plus state-selected."
+      },
+      "2": {
+        "$value": { "colorSpace": "oklch", "components": [0.2926, 0, 0] },
+        "$description": "The plate on a level-2 surface: surface-3 plus state-selected."
+      },
+      "3": {
+        "$value": { "colorSpace": "oklch", "components": [0.2926, 0, 0] },
+        "$description": "The plate on a level-3 surface: level 3 is the cap, so it is surface-3 plus state-selected, as on level 2."
+      }
+    },
     "action": {
       "primary": {
         "$value": "{color.neutral.93}",
@@ -236,7 +255,7 @@
     "diagram": {
       "edge-main": {
         "$value": "{color.text.primary}",
-        "$description": "A diagram's main line and its head, and a traced line (DECISIONS 269). 3:1 or better on levels 0 to 3."
+        "$description": "A diagram's main line and its head, and a traced line (DECISIONS 281). 3:1 or better on levels 0 to 3."
       },
       "edge": {
         "$value": "{color.text.secondary}",
@@ -264,7 +283,7 @@
       },
       "focal-rule-contrast": {
         "$value": "{color.black.45}",
-        "$description": "Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 269, 1.18). An alias, no new colour."
+        "$description": "Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 281, 1.18). An alias, no new colour."
       }
     },
     "art": {

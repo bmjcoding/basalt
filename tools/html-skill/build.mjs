@@ -13,7 +13,7 @@
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
 //   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
-//   examples/*.body.html      src/examples/*.body.html, copied: two example bodies for compose.mjs
+//   examples/*.body.html      src/examples/*.body.html, copied: the example bodies for compose.mjs
 //
 //   node tools/html-skill/build.mjs                  write the files (committed; a test fails if they drift)
 //   node tools/html-skill/build.mjs --out <dir>      write somewhere else
@@ -91,7 +91,7 @@ function filterTokens(css, keep) {
 const TYPE_LAYOUT_TOKEN = /^--basalt-(?:text-(?:6xl|7xl|hero-narrow|display-narrow)-|space-32\b|size-section-gap|size-display-measure\b)/;
 /** The link rows' row size (DECISIONS 152), the same way: the `link-rows` module's, out of the core, which has no room for a token only some pages use. */
 const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
-/** The diagram roles and lengths (DECISIONS 269), the same way: the `diagram` module's, out of the core. */
+/** The diagram roles and lengths (DECISIONS 281), the same way: the `diagram` module's, out of the core. */
 const DIAGRAM_TOKEN = /^--basalt-(?:diagram-|size-diagram-)/;
 const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name), { keepsOther: true });
 const inDiagram = Object.assign((name) => DIAGRAM_TOKEN.test(name), { keepsOther: false });
@@ -230,7 +230,7 @@ const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name
  */
 function diagramCss() {
   const react = fs.readFileSync(path.join(repo, "packages", "react", "src", "styles", "components.css"), "utf8");
-  const start = react.indexOf("  /* ---- Diagrams (DECISIONS 269");
+  const start = react.indexOf("  /* ---- Diagrams (DECISIONS 281");
   const end = react.indexOf("  /* ---- ", start + 10);
   if (start < 0 || end < 0) throw new Error("html-skill: the diagrams section of packages/react/src/styles/components.css moved; update diagramCss");
   const css = react.slice(start, end)

@@ -14,7 +14,7 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It wraps the body in the doctype, meta and theme bootstrap, inlines Geist, and adds the core CSS and script plus only the modules your classes, attributes and tags use, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (only for a file a tool reads, never a file a person opens), `--lang fr` sets the language, `--all` adds every module.
 4. Open the page in both themes at 1440 and 390 wide before you hand it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
 
-`examples/static.body.html` (a report) and `examples/interactive.body.html` (inputs, tabs, a palette) are bodies to copy from. Never open or paste `parts/`: it is minified output.
+`examples/static.body.html`, `sales.body.html` (reports) and `interactive.body.html` (inputs, tabs, a palette) are bodies to copy. Never open or paste `parts/`: it is minified output.
 
 ## Modules
 
@@ -84,7 +84,8 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.
 - **nav** `.nav`: `a.nav-item` > `.nav-pill`; `aria-current` marks the page; never write a bar or a wash.
 - **topbar-nav** `.topbar-links`: five links at most, one `.topbar-action`; the script builds the narrow menu, never write it.
-- **app-shell** `.app-shell`: the document scrolls; one smoked bar per page; every sidebar item has a glyph.
+- **app-shell** `.app-shell`: the document scrolls; one smoked bar; every sidebar item has a glyph.
+- **pane** `.pane-layout`: page first, pane after.
 - **tab-bar** `.tab-bar`: three to five links, glyph over label; with more, four and a More sheet.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.

@@ -13,7 +13,7 @@ export interface SequenceDiagramProps extends DiagramFigureProps {
   steps: SequenceStep[];
 }
 
-/** A sequence diagram (DECISIONS 269): a head and a lifeline a participant, a 56px row a message; stacked, a numbered list. */
+/** A sequence diagram (DECISIONS 281): a head and a lifeline a participant, a 56px row a message; stacked, a numbered list. */
 export function SequenceDiagram({ participants, steps, title, heading, legend, ...props }: SequenceDiagramProps) {
   const spec = React.useMemo(() => ({ type: "sequence" as const, title, heading, legend, participants, steps }), [title, heading, legend, participants, steps]);
   return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="SequenceDiagram" />;

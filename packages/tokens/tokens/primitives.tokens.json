@@ -1185,7 +1185,7 @@
         "value": 144,
         "unit": "px"
       },
-      "$description": "The least width of a node's track in a diagram's drawn layout; a track is also as wide as its widest unbreakable word, measured (DECISIONS 269)."
+      "$description": "The least width of a node's track in a diagram's drawn layout; a track is also as wide as its widest unbreakable word, measured (DECISIONS 281)."
     },
     "diagram-table": {
       "$type": "dimension",
@@ -1193,7 +1193,7 @@
         "value": 224,
         "unit": "px"
       },
-      "$description": "The least width of a schema diagram's table; a table is also as wide as its widest row on one line, measured (DECISIONS 269)."
+      "$description": "The least width of a schema diagram's table; a table is also as wide as its widest row on one line, measured (DECISIONS 281)."
     },
     "diagram-lane": {
       "$type": "dimension",
@@ -1201,7 +1201,7 @@
         "value": 120,
         "unit": "px"
       },
-      "$description": "A data flow diagram's lane-name column, at the start of the drawn layout (DECISIONS 269)."
+      "$description": "A data flow diagram's lane-name column, at the start of the drawn layout (DECISIONS 281)."
     },
     "diagram-step": {
       "$type": "dimension",
@@ -1209,7 +1209,7 @@
         "value": 56,
         "unit": "px"
       },
-      "$description": "A sequence diagram's message row: the line at its middle, the number and label above it, the note below (DECISIONS 269)."
+      "$description": "A sequence diagram's message row: the line at its middle, the number and label above it, the note below (DECISIONS 281)."
     },
     "diagram-head": {
       "$type": "dimension",
@@ -1217,7 +1217,7 @@
         "value": 8,
         "unit": "px"
       },
-      "$description": "A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 269)."
+      "$description": "A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 281)."
     },
     "diagram-guide-dash": {
       "$type": "dimension",
@@ -1225,7 +1225,7 @@
         "value": 4,
         "unit": "px"
       },
-      "$description": "A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 269)."
+      "$description": "A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 281)."
     },
     "meter-marker": {
       "$type": "dimension",

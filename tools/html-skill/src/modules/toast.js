@@ -1,5 +1,5 @@
 /* Basalt HTML script, toast module: Basalt.toast({ title, description?, status?, action?, group?, running?, home?, timeout? }) shows a toast and returns its
-   id; Basalt.toast.update(id, patch), .close(id) and .promise(work, { running, success, error }) are React's useToast. Toasts appear bottom right, stack three
+   id; Basalt.toast.update(id, patch), .close(id) and .promise(work, { running, success, error }) are React's useToast. Toasts appear bottom right (under 720 hanging from the bar), stack three
    deep with the ones behind peeking, expand on hover or focus, and pause their clocks while hovered, focused, in a blurred window or in a hidden tab.
    A toast with no `home` is the only copy of what it says and stays until dismissed; with a `home` ("centre", "row", "key" or "page") it closes after
    5000ms. Results are announced once each: danger through an assertive live region, the rest through Basalt.announce. Needs the braille module (running).
