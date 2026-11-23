@@ -256,9 +256,12 @@ function diagramMotionCss() {
   if (start < 0 || end < 0) throw new Error("html-skill: the diagram motion section of packages/react/src/styles/components.css moved; update diagramMotionCss");
   return `@layer basalt {\n${react.slice(start, end).replaceAll(".basalt-diagram", ".diagram")}\n}\n`;
 }
-/** A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. */
+/**
+ * A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. It is a development build of the engine
+ * (NODE_ENV "development"): the skill keeps the checks a production React build drops, since compose.mjs reports them when it writes a page.
+ */
 function bundleModule(file) {
-  const out = esbuild.buildSync({ entryPoints: [file], bundle: true, format: "iife", platform: "browser", target: "es2020", write: false, logLevel: "silent", legalComments: "inline", charset: "utf8" });
+  const out = esbuild.buildSync({ entryPoints: [file], bundle: true, format: "iife", platform: "browser", target: "es2020", write: false, logLevel: "silent", legalComments: "inline", charset: "utf8", define: { "process.env.NODE_ENV": '"development"' } });
   return out.outputFiles[0].text;
 }
 

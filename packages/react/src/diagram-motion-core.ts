@@ -10,6 +10,8 @@
 import { entranceBlocked, pathD, settleEntrance } from "./diagram-core";
 import type { Geo, GLine, Model, Pt, Tokens } from "./diagram-core";
 
+declare const process: { env: { NODE_ENV?: string } };
+
 export interface MotionHost {
   /** The figure element, which carries data-motion="animated". */
   fig: HTMLElement;
@@ -819,6 +821,8 @@ class Figure implements MotionController {
 export function motionErrors(m: Model): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
+  // Development only: a production build (NODE_ENV set by the app's bundler) drops the checks below and their words.
+  if (process.env.NODE_ENV === "production") return { errors, warnings };
   const { pulse, packet } = m.motion;
   if (pulse && packet) errors.push("a figure names both a pulse and a packet: it has one mover at most");
   const path = pulse ?? packet?.path;

@@ -239,13 +239,44 @@ describe("the fit rule (1.11) and seats (1.8)", () => {
     await page.close();
   });
 
-  test("a route that would leave the drawing is not drawn: a one-column schema with a foreign key stays stacked", async () => {
-    const { page } = await diagramPage({ viewport: { width: 640 + PAD, height: 1000 } });
-    await page.evaluate(() => window.__set([{ key: "one", type: "schema", props: { title: "One", summary: "One column.", tables: [
-      { name: "a", col: 1, row: 1, columns: [{ name: "id", key: "PK" }] }, { name: "b", col: 1, row: 2, columns: [{ name: "a_id", key: "FK", references: "a.id" }] }] } }]));
+  test("a route that would leave the drawing is not drawn: a turn-back named on a first column's start side stays stacked", async () => {
+    const { page } = await diagramPage();
+    await page.evaluate(() => window.__set([{ key: "out", type: "architecture", props: { title: "Out", summary: "A turn-back off the drawing.", nodes: [
+      { id: "a", name: "A", col: 1, row: 1 }, { id: "b", name: "B", col: 2, row: 1 }, { id: "c", name: "C", col: 1, row: 2 }],
+      edges: [{ from: "a", to: "b" }, { from: "a", to: "c", fromSide: "left", toSide: "left" }] } }]));
     await frames(page, 4);
-    assert.equal(await page.getAttribute("#fig-one", "data-layout"), "stacked");
-    assert.deepEqual((await inspect(page, "one")).problems, []);
+    assert.equal(await page.getAttribute("#fig-out", "data-layout"), "stacked");
+    assert.deepEqual((await inspect(page, "out")).problems, []);
+    await page.close();
+  });
+
+  // Neon's finding 12 on round 64 (DECISIONS 301): a schema of one column has no gutter on either side, and its turn-back was refused at every width.
+  test("a one-column schema with a foreign key is drawn: its turn-back runs space-4 out on the end side, inside the space-5 the drawing keeps there", async () => {
+    const { page } = await diagramPage({ viewport: { width: 640 + PAD, height: 1000 } });
+    await page.evaluate(() => window.__set([{ key: "one", type: "schema", props: { title: "One", summary: "One column.", legend: { plain: "A foreign key" }, tables: [
+      { name: "a", col: 1, row: 1, columns: [{ name: "id", key: "PK" }] }, { name: "b", col: 1, row: 2, columns: [{ name: "a_id", key: "FK", references: "a.id" }] }] } }]));
+    for (const width of [640 + PAD, 1000, 1440]) {
+      await resize(page, width);
+      assert.equal(await page.getAttribute("#fig-one", "data-layout"), "drawn", `at ${width}`);
+      const r = await inspect(page, "one");
+      assert.deepEqual(r.problems, [], `at ${width}`);
+      const seen = await page.evaluate(() => {
+        const d = document.querySelector("#fig-one .basalt-diagram-drawing"), o = d.getBoundingClientRect();
+        const t = [...d.querySelectorAll(".basalt-diagram-node")].map((n) => n.getBoundingClientRect().right - o.left);
+        const xs = [...d.querySelectorAll(".basalt-diagram-line")].flatMap((p) => p.getAttribute("d").match(/-?[\d.]+/g).map(Number).filter((_, k) => k % 2 === 0));
+        return { pad: getComputedStyle(d).paddingRight, w: d.clientWidth, right: Math.max(...t), lane: Math.max(...xs), lines: d.querySelectorAll(".basalt-diagram-edge").length };
+      });
+      assert.equal(seen.lines, 1, `at ${width}: the foreign key's line`);
+      assert.equal(seen.pad, "20px", `at ${width}: space-5 on the end side`);
+      assert.ok(Math.abs(seen.lane - (seen.right + 16)) <= 0.5 && seen.lane + 0.5 <= seen.w, `at ${width}: the turn-back is space-4 out and inside the drawing (${JSON.stringify(seen)})`);
+    }
+    // Two columns keep their own rule and no end padding: the last column's turn-back is on its start side, in the gutter.
+    await page.evaluate(() => window.__set([{ key: "two", type: "schema", props: { title: "Two", summary: "Two columns.", legend: { plain: "A foreign key" }, tables: [
+      { name: "a", col: 1, row: 1, columns: [{ name: "id", key: "PK" }] }, { name: "b", col: 2, row: 1, columns: [{ name: "id", key: "PK" }] }, { name: "c", col: 2, row: 2, columns: [{ name: "b_id", key: "FK", references: "b.id" }] }] } }]));
+    await frames(page, 4);
+    assert.equal(await page.getAttribute("#fig-two", "data-layout"), "drawn");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#fig-two .basalt-diagram-drawing")).paddingRight), "0px");
+    assert.deepEqual((await inspect(page, "two")).problems, []);
     await page.close();
   });
 
