@@ -2642,6 +2642,81 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
 - **Loading.** The stream's parts are drawn by `LoadingShape` like any others: an avatar is a bone in its disc, the name, time and words are bars as
   long as their words, a mark is a bone in its box. Nothing in them is sized by hand for loading.
 
+## Versions and release notes
+
+The version on display, a package's changelog and a product's release notes (`VersionLink`, `ReleaseNotes` and `ReleaseIndex`; the HTML skill's
+`release` module and `.version-link`; the records and outputs of `tools/changelog`). **Status:** decided by the council (DECISIONS 308, 315 and 318
+for the owner's answers, 320 revised by 321 for the rest); the implementation hasn't been reviewed. The words are `.agent/skills/release-words/SKILL.md`.
+
+### The version and its place
+
+- **A version is SemVer, shown with its ship date:** "Version 1.4.0 · Nov 23, 2026", no "v", the date a US short date with its year, never moved by
+  a reader's time zone. Build metadata (`1.4.0+9f3c1e2`) is never part of it. Markdown writes `## 1.4.0 - 2026-11-23`; a release's address is `#v1.4.0`.
+- **One link to the release notes at that version** (`VersionLink`), showing the version this session runs: 12/16 Geist, tabular, in secondary ink
+  (primary and an underline on hover), the focus ring at +2, radius 4. Two parts that never break inside, the word with the number and the date;
+  when they do not fit one line the date goes under the number and the dot is not drawn. 24 tall on a fine pointer, a 44px hit box on touch that
+  moves nothing. On the release notes it is the current page: `aria-current`, primary, the number at 600 with its width reserved. Its name is the
+  visible words in order, then where it goes ("Version 1.4.0, Nov 23, 2026, release notes").
+- **Its places:** under the account items at the sidebar's foot, `space-2` below them, on the nav glyphs' start edge; in the rail (720 to 1023)
+  the number alone, centred, breaking before a pre-release's hyphen, the label and the date in its name and tooltip; under 720 the last row of More's
+  sheet, under a divider, 44 tall, at 13/18 (an app with no More draws it on its account or settings page); on a site with no sidebar, after the
+  legal line on its row, at 13/18, labelled with the product.
+- **Nothing marks a release as new:** no dot, badge, read state or expiry, and no "What's new" item. A release that asks something of people says
+  so where they work (a `Callout`, a `NoticeBar` on a site), by the product's choice.
+
+### The page
+
+- **Releases highest first by SemVer precedence**, one column, each at most `size-prose-width` plus `space-6` plus `size-sidebar-width`, `space-10`
+  apart with a 1px divider between. The versions are a pane beside the list (`ReleaseIndex` in `PaneLayout`'s pane) and a closed fold above it where
+  the pane would follow the page. No filter and no search.
+- **A package's changelog** ("Changelog") shows Unreleased (merged work) and leads each release with its summary; **a product's release notes**
+  ("Release notes") never shows Unreleased and leads with its headline and a paragraph for each audience.
+- **The header:** one heading holds the number and the date. With no headline the number is the heading, Geist Mono at `text-2xl`, 600, the meta
+  line under it at `space-1`; with a headline the meta line comes first (the number in Geist, as at the foot), then the headline at `text-2xl`, 600,
+  balanced. The meta line is 13/18 secondary, joined by dots: the date, the counts computed from the list ("17 changes", "4 need action", which links
+  to Action needed and takes the touch box), then the plain badges "Pre-release" and "Your version". Copy link is a ghost `sm` `CopyButton` at the
+  header's end, named for its release, copying the page's own address.
+- **The order:** the header; a package's summary (16/24, primary, `space-4` under the header); Action needed; a product's paragraphs (an `h3` at 16/24
+  600 over each, none for everyone, `space-4` apart); then the list: Security, Deprecated, Removed, Added, Changed, Fixed, `space-6` apart, each an
+  `h3` at 16/24 600 with its count after it in tertiary at `space-1`. Empty sections are left out.
+- **Action needed** is a warning `Callout` with its count, never folded, directly under the header (under the summary in a package's release). It
+  holds the entries marked `action`, which stand there and nowhere else. A package's opens "Before upgrading from 0.1.0, check these 4 changes.";
+  a product's has no opening line.
+- **Folds:** a product's list is one fold holding its summary, "All changes", or "Other changes" when action entries stand above it, counted by what
+  it opens; inside it the headings are `h4` at 14/20 and nothing folds again. A package's list is open and only Fixed folds, past 3 in a release of
+  more than 10. A fold's button is its heading, 44 tall on touch; closed panels stay in the document so the browser's find opens them. Without
+  script and in print every fold is open.
+- **Build details** is on the release this session runs, and on no other, at its foot, quieter than the fold above it (14/20, 400): the running
+  build's own rows (identifiers in mono) and Copy build details. Nothing in it is read from a release's record. When the running version matches no
+  release on the page, it stands above the first.
+
+### An entry and its sources
+
+- **The words:** 14/20, primary, the area first at 500. Code is inline code. A migration note is a link on its own line under the sentence.
+- **The source line** is a quiet text button in Geist Mono at 13 on the entry's 20px line, secondary, underlined in `border-input`: the pull request,
+  then at most two tickets, then "3 more". Its name is its text after a hidden "Sources: ", described by the entry's words. From 640 of the
+  release's own width it stands beside the words in a column of its own down the list (`space-6` away), so the words keep one measure down a list;
+  under it, it is its own line under the words, wrapping between ids.
+- **On touch every 44px box lies inside its own entry:** an entry is `space-3` above and below and the source line keeps the 20px line; under 640, a
+  link with a source line under it stands `space-6` above it, with `space-6` under the entry. On a fine pointer the source line's hit is 24 tall.
+- **The sources panel** is a `Popover` under the line, end-aligned, at most `size-popover-max`, titled "Sources": Pull request, Ticket or Tickets (the
+  tracker's name in words, then the id), Commit, and Author only when the entry has one; then Copy link to this change. No "Built by", "Code review",
+  "Edited by" or "Decision" row.
+
+### Arriving
+
+- **An entry's id is permanent** and holds no version; a release is `#v1.4.0`. The fragment is looked up by id, never as a selector. A candidate whose
+  stable version has shipped is not drawn, and its address opens the stable release.
+- **The target** has every fold that holds it opened, is scrolled to (its middle, or its top when it is taller than most of the window), focused with
+  no ring, and takes the stream's arrival: the plate (radius 8, `space-2` past the sides, `space-1` above and below; a release's on its header) and
+  "Linked" in secondary at 12 on a line above it, until the reader presses or types. In forced colours the plate goes and the word stays.
+
+### Modes and widths
+
+No sideways scroll at 390, 360 and 320, with every fold open and under WCAG 1.4.12 text spacing; an id longer than its line breaks anywhere. In forced
+colours links and the source line keep their underline. Under more contrast tertiary steps to secondary. Print shows every fold, hides the Copy
+buttons and prints a source line as text.
+
 ## Loading in the page's own shape
 
 **Status.** Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258: the shape of what it stands for, known words kept and icons hidden,
