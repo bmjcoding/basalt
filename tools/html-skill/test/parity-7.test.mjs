@@ -574,12 +574,15 @@ for (const scheme of THEMES) {
       await context.close();
     });
 
-    test("toasts sit above the bar; a press shows a cell's circle and the first key hides it, the ring being the control ring inset on the whole cell; forced colours draw Canvas, LinkText and a CanvasText dot", async () => {
+    test("toasts hang from the app header, clear of the bar; a press shows a cell's circle and the first key hides it, the ring being the control ring inset on the whole cell; forced colours draw Canvas, LinkText and a CanvasText dot", async () => {
       const { page: p, context } = await phone();
       await p.addStyleTag({ content: ":root { --bh-inset-bottom-sim: 34px; }" });
       await p.click("#toast-btn");
       await p.waitForSelector(".toast");
-      assert.equal(await css(p, ".toast-viewport", "bottom"), "106px", "the bar (56), the inset (34) and space-4");
+      // DECISIONS 274: under 720 the stack hangs from the bar at the top, space-2 under its line, so it never covers the tab bar at the foot.
+      const header = await box(p, ".app-header");
+      assert.equal(await css(p, ".toast-viewport", "top"), `${header.bottom + 8}px`, "space-2 under the app header");
+      assert.ok((await box(p, ".toast")).bottom < (await box(p, ".tab-bar")).y, "the toast is clear of the tab bar");
       await p.locator(".tab-bar-item:not([aria-current])").first().hover();
       await p.mouse.down();
       assert.notEqual(await css(p, ".tab-bar-item:not([aria-current]) .tab-bar-glyph", "backgroundColor"), "rgba(0, 0, 0, 0)", "a press shows the circle");

@@ -35,8 +35,11 @@ const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, 
 function Host() { return <main style={{ maxWidth: window.__width ?? 1104, margin: "0 auto", padding: 16, display: "grid", gap: 64 }}>{Object.entries(data).map(([key, d]) => { const X = C[d.type]; const { type, ...props } = d; return <X key={key} id={"fig-" + key} {...props} />; })}</main>; }
 createRoot(document.getElementById("root")).render(<Host />);`;
 async function reactPage(theme, viewport) {
-  const { page: p, errors } = await fixturePage(reactBrowser, REACT, { theme, viewport });
-  await p.addStyleTag({ content: `${FONTS} body{margin:0;background:var(--basalt-surface-page)} #root{display:block}` });
+  // In standards mode, as the skill's page is: in quirks mode a decision's words take no strut, and its diamond is drawn shorter.
+  const { page: p, errors } = await fixturePage(reactBrowser, REACT, { theme, viewport, standards: true });
+  // An app's page, as the other parity tests give React (parity.test.mjs's APP_BODY): border-box, as the skill's core sizes every box, and the body's ink and
+  // type, which the figure inherits as the skill's figure inherits the core's.
+  await p.addStyleTag({ content: `${FONTS} *, ::before, ::after { box-sizing: border-box; } body { margin: 0; background: var(--basalt-surface-0); color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); } #root{display:block}` });
   await p.evaluate(() => document.fonts.ready);
   await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
   return { page: p, errors };
@@ -158,7 +161,8 @@ describe("behaviour", () => {
     const parts = path.join(path.dirname(require.resolve("../../../.agent/skills/basalt-html/compose.mjs")), "parts");
     const css = fs.readFileSync(path.join(parts, "diagram.css"), "utf8");
     const js = fs.readFileSync(path.join(parts, "diagram.js"), "utf8");
-    assert.doesNotMatch(css, /basalt-diagram-|--_surface\b/, "no React class or level variable is left");
+    // A React class (`.basalt-diagram-…`), not the diagram tokens' names (`--basalt-diagram-edge-main`, asserted just below) or the no-script rule's id.
+    assert.doesNotMatch(css, /\.basalt-diagram-|--_surface\b/, "no React class or level variable is left");
     assert.match(css, /\.diagram-node/);
     assert.match(css, /--basalt-diagram-edge-main/, "the module carries its tokens");
     assert.match(js, /diagramMarkup/);

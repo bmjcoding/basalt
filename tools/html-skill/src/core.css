@@ -269,10 +269,10 @@
      hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
      `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits
      exactly like an unlinked one: only the hit box grows (1lh is the link's own line height). A control that sizes itself
-     (.btn, .row, .tab, .disclosure) is left alone. */
+     (.btn, .row, .tab, .disclosure, and the site footer's links, a flex column 44 tall of their own as React's) is left alone. */
   @media (pointer: coarse), (width < %bp-md%) {
     a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, :is(p, li, .prose, .small, .hint, .error, .callout-body) a),
-    nav a:not(.btn),
+    nav a:not(.btn, .site-footer-links-host a),
     .footer a,
     .tap {
       display: inline-flex;

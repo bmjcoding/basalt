@@ -10,7 +10,7 @@ import { after, before, describe, test } from "node:test";
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { fixturePage, launch as launchReact, settle } from "../../../packages/react/test/support.mjs";
 import { DIFFERENCES } from "./parity-differences.mjs";
-import { openHtml } from "./support.mjs";
+import { openHtml, samePaint } from "./support.mjs";
 import { BROKEN, DAY, NIGHT, PHOTO } from "./support-art.mjs";
 
 const THEMES = ["dark", "light"];
@@ -530,7 +530,7 @@ const OVERLAYS = [
     },
     pairs: [
       ["bell", ".basalt-notifications-trigger", "#bell > .btn", [...GEOMETRY, ...COLOUR, "boxWidth", "boxHeight", "position"]],
-      ["bell dot", ".basalt-notifications-trigger", "#bell > .btn .notifications-dot", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "position", "top", "right"], { pseudo: "::after", skillPseudo: null }],
+      ["bell dot", ".basalt-notifications-trigger", "#bell > .btn .notifications-dot", ["boxWidth", "boxHeight", "backgroundColor", "borderTopLeftRadius", "position", "top", "right"], { pseudo: "::before", skillPseudo: null }], // React draws the dot on ::before since #105 (a pressed Button's ::after is its hit-box extension)
       ["popover", ".basalt-notifications", ".notifications", [...PANEL, ...PAD, "boxWidth", "boxHeight", "display", "flexDirection", "overflowX", "gapBelow", "endOffset"]],
       ["head", ".basalt-notifications-head", ".notifications-head", [...PAD, "gap", "display", "alignItems", "borderBottomWidth", "borderBottomColor", "boxHeight"]],
       ["title", ".basalt-notifications-title", ".notifications-title", [...TYPE, "color", "marginTop", "boxHeight"]],
@@ -1939,7 +1939,8 @@ async function compare(theme, area, reactPage, skillPage, pairs, scopes) {
     if (options.press) for (const p of [reactPage, skillPage]) await p.mouse.up();
     if (options.scroll != null) for (const [p, sel] of [[reactPage, ".basalt-table-container"], [skillPage, ".table-wrap"]]) await p.evaluate((frame) => { document.querySelector(frame).scrollLeft = 0; }, sel);
     if (options.hover || options.press) for (const p of [reactPage, skillPage]) { await p.mouse.move(0, 0); await settle(p); }
-    for (const prop of props) if (react[prop] !== skill[prop]) found.push({ area, pair: label, prop, theme, react: react[prop], skill: skill[prop] });
+    // A colour React reads from a token (oklch) and the skill mixes (color(srgb)) is the same colour when it paints the same pixel (samePaint).
+    for (const prop of props) if (react[prop] !== skill[prop] && !samePaint(react[prop], skill[prop])) found.push({ area, pair: label, prop, theme, react: react[prop], skill: skill[prop] });
   }
 }
 

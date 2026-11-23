@@ -8,7 +8,7 @@ import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { fixturePage, launch as launchReact } from "../../../packages/react/test/support.mjs";
-import { launch, openHtml } from "./support.mjs";
+import { launch, openHtml, samePaint } from "./support.mjs";
 
 let browser;
 let reactBrowser;
@@ -33,6 +33,8 @@ async function compare(page, skill, reactRead, skillRead, label) {
   const a = await measure(page, reactRead);
   const b = await measure(skill, skillRead);
   assert.ok(a && b, `${label}: both exist`);
+  // A colour React reads from a token (B3's plate, oklch) and the skill mixes (color(srgb)) is the same when it paints the same pixel.
+  for (const key of Object.keys(a)) if (b[key] !== a[key] && samePaint(a[key], b[key])) b[key] = a[key];
   assert.deepEqual(b, a, label);
 }
 
@@ -211,6 +213,8 @@ describe("the narrow menu's pause row, against React's (DECISIONS 148, item 2)",
       for (const page of [react.page, skill.page]) await page.evaluate(async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); await Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))); });
       const held = [await readRow(react.page, ".basalt-site-menu-loops .basalt-button"), await readRow(skill.page, ".topbar-menu-loops .btn")];
       assert.equal(held[0].pressed, "true");
+      // The pressed fill: React's plate token and the skill's mix are one colour when they paint the same pixel.
+      for (const key of Object.keys(held[0])) if (held[1][key] !== held[0][key] && samePaint(held[0][key], held[1][key])) held[1][key] = held[0][key];
       assert.deepEqual(held[1], held[0], "pressed");
       assert.deepEqual(react.errors, []);
       assert.deepEqual(skill.errors, []);

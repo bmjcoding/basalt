@@ -244,8 +244,9 @@ describe("the skill's link-tabs select follows aria-current when it is needed (r
       assert.notEqual(await skill.page.evaluate(() => location.hash), "#c", "it never navigated by itself");
     });
   }
-  test("the select is 44 for the 48 row, 36 for the 36 row and 48 for the 56 row, as React's", async () => {
-    for (const [size, h] of [["", "36px"], ["3xl", "44px"], ["5xl", "48px"]]) {
+  // At 390 the 36 row's select is 44, as React's: every 44px target rule applies under 720 whatever the pointer (B5).
+  test("the select is 44 for the 48 row, 44 for the 36 row under 720 (B5) and 48 for the 56 row, as React's", async () => {
+    for (const [size, h] of [["", "44px"], ["3xl", "44px"], ["5xl", "48px"]]) {
       const skill = await openHtml(browser, page(SKILL_LINKS(size)), { width: 390 });
       assert.equal((await measure(skill.page, ".link-tabs select", ["height"])).height, h, size || "36");
       const react = await reactPage(REACT_LINKS(size), { viewport: { width: 390, height: 300 } });

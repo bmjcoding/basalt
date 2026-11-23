@@ -47,7 +47,8 @@ const frames = (page, n = 3) => page.evaluate((n) => new Promise((resolve) => { 
 
 async function diagramPage(options = {}) {
   const { theme = "dark", viewport = { width: 1440, height: 1000 }, ...rest } = options;
-  const { page, errors } = await fixturePage(browser, HOST, { theme, viewport, ...rest });
+  // Standards mode, as an app's page is: in quirks mode a decision's words take no strut, so its diamond is drawn shorter than it is in an app.
+  const { page, errors } = await fixturePage(browser, HOST, { theme, viewport, standards: true, ...rest });
   const warnings = [];
   page.on("console", (m) => { if (m.type() === "warning" || m.type() === "error") warnings.push(m.text()); });
   await page.addStyleTag({ content: PAGE });
@@ -387,7 +388,7 @@ describe("accessibility (1.14)", () => {
       let b = browser;
       if (engine === "webkit") { try { b = await webkit.launch(); } catch { t.skip("WebKit is not installed"); return; } }
       try {
-        const { page } = await fixturePage(b, HOST, { theme: "dark", viewport: { width: 1440, height: 1000 } });
+        const { page } = await fixturePage(b, HOST, { theme: "dark", viewport: { width: 1440, height: 1000 }, standards: true });
         await page.addStyleTag({ content: PAGE });
         await page.evaluate(() => document.fonts.ready);
         await frames(page, 4);
