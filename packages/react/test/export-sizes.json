@@ -18,7 +18,7 @@
   "AppHeader": 1285,
   "AppShell": 103887,
   "AppTile": 1112,
-  "ArchitectureDiagram": 70763,
+  "ArchitectureDiagram": 67536,
   "ArrowDownGlyph": 2868,
   "ArrowLeftGlyph": 2869,
   "ArrowRightGlyph": 2859,
@@ -70,7 +70,7 @@
   "CopyGlyph": 2884,
   "Countdown": 3016,
   "CoverageStrip": 1570,
-  "DataFlowDiagram": 70780,
+  "DataFlowDiagram": 67553,
   "DateAge": 2527,
   "DescriptionColumns": 216,
   "DescriptionItem": 593,
@@ -105,7 +105,7 @@
   "Fieldset": 6390,
   "FilterResult": 698,
   "FilterToolbar": 774,
-  "FlowchartDiagram": 70729,
+  "FlowchartDiagram": 67502,
   "Form": 8730,
   "FormGrid": 438,
   "FormGridItem": 628,
@@ -224,7 +224,7 @@
   "RunsGlyph": 3128,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
-  "SchemaDiagram": 70677,
+  "SchemaDiagram": 67450,
   "SearchDialog": 88277,
   "SearchField": 18301,
   "SearchGlyph": 3181,
@@ -243,7 +243,7 @@
   "SelectableList": 821,
   "SelectionBar": 25913,
   "Separator": 4531,
-  "SequenceDiagram": 70725,
+  "SequenceDiagram": 67498,
   "SettingsGlyph": 3100,
   "ShareBar": 1411,
   "Sheet": 70793,
@@ -412,11 +412,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 873383,
-  "gzip": 289962
+  "bytes": 870172,
+  "gzip": 288828
  },
  "styles": {
-  "bytes": 382498,
-  "gzip": 49967
+  "bytes": 382510,
+  "gzip": 49971
  }
 }
