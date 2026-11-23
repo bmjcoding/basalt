@@ -791,7 +791,7 @@
         "diagram-motion-defs",
         "diagram-packet",
         "diagram-pause",
-        "diagram-run"
+        "diagram-play"
       ],
       "text": [
         "\"motion\"\\s*:\\s*\"animated\""

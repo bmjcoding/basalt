@@ -403,7 +403,8 @@ class Figure implements MotionController {
       });
     }
     this.introEnd?.cancel();
-    this.introEnd = new Animation(new KeyframeEffect(null, [], { duration: Math.max(1, last) }), document.timeline);
+    // The entrance's own end, on the same clock: an animation of nothing on the figure, so finishing or seeking the figure's animations settles it.
+    this.introEnd = fig.animate([], { duration: Math.max(1, last) });
     this.introEnd.startTime = this.t0;
     this.introEnd.finished.then(() => this.finishIntro(), () => {});
   }
@@ -520,11 +521,10 @@ class Figure implements MotionController {
     if (into === this.loops && (!this.inView || document.hidden)) a.pause();
     return a;
   }
-  /** A wait that freezes with the loops: an animation with no target, so a rest can pause out of view. */
+  /** A rest that freezes with the loops: an animation of nothing on the figure, so a rest pauses out of view and a test can seek it like any other. */
   private wait(ms: number, into: Set<Animation>) {
-    return this.track(new Animation(new KeyframeEffect(null, [], { duration: Math.max(1, ms) }), document.timeline), into).finished.then((a) => { a.cancel(); });
+    return this.track(this.host.fig.animate([], { duration: Math.max(1, ms) }), into).finished.then((a) => { a.cancel(); });
   }
-  private playing(a: Animation) { a.play(); return a; }
 
   /** A small overlay the size of one line, never the figure's (1.14), placed in the ink after the lines and before the labels. */
   private overlay(l: GLine, pad: number, cls: string): { svg: SVGSVGElement; d: string; pts: Pt[] } | null {

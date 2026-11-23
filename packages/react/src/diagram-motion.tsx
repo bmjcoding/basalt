@@ -24,7 +24,7 @@ export function MotionFoot({ controller }: { controller: MotionController }) {
   return (
     <>
       {state.runShown ? (
-        <Button variant="secondary" size="sm" className="basalt-diagram-run" onClick={() => controller.toggleRun()}>{state.running ? RUN_STOP : RUN_PLAY}</Button>
+        <Button variant="secondary" size="sm" className="basalt-diagram-play" onClick={() => controller.toggleRun()}>{state.running ? RUN_STOP : RUN_PLAY}</Button>
       ) : null}
       {state.canLoop ? (
         <Button variant="secondary" size="sm" pressed={held} className="basalt-diagram-pause" onClick={() => setHeld(!held)}>{LOOPS_TOGGLE_NAME}</Button>

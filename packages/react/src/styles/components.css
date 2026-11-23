@@ -4901,7 +4901,7 @@
   .basalt-diagram[data-motion="animated"] .basalt-diagram-num { transition: color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
   .basalt-diagram .basalt-diagram-msg[data-arrival] .basalt-diagram-num { color: var(--basalt-text-primary); transition: color var(--basalt-duration-slower) var(--basalt-ease-out); }
   @media (pointer: coarse) {
-    .basalt-diagram-run, .basalt-diagram-pause { min-height: var(--basalt-size-tap-min); }
+    .basalt-diagram-play, .basalt-diagram-pause { min-height: var(--basalt-size-tap-min); }
   }
   @media (forced-colors: active) {
     /* The figure is still in forced colours; a run the reader starts and an app's send still travel, in Highlight. The focal card keeps its edge. */

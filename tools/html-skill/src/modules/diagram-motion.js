@@ -31,7 +31,7 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
     var foot = figure.querySelector('.diagram-foot');
     var run = null, pause = null;
     if (foot) {
-      run = button('diagram-run', 'Play the run');
+      run = button('diagram-play', 'Play the run');
       run.addEventListener('click', function () { controller.toggleRun(); });
       pause = button('diagram-pause', 'Pause animations', function (b) {
         b.setAttribute('data-loops-toggle', '');
