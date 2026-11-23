@@ -47,8 +47,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 
 `docs/foundations.md` wins if this file and it disagree; fix this file.
 
-- **Monochrome.** Colour appears only in named roles: a product's accent, status, and
-  syntax inside code. Never decorative. Colour never carries meaning alone: pair it with
+- **Monochrome.** Colour appears only in named roles: a product's accent, status, syntax inside code, and a service's own mark on a
+  diagram's card. Never decorative. Colour never carries meaning alone: pair it with
   a word, icon or shape. Syntax colours never carry status (diff colours are a deferred
   exception).
 - **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on
@@ -148,7 +148,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **More contrast** (`prefers-contrast: more`; Increase Contrast on Apple platforms): three aliases and no new colour. Lines
   (the hairline, the divider, the rim, the pill's hairline) step to `border-input`, tertiary ink to `text-secondary`, a
   hovered edge (`border-hover`) to `text-secondary`, and a field's boundary (`border-field`, equal to `border-input` outside the
-  mode) to `text-secondary`; the input boundary itself, and so a progress or slider track and a link's underline, does not step. It works in both themes and under a theme chosen with the toggle, and the contrast
+  mode) to `text-secondary`, and a diagram card's arrival rim (`diagram-hit`) to `text-primary`; the input boundary itself, and so a progress or slider track and a link's underline, does not step. It works in both themes and under a theme chosen with the toggle, and the contrast
   tests prove every text pair at 4.5:1 and every boundary at 3:1 in the mode.
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
@@ -156,9 +156,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the parts of a field or a disabled, loading or busy button). In popup rows (Menu, Select, Combobox,
   command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
-  reduced motion and in forced colours. Nothing overshoots. Two kinds of thing loop, and nothing else: a mark that says work is running
-  (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's
-  one ambient loop, opacity only, in its art; `data-loops="held"` stops both. One figure on a page's first screen may draw its marks once
+  reduced motion and in forced colours. Nothing overshoots. Three kinds of thing loop, and nothing else: a mark that says work is running
+  (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a
+  page's one ambient loop, opacity only, in its art, and an animated diagram's live lines; `data-loops="held"` stops all three. One figure on a page's first screen may draw its marks once
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
@@ -192,6 +192,13 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
   the author's order, at most 480 wide. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
   record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
+  Still by default; `motion="animated"` adds an entrance on view (each line draws once, every word at rest, inside five seconds) and,
+  where the data names them, a flow line (cuts, only while they move), a pulse (a bead) or a packet (a dot): one mover a figure, loops
+  only in view, and "Pause animations" in the figure's foot. A reduced-motion or forced-colours figure is still. Measuring a figure again
+  (the faces arriving, a resize) never restarts, hides or cuts short an entrance. An architecture card may carry its service's own mark,
+  16px in the top end corner: the owner's file, never recoloured, a form for each ground, decoration beside the name, recorded in
+  `packages/react/marks/manifest.json`; a service without one is its name alone. In print a mark prints, and so does the fill of a
+  focal node that carries one (`print-color-adjust: exact`).
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
   arrives; it does not promise the same wrap at every width.
 - **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed
