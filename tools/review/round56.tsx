@@ -5,7 +5,6 @@
 // gives the overflowing pane keyboard focus; "hover" is a real pointer on the item marked `data-wt-hover`. "reduced-motion" and "forced-colours" are
 // emulations build.mjs sets before the page loads.
 
-import { MoonIcon } from "@phosphor-icons/react";
 import * as React from "react";
 
 import {
@@ -21,7 +20,6 @@ import {
   DescriptionItem,
   DescriptionList,
   HomeGlyph,
-  IconButton,
   InlineCode,
   Link,
   MessagesGlyph,
@@ -37,6 +35,7 @@ import {
   TabBar,
   TabBarItem,
   Text,
+  ThemeMenu,
   ToastProvider,
   TrendsGlyph,
 } from "../../packages/react/src/index";
@@ -69,8 +68,9 @@ function useDemoState(state: string) {
   }, [state]);
 }
 
-const theme = () => { const root = document.documentElement; root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light"; };
-const toggle = <IconButton icon={MoonIcon} label="Switch theme" onClick={theme} />;
+// The bar's theme control is the shipped one (foundations, The theme choice): ThemeMenu, a sun or a moon for the theme in use, named
+// "Theme: System", opening System, Light and Dark.
+const toggle = <ThemeMenu />;
 
 // ---- the two domains ----
 

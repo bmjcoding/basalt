@@ -18,7 +18,15 @@
   :root { --basalt-shell-width: calc(var(--basalt-size-sidebar-width) + var(--basalt-size-page-width)); }
   .app-shell[data-capped] { max-width: var(--basalt-shell-width); margin-inline: auto; }
   .app-shell[data-capped] .app-main { max-width: none; }
-  :root:has(.app-shell[data-capped]) .skip-link { inset-inline-start: max(var(--bh-pad-left), calc((100% - var(--basalt-shell-width)) / 2 + var(--bh-pad-left))); }
+  /* The skip link starts on the brand link's start edge (React's AppShell): the sidebar's and the brand band's padding from 1024, the 44px link
+     centred in the rail from 720. */
+  @media (width >= %bp-lg%) {
+    :root:has(.app-shell) .skip-link { --_brand-start: calc(2 * var(--basalt-space-3) + var(--basalt-space-1-5)); inset-inline-start: var(--_brand-start); }
+    :root:has(.app-shell[data-capped]) .skip-link { inset-inline-start: calc(max(var(--basalt-space-0), (100% - var(--basalt-shell-width)) / 2) + var(--_brand-start)); }
+  }
+  @media (width >= %bp-md%) and (width < %bp-lg%) {
+    :root:has(.app-shell) .skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
+  }
   .app-column { min-width: 0; }
   .app-sidebar {
     position: sticky;
@@ -80,7 +88,7 @@
   .app-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-2); }
   /* Facts under the title (.app-facts in an .app-heading): one line at 13/18 in secondary ink, cut with an ellipsis; title and line are 44 together. */
   .app-heading { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; }
-  .app-facts { min-width: 0; height: var(--basalt-text-sm-line-height); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
+  .app-facts { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
   .app-facts > * { vertical-align: top; }
 
 

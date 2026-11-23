@@ -317,7 +317,7 @@
       "tags": [
         "details"
       ],
-      "budget": 3950,
+      "budget": 3800,
       "usage": 950
     },
     "table": {
@@ -1166,7 +1166,7 @@
         "tooltip"
       ],
       "viewportFit": true,
-      "budget": 3950,
+      "budget": 4300,
       "usage": 2600
     },
     "pane": {
@@ -1176,7 +1176,7 @@
         "pane-page",
         "pane"
       ],
-      "budget": 1600,
+      "budget": 1700,
       "usage": 1000
     },
     "tab-bar": {

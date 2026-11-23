@@ -9,8 +9,12 @@
     document.querySelectorAll('.pane').forEach(function (pane) {
       var check = function () { var own = getComputedStyle(pane).overflowY !== 'visible'; pane.toggleAttribute('data-scroller', own); if (own && pane.scrollHeight > pane.clientHeight + 1) pane.tabIndex = 0; else pane.removeAttribute('tabindex'); };
       var watch = new ResizeObserver(check);
-      watch.observe(pane);
-      Array.prototype.forEach.call(pane.children, function (child) { watch.observe(child); });
+      // The pane and each child are watched for size; a child added or removed later (content that arrives after the page) is watched
+      // too, and the pane is checked again, so content that makes it overflow makes it a tab stop.
+      var observe = function () { watch.disconnect(); watch.observe(pane); Array.prototype.forEach.call(pane.children, function (child) { watch.observe(child); }); };
+      observe();
+      new MutationObserver(function () { observe(); check(); }).observe(pane, { childList: true });
+      check();
     });
   });
 })(window.Basalt);

@@ -19,8 +19,9 @@ const MARK = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
 
 const PANE_LINES = (n) => Array.from({ length: n }, (_, i) => `<p key="${i}" style={{ margin: "0 0 12px" }}>Step ${i + 1} finished in ${(i % 7) + 2}s.</p>`).join("");
 
-const shell = ({ capped = false, facts = null, title = "Inbox", primary = "New reply", pane = 0, secondary = false, root = "", page = 2400, density = "" } = {}) => `
+const shell = ({ capped = false, facts = null, title = "Inbox", primary = "New reply", pane = 0, secondary = false, root = "", page = 2400, density = "", dir = "ltr" } = {}) => `
   document.body.style.margin = "0";
+  document.documentElement.dir = ${JSON.stringify(dir)};
   document.body.style.background = "var(--basalt-surface-page)";
   document.body.style.color = "var(--basalt-text-primary)";
   ${root ? `document.documentElement.style.cssText = ${JSON.stringify(root)};` : ""}
@@ -104,15 +105,24 @@ describe("the capped shell", () => {
     await page.close();
   });
 
-  test("the skip link moves in with the capped shell: on the brand's start edge, under the bar", async () => {
-    const page = await open(shell({ capped: true }), { width: 1920 });
-    await page.keyboard.press("Tab");
-    const link = await box(page, ".basalt-skip-link");
-    const s = await box(page, ".basalt-app-shell");
-    near(link.x, s.x + 24, "the shell's start plus the gutter", 1);
-    assert.ok(link.y >= 56, `under the bar (${link.y})`);
-    await page.close();
-  });
+  // The skip link hangs on the brand link's start edge (foundations, The site header: "on the brand's start edge at every width"): in a
+  // capped or an uncapped shell, in the sidebar and in the rail, left to right and right to left.
+  for (const [width, capped] of [[1920, true], [1440, true], [1440, false], [1024, false], [900, false]]) {
+    for (const dir of ["ltr", "rtl"]) {
+      test(`the skip link starts on the brand link's start edge, under the bar (${width}, ${capped ? "capped" : "uncapped"}, ${dir})`, async () => {
+        const page = await open(shell({ capped, dir }), { width });
+        await page.keyboard.press("Tab");
+        assert.equal(await page.evaluate(() => document.activeElement?.className), "basalt-skip-link");
+        const link = await box(page, ".basalt-skip-link");
+        const brand = await page.locator(".basalt-app-brand .basalt-site-brand").evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x, right: r.right }; });
+        if (dir === "ltr") near(link.x, brand.x, "the link's left edge is the brand link's", 0.5);
+        else near(link.right, brand.right, "the link's right edge is the brand link's", 0.5);
+        assert.ok(link.y >= 56, `under the bar (${link.y})`);
+        assert.deepEqual(page.errors, []);
+        await page.close();
+      });
+    }
+  }
 });
 
 describe("a page with a pane", () => {
@@ -292,6 +302,24 @@ describe("the header's facts", () => {
     assert.equal(await page.locator(".basalt-app-bar > h1.basalt-app-title").count(), 1);
     await page.close();
   });
+
+  // WCAG 1.4.12: a reader's text spacing (line height 1.5, paragraph spacing 2, letter spacing 0.12, word spacing 0.16) loses nothing. The
+  // facts stay one line, cut at their end, and no glyph is clipped top or bottom: the line grows with its line height.
+  for (const width of [1440, 390]) {
+    test(`under a reader's text spacing the title and the facts are not clipped (${width})`, async () => {
+      const page = await open(shell({ title: "Build 1284", facts: `[<B.InlineCode key="r">a81f3c2</B.InlineCode>, <B.Badge key="s" variant="plain" status="success">Passed</B.Badge>, <span key="t">4 min ago</span>]` }), { width });
+      await page.addStyleTag({ content: "* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }" });
+      await settle(page);
+      for (const selector of [".basalt-app-title", ".basalt-app-facts"]) {
+        const m = await page.locator(selector).evaluate((el) => ({ sh: el.scrollHeight, ch: el.clientHeight, size: parseFloat(getComputedStyle(el).fontSize), lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)) }));
+        assert.ok(m.sh <= m.ch + 0.5, `${selector}: nothing is clipped vertically (${m.sh} in ${m.ch})`);
+        near(m.ch, m.size * 1.5, `${selector}: one line at the reader's line height`, 1);
+        assert.equal(m.lines, 1, `${selector}: one line`);
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "nothing overflows the page");
+      await page.close();
+    });
+  }
 
   test("a long line is cut with an ellipsis and never pushes the actions", async () => {
     const long = `[<span key="a">${"Waiting on a reply from the customer about the refund ".repeat(4)}</span>]`;

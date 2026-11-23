@@ -1412,9 +1412,22 @@
   :root:has(.basalt-site-header) .basalt-skip-link {
     inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
   }
-  /* In a capped app shell the brand moves in with the shell, and so does the skip link. */
-  :root:has(.basalt-app-shell[data-capped]) .basalt-skip-link {
-    inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-shell-width)) / 2 + var(--_pad-left)));
+  /* In an app shell the skip link starts on the brand link's start edge, as it does under a site header: from 1024 that is the sidebar's
+     space-3 and the brand band's space-1-5 + space-3 in from the shell's start (and a capped shell starts half the window's spare width
+     in); in the rail it is the 44px link centred in the 72px rail. Under 720 there is no brand in the bar, and it stays on the gutter. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-lg (1024px): a media query cannot read a token; from it the sidebar holds the brand */
+  @media (width >= 1024px) {
+    :root:has(.basalt-app-shell) .basalt-skip-link {
+      --_brand-start: calc(2 * var(--basalt-space-3) + var(--basalt-space-1-5));
+      inset-inline-start: var(--_brand-start);
+    }
+    :root:has(.basalt-app-shell[data-capped]) .basalt-skip-link {
+      inset-inline-start: calc(max(var(--basalt-space-0), (100% - var(--basalt-shell-width)) / 2) + var(--_brand-start));
+    }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; between them the rail holds the brand */
+  @media (width >= 720px) and (width < 1024px) {
+    :root:has(.basalt-app-shell) .basalt-skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
   }
   /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
   .basalt-skip-link:not(:focus) { box-shadow: none; }
@@ -1475,13 +1488,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    height: var(--basalt-text-sm-line-height);
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
     letter-spacing: var(--basalt-text-sm-tracking);
   }
   /* A fact in another face or box (inline code, a plain status badge) would set its own baseline and grow the line: each sits at the
-     line's top, so the line is 18 whatever it holds. */
+     line's top, so the line is its own line height (18) whatever it holds. Its height is never fixed: under a reader's text spacing
+     (WCAG 1.4.12) the line grows with its line height and nothing is clipped; it stays one line, cut at its end, and the bar's
+     centring takes the difference. */
   .basalt-app-facts > .basalt-dot-line > * { vertical-align: top; }
 
   /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
