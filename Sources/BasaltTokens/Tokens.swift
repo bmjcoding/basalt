@@ -335,6 +335,54 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// A diagram's main line and its head, and a traced line (DECISIONS 269). 3:1 or better on levels 0 to 3.
+    public static let diagramEdgeMain = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
+    )
+
+    /// A diagram's plain and dashed lines and their heads, a foreign key's line and dot, and an edge label's ink.
+    public static let diagramEdge = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
+    )
+
+    /// Every other line of a diagram while one node is traced: quieter, still 3:1. The input boundary; it does not step under more contrast.
+    public static let diagramEdgeDim = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A diagram's group boundary, a sequence's lifeline and a flowchart shape's contour: 3:1, because each carries meaning. It does not step under more contrast.
+    public static let diagramStructure = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38)
+    )
+
+    /// A diagram's focal node: its fill and its edge, inverted ink. At most one a diagram, and never the accent.
+    public static let diagramFocal = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 0.929405, green: 0.929405, blue: 0.929405, alpha: 1)
+    )
+
+    /// Ink on the focal node; its kind and detail are this ink at opacity-amount.
+    public static let diagramFocalInk = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 1),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 1)
+    )
+
+    /// The focal table's header rule. Decorative: the other theme's divider, because the focal fill is the other theme's ground.
+    public static let diagramFocalRule = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 0.06),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.08)
+    )
+
+    /// Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 269, 1.18). An alias, no new colour.
+    public static let diagramFocalRuleContrast = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 0.38),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45)
+    )
+
     /// The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads.
     public static let artField = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
@@ -608,6 +656,18 @@ extension Basalt {
     public static let chartPlotSm: Double = 96
     /// A marks row's height, a default the app can set: one kind of reading across a run of days (DECISIONS 153, consent row 10).
     public static let chartRow: Double = 56
+    /// The least width of a node's track in a diagram's drawn layout; a track is also as wide as its widest unbreakable word, measured (DECISIONS 269).
+    public static let diagramNode: Double = 144
+    /// The least width of a schema diagram's table; a table is also as wide as its widest row on one line, measured (DECISIONS 269).
+    public static let diagramTable: Double = 224
+    /// A data flow diagram's lane-name column, at the start of the drawn layout (DECISIONS 269).
+    public static let diagramLane: Double = 120
+    /// A sequence diagram's message row: the line at its middle, the number and label above it, the note below (DECISIONS 269).
+    public static let diagramStep: Double = 56
+    /// A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 269).
+    public static let diagramHead: Double = 8
+    /// A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 269).
+    public static let diagramGuideDash: Double = 4
     /// A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14).
     public static let meterMarker: Double = 12
     /// The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed.

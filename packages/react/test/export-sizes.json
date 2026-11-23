@@ -16,6 +16,7 @@
   "AppHeader": 488,
   "AppShell": 99096,
   "AppTile": 1112,
+  "ArchitectureDiagram": 60723,
   "ArrowDownGlyph": 2868,
   "ArrowLeftGlyph": 2869,
   "ArrowRightGlyph": 2859,
@@ -65,6 +66,7 @@
   "CopyGlyph": 2884,
   "Countdown": 2920,
   "CoverageStrip": 1570,
+  "DataFlowDiagram": 60740,
   "DateAge": 2527,
   "DescriptionColumns": 216,
   "DescriptionItem": 578,
@@ -97,6 +99,7 @@
   "Fieldset": 6390,
   "FilterResult": 698,
   "FilterToolbar": 774,
+  "FlowchartDiagram": 60727,
   "Form": 8730,
   "FormGrid": 383,
   "FormGridItem": 628,
@@ -207,6 +210,7 @@
   "RunsGlyph": 3128,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
+  "SchemaDiagram": 60679,
   "SearchDialog": 85332,
   "SearchGlyph": 3181,
   "SearchResult": 684,
@@ -218,6 +222,7 @@
   "SegmentedControl": 19383,
   "Select": 139960,
   "Separator": 4531,
+  "SequenceDiagram": 60709,
   "SettingsGlyph": 3100,
   "ShareBar": 1411,
   "Sheet": 70433,
@@ -233,7 +238,7 @@
   "ShortcutList": 10032,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 14780,
+  "SiteFooter": 14782,
   "SiteHeader": 175837,
   "SiteLockupDefs": 694,
   "SiteMenu": 168176,
@@ -290,7 +295,7 @@
   "TabsPanels": 385,
   "Terminal": 32255,
   "Text": 922,
-  "TextButton": 10415,
+  "TextButton": 10414,
   "TextMorph": 4504,
   "Textarea": 26909,
   "ThemeChoiceControl": 4794,
@@ -369,11 +374,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 760909,
-  "gzip": 250516
+  "bytes": 813323,
+  "gzip": 269844
  },
  "styles": {
-  "bytes": 306245,
-  "gzip": 40103
+  "bytes": 339096,
+  "gzip": 44067
  }
 }

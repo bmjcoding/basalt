@@ -91,7 +91,10 @@ function filterTokens(css, keep) {
 const TYPE_LAYOUT_TOKEN = /^--basalt-(?:text-(?:6xl|7xl|hero-narrow|display-narrow)-|space-32\b|size-section-gap|size-display-measure\b)/;
 /** The link rows' row size (DECISIONS 152), the same way: the `link-rows` module's, out of the core, which has no room for a token only some pages use. */
 const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
-const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name), { keepsOther: true });
+/** The diagram roles and lengths (DECISIONS 269), the same way: the `diagram` module's, out of the core. */
+const DIAGRAM_TOKEN = /^--basalt-(?:diagram-|size-diagram-)/;
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name), { keepsOther: true });
+const inDiagram = Object.assign((name) => DIAGRAM_TOKEN.test(name), { keepsOther: false });
 const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
 const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
 const inTypeLayout = Object.assign((name) => TYPE_LAYOUT_TOKEN.test(name), { keepsOther: false });
@@ -221,6 +224,28 @@ const glyphSvg = (name) => {
 };
 const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container-sm|container-lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%duration-(confirm)%/g, (_, name) => DURATIONS[name]), "js");
 
+/**
+ * The diagram module's stylesheet: the diagrams section of packages/react/src/styles/components.css (from its heading to the next section's), with React's
+ * class prefix as the skill's and React's surface levels as the skill's panel variables (a node is the next level, the ground is the panel's own).
+ */
+function diagramCss() {
+  const react = fs.readFileSync(path.join(repo, "packages", "react", "src", "styles", "components.css"), "utf8");
+  const start = react.indexOf("  /* ---- Diagrams (DECISIONS 269");
+  const end = react.indexOf("  /* ---- ", start + 10);
+  if (start < 0 || end < 0) throw new Error("html-skill: the diagrams section of packages/react/src/styles/components.css moved; update diagramCss");
+  const css = react.slice(start, end)
+    .replaceAll("var(--_surface, var(--basalt-surface-1))", "var(--panel-next, var(--basalt-surface-1))")
+    .replaceAll("var(--_surface, var(--basalt-surface-page))", "var(--panel-bg, var(--basalt-surface-page))")
+    .replaceAll(".basalt-diagram", ".diagram");
+  if (css.includes("--_surface")) throw new Error("html-skill: the diagrams section reads --_surface in a form diagramCss does not rename");
+  return `@layer basalt {\n${css}\n}\n`;
+}
+/** A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. */
+function bundleModule(file) {
+  const out = esbuild.buildSync({ entryPoints: [file], bundle: true, format: "iife", platform: "browser", target: "es2020", write: false, logLevel: "silent", legalComments: "inline", charset: "utf8" });
+  return out.outputFiles[0].text;
+}
+
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
   return Object.keys(JSON.parse(src("modules.json")).modules);
@@ -241,9 +266,13 @@ export function build() {
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     // The type-layout module's tokens come before its own rules, as the tokens come before the core's.
     const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : "";
+    // The diagram module's stylesheet is React's own section, renamed (diagramCss), so the two cannot drift; its script bundles React's engine.
+    if (name === "diagram") files["parts/diagram.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inDiagram))}\n${diagramCss()}`);
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
-      if (fs.existsSync(file)) files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
+      if (!fs.existsSync(file)) continue;
+      if (ext === "js" && name === "diagram") files[`parts/${name}.js`] = minifyJs(bundleModule(file));
+      else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
   // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.

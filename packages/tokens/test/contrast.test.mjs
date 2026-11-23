@@ -844,7 +844,7 @@ const MORE = Object.fromEntries([...moreBlock[2].matchAll(/--basalt-([\w-]+): va
 const more = (theme, name) => color(theme, MORE[name] ?? name);
 
 test("more contrast: lines step to border-input, tertiary ink to text-secondary and a field's boundary to text-secondary, and nothing else is replaced", () => {
-  assert.deepEqual(MORE, { "border-hairline": "line-contrast", "border-rim": "line-contrast", "border-rim-top": "line-contrast", "border-divider": "line-contrast", "text-tertiary": "ink-contrast", "border-field": "field-contrast", "border-hover": "text-secondary" });
+  assert.deepEqual(MORE, { "border-hairline": "line-contrast", "border-rim": "line-contrast", "border-rim-top": "line-contrast", "border-divider": "line-contrast", "text-tertiary": "ink-contrast", "border-field": "field-contrast", "border-hover": "text-secondary", "diagram-focal-rule": "diagram-focal-rule-contrast" });
   // the block is declared on every selector that sets a theme, the system-dark rule's own selector included, so it wins in both themes
   for (const selector of [":root", '[data-theme="light"]', '[data-theme="dark"]', ".light", ".dark", ':root:not([data-theme="light"]):not(.light)']) assert.ok(moreBlock[1].includes(selector), `the mode is not declared on ${selector}`);
   assert.ok(tokensCss.indexOf("prefers-contrast: more") > tokensCss.indexOf("@media (prefers-color-scheme: dark)"), "the mode comes after the system-dark rule, which it must outrank");
@@ -953,5 +953,47 @@ for (const theme of THEMES) {
     atLeast(theme, "border-focus", 3, levels);
     atLeast(theme, "status-danger", 4.5, [["surface-page", color(theme, "surface-page")]]);
     atLeast(theme, "text-primary", 4.5, [["surface-raised (the open sources button)", color(theme, "surface-raised")]]);
+  });
+}
+
+// ---- Diagrams (DECISIONS 269 and 270, 1.1): seven aliases and no new colour, each proved on levels 0 to 3, in both themes and under more contrast ----
+for (const theme of THEMES) {
+  const levels = LEVELS.map((n) => [n, color(theme, n)]);
+  test(`${theme}: the diagram roles are aliases of colours the theme already has`, () => {
+    assert.deepEqual(color(theme, "diagram-edge-main"), color(theme, "text-primary"));
+    assert.deepEqual(color(theme, "diagram-edge"), color(theme, "text-secondary"));
+    assert.deepEqual(color(theme, "diagram-edge-dim"), color(theme, "border-input"));
+    assert.deepEqual(color(theme, "diagram-structure"), color(theme, "border-input"));
+    assert.deepEqual(color(theme, "diagram-focal"), color(theme, "action-primary"));
+    assert.deepEqual(color(theme, "diagram-focal-ink"), color(theme, "action-primary-text"));
+    assert.deepEqual(color(theme, "diagram-focal-rule"), color(theme, theme === "dark" ? "black-8" : "white-6"));
+    assert.deepEqual(color(theme, "diagram-focal-rule-contrast"), color(theme, theme === "dark" ? "black-45" : "white-38"));
+  });
+
+  test(`${theme}: every diagram line and structure holds 3:1 on levels 0 to 3, and under more contrast (1.4.11)`, () => {
+    for (const name of ["diagram-edge-main", "diagram-edge", "diagram-edge-dim", "diagram-structure"]) {
+      atLeast(theme, name, 3, levels);
+      for (const [bgName, bg] of levels) assert.ok(ratio(over(more(theme, name), bg), bg) >= 3, `${theme}: ${name} on ${bgName} under more contrast`);
+    }
+    // The edge label's ink is the plain line's: text, 4.5:1 on the ground it sits on (its plate is that ground).
+    atLeast(theme, "diagram-edge", 4.5, levels);
+  });
+
+  test(`${theme}: the focal node's words hold 4.5:1 on its fill, full and at opacity-amount, and the fill stands 3:1 off every level`, () => {
+    const fill = color(theme, "diagram-focal");
+    const ink = color(theme, "diagram-focal-ink");
+    const amount = Number.parseFloat(tokens.primitives["opacity-amount"].css);
+    assert.ok(ratio(ink, fill) >= 4.5, `${theme}: focal ink on its fill is ${fmt(ratio(ink, fill))}:1`);
+    const quiet = over({ ...ink, alpha: amount }, fill);
+    assert.ok(ratio(quiet, fill) >= 4.5, `${theme}: focal ink at opacity-amount is ${fmt(ratio(quiet, fill))}:1`);
+    for (const [bgName, bg] of levels) assert.ok(ratio(fill, bg) >= 3, `${theme}: the focal fill on ${bgName} is ${fmt(ratio(fill, bg))}:1`);
+    // Under more contrast the quiet ink is at full strength, and the header rule is the other theme's input boundary.
+    const rule = over(more(theme, "diagram-focal-rule"), fill);
+    assert.ok(ratio(rule, fill) >= 3, `${theme}: the focal table's rule under more contrast is ${fmt(ratio(rule, fill))}:1`);
+  });
+
+  test(`${theme}: a node's text holds 4.5:1 on the level it is drawn at, and a traced line stays 3:1 while the rest dim`, () => {
+    for (const name of ["text-primary", "text-secondary", "text-tertiary"]) atLeast(theme, name, 4.5, levels.slice(1));
+    atLeast(theme, "diagram-edge-dim", 3, levels);
   });
 }

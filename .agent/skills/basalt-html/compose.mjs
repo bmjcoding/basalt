@@ -28,6 +28,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -539,7 +540,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   });
   for (const name of use) if (!(name in manifest.modules)) throw new Error(`basalt:use names "${name}", which is not a module (modules: ${Object.keys(manifest.modules).join(", ")})`);
 
-  const content = held.restore(markup).replace(/^\s+/, "");
+  const diagramNotes = [];
+  const content = writeDiagrams(held.restore(markup).replace(/^\s+/, ""), parts, diagramNotes);
   title ||= held.h1 || "Untitled page"; // an empty <title> names nothing: the heading does
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
@@ -587,7 +589,41 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
+}
+
+/**
+ * A diagram's words, written into the page (DECISIONS 269, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
+ * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
+ * attributes stay (its class joins ours, its id stays); the JSON stays for the script. A figure whose JSON does not parse is left for the script, which says why.
+ */
+function writeDiagrams(content, parts, notes) {
+  if (!/\bdata-diagram\b/.test(content) || !exists(parts, "diagram.js")) return content;
+  let markup = null;
+  let serial = 0;
+  const figure = /<figure\b((?:"[^"]*"|'[^']*'|[^>"'])*)>(\s*<script\b(?:"[^"]*"|'[^']*'|[^>"'])*\bdata-diagram\b(?:"[^"]*"|'[^']*'|[^>"'])*>)([\s\S]*?)(<\/script\s*>)(\s*)<\/figure\s*>/gi;
+  return content.replace(figure, (whole, attrs, open, json, close) => {
+    if (!/\bclass\s*=\s*(?:"[^"]*\bdiagram\b[^"]*"|'[^']*\bdiagram\b[^']*')/.test(attrs) || /\bdata-diagram-drawn\b/.test(attrs)) return whole;
+    let spec;
+    try { spec = JSON.parse(json); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); return whole; }
+    if (!markup) {
+      const context = { window: { Basalt: { _: { step() {}, esc: (x) => x } } }, console: { warn() {}, error() {}, log() {} } };
+      vm.runInNewContext(read(parts, "diagram.js"), context);
+      markup = context.window.Basalt._.diagramMarkup;
+    }
+    const made = markup(spec, `dg${++serial}`);
+    for (const w of made.warnings) notes.push(`${spec.title ?? "a diagram"}: ${w}`);
+    const ours = [...made.open.matchAll(/\s([\w:-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]);
+    const theirs = [...attrs.matchAll(/\s([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g)].map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? ""]);
+    const merged = new Map(theirs);
+    for (const [k, v] of ours) {
+      if (k === "class") merged.set("class", [...new Set(`${merged.get("class") ?? ""} ${v}`.split(/\s+/).filter(Boolean))].join(" "));
+      else if (k === "style") merged.set("style", merged.has("style") ? `${v};${merged.get("style")}` : v);
+      else merged.set(k, v);
+    }
+    const tag = `<figure${[...merged].map(([k, v]) => ` ${k}="${v.replaceAll('"', "&quot;")}"`).join("")}>`;
+    return `${tag}${open}${json}${close}${made.inner}</figure>`;
+  });
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */
@@ -707,6 +743,7 @@ if (isMain) {
         const say = (l) => (l.name in result.built ? `  ${l.name}: built by the ${result.built[l.name]}; nothing to check.` : `  ${l.name}: ${l.warning}`);
         if (warnings.length) console.log(`Check before you hand it over (the full text of one: --usage NAME):\n${warnings.map(say).join("\n")}`);
       }
+      for (const note of result.diagrams) console.log(`Diagram: ${note}`);
       // After the page and the modules' lines: what the body references that is not in the file. The page is written; the warning is for the one who handed it over.
       if (result.external.length) console.log(`Warning: ${result.external.length} reference${result.external.length === 1 ? "" : "s"} leave${result.external.length === 1 ? "s" : ""} the file, and a page is one file with no network (nothing loads offline; a link is the reader's to follow):\n${result.external.map((line) => `  ${line}`).join("\n")}`);
     } catch (e) {

@@ -1,0 +1,186 @@
+{
+  "architecture": {
+    "type": "architecture",
+    "title": "How a request reaches the agent",
+    "source": "docs/architecture.md, \"The shape\"",
+    "summary": "Requests travel from the browser over HTTPS through the ALB to the cimip service. The service writes to Aurora PostgreSQL, puts sealed segments in S3, calls Bedrock for the scribe and has ECS start one agent sandbox per incident. It streams HTTP + SSE to the sandbox, which calls Bedrock for inference, sends its logs to CloudWatch and runs approved tools against production.",
+    "legend": { "main": "Request path", "plain": "Call", "dashed": "Async or one-way", "focal": "The service" },
+    "groups": [{ "id": "aws", "label": "AWS · your account" }],
+    "nodes": [
+      { "id": "browser", "kind": "client", "name": "Browser", "detail": "Edge on iOS, Android", "col": 1, "row": 2 },
+      { "id": "alb", "kind": "load balancer", "name": "ALB", "detail": "OIDC sign-in · HTTP/2", "detailMono": true, "group": "aws", "col": 2, "row": 2 },
+      { "id": "svc", "kind": "ECS service", "name": "cimip service", "detail": "N tasks · stateless", "detailMono": true, "focal": true, "group": "aws", "col": 3, "row": 2 },
+      { "id": "aurora", "kind": "database", "name": "Aurora PostgreSQL", "detail": "metadata · live window", "detailMono": true, "group": "aws", "col": 4, "row": 1, "branch": true },
+      { "id": "s3", "kind": "object store", "name": "S3", "detail": "sealed segments · transcripts", "detailMono": true, "group": "aws", "col": 4, "row": 2, "branch": true },
+      { "id": "ecs", "kind": "control plane", "name": "ECS", "detail": "RunTask · StopTask", "detailMono": true, "group": "aws", "col": 2, "row": 3, "branch": true },
+      { "id": "bedrock", "kind": "model", "name": "Bedrock", "detail": "the scribe · the agent", "group": "aws", "col": 4, "row": 3, "branch": true },
+      { "id": "agent", "kind": "ECS task · one per incident", "name": "Agent sandbox", "detail": "private IP · :8080", "detailMono": true, "group": "aws", "col": 3, "row": 4 },
+      { "id": "cw", "kind": "logs", "name": "CloudWatch", "detail": "the agent's logs, traces", "group": "aws", "col": 4, "row": 5, "branch": true },
+      { "id": "sys", "kind": "your systems", "name": "Production", "detail": "read-only tools", "group": "aws", "col": 3, "row": 5 }
+    ],
+    "edges": [
+      { "from": "browser", "to": "alb", "kind": "main", "label": "HTTPS" },
+      { "from": "alb", "to": "svc", "kind": "main" },
+      { "from": "svc", "to": "aurora", "label": "SQL · NOTIFY", "fromSide": "top", "toSide": "left" },
+      { "from": "svc", "to": "s3", "label": "PUT" },
+      { "from": "svc", "to": "ecs", "label": "RunTask", "fromSide": "bottom", "toSide": "right" },
+      { "from": "svc", "to": "bedrock", "label": "scribe", "toSide": "left" },
+      { "from": "svc", "to": "agent", "kind": "main", "label": "HTTP + SSE" },
+      { "from": "ecs", "to": "agent", "kind": "dashed", "label": "starts", "fromSide": "bottom", "toSide": "left" },
+      { "from": "agent", "to": "bedrock", "label": "inference" },
+      { "from": "agent", "to": "cw", "kind": "dashed", "label": "logs", "toSide": "left" },
+      { "from": "agent", "to": "sys", "label": "tools · approved actions" }
+    ]
+  },
+  "flowchart": {
+    "type": "flowchart",
+    "title": "Who may decide what the agent asks to run",
+    "source": "docs/agent-contract.md and the approvals section of the architecture",
+    "summary": "When the agent asks to run a command, CIMIP sets the higher of the two risk levels, then checks the decider's role: observers cannot decide, commanders and deputies may always decide, responders may decide only at medium risk or lower, and the first recorded decision stands.",
+    "legend": { "main": "Usual path", "focal": "CIMIP's own step" },
+    "nodes": [
+      { "id": "req", "shape": "terminal", "name": "Agent asks to run a command", "detail": "approval.requested", "detailMono": true, "col": 2, "row": 1 },
+      { "id": "risk", "name": "CIMIP sets the risk", "detail": "higher of the agent's and its own", "focal": true, "col": 2, "row": 2 },
+      { "id": "who", "shape": "decision", "name": "Who is deciding?", "col": 2, "row": 3 },
+      { "id": "obs", "shape": "terminal", "name": "Can't decide", "detail": "observers only read", "col": 1, "row": 3, "branch": true },
+      { "id": "med", "shape": "decision", "name": "Risk medium or lower?", "col": 3, "row": 3, "branch": true },
+      { "id": "wait", "shape": "terminal", "name": "Waits for the commander or deputy", "col": 4, "row": 3, "branch": true },
+      { "id": "may", "name": "May decide", "detail": "high risk asks twice", "col": 2, "row": 4 },
+      { "id": "first", "shape": "decision", "name": "First decision?", "col": 2, "row": 5 },
+      { "id": "told", "shape": "terminal", "name": "Told it was already decided", "col": 1, "row": 5, "branch": true },
+      { "id": "rec", "shape": "terminal", "name": "Recorded, then sent until acknowledged", "col": 2, "row": 6 }
+    ],
+    "edges": [
+      { "from": "req", "to": "risk", "kind": "main" },
+      { "from": "risk", "to": "who", "kind": "main" },
+      { "from": "who", "to": "obs", "label": "observer" },
+      { "from": "who", "to": "med", "label": "responder" },
+      { "from": "who", "to": "may", "kind": "main", "label": "commander or deputy" },
+      { "from": "med", "to": "wait", "label": "no" },
+      { "from": "med", "to": "may", "label": "yes", "fromSide": "bottom", "toSide": "right" },
+      { "from": "may", "to": "first", "kind": "main" },
+      { "from": "first", "to": "told", "label": "no" },
+      { "from": "first", "to": "rec", "kind": "main", "label": "yes" }
+    ]
+  },
+  "dataFlow": {
+    "type": "data-flow",
+    "title": "How one message reaches everyone in the room",
+    "source": "\"The log\"",
+    "summary": "Marcus's browser posts a message to cimip task A, which inserts an event row and fires NOTIFY in one Aurora transaction. Every cimip task listens and streams the event over SSE to Priya's browser, while Aurora keeps the newest 300 rows and seals older batches of 200 to S3.",
+    "legend": { "main": "The message's path", "plain": "Housekeeping", "dashed": "Later, in a batch", "focal": "The one transaction" },
+    "lanes": [
+      { "id": "marcus", "label": "Marcus's browser" },
+      { "id": "task-a", "label": "cimip task A" },
+      { "id": "aurora", "label": "Aurora" },
+      { "id": "task-b", "label": "cimip task B" },
+      { "id": "priya", "label": "Priya's browser" },
+      { "id": "s3", "label": "S3" }
+    ],
+    "nodes": [
+      { "id": "send", "lane": "marcus", "name": "Sends a message", "detail": "POST · retry key", "detailMono": true, "col": 1 },
+      { "id": "append", "lane": "task-a", "name": "Appends it", "detail": "row lock → next seq", "detailMono": true, "col": 2 },
+      { "id": "row", "lane": "aurora", "name": "Event row + NOTIFY", "detail": "one transaction", "focal": true, "col": 3 },
+      { "id": "hear", "lane": "task-b", "name": "Hears it", "detail": "LISTEN, every task", "detailMono": true, "col": 4 },
+      { "id": "see", "lane": "priya", "name": "Sees it", "detail": "SSE · one stream a tab", "detailMono": true, "col": 5 },
+      { "id": "seal", "lane": "aurora", "name": "Keeps the newest 300", "detail": "older rows deleted once sealed", "col": 2 },
+      { "id": "seg", "lane": "s3", "name": "Sealed segment", "detail": "200 events · SHA-256", "detailMono": true, "col": 3 }
+    ],
+    "edges": [
+      { "from": "send", "to": "append", "kind": "main" },
+      { "from": "append", "to": "row", "kind": "main", "label": "INSERT" },
+      { "from": "row", "to": "hear", "kind": "main", "label": "NOTIFY" },
+      { "from": "hear", "to": "see", "kind": "main", "label": "SSE" },
+      { "from": "row", "to": "seal", "label": "trim" },
+      { "from": "row", "to": "seg", "kind": "dashed", "label": "once 200 wait" }
+    ]
+  },
+  "sequence": {
+    "type": "sequence",
+    "title": "An @agent run, from the mention to the approved action",
+    "source": "\"Runs and sandboxes\" and the agent contract",
+    "summary": "Marcus mentions @agent in the room. The cimip service records the run, starts and health-checks an ECS sandbox on the incident's first run, posts the run, streams the turn back to Marcus, and relays Marcus's approval until the sandbox says it is done.",
+    "legend": { "main": "Request", "plain": "Setup", "dashed": "Stream or reply", "focal": "The service" },
+    "participants": [
+      { "id": "marcus", "kind": "person", "name": "Marcus, in the room", "short": "Marcus" },
+      { "id": "svc", "kind": "ECS service", "name": "cimip service", "focal": true },
+      { "id": "ecs", "kind": "control plane", "name": "ECS" },
+      { "id": "agent", "kind": "ECS task", "name": "Agent sandbox" }
+    ],
+    "steps": [
+      { "from": "marcus", "to": "svc", "kind": "main", "label": "@agent check the proxy", "note": "a message in the room" },
+      { "from": "svc", "to": "svc", "label": "records the run", "note": "run.started, one transaction" },
+      { "band": "First run on an incident only" },
+      { "from": "svc", "to": "ecs", "label": "RunTask", "note": "idempotency token = sandbox id" },
+      { "from": "svc", "to": "ecs", "label": "DescribeTasks", "note": "until it has a private IP" },
+      { "from": "svc", "to": "agent", "label": "GET /healthz", "note": "up to a minute" },
+      { "band": "Every run" },
+      { "from": "svc", "to": "agent", "kind": "main", "label": "POST /v1/runs", "note": "facts, recent transcript, prompt" },
+      { "from": "agent", "to": "svc", "kind": "dashed", "label": "events, over SSE", "note": "status · tool.started · finding" },
+      { "from": "svc", "to": "marcus", "kind": "dashed", "label": "the turn, as it happens", "note": "text in 40 ms frames, not stored" },
+      { "from": "agent", "to": "svc", "kind": "main", "label": "approval.requested", "note": "the exact command · risk: medium" },
+      { "band": "The agent waits for a person" },
+      { "from": "marcus", "to": "svc", "kind": "main", "label": "Approve", "note": "first decision stands" },
+      { "from": "svc", "to": "agent", "kind": "main", "label": "POST /v1/runs/{id}/input", "note": "sent until acknowledged" },
+      { "from": "agent", "to": "svc", "kind": "dashed", "label": "done", "note": "outcome: completed" }
+    ]
+  },
+  "schema": {
+    "type": "schema",
+    "title": "The tables an incident and its runs live in",
+    "source": "server/db/schema.ts; each table shows its keys and a few columns",
+    "summary": "Eight PostgreSQL tables center on incidents: memberships, room_events, log_segments, sandboxes and agent_runs reference incidents.id; memberships and incidents reference users.id; agent_runs references sandboxes.id; and approvals references agent_runs.id.",
+    "legend": { "plain": "A foreign key, to the key it references", "focal": "The table the others reference" },
+    "tables": [
+      { "name": "memberships", "col": 1, "row": 3, "more": 8, "columns": [
+        { "name": "incident_id", "key": "PK", "references": "incidents.id" },
+        { "name": "user_id", "key": "PK", "references": "users.id" },
+        { "name": "role", "type": "text" },
+        { "name": "state", "type": "text" },
+        { "name": "deputy", "type": "boolean" } ] },
+      { "name": "room_events", "col": 1, "row": 1, "more": 4, "columns": [
+        { "name": "incident_id", "key": "PK", "references": "incidents.id" },
+        { "name": "seq", "key": "PK", "type": "integer" },
+        { "name": "channel", "type": "room | bridge" },
+        { "name": "body", "type": "jsonb" } ] },
+      { "name": "log_segments", "col": 1, "row": 2, "more": 4, "columns": [
+        { "name": "incident_id", "key": "PK", "references": "incidents.id" },
+        { "name": "first_seq", "key": "PK", "type": "integer" },
+        { "name": "key", "type": "S3 key" },
+        { "name": "sha256", "type": "text" } ] },
+      { "name": "incidents", "col": 2, "row": [1, 2], "focal": true, "more": 10, "columns": [
+        { "name": "id", "key": "PK", "type": "text" },
+        { "name": "number", "type": "unique" },
+        { "name": "title", "type": "text" },
+        { "name": "severity", "type": "text" },
+        { "name": "status", "type": "text" },
+        { "name": "commander_id", "key": "FK", "references": "users.id" },
+        { "name": "last_seq", "type": "integer" },
+        { "name": "summary", "type": "text" } ] },
+      { "name": "users", "col": 2, "row": 3, "more": 2, "columns": [
+        { "name": "id", "key": "PK", "type": "text" },
+        { "name": "subject", "type": "unique" },
+        { "name": "name", "type": "text" },
+        { "name": "roles", "type": "jsonb" } ] },
+      { "name": "sandboxes", "col": 3, "row": 3, "more": 5, "columns": [
+        { "name": "id", "key": "PK", "type": "text" },
+        { "name": "incident_id", "key": "FK", "references": "incidents.id" },
+        { "name": "state", "type": "text" },
+        { "name": "endpoint", "type": "private IP" } ] },
+      { "name": "agent_runs", "col": 3, "row": [1, 2], "more": 14, "columns": [
+        { "name": "id", "key": "PK", "type": "text" },
+        { "name": "incident_id", "key": "FK", "references": "incidents.id" },
+        { "name": "sandbox_id", "key": "FK", "references": "sandboxes.id" },
+        { "name": "kind", "type": "responder | ask" },
+        { "name": "status", "type": "text" },
+        { "name": "agent_cursor", "type": "integer" },
+        { "name": "owner", "type": "lease" } ] },
+      { "name": "approvals", "col": 4, "row": 1, "more": 8, "columns": [
+        { "name": "id", "key": "PK", "type": "text" },
+        { "name": "run_id", "key": "FK", "references": "agent_runs.id" },
+        { "name": "command", "type": "text" },
+        { "name": "risk", "type": "low | medium | high" },
+        { "name": "status", "type": "pending" } ] }
+    ]
+  }
+}

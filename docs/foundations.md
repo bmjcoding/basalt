@@ -636,7 +636,8 @@ rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secon
 selected washes and the smoked header do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
 selected wash put it at 3.5:1). The aliases are declared on every selector that sets a theme, after all of them, so the mode works
 in both themes and under a theme chosen with `data-theme`; each alias reads the theme of the element it is on. The contrast tests
-prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. Status: decided by the council and approved by the owner
+prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. A diagram's focal node draws its quiet ink at full strength, and its structure lines (`diagram-structure`) stay on the input boundary
+as a chart's baseline does (DECISIONS 269). Status: decided by the council and approved by the owner
 (DECISIONS 138, 139 and 145); the implementation hasn't been reviewed.
 
 ### Accent classes
@@ -850,7 +851,8 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height
   side sheets are square), full (whatever is a circle or a capsule by meaning: avatars, dots, the navigation hover pill, the
   switch, the radio, the slider's track and thumb, progress, meter, and the tab bar's circle). A nested radius is the outer
-  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. **An app tile is a superellipse of exponent 5 at every size and takes no radius** (DECISIONS 162, vote 6; the shape is drawn by the tile's clip, and its hairline follows it). Status: decided by the council and approved by the owner (DECISIONS 138 and 139; the tile, DECISIONS 162); the implementation hasn't been reviewed.
+  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. 8 also takes a diagram's node and
+  table card; 12 a diagram's group; full a flowchart's start or end (DECISIONS 269). **An app tile is a superellipse of exponent 5 at every size and takes no radius** (DECISIONS 162, vote 6; the shape is drawn by the tile's clip, and its hairline follows it). Status: decided by the council and approved by the owner (DECISIONS 138 and 139; the tile, DECISIONS 162); the implementation hasn't been reviewed.
 
 ## Elevation
 
@@ -1290,8 +1292,11 @@ is in).
 Basalt allows a short list of vertical lines. Each is structure, and none is a selection, sort, active or status mark (the owner's
 ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
 the app sidebar's 1px edge, a meter's labelled target tick, the vertical `Separator` between groups of controls (1px
-`border-divider`, as tall as the controls), and the edges between a `NumberField`'s value and its steppers (part of the
-field's own boundary). Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+`border-divider`, as tall as the controls), the edges between a `NumberField`'s value and its steppers (part of the
+field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses) and a
+sequence diagram's lifeline. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
+Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the diagram's connector and lifeline decided by the
+council (DECISIONS 269, a handoff); the implementation hasn't been reviewed.
 
 ## Charts
 
@@ -1501,6 +1506,126 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
 
 Widths the prototype set by hand are derived from tokens, with no new one: a marks column is `min(44%, 28px)` (`space-6` + `space-1`), a pill `min(26%, space-3)`, a block
 `min(64%, 44px)` (`space-10` + `space-1`), a missing seat `min(72%, 52px)`, a seven-day strip at most 240px.
+
+## Diagrams
+
+Boxes and the lines between them, in five types: architecture, flowchart, data flow, sequence and database schema (DECISIONS 269; the
+owner's prototype, one draft, a check and a decision, revised after the final positions by DECISIONS 270). The components are
+`ArchitectureDiagram`, `FlowchartDiagram`, `DataFlowDiagram`, `SequenceDiagram` and `SchemaDiagram`, and the HTML skill's `diagram` module.
+
+**Status:** decided by the council (DECISIONS 269, a handoff); the implementation has not been reviewed.
+
+**The idea: the words are in the boxes, the lines say how they connect, and the key says what each line means.** A diagram is
+monochrome. Nothing takes a colour, the accent or a status. One node may be focal, and it is inverted ink.
+
+### The figure
+
+- Its order is the chart's: the title and source, the drawing, the key, the key hint, the summary (a required `figcaption`), then
+  "View as list" and the list.
+- Text is `text-xs` or `text-sm`. Nothing is under 12px. The drawing is laid out in real CSS pixels at its own measured width, never
+  scaled through a `viewBox`, and nothing scrolls sideways.
+- A node is a panel one level above what the figure sits in: the rim, no shadow, radius 8, `space-2-5` by `space-3`. Its lines are a
+  kind (`text-xs` Mono, tertiary), a name (`text-sm` 600) and a detail (`text-xs` secondary, Mono only for an identifier).
+- **The focal node** is inverted: `diagram-focal` under `diagram-focal-ink`, its quiet lines at `opacity-amount`. One at most. The key
+  says what it marks.
+
+### Lines
+
+- Three kinds, named by their look; the key gives each its meaning. **Main:** 2px, primary ink, a filled head. **Plain:** 1px,
+  secondary ink, a filled head. **Dashed:** 1px, secondary ink, 6 on 4 off, an open head.
+- Lines are orthogonal, with elbows of 8 or half the shorter leg. One head, `size-diagram-head`, at the far end. A line ends on the
+  shape drawn, not on its box. A 1px line sits on half pixels, a 2px line on whole ones, and a head snaps with its line.
+- **Ports are derived.** Nodes in a row or a column face each other; otherwise a line leaves sideways and enters from above or below.
+  A side's one line is at its middle; a straight line keeps the middle and others take the quarter points. An author names a side only
+  to change that.
+- **Crossings:** place to avoid them; lines to one port share one lane and join; of two bypasses from one side, the farther-going
+  leaves higher and takes the outer lane. A crossing that is left is cut: the line underneath breaks `size-cut` each side of the one
+  on top. The horizontal run is on top, and a traced line is on top of an untraced one.
+- **A label** is `text-xs` Mono in secondary ink, one line, never cut. On its own line it has a ground-colour plate; beside its line
+  it is `space-2` clear of the stroke. Seats are taken along the run's clear shaft (the run without its head). A seat is taken only if
+  the label, grown `space-1`, overlaps no node as drawn (the diamond or the capsule, not its box), label, head, boundary, rule or other
+  line.
+
+### Fit
+
+- **The drawn layout is used only when it fits:** the figure is at least 640 wide (`size-breakpoint-container-lg`), every track is at
+  least `size-diagram-node` (a table `size-diagram-table`) and as wide as its widest unbreakable content, every label has a clean seat
+  and no line passes through a node. Otherwise the figure is stacked. This is a measured fit, not a breakpoint.
+- **Stacked** is one column in the author's order, at most 480 wide (`size-breakpoint-container`) on the start edge. Architecture and
+  flowchart are a spine with indented branches: a rail and a trunk at the start, one lane at the end, every route taken from the order.
+  A line that leaves or passes a spine card runs in an end gutter outside the cards (`space-10`, two lanes at most), down into a card's
+  top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
+  receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target.
+- A name or a label is never cut at any width.
+
+### The types
+
+- **Architecture:** a group is a transparent box with a 1px dashed `diagram-structure` edge, radius 12, its label at the top start. Its
+  extent is its members'. One level of grouping.
+- **Flowchart:** shape carries type: a step is the box, a start or end a capsule, a decision a diamond behind its words. **Every
+  flowchart shape has a 1px `diagram-structure` contour** in place of the rim, because the shape has to be seen at 3:1. A decision is
+  at least `space-16` tall and never flatter than 5:1.
+- **Data flow:** lanes are bands ruled apart with the divider, named at the start. A node's kind line is its step number.
+- **Sequence:** a head per participant; a lifeline is 1px `diagram-structure`, dashed 4 on 4 off; a message is a 56px row with its
+  number and label above the line and a note below, on plates that mask the lifelines; a self-call is a small loop; a reply is dashed;
+  a band is a ruled line of words, never a frame.
+- **Schema:** a table is a card with a header band and 28px rows (a key seat, the name, the type or "→ table"). A foreign key is a
+  plain line from a dot on its row to a head on the referenced row. It comes from the column's own record.
+
+### The key, the summary and the list
+
+- The key is under the drawing and is built from the marks actually drawn, each swatch drawn like its mark. The author writes the
+  words. Main, dashed and the focal node must have them.
+- The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
+  flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
+- The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is
+  stacked unless it is at least its least width (the track minimums and gaps summed, never under 640); a figure of more than six
+  columns is stacked until script.
+
+### Keyboard, tracing and motion
+
+- Where lines are drawn the drawing is one tab stop: a `role="group"` with `aria-roledescription="diagram"`, named by the title and
+  described by the summary and a sentence about the keys. Each node is a focusable `role="img"` named by a sentence that says what it
+  is, where it sits, and what it connects from and to. → ↓ the next, ← ↑ the one before, Home and End the ends, Esc clears. No live
+  region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
+- **Tracing** a node (hover, or keyboard focus) lifts its lines to primary ink and dims the rest to `diagram-edge-dim`. It changes ink
+  and never weight, dash or head, so the key stays true. There is no trace on touch, and a node is not a target.
+- No motion in the drawing and no entrance. A trace's ink changes over `duration-fast`, at once under reduced motion.
+
+### Forced colours and more contrast
+
+- Forced colours: lines `CanvasText`, a dimmed line `GrayText`, a traced line `Highlight`; contours `CanvasText`; boundaries, lifelines
+  and rules `GrayText`; plates and cuts `Canvas`; the focal node `CanvasText` under `Canvas` ink, with `forced-color-adjust: none` on
+  it and every colour inside set by hand (Chromium otherwise paints a `Canvas` backplate under its words); the focus ring `Highlight`.
+- More contrast: the aliases apply. The focal node's quiet ink goes to full strength. `diagram-structure` and `diagram-edge-dim` are
+  the input boundary and do not step.
+
+### Diagram tokens
+
+| Token | Value | Dark | Light | Use |
+|---|---|---|---|---|
+| `diagram-edge-main` | `text-primary` | `#f4f4f4` | `#171717` | The main line and its head; a traced line |
+| `diagram-edge` | `text-secondary` | `#bababa` | `#4d4d4d` | Plain and dashed lines, their heads, a foreign key's line and dot |
+| `diagram-edge-dim` | `border-input` | white 38% | black 45% | Every other line while one node is traced |
+| `diagram-structure` | `border-input` | white 38% | black 45% | A group's boundary, a lifeline, a flowchart shape's contour |
+| `diagram-focal` | `action-primary` | `#ededed` | `#171717` | The focal node's fill and edge |
+| `diagram-focal-ink` | `action-primary-text` | `#000` | `#fff` | Ink on the focal node |
+| `diagram-focal-rule` | `black-8` in dark, `white-6` in light | black 8% | white 6% | The focal table's header rule (decorative: it is the other theme's divider, because the focal fill is the other theme's ground) |
+
+| Token | Value | Use |
+|---|---|---|
+| `size-diagram-node` | 144px | The least width of a node's track in a drawn layout |
+| `size-diagram-table` | 224px | The least width of a schema table |
+| `size-diagram-lane` | 120px | A data flow's lane-name column |
+| `size-diagram-step` | 56px | A sequence's message row |
+| `size-diagram-head` | 8px | An arrowhead's length and its width |
+| `size-diagram-guide-dash` | 4px | A lifeline's dash, on and off |
+
+Under more contrast `diagram-focal-rule` is drawn as `diagram-focal-rule-contrast` (`black-45` in dark, `white-38` in light: the other
+theme's input boundary, 1.18), the way the other aliases of that mode are declared.
+
+**Not tokens, by choice:** the gaps, the rail (`space-3`), the trunk (`space-8`), the branch indent (`space-12`), the entry inset
+(`space-6`), the end gutter (`space-10`, lanes at `space-3-5`) and the quarter-point slots are rules made of the space scale.
 
 ## Layout
 
