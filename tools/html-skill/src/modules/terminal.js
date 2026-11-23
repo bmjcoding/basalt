@@ -8,6 +8,17 @@
   var COPY = '%glyph-svg:copy%';
 
   var MARKS = { done: ['CheckCircle', 'Done'], warning: ['Warning', 'Warning'], error: ['XCircle', 'Error'] };
+  // A stage line (DECISIONS 316): braille while running, the core check when done, XCircle when failed, the core minus when skipped, Prohibit when
+  // canceled. Running, done and failed are said by the mark (a named image); skipped and canceled by their word, drawn before the text.
+  function stageMark(state) {
+    var named = function (svg, name) { return '<span role="img" aria-label="' + name + '" class="terminal-mark">' + svg.replace('aria-hidden="true" ', '') + '</span>'; };
+    if (state === 'done') return named('%glyph-svg:check%', 'Done');
+    if (state === 'failed') return icon('XCircle', { size: 16, label: 'Failed' }).replace('class="icon"', 'class="icon terminal-mark"');
+    if (state === 'skipped') return '<span class="terminal-mark" aria-hidden="true">' + '%glyph-svg:minus%' + '</span>';
+    if (state === 'canceled') return icon('Prohibit', { size: 16 }).replace('class="icon"', 'class="icon terminal-mark"');
+    return '<span role="img" aria-label="Running" class="terminal-braille"><braille-spinner></braille-spinner></span>';
+  }
+  var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled' };
 
   /** Words that change in place stand in one grid cell: [key, html] pairs, the one shown marked. The cell is as wide as the widest. */
   function swap(show, forms) {
@@ -16,6 +27,16 @@
   function words(list) { return list.map(function (w) { return [w, w]; }); }
 
   function lineNode(line, prompt) {
+    if (line.kind === 'stage') {
+      var state = line.state || 'running';
+      var word = line.word || STAGE_WORDS[state];
+      var node = document.createElement('span');
+      node.className = 'terminal-line';
+      node.setAttribute('data-kind', 'stage');
+      node.setAttribute('data-state', state);
+      node.innerHTML = '<span class="terminal-gutter">' + stageMark(state) + '</span><span class="terminal-text terminal-stage"><span>' + (word ? '<span class="terminal-word">' + esc(word) + ' </span>' : '') + esc(line.text) + '</span>' + (line.time ? '<span class="terminal-duration">' + esc(line.time) + '</span>' : '') + '</span>';
+      return node;
+    }
     var mark = MARKS[line.kind];
     var gutter = line.kind === 'command' ? '<span aria-hidden="true">' + esc(prompt) + '</span>' : mark ? icon(mark[0], { size: 16, label: mark[1] }).replace('class="icon"', 'class="icon terminal-mark"') : '';
     var el = document.createElement('span');
@@ -37,7 +58,10 @@
     var replay = root.hasAttribute('data-replay');
     var interval = Number(root.getAttribute('data-interval')) || 600;
     var exit = root.getAttribute('data-exit-code');
-    var lines = Array.prototype.map.call(code.querySelectorAll('[data-kind]'), function (el) { return { kind: el.getAttribute('data-kind'), text: el.textContent }; });
+    var lines = Array.prototype.map.call(code.querySelectorAll('[data-kind]'), function (el) { return { kind: el.getAttribute('data-kind'), text: el.textContent, state: el.getAttribute('data-state'), word: el.getAttribute('data-word'), time: el.getAttribute('data-time') }; });
+    // A stage transcript is declared on the figure: its window is never a log, whatever plays (the run's own words say what happened).
+    var stages = root.hasAttribute('data-stages');
+    if (stages) pre.setAttribute('data-stages', '');
     var commands = lines.filter(function (l) { return l.kind === 'command'; }).map(function (l) { return l.text; }).join('\n');
     var failed = lines.length > 0 && lines[lines.length - 1].kind === 'error';
 
@@ -83,7 +107,7 @@
       if (shown < count) { code.textContent = ''; count = 0; }
       for (var i = count; i < shown; i++) code.appendChild(lineNode(lines[i], prompt));
       // It is a log only while lines arrive; before the first line it is a named group, because a named element with no role and no text is not valid ARIA; otherwise a named region, as React's is (a scrollable stop that has a name needs a role).
-      pre.setAttribute('role', replay && state === 'running' ? 'log' : replay && !shown ? 'group' : 'region');
+      pre.setAttribute('role', replay && state === 'running' && !stages ? 'log' : replay && !shown ? 'group' : 'region');
       if (replay) {
         var hint = code.querySelector('.terminal-hint');
         if (state === 'idle' && shown === 0) { if (!hint) { hint = document.createElement('span'); hint.className = 'terminal-hint'; hint.textContent = 'Press Play to start'; code.appendChild(hint); } } else if (hint) hint.remove();

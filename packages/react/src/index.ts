@@ -175,7 +175,7 @@ export { RunStep, RunTimeline } from "./run-timeline";
 export type { RunStepProps, RunTimelineProps } from "./run-timeline";
 export type { RunAnnouncerProps, RunEvent } from "./run-announcer";
 export { Terminal } from "./terminal";
-export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStatus } from "./terminal";
+export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStageState, TerminalStatus } from "./terminal";
 export { NumberTicker } from "./number-ticker";
 export { Spinner } from "./spinner";
 export { useLoops } from "./loops";

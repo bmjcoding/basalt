@@ -1,0 +1,105 @@
+@layer basalt {
+
+  /* ---- Stages and runs (DECISIONS 316): React's StageMark, StageList, StageRail and RunTimeline's full rows, as states. ----
+     The skill draws the states and not the machinery: no counter, no ticking time, no badge swap, no announcer (React's alone). Every class begins
+     run-: .stage, .stage-art and .stage-content are the art module's, and a page may hold both. */
+
+  /* The seven marks, one 16px seat each, aria-hidden: the word carries the state. The script draws the glyph from data-state (and again when it
+     changes): queued is Circle in secondary ink, breathing by opacity from opacity-queued to 1 on duration-loop-fade (still under reduced motion,
+     the hold, forced colours and print); passed is CheckCircle in secondary, failed XCircle in danger, skipped MinusCircle and canceled Prohibit in
+     tertiary. Running and retrying are the ring, drawn here. */
+  .run-mark { display: inline-grid; flex: none; place-items: center; box-sizing: border-box; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); vertical-align: middle; }
+  .run-mark > svg { display: block; inline-size: 100%; block-size: 100%; }
+  .run-mark:is([data-state="queued"], [data-state="success"]) { color: var(--basalt-text-secondary); }
+  .run-mark[data-state="queued"] { animation: bh-run-breath var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
+  .run-mark[data-state="failed"] { color: var(--basalt-status-danger); }
+  .run-mark:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  /* The ring: React's, a 1.5px stroke whose quarter is full ink, 14 across (React's circle and its stroke) in the 16px seat, turning in duration-loop-ring.
+     It is the seat's ::before, so the seat itself never turns or changes size. */
+  .run-mark:is([data-state="running"], [data-state="retrying"]) { color: var(--basalt-text-primary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
+  .run-mark:is([data-state="running"], [data-state="retrying"])::before { content: ""; box-sizing: border-box; inline-size: calc(var(--basalt-size-icon-sm) - 2 * var(--basalt-size-hairline)); block-size: calc(var(--basalt-size-icon-sm) - 2 * var(--basalt-size-hairline)); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
+  @keyframes bh-run-breath { from { opacity: var(--basalt-opacity-queued); } to { opacity: 1; } }
+  :root[data-loops="held"] .run-mark { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .run-mark[data-state="queued"] { animation: none; }
+    .run-mark:is([data-state="running"], [data-state="retrying"])::before { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; }
+  }
+  :root[data-loops="held"] .run-mark::before { animation: none; }
+  @media (forced-colors: active) { .run-mark { color: inherit; } .run-mark[data-state="queued"] { animation: none; } }
+  @media print { .run-mark, .run-mark::before { animation: none; } }
+
+  /* A stage list: a row is the mark, space-3, the name and its word (space-2 apart, one line), the meta and the time, at 13/18 with space-2 above and
+     below. A passed stage's word is said, not drawn. The meta hides under 480px of the list's own width. A still 1px connector joins each mark to the
+     next, beside a detail too, and never fills or changes with a state. */
+  .run-stages, .run-rail, .run-steps { margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-primary); container-type: inline-size; }
+  .run-stages { display: grid; align-content: start; }
+  .run-stages > .run-stage { position: relative; display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .run-stage-name { display: flex; align-items: baseline; gap: var(--basalt-space-2); min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .run-stage-word { flex: none; color: var(--basalt-text-secondary); }
+  .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-name { color: var(--basalt-text-secondary); }
+  .run-stage:is([data-state="running"], [data-state="retrying"]) .run-stage-word { color: var(--basalt-text-primary); }
+  .run-stage[data-state="failed"] .run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-word { color: var(--basalt-text-tertiary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
+  .run-stages > .run-stage[data-state="success"] .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
+  .run-stage-time { min-inline-size: var(--basalt-space-12); text-align: end; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  .run-stage-detail { grid-column: 2 / -1; padding-block: var(--basalt-space-2) var(--basalt-space-1); color: var(--basalt-text-secondary); }
+  .run-stage-detail :is(p, small) { display: block; margin: 0; }
+  .run-stage-detail small { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .run-stage-detail strong { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .run-stage[data-state="failed"] .run-stage-detail strong { color: var(--basalt-status-danger); }
+  .run-stage-detail .btn { margin-block-start: var(--basalt-space-2); }
+  :is(.run-stage-detail, .run-step) code { font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: 1; }
+  @container (width < %bp-container%) {
+    .run-stages > .run-stage { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
+    .run-stages .run-stage-meta { display: none; }
+  }
+  :is(.run-stages, .run-steps) > :is(.run-stage, .run-step):not(:last-child)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+    inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+    border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+  }
+
+  /* A rail: the same li on one line. A node is the mark, the name (centred) and one status seat: the time, or the word when it failed (danger, 500),
+     was skipped or canceled (tertiary) or is retrying (primary). A horizontal link to the next fills from the inline start over duration-slower when
+     its stage passes, and empties at once if it runs again. */
+  .run-rail { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; }
+  .run-rail > .run-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; text-align: center; padding-block-start: var(--basalt-space-1); }
+  .run-rail > .run-stage > .run-mark { margin-block-end: var(--basalt-space-1); }
+  .run-rail .run-stage-name { display: block; margin-block-start: var(--basalt-space-1); max-inline-size: 100%; }
+  .run-rail .run-stage-word, .run-rail .run-stage-time { grid-row: 3; grid-column: 1; margin-block-start: var(--basalt-space-1); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); min-inline-size: 0; text-align: center; }
+  .run-rail .run-stage:is([data-state="failed"], [data-state="skipped"], [data-state="canceled"], [data-state="retrying"]) .run-stage-time { visibility: hidden; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
+  .run-rail .run-stage:is([data-state="queued"], [data-state="running"], [data-state="success"]) .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .run-rail .run-stage-meta, .run-rail .run-stage-detail { display: none; }
+  .run-rail > .run-stage:not(:last-child)::before { content: ""; position: absolute; inset-block-start: calc(var(--basalt-space-1) + var(--basalt-size-icon-sm) / 2); inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  .run-rail > .run-stage:not(:last-child)::after { content: ""; position: absolute; inset-block-start: calc(var(--basalt-space-1) + var(--basalt-size-icon-sm) / 2); inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
+  .run-rail > .run-stage:not(:last-child):dir(rtl)::after { transform-origin: right; }
+  .run-rail > .run-stage[data-state="success"]:not(:last-child)::after { transform: scaleX(1); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  @media (prefers-reduced-motion: reduce) { .run-rail > .run-stage::after { transition: none !important; } }
+  :root[data-loops="held"] .run-rail > .run-stage::after { transition: none !important; }
+  @media (forced-colors: active) { .run-rail > .run-stage::before { border-color: GrayText; } .run-rail > .run-stage::after { border-color: CanvasText; } }
+
+  /* A timeline's full rows: the mark, space-3, the sentence and the meta (a result, a middle dot, the time), the meta on the row's end edge and under the
+     sentence below 640px of the list's own width. Queued, failed, skipped, canceled and retrying draw their word; running and passed say it. The skill
+     draws no counter: a page shows the record. */
+  .run-steps { display: grid; color: var(--basalt-text-secondary); }
+  .run-steps > .run-step { position: relative; display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: start; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .run-steps > .run-step > .run-mark { margin-block-start: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); }
+  .run-step-sentence { min-width: 0; overflow-wrap: anywhere; }
+  .run-step:is([data-state="running"], [data-state="queued"]) .run-step-sentence { color: var(--basalt-text-primary); }
+  .run-step-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .run-step[data-state="failed"] .run-step-word { color: var(--basalt-status-danger); }
+  .run-step:is([data-state="skipped"], [data-state="canceled"]) .run-step-word { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
+  .run-step-meta { justify-self: end; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; font-variant-numeric: tabular-nums; text-align: end; }
+  .run-step-detail { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2) var(--basalt-space-3); padding-block-start: var(--basalt-space-2); }
+  @container (width < %bp-container-lg%) {
+    .run-steps > .run-step { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr); }
+    .run-step-meta { grid-column: 2; justify-self: start; text-align: start; white-space: normal; }
+  }
+}
