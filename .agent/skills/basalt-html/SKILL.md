@@ -83,7 +83,8 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **notifications** `Basalt.notifications`: the page owns the entries; call `setEntries` after a change.
 - **nav** `.nav`: `a.nav-item` > `.nav-pill`; `aria-current` marks the page; never write a bar or a wash.
 - **topbar-nav** `.topbar-links`: five links at most, one `.topbar-action`; the script builds the narrow menu, never write it.
-- **app-shell** `.app-shell`: the document scrolls; one smoked bar per page; every sidebar item has a glyph.
+- **app-shell** `.app-shell`: the document scrolls; one smoked bar; every sidebar item has a glyph.
+- **pane** `.pane-layout`: page first, pane after.
 - **tab-bar** `.tab-bar`: three to five links, glyph over label; with more, four and a More sheet.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.

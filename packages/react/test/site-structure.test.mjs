@@ -553,7 +553,8 @@ describe("the app shell", () => {
     await page.close();
   });
 
-  test("main is capped at 72rem and start-aligned; under 720 the header's primary Button leaves the bar", async () => {
+  // Under 720 the primary stays in the bar with its words (cimip-gaps-2, B4: before, it left the bar with nowhere to go).
+  test("main is capped at 72rem and start-aligned; under 720 the header's primary Button stays in the bar, 44 tall", async () => {
     let page = await open(shell(), { width: 1800 });
     const main = await box(page, ".basalt-app-main");
     near(main.w, 1152, "72rem", 0.05);
@@ -561,8 +562,9 @@ describe("the app shell", () => {
     assert.notEqual(await css(page, ".basalt-app-header .basalt-button[data-variant=primary]", "display"), "none");
     await page.close();
     page = await open(shell(), { width: 390 });
-    assert.equal(await css(page, ".basalt-app-header .basalt-button[data-variant=primary]", "display"), "none");
-    assert.equal(await page.locator(".basalt-app-header .basalt-button:visible").count(), 1, "the toggle stays");
+    assert.notEqual(await css(page, ".basalt-app-header .basalt-button[data-variant=primary]", "display"), "none");
+    assert.equal((await box(page, ".basalt-app-header .basalt-button[data-variant=primary]")).h, 44);
+    assert.equal(await page.locator(".basalt-app-header .basalt-button:visible").count(), 2, "the toggle and the primary stay");
     await page.close();
   });
 

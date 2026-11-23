@@ -119,7 +119,7 @@ export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, 
   return (
     <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
-        <BaseMenu.Popup {...props} data-level={level} className={withClass("basalt-menu", className)}><GlidePlate />{inLevel(level, children)}</BaseMenu.Popup>
+        <BaseMenu.Popup {...props} data-level={level} data-actions="" className={withClass("basalt-menu", className)}><GlidePlate />{inLevel(level, children)}</BaseMenu.Popup>
       </BaseMenu.Positioner>
     </BaseMenu.Portal>
   );
