@@ -257,7 +257,8 @@ describe("the bytes, with the plugin and without it", () => {
   // review's disclosure chevron and lifted errors 148,015 (143,800 to 148,050).
   // cimip-gaps-2, B5 (DECISIONS 246 and 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a page change,
   // and swipes upward under 720; B5 raised ToastProvider's own limit in bundle.test.mjs and not this one. Measured with the plugin, 89,698 (87,000 to 89,700).
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
+  // The full-run fix (DECISIONS 246): a control that is not disabled no longer writes aria-disabled="false", 4 bytes a site; Terminal measures 28,655 (28,650 to 28,700).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 28_700, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
