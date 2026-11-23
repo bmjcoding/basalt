@@ -537,6 +537,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
   const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined };
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
+  if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
   if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
 }
@@ -1017,6 +1018,9 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   }
   const height = own(dyn.heights, n.id);
   if (height) style.push(`--_h:${height}px`);
+  // The least height its ports need (call 3); the stylesheet applies it to the drawn layout alone.
+  const floor = own(portFloors(m), n.id);
+  if (floor) style.push(`--_mh:${floor}px`);
   const wordsWidth = own(dyn.words, n.id);
   if (wordsWidth) style.push(`--_ww:${wordsWidth}px`);
   const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
@@ -1311,6 +1315,42 @@ export interface FigureOptions {
 }
 
 /** The whole figure. Before script runs `dyn` is empty; the same tree, with the measured `dyn`, is what script settles on. */
+/**
+ * A one-column schema's turn-backs (DECISIONS 306, section 4, call 2): turn-backs that run beside each other take lanes space-3 apart, nested (the
+ * farther-going outermost), lines to one key sharing one; two lanes at most in the padding, and a third line is not drawn. Worked out from the data alone
+ * (a line's place down the column is its table's row and its key's row), so the padding is known before anything is measured.
+ */
+export function turnBackLanes(m: Model): { lane: Map<number, number>; dropped: Set<number>; lanes: number } {
+  return memo(m, "turn-back-lanes", () => {
+    const lane = new Map<number, number>(), dropped = new Set<number>();
+    if (!oneColumnTurnBacks(m)) return { lane, dropped, lanes: 0 };
+    const at = (id: string, row: number) => (m.byId.get(id)?.row ?? 0) * 1000 + row;
+    // One group a key; its run from its highest to its lowest end.
+    const groups = new Map<string, { members: number[]; lo: number; hi: number }>();
+    m.edges.forEach((e, k) => {
+      const key = `${e.to}.${e.toRow}`;
+      const a = at(e.from, e.fromRow ?? 0), b = at(e.to, e.toRow ?? 0);
+      const g = groups.get(key) ?? { members: [], lo: Infinity, hi: -Infinity };
+      g.members.push(k); g.lo = Math.min(g.lo, a, b); g.hi = Math.max(g.hi, a, b);
+      groups.set(key, g);
+    });
+    // Longest first, so the farther-going is outermost; each takes the innermost lane no group beside it holds.
+    const order = [...groups.values()].sort((x, y) => (y.hi - y.lo) - (x.hi - x.lo));
+    const placed: Array<{ lo: number; hi: number; lane: number }> = [];
+    let most = 0;
+    for (const g of order.reverse()) {
+      const used = new Set(placed.filter((p) => p.lo <= g.hi && g.lo <= p.hi).map((p) => p.lane));
+      let l = 0;
+      while (used.has(l)) l++;
+      if (l > 1) { for (const k of g.members) dropped.add(k); continue; }
+      placed.push({ lo: g.lo, hi: g.hi, lane: l });
+      for (const k of g.members) lane.set(k, l);
+      most = Math.max(most, l + 1);
+    }
+    return { lane, dropped, lanes: most };
+  });
+}
+
 /** A schema of one column whose foreign keys are drawn as turn-backs on its end side, where it has no gutter. */
 const oneColumnTurnBacks = (m: Model) => m.type === "schema" && m.cols === 1 && m.edges.length > 0;
 
@@ -1335,7 +1375,8 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   }
   // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
   // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).
-  if (oneColumnTurnBacks(m)) style.push("--_gpad:0px var(--basalt-space-5) 0px 0px");
+  // Two lanes of turn-backs take space-3 more (call 2).
+  if (oneColumnTurnBacks(m)) style.push(`--_gpad:0px ${turnBackLanes(m).lanes > 1 ? "calc(var(--basalt-space-5) + var(--basalt-space-3))" : "var(--basalt-space-5)"} 0px 0px`);
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
     class: o.className ? `${P} ${o.className}` : P,
@@ -1570,7 +1611,7 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   const n = columnCount(m);
   let least: number;
   if (m.type === "data-flow") least = tk.lane + n * (track + s("12"));
-  else if (m.type === "schema") least = n * table + (n - 1) * s("12") + (oneColumnTurnBacks(m) ? s("5") : 0);
+  else if (m.type === "schema") least = n * table + (n - 1) * s("12") + (oneColumnTurnBacks(m) ? s("5") + (turnBackLanes(m).lanes > 1 ? s("3") : 0) : 0);
   // A sequence's columns hold its participants: measured once script runs (the stylesheet before script has only the token floor).
   else if (m.type === "sequence") least = n * track + (n - 1) * s("5");
   else least = n * track + (n - 1) * s("16") + groupReach(m) * s("4");
@@ -1702,6 +1743,36 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
     after.forEach((p, j) => { p.f = hi + ((1 - hi) * (j + 1)) / (after.length + 1); });
   }
   return ports;
+}
+
+/**
+ * A card's least height for its ports (DECISIONS 306, section 4, call 3): a port sits on the flat part of its side, never nearer a corner than the corner's
+ * radius, and two ports on a side are at least size-diagram-head apart. A card whose start or end side holds more than its height allows grows to the least
+ * height at which both hold (48 for a straight line and two others, 64 for an extra beside a straight pair), and its row takes it. From the data alone, so
+ * it is the same at every width: a side never stacks a figure. By node id; only cards that need more than nothing are named.
+ */
+export function portFloors(m: Model, radius = 8, head = 8): Record<string, number> {
+  return memo(m, `port-floors:${radius}:${head}`, () => {
+    const out: Record<string, number> = record();
+    if (m.type !== "architecture" && m.type !== "flowchart" && m.type !== "data-flow") return out;
+    const sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2] as [DiagramSide, DiagramSide]; });
+    const bySide = new Map<string, number[]>();
+    for (const p of assignSlots(m, sides, () => {})) {
+      if (!isH(p.side) || p.node.shape !== "box") continue;
+      const key = `${p.node.id}.${p.side}`;
+      if (!bySide.has(key)) bySide.set(key, []);
+      bySide.get(key)!.push(p.f);
+    }
+    for (const [key, fs] of bySide) {
+      if (fs.length < 2) continue;
+      const f = [...new Set(fs.map((x) => Math.round(x * 1e6) / 1e6))].sort((a, b) => a - b);
+      let need = Math.max(radius / f[0]!, radius / (1 - f[f.length - 1]!));
+      for (let j = 1; j < f.length; j++) need = Math.max(need, head / (f[j]! - f[j - 1]!));
+      const id = key.slice(0, key.lastIndexOf("."));
+      out[id] = Math.max(out[id] ?? 0, Math.ceil(need - 1e-6));
+    }
+    return out;
+  });
 }
 
 /** The derived ports of a drawn layout (1.6), for the derivation table: each line's sides and its slot on each (a fraction along the side). */
@@ -1913,6 +1984,8 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   // Relations two columns apart are not drawn: the row writes its target (1.12). They are left out before any lane is given, so they take none.
   const dropped = new Set<number>();
   if (m.type === "schema") m.edges.forEach((e, k) => { if (Math.abs(m.byId.get(e.from)!.col - m.byId.get(e.to)!.col) > 1) dropped.add(k); });
+  // A one-column schema's third lane of turn-backs is not drawn; its row still writes the target (call 2).
+  for (const k of turnBackLanes(m).dropped) { dropped.add(k); if (dev) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} would need a third lane of turn-backs, so its line is not drawn; its row still writes the target`); }
 
   // Jogs: which gutter each two-elbow line turns in, and which lines share a lane (lines to one port, a foreign key's bus). A turn-back (out and
   // back in on one side) runs in the gutter beside that side too, so it is given a lane with the jogs it runs beside.
@@ -1960,7 +2033,12 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
     if (isH(s1) && isH(s2)) {
-      if (s1 === s2) { const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + s("4") : Math.min(p1.x, p2.x) - s("4")); return [p1, { x, y: p1.y }, { x, y: p2.y }, p2]; }
+      if (s1 === s2) {
+        // A one-column schema's turn-back takes its lane: space-4 out, the second space-3 further (call 2).
+        const out = s("4") + (m.type === "schema" && m.cols === 1 ? (turnBackLanes(m).lane.get(k) ?? 0) * s("3") : 0);
+        const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + out : Math.min(p1.x, p2.x) - out);
+        return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
+      }
       if (Math.abs(p1.y - p2.y) <= 0.5) return [p1, { x: p2.x, y: p1.y }];
       const x = lanes.get(k) ?? (p1.x + p2.x) / 2;
       return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
@@ -2031,7 +2109,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     }
   }
   geo.lines = build();
-  if (dev) for (const k of dropped) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
+  if (dev) for (const k of dropped) if (!turnBackLanes(m).dropped.has(k)) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
   geo.outside = outsideOf(geo.lines, W, H, tk);

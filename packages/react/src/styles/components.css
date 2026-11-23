@@ -4517,6 +4517,9 @@
     transition: border-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .basalt-diagram[data-type="data-flow"] .basalt-diagram-node { --_d-gc: var(--_drawn) var(--_lc); }
+  /* A card grows to hold its ports (DECISIONS 306, section 4, call 3): the least height at which every port is on the flat part of its side and
+     size-diagram-head from the next, drawn layout only. */
+  .basalt-diagram-node { --_d-mh: var(--_drawn) var(--_mh, auto); min-height: var(--_d-mh, auto); }
   .basalt-diagram-node[data-branch] { --_d-mi: var(--_drawn) 0; margin-inline: var(--_d-mi, var(--basalt-space-12) var(--basalt-space-6)); }
   .basalt-diagram-node:focus-visible { z-index: 2; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-diagram-node[data-near] { border-color: var(--basalt-border-hover); }
