@@ -1,7 +1,7 @@
 // The skill's diagram motion and service marks (DECISIONS 292): what compose.mjs writes (the diagram-motion module only for an animated diagram, one rule a
 // mark a page names, a page's own mark read into the file), and the module in a page: pending until in view, the entrance, settling, the hold, print, and
 // a one-form mark written once. Written when test runs were paused (DECISIONS 271); fixed and run when the owner lifted the skip for diagrams
-// (DECISIONS 298). React's and the skill's figures at rest drawing the same pixels is not yet here.
+// (DECISIONS 298). React's and the skill's figures at rest drawing the same pixels, and the skill's send queue, were added in batch A (DECISIONS 301).
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,11 +10,13 @@ import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { animated, FIGURES, kit, STILL } from "../../../packages/react/test/diagram-motion-fixture.mjs";
+import { fixturePage, launch as launchReact, pkg } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
 let browser;
-before(async () => { browser = await launch(); });
-after(async () => { await browser?.close(); });
+let reactBrowser;
+before(async () => { browser = await launch(); reactBrowser = await launchReact(); });
+after(async () => { await browser?.close(); await reactBrowser?.close(); });
 
 const figure = (spec, id) => `<figure class="diagram"${id ? ` id="${id}"` : ""}><script type="application/json" data-diagram>${JSON.stringify(spec)}</script></figure>`;
 const page = (figs, gap = 0) => `<title>Motion</title><main style="max-width:1104px;margin:0 auto;padding:16px;display:grid;gap:${gap}px">${figs.join("")}</main>`;
@@ -134,4 +136,97 @@ describe("the module in a page", () => {
     const print = await p.evaluate(() => [...document.querySelectorAll(".diagram-mark")].map((m) => getComputedStyle(m).printColorAdjust));
     assert.ok(print.length === kit().nodes.filter((n) => n.mark).length && print.every((v) => v === "exact"), JSON.stringify(print));
   });
+});
+
+describe("batch A (DECISIONS 301)", () => {
+  test("Basalt.diagram's sends: with a packet in flight one waits and a second is dropped, so two messages land", async () => {
+    const spec = (send) => ({ ...animated("dataFlow"), packet: { path: ["send", "append", "row", "hear", "see"], send } });
+    const { page: p, errors } = await openHtml(browser, compose(page([figure(spec(0), "fig-send")])).html);
+    await p.evaluate(() => { const f = document.getElementById("fig-send"); f.setAttribute("data-entrance", "done"); f.dispatchEvent(new Event("basalt-diagram-settle")); });
+    const send = (n) => p.evaluate((s) => window.Basalt.diagram(document.getElementById("fig-send"), s), spec(n));
+    await send(1);
+    await p.waitForFunction(() => { const d = document.querySelector("#fig-send .diagram-packet"); return d && getComputedStyle(d).display !== "none"; }, null, { polling: "raf", timeout: 3000 });
+    await send(2);
+    await send(3);
+    let landed = 0, lit = false;
+    for (let k = 0; k < 400; k++) {
+      await p.evaluate(() => { for (const a of document.getElementById("fig-send").getAnimations({ subtree: true })) if (a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity) a.finish(); });
+      await p.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      const now = await p.evaluate(() => document.querySelector("#fig-send [data-node='see']").hasAttribute("data-arrival"));
+      if (now && !lit) landed++;
+      lit = now;
+    }
+    assert.equal(landed, 2);
+    assert.deepEqual(errors, []);
+  });
+
+  // React's host for one animated example: the fixture's data with its motion keys, and each mark id turned into its module, as an app imports them.
+  const MANIFEST = JSON.parse(fs.readFileSync(path.join(pkg, "marks", "manifest.json"), "utf8"));
+  const exportName = (id) => id.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+  const REACT = `
+${MANIFEST.marks.map((m) => `import { ${exportName(m.id)} } from "./dist/marks/${m.id}.js";`).join("\n")}
+const MARKS = { ${MANIFEST.marks.map((m) => `"${m.id}": ${exportName(m.id)}`).join(", ")} };
+const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram };
+function Host() {
+  const [spec, setSpec] = React.useState(null);
+  window.__set = (next) => flushSync(() => setSpec(next));
+  if (!spec) return null;
+  const { type, ...props } = spec;
+  if (props.nodes) props.nodes = props.nodes.map((n) => (typeof n.mark === "string" ? { ...n, mark: MARKS[n.mark] } : n));
+  const X = C[type];
+  return <main style={{ maxWidth: 1104, margin: "0 auto", padding: 16, display: "grid", gap: 0 }}><X id="fig-x" {...props} /></main>;
+}
+createRoot(document.getElementById("root")).render(<Host />);`;
+  const font = (file) => fs.readFileSync(path.join(pkg, "dist", "fonts", file)).toString("base64");
+  const FONTS = `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900}`;
+  const frames = (p, n) => p.evaluate((n) => new Promise((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); }), n);
+  /** The drawing's pixels, read from a screenshot of it, with its size. */
+  const shot = async (p, prefix) => {
+    const loc = p.locator(`#fig-x .${prefix}-drawing`);
+    await loc.scrollIntoViewIfNeeded();
+    // Its place on the page (not in the window, which a tall figure scrolls).
+    const box = await loc.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY }; });
+    const png = (await loc.screenshot({ type: "png" })).toString("base64");
+    const data = await p.evaluate(async (b64) => { const img = new Image(); img.src = `data:image/png;base64,${b64}`; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0); return { w: img.width, h: img.height, px: Array.from(ctx.getImageData(0, 0, img.width, img.height).data) }; }, png);
+    return { box, ...data };
+  };
+
+  for (const theme of ["dark", "light"]) {
+    test(`${theme}: React and the skill draw the same pixels for each animated example and the kit at rest (under the hold, settled)`, async () => {
+      const diff = [];
+      for (const key of [...FIGURES, "kit"]) {
+        const spec = key === "kit" ? kit() : animated(key);
+        // The skill: the page composed, one figure.
+        const skill = await openHtml(browser, compose(page([figure(spec, "fig-x")])).html, { scheme: theme, width: 1440 });
+        // React: an app's page, as the still parity test gives it (border-box, the body's ink and type, which the figure inherits as the skill's does).
+        const react = await fixturePage(reactBrowser, REACT, { theme, viewport: { width: 1440, height: 1000 }, standards: true });
+        // The skill's core also sets the page's text rendering (smoothing, optimizeLegibility) and its language, which a pixel comparison of words must share.
+        await react.page.addStyleTag({ content: `${FONTS} *, ::before, ::after { box-sizing: border-box; } html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; text-size-adjust: 100%; } body { margin: 0; background: var(--basalt-surface-0); color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); } #root{display:block}` });
+        await react.page.evaluate(() => { document.documentElement.lang = "en"; });
+        await react.page.evaluate(() => document.fonts.ready);
+        await react.page.evaluate((s) => window.__set(s), spec);
+        const shots = [];
+        for (const [p, prefix] of [[skill.page, "diagram"], [react.page, "basalt-diagram"]]) {
+          // At rest: the hold settles the entrance and clears the loops to rest, every line whole.
+          await p.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+          await p.waitForFunction(() => { const f = document.getElementById("fig-x"); return f && f.hasAttribute("data-measured") && (!f.querySelector("[class$='-svg']") || f.getAttribute("data-entrance") === "done"); }, null, { polling: "raf", timeout: 5000 });
+          await frames(p, 6);
+          await p.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))));
+          shots.push(await shot(p, prefix));
+        }
+        const [a, b] = shots;
+        if (a.w !== b.w || a.h !== b.h || Math.abs(a.box.x - b.box.x) > 0.01 || Math.abs(a.box.y - b.box.y) > 0.01) diff.push(`${key}: the drawing is ${a.w}x${a.h} at ${a.box.x},${a.box.y} in the skill and ${b.w}x${b.h} at ${b.box.x},${b.box.y} in React`);
+        else {
+          let n = 0, first = null;
+          for (let k = 0; k < a.px.length; k += 4) if (a.px[k] !== b.px[k] || a.px[k + 1] !== b.px[k + 1] || a.px[k + 2] !== b.px[k + 2]) { n++; first ??= [(k / 4) % a.w, Math.floor(k / 4 / a.w)]; }
+          if (n) diff.push(`${key}: ${n} pixels differ, the first at ${first}`);
+        }
+        assert.deepEqual(skill.errors, []);
+        assert.deepEqual(react.errors, []);
+        await skill.context.close();
+        await react.page.close();
+      }
+      assert.deepEqual(diff, []);
+    });
+  }
 });
