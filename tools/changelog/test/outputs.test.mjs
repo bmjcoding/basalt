@@ -144,7 +144,7 @@ test("the fixtures are what the tool writes, from their histories", () => {
     const dir = buildRepository(project, tempDir(`changelog-${project.name}-`));
     const out = path.join(tempDir(), project.name);
     copyOut(project, dir, out);
-    for (const file of ["CHANGELOG.md", "releases.json", ...fs.readdirSync(path.join(out, "changelog", "releases")).map((name) => path.join("changelog", "releases", name))]) {
+    for (const file of ["CHANGELOG.md", "releases.json", ...(project.name === "harbor" ? ["releases-candidate.json"] : []), ...fs.readdirSync(path.join(out, "changelog", "releases")).map((name) => path.join("changelog", "releases", name))]) {
       assert.equal(fs.readFileSync(path.join(out, file), "utf8"), fs.readFileSync(path.join(FIXTURES, project.name, file), "utf8"), `${project.name}/${file}`);
     }
     assert.deepEqual(fs.readdirSync(path.join(out, "changelog", "releases")).sort(), fs.readdirSync(path.join(FIXTURES, project.name, "changelog", "releases")).sort());

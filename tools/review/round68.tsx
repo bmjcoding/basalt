@@ -25,14 +25,19 @@ import {
   VersionLink,
 } from "../../packages/react/src/index";
 import type { ReleaseRecord } from "../../packages/react/src/index";
+import harborCandidate from "../changelog/fixtures/harbor/releases-candidate.json";
 import harborData from "../changelog/fixtures/harbor/releases.json";
 import slateData from "../changelog/fixtures/slate/releases.json";
+import { PICTURES } from "./assets/round-68/index";
 import type { Round } from "./rounds";
 
 const HARBOR = harborData as unknown as ReleaseRecord[];
+/** Harbor before 2.0.0 shipped: its two candidates drawn, the session on 2.0.0-rc.2. */
+const HARBOR_CANDIDATE = harborCandidate as unknown as ReleaseRecord[];
 const SLATE = slateData as unknown as ReleaseRecord[];
 /** What a running Harbor build says of itself (made up): Build details, never read from a release's record. */
-const RUNNING_BUILD = [{ label: "Build", value: "1.4.0+9f3c1e2", mono: true }, { label: "Commit", value: "9f3c1e2a7d04", mono: true }, { label: "Basalt", value: "0.2.0", mono: true }];
+const COMMITS: Record<string, string> = { "1.4.0": "9f3c1e2a7d04", "1.4.2": "c07a51e9b3d2", "2.0.0-rc.2": "4b1d0e7f2a96" };
+const buildOf = (running: string) => [{ label: "Build", value: `${running}+${COMMITS[running]!.slice(0, 7)}`, mono: true }, { label: "Commit", value: COMMITS[running]!, mono: true }, { label: "Basalt", value: "0.2.0", mono: true }];
 const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours|more-contrast)$/, "");
 
 /** After the page has drawn, press what a state opens: a fold, a source line, More. */
@@ -47,39 +52,48 @@ function usePress(selectors: string[]) {
 
 // ---- a product: Harbor's app shell, the version at its foot, the release notes as its page ----
 
-function Harbor({ state }: { state: string }) {
+function Harbor({ state, page = "notes" }: { state: string; page?: "home" | "notes" }) {
   const kind = kindOf(state);
-  const running = kind === "between" ? "1.4.2" : kind === "candidate" ? "2.0.0-rc.2" : "1.4.0";
-  const date = kind === "between" ? "2026-12-09" : kind === "candidate" ? "2026-12-03" : "2026-11-23";
+  const candidate = kind.startsWith("candidate") || kind === "pre-release";
+  const running = kind === "between" ? "1.4.2" : candidate ? "2.0.0-rc.2" : "1.4.0";
+  const date = kind === "between" ? "2026-12-09" : candidate ? "2026-12-03" : "2026-11-23";
+  const releases = kind === "pre-release" ? HARBOR_CANDIDATE : HARBOR;
+  const notes = page === "notes";
   const press: string[] = [];
   if (kind === "all") press.push('[id="v1.4.0"] .basalt-accordion-trigger:not([data-panel-open])');
+  if (kind === "build") press.push('[id="v1.4.0"] .basalt-release-build .basalt-accordion-trigger:not([data-panel-open])');
   if (kind === "other") press.push('[id="v1.3.0"] .basalt-accordion-trigger:not([data-panel-open])');
-  if (kind === "more") press.push(".basalt-tabbar-more");
+  if (kind === "pre-release") press.push('[id="v2.0.0-rc.2"] .basalt-accordion-trigger:not([data-panel-open])');
+  if (kind.endsWith("more")) press.push(".basalt-tabbar-more");
   usePress(press);
-  const hover = kind === "hover";
   React.useEffect(() => {
-    if (hover) document.querySelector(".basalt-app-sidebar .basalt-version-link")?.setAttribute("data-wt-hover", "");
-    if (kind === "other" || kind === "all") window.setTimeout(() => document.getElementById(kind === "other" ? "v1.3.0" : "v1.4.0")?.scrollIntoView({ block: "start" }), 300);
-  }, [hover, kind]);
-  const version = <VersionLink version={running} date={date} href={`#v${running}`} current />;
+    const at = kind === "other" ? "v1.3.0" : kind === "all" ? "v1.4.0" : kind === "build" ? "v1.4.0" : null;
+    if (at) window.setTimeout(() => { const el = document.getElementById(at); el?.querySelector(kind === "build" ? ".basalt-release-build" : ".basalt-release-head")?.scrollIntoView({ block: kind === "build" ? "center" : "start" }); }, 400);
+  }, [kind]);
+  // The "hover" state rests a real pointer on the version in the rail (the attribute is a prop, so the rail's tooltip, which arrives on demand, keeps it).
+  const version = <VersionLink version={running} date={date} href={`#v${running}`} current={notes} {...(kind === "hover" ? { "data-wt-hover": "" } : {})} />;
   return (
     <AppShell
       brand={<span style={{ fontWeight: 600, fontSize: 18 }}>Harbor</span>}
       brandMark={<span style={{ fontWeight: 600, fontSize: 18 }}>H</span>}
       brandLabel="Harbor home"
-      sidebar={<Nav aria-label="Primary"><NavItem href="#home" icon={HomeGlyph}>Home</NavItem><NavItem href="#incidents" icon={SearchGlyph}>Incidents</NavItem></Nav>}
+      sidebar={<Nav aria-label="Primary"><NavItem href="#home" icon={HomeGlyph} current={!notes}>Home</NavItem><NavItem href="#incidents" icon={SearchGlyph}>Incidents</NavItem></Nav>}
       account={<Nav aria-label="Account"><NavItem href="#settings" icon={SettingsGlyph}>Settings</NavItem></Nav>}
       version={version}
-      header={<AppHeader title="Release notes" />}
+      header={<AppHeader title={notes ? "Release notes" : "Home"} />}
       tabBar={(
         <TabBar>
-          <TabBarItem href="#home" icon={HomeGlyph}>Home</TabBarItem>
+          <TabBarItem href="#home" icon={HomeGlyph} current={!notes}>Home</TabBarItem>
           <TabBarItem href="#incidents" icon={SearchGlyph}>Incidents</TabBarItem>
-          <TabBarMore current="Release notes"><NavItem href="#settings" icon={SettingsGlyph}>Settings</NavItem></TabBarMore>
+          <TabBarMore current={notes ? "Release notes" : undefined}><NavItem href="#settings" icon={SettingsGlyph}>Settings</NavItem></TabBarMore>
         </TabBar>
       )}
     >
-      <ReleaseNotes releases={HARBOR} form="notes" product="Harbor" running={running} runningBuild={RUNNING_BUILD} baseHref="https://harbor.example/release-notes" arrived={kind === "arrived" ? "pr131-1" : null} />
+      {notes ? (
+        <ReleaseNotes releases={releases} form="notes" product="Harbor" running={running} runningBuild={buildOf(running)} baseHref="https://harbor.example/release-notes" arrived={kind === "arrived" ? "pr131-1" : null} />
+      ) : (
+        <p style={{ margin: 0, maxWidth: "var(--basalt-size-prose-width)", fontSize: 16, lineHeight: "24px", color: "var(--basalt-text-secondary)" }}>Two incidents are open. The version at the sidebar's foot is at rest here: another page is current.</p>
+      )}
     </AppShell>
   );
 }
@@ -94,7 +108,7 @@ function Slate({ state }: { state: string }) {
   if (kind === "versions") press.push(".basalt-release-index[data-form=\"fold\"] .basalt-accordion-trigger");
   usePress(press);
   React.useEffect(() => {
-    const at = kind === "sources" ? "pr41-1" : kind === "sources-none" ? "pr42-1" : kind === "action" ? "v0.2.0-action" : kind === "footer" ? "slate-footer" : null;
+    const at = kind === "sources" ? "pr41-1" : kind === "sources-none" ? "pr42-1" : kind === "action" ? "v0.2.0__action" : kind === "footer" ? "slate-footer" : null;
     if (at) window.setTimeout(() => document.getElementById(at)?.scrollIntoView({ block: kind === "footer" ? "end" : "start" }), kind.startsWith("sources") ? 0 : 200);
   }, [kind]);
   const arrived = kind === "arrived" ? "pr49-1" : kind === "release-arrived" ? "v0.2.0" : null;
@@ -111,6 +125,59 @@ function Slate({ state }: { state: string }) {
       </main>
       <SiteFooter id="slate-footer" brand={<span style={{ fontWeight: 600, fontSize: 18 }}>Slate</span>} note="Slate is a made-up design system for these pictures." legal="© 2026 Example" version={<VersionLink label="Slate" version="0.2.1" date="2026-11-16" href="#v0.2.1" />} />
     </SitePage>
+  );
+}
+
+// ---- for the owner's eye: each item, this build's pictures beside the prototype's (tools/review/round68-pairs.mjs writes them) ----
+
+const ITEMS: Array<{ id: string; title: string; words: string; extra?: string; noProto?: string }> = [
+  { id: "1", title: "1. The foot's line", words: "\"Version 1.4.0 · Nov 23, 2026\" in the interface's own type (12/16 Geist) and secondary ink, at rest (Home current), and current on the release notes (primary, the number at 600). The prototype's B was small mono in the quietest ink, without a date. Below: the decision's three ways (A the number in mono, B plain, C with the word, decided), with a candidate and a canary.", extra: "The three ways (decision proofs, foot-options)" },
+  { id: "2", title: "2. The rail", words: "720 to 1023: the number alone, centred, its whole line in its name and its tooltip; a release candidate fits.", noProto: "The prototype drew nothing in the rail." },
+  { id: "3", title: "3. More's last row", words: "Under 720 the version is More's last row, under a divider, 44 tall, at 13/18, at rest and current." },
+  { id: "4", title: "4. Nothing marks a release as new", words: "No dot, no badge, no read state, no \"What's new\" item. The prototype marked the sidebar, the settings button and its menu until the release was seen." },
+  { id: "5", title: "5. Deprecated and Removed before Added", words: "Action needed, Security, Deprecated, Removed, Added, Changed, Fixed. In the prototype a 31-line Added stood above the deprecation." },
+  { id: "6", title: "6. One set of section names", words: "A product's list uses Added, Changed and Fixed, as a package's does, inside one fold with the summary." },
+  { id: "7", title: "7. No area filter", words: "The first screen starts with the first release. In the prototype the filter took the first screen and could hide every breaking change." },
+  { id: "8", title: "8. 0.x", words: "In 0.x the minor is the breaking number: Slate 0.2.0 holds four breaking changes and is a minor from 0.1.0; a fix the same day is 0.2.1.", noProto: "Words are enough for the rule." },
+  { id: "9", title: "9. Entries are Basalt's own files, not changesets", words: "One file per change in .changes/, with its type, area, pull request, tickets, bump, action and author. A changeset's head maps packages to bumps and has no field for a type, tickets, action or a permanent id.", noProto: "Words are enough." },
+  { id: "10", title: "10. The source line underlined", words: "\"#41 · SL-112 · PRJ-88\" is the quiet text button Basalt already has, beside the words from 640 of the release's width and under them on a phone. The prototype's was bare tertiary text." },
+  { id: "11", title: "11. No Decision row, install command, \"How it was made\" or About sheet", words: "Sources holds the pull request, the tickets, the commit and the author when there is one; nothing else." },
+  { id: "12", title: "12. Author only when someone claimed the words", words: "#41 (Sam Rivera wrote it) has an Author row; #42 (nobody has claimed it) has none." },
+  { id: "13", title: "13. Build details on \"Your version\"", words: "On the release this session runs, from the running build; above the first release when the running build is between two releases." },
+];
+
+function useTheme() {
+  const read = () => (typeof document === "undefined" ? "dark" : document.documentElement.getAttribute("data-theme") === "light" ? "light" : document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  return React.useSyncExternalStore((change) => { const watch = new MutationObserver(change); watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] }); return () => watch.disconnect(); }, read, () => "dark");
+}
+
+function Pictures({ id, side, theme, label }: { id: string; side: string; theme: string; label: string }) {
+  const list = Object.keys(PICTURES).filter((key) => key.startsWith(`${id}-${side}-`) && key.endsWith(`-${theme}`)).sort();
+  if (!list.length) return null;
+  return (
+    <div style={{ display: "grid", gap: 12, alignContent: "start", minWidth: 0 }}>
+      {list.map((key) => <img key={key} src={PICTURES[key]!.src} alt={`${label}, item ${id}`} style={{ display: "block", width: PICTURES[key]!.width, maxWidth: "100%", height: "auto", borderRadius: 8, boxShadow: "0 0 0 1px var(--basalt-border-hairline)" }} />)}
+    </div>
+  );
+}
+
+function OwnersEye({ state }: { state: string }) {
+  const id = state.startsWith("item-") ? state.slice(5) : "1";
+  const item = ITEMS.find((candidate) => candidate.id === id) ?? ITEMS[0]!;
+  const theme = useTheme();
+  const label = { margin: "0 0 8px", fontSize: 13, lineHeight: "18px", fontWeight: 500, color: "var(--basalt-text-secondary)" } as const;
+  return (
+    <div style={{ padding: 24, display: "grid", gap: 16, color: "var(--basalt-text-primary)" }}>
+      <div>
+        <h2 style={{ margin: "0 0 4px", fontSize: 18, lineHeight: "26px", fontWeight: 600 }}>{item.title}</h2>
+        <p style={{ margin: 0, maxWidth: 720, fontSize: 14, lineHeight: "20px", color: "var(--basalt-text-secondary)" }}>{item.words}</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 24, alignItems: "start" }}>
+        <div><p style={label}>This build</p>{id === "9" ? <p style={{ margin: 0, fontSize: 14 }}>Words are enough.</p> : <Pictures id={id} side="build" theme={theme} label="This build" />}</div>
+        <div><p style={label}>The prototype</p>{item.noProto ? <p style={{ margin: 0, fontSize: 14 }}>{item.noProto}</p> : <Pictures id={id} side="proto" theme={theme} label="The prototype" />}</div>
+      </div>
+      {item.extra ? <div><p style={label}>{item.extra}</p><Pictures id={id} side="extra" theme={theme} label={item.extra} /></div> : null}
+    </div>
   );
 }
 
@@ -131,26 +198,26 @@ export const ROUND_68: Round = {
     {
       id: "foot",
       name: "The version at the foot",
-      intro: "A product's shell: the version this session runs, with its ship date, as one link to the release notes at that version. The release notes are the page, so the link is current.",
+      intro: "A product's shell: the version this session runs, with its ship date, as one link to the release notes at that version. At rest on Home (another page is current), and current on the release notes (the \"current\" shots).",
       decisions: [
         ...COMMON,
         "For the owner's eye 1: \"Version 1.4.0 · Nov 23, 2026\" in the interface's own type (12/16 Geist, tabular) and secondary ink, where the prototype's option B was small mono in the quietest ink and had no date. In mono the line fits 1.4.0 with 3px to spare and wraps at 1.4.10 or any pre-release; mono's digits also read \"1 . 4 . 0\". With \"What's new\" gone this is the only way to the notes, so it steps up one ink.",
         "For the owner's eye 2: in the rail (720 to 1023) the number alone, centred; the label and date are in its name and its tooltip (the \"hover@820\" shot). A release candidate breaks before its hyphen (the \"candidate\" shots).",
         "For the owner's eye 3: under 720 it is More's last row, under a divider, 44 tall, at 13/18 (the \"more@390\" shot). An app with no More draws it on its account or settings page.",
         "For the owner's eye 4: nothing marks a release as new. No dot, no badge, no read state, no \"What's new\" item. A release that asks something of people says so where they work, by the product's choice.",
-        "On the release notes it is the current page: primary ink and the number at 600, its width reserved, so nothing moves.",
+        "At rest (the default shots, Home current): secondary ink at 400. On the release notes it is the current page (the \"current\" shots): primary ink and the number at 600, its width reserved, so nothing moves.",
       ],
       tryIt: [
         "Narrow the window through 1023 and 720: the foot's line, the rail's number with its tooltip, then More's last row.",
         "Tab to the version: one link, named \"Version 1.4.0, Nov 23, 2026, release notes\".",
       ],
-      states: ["hover@820", "candidate@1440", "candidate@820", "more@390"],
+      states: ["more@390", "hover@820", "current@1440", "current@820", "current-more@390", "candidate@1440", "candidate@820"],
       widths: WIDE,
       scales: [2],
       bleed: true,
       touch: true,
       height: 900,
-      demo: ({ state }) => <Harbor state={state} />,
+      demo: ({ state }) => <Harbor state={state} page={kindOf(state).startsWith("current") ? "notes" : "home"} />,
     },
     {
       id: "release-notes",
@@ -162,14 +229,14 @@ export const ROUND_68: Round = {
         "The fold is named for what it opens: \"All changes 5\" when every entry is inside it, \"Other changes 1\" under Action needed (Harbor 1.3.0, the \"other\" shots). The header keeps the release's totals.",
         "For the owner's eye 6: a product's list uses the package's section names (Added, Changed, Fixed), not \"Improvements\" and \"Fixes\"; the paragraphs above carry the product's voice.",
         "For the owner's eye 13: Build details is on \"Your version\" alone and shows the running build (1.4.0+9f3c1e2, its commit, the Basalt it was built on), never a row frozen with a release: two builds can share a version. A build between two releases puts it above the first release (the \"between\" shot).",
-        "2.0.0 shipped after two candidates: they are no longer drawn, and their addresses open 2.0.0. 1.4.1, a fix to the 1.x line shipped after 2.0.0, stands under it by SemVer precedence, not by date.",
+        "2.0.0 shipped after two candidates: they are no longer drawn, and their addresses open 2.0.0. 1.4.1, a fix to the 1.x line shipped after 2.0.0, stands under it by SemVer precedence, not by date. The \"pre-release\" shots are Harbor before 2.0.0 shipped, the session on 2.0.0-rc.2: \"Pre-release\" and \"Your version\" on one release, each the neutral outline badge.",
       ],
       tryIt: [
         "Open \"All changes\": the summary, then Added, Changed and Fixed, each with its source line.",
         "Press a source line: Sources, with the pull request, the ticket, the commit, and the author where the entry has one.",
         "Find \"lobby\" with the browser's find: the fold opens.",
       ],
-      states: ["all", "other", "between@1440", "arrived", "forced-colours@1440"],
+      states: ["all", "other", "build@1440", "build@390", "between@1440", "pre-release@1440", "pre-release@390", "arrived", "forced-colours@1440"],
       widths: WIDE,
       scales: [2],
       bleed: true,
@@ -224,6 +291,22 @@ export const ROUND_68: Round = {
       touch: true,
       height: 900,
       demo: ({ state }) => <Slate state={state} />,
+    },
+    {
+      id: "owners-eye",
+      name: "For the owner's eye",
+      intro: "The thirteen items the decision puts in front of the owner, each as this build's pictures beside the prototype's he answered, in the walkthrough's theme. One state an item.",
+      decisions: [
+        ...COMMON,
+        "The pictures are cropped from this round's own shots and from the prototype's (tools/review/round68-pairs.mjs). Each pair is at one scale.",
+      ],
+      tryIt: ["Switch the theme: every picture has its pair in the other."],
+      states: ITEMS.slice(1).map((item) => `item-${item.id}`),
+      widths: [1440],
+      scales: [2],
+      bleed: true,
+      height: 1400,
+      demo: ({ state }) => <OwnersEye state={state} />,
     },
   ],
 };

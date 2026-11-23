@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 import { freeze } from "../release.mjs";
 import { loadConfig } from "../config.mjs";
-import { pageReleases } from "../records.mjs";
+import { pageReleases, readRecords } from "../records.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -261,6 +261,11 @@ export function copyOut(project, dir, out = path.join(HERE, project.name)) {
   const releases = pageReleases(out, { config });
   fs.writeFileSync(path.join(out, "CHANGELOG.md"), OUTPUTS.changelogMarkdown(releases, { product: config.product, form: config.form }));
   fs.writeFileSync(path.join(out, "releases.json"), `${JSON.stringify(releases, null, 2)}\n`);
+  // Harbor as it stood before 2.0.0 shipped: the page with its two candidates drawn (the review round's Pre-release picture, the arrival tests).
+  if (project.name === "harbor") {
+    const records = readRecords(out).filter((record) => record.version !== "2.0.0");
+    fs.writeFileSync(path.join(out, "releases-candidate.json"), `${JSON.stringify(pageReleases(out, { config, records, pending: [] }), null, 2)}\n`);
+  }
 }
 
 const { isMain } = await import("../../../scripts/is-main.mjs");
