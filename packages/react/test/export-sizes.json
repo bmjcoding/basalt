@@ -16,7 +16,7 @@
   "AlertDialogTrigger": 69874,
   "AmbientMark": 569,
   "AppHeader": 1285,
-  "AppShell": 103887,
+  "AppShell": 115101,
   "AppTile": 1112,
   "ArchitectureDiagram": 67580,
   "ArrowDownGlyph": 2868,
@@ -170,7 +170,7 @@
   "MultiSelect": 150488,
   "Nav": 4774,
   "NavGroup": 538,
-  "NavItem": 110701,
+  "NavItem": 110693,
   "NoticeBar": 813,
   "NotificationCenter": 152005,
   "NotificationCentre": 152015,
@@ -218,6 +218,8 @@
   "Reflow": 6095,
   "ReflowItem": 470,
   "Refreshing": 1911,
+  "ReleaseIndex": 30827,
+  "ReleaseNotes": 173097,
   "Reserve": 441,
   "Reveal": 19500,
   "RoutesGlyph": 3009,
@@ -259,7 +261,7 @@
   "ShortcutList": 10032,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 14780,
+  "SiteFooter": 15010,
   "SiteHeader": 178924,
   "SiteLockupDefs": 694,
   "SiteMenu": 171246,
@@ -287,10 +289,10 @@
   "Stepper": 26713,
   "Stream": 283,
   "StreamArrivedWord": 470,
-  "StreamBlock": 2764,
-  "StreamEntry": 2583,
-  "StreamMessage": 14856,
-  "StreamNote": 2651,
+  "StreamBlock": 2788,
+  "StreamEntry": 2611,
+  "StreamMessage": 14883,
+  "StreamNote": 2679,
   "StreamQuote": 991,
   "Switch": 16297,
   "SwitchRow": 24811,
@@ -304,7 +306,7 @@
   "Tab": 40055,
   "TabBar": 3501,
   "TabBarItem": 1859,
-  "TabBarMore": 91228,
+  "TabBarMore": 91447,
   "Table": 8305,
   "TableBody": 143,
   "TableCall": 391,
@@ -344,6 +346,7 @@
   "Tray": 90410,
   "TrayRow": 502,
   "TrendsGlyph": 2924,
+  "VersionLink": 1968,
   "VisuallyHidden": 258,
   "WAIT_MIN_SHOWN_MS": 26,
   "WAIT_SHOW_AFTER_MS": 26,
@@ -412,11 +415,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 870189,
-  "gzip": 288896
+  "bytes": 885382,
+  "gzip": 293729
  },
  "styles": {
-  "bytes": 382510,
-  "gzip": 49971
+  "bytes": 398155,
+  "gzip": 51889
  }
 }

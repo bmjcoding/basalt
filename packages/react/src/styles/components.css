@@ -7152,6 +7152,221 @@
     .basalt-stream-word { color: CanvasText; }
   }
 
+  /* ---- Versions and release notes (DECISIONS 320). ---- */
+  /* The version with its date, one link (VersionLink). 12/16 Geist, tabular, secondary ink; hover lifts it to primary and underlines both parts.
+     Two parts that never break inside, the word with the number (joined by a no-break space) and the date: when they do not fit one line the
+     date goes under the number. The dot stands in the gap before the date, so a date that has gone under starts its line with no dot: the gap
+     is then left of the link's own box, which clips it on the inline axis. A version longer than the place wraps anywhere. */
+  .basalt-version-link {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--basalt-space-3);
+    max-width: 100%;
+    overflow-x: clip;
+    padding-block: var(--basalt-space-1);
+    border-radius: var(--basalt-radius-xs);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-xs-tracking);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-version-link-words, .basalt-version-link-date { position: relative; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-version-link-date::before { content: "·"; content: "·" / ""; position: absolute; inset-inline-end: 100%; width: var(--basalt-space-3); text-align: center; }
+  .basalt-version-link-pre { display: inline-block; max-width: 100%; }
+  /* The number reserves its 600 width, so being the current page moves nothing. */
+  .basalt-version-link-number { display: inline-flex; flex-direction: column; max-width: 100%; }
+  .basalt-version-link-number::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .basalt-version-link:hover { color: var(--basalt-text-primary); }
+  .basalt-version-link:hover :is(.basalt-version-link-words, .basalt-version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .basalt-version-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-version-link[aria-current="page"] { color: var(--basalt-text-primary); }
+  .basalt-version-link[aria-current="page"] .basalt-version-link-number { font-weight: var(--basalt-font-weight-semibold); }
+  /* On touch a 44px hit box that moves nothing. */
+  @media (pointer: coarse) {
+    .basalt-version-link::after { content: ""; position: absolute; inset-inline: 0; top: 50%; height: max(100%, var(--basalt-size-tap-min)); transform: translateY(-50%); }
+  }
+  /* At the sidebar's foot: under the account items, space-2 below them, the words on the nav glyphs' start edge (the nav's space-1-5 and the
+     pill's space-3 in from the sidebar's own padding). The foot's own space-4 is below. */
+  .basalt-app-version { margin: var(--basalt-space-2) calc(var(--basalt-space-1-5) + var(--basalt-space-3)) 0; }
+  /* In the rail: the number alone, centred, breaking before a pre-release's hyphen if it must; the label and the date are in its name and its tooltip. */
+  .basalt-version-link[data-place="rail"] { display: flex; justify-content: center; text-align: center; }
+  /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
+  .basalt-version-link[data-place="rail"] :is(.basalt-version-link-word, .basalt-version-link-date) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
+  @media (width >= 720px) and (width < 1024px) {
+    .basalt-app-version { margin-inline: var(--basalt-space-1-5); }
+  }
+  /* The last row of More's sheet: under a divider, space-2 below the list, 44 tall, at 13/18, on the nav glyphs' edge. */
+  .basalt-tabbar-version {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    min-height: var(--basalt-size-tap-min);
+    margin-top: var(--basalt-space-2);
+    padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3));
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+  }
+  .basalt-version-link:is([data-place="more"], [data-place="footer"]) { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
+  /* A site's footer: after the legal line, on its row, space-4 apart, wrapping under it. */
+  .basalt-site-footer-legal-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-1) var(--basalt-space-4); min-width: 0; }
+
+  /* A release. One column, at most the words' measure, space-6 and room for a source line; space-10 apart with a divider between. Its own
+     container, so the source line goes under the words below 640 of the release's own width. */
+  .basalt-release-notes { min-width: 0; font-family: var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  .basalt-release {
+    container-type: inline-size;
+    max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width));
+    padding-block: var(--basalt-space-10);
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    scroll-margin-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+  }
+  .basalt-release:first-of-type { padding-top: 0; border-top: 0; }
+  .basalt-release-notes > .basalt-release-build:first-child { max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width)); margin: 0 0 var(--basalt-space-6); }
+  .basalt-release:focus, .basalt-release-entry:focus { outline: none; }
+  .basalt-release-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--basalt-space-4); }
+  .basalt-release-head-text { position: relative; isolation: isolate; display: grid; gap: var(--basalt-space-1); min-width: 0; }
+  .basalt-release-heading { display: grid; gap: var(--basalt-space-1); margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
+  /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
+  .basalt-release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .basalt-release-version[data-words] { font-family: var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); }
+  .basalt-release-meta { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); font-variant-numeric: tabular-nums; }
+  .basalt-release-badges { display: inline-flex; gap: var(--basalt-space-2); margin-inline-start: var(--basalt-space-2); vertical-align: middle; }
+  .basalt-release-action-link { position: relative; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
+  .basalt-release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  .basalt-release-action-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-release-copy { flex: none; }
+  .basalt-release-summary, .basalt-release-paragraph { margin: 0; max-width: var(--basalt-size-prose-width); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-wrap: pretty; }
+  .basalt-release-summary { margin-top: var(--basalt-space-4); }
+  .basalt-release-audience { display: grid; gap: var(--basalt-space-1); margin-top: var(--basalt-space-4); }
+  .basalt-release-audience-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-release-action { margin-top: var(--basalt-space-6); }
+  .basalt-release-callout-title { margin: 0; font: inherit; letter-spacing: inherit; }
+  .basalt-release-action .basalt-callout-text { color: var(--basalt-text-primary); }
+  .basalt-release-upgrade { margin: 0 0 var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  .basalt-release-section, .basalt-release-all { margin-top: var(--basalt-space-6); }
+  .basalt-release-section-title { margin: 0 0 var(--basalt-space-2); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-release-count { margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; }
+  .basalt-release-action .basalt-release-count { color: var(--basalt-text-secondary); }
+  /* Inside a product's fold: the summary first, space-2 under the fold's heading; the sections' headings a step smaller. Nothing folds again. */
+  .basalt-release-all .basalt-release-summary { margin-top: var(--basalt-space-2); }
+  .basalt-release-all .basalt-release-section:first-child { margin-top: var(--basalt-space-2); }
+  .basalt-release-all .basalt-release-summary + .basalt-release-section { margin-top: var(--basalt-space-4); }
+  .basalt-release-all .basalt-release-section-title { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); }
+  /* A fold: its heading holds the button, at the section heading's size, the chevron at the release's end. */
+  .basalt-release-fold .basalt-accordion-trigger { min-height: var(--basalt-text-md-line-height); padding: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-release-fold .basalt-accordion-content { padding-bottom: 0; font: inherit; color: inherit; }
+  .basalt-release-section[data-folded] .basalt-accordion-content { padding-top: var(--basalt-space-2); }
+  /* Build details: at the release's foot, quieter than the fold above it (14/20, 400). */
+  .basalt-release-build { margin-top: var(--basalt-space-2); }
+  .basalt-release-build .basalt-accordion-trigger { min-height: var(--basalt-size-control-xs); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-release-build-list { margin-block: var(--basalt-space-3); }
+
+  /* The list is a grid and each entry a subgrid of it: column one the words, at most the measure; column two the source lines, as wide as the
+     list's widest, space-6 away, starting on one edge. So the words keep one measure down a list. */
+  .basalt-release-list { display: grid; grid-template-columns: minmax(0, var(--basalt-size-prose-width)) auto; justify-content: start; column-gap: var(--basalt-space-6); margin: 0; padding: 0; list-style: none; }
+  .basalt-release-entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    padding-block: var(--basalt-space-1-5);
+    scroll-margin-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-8));
+  }
+  .basalt-release-word { grid-column: 1 / -1; }
+  .basalt-release-entry-words { grid-column: 1; display: grid; justify-items: start; gap: var(--basalt-space-1); min-width: 0; }
+  .basalt-release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
+  .basalt-release-area { font-weight: var(--basalt-font-weight-medium); }
+  .basalt-release-migrate { position: relative; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
+  .basalt-release-source-cell { grid-column: 2; justify-self: start; min-width: 0; }
+  .basalt-release-source-cell:empty { display: none; }
+  /* The source line: a quiet TextButton in Geist Mono at 13 on the entry's 20px line, its hit 24 tall on a fine pointer. Ids never break inside
+     (an id longer than the line breaks anywhere); beside the words the line does not wrap. */
+  .basalt-text-button.basalt-release-source { display: inline; padding-block: var(--basalt-space-0-5); margin-block: calc(-1 * var(--basalt-space-0-5)); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); letter-spacing: 0; white-space: nowrap; }
+  /* Each id carries the underline (an id never breaks inside, so it is a box of its own, which a label's underline would not reach). */
+  .basalt-text-button.basalt-release-source > .basalt-text-button-label { text-decoration: none; }
+  .basalt-release-id { display: inline-block; max-width: 100%; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-release-source:hover .basalt-release-id { text-decoration-color: currentColor; }
+  .basalt-release-action-link { white-space: nowrap; }
+  .basalt-release-sources { width: var(--basalt-size-popover-max); }
+  .basalt-release-sources-list { margin-block: var(--basalt-space-2) var(--basalt-space-4); }
+  .basalt-release-mono { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
+  /* Narrow (under 640 of the release's own width): the source line is its own line under the words, space-0-5 below, wrapping between ids. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-release-list { grid-template-columns: minmax(0, 1fr); }
+    .basalt-release-entry { row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-2); }
+    .basalt-release-source-cell { grid-column: 1; }
+    .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-sm-line-height)) / 2); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-sm-line-height); white-space: normal; }
+  }
+  /* On touch every 44px box lies inside its own entry: an entry is space-3 above and below (a one-line entry is 44 tall), the source line keeps
+     the entry's 20px line, and "4 need action" and the migration link take the box too, with no change to layout. */
+  @media (pointer: coarse) {
+    .basalt-release-entry { padding-block: var(--basalt-space-3); }
+    .basalt-text-button.basalt-release-source { line-height: var(--basalt-text-base-line-height); }
+    .basalt-text-button.basalt-release-source::before,
+    .basalt-release-action-link::after,
+    .basalt-release-migrate::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+    .basalt-release-fold .basalt-accordion-trigger { min-height: var(--basalt-size-tap-min); }
+    /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
+    @container (width < 640px) {
+      .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
+      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap) and space-6 under
+         the entry, so the source line stays nearer its own entry than the next one. */
+      .basalt-release-entry[data-link]:has(.basalt-release-source) { row-gap: var(--basalt-space-6); padding-bottom: var(--basalt-space-6); }
+    }
+  }
+
+  /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
+     on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
+  .basalt-release-entry[data-arrival] { isolation: isolate; }
+  :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] .basalt-release-head-text)::before {
+    content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
+    background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
+  }
+  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] .basalt-release-head-text)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] .basalt-release-head-text) .basalt-release-count { color: var(--basalt-text-secondary); }
+  @media (forced-colors: active) {
+    :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] .basalt-release-head-text)::before { display: none; }
+  }
+
+  /* The versions: a nav of links, the number in mono and primary, the date at the row's end in tertiary, 13/18, 30 tall and 44 on touch.
+     The pane form beside the page; the fold form above the first release where the pane would follow the page instead. */
+  .basalt-release-index-title { margin: 0 0 var(--basalt-space-2); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  .basalt-release-index-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .basalt-release-index-link { display: flex; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-4); padding-block: var(--basalt-space-1-5); border-radius: var(--basalt-radius-xs); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; text-decoration: none; }
+  .basalt-release-index-number { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-mono); letter-spacing: 0; overflow-wrap: anywhere; }
+  .basalt-release-index-number[data-words] { font-family: var(--basalt-font-family-sans); }
+  .basalt-release-index-link time { flex: none; color: var(--basalt-text-tertiary); }
+  .basalt-release-index-link:hover .basalt-release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .basalt-release-index-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-release-index[data-form="fold"] { margin-bottom: var(--basalt-space-8); }
+  .basalt-release-index[data-form="fold"] .basalt-accordion-trigger { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  @media (pointer: coarse) {
+    .basalt-release-index-link { align-items: center; min-height: var(--basalt-size-tap-min); padding-block: 0; }
+  }
+  /* Where PaneLayout puts its pane beside the page the pane form shows; where the pane follows the page, the fold does, and the pane is not drawn. */
+  .basalt-release-index[data-form="fold"] { display: none; }
+  /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), PaneLayout's own threshold; a container query cannot read a custom property */
+  @container (width < 920px) {
+    .basalt-pane-layout .basalt-release-index[data-form="fold"] { display: block; }
+    .basalt-pane:has(> .basalt-release-index[data-form="pane"]) { display: none; }
+  }
+
+  /* Print and no script: every fold is open (the parts draw them open until script runs); Copy buttons are not printed, and a source line prints as text. */
+  @media print {
+    :is(.basalt-release-notes, .basalt-release-index) .basalt-accordion-panel { height: auto; overflow: visible; content-visibility: visible; }
+    :is(.basalt-release-notes, .basalt-release-index) .basalt-accordion-panel[hidden] { display: block; }
+    .basalt-release-copy, .basalt-release-notes .basalt-copy-button, .basalt-release-sources, .basalt-release-build .basalt-button { display: none; }
+    .basalt-release-id { text-decoration: none; }
+  }
+
   /* ---- The disclosure row: a button on one line (cut while closed, wrapped when open), its mark, its meta and the core chevron, which morphs from
      right to down. Hover lifts the ink; there is no wash. Focus is the control ring at +2. 28 tall (44 on touch), text at 13. ---- */
   .basalt-disclosure { min-width: 0; }
