@@ -4863,6 +4863,12 @@
   @media print {
     .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .basalt-diagram-hint { display: none; }
+    /* A figure prints untraced (DECISIONS 306, 1.7): every line, head and label in its resting ink, over a trace, a touch trace or a quiet run. */
+    .basalt-diagram .basalt-diagram-edge :is(.basalt-diagram-line, .basalt-diagram-tip[data-open]) { stroke: var(--basalt-diagram-edge) !important; }
+    .basalt-diagram .basalt-diagram-edge .basalt-diagram-line[data-kind="main"] { stroke: var(--basalt-diagram-edge-main) !important; }
+    .basalt-diagram .basalt-diagram-edge :is(.basalt-diagram-tip:not([data-open]), .basalt-diagram-dot) { fill: var(--basalt-diagram-edge) !important; }
+    .basalt-diagram .basalt-diagram-edge .basalt-diagram-tip[data-kind="main"]:not([data-open]) { fill: var(--basalt-diagram-edge-main) !important; }
+    .basalt-diagram .basalt-diagram-label { color: var(--basalt-diagram-edge) !important; }
   }
 
   /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's two buttons ----
