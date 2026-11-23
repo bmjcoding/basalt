@@ -4353,6 +4353,113 @@
     .basalt-run-badge-face[data-leaving] { display: none; }
   }
 
+  /* StageList (1.4): a row is the mark (16), space-3, the name and its word (space-2 apart, one line), the meta and the time, at text-sm with space-2
+     above and below: 34px. The list is the container its meta answers (480px, size-breakpoint-container). */
+  .basalt-run-stages-box, .basalt-run-rail-box { container-type: inline-size; min-width: 0; }
+  .basalt-run-stages, .basalt-run-rail { display: grid; align-content: start; margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  /* The room for one detail of the standard form (a reason line, a fact line, space-2, the action, space-3), held from the first frame: a calc of
+     tokens, never a measure. 82px, and 98 where the action is the touch target's 44. */
+  .basalt-run-stages[data-reserve] {
+    --_row: calc(var(--basalt-text-sm-line-height) + var(--basalt-space-2) * 2);
+    --_action: var(--basalt-size-control-sm);
+    min-block-size: calc(var(--_rows) * var(--_row) + var(--_reason-lines) * var(--basalt-text-sm-line-height) + var(--basalt-text-xs-line-height) + var(--basalt-space-2) + var(--_action) + var(--basalt-space-3));
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-run-stages[data-reserve] { --_action: var(--basalt-size-tap-min); } }
+  .basalt-run-stage { position: relative; min-width: 0; margin: 0; }
+  .basalt-run-stage-line { display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .basalt-run-stage-name { display: flex; align-items: baseline; gap: var(--basalt-space-2); min-width: 0; white-space: nowrap; border-radius: var(--basalt-radius-xs); outline: none; }
+  .basalt-run-stage-name:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-run-stage-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-stage-word { flex: none; color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-name { color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="running"], [data-state="retrying"]) .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-word { color: var(--basalt-text-tertiary); }
+  .basalt-run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
+  .basalt-run-stage-meta:empty { display: none; }
+  .basalt-run-stage-line:has(> .basalt-run-stage-meta:empty) { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-run-stages .basalt-run-stage-meta { display: none; }
+    .basalt-run-stages .basalt-run-stage-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
+  }
+  /* The connector: 1px of border-input on the marks' centre line, from space-1 under one mark to space-1 above the next, beside an open detail too. It
+     never fills, breaks, moves or changes with a state: the mark and its word carry the state. A real border, so forced colours keep it. */
+  .basalt-run-stages > .basalt-run-stage:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+    inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+    border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    pointer-events: none;
+  }
+  /* The detail: opens by height and opacity over duration-slow on ease-out, closes at 0.75 on ease-in; inert while closed. Indented to the name. */
+  .basalt-run-stage-detail { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
+  .basalt-run-stage-detail[data-open] { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows var(--basalt-duration-slow) var(--basalt-ease-out), opacity var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-run-stage-detail-clip { min-height: 0; overflow: hidden; }
+  .basalt-run-stage-detail-body { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-3)); padding-block-end: var(--basalt-space-3); }
+  .basalt-run-stage-detail-body :is(p, small) { display: block; margin: 0; }
+  .basalt-run-stage-detail-body p { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-run-stage-detail-body strong { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage[data-state="failed"] .basalt-run-stage-detail-body strong { color: var(--basalt-status-danger); }
+  .basalt-run-stage-detail-body small { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  /* code is Geist Mono at the row's own size (1em, never a ratio). Its own inline box is no taller than its glyphs, so a second face on the line never
+     makes the line taller than the row's. */
+  .basalt-run-stage-detail-body code, .basalt-run-step code { font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: 1; }
+  .basalt-run-stage-action { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); margin-block-start: var(--basalt-space-2); }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-stage-detail, .basalt-run-stage-detail[data-open] { transition: none; } }
+  :root[data-loops="held"] :is(.basalt-run-stage-detail, .basalt-run-stage-detail[data-open]) { transition: none; }
+
+  /* StageRail (1.5): the same stages on one line. A node is the mark in a space-6 row, the name (text-sm, centred, space-1 under the mark row) and one
+     status seat (text-xs, space-1 under the name): its time, or its word. */
+  .basalt-run-rail { grid-template-columns: repeat(var(--_count), minmax(0, 1fr)); }
+  .basalt-run-rail > .basalt-run-stage { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; justify-items: center; text-align: center; }
+  .basalt-run-stage-markrow { position: relative; display: grid; place-items: center; inline-size: 100%; block-size: var(--basalt-space-6); }
+  .basalt-run-rail .basalt-run-stage-name { display: block; margin-block-start: var(--basalt-space-1); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-stage-status { display: grid; max-inline-size: 100%; margin-block-start: var(--basalt-space-1); overflow: hidden; font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-run-stage-status > .basalt-reserve { max-inline-size: 100%; grid-template-columns: minmax(0, auto); justify-items: center; }
+  .basalt-run-stage-status .basalt-run-stage-word { display: block; min-width: 0; max-inline-size: 100%; color: var(--basalt-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-rail .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-rail .basalt-run-stage[data-state="retrying"] .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  /* A link: a horizontal 1px border-input track from space-2 past one mark to space-2 before the next, and a text-secondary fill that grows from the
+     inline start over duration-slower on ease-out when its stage passes, and empties at once if it runs again. It repeats the check before it. */
+  .basalt-run-stage-link { position: absolute; inset-block-start: 50%; inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  .basalt-run-stage:last-child .basalt-run-stage-link { display: none; }
+  .basalt-run-stage-fill { position: absolute; inset-inline: 0; inset-block-start: calc(-1 * var(--basalt-size-hairline)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
+  .basalt-run-stage-fill:dir(rtl) { transform-origin: right; }
+  .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transform: scaleX(1); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transition: none; } }
+  :root[data-loops="held"] .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transition: none; }
+  /* Five or six stages need 480px of the rail's own width: under it the rail is drawn as the list, the same ol laid out as rows with the connector. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) { grid-template-columns: minmax(0, 1fr); }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: center; justify-items: stretch; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); text-align: start; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-markrow { inline-size: auto; block-size: auto; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-link { display: none; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) :is(.basalt-run-stage-name, .basalt-run-stage-status) { margin: 0; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-status > .basalt-reserve { justify-items: end; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+      inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+      inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+      border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    }
+  }
+  @media (forced-colors: active) {
+    .basalt-run-stage-link { border-color: GrayText; }
+    .basalt-run-stage-fill { border-color: CanvasText; }
+  }
+
+  /* Progress's value takes tabular figures and the room of "100%", end-aligned, so a run's bar never moves its value as it counts (DECISIONS 316, 1.5). */
+  .basalt-progress > .basalt-progress-head > .basalt-progress-value { display: inline-grid; justify-items: end; }
+  .basalt-progress > .basalt-progress-head > .basalt-progress-value::before { content: "100%"; block-size: 0; overflow: hidden; visibility: hidden; }
+
+
   /* A prose page's column is size-prose-width on the row's start edge, never centred. */
   .basalt-prose { box-sizing: border-box; max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; min-width: 0; }
 

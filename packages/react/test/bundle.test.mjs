@@ -674,11 +674,12 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // Stages and runs (DECISIONS 316): each new part has its own limit, the measured static graph rounded up to the next 50. StageMark carries Phosphor's five
 // circled marks (one file each, as Terminal imports its marks) and the ring; StageBadge, RunTimer, RunAnnouncer and formatRunTime load no Phosphor, and none
 // of them loads Base UI.
-for (const [name, limit, phosphor] of [["StageMark", 14_350, true], ["StageBadge", 5_400, false], ["RunTimer", 5_200, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false]]) {
+for (const [name, limit, phosphor] of [["StageMark", 14_350, true], ["StageBadge", 5_400, false], ["RunTimer", 5_200, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 21_150, true], ["StageList, RunStage", 21_900, true], ["StageRail, RunStage", 21_850, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|cmdk|shiki/.test(f)), [], `${name} loads Base UI, cmdk or Shiki`);
+    assert.deepEqual(inputs.filter((f) => /run-timeline/.test(f)), [], `${name} pays for RunTimeline's counter`);
     const marks = inputs.filter((f) => /@phosphor-icons/.test(f)).map((f) => path.basename(f).replace(/\.es\.js$|\.mjs$|\.js$/, ""));
     if (phosphor) assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)).sort(), ["CheckCircle", "Circle", "MinusCircle", "Prohibit", "XCircle"]);
     else assert.deepEqual(marks, []);

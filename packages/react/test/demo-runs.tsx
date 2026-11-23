@@ -1,7 +1,7 @@
 // The stages and runs (DECISIONS 316) on the demo page, for the browser tests' axe pass in both themes. Synthetic data only.
 import * as React from "react";
 
-import { RunAnnouncer, RunTimer, StageBadge, StageMark } from "../src/index";
+import { Button, RunAnnouncer, RunStage, RunTimer, StageBadge, StageList, StageMark, StageRail } from "../src/index";
 import type { StageState } from "../src/index";
 
 const STATES: StageState[] = ["queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
@@ -20,6 +20,18 @@ export function RunsFixture() {
           </li>
         ))}
       </ul>
+      <StageList label="Deploy 812 stages">
+        <RunStage name="Clone" state="success" meta="main@4f2a1c0" start={0} end={800} />
+        <RunStage name="Test" state="failed" meta="unit and e2e" start={0} end={1400}
+          detail={<><p><strong>3 tests failed</strong> in <code>session.test.ts</code></p><small>Exit 1 · attempt 1 of 2</small></>}
+          action={<Button size="sm" variant="secondary">Retry</Button>} />
+        <RunStage name="Deploy" state="skipped" word="Blocked by Test" meta="production" />
+      </StageList>
+      <StageRail label="Release v2.14.0 stages">
+        <RunStage name="Build" state="success" start={0} end={2100} />
+        <RunStage name="Checks" state="failed" start={0} end={2600} />
+        <RunStage name="Deploy" state="canceled" />
+      </StageRail>
       <p style={{ margin: 0 }}>Build took <RunTimer start={0} end={12_300} /></p>
       <RunAnnouncer label="Deploy 812 updates" events={[{ id: "start", text: "Deploy 812 started" }]} />
     </section>

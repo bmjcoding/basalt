@@ -70,7 +70,7 @@
   "CopyGlyph": 2884,
   "Countdown": 3016,
   "CoverageStrip": 1570,
-  "DataFlowDiagram": 67597,
+  "DataFlowDiagram": 67599,
   "DateAge": 2527,
   "DescriptionColumns": 216,
   "DescriptionItem": 593,
@@ -105,7 +105,7 @@
   "Fieldset": 6390,
   "FilterResult": 698,
   "FilterToolbar": 774,
-  "FlowchartDiagram": 67546,
+  "FlowchartDiagram": 67548,
   "Form": 8730,
   "FormGrid": 438,
   "FormGridItem": 628,
@@ -222,12 +222,13 @@
   "Reveal": 19500,
   "RoutesGlyph": 3009,
   "RunAnnouncer": 448,
+  "RunStage": 20984,
   "RunTimer": 5050,
   "RunsGlyph": 3128,
   "STAGE_WORDS": 149,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
-  "SchemaDiagram": 67494,
+  "SchemaDiagram": 67496,
   "SearchDialog": 88277,
   "SearchField": 18301,
   "SearchGlyph": 3181,
@@ -246,7 +247,7 @@
   "SelectableList": 821,
   "SelectionBar": 25913,
   "Separator": 4531,
-  "SequenceDiagram": 67542,
+  "SequenceDiagram": 67544,
   "SettingsGlyph": 3100,
   "ShareBar": 1411,
   "Sheet": 70793,
@@ -284,7 +285,9 @@
   "Spinner": 1509,
   "Stage": 1219,
   "StageBadge": 5045,
+  "StageList": 1262,
   "StageMark": 14188,
+  "StageRail": 1200,
   "Stat": 2226,
   "Stats": 314,
   "StatusBar": 6813,
@@ -418,11 +421,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 879732,
-  "gzip": 291984
+  "bytes": 883747,
+  "gzip": 293069
  },
  "styles": {
-  "bytes": 386222,
-  "gzip": 50471
+  "bytes": 395212,
+  "gzip": 51536
  }
 }
