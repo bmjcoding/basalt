@@ -431,14 +431,18 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     or action. It names where the rest lives (`home`: `"center"`, the notification center (`"centre"` is the older spelling and still works), `"row"`, the row in place, the app's own key, or
     "the page" when it only echoes a change the page already shows), and an action needs a home that is not the page.
     With no home it stays until it is dismissed, and the type does not let a `timeout` be set on it. The centre is the
-    durable copy that lets a toast go. There is no ⌘Z chip on a toast's button: the app's key goes in
+    durable copy that lets a toast go. **A toast does not outlive the page it echoed:** one whose only home is the page closes when the page
+    changes without a reload (`useRouteFocus` says so; an app with its own router calls `pageChanged()`), on screen or still queued; the only
+    copy, running work and a toast with a lasting home (the centre, the row, a key) stay. Over the next page's controls an echo of the last
+    one would only take taps (found by CoachStakk's takes). Status: decided on the no-council path (DECISIONS 265, batch B5); not yet reviewed. There is no ⌘Z chip on a toast's button: the app's key goes in
     `aria-keyshortcuts`.
   - **What a screen reader hears.** Only the result, once, from two live regions that hold only text and exist before the
     first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
     named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
     While the region itself holds focus, its box draws nothing and the control ring follows the front toast's box at +2, so the next Tab moves the ring 0px, including in forced colours (DECISIONS 156).
   - **The stack.** Three at most, bottom right at `space-4` from the edges, and the bottom edge, full width and above the
-    safe area at phone widths. Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
+    safe area at phone widths. It stands above what is pinned at the bottom (the tab bar, an app's foot, and an on-screen keyboard). Where the stack
+    sits under 720 when a form's last action is at the window's bottom is the owner's open question (cimip-gaps-2, B5). Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
     even behind a taller toast. It expands on hover and focus. A toast that is the only copy, and a focused one, is never
     removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
     oldest first. Repeats group ("×3", on a `group` key) and errors never do. A drag of more than 40px dismisses it, by
@@ -833,11 +837,15 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   `data-density="default"` restores regular sizes. A popup row (Menu, Select, Combobox) is a 36px plate (`size-menu-row`, which is
   `size-control-lg`) in a 40px hit area, and a command menu row a 40px plate in a 44px hit area; compact steps the plates to 32
   and 36; on touch a hit area is at least 44px, and a combobox's text entry is 16px. All shared control targets stay at least 44px on
-  touch regardless of density, except a chart's day, which is reached by drag and by the keys (a press lands on the nearest day, the keys reach every day, and "View as table" holds every value, so the day is not a target of its own); the phase lane's marks keep 44px. A notification entry is at least 44 tall on touch, its line centred (a one-line entry is 40 otherwise
+  touch, and in any window under 720 whatever the pointer (the phone's layout is the touch layout: a phone-width window with a mouse draws the same 44px
+  controls, rows and link boxes; text entry alone stays 16px only on a coarse pointer, since it is there to stop iOS zooming), regardless of density, except a chart's day, which is reached by drag and by the keys (a press lands on the nearest day, the keys reach every day, and "View as table" holds every value, so the day is not a target of its own); the phase lane's marks keep 44px. A notification entry is at least 44 tall on touch, its line centred (a one-line entry is 40 otherwise
   and its plate stays 40; a two-line entry is 58 already). A `Link` on a line of its own has a 44px hit box on touch with no change
   to layout and no change to its look (its block margin takes back what the box adds, the underline stays and no wash is drawn); a link in a
   sentence (a paragraph, a list item, prose, a hint, an error, a callout's text) keeps its line, as WCAG 2.5.8 allows, because a taller
-  box would lie over the lines above and below it, and no two targets overlap. **Status:** decided by the council (DECISIONS 138) and
+  box would lie over the lines above and below it, and no two targets overlap. Links stacked one per line keep their lines too: each link's words
+  are a label painted over every neighbour's box, so a box only takes room that no words are in and a tap on a link's own words is always that link's
+  (the same for a link in a description value and a `TextButton`). Status of the width rule and the stacked links: decided on the no-council path
+  (DECISIONS 265, batch B5); not yet reviewed. **Status:** decided by the council (DECISIONS 138) and
   approved by the owner (DECISIONS 139); the implementation has not been reviewed. Choice labels provide their target without enlarging the
   glyph; a standalone choice must be placed inside a target of at least that size by its
   consumer. Text entry is 16px on touch to avoid iOS focus zoom.
@@ -1262,6 +1270,8 @@ is in).
   header's does (the app puts that action elsewhere). The page's main is capped at 72rem (the site header's row length) and
   start-aligned. Its **opaque form** is the same bar without the layer (`solid`): only one
   smoked surface per viewport, ever.
+- **The foot** (`foot`): a band pinned to the content column's bottom that holds still (a message field, an action bar). See
+  [The keyboard and what is pinned](#the-keyboard-and-what-is-pinned).
 - **Safe areas:** the page's viewport meta needs `viewport-fit=cover` for `env(safe-area-inset-*)` to work; without it the insets
   read 0 on a phone. (The HTML skill's compose writes `viewport-fit=cover` into the page's viewport meta whenever the page uses a module that needs the insets, such as the phone tab bar.)
 
@@ -1280,6 +1290,52 @@ is in).
   not drawn.
 - **More than five destinations:** four, then More, a button that opens the bottom `Sheet` with the rest as `Nav` rows. More takes the
   current look while one of its pages is current, and its name says which.
+
+### The keyboard and what is pinned
+
+What covers the window's edges, so that nothing a reader needs is under it. Status: decided on the no-council path (DECISIONS 226 and 265,
+cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
+
+- **An on-screen keyboard.** On iOS and iPadOS, and in Chrome and Edge on Android, a keyboard covers the window's bottom and only the visual
+  viewport shrinks; `100dvh` does not. While one is up (the visual viewport is at least 120px shorter than the window, at a scale of 1, so a
+  pinch or a browser's own bars are not one) the root carries `data-screen-keyboard`, `--basalt-keyboard-inset`, `--basalt-viewport-top` and
+  `--basalt-viewport-height`, and what is fixed to the window is laid out on what is seen. **Chrome is covered:** the tab bar and the phone's
+  status bar are not drawn, as a platform's own bars are covered, and `--basalt-bottom-offset` is 0. **The task rides above it:** the foot and
+  the toasts stand on the keyboard; a bottom sheet stands on it at 90% of what is seen; a side sheet, a full-screen form and the sidebar are what is
+  seen; a dialog is centred in it; a held form keeps its top while it is seen; the command menu hangs from the top of what is seen; the header and a
+  band stuck under it stay at the top of what is seen; the safe area the keyboard covers is not padded. The root's scroll padding adds what the
+  keyboard covers, the field that raised it is brought out from under what is pinned, and a page scrolled to its end stays at its end. Popups
+  anchored to a field (a select, a combobox, a menu) are Base UI's, whose placement reads the visual viewport: they flip or shrink above the keyboard.
+  A page with `interactive-widget=resizes-content` never has one (the window itself shrinks). Nothing is written while no keyboard is up.
+- **Measured pinned sizes.** `--basalt-sticky-offset` and `--basalt-bottom-offset` are fixed values. A page that pins more (a strip under the bar,
+  a list's band from 720, a foot) opts into the measured form (`usePinnedEdges`; `AppShell` does when it has a foot): every element marked
+  `data-pinned-edge="top"` or `"bottom"` that is sticky or fixed and drawn now is counted, and the root carries `data-pinned-measured`,
+  `--basalt-pinned-top` and `--basalt-pinned-bottom`. They take the fixed values' place in the root's scroll padding (plus `space-4`, as before), so a
+  control that focus brings into view is never under them (WCAG 2.4.11), and the toast stack stands above what is at the bottom. Basalt's bars,
+  `ListBand`, the tab bar, the status bar and the foot carry the mark; an app marks its own.
+- **A scroller that is an element** (a pane, a column an app scrolls, a sheet's body) is a scroll owner, and reads the same properties as its own.
+  A sticky part is pinned to the box it sticks in (its nearest ancestor that clips overflow), so the measured form writes `data-pinned-measured`,
+  `--basalt-pinned-top` and `--basalt-pinned-bottom` on that box, and the stylesheet pads it as it pads the root; a fixed part counts for the
+  window. While a keyboard is up, every scroll owner (one that measures its own parts, or any element marked `data-scroll-owner`) also carries
+  `--basalt-keyboard-inset`, `--basalt-viewport-top` and `--basalt-viewport-height` as its own share: what of its box the keyboard covers, what is
+  hidden above what is seen, and how much of it is still seen, and is padded by them. Custom properties inherit, so a part inside a scroll owner
+  (a sticky foot, a band) reads that owner's values and needs no other source.
+- **The foot** (`AppShell`'s `foot`) holds still: the content column is at least the window's height and the page takes the room between, so on a
+  short page the foot rests at the window's bottom and on a long page it sticks in the same place. Under 720 it sits on the tab bar, and on the
+  keyboard while one is up; at the page's end the page's last line is above it, never under it. It is a band, not a box: solid `surface-page` with a
+  `border-divider` on top (the header is the one smoked surface), no shadow, its contents on the page's width and edges, the home indicator's safe
+  area kept where no tab bar holds it. It is never taller than the window less what covers the top and one 44px row; past that it scrolls inside,
+  and a tray in it gives way first.
+- **The tray** (`Tray`, `TrayRow`) is the rows that wait on the reader (someone asking to join, a change to approve, a reply that is due), docked
+  where they work: above a field in a foot, or at a page's head. From 720 it is one level-1 panel (the rim, radius 12), a row each on a divider:
+  a mark at the start (a pending `Badge`, an avatar), the words (14/20, primary; they wrap and are never cut) and the row's `sm` actions at the end,
+  on the first line's baseline, at least 40 tall (44 on touch and under 720). Under 720 the rows that wait are one band, the panel's whole width: a
+  button (`aria-haspopup="dialog"`) that says how many in the app's words at 500 and "Show" in secondary, with the hover wash and the flush −2 ring,
+  which opens them in a bottom sheet titled with the tray's name; a row that only reports (work under way, a connection) stays a row of the tray.
+  Focus is never lost to a row that leaves: the row now at its place takes it (or the one before); after the last the sheet closes by itself and
+  focus goes to the app's field. The tray is a named region, not a live region: the app says a new row through its one `StatusLine`.
+- **The HTML skill** draws none of these: the keyboard's layout, the measured sizes, the foot and the tray are React's alone (they need a script that
+  watches the page, and the skill's pages have no app foot). The skill does take the 44px targets under 720 whatever the pointer.
 
 ### Vertical lines
 
@@ -1536,8 +1592,12 @@ because no whole set had two of three votes; the owner is asked to look at them 
     window's band (see [Display type](#display-type)).
   - `--basalt-sticky-offset`: `size-header` plus `env(safe-area-inset-top)`. It is the `top` of anything sticky under the bar; with
     `space-4` added it is the page's `scroll-padding-top`, so an anchor lands below the bar.
-  - `--basalt-bottom-offset`: `size-tab-bar` plus `env(safe-area-inset-bottom)` under 720 in an app with a tab bar, else 0. It is the
-    page's bottom padding and where the toast stack sits.
+  - `--basalt-bottom-offset`: `size-tab-bar` plus `env(safe-area-inset-bottom)` under 720 in an app with a tab bar, else 0 (and 0 while an
+    on-screen keyboard is up: the bar is covered). It is the page's bottom padding and where the toast stack sits.
+  - `--basalt-pinned-top` and `--basalt-pinned-bottom`: the measured form (see [The keyboard and what is pinned](#the-keyboard-and-what-is-pinned)),
+    what really covers each edge, while a page opts in.
+  - `--basalt-keyboard-inset`, `--basalt-viewport-top` and `--basalt-viewport-height`: while an on-screen keyboard is up, what it covers at the
+    bottom, where what is seen starts, and how tall it is.
 - **Breakpoints in CSS** are range syntax with the number written and a lint exception that names the token, because a media or
   container query cannot read a custom property: `@media (width < 720px)`, `@container (width < 480px)`. Range syntax means there is no
   719/719.98 pair to keep in step and no gap on a fractional viewport. Components answer their **own** width (`@container`); pages

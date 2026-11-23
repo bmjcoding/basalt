@@ -217,6 +217,51 @@ None of these changes how anything looks: each is an existing look or rule, expo
 
 **A page with its own sticky bar.** A page with `SiteHeader` or `AppHeader` gets `scrollbar-gutter: stable` and a `scroll-padding-top` of the bar plus `space-4` (`--basalt-sticky-offset` + `--basalt-space-4`: 72px with no inset), so an anchor or a focused control lands below the bar. A page that draws its own sticky bar gets the same by putting the class `basalt-sticky-bar` on it: `<header className="basalt-chrome basalt-sticky-bar">`. The offset is the one property, `--basalt-sticky-offset` (the bar's height plus the top safe area: 56 plus the inset by default); a bar of another height sets it on the root (`:root { --basalt-sticky-offset: calc(80px + env(safe-area-inset-top, 0px)); }`) and the landing follows, with the same step. The bar's own contents take a scroll margin as deep as that padding, so a Tab into the bar from a scrolled page holds the page still (the padding alone scrolls it): this applies to `SiteHeader`, `AppHeader` and `basalt-sticky-bar`. The app sidebar is not in that rule (it scrolls its own list), so its brand and first row still scroll the page a little when focused from a scrolled position.
 
+## The phone and what is pinned
+
+| Part | What it is |
+|---|---|
+| `AppShell` `foot` | A foot pinned to the bottom of the content column (a message field, an action bar) that holds still: on a short page it rests at the window's bottom, on a long page it sticks there while the page scrolls under it. Under 720 it sits on the tab bar; while an on-screen keyboard is up, on the keyboard. A solid band on `surface-page` with a divider on top, its contents on the page's width and edges; never taller than the window less what is pinned at the top and one 44px row (then it scrolls, and a `Tray` in it gives way first). With a foot the shell measures what is pinned (`usePinnedEdges`), so focus and the toast stack stay clear of it. |
+| `Tray`, `TrayRow` | The rows that wait on the reader, docked where they work (above a field, at a page's head): a level-1 panel of rows from 720, each `mark`, words (they wrap, never cut) and `actions` on the first line's baseline, 40 tall (44 on touch and under 720). `label` names the region and the phone sheet's title; `summary(count)` is what the phone band says. Under 720 the rows that wait are one band (`aria-haspopup="dialog"`, `showLabel` "Show") that opens them in a bottom sheet; a `TrayRow stay` (work under way, a connection) stays a row of the tray. Focus is never lost to a row that leaves: the row now at its place takes it, and after the last the sheet closes and focus goes to `returnFocus` (the field). Not a live region: say a new row through the app's `StatusLine`. |
+| `useScreenKeyboard()`, `useScreenKeyboardLayout()` | An on-screen keyboard (iOS, iPadOS, Chrome and Edge on Android) covers the window's bottom and only the visual viewport shrinks. While one is up the root has `data-screen-keyboard` and `--basalt-keyboard-inset`, `--basalt-viewport-top` and `--basalt-viewport-height`; the tab bar and the phone's status bar are covered (not drawn), and the foot, sheets, dialogs, the command menu and the toasts are laid out on what is seen. Basalt's modals, `AppShell`, `TabBar` and `ToastProvider` install it themselves; `useScreenKeyboardLayout()` installs it for an app's own fixed parts, and `useScreenKeyboard()` also returns `{ open, inset, top, height }` live. Popups anchored to a field are placed by Base UI against the visual viewport already. |
+| `usePinnedEdges(enabled?)` | The measured form of what is pinned. Mark the app's own pinned element `data-pinned-edge="top"` or `"bottom"` (Basalt's bars, `ListBand`, the tab bar, the status bar and the foot carry it); while a component calls this the root carries `data-pinned-measured`, `--basalt-pinned-top` and `--basalt-pinned-bottom` (the heights of what is sticky or fixed and drawn now), the scroll padding follows them (WCAG 2.4.11) and the toast stack sits above what is at the bottom. **When the scroller is an element**, the values are written on it, not the root: a sticky part counts for the box it sticks in (its nearest ancestor that clips overflow), that box gets `data-pinned-measured` and the same scroll padding, and while a keyboard is up every scroll owner (that box, or any element marked `data-scroll-owner`) carries its own `--basalt-keyboard-inset`, `--basalt-viewport-top` and `--basalt-viewport-height`. A part inside it reads `var(--basalt-pinned-top)` and the rest as its owner's, by inheritance. |
+
+```tsx
+// A support inbox: a reply field in the foot, and what waits on the agent above it.
+<AppShell brand={brand} brandLabel="Desk home" sidebar={nav} header={<AppHeader title="Ticket 1042" />} tabBar={tabs}
+  foot={<>
+    <Tray label="Waiting on you" summary={(n) => `${n} waiting on you`} returnFocus={reply}>
+      {asks.map((ask) => (
+        <TrayRow key={ask.id} mark={<Badge variant="plain" status="pending">Waiting</Badge>} actions={<Button size="sm" variant="primary" onClick={() => answer(ask)}>Answer</Button>}>
+          {ask.words}
+        </TrayRow>
+      ))}
+    </Tray>
+    <Input ref={reply} aria-label="Reply" />
+  </>}
+>
+  {thread}
+</AppShell>
+
+// A build pipeline: an approval that waits, and a run that only reports, on a page with its own strip under the bar.
+function Pipeline() {
+  usePinnedEdges();
+  return (
+    <>
+      <div className="run-strip" data-pinned-edge="top">Build 412 · Running</div>
+      <Tray label="Needs your review" summary={(n) => `${n} to review`}>
+        <TrayRow mark={<Badge variant="plain" status="pending">Approval</Badge>} actions={<Button size="sm">Review</Button>}>Deploy build 412 to production</TrayRow>
+        <TrayRow stay mark={<Spinner variant="braille" />}>Build 413 is running its tests</TrayRow>
+      </Tray>
+    </>
+  );
+}
+```
+
+**Targets under 720.** Under 720 the touch sizes apply whatever the pointer: a phone-width window with a mouse draws the phone's 44px controls, rows and link boxes. Text entry stays 16px only on a coarse pointer (it is there to stop iOS zooming). A standalone `Link` keeps its line and its 44px box; its words are a label raised over its neighbours' boxes, so links stacked one per line never take each other's taps.
+
+**A toast that echoed the page.** A toast whose only `home` is `"page"` closes when the page changes without a reload: `useRouteFocus` says so, or `useToast().pageChanged()` for an app with its own router. The only copy, and a toast with a lasting home, stay.
+
 ## Forms and tasks
 
 ```tsx

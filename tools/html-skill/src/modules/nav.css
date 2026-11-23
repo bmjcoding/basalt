@@ -109,7 +109,7 @@
     .nav[data-glide] .nav-item .nav-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < %bp-md%) {
     .nav { --_nav-height: max(var(--basalt-space-12), var(--basalt-size-tap-min)); }
   }
 

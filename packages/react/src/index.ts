@@ -220,6 +220,11 @@ export type { SiteForm, SitePhase, SitePhaseOptions, SitePhaseState } from "./us
 export { AppHeader, AppShell } from "./app-shell";
 export type { AppHeaderProps, AppShellProps } from "./app-shell";
 export { TabBar, TabBarItem, TabBarMore } from "./tab-bar";
+export { Tray, TrayRow } from "./tray";
+export type { TrayProps, TrayRowProps } from "./tray";
+export { useScreenKeyboard, useScreenKeyboardLayout } from "./screen-keyboard";
+export type { ScreenKeyboardState } from "./screen-keyboard";
+export { usePinnedEdges } from "./pinned-edges";
 export type { TabBarItemProps, TabBarMoreProps, TabBarProps } from "./tab-bar";
 export { MorphIcon } from "./morph-icon";
 export type { MorphIconProps } from "./morph-icon";

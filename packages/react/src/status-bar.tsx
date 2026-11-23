@@ -108,7 +108,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the message's identity
   }, [key, error]);
   return (
-    <footer {...props} aria-label={label} className={join("basalt-status-bar", className)}>
+    <footer {...props} aria-label={label} data-pinned-edge="bottom" className={join("basalt-status-bar", className)}>
       {start ? <div className="basalt-status-bar-start">{start}</div> : null}
       {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
       <p

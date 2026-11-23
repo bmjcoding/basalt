@@ -105,7 +105,8 @@
   .basalt-toast,
   .basalt-command-page,
   .basalt-command-pane,
-  .basalt-framed-frame {
+  .basalt-framed-frame,
+  .basalt-tray {
     border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
     border-top-color: var(--basalt-border-rim-top);
   }
@@ -471,7 +472,8 @@
   @keyframes basalt-underline-breathe {
     from { text-decoration-color: color-mix(in oklch, currentColor 35%, transparent); }
   }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-text-button:not(:is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table) *)::before {
       content: "";
       position: absolute;
@@ -753,7 +755,8 @@
   /* The push's arrow, drawn only while a list with a preview is narrower than its split. */
   .basalt-menu-item-chevron { display: none; flex: none; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); }
   .basalt-menu-item-chevron:dir(rtl) { transform: scaleX(-1); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-menu-item[data-described] { min-height: max(calc(var(--_plate-height) + var(--_desc-line) + 2 * var(--_plate-inset)), var(--basalt-size-menu-row-touch)); }
   }
   /* A menu with a described row is as wide as its content, up to the popover maximum; the descriptions are cut beyond it. */
@@ -1057,7 +1060,8 @@
     .basalt-link-tab:hover { color: var(--basalt-text-primary); }
   }
   .basalt-link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-link-tab { min-height: var(--basalt-size-tap-min); }
   }
   /* Under 720px wide the row is replaced by a Select of the same links (A15, Castle's form: the prototype hides the row and shows a select there). Both are in
@@ -1171,7 +1175,8 @@
   /* The words may be larger than the 28px they are drawn in (200% text): the segment grows and the group wraps, and nothing overflows. */
   .basalt-theme-choice .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
   .basalt-theme-choice .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
-  @media (pointer: coarse) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
   /* The word's start edge and its reserved 600 width come from the segmented control's own rules (the data-label span, DECISIONS 138 and 139); the chosen word's 600 is also set
      on the button below, because with no script and no data-pressed the right word is chosen from data-theme-choice alone. */
   .basalt-theme-choice .basalt-segment[data-pressed],
@@ -1302,7 +1307,8 @@
     .basalt-nav[data-glide] .basalt-nav-item .basalt-nav-pill { background-color: transparent; transition-duration: var(--basalt-duration-instant); }
   }
 
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-nav { --_nav-height: max(var(--_basalt-nav-row, var(--basalt-space-12)), var(--basalt-size-tap-min)); }
   }
 
@@ -1349,15 +1355,17 @@
      --basalt-sticky-offset (the bar's height plus the top safe area; a bar that is not 56 high sets that one property on the root)
      and the step is space-4. */
   :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) {
+    /* What covers the top: the bar, or what is measured while the page opts in (usePinnedEdges, below). */
+    --_cover-top: var(--basalt-sticky-offset);
     scrollbar-gutter: stable;
-    scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+    scroll-padding-top: calc(var(--_cover-top) + var(--basalt-space-4));
   }
   /* What sits in the bar sits inside that scroll padding, so focusing it (a Tab into the bar from a scrolled page) would scroll the page
      until it cleared the padding. A scroll margin as negative as the padding is deep keeps what is in the bar where it is; an anchor
      still lands at the padding, because only the things in the bar take the margin. The app sidebar is not in this rule: it scrolls
      its own list, and a margin this deep could hide a row that scroll should have brought into view. */
   :is(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) * {
-    scroll-margin-top: calc(-1 * (var(--basalt-sticky-offset) + var(--basalt-space-4)));
+    scroll-margin-top: calc(-1 * (var(--_cover-top, var(--basalt-sticky-offset)) + var(--basalt-viewport-top, var(--basalt-space-0)) + var(--basalt-space-4)));
   }
 
   /* The skip link: the first element of the page, unseen until it has focus. It leaves the flow, so it floats as a tooltip does: level 3,
@@ -1399,7 +1407,8 @@
   .basalt-skip-link:hover { text-decoration-color: currentColor; }
   .basalt-skip-link:focus { transform: none; }
   .basalt-skip-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
   }
   @media print {
@@ -1574,7 +1583,8 @@
   .basalt-site-links[data-orientation="column"] { margin-inline-start: 0; }
   .basalt-site-links[data-orientation="column"] .basalt-site-links-list { flex-direction: column; align-items: flex-start; }
   .basalt-site-links[data-hang] { margin-inline-start: calc(-1 * var(--_hang, var(--basalt-space-0))); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-site-links[data-size="sm"] .basalt-site-link { min-height: var(--basalt-size-tap-min); }
   }
 
@@ -2223,7 +2233,8 @@
   .basalt-table-container[data-row-density="compact"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-control-md); }
   .basalt-table-container[data-row-density="comfortable"] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
   /* A touch row is 44px whatever the density: this matches the density rules' specificity and comes after them. */
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-table td,
     .basalt-table tbody th[scope="row"],
     .basalt-table-container[data-row-density] .basalt-table :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
@@ -2292,7 +2303,8 @@
   .basalt-table[data-fixed] thead th { height: var(--_head-h); }
   /* A link, or anything the app puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
   .basalt-table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
 
@@ -2591,7 +2603,8 @@
   .basalt-chip[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
   .basalt-chip[data-disabled] .basalt-chip-seat { color: var(--basalt-text-disabled); }
   .basalt-chip[data-disabled][data-checked] { background: transparent; }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-chip { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-base-size); }
     /* The target is 44px; rows sit 8px apart, so targets meet and never overlap. The box is placed against the chip's padding box, which is the hairline inside the
        border on every side, so the inset takes the hairline back: 36 less 2, plus 5 above and 5 below, is 44. */
@@ -2604,7 +2617,8 @@
   .basalt-chip[data-size="4xl"] { height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); }
   .basalt-chip[data-size="5xl"] { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
   .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"]) { border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-chip:is([data-size="2xl"], [data-size="3xl"], [data-size="4xl"], [data-size="5xl"])::before { content: none; }
   }
 
@@ -2730,7 +2744,8 @@
   .basalt-option-chip[data-unavailable], .basalt-option-chip[data-disabled] { color: var(--basalt-text-disabled); border-color: var(--basalt-border-divider); cursor: not-allowed; }
   .basalt-option-chip[data-unavailable] .basalt-option-chip-seat, .basalt-option-chip[data-disabled] .basalt-option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
   .basalt-option-chip[data-disabled][data-checked] { background: transparent; }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-option-chip { min-height: max(var(--_basalt-control-2xl, var(--basalt-size-control-2xl)), var(--basalt-size-tap-min)); }
   }
 
@@ -3130,7 +3145,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   /* On touch a one-line entry is at least 44 tall with its line centred (12 above and 12 below; its plate stays 40); a two-line entry is 58 already. */
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-notification { min-height: var(--basalt-size-tap-min); align-content: center; }
   }
   .basalt-notification::before {
@@ -3914,7 +3930,8 @@
   .basalt-description-details[data-missing] { color: var(--basalt-text-tertiary); }
   /* On touch a link in a value is a 44 by 44 box (the skill's coarse-pointer rule for a standalone link). The negative block margin
      makes its margin box one line tall, so a linked value sits exactly like an unlinked one and the row stays 40px: only the hit box grows. */
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-description-details a { display: inline-flex; align-items: center; min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); margin-block: min(calc(0 * 1lh), calc((1lh - var(--basalt-size-tap-min)) / 2)); }
   }
   /* size-breakpoint-container (480px): a container query cannot read a token */
@@ -4148,7 +4165,8 @@
     }
     .basalt-chart-table tbody tr:hover .basalt-chart-not-observed { color: var(--basalt-text-secondary); }
   }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-chart-table tbody th { height: var(--basalt-size-tap-min); }
   }
   /* size-breakpoint-container (480px): a container query cannot read a token */
@@ -4235,8 +4253,12 @@
   .basalt-phase-calls[data-marks] .basalt-phase-call i { display: block; background: var(--basalt-text-tertiary); }
   .basalt-phase-calls[data-marks] .basalt-phase-call[data-changed] i { width: var(--basalt-space-2); height: var(--basalt-space-2); background: var(--basalt-text-primary); }
   .basalt-phase-calls[data-marks] .basalt-phase-call:has(input:checked) i { background: var(--basalt-text-primary); }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-phase-call { min-height: var(--basalt-size-tap-min); }
+  }
+  /* A finger steps the marks with previous and next; a mouse still takes a mark. */
+  @media (pointer: coarse) {
     .basalt-phase-calls[data-marks] .basalt-phase-call { pointer-events: none; }
   }
   .basalt-phase-steps { display: grid; gap: var(--basalt-space-2); }
@@ -4431,10 +4453,10 @@
     }
   }
 
-  /* A touch target stays at least 44px even in compact mode. Labels provide the target for
-     choices without enlarging their checkbox/radio/switch glyphs. Native text entry is 16px
-     on touch, preventing iOS from zooming the viewport when the keyboard opens. */
-  @media (pointer: coarse) {
+  /* A touch target stays at least 44px even in compact mode, on a coarse pointer and in any window under 720 (the phone's layout is the
+     touch layout, whatever the pointer). Labels provide the target for choices without enlarging their checkbox/radio/switch glyphs. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-button,
     .basalt-input,
     .basalt-select-trigger,
@@ -4446,9 +4468,6 @@
       min-width: var(--basalt-size-tap-min);
     }
     .basalt-menu-item { height: max(calc(var(--_plate-height) + 2 * var(--_plate-inset)), var(--basalt-size-menu-row-touch)); }
-    .basalt-input[data-size],
-    .basalt-input.basalt-textarea,
-    .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
     /* Radius follows the box as it is drawn (decision 138, E1): these are 44 here whatever size they were set at, so they are 8, as the narrow
        bar's 44px buttons are. A segment keeps its 6: it is nested in a track that is 8 with 2 of padding. */
     .basalt-button,
@@ -4459,6 +4478,12 @@
     .basalt-select-trigger[data-size] { border-radius: var(--basalt-radius-md); }
     /* A horizontal tab is drawn at 44 here (its top corners, as the 48 and 56 tabs have). The vertical tab is 8 already, and a taller tab keeps its own. */
     .basalt-tab { border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; }
+  }
+  /* Text entry is 16px on touch, so iOS does not zoom when the keyboard opens. A pointer that is not a finger keeps the control's own size. */
+  @media (pointer: coarse) {
+    .basalt-input[data-size],
+    .basalt-input.basalt-textarea,
+    .basalt-select-trigger[data-size] { font-size: var(--basalt-text-md-size); }
   }
 
   /* ---- Forms and editable choices ---- */
@@ -4529,7 +4554,9 @@
     padding: var(--basalt-space-6);
     padding-top: max(var(--basalt-space-6), env(safe-area-inset-top));
     padding-right: max(var(--basalt-space-6), env(safe-area-inset-right));
-    padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom));
+    /* The bottom padding: space-6, or the home indicator's safe area where it is deeper. An on-screen keyboard covers the safe area, so there it is space-6. */
+    --_sheet-floor: max(var(--basalt-space-6), env(safe-area-inset-bottom));
+    padding-bottom: var(--_sheet-floor);
     padding-left: max(var(--basalt-space-6), env(safe-area-inset-left));
     background: var(--_surface, var(--basalt-surface-overlay));
     color: var(--basalt-text-primary);
@@ -4545,7 +4572,7 @@
   .basalt-sheet[data-side="right"] { right: 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
   .basalt-sheet[data-side="left"] { left: 0; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-  .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); padding-bottom: max(var(--basalt-space-6), env(safe-area-inset-bottom)); }
+  .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); padding-bottom: var(--_sheet-floor); }
   .basalt-sheet[data-side="right"][data-starting-style], .basalt-sheet[data-side="right"][data-ending-style] { transform: translateX(100%); }
   .basalt-sheet[data-side="left"][data-starting-style], .basalt-sheet[data-side="left"][data-ending-style] { transform: translateX(-100%); }
   .basalt-sheet[data-side="bottom"][data-starting-style], .basalt-sheet[data-side="bottom"][data-ending-style] { transform: translateY(100%); }
@@ -4555,17 +4582,18 @@
   .basalt-sheet > .basalt-dialog-actions,
   .basalt-sheet > .basalt-form > .basalt-dialog-actions {
     position: sticky;
-    bottom: calc(-1 * max(var(--basalt-space-6), env(safe-area-inset-bottom)));
+    bottom: calc(-1 * var(--_sheet-floor));
     margin-top: auto;
     margin-inline: calc(-1 * var(--basalt-space-6));
-    margin-bottom: calc(-1 * max(var(--basalt-space-6), env(safe-area-inset-bottom)));
-    padding: var(--basalt-space-4) var(--basalt-space-6) max(var(--basalt-space-6), env(safe-area-inset-bottom));
+    margin-bottom: calc(-1 * var(--_sheet-floor));
+    padding: var(--basalt-space-4) var(--basalt-space-6) var(--_sheet-floor);
     background: var(--_surface, var(--basalt-surface-overlay));
     box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
   }
   .basalt-sheet[data-ending-style], .basalt-sheet-backdrop[data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); transition-timing-function: var(--basalt-ease-in); }
 
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     /* Two classes, as the 40px rule it replaces: a single class is outranked by it and never applied, leaving text under the 44px caret. */
     .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
     .basalt-number-group .basalt-button { min-width: var(--basalt-size-tap-min); }
@@ -4830,7 +4858,8 @@
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   }
-  @media (pointer: coarse) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* The listbox on touch has no hover to open a plate, so its options show whole at rest: the name and the detail wrap, and the gutter's mark and the trailing
      word sit on the first line (the owner, DECISIONS 168: "the wrap looks fine on 1"). Nothing moves: this is the resting layout. */
   @media (hover: none) {
@@ -4887,7 +4916,8 @@
     .basalt-open-row:not([data-off]):hover::before { background: var(--basalt-state-hover); }
     .basalt-open-row:not([data-off]):hover .basalt-open-into { color: var(--basalt-text-primary); }
   }
-  @media (pointer: coarse) { .basalt-open-row { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-open-row { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the list is a column with no cursor plate */
   @media (width < 720px) { .basalt-open-row[data-cursor], .basalt-open-list:focus-within .basalt-open-row[data-cursor] { background: none; } }
 
@@ -5057,7 +5087,8 @@
   .basalt-social-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
   /* On touch each link is at least 44 by 44 as real layout, and the 16px gap between links becomes 8px of hit area on either side, so a
      wrapped line touches the next and never overlaps it. The row's negative margin keeps the first glyph on the content edge. */
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-social-links:not([data-icon-only]) { gap: 0; margin-inline: calc(-1 * var(--basalt-space-2)); }
     .basalt-social-links:not([data-icon-only]) .basalt-social-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); justify-content: center; padding-inline: var(--basalt-space-2); }
   }
@@ -5150,7 +5181,8 @@
     .basalt-list-band-row > .basalt-list-band-range { display: none; }
     .basalt-list-band-size { margin-inline-start: auto; }
   }
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-md (720px); a container query cannot read a custom property */
     @container (width < 720px) {
       .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
@@ -5357,7 +5389,8 @@
     .basalt-columns > * { grid-column: 1 / -1; }
   }
 
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
     .basalt-page-link { border-radius: var(--basalt-radius-md); }
     .basalt-pagination .basalt-button, .basalt-pagination-gap { min-width: var(--basalt-size-tap-min); }
@@ -5368,7 +5401,8 @@
      caption, prose, a field's hint or error, a callout's text) keeps its line, as WCAG 2.5.8 allows for an inline target: a 44px box would
      lie over the lines above and below it, and two links on neighbouring lines would steal each other's taps. A link in a table cell,
      a breadcrumb, a page number or a description value has its own rule. */
-  @media (pointer: coarse) {
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
     .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) {
       position: relative;
       display: inline-flex;
@@ -5386,6 +5420,13 @@
       width: max(100%, var(--basalt-size-tap-min));
       transform: translateX(-50%);
     }
+    /* Links stacked one per line: each 44px box reaches 10px into the next link's line, and the later box is painted over the earlier link's
+       words, so a tap low on one link's words went to the link under it. The words are a label raised over every box (z-index 1, within the
+       page's own stacking context; a box is never raised), so a link's own line is always its own and a box only takes the room no words are
+       in. Nothing moves and nothing is drawn. A description value's link and a TextButton take the same rule. */
+    .basalt-link:not(.basalt-page-link, .basalt-link-go, :is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table, .basalt-breadcrumbs) *) > .basalt-link-label,
+    .basalt-description-details a > .basalt-link-label,
+    .basalt-text-button:not(:is(p, li, dd, figcaption, blockquote, .basalt-prose, .basalt-text, .basalt-field-description, .basalt-field-error, .basalt-callout-text, .basalt-description-details, .basalt-table) *) > .basalt-text-button-label { position: relative; z-index: 1; }
   }
 
   /* Borders and state markers remain structural when system high-contrast colours replace
@@ -5899,7 +5940,8 @@
   @media (hover: hover) { .basalt-event-line:hover::before { background: var(--basalt-state-hover); } .basalt-event-line:hover .basalt-event-time, .basalt-event-line:hover .basalt-event-detail { color: var(--basalt-text-secondary); } }
   /* V3: a focusable row takes the control ring at +2, outside the line; no wash on focus. The list keeps space-1-5 from its own edge. */
   .basalt-event-line:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  @media (pointer: coarse) { .basalt-event-line { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-event-line { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* V4: the dot's seat is always there; it is filled only while the line is new, and the line's ink steps to primary. No weight change. */
   .basalt-event-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); margin-top: calc((var(--basalt-size-code-line-height) - var(--basalt-size-dot)) / 2 + var(--basalt-space-0-5)); border-radius: var(--basalt-radius-full); }
   .basalt-event-line[data-unread] .basalt-event-dot { background: var(--basalt-text-primary); }
@@ -5929,7 +5971,8 @@
   button.basalt-source-stamp { min-height: var(--basalt-size-control-xs); padding-inline: var(--basalt-space-1-5); border-radius: var(--basalt-radius-sm); cursor: pointer; }
   @media (hover: hover) { button.basalt-source-stamp:hover { color: var(--basalt-text-primary); } }
   button.basalt-source-stamp:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  @media (pointer: coarse) { button.basalt-source-stamp { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { button.basalt-source-stamp { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* Waiting and unreachable, in words only: both sentences stand in one cell (Reserve), so the band keeps its height. */
   .basalt-source-state { margin: 0; color: var(--basalt-text-secondary); }
   .basalt-source-state > .basalt-reserve { display: grid; }
@@ -6115,6 +6158,204 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) and (pointer: fine) {
     .basalt-form-grid .basalt-choice { min-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
+  }
+
+  /* ---- What is pinned over the page, measured (usePinnedEdges) ----
+     `--basalt-sticky-offset` and `--basalt-bottom-offset` are fixed: the bar, and the tab bar under 720. A page that pins more (a strip under the bar,
+     a list's band from 720, a foot) opts into the measured form, and the root then carries `data-pinned-measured` with `--basalt-pinned-top` and
+     `--basalt-pinned-bottom`, the heights of every `[data-pinned-edge]` element that is pinned now. They take the fixed values' place in the root's
+     scroll padding, so a control that focus brings into view is never under them (WCAG 2.4.11), and the toast stack sits above what is at the bottom. */
+  :root[data-pinned-measured] {
+    --_cover-top: var(--basalt-pinned-top);
+    --_cover-bottom: var(--basalt-pinned-bottom);
+    scroll-padding-top: calc(var(--basalt-pinned-top) + var(--basalt-space-4));
+    scroll-padding-bottom: calc(var(--basalt-pinned-bottom) + var(--basalt-space-4));
+  }
+  :root[data-pinned-measured] .basalt-toast-viewport { bottom: max(calc(var(--basalt-pinned-bottom) + var(--basalt-space-4)), env(safe-area-inset-bottom)); }
+  /* An element that scrolls pinned parts of its own (a pane, a column the app scrolls) carries its own measured values, and pads itself the same way. */
+  [data-pinned-measured]:not(:root) {
+    scroll-padding-top: calc(var(--basalt-pinned-top) + var(--basalt-space-4));
+    scroll-padding-bottom: calc(var(--basalt-pinned-bottom) + var(--basalt-space-4));
+  }
+
+  /* ---- The app's foot (AppShell `foot`): a band pinned to the column's bottom that holds still ----
+     The column is at least the window's height and the page takes the room between the header and the foot, so on a short page the foot rests at
+     the window's bottom, and on a long page it sticks there while the page scrolls under it: it is in the same place either way. Under 720 it sits on
+     the tab bar (its margin keeps that room in the flow, so at the page's end it rests where it sticks). A solid band on surface-page with a divider on
+     top, as the status bar is (the header is the one smoked surface); what it holds is the page's width, on the page's own edges. It is never taller
+     than the window less what covers the top and one 44px row of the page, and past that it scrolls inside; a tray in it gives way first. */
+  .basalt-app-shell[data-foot] .basalt-app-column {
+    display: flex;
+    flex-direction: column;
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+    min-height: 100dvh;
+  }
+  .basalt-app-shell[data-foot] .basalt-app-main { flex: 1 0 auto; padding-bottom: var(--basalt-space-6); }
+  .basalt-app-foot {
+    position: sticky;
+    bottom: var(--basalt-bottom-offset);
+    z-index: var(--basalt-layer-sticky);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--basalt-space-2);
+    margin-bottom: var(--basalt-bottom-offset);
+    /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+    max-height: calc(100dvh - var(--_cover-top, var(--basalt-sticky-offset)) - var(--basalt-bottom-offset) - var(--basalt-size-tap-min));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* The home indicator's safe area is the foot's to keep where no tab bar holds it. */
+    padding: var(--basalt-space-3) var(--_pad-right) max(var(--basalt-space-3), calc(var(--_inset-bottom) - var(--basalt-bottom-offset))) var(--_pad-left);
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    background: var(--basalt-surface-page);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-app-foot > * { flex: none; box-sizing: border-box; width: 100%; max-width: calc(var(--basalt-size-page-width) - var(--_pad-left) - var(--_pad-right)); min-width: 0; }
+  .basalt-app-foot > .basalt-tray { flex: 0 1 auto; min-height: var(--basalt-size-tap-min); overflow-y: auto; overscroll-behavior: contain; }
+  @media print { .basalt-app-foot { position: static; max-height: none; overflow: visible; } }
+  @media (forced-colors: active) { .basalt-app-foot { border-top-color: CanvasText; } }
+
+  /* ---- Tray (a docked attention region): the rows that wait on the reader ----
+     From 720 one level-1 panel (the rim, radius 12), a row each on a divider. A row is its mark, its words and its actions on the first line's
+     baseline; the words wrap and are never cut; at least 40 tall, 44 on touch and under 720. Under 720 the rows that wait are one band, a button
+     that says how many and opens them in a bottom sheet (`aria-haspopup="dialog"`); the band is the panel's whole width, so its focus is the
+     flush −2 ring, and its hover is the wash. A row that only reports (`data-stay`) stays a row of the tray. */
+  .basalt-tray {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    border-radius: var(--basalt-radius-lg);
+    background: var(--_surface, var(--basalt-surface-raised));
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+  }
+  .basalt-tray-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    align-content: center;
+    gap: var(--basalt-space-2);
+    min-width: 0;
+    min-height: var(--basalt-size-control-xl);
+    padding: var(--basalt-space-1-5) var(--basalt-space-2) var(--basalt-space-1-5) var(--basalt-space-3);
+    font-size: var(--basalt-text-sm-size);
+    line-height: var(--basalt-text-sm-line-height);
+  }
+  .basalt-tray-row + .basalt-tray-row { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-tray-mark { display: inline-flex; flex: none; align-items: baseline; }
+  .basalt-tray-words { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+  .basalt-tray-actions { display: inline-flex; flex: none; align-items: baseline; gap: var(--basalt-space-1); }
+  .basalt-tray-band { display: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-tray-row { min-height: var(--basalt-size-tap-min); }
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the rows that wait are one band */
+  @media (width < 720px) {
+    .basalt-tray > .basalt-tray-row:not([data-stay]) { display: none; }
+    .basalt-tray-band {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--basalt-space-2);
+      width: 100%;
+      min-height: var(--basalt-size-tap-min);
+      margin: 0;
+      padding: 0 var(--basalt-space-3);
+      border: 0;
+      border-radius: inherit;
+      background-color: transparent;
+      color: var(--basalt-text-primary);
+      font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+      text-align: start;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+    }
+    .basalt-tray-band + .basalt-tray-row { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  }
+  .basalt-tray-band:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  @media (hover: hover) { .basalt-tray-band:hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); } }
+  .basalt-tray-summary { min-width: 0; font-weight: var(--basalt-font-weight-medium); }
+  .basalt-tray-show { flex: none; color: var(--basalt-text-secondary); }
+  .basalt-tray-sheet-rows { display: grid; grid-template-columns: minmax(0, 1fr); padding-block: var(--basalt-space-2); }
+  .basalt-tray-sheet-rows > .basalt-tray-row { padding-inline: 0; }
+  @media (forced-colors: active) {
+    .basalt-tray { border-color: CanvasText; }
+    .basalt-tray-band:hover { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    .basalt-tray-band:hover .basalt-tray-show { color: HighlightText; }
+  }
+
+  /* ---- An on-screen keyboard is up (useScreenKeyboardLayout) ----
+     A phone's keyboard covers the window's bottom and leaves the layout viewport as it was; only the visual viewport shrinks. While one is up the
+     root carries `data-screen-keyboard` with `--basalt-keyboard-inset` (what it covers at the bottom), `--basalt-viewport-top` (how far what is seen
+     sits below the window's top) and `--basalt-viewport-height` (what is seen), and what is fixed to the window is laid out on what is seen. The tab
+     bar and the phone's status bar are chrome and are covered, as a platform's own bars are; what is the task (the foot, a sheet, a dialog, the
+     command menu, the toasts) rides above the keyboard. With no keyboard none of this applies. Popups anchored to a field (a select, a combobox, a
+     menu) are Base UI's: their placement already reads the visual viewport, and flips or shrinks above the keyboard. */
+  :root[data-screen-keyboard] {
+    /* The tab bar is covered, and so is the bottom safe area. */
+    --basalt-bottom-offset: var(--basalt-space-0);
+    scroll-padding-top: calc(var(--_cover-top, var(--basalt-space-0)) + var(--basalt-viewport-top) + var(--basalt-space-4));
+    scroll-padding-bottom: calc(var(--_cover-bottom, var(--basalt-space-0)) + var(--basalt-keyboard-inset) + var(--basalt-space-4));
+  }
+  /* A scroll owner (an element scroller: `data-scroll-owner`, or one measuring its own pinned parts) carries its own share of the keyboard in the same
+     three properties, and pads itself by it as the root does. */
+  :root[data-screen-keyboard] [data-pinned-measured]:not(:root) {
+    scroll-padding-top: calc(var(--basalt-pinned-top) + var(--basalt-viewport-top) + var(--basalt-space-4));
+    scroll-padding-bottom: calc(var(--basalt-pinned-bottom) + var(--basalt-keyboard-inset) + var(--basalt-space-4));
+  }
+  /* An owner that measures nothing pins nothing of its own: the root's measured values it would inherit are not its edges. */
+  :root[data-screen-keyboard] [data-scroll-owner]:not(:root, [data-pinned-measured]) {
+    scroll-padding-top: calc(var(--basalt-viewport-top) + var(--basalt-space-4));
+    scroll-padding-bottom: calc(var(--basalt-keyboard-inset) + var(--basalt-space-4));
+  }
+  :root[data-screen-keyboard] .basalt-tabbar { display: none; }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the status bar is fixed at the foot */
+  @media (width < 720px) {
+    :root[data-screen-keyboard] .basalt-status-bar { display: none; }
+  }
+  /* The bar and what sticks under it stay at the top of what is seen. */
+  :root[data-screen-keyboard] .basalt-chrome:not(.basalt-site-slot > .basalt-site-header),
+  :root[data-screen-keyboard] .basalt-site-slot > .basalt-site-header[data-form="bar"] { top: var(--basalt-viewport-top); }
+  :root[data-screen-keyboard] .basalt-list-band { top: calc(var(--basalt-sticky-offset) + var(--basalt-viewport-top)); }
+  :root[data-screen-keyboard] .basalt-back-to-top-dock { top: calc(var(--basalt-sticky-offset) + var(--_band-height, var(--basalt-space-0)) + var(--basalt-viewport-top) + var(--basalt-space-2)); }
+  :root[data-screen-keyboard] .basalt-app-sidebar { top: var(--basalt-viewport-top); height: var(--basalt-viewport-height); }
+  /* The foot rides on the keyboard; its margin keeps that room at the page's end, so the page's last line can come out from under it. */
+  :root[data-screen-keyboard] .basalt-app-foot {
+    bottom: var(--basalt-keyboard-inset);
+    margin-bottom: var(--basalt-keyboard-inset);
+    max-height: calc(var(--basalt-viewport-height) - var(--_cover-top, var(--basalt-sticky-offset)) - var(--basalt-size-tap-min));
+    padding-bottom: var(--basalt-space-3);
+  }
+  :root[data-screen-keyboard] .basalt-toast-viewport { bottom: calc(var(--_cover-bottom, var(--basalt-space-0)) + var(--basalt-keyboard-inset) + var(--basalt-space-4)); }
+  /* A sheet is as tall as what is seen and stands on the keyboard, so its foot and its sticky actions stay reachable. */
+  :root[data-screen-keyboard] .basalt-sheet { --_sheet-floor: var(--basalt-space-6); }
+  :root[data-screen-keyboard] .basalt-sheet:is([data-side="right"], [data-side="left"]) { top: var(--basalt-viewport-top); bottom: var(--basalt-keyboard-inset); }
+  :root[data-screen-keyboard] .basalt-sheet[data-side="bottom"] { bottom: var(--basalt-keyboard-inset); max-height: calc(var(--basalt-viewport-height) * 0.9); }
+  :root[data-screen-keyboard] .basalt-sheet-foot { padding-bottom: var(--basalt-space-5); }
+  /* A dialog is centred in what is seen; a held form keeps its top while it is seen; the command menu hangs from the top of what is seen. */
+  :root[data-screen-keyboard] .basalt-dialog {
+    top: calc(var(--basalt-viewport-top) + var(--basalt-viewport-height) / 2);
+    max-height: calc(var(--basalt-viewport-height) - 2 * var(--basalt-space-4));
+  }
+  :root[data-screen-keyboard] .basalt-dialog[data-form][data-held] {
+    top: max(var(--_dialog-top), calc(var(--basalt-viewport-top) + var(--basalt-space-4)));
+    max-height: calc(var(--basalt-viewport-top) + var(--basalt-viewport-height) - max(var(--_dialog-top), calc(var(--basalt-viewport-top) + var(--basalt-space-4))) - var(--basalt-space-4));
+  }
+  :root[data-screen-keyboard] .basalt-dialog.basalt-command {
+    top: calc(var(--basalt-viewport-top) + max(var(--basalt-space-4), var(--basalt-viewport-height) * 0.12));
+    /* stylelint-disable-next-line unit-disallowed-list -- 480px is the command panel's height cap, as the skill's palette has it; the nearest tokens (popup max-height plus the input band) would shift it */
+    max-height: min(480px, calc(var(--basalt-viewport-height) - max(var(--basalt-space-4), var(--basalt-viewport-height) * 0.12) - var(--basalt-space-4)));
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it a form is the whole window */
+  @media (width < 720px) {
+    :root[data-screen-keyboard] .basalt-dialog[data-form],
+    :root[data-screen-keyboard] .basalt-dialog[data-form][data-held] { inset: var(--basalt-viewport-top) 0 auto; height: var(--basalt-viewport-height); max-height: none; }
   }
 
 }

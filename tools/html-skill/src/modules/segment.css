@@ -29,7 +29,7 @@
   .segment [data-pair] > :last-child { opacity: 0; }
   .segment [aria-pressed="true"] [data-pair] > :first-child { opacity: 0; }
   .segment [aria-pressed="true"] [data-pair] > :last-child { opacity: 1; }
-  @media (pointer: coarse) { .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
 
   /* The sliding pill: segment.js adds one shared pill as the first child and measures the pressed button into --pill-x, --pill-y, --pill-w and
      --pill-h (data-slide marks the group once it has; data-snap places it without a move: the first measurement, a resize, a font arriving).

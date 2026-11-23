@@ -160,7 +160,7 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   return (
     <div className="basalt-list-band-wrap">
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
-      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} className={join("basalt-list-band", className)}>
+      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
           <p className="basalt-list-band-range">{range}</p>
           <Pagination

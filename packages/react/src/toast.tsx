@@ -7,6 +7,8 @@ import * as React from "react";
 import { CloseGlyph } from "./glyphs/close";
 import { Icon } from "./icon";
 import { isApplePlatform } from "./platform";
+import { onPageChange, pageChanged } from "./page-change";
+import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 
@@ -19,7 +21,8 @@ export type ToastStatus = "neutral" | "success" | "warning" | "danger";
  * - `"center"`: the app keeps an entry in the notification center for as long as the action is valid. (`"centre"` is the older spelling of the same value and stays as an alias.)
  * - `"row"`: the thing itself shows it in place (a deleted row's restore control, a saved field's "Saved").
  * - `"key"`: the app binds a key that does the action (pass it as `action.keys` too).
- * - `"page"`: the toast only echoes a change the page already shows ("Copied"). It cannot stand for an action.
+ * - `"page"`: the toast only echoes a change the page already shows ("Copied"). It cannot stand for an action. Its only home is the page, so it
+ *   does not outlive it: when the page changes without a reload (`useRouteFocus`, or `useToast().pageChanged()`), it closes.
  */
 export type ToastHome = "center" | "centre" | "row" | "key" | "page";
 
@@ -260,6 +263,19 @@ function update(c: Controller, id: string, patch: ToastUpdate) {
   else if (settled && actionNews) say(c, c.actionWords(next.action!.label), statusOf(next) === "danger");
 }
 
+/** Only the page it echoed showed this toast's news: it has no other home, and it is not work under way. */
+const echoesPage = (options: ToastOptions) => !options.running && homesOf(options.home).length > 0 && homesOf(options.home).every((home) => home === "page");
+
+/**
+ * The page changed without a reload. A toast whose only home was the page that left echoes something no longer on screen (and over the new
+ * page's controls it only takes taps), so it closes, on screen or still waiting. A toast that is the only copy, or whose home outlives the page
+ * (the notification center, the row, a key), stays: it goes when its own clock or the reader says.
+ */
+function leavePage(c: Controller) {
+  c.queue = c.queue.filter((pending) => !echoesPage(pending.options));
+  for (const [id, entry] of c.items) if (echoesPage(entry.options)) c.api?.close(id);
+}
+
 function close(c: Controller, id: string) {
   if (c.items.has(id)) c.api?.close(id);
   else c.queue = c.queue.filter((pending) => pending.id !== id);
@@ -300,6 +316,8 @@ export function ToastProvider({ children, limit = 3, actionWords = defaultAction
   if (!controller.current) controller.current = createController();
   controller.current.limit = limit;
   controller.current.actionWords = actionWords;
+  const current = controller.current;
+  React.useEffect(() => onPageChange(() => leavePage(current)), [current]);
   return (
     <ControllerContext.Provider value={controller.current}>
       <BaseToast.Provider limit={limit} timeout={0}>
@@ -358,6 +376,8 @@ const ExpandedContext = React.createContext(false);
 
 function ToastStack() {
   const away = useAway();
+  // The stack is fixed to the window's bottom: while an on-screen keyboard is up it sits above the keyboard.
+  useScreenKeyboardLayout();
   return (
     <BaseToast.Viewport
       className="basalt-toast-viewport"
@@ -506,6 +526,11 @@ export interface ToastApi {
   close: (id: string) => void;
   /** Running work, then its result, as one toast. */
   promise: <Value>(work: Promise<Value>, options: ToastPromiseOptions<Value>) => Promise<Value>;
+  /**
+   * Say that the page changed without a reload, for an app whose router does not use `useRouteFocus` (which says it already). Toasts whose only
+   * home was the page close; every other toast stays.
+   */
+  pageChanged: () => void;
 }
 
 /**
@@ -521,6 +546,7 @@ export function useToast(): ToastApi {
       update: (id, patch) => update(controller, id, patch),
       close: (id) => close(controller, id),
       promise: (work, options) => promise(controller, work, options),
+      pageChanged,
     }),
     [controller],
   );

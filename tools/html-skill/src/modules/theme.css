@@ -10,7 +10,7 @@
   .theme-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
   .theme-choice .segment { flex-wrap: wrap; max-width: 100%; }
   .theme-choice .segment button { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
-  @media (pointer: coarse) { .theme-choice .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .theme-choice .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
   /* The word's start edge and its reserved 600 width come from the segment module's rules (the data-label span, DECISIONS 138 and 139); the chosen word's 600 is also set on the button below, because with no script the right word is chosen from data-theme-choice alone. */
   .theme-choice .segment button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   :root[data-theme-choice="system"] .theme-choice [data-value="system"],

@@ -91,7 +91,7 @@ export function SiteHeader({ brand, lockup, brandLabel, homeHref = "/", links = 
   const setRef = React.useMemo(() => merge<HTMLElement>(bar, props.ref), [props.ref]);
   const { top, jump } = useAtTop(!solid);
   const header = (
-    <header {...props} ref={setRef} data-solid={solid ? "" : undefined} data-top={top ? "" : undefined} data-jump={jump ? "" : undefined} className={join("basalt-chrome basalt-site-header", className)}>
+    <header {...props} ref={setRef} data-solid={solid ? "" : undefined} data-top={top ? "" : undefined} data-jump={jump ? "" : undefined} data-pinned-edge="top" className={join("basalt-chrome basalt-site-header", className)}>
       <SiteLockupDefs lockup={lockup}>
         <div className="basalt-site-bar">
           <SiteBrand href={homeHref} label={brandLabel} lockup={lockup}>{brand}</SiteBrand>

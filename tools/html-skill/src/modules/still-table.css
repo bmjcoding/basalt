@@ -14,7 +14,7 @@
   table[data-fixed] thead th { height: var(--_head-h); }
   /* A link, or anything the page puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
   table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (pointer: coarse) { table[data-fixed] { --_head-h: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { table[data-fixed] { --_head-h: var(--basalt-size-tap-min); } }
 
   /* ---- A cut cell can be read (DECISIONS 138 and 139; React's cell peek) ----
      The ellipsis and the row stay. still-table.js makes a cut cell a focus stop (`data-cut`), with the flush-field -2 inset ring, and opens its whole value in place over it on

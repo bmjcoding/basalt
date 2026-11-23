@@ -15,7 +15,7 @@
   td[data-not-observed] { color: var(--basalt-text-tertiary); }
   tr[aria-selected="true"] > td[data-not-observed] { color: var(--basalt-text-secondary); }
   @media (hover: hover) { tbody tr:hover > td[data-not-observed] { color: var(--basalt-text-secondary); } }
-  @media (pointer: coarse) { td, tbody th[scope="row"] { height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { td, tbody th[scope="row"] { height: var(--basalt-size-tap-min); } }
 }
 
 @layer basalt {
@@ -27,7 +27,7 @@
      A touch row is 44px whatever the density: that rule comes after these and matches their specificity. */
   .table-wrap[data-row-density="compact"] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-control-md); }
   .table-wrap[data-row-density="comfortable"] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); }
-  @media (pointer: coarse) { .table-wrap[data-row-density] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < %bp-md%) { .table-wrap[data-row-density] :is(td, tbody th[scope="row"]) { height: var(--basalt-size-tap-min); } }
 
   /* The flat form (React's TableContainer flat; DECISIONS 162, D18b): a table in a card has the card's one box, so the region draws no border, radius, fill or shadow (leave .panel off it).
      The header band keeps its fill; the cells are padded space-2 above and below. A two-line cell (.table-call) is a call in primary at 500 over what it changes in secondary at 400,

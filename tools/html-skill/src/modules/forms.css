@@ -27,7 +27,8 @@
   .input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .input:disabled { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
-  @media (pointer: coarse) { .input { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-md-size); } }
+  /* Text entry is 16px on touch, so iOS does not zoom when the keyboard opens; a mouse under 720 keeps the field's own size. */
+  @media (pointer: coarse) { .input { font-size: var(--basalt-text-md-size); } }
 
   /* ---- Native chrome where Basalt has a design (date and time pickers stay native: Basalt has none) ---- */
 
@@ -36,12 +37,16 @@
   .input[type="number"]::-webkit-inner-spin-button, .input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
   /* The search field's clear button is Basalt's X (Phosphor Bold) in secondary ink, a 24px target (44px on touch). */
   .input[type="search"]::-webkit-search-cancel-button { appearance: none; width: var(--basalt-size-control-xs); height: var(--basalt-size-control-xs); margin: 0; background: var(--basalt-text-secondary); mask: url("%glyph-mask:close%") center / var(--basalt-size-icon-sm) no-repeat; cursor: pointer; }
-  @media (pointer: coarse) { .input[type="search"]::-webkit-search-cancel-button { width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); } }
   /* A file input is a secondary button and its file name in secondary ink. */
   input[type="file"] { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-base); }
   input[type="file"]::file-selector-button { height: var(--basalt-size-control-md); margin: 0 var(--basalt-space-2) 0 0; padding: 0 var(--basalt-space-3); border: var(--basalt-size-hairline) solid var(--basalt-border-hairline); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-1); color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / 1 var(--basalt-font-family-sans); cursor: pointer; }
   input[type="file"]:disabled, input[type="file"]:disabled::file-selector-button { color: var(--basalt-text-disabled); cursor: not-allowed; }
-  @media (pointer: coarse) { input[type="file"]::file-selector-button { min-height: var(--basalt-size-tap-min); } }
+  /* On touch and under 720 the field, the search field's clear button and the file button are 44px targets. */
+  @media (pointer: coarse), (width < %bp-md%) {
+    .input { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
+    .input[type="search"]::-webkit-search-cancel-button { width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); }
+    input[type="file"]::file-selector-button { min-height: var(--basalt-size-tap-min); }
+  }
 
   /* Forced colours drop box-shadow, so the field's boundary becomes a real border. */
   @media (forced-colors: active) {
