@@ -806,7 +806,7 @@ export function columnCount(m: Model): number { return m.type === "sequence" ? m
 // ---- The stacked drawing's plan: routes and gaps from the order alone (1.13) ----
 
 export type StackRoute = "down" | "up" | "trunk" | "rail" | "end-down" | "end-up";
-export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: number[]; exits: number[]; gaps: Record<string, number>; third: boolean }
+export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: number[]; exits: number[]; gaps: Record<string, number>; third: boolean; laneCount: number }
 
 /** The stacked drawing's routes, end lanes and the gap above each card (in px of the space scale), from the author's order. */
 export function stackPlan(m: Model): StackPlan {
@@ -837,7 +837,7 @@ function planStack(m: Model): StackPlan {
   const gutter = ends.length > 0 && (m.type === "data-flow" || !laneOk);
   // Lanes in the gutter, nested (1.7 rule 3): of two overlapping lines the one that travels farther takes the outer lane; equal travel, the
   // earlier is inside. Allocated across each overlapping set: shortest first, each one lane outside every overlapping line already placed,
-  // so no two overlapping lines share a lane. A line that would need a third lane is the development error (`third`).
+  // so no two overlapping lines share a lane. A line that would need a fifth lane is the development error (`third`).
   const travel = (e: MEdge) => { const [a, b] = span(e); return b - a; };
   const lanes = m.edges.map(() => 0);
   let third = false;
@@ -846,9 +846,11 @@ function planStack(m: Model): StackPlan {
     let lane = 0;
     for (const o of placed) if (overlaps(o.e, it.e)) lane = Math.max(lane, lanes[o.k]! + 1);
     lanes[it.k] = lane;
-    if (lane > 1) third = true;
+    // Four lanes at most (DECISIONS 306, 1.3): a fifth is the last resort, no lines and the list open.
+    if (lane > 3) third = true;
     placed.push(it);
   }
+  const laneCount = Math.max(0, ...ends.map(({ k }) => lanes[k]! + 1));
   // Where an end line leaves its card: the middle, or the thirds when two leave one card (the farther one nearer the top going down, nearer the bottom going up).
   const exits = m.edges.map(() => 0.5);
   for (const n of order) {
@@ -880,10 +882,15 @@ function planStack(m: Model): StackPlan {
       }
     });
     if (labelled > 1 || (turnInto && turnFrom)) gap = 64;
+    // Several end lines into one card (1.3) turn space-5 apart: the gap above it grows space-5 for each entry past the first (and below a card for lines
+    // that enter it from below).
+    const downInto = ends.filter(({ e, k }) => routes[k] === "end-down" && m.byId.get(e.to)!.i === b).length;
+    const upInto = ends.filter(({ e, k }) => routes[k] === "end-up" && m.byId.get(e.to)!.i === b - 1).length;
+    gap += 20 * Math.max(0, downInto - 1) + 20 * Math.max(0, upInto - 1);
     gaps[card.id] = gap;
     void above;
   }
-  return { routes, gutter, lanes, exits, gaps, third };
+  return { routes, gutter, lanes, exits, gaps, third, laneCount };
 }
 
 // ---- Swatches: each drawn exactly as its mark ----
@@ -1376,6 +1383,8 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
   // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).
   // Two lanes of turn-backs take space-3 more (call 2).
+  // The end gutter grows by lanes (1.3): lanes × space-3-5 + space-3 (40, 54, 68).
+  if (plan?.gutter && plan.laneCount > 2) style.push(`--_gw:calc(${plan.laneCount} * var(--basalt-space-3-5) + var(--basalt-space-3))`);
   if (oneColumnTurnBacks(m)) style.push(`--_gpad:0px ${turnBackLanes(m).lanes > 1 ? "calc(var(--basalt-space-5) + var(--basalt-space-3))" : "var(--basalt-space-5)"} 0px 0px`);
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
@@ -2344,15 +2353,23 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
       const right = Math.min(columnRight.get(e.from) ?? W, columnRight.get(e.to) ?? W);
-      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k] ? 2 * s("3-5") : s("3-5")) : right - s("2-5"), w);
+      // Lanes space-3-5 apart, one pitch (DECISIONS 306, 1.3).
+      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k]! + 1) * s("3-5") : right - s("2-5"), w);
       const yExit = sn.y(a.rect.t + (a.rect.b - a.rect.t) * plan.exits[k]!, w);
       const exit = contour(a, "right", yExit);
-      const ex = sn.x(b.rect.r - s("6"), w);
       const down = r === "end-down";
-      const ty = sn.y(down ? b.rect.t - turn : b.rect.b + turn, w);
+      // Several end lines into one card nest (1.3): the line from the outermost lane turns lowest (the merged turn) and enters nearest the end edge
+      // (space-6 in); each from a lane further in turns space-5 higher and enters space-3 further in. Their labels are seated space-2-5 clear of the
+      // innermost entry, each centred on its own turn's height, taken before the half-pixel snap.
+      const mates = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === r) && o.to === e.to).sort((x, y) => plan.lanes[y.j]! - plan.lanes[x.j]! || x.j - y.j);
+      const at = Math.max(0, mates.findIndex(({ j }) => j === k));
+      const exRaw = b.rect.r - s("6") - at * s("3"), innerEx = b.rect.r - s("6") - (mates.length - 1) * s("3");
+      const ex = sn.x(exRaw, w);
+      const tyRaw = down ? b.rect.t - turn - at * s("5") : b.rect.b + turn + at * s("5");
+      const ty = sn.y(tyRaw, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
       const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
-      if (label) labelSeats.push({ k, cands: lineSeats({ l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }, into, down ? -1 : 1), on: false, card: into });
+      if (label) labelSeats.push({ k, cands: lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1), on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -2580,12 +2597,13 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // The stack is the last layout there is. If it still holds an overlap (a label with no clean seat after every try, a line through a node or
   // off the drawing, or a third end lane), no drawing is returned that is known to overlap: the cards stay, in order, with no lines and no
   // labels, as the stacked schema's do, and the list holds every connection.
+  if (dev && !plan.third && plan.laneCount > 2) warn?.(`the stacked drawing uses ${plan.laneCount} end lanes (four at most)`);
   const failed = geo.unseated.length > 0 || geo.through.length > 0 || geo.outside.length > 0 || plan.third;
   if (failed) {
     if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
     if (geo.through.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
     if (geo.outside.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
-    if (dev && plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
+    if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
@@ -2712,7 +2730,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad", "--_gw", "--_mh"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

@@ -4464,7 +4464,7 @@
   }
   .basalt-diagram[data-layout="drawn"] > .basalt-diagram-drawing { --_drawn: ; }
   .basalt-diagram[data-layout="stacked"] > .basalt-diagram-drawing { --_drawn: initial; }
-  .basalt-diagram[data-gutter] > .basalt-diagram-drawing { --_gutter: var(--basalt-space-10); }
+  .basalt-diagram[data-gutter] > .basalt-diagram-drawing { --_gutter: var(--_gw, var(--basalt-space-10)); }
   .basalt-diagram[data-type="data-flow"] > .basalt-diagram-drawing {
     --_d-cols: var(--_drawn) var(--basalt-size-diagram-lane) repeat(var(--_cols, 1), minmax(0, 1fr));
     --_row-gap: var(--basalt-space-10);
