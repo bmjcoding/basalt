@@ -12,8 +12,9 @@
   /* A cell that holds a control keeps its focus ring (a ring sits 2px outside the control). */
   table[data-fixed] :is(th, td):has(> :is(.btn, .choice, input[type="checkbox"])) { overflow: visible; }
   table[data-fixed] thead th { height: var(--_head-h); }
-  /* A link, or anything the page puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. */
-  table[data-fixed] td > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A link, or anything the page puts in a cell as a block, truncates itself: an ellipsis needs the box that overflows. A link, in a data cell or a row's head
+     (`th`, the pinned name column), is that box. */
+  table[data-fixed] :is(td, th) > a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (pointer: coarse) { table[data-fixed] { --_head-h: var(--basalt-size-tap-min); } }
 
   /* ---- A cut cell can be read (DECISIONS 138 and 139; React's cell peek) ----

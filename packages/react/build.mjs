@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as esbuild from "esbuild";
 
@@ -76,6 +76,40 @@ await esbuild.build({
   banner: { js: `"use client";` },
 });
 
+// The root's map for the imports plugin (src/tooling/imports.ts): every name the root exports at run time, and the module that holds it, read from the barrel's source.
+// `export * from "./glyph-set"` is the one star, and glyph-set is itself a list of `export { X } from "./glyphs/x"`: each glyph maps to its own module. Every
+// `export` statement in the barrel must be one of the three forms below (`export { … } from "./x";`, `export type { … } from "./x";`, `export * from "./x";`, double
+// quotes, a relative path); any other fails the build here, naming its line, so the plugin never misses a name (test/bundle.test.mjs holds the map to the root's exports).
+const rootMap = {};
+const BARREL_FORM = /export\s+(type\s+)?(\*|\{[^{}]*\})\s*from\s*"(\.\/[^"]+)"\s*;/y;
+const readBarrel = (file, dir) => {
+  // Comments become spaces of the same length, so a position still names its line.
+  const source = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (comment) => comment.replace(/[^\n]/g, " "));
+  for (const start of source.matchAll(/(?<![\w$.])export\b/g)) {
+    BARREL_FORM.lastIndex = start.index;
+    const statement = BARREL_FORM.exec(source);
+    if (!statement) {
+      const line = source.slice(0, start.index).split("\n").length;
+      throw new Error(`the imports map: ${path.relative(here, file)}:${line} is an export the map cannot read: ${source.split("\n")[line - 1].trim()}`);
+    }
+    const [, type, clause, from] = statement;
+    if (type) continue;
+    const target = path.join(dir, from);
+    if (clause === "*") {
+      if (!fs.existsSync(`${target}.ts`)) throw new Error(`the imports map: ${from} is a star export with no .ts source`);
+      readBarrel(`${target}.ts`, path.dirname(target));
+      continue;
+    }
+    for (const raw of clause.slice(1, -1).split(",")) {
+      const item = raw.trim();
+      if (!item || item.startsWith("type ")) continue;
+      const [local, exported = local] = item.split(/\s+as\s+/);
+      rootMap[exported] = [`./${path.relative(path.join(here, "src"), target).split(path.sep).join("/")}.js`, local];
+    }
+  }
+};
+readBarrel(path.join(here, "src", "index.ts"), path.join(here, "src"));
+
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
@@ -89,7 +123,7 @@ await esbuild.build({
     // Build tooling (the opt-in Phosphor weights plugin): its own entry under dist/tooling, at @srasyndicate/basalt/phosphor.
     ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
-  define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice) },
+  define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice), __BASALT_ROOT_MAP__: JSON.stringify(JSON.stringify(rootMap)) },
   plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
@@ -149,6 +183,15 @@ for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.end
 }
 
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });
+
+// The two head scripts as files (dist/head/theme.js and dist/head/loops.js), for an app whose content policy forbids an inline script (`script-src 'self'`): it
+// serves the file from its own origin and loads it with a plain `<script src>` in `<head>` (no `async`, `defer` or `type="module"`, which would run it after the
+// first frame). Each file is the exported string itself, character for character (test/content-policy.test.mjs), so the two forms never drift.
+const { themeBootstrap } = await import(pathToFileURL(path.join(dist, "theme-bootstrap.js")).href);
+const { loopsBootstrap } = await import(pathToFileURL(path.join(dist, "loops-bootstrap.js")).href);
+fs.mkdirSync(path.join(dist, "head"), { recursive: true });
+fs.writeFileSync(path.join(dist, "head", "theme.js"), themeBootstrap);
+fs.writeFileSync(path.join(dist, "head", "loops.js"), loopsBootstrap);
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
 const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");

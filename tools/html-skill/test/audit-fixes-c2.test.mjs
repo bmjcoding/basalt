@@ -317,7 +317,7 @@ describe("no field a module writes into markup can run script (A5-10)", () => {
     await p.locator("#bell button").first().click();
     await frames(p);
     assert.equal(await p.evaluate(() => document.querySelectorAll('img[src="x"]').length), 0, "no element came out of the status");
-    assert.deepEqual(await p.evaluate(() => [...document.querySelectorAll(".notification")].map((n) => [n.getAttribute("data-status"), n.attributes.length])), [['success" onfocus="__x()" x="', 4], ['"><img src=x onerror=__x()>', 4]].map(([s, n]) => [s, n]), "the whole value is the attribute's, and the row has no extra attribute");
+    assert.deepEqual(await p.evaluate(() => [...document.querySelectorAll(".notification")].map((n) => [n.getAttribute("data-status"), n.attributes.length])), [['success" onfocus="__x()" x="', 5], ['"><img src=x onerror=__x()>', 5]].map(([s, n]) => [s, n]), "the whole value is the attribute's, and the row has no extra attribute (type, class, data-index, data-id and data-status)");
     assert.equal(await p.evaluate(() => window.hit ?? false), false);
     await context.close();
   });

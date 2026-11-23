@@ -704,7 +704,7 @@ for (const theme of THEMES) {
 
 // ---- Display states (DECISIONS 95): "Not observed", the scroll hint, the choice card, the pressed toggle, the pending ring ----
 //
-// The solid plate (--_plate-solid) is the plate of the menus round painted as ONE opaque colour: the wash mixed over the level in
+// The solid plate (--basalt-plate, the tokens plate-0 to plate-3) is the plate of the menus round painted as ONE opaque colour: the wash mixed over the level in
 // the CSS, at the token's own alpha (9% white in dark, 7% black in light). A choice card and a pressed toggle replace their own
 // fill with it, so these are the pairs a reader sees. The page (level 0) has no plate of its own: a toggle there takes level 1's
 // recipe over surface-1 in both themes.
@@ -953,5 +953,29 @@ for (const theme of THEMES) {
     atLeast(theme, "border-focus", 3, levels);
     atLeast(theme, "status-danger", 4.5, [["surface-page", color(theme, "surface-page")]]);
     atLeast(theme, "text-primary", 4.5, [["surface-raised (the open sources button)", color(theme, "surface-raised")]]);
+  });
+}
+
+// ---- The public plate (cimip-gaps-2, B3): plate-0 to plate-3 ----
+//
+// The lit row's plate as one opaque colour per level, so an app's own list can draw its active row as Basalt's popups do. Each token is held to
+// the recipe the stylesheet used before it was public (the selected wash composited in sRGB over the level, or in dark over the next level), to
+// within a fraction of an 8-bit step, so a part that moved from the recipe to the token paints the same pixel. On every plate the row's inks hold.
+const PLATE_UNDER = { light: ["surface-0", "surface-1", "surface-2", "surface-3"], dark: ["surface-1", "surface-2", "surface-3", "surface-3"] };
+for (const theme of THEMES) {
+  test(`${theme}: plate-0 to plate-3 are the selected wash over their level, and primary, secondary and danger ink hold 4.5:1 on each`, () => {
+    for (const level of [0, 1, 2, 3]) {
+      const token = color(theme, `plate-${level}`);
+      assert.equal(token.alpha ?? 1, 1, `${theme}: plate-${level} is opaque`);
+      const recipe = over(color(theme, "state-selected"), color(theme, PLATE_UNDER[theme][level]));
+      for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(token[channel] - recipe[channel]) * 255 < 0.1, `${theme}: plate-${level} ${channel} is ${(token[channel] * 255).toFixed(3)}, the recipe ${(recipe[channel] * 255).toFixed(3)}`);
+      if (level > 0) for (const channel of ["r", "g", "b"]) assert.ok(Math.abs(token[channel] - plateOf(theme, level)[channel]) * 255 < 0.1, `${theme}: plate-${level} is the menus round's plate`);
+      for (const text of ["text-primary", "text-secondary", "status-danger"]) {
+        const r = ratio(over(color(theme, text), token), token);
+        assert.ok(r >= 4.5, `${theme}: ${text} on plate-${level} is ${fmt(r)}:1`);
+      }
+      // A plate is a step from its level, never nothing (and never a boundary: the ink step carries the state).
+      assert.ok(ratio(token, color(theme, `surface-${level}`)) > 1.1, `${theme}: plate-${level} is no step from surface-${level}`);
+    }
   });
 }

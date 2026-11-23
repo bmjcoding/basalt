@@ -6,6 +6,7 @@ import { FilterResult } from "./filter-result";
 import { CloseGlyph } from "./glyphs/close";
 import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
+import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
 import { join } from "./utils";
 
@@ -96,9 +97,9 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
 }
 
 export interface SearchResultsProps extends React.ComponentProps<"ul"> {
-  /** The most rows that show a logo a result can hold (60px each). Default 3. */
+  /** The most rows that show a logo a result can hold (60px each). Default 3: the defaults are a shop's presets; set your own budget, 0 for none. */
   logoRows?: number;
-  /** The most rows that show a picture a result can hold (72px each). Default 5. */
+  /** The most rows that show a picture a result can hold (72px each). Default 5 (a shop's preset). */
   rows?: number;
   /** Whether a "See all" row can follow the rows. Default true. */
   all?: boolean;
@@ -141,6 +142,208 @@ export function SearchResult({ children, media, mediaShape = "pack", detail, tra
         </span>
         {trailing ? <span className="basalt-search-trailing">{trailing}</span> : null}
       </a>
+    </li>
+  );
+}
+
+// ---- Search in a page or a panel, with results from a server ----
+
+export interface SearchFieldProps {
+  /** The field's name, not drawn ("Search this document"). */
+  label: string;
+  /** The words in the field. The app runs the search (on its server, after its own debounce); the field only holds them. */
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  /** Enter in the field: run the search now. */
+  onSubmit?: (value: string) => void;
+  /** Esc in an empty field (the first Esc empties it): the app closes its search. Without it, the second Esc is left to what holds the field (a sheet closes). */
+  onEscape?: () => void;
+  /** The clear button's name. Default "Clear search". */
+  clearLabel?: string;
+  /** The field's height: 32px (`md`) by default, 44 on touch, as every control. */
+  controlSize?: "sm" | "md" | "lg";
+  /** No typing and no clearing: the × is disabled and Esc leaves the words. */
+  disabled?: boolean;
+  /** The words can be read and selected, not changed: the × is disabled and Esc leaves the words. */
+  readOnly?: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
+  /** Anything else for the input: `aria-keyshortcuts`, `aria-controls`, `onFocus`. */
+  inputProps?: Omit<React.ComponentProps<"input">, "value" | "onChange" | "type" | "placeholder" | "aria-label">;
+  className?: string;
+}
+
+/**
+ * A search field for a page or a panel: the core search glyph at its start, the words, and a clear button at its end while there are words (its seat
+ * is padding, kept, so the words never move). It is a `role="search"` form. Esc empties it first and only the next Esc leaves (`onEscape`). The browser's
+ * own clear × is hidden: the field has one ×.
+ */
+export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onEscape, clearLabel = "Clear search", controlSize = "md", disabled, readOnly, inputRef, inputProps, className }: SearchFieldProps) {
+  const off = Boolean(disabled ?? inputProps?.disabled);
+  const fixed = off || Boolean(readOnly ?? inputProps?.readOnly);
+  const own = React.useRef<HTMLInputElement | null>(null);
+  const setRef = (node: HTMLInputElement | null) => {
+    own.current = node;
+    if (typeof inputRef === "function") inputRef(node);
+    else if (inputRef) (inputRef as React.RefObject<HTMLInputElement | null>).current = node;
+  };
+  return (
+    <form
+      role="search"
+      className={join("basalt-search-box", className)}
+      data-size={controlSize}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit?.(value.trim());
+      }}
+    >
+      <Icon icon={SearchGlyph} size={16} className="basalt-search-box-glyph" />
+      <input
+        {...inputProps}
+        ref={setRef}
+        type="search"
+        className="basalt-input basalt-search-box-input"
+        data-size={controlSize}
+        aria-label={label}
+        disabled={off}
+        readOnly={fixed && !off ? true : undefined}
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        enterKeyHint="search"
+        onChange={(event) => onValueChange(event.target.value)}
+        onKeyDown={(event) => {
+          inputProps?.onKeyDown?.(event);
+          // An input method's own Esc (cancelling a composition) is the input method's.
+          if (event.defaultPrevented || event.key !== "Escape" || isComposingKey(event.nativeEvent)) return;
+          if (value && !fixed) {
+            // The first Esc empties the words, and nothing round the field closes with it.
+            event.preventDefault();
+            event.stopPropagation();
+            onValueChange("");
+          } else if (onEscape) {
+            // The app takes the Esc: a dialog or sheet round the field does not close as well.
+            event.preventDefault();
+            event.stopPropagation();
+            onEscape();
+          }
+        }}
+      />
+      {value ? (
+        <IconButton
+          icon={CloseGlyph}
+          label={clearLabel}
+          size="xs"
+          disabled={fixed}
+          className="basalt-search-box-clear"
+          onClick={() => {
+            onValueChange("");
+            own.current?.focus();
+          }}
+        />
+      ) : null}
+    </form>
+  );
+}
+
+/** A match in a passage: from `start` up to (not including) `end`, in UTF-16 code units, as a server's highlighter reports them. */
+export type MatchRange = readonly [start: number, end: number];
+
+export type SearchMatchProps = React.ComponentProps<"mark">;
+
+/** A matched word in a passage: a `mark` in primary ink at 600 on the passage's secondary ink. No fill and no colour: the weight and the ink are the mark. */
+export function SearchMatch({ className, ...props }: SearchMatchProps) {
+  return <mark {...props} className={join("basalt-search-match", className)} />;
+}
+
+/**
+ * A passage with its matches marked, from the ranges a server sends: overlapping and touching ranges are joined, ranges outside the text are cut
+ * to it, a boundary inside a code point widens to the whole of it, and the order they come in does not matter. Plain text in, nodes out: nothing is parsed as HTML.
+ */
+export function markMatches(text: string, ranges: readonly MatchRange[]): React.ReactNode[] {
+  // A boundary inside a code point (between the two halves of a surrogate pair, an emoji) widens to take the whole code point.
+  const inside = (at: number) => at > 0 && at < text.length && /[\uDC00-\uDFFF]/.test(text[at]!) && /[\uD800-\uDBFF]/.test(text[at - 1]!);
+  const sorted = ranges
+    .map(([start, end]) => [Math.max(0, Math.min(start, end)), Math.min(text.length, Math.max(start, end))] as const)
+    .map(([start, end]) => [inside(start) ? start - 1 : start, inside(end) ? end + 1 : end] as const)
+    .filter(([start, end]) => end > start)
+    .sort((a, b) => a[0] - b[0]);
+  const joined: Array<[number, number]> = [];
+  for (const [start, end] of sorted) {
+    const last = joined[joined.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else joined.push([start, end]);
+  }
+  const out: React.ReactNode[] = [];
+  let at = 0;
+  for (const [start, end] of joined) {
+    if (start > at) out.push(text.slice(at, start));
+    out.push(<SearchMatch key={start}>{text.slice(start, end)}</SearchMatch>);
+    at = end;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+export interface SearchPassagesProps extends React.ComponentProps<"ol"> {
+  /**
+   * A results budget: the list is as tall as this many passages and scrolls inside, so what sits above it (the field, the count) and below it
+   * never moves however many results come back. Unset, the list grows with its results (a page that scrolls).
+   */
+  rows?: number;
+  /** With `rows`: the lines of passage text each budgeted passage holds (its head line is counted apart). Default 2. */
+  lines?: number;
+}
+
+/**
+ * The results of a search in a page or a panel: an ordered list of `SearchPassage`s, in the order the server ranked them. Give it a name
+ * (`aria-label`). It keeps `space-1-5` from its edges, so a ring is never cut by a scrolling panel. `rows` (and `lines`) give it a fixed budget
+ * that scrolls inside, as the site search's results area has; the query, its paging and any grouping are the app's. While the first results are on their way,
+ * draw it in a `LoadingShape` with stand-in passages; while a changed query runs, keep the last results on screen (`refreshing`).
+ */
+export function SearchPassages({ rows, lines = 2, className, style, ...props }: SearchPassagesProps) {
+  const budget = rows === undefined ? undefined : ({ "--_rows": rows, "--_lines": lines } as React.CSSProperties);
+  return <ol {...props} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
+}
+
+export interface SearchPassageProps extends Omit<React.HTMLAttributes<HTMLElement>, "children"> {
+  /** Where the passage is: who said it, or the section or file it is in. One line, cut with an ellipsis. */
+  source: React.ReactNode;
+  /** At the head's end: when, or what kind ("2h ago", "Step 4"). Tertiary, tabular. */
+  meta?: React.ReactNode;
+  /** The passage, with its matches marked (`markMatches`, or `SearchMatch` round each). It wraps; its length is the server's. */
+  children: React.ReactNode;
+  /** A link to the passage. Without it the passage is a button (`onClick`): the app shows it beside the results. */
+  href?: string;
+  target?: string;
+  rel?: string;
+  /** The passage now shown beside the results: `aria-current`, and the source at 600 from 400 (one cut line, so nothing moves). */
+  current?: boolean;
+}
+
+/**
+ * One result: a link or a button over a head line (the source, then the meta at its end) and the passage under it, in secondary ink with its
+ * matches in primary at 600. Popup-row geometry, as a notification entry: a plate on hover inset 2px, radius 8, the control ring at +2. Hover
+ * lifts the meta to secondary, which tertiary would fail on the plate.
+ */
+export function SearchPassage({ source, meta, children, href, target, rel, current = false, className, ...props }: SearchPassageProps) {
+  const body = (
+    <>
+      <span className="basalt-passage-head">
+        <span className="basalt-passage-source">{source}</span>
+        {meta ? <span className="basalt-passage-meta">{meta}</span> : null}
+      </span>
+      <span className="basalt-passage-text">{children}</span>
+    </>
+  );
+  const common = { ...props, className: join("basalt-passage", className), "data-current": current ? "" : undefined };
+  return (
+    <li className="basalt-passages-item">
+      {href ? (
+        <a {...common} href={href} target={target} rel={rel} aria-current={current ? "page" : undefined}>{body}</a>
+      ) : (
+        <button type="button" {...common} aria-current={current ? "true" : undefined}>{body}</button>
+      )}
     </li>
   );
 }
