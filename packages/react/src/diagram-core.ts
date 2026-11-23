@@ -582,6 +582,22 @@ function working(m: Model, n: MNode): string {
   return ` ${word} during ${bars.map((b) => (b.from === b.to ? `message ${b.from}` : `messages ${b.from} to ${b.to}`)).join(" and ")}.`;
 }
 
+/**
+ * What a tap does (DECISIONS 306, 1.5): a `click` from a touch or a pen pointer on a card traces it, on the same card or the drawing's ground clears it.
+ * A linked card follows its link and is never traced. Returns the trace to show, or undefined where the tap changes nothing.
+ */
+export function tapTrace(fig: HTMLElement, P: string, event: MouseEvent, current: string | null): string | null | undefined {
+  const type = (event as PointerEvent).pointerType;
+  if (type !== "touch" && type !== "pen") return undefined;
+  const drawing = fig.querySelector(`.${P}-drawing`);
+  const target = event.target as Element | null;
+  if (!drawing || !target || !drawing.contains(target) || !fig.querySelector(`.${P}-edge`)) return undefined;
+  const node = target.closest<HTMLElement>(`.${P}-node`);
+  if (node?.hasAttribute("href")) return undefined;
+  if (!node) return null;
+  return node.dataset.node === current ? null : node.dataset.node ?? null;
+}
+
 /** The noun the key hint and the keys sentence use for one stop. */
 function stopNoun(m: Model): string {
   return m.type === "architecture" ? "a part" : m.type === "sequence" ? "a participant" : m.type === "schema" ? "a table" : "a step";
@@ -1237,6 +1253,8 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   }, drawingChildren(ctx, m, dyn), h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keyTree(P, m),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
+  // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
+  hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence") ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
   h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),

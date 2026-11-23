@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -72,7 +72,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
     var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
-    var focusTrace = null, hoverTrace = null;
+    var focusTrace = null, hoverTrace = null, touchTrace = null;
     var warned = Object.create(null);
     var warn = function (m) { if (!warned[m]) { warned[m] = 1; console.warn('Basalt diagram: ' + m); } };
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
@@ -84,7 +84,36 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
     var motion = null, drawn = null;
     var settle = function () { if (animated) settleEntrance(figure); };
 
-    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || hoverTrace); }
+    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || touchTrace || hoverTrace); syncClear(); }
+    // A trace on touch (DECISIONS 306, 1.5): "Clear highlight", last in the foot, is mounted whenever the figure is on touch and drawn with lines, and
+    // aria-disabled until a trace is up. "On touch" is the media's, or a figure that has taken a touch tap.
+    var clearBtn = null, touched = !viewer && matchMedia('(hover: none), (pointer: coarse)').matches;
+    function syncClear() {
+      var want = touched && !viewer && ink && ink.innerHTML !== '';
+      figure.toggleAttribute('data-touch', Boolean(touched && !viewer));
+      if (want && !clearBtn) {
+        var foot = figure.querySelector(':scope > .diagram-foot');
+        if (!foot) return;
+        clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn diagram-clear';
+        clearBtn.setAttribute('data-variant', 'secondary');
+        clearBtn.setAttribute('data-size', 'sm');
+        clearBtn.innerHTML = '<span>Clear highlight</span>';
+        clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
+        foot.appendChild(clearBtn);
+      } else if (!want && clearBtn) { clearBtn.remove(); clearBtn = null; }
+      if (clearBtn) { if (touchTrace) clearBtn.removeAttribute('aria-disabled'); else clearBtn.setAttribute('aria-disabled', 'true'); }
+    }
+    function onTap(event) {
+      if (event.defaultPrevented) return;
+      var next = tapTrace(figure, P, event, touchTrace);
+      if (next === undefined) return;
+      settle();
+      touched = true;
+      touchTrace = next;
+      retrace();
+    }
     // The toggle's words and state follow the list's (a stack drawn with no lines opens it).
     function syncToggle() {
       if (!toggle) return;
@@ -101,7 +130,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
       var hintEl = figure.querySelector(':scope > .diagram-hint');
       if (hintEl) { var hintHtml = hintEntries(model, state.layout === 'drawn').map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
       // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
-      if (!hasStops(model, state)) hoverTrace = null;
+      if (!hasStops(model, state)) hoverTrace = touchTrace = null;
       var fresh = ink && measured.ink !== drawn;
       if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
       retrace();
@@ -119,7 +148,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
       if (!node || event.defaultPrevented) return;
       settle();
       // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
-      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace)) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
+      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
       var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn', getComputedStyle(node).direction === 'rtl');
       if (!to) return;
@@ -164,6 +193,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
     figure.addEventListener('focusout', onFocusOut);
     figure.addEventListener('pointerover', onOver);
     figure.addEventListener('pointerleave', onLeave);
+    figure.addEventListener('click', onTap);
     if (toggle) toggle.addEventListener('click', onToggle);
     layout();
     var width = figure.clientWidth, frame = 0, live = true;
@@ -189,7 +219,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
         if (marks) forced.removeEventListener('change', layout);
         if (motion) motion.destroy();
         figure.removeEventListener('keydown', onKey); figure.removeEventListener('focusin', onFocusIn); figure.removeEventListener('focusout', onFocusOut);
-        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave);
+        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave); figure.removeEventListener('click', onTap);
+        if (clearBtn) clearBtn.remove();
         if (toggle) toggle.removeEventListener('click', onToggle);
       },
       layout: layout,

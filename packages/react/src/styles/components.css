@@ -4833,6 +4833,13 @@
 
   .basalt-diagram-hint { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-4); margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-hint > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1); }
+  /* On touch (DECISIONS 306, 1.5), where lines are drawn, the hint's seat says how to trace; nowhere else. */
+  .basalt-diagram-tap-hint { display: none; margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-diagram[data-touch][data-layout="drawn"] > .basalt-diagram-tap-hint, .basalt-diagram[data-touch][data-layout="stacked"]:not([data-bare], [data-type="sequence"], [data-type="schema"]) > .basalt-diagram-tap-hint { display: block; }
+  .basalt-diagram[data-touch] > .basalt-diagram-hint { display: none; }
+  /* A card that answers a tap is at least size-tap-min tall on touch. */
+  .basalt-diagram[data-touch] .basalt-diagram-node { min-height: var(--basalt-size-tap-min); }
+  @media (pointer: coarse) { .basalt-diagram-clear { min-height: var(--basalt-size-tap-min); } }
   .basalt-diagram[data-layout="stacked"]:is([data-type="sequence"], [data-type="schema"]) .basalt-diagram-hint { display: none; }
   /* A stack drawn with no lines (1.13) is dressed as where scripting is off: no line in the key and no key hint (the list is open by script). */
   .basalt-diagram[data-bare] :is(.basalt-diagram-entry[data-line], .basalt-diagram-hint) { display: none; }
@@ -4970,7 +4977,7 @@
      (DECISIONS 292, 2.6; every focal node, with a mark or without, DECISIONS 298). */
   @media print {
     .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .basalt-diagram-hint { display: none; }
+    .basalt-diagram-hint, .basalt-diagram-tap-hint, .basalt-diagram-clear { display: none !important; }
     /* A figure prints untraced (DECISIONS 306, 1.7): every line, head and label in its resting ink, over a trace, a touch trace or a quiet run. */
     .basalt-diagram .basalt-diagram-edge :is(.basalt-diagram-line, .basalt-diagram-tip[data-open]) { stroke: var(--basalt-diagram-edge) !important; }
     .basalt-diagram .basalt-diagram-edge .basalt-diagram-line[data-kind="main"] { stroke: var(--basalt-diagram-edge-main) !important; }
@@ -5088,7 +5095,7 @@
   .basalt-diagram-layer:dir(rtl) { transform-origin: 100% 0; }
   /* The viewer's figure shows its drawing alone: the dialog holds its title, its key, its hint and its controls. */
   .basalt-diagram[data-viewer] { gap: 0; }
-  .basalt-diagram[data-viewer] > :is(.basalt-diagram-head, .basalt-diagram-key, .basalt-diagram-hint, .basalt-diagram-foot, .basalt-diagram-list, .basalt-diagram-summary) { display: none; }
+  .basalt-diagram[data-viewer] > :is(.basalt-diagram-head, .basalt-diagram-key, .basalt-diagram-hint, .basalt-diagram-tap-hint, .basalt-diagram-foot, .basalt-diagram-list, .basalt-diagram-summary) { display: none; }
   .basalt-diagram-viewer-list { box-sizing: border-box; max-width: calc(var(--basalt-size-page-width) - 2 * var(--basalt-size-gutter) + 2 * var(--_pad)); padding: var(--_pad); }
   .basalt-diagram-viewer-foot { display: flex; flex-direction: column; gap: var(--basalt-space-3); padding-block-start: var(--basalt-space-3); }
   .basalt-diagram-viewer-key { --_ground: var(--_surface, var(--basalt-surface-overlay)); }

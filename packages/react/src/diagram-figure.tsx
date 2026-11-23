@@ -4,7 +4,7 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, buildModel, tapTrace, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
 import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
@@ -147,6 +147,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   modelRef.current = model;
   const [focusTrace, setFocusTrace] = React.useState<string | null>(null);
   const [hoverTrace, setHoverTrace] = React.useState<string | null>(null);
+  // A trace on touch (DECISIONS 306, 1.5), the third source after keyboard focus. "On touch" is the media's, or a figure that has taken a touch tap.
+  const [touchTrace, setTouchTrace] = React.useState<string | null>(null);
+  const [touched, setTouched] = React.useState(false);
   const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden", viewer: viewer?.keys }), [base, level, source, viewer]);
 
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
@@ -167,7 +170,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }
     setInk(result.ink);
     // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
-    if (!hasStops(model, result.dyn)) setHoverTrace(null);
+    if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had.
     if (viewer && result.tokens) viewer.onMeasured(result, fig);
   }, [model, base, options, component, viewer]);
@@ -195,7 +198,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     return () => { live = false; observer.disconnect(); cancelAnimationFrame(frame); if (marks) forced.removeEventListener("change", measure); };
   }, [measure, model]);
 
-  const trace = focusTrace ?? hoverTrace;
+  const trace = focusTrace ?? touchTrace ?? hoverTrace;
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (fig) applyTrace(fig, P, measured.current?.geo ?? null, measured.current?.tokens ?? null, base, trace);
@@ -246,7 +249,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // The viewer (DECISIONS 310): "Expand" exists once script runs. Its module loads at the button's first hover, focus or touch; a press before it has
   // arrived makes the button busy until the dialog opens. While the viewer is open the page's figure holds its loops and settles a running entrance (9.7).
   const [scripted, setScripted] = React.useState(false);
-  React.useEffect(() => { if (!viewer) setScripted(true); }, [viewer]);
+  const [onTouch, setOnTouch] = React.useState(false);
+  React.useEffect(() => { if (!viewer) { setScripted(true); setOnTouch(matchMedia("(hover: none), (pointer: coarse)").matches); } }, [viewer]);
   const expandRef = React.useRef<HTMLButtonElement>(null);
   const [viewerModule, setViewerModule] = React.useState<ViewerModule | null>(null);
   const [viewerOpen, setViewerOpen] = React.useState(false);
@@ -288,7 +292,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       if (!node || event.defaultPrevented) return;
       settle();
       // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog.
-      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace)) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); } return; }
+      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); } return; }
       if (!stops) return;
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn", getComputedStyle(node).direction === "rtl");
       if (!to) return;
@@ -324,6 +328,17 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       setHoverTrace(node && hasStops(model, dynRef.current) ? node.dataset.node! : null);
     },
     onPointerLeave: (event: React.PointerEvent<HTMLElement>) => { onPointerLeave?.(event); setHoverTrace(null); },
+    "data-touch": !viewer && (onTouch || touched) ? "" : undefined,
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
+      props.onClick?.(event as React.MouseEvent<HTMLElement>);
+      const fig = figRef.current;
+      if (!fig || event.defaultPrevented) return;
+      const next = tapTrace(fig, P, event.nativeEvent, touchTrace);
+      if (next === undefined) return;
+      settle();
+      setTouched(true);
+      setTouchTrace(next);
+    },
   };
 
   const toggle = (
@@ -373,6 +388,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       ) : null}
     </>
   ) : null;
-  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}</>;
+  // "Clear highlight" (1.5): last in the foot, mounted whenever the figure is on touch and can be traced, aria-disabled until a trace is up.
+  const clear = !viewer && (onTouch || touched) && ink ? (
+    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-disabled={touchTrace ? undefined : true} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
+      <span className="basalt-button-label">Clear highlight</span>
+    </button>
+  ) : null;
+  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{clear}</>;
   return toReact(tree, { source, summary, hint, toggle: foot }, inkHtml, root) as React.ReactElement;
 }
