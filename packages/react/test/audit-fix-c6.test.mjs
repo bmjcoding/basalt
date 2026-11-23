@@ -377,7 +377,8 @@ describe("the React package's test script runs its typecheck and its tests as tw
     const manifest = JSON.parse(fs.readFileSync(path.join(pkg, "package.json"), "utf8"));
     assert.equal(manifest.scripts.test, "node ../../scripts/test-react.mjs");
     const { STEPS } = await import(script("test-react.mjs"));
-    assert.deepEqual(STEPS.map((s) => s.command), ["npm run typecheck", "node build.mjs && node --test test/*.test.mjs"]);
+    // Each browser test may take two minutes (the runner's limit, added after the cimip-gaps-2 stream so a hung test fails rather than stalls the run).
+    assert.deepEqual(STEPS.map((s) => s.command), ["npm run typecheck", "node build.mjs && node --test --test-timeout=120000 test/*.test.mjs"]);
     const root = JSON.parse(fs.readFileSync(path.join(repo, "package.json"), "utf8"));
     assert.equal(root.scripts.test, "node scripts/test-all.mjs");
     assert.match(fs.readFileSync(path.join(repo, ".github", "workflows", "ci.yml"), "utf8"), /- run: npm test\n/);

@@ -55,6 +55,7 @@ const ALLOWED = {
   "scrollbar-gutter": "A browser without it (Safari before 18.2) has overlay scrollbars, which take no room, so there is nothing to reserve.",
   "prefers-reduced-transparency": "The query is the opaque fallback for the sticky header; a browser that does not evaluate it (Safari, Firefox) keeps the smoked header. Text on the bar holds 4.5:1 over any backdrop, so this is comfort and not legibility (foundations, Browser support).",
   "text-wrap: pretty": "A hint for the last line of a paragraph; a browser without it wraps as it always did.",
+  "field-sizing": "The Composer's field grows with its text (cimip-gaps-2, B3). Where CSS.supports(\"field-sizing\", \"content\") is false (Safari before 26.2, Firefox), composer.tsx measures the field's scrollHeight and sets its height within the same rows, so it grows there too (foundations, Writing to someone).",
   "the round(), mod() and rem() functions": "The plain badge's dot margin (components.css, .basalt-badge[data-variant=\"plain\"] > .basalt-badge-dot). Chrome 123 and 124 drop the declaration, so the dot sits in its seat to the half pixel and not on whole pixels. A fix changes a pixel, so it is the council's: found by this check, reported on the pull request that added it.",
 };
 

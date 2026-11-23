@@ -34,17 +34,22 @@ test("the duration export is every duration token with a name, in milliseconds",
   for (const name of Object.keys(duration)) assert.equal(durations[`duration${name[0].toUpperCase()}${name.slice(1)}`], duration[name], `durations.duration${name} is not duration.${name}`);
 });
 
-// The widths a query may name: the breakpoint tokens, and the one sum the command list documents (its list column, a gap and the container breakpoint).
-const WIDTHS = new Set([...Object.values(breakpoint), px("size-list-width") + px("space-4") + breakpoint.container]);
+// The widths a query may name: the breakpoint tokens, and the two sums the components document: the command list's (its list column, a gap and the
+// container breakpoint) and PaneLayout's (B4: the pane sits beside the page from size-sidebar-width + size-gutter + the large container breakpoint).
+const WIDTHS = new Set([
+  ...Object.values(breakpoint),
+  px("size-list-width") + px("space-4") + breakpoint.container,
+  px("size-sidebar-width") + px("size-gutter") + breakpoint.containerLg,
+]);
 const queryNumbers = (css) => [...css.matchAll(/@(?:media|container)\b[^{]*\{/g)].flatMap((query) => [...query[0].matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => ({ query: query[0].trim(), number: Number(match[1]) })));
 
-test("every pixel width in a media or container query of React's sheet is a breakpoint token (or the command list's sum of tokens)", () => {
+test("every pixel width in a media or container query of React's sheet is a breakpoint token (or one of the two documented sums of tokens)", () => {
   const found = queryNumbers(read("packages", "react", "src", "styles", "components.css"));
   assert.ok(found.length > 20, "the scan found no queries");
   for (const { query, number } of found) assert.ok(WIDTHS.has(number), `${query}: ${number}px is not a token`);
 });
 
-test("every pixel width in a query of the HTML skill's sources and built parts is a breakpoint token (or the same sum)", () => {
+test("every pixel width in a query of the HTML skill's sources and built parts is a breakpoint token (or the same sums)", () => {
   const sources = fs.readdirSync(path.join(repo, "tools", "html-skill", "src", "modules")).filter((file) => file.endsWith(".css")).map((file) => read("tools", "html-skill", "src", "modules", file));
   const parts = fs.readdirSync(path.join(repo, ".agent", "skills", "basalt-html", "parts")).filter((file) => file.endsWith(".css")).map((file) => read(".agent", "skills", "basalt-html", "parts", file));
   const found = [...sources, read("tools", "html-skill", "src", "core.css"), ...parts].flatMap(queryNumbers);

@@ -356,7 +356,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // (the limit 147,900 to 152,550).
 // cimip-gaps-2 B5 (DECISIONS 246, 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a
 // page change, and swipes upward under 720 where it hangs from the bar; ToastProvider measures 93,451, so its limit is 93,500.
-for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 152_550]]) {
+// The full-run fix (DECISIONS 246): a control that is not disabled no longer writes aria-disabled="false" (a toolbar passes its own false through), 4
+// bytes in Button and IconButton: NotificationCentre 152,550 measured, so its limit is 152,600.
+for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 152_600]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -483,8 +485,9 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // and no Shiki. The three that carry a button (Reveal, DirectoryList's show all, CopyButton) carry Base UI's Button and nothing else.
 // Measured: LinkCard 5,174 bytes, LinkTile 4,597, BackLink 4,004, BigLinkList 391, DirectoryList 16,729, Reveal 16,328, CopyButton 15,495.
 // cimip-gaps-2, B7: `useReveal` takes `focusFirst` (a group's entries follow its row, so a keyboard open keeps focus there), 6 and 8 bytes: Reveal
-// 19,600 to 19,650 (19,606 measured) and DirectoryList 20,000 to 20,050 (20,008).
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_050, true], ["Reveal", 19_650, true], ["CopyButton", 18_550, true]]) {
+// 19,600 to 19,650 (19,606 measured) and DirectoryList 20,000 to 20,050 (20,008). The full-run fix (no aria-disabled="false" on a control that is
+// not disabled, DECISIONS 246): CopyButton 18,551 measured, 18,550 to 18,600.
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_050, true], ["Reveal", 19_650, true], ["CopyButton", 18_600, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -510,7 +513,9 @@ test("the size table names every runtime export of the package, and nothing that
   assert.deepEqual(table.filter((name) => !exported.includes(name)), [], `recorded sizes for exports that are gone: ${ADVICE}`);
 });
 
-test("every runtime export alone stays within 5% of its recorded minified size", async () => {
+// One build per export, four at a time: 19 seconds alone, but past the runner's two-minute limit when every test file runs beside it (the first full run
+// after the cimip-gaps-2 stream timed out at 120 s), so it has a limit of its own.
+test("every runtime export alone stays within 5% of its recorded minified size", { timeout: 600_000 }, async () => {
   const { exports } = recorded();
   const names = Object.keys(exports);
   const over = [];
@@ -594,7 +599,11 @@ test("a split app's first screen, through the imports plugin, loads what it woul
   const route = through.inputs.filter((f) => /@base-ui\/react\/(esm\/)?(combobox|select|menu|dialog|field|input)\//.test(f));
   assert.deepEqual(route, [], "none of the route's popups and fields are up front");
   assert.ok(through.inputs.some((f) => /@base-ui\/react\/(esm\/)?tooltip\//.test(f)), "the rail's tooltip, which Nav draws, is");
-  assert.ok(through.bytes < 161_000, `first screen ${through.bytes} bytes (limit 161,000)`);
+  // After the cimip-gaps-2 stream (DECISIONS 246): the shell now draws B5's phone layout (the on-screen keyboard's watcher, screen-keyboard.ts, 2,441
+  // bytes, and what is pinned, pinned-edges.ts, 2,107) and B4's facts under the title (DotLine, 532) and capped shell (app-shell.js 1,340 to 1,812), with
+  // Nav's sm size (135). Measured 166,056 bytes through the plugin (160,165 to 165,860 for the same files named directly); the limit is that rounded
+  // up to the next 1,000, from 161,000.
+  assert.ok(through.bytes < 167_000, `first screen ${through.bytes} bytes (limit 167,000)`);
 });
 
 test("the imports plugin changes where code lands, not what the route gets: the route still loads every part it draws", async () => {

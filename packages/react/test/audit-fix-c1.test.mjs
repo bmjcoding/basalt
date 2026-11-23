@@ -34,8 +34,10 @@ describe("A1-07: importing the package in Node", () => {
       assert.ok(!phosphor.some((f) => /\/dist\/index\.[a-z]+\.js$/.test(f)), "Phosphor's barrel is not loaded");
       // 24 icons, each with its definition file, plus the icon base and its context: about 50. 60 leaves room for one more icon.
       assert.ok(phosphor.length <= 60, `${phosphor.length} Phosphor files loaded`);
-      // The base was 5,356 files. Base UI is 641 of what is left; the rest is the package, React and the icons.
-      assert.ok(files.length <= 1000, `${files.length} files loaded`);
+      // The base was 5,356 files. Base UI is 641 of what is left; the rest is the package, React and the icons. Raised from 1,000 to the measured
+      // 1,034 after the cimip-gaps-2 stream (DECISIONS 246): its new components are 260 of the package's own files and take Base UI to 666 (the
+      // CSP provider and more of menu, combobox and toast), with 56 of Base UI's utils, 36 of Phosphor's and 16 of React, reselect and Floating UI.
+      assert.ok(files.length <= 1034, `${files.length} files loaded`);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 });

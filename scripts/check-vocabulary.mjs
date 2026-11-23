@@ -43,7 +43,7 @@ const GIVEN = new Set([
 ]);
 const isPerson = (text) => { const m = PERSON.exec(text); return Boolean(m && GIVEN.has(m[1].toLowerCase())); };
 /** A line the marker may not excuse, because it is the API: an export, a typed member (a prop), a default value, an `aria-` or `data-` attribute. */
-const API_LINE = [/^\s*export\b/, /^\s*(?:readonly\s+)?["'\w$-]+\??\s*:\s*(?!["'`\d-])[A-Za-z_$({[<|]/, /(?:^|[({,]\s*)[\w$]+\s*=\s*["'`]/, /\b(?:aria|data)-[\w-]+\s*[=:]/];
+const API_LINE = [/^\s*export\b/, /^\s*(?:readonly\s+)?["'\w$-]+\??\s*:\s*(?!["'`\d-])[A-Za-z_$({[<|]/, /(?:^\s*|[({,]\s*)[\w$]+\s*=\s*["'`]/, /\b(?:aria|data)-[\w-]+\s*[=:]/];
 const MARKER = /basalt-vocabulary-example\b(.*)$/;
 
 /** The words of a run of code: split on anything that is not a letter or digit, then inside each identifier at its case changes. */
