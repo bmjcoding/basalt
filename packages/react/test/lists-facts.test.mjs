@@ -233,6 +233,7 @@ const items = (
     <B.DescriptionItem id="i3" term="Reviewer" missing>None yet</B.DescriptionItem>
     <B.DescriptionItem id="i4" term="Customer" values={["Juno Halvorsen", "Annual plan since Mar 2024"]} />
     <B.DescriptionItem id="i5" term="Time to first reply" missing>No reply yet</B.DescriptionItem>
+    <B.DescriptionItem id="i6" term="Contacts" missing values={["No email on file", "No phone on file"]} />
   </>
 );
 createRoot(document.getElementById("root")).render(
@@ -276,6 +277,7 @@ describe("DescriptionList", () => {
       return { observed: dd("i2").textContent, own: dd("i3").textContent, same: getComputedStyle(dd("i2")).color === getComputedStyle(dd("i3")).color, differs: getComputedStyle(dd("i3")).color !== getComputedStyle(p).color, mono: dd("i3").hasAttribute("data-mono"), missing: dd("i3").hasAttribute("data-missing") };
     });
     assert.equal(info.observed, "Not observed");
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll("#line #i6 dd")].map((d) => [d.textContent, d.hasAttribute("data-missing")])), [["No email on file", true], ["No phone on file", true]], "supplied values are what a missing row says");
     assert.equal(info.own, "None yet");
     assert.ok(info.same, "the same ink for both");
     assert.ok(info.differs, "not the value's primary ink");
@@ -406,7 +408,11 @@ createRoot(document.getElementById("root")).render(
       <B.SheetBody>
         <B.DialogDescription id="desc">They see this by email.</B.DialogDescription>
         <div id="ready" role="group" aria-label="Ready answers" style={{ display: "flex", gap: 8 }}><B.Button size="sm">Looking into it</B.Button></div>
-        <B.Form id="f"><B.Field label="Message"><B.Textarea rows={3} /></B.Field></B.Form>
+        <B.Form id="f">
+          <B.Field label="Message"><B.Textarea rows={3} /></B.Field>
+          <div id="many"><B.MultiSelect label="Tags" options={[{ value: "billing", label: "Billing" }, { value: "bug", label: "Bug" }]} defaultValue={["billing"]} /></div>
+          <B.Fieldset id="group" legend="Also send to"><B.Checkbox name="also" value="owner" defaultChecked>The account owner</B.Checkbox><B.Checkbox name="also" value="finance">Finance</B.Checkbox></B.Fieldset>
+        </B.Form>
       </B.SheetBody>
       <B.SheetFooter><B.DialogActions><B.DialogClose render={<B.Button>Cancel</B.Button>} /></B.DialogActions></B.SheetFooter>
     </B.DialogContent>
@@ -424,6 +430,9 @@ describe("Form dialog body", () => {
       return [ready.top - desc.bottom, label.top - ready.bottom];
     });
     assert.deepEqual(gaps.map(Math.round), [20, 16]);
+    // Values beyond a text field keep the form's own gap: the multi-select and the checked group are space-4 apart, as fields are.
+    const more = await page.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); return [r("many").top - document.querySelector("#f .basalt-field").getBoundingClientRect().bottom, r("group").top - r("many").bottom]; });
+    assert.deepEqual(more.map(Math.round), [16, 16]);
     await page.close();
   });
 });

@@ -2139,7 +2139,7 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
   made); the gap stays `space-4`, a long label wraps inside its column, and several values (`values`, a name then a line then an action) stack in the value column `space-1`
   apart, as from 480. From 480 it is the list as it ships. The default stays `stack`, so no shipped list changes.
 - **Missing-value words.** "Not observed" is for a reading that could have been taken and was not (a measurement, a sensor, a coverage figure): it stays the default of
-  `DescriptionItem missing` and `TableCell notObserved`. Anything else that has no value says what is absent, in the app's words, as the children of the same prop: "None yet",
+  `DescriptionItem missing` and `TableCell notObserved`. Anything else that has no value says what is absent, in the app's words, as the children of the same prop (or a `DescriptionItem`'s `values`; whatever the caller supplies is what the row says, and "Not observed" is only the default): "None yet",
   "No one", "No email", "No issue linked", in sentence case, naming the thing where the label does not. It is the same tertiary ink with no mark, and never blank, a dash or a
   zero (a zero is a value). The words belong to the product: Basalt has no second default.
 - **Code that wraps** (`CodeBlock wrap`). An opt-in for a command that must be read whole in a narrow column (one a reader is asked to approve). Each run of characters

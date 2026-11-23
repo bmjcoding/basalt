@@ -55,7 +55,8 @@ export interface DescriptionItemProps extends Omit<React.ComponentProps<"div">, 
   /**
    * The fact has no value: the row keeps its label and says so in tertiary ink, with no mark. With no children it says "Not observed", the words for a
    * reading that could have been taken and was not. Anything else that is absent says what is absent in the app's words, given as the children
-   * ("No ticket", "No email", "None yet"): a missing value is never blank, a dash or zero.
+   * ("No ticket", "No email", "None yet"), or as `values` when the absence takes more than one line: a missing value is never blank, a dash or zero.
+   * "Not observed" is only the default; whatever the caller supplies is what the row says.
    */
   missing?: boolean;
   /** A third column, in a list whose `form` is `three`: what the thing is. It starts after the value and takes the rest of the row. */
@@ -64,7 +65,8 @@ export interface DescriptionItemProps extends Omit<React.ComponentProps<"div">, 
 
 /** One row: a `div` holding one `dt` and one or more `dd`. */
 export function DescriptionItem({ term, children, values, mono, missing, detail, className, ...props }: DescriptionItemProps) {
-  const details = missing ? [children ?? NOT_OBSERVED] : values ?? [children];
+  // Missing or not, the caller's own words win; "Not observed" is only what a missing row says when it is given none.
+  const details = values ?? [missing ? children ?? NOT_OBSERVED : children];
   return (
     <div {...props} className={join("basalt-description-item", className)}>
       <dt className="basalt-description-term">{term}</dt>

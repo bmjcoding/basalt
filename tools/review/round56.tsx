@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   CodeBlock,
   DescriptionItem,
   DescriptionList,
@@ -23,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
   Field,
+  Fieldset,
   FilterToolbar,
   Form,
   Input,
@@ -31,6 +33,7 @@ import {
   MenuRadioGroup,
   MenuRadioItem,
   MenuTrigger,
+  MultiSelect,
   PanelList,
   PanelRow,
   SelectableItem,
@@ -275,8 +278,10 @@ function Toolbars() {
 function Reply({ open, domain }: { open: boolean; domain: "support" | "doc" }) {
   const [text, setText] = React.useState("");
   const words = domain === "support"
-    ? { opener: "Reply", title: "Reply to Juno Halvorsen", description: "They see this by email and on the request's page. Internal notes stay hidden.", ready: [["Looking into it", "Thanks for the details. I'm looking into the duplicate charge now."], ["Refund sent", "The refund is on its way and shows in 5 to 10 business days."]], label: "Message", send: "Send reply" }
-    : { opener: "Comment", title: "Comment on “Q1 plan”", description: "Everyone who can view the document sees the comment beside the paragraph.", ready: [["Approve", "Approved from my side."], ["Needs a source", "Can we add a source for this number?"]], label: "Comment", send: "Post comment" };
+    ? { opener: "Reply", title: "Reply to Juno Halvorsen", description: "They see this by email and on the request's page. Internal notes stay hidden.", ready: [["Looking into it", "Thanks for the details. I'm looking into the duplicate charge now."], ["Refund sent", "The refund is on its way and shows in 5 to 10 business days."]], label: "Message", send: "Send reply",
+        many: { label: "Tags", options: ["Billing", "Refund", "Account", "Bug"], chosen: ["Billing"] }, group: { legend: "Also send to", boxes: [["owner", "The account owner", true], ["finance", "Finance", false]] } }
+    : { opener: "Comment", title: "Comment on “Q1 plan”", description: "Everyone who can view the document sees the comment beside the paragraph.", ready: [["Approve", "Approved from my side."], ["Needs a source", "Can we add a source for this number?"]], label: "Comment", send: "Post comment",
+        many: { label: "Mention", options: ["Ada Byrne", "Kofi Mensah", "Lena Ishikawa"], chosen: [] as string[] }, group: { legend: "Notify", boxes: [["editors", "Everyone who can edit", true], ["mentioned", "Only people mentioned", false]] } };
   return (
     <Dialog defaultOpen={open}>
       <DialogTrigger render={<Button variant="secondary">{words.opener}</Button>} />
@@ -289,6 +294,11 @@ function Reply({ open, domain }: { open: boolean; domain: "support" | "doc" }) {
           </div>
           <Form id={`r56-${domain}`} onSubmit={(e) => e.preventDefault()}>
             <Field label={words.label}><Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} /></Field>
+            {/* Values beyond a text field: any of many (a multi-select) and a checked group. */}
+            <MultiSelect label={words.many.label} options={words.many.options.map((o) => ({ value: o, label: o }))} defaultValue={words.many.chosen} />
+            <Fieldset legend={words.group.legend}>
+              {words.group.boxes.map(([value, label, on]) => <Checkbox key={String(value)} name={`r56-${domain}-group`} value={String(value)} defaultChecked={Boolean(on)}>{label}</Checkbox>)}
+            </Fieldset>
           </Form>
         </SheetBody>
         <SheetFooter><DialogActions><DialogClose render={<Button variant="secondary">Cancel</Button>} /><Button variant="primary" type="submit" form={`r56-${domain}`}>{words.send}</Button></DialogActions></SheetFooter>
@@ -474,6 +484,7 @@ export const ROUND_56: Round = {
       decisions: [
         "A block between the description and the first field (a row of ready answers, a callout, a sentence) sits space-4 above the field's label, as one field sits above the next; the description keeps its own space-5 under it (the two collapse).",
         "No slot: the body already takes any children, and a slot would only fix their order. The group's name is the app's ('Ready answers').",
+        "Each form holds values beyond a text field, in both domains: any of many (a MultiSelect: tags on a reply, people to mention on a comment) and a checked group (a Fieldset of Checkboxes: who else is sent the reply, who is notified of the comment). The dialog's dirty-state reading of these is AF's (audit F4), not this batch's.",
       ],
       tryIt: ["Open Reply and press 'Refund sent': the sentence fills the field."],
       states: ["open", "open-doc", "open-forced-colours", "open-reduced-motion"],
