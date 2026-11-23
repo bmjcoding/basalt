@@ -811,6 +811,42 @@
         "toggle"
       ]
     },
+    "diagram-zoom": {
+      "classes": [
+        "diagram-expand",
+        "diagram-viewer",
+        "diagram-stage",
+        "diagram-sizer",
+        "diagram-layer",
+        "diagram-zoom",
+        "diagram-level",
+        "diagram-fit",
+        "diagram-probe",
+        "diagram-viewer-foot",
+        "diagram-viewer-key",
+        "diagram-viewer-row",
+        "diagram-viewer-hint",
+        "diagram-viewer-end",
+        "diagram-viewer-list",
+        "diagram-viewer-source"
+      ],
+      "requires": [
+        "diagram",
+        "dialog",
+        "dialog-form",
+        "sheet"
+      ],
+      "icons": [
+        "ArrowsOutSimple"
+      ],
+      "budget": 12000,
+      "usage": 900,
+      "builds": [
+        "dialog",
+        "dialog-form",
+        "sheet"
+      ]
+    },
     "sparkline": {
       "classes": [
         "sparkline",

@@ -555,7 +555,12 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
   const code = `${held.restore(markup, true)}\n${styles.map((style) => stripCssComments(style.css)).join("\n")}`;
-  const chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  let chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  // The diagram viewer (DECISIONS 310): a page with a figure has "Expand" and its dialog, unless every figure on it says "zoom": false. A figure drawn from
+  // script (Basalt.diagram) may want it, so it counts.
+  if (chosen.modules.includes("diagram") && !chosen.modules.includes("diagram-zoom") && "diagram-zoom" in manifest.modules && zoomWanted(held, code)) {
+    chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use: [...use, "diagram-zoom"], glyphNames: Object.keys(glyphFile) });
+  }
   // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
   const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
   const direct = detect(code, bare, [], { all, use }).modules;
@@ -601,6 +606,14 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "",
   ].join("\n");
   return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
+}
+
+/** Whether any figure on the page keeps its viewer: a `data-diagram` JSON without `"zoom": false`, or a figure drawn from script. */
+function zoomWanted(held, code) {
+  if (/Basalt\s*\.\s*diagram\b/.test(code)) return true;
+  const specs = held.saved.filter((item) => item.kind === "script" && item.attrs.some(([k]) => k === "data-diagram"));
+  if (!specs.length) return true;
+  return specs.some((item) => { try { return JSON.parse(item.inner).zoom !== false; } catch { return true; } });
 }
 
 /**

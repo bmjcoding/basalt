@@ -257,6 +257,26 @@ function diagramMotionCss() {
   return `@layer basalt {\n${react.slice(start, end).replaceAll(".basalt-diagram", ".diagram")}\n}\n`;
 }
 /**
+ * The diagram-zoom module's stylesheet (DECISIONS 310): the "Diagram viewer" section of components.css, with React's names as the skill's (the dialog, the
+ * sheet's parts, the button and the icon), so the viewer in a page is React's viewer.
+ */
+function diagramZoomCss() {
+  const react = fs.readFileSync(path.join(repo, "packages", "react", "src", "styles", "components.css"), "utf8");
+  const start = react.indexOf("  /* ---- Diagram viewer (DECISIONS 310");
+  const end = react.indexOf("  /* ---- ", start + 10);
+  if (start < 0 || end < 0) throw new Error("html-skill: the diagram viewer section of packages/react/src/styles/components.css moved; update diagramZoomCss");
+  const css = react.slice(start, end)
+    .replaceAll("var(--_surface, var(--basalt-surface-overlay))", "var(--panel-bg, var(--basalt-surface-overlay))")
+    .replaceAll(".basalt-diagram", ".diagram")
+    .replaceAll(".basalt-dialog-backdrop", "dialog.modal::backdrop")
+    .replaceAll(".basalt-dialog", ".dialog")
+    .replaceAll(".basalt-sheet-", ".sheet-")
+    .replaceAll(".basalt-button", ".btn")
+    .replaceAll(".basalt-icon", ".icon");
+  if (/basalt-(?!duration|space|size|text|font|border|surface)/.test(css.replace(/--basalt-[\w-]+/g, ""))) throw new Error("html-skill: the diagram viewer section names a React class diagramZoomCss does not rename");
+  return `@layer basalt {\n${css}\n}\n`;
+}
+/**
  * A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. It is a development build of the engine
  * (NODE_ENV "development"): the skill keeps the checks a production React build drops, since compose.mjs reports them when it writes a page.
  */
@@ -289,10 +309,11 @@ export function build() {
     if (name === "diagram") files["parts/diagram.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inDiagram))}\n${diagramCss()}`);
     // The motion section, with the motion tokens (the diagram durations and speeds) that only an animated diagram reads.
     if (name === "diagram-motion") files["parts/diagram-motion.css"] = minifyCss(`${filterTokens(tokensCss(), inDiagramMotion)}\n${diagramMotionCss()}`);
+    if (name === "diagram-zoom") files["parts/diagram-zoom.css"] = minifyCss(diagramZoomCss());
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && (name === "diagram" || name === "diagram-motion")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
+      if (ext === "js" && (name === "diagram" || name === "diagram-motion" || name === "diagram-zoom")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }

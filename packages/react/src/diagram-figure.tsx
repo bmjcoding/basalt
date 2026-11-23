@@ -4,9 +4,9 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, buildModel, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, measureViewerFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, ViewerMemo, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
 import { ArrowsOutSimpleIcon } from "@phosphor-icons/react/dist/csr/ArrowsOutSimple";
 import { Icon } from "./icon";
@@ -135,9 +135,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
   const [ink, setInk] = React.useState("");
   const inkHtml = React.useMemo(() => ({ __html: ink }), [ink]);
   const measured = React.useRef<Measured | null>(null);
-  // The viewer's figure: the least width the engine was found to draw it at (0: none was found), for this data.
-  const leastDrawn = React.useRef<number | undefined>(undefined);
-  const leastFor = React.useRef<unknown>(null);
+  // The viewer's figure: the least width the engine was found to draw it at, for this data (measureViewerFigure).
+  const leastMemo = React.useRef<ViewerMemo>({});
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
   const [motionModule, setMotionModule] = React.useState<MotionModule | null>(null);
@@ -165,38 +164,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
     if (!fig) return;
     const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const apply = (d: Dyn) => syncAttributes(fig, figureTree(model, d, options));
-    // The viewer's figure is laid out at the stage's width, never under its least drawn width (9.3); a stack it must hold is at most the container's width.
     const layer = viewer?.layer();
-    if (leastFor.current !== model) { leastFor.current = model; leastDrawn.current = undefined; }
-    const sizeTo = viewer && layer ? (least: number) => { layer.style.width = `${Math.max(leastDrawn.current ?? least, Math.min(viewer.avail, viewer.row))}px`; } : undefined;
-    // The layer has no width of its own until the first layout: it starts at the stage's, so the figure can be measured.
-    if (viewer && layer && !layer.style.width) layer.style.width = `${Math.min(viewer.avail, viewer.row)}px`;
-    // The engine measures only at 100% (9.3): the zoom is taken off the layer while it measures and put back before anything paints.
-    const zoomed = layer?.style.transform ?? "";
-    if (layer && zoomed) layer.style.transform = "none";
-    let result = measureFigure(fig, model, P, base, dynRef.current, apply, warn, sizeTo);
-    // The figure's least drawn width is the first width the engine draws it at, which the token sum can undercount (a sequence's columns are measured, a
-    // decision's diamond may be refused at a width). Found once by trying wider layouts, in steps of 16 and then by the pixel, up to half the row past it.
-    if (viewer && layer && result.dyn.layout === "stacked" && leastDrawn.current === undefined && result.least !== undefined) {
-      // A width counts when it draws twice running: measured from the stack, then again from its own drawn state, as every later measure is.
-      const at = (w: number) => {
-        layer.style.width = `${w}px`;
-        const first = measureFigure(fig, model, P, base, result.dyn, apply);
-        return first.dyn.layout === "drawn" ? measureFigure(fig, model, P, base, first.dyn, apply) : first;
-      };
-      const from = Math.max(result.least, Math.min(viewer.avail, viewer.row));
-      const cap = Math.max(viewer.row, from) * 1.5;
-      let found: number | undefined;
-      for (let w = from + 16; w <= cap && found === undefined; w += 16) if (at(w).dyn.layout === "drawn") found = w;
-      if (found !== undefined) for (let w = found - 15; w < found; w++) if (at(w).dyn.layout === "drawn") { found = w; break; }
-      if (found !== undefined) { leastDrawn.current = found; result = at(found); }
-      else leastDrawn.current = 0;
-    }
-    if (viewer && layer && result.dyn.layout === "stacked" && fig.clientWidth > viewer.contain) {
-      layer.style.width = `${viewer.contain}px`;
-      result = measureFigure(fig, model, P, base, result.dyn, apply, warn);
-    }
-    if (layer && zoomed) layer.style.transform = zoomed;
+    const result = viewer && layer ? measureViewerFigure(fig, model, P, base, dynRef.current, apply, warn, { layer, avail: viewer.avail, row: viewer.row, contain: viewer.contain, memo: leastMemo.current }) : measureFigure(fig, model, P, base, dynRef.current, apply, warn);
     measured.current = result;
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)

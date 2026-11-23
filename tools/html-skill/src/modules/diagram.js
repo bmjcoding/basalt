@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, measureViewerFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -12,8 +12,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   var P = 'diagram';
   var serial = 0;
 
-  function options(base, spec) {
-    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden' };
+  function options(base, spec, viewer) {
+    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden', viewer: Boolean(viewer) };
   }
   function slots(model, spec, base, open) {
     var kbd = function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; };
@@ -26,9 +26,9 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   }
 
   /** The figure's markup before script runs: its attributes and its inside, as compose.mjs writes it (and as this script writes it for a figure that has none). */
-  function markup(spec, base) {
+  function markup(spec, base, viewer) {
     var model = buildModel(spec);
-    var tree = figureTree(model, {}, options(base, spec));
+    var tree = figureTree(model, {}, options(base, spec, viewer));
     var html = toHtml(tree, slots(model, spec, base, false));
     var open = html.indexOf('>');
     return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.warnings };
@@ -43,7 +43,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
    * markup, or `Basalt.diagram(figure, spec)` drawing new data into one that has some) the markup is written from the spec first, so the
    * words, the list and the sentences are the new data's.
    */
-  function draw(figure, spec, attach) {
+  function draw(figure, spec, attach, viewer) {
     if (figure.__diagram) figure.__diagram.stop();
     var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
     var model = buildModel(spec);
@@ -53,7 +53,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
         while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
         base = 'dg' + serial;
       }
-      var made = markup(spec, base);
+      var made = markup(spec, base, viewer);
       var holder = document.createElement('div');
       holder.innerHTML = made.open + '</figure>';
       var fresh = holder.firstChild;
@@ -69,7 +69,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       figure.insertAdjacentHTML('beforeend', made.inner);
     }
     model.warnings.forEach(function (w) { console.warn('Basalt diagram: ' + w); });
-    var opts = options(base, spec);
+    var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
     var focusTrace = null, hoverTrace = null;
@@ -80,7 +80,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
     var toggle = figure.querySelector('.diagram-toggle');
     // Motion (DECISIONS 292) is the diagram-motion module's: compose.mjs adds it to a page whose diagram says "motion": "animated". Without it the
     // figure is as still. `drawn` is the ink last written, so a measure that draws the same lines writes nothing.
-    var animated = model.motion.animated && typeof _.diagramMotion === 'function';
+    var animated = !viewer && model.motion.animated && typeof _.diagramMotion === 'function';
     var motion = null, drawn = null;
     var settle = function () { if (animated) settleEntrance(figure); };
 
@@ -92,7 +92,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       toggle.firstElementChild.textContent = state.open ? 'Hide the list' : 'View as list';
     }
     function layout() {
-      measured = measureFigure(figure, model, P, base, state, apply, warn);
+      // The viewer's figure (DECISIONS 310, the diagram-zoom module) is laid out at the stage's width and measured only at 100%.
+      measured = viewer ? measureViewerFigure(figure, model, P, base, state, apply, warn, viewer) : measureFigure(figure, model, P, base, state, apply, warn);
       state = measured.dyn;
       apply(state);
       syncToggle();
@@ -103,6 +104,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       retrace();
       // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
       if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length)); if (fresh && motion) motion.redrawn(); }
+      if (viewer && viewer.onMeasured) viewer.onMeasured(measured, figure);
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.
@@ -113,7 +115,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       var node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
       settle();
-      if (event.key === 'Escape') { if (focusTrace || hoverTrace) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
+      // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
+      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace)) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
       var to = keyTarget(model, node.getAttribute('data-node'), event.key);
       if (!to) return;
@@ -174,8 +177,11 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
     var marks = model.nodes.some(function (n) { return n.mark; });
     if (marks) forced.addEventListener('change', layout);
     if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
+    // "Expand" and the viewer (DECISIONS 310) are the diagram-zoom module's: compose.mjs adds it to a page unless every figure on it says "zoom": false.
+    var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated }) : null;
     figure.__diagram = {
       stop: function () {
+        if (zoom) zoom.destroy();
         live = false; observer.disconnect(); cancelAnimationFrame(frame);
         if (marks) forced.removeEventListener('change', layout);
         if (motion) motion.destroy();
@@ -207,6 +213,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   }
 
   _.diagramMarkup = markup;
+  // What the viewer (the diagram-zoom module) draws with: this module's engine, so that module holds no second copy of it.
+  _.diagramKit = { draw: draw, buildModel: buildModel, figureKey: figureKey, figureList: figureList, hintEntries: hintEntries, toHtml: toHtml, escapeHtml: escapeHtml, settleEntrance: settleEntrance };
   B.diagram = function (figure, spec) {
     var d = figure.__diagram;
     var key = d && d.send ? sendless(spec) : null;
