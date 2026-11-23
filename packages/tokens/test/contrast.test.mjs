@@ -1041,3 +1041,22 @@ for (const theme of THEMES) {
     }
   });
 }
+
+// ---- Versions and release notes (DECISIONS 320, 2.8 and 2.10) ----
+//
+// The release page's new pairs. The arrival's plate is plate-0 on the page and plate-1 inside a callout (an action entry); on it the source line and a count
+// are secondary, since tertiary steps up on the plate (it measures under 4.5:1 on light's plate-0, which is why the step is the rule). The source line and the
+// meta line are secondary on the page and on the warning callout's neutral fill at level 1; a section's count is tertiary on the page.
+for (const theme of THEMES) {
+  test(`${theme}: the release page's pairs: secondary on plate-0 and plate-1, on the page and on a callout; a count in tertiary on the page`, () => {
+    for (const surface of ["plate-0", "plate-1", "surface-page", "surface-1"]) {
+      const bg = color(theme, surface);
+      const r = ratio(over(color(theme, "text-secondary"), bg), bg);
+      assert.ok(r >= 4.5, `${theme}: text-secondary on ${surface} is ${fmt(r)}:1`);
+    }
+    const page = color(theme, "surface-page");
+    assert.ok(ratio(over(color(theme, "text-tertiary"), page), page) >= 4.5, `${theme}: a count (tertiary) on the page`);
+    // The plate's step from tertiary to secondary is needed: in light, tertiary on plate-0 is under 4.5:1.
+    if (theme === "light") assert.ok(ratio(color(theme, "text-tertiary"), color(theme, "plate-0")) < 4.5, "light: tertiary on plate-0 needs the step to secondary");
+  });
+}
