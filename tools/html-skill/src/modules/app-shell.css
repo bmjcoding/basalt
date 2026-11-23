@@ -13,6 +13,20 @@
     /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     min-height: 100dvh;
   }
+  /* The capped form (data-capped; React's AppShell capped): at most --basalt-shell-width (the sidebar plus size-page-width) and centred; the page fills
+     its column, which at that cap is exactly the page's own 72rem. An app sets --basalt-shell-width on the root for another cap. */
+  :root { --basalt-shell-width: calc(var(--basalt-size-sidebar-width) + var(--basalt-size-page-width)); }
+  .app-shell[data-capped] { max-width: var(--basalt-shell-width); margin-inline: auto; }
+  .app-shell[data-capped] .app-main { max-width: none; }
+  /* The skip link starts on the brand link's start edge (React's AppShell): the sidebar's and the brand band's padding from 1024, the 44px link
+     centred in the rail from 720. */
+  @media (width >= %bp-lg%) {
+    :root:has(.app-shell) .skip-link { --_brand-start: calc(2 * var(--basalt-space-3) + var(--basalt-space-1-5)); inset-inline-start: var(--_brand-start); }
+    :root:has(.app-shell[data-capped]) .skip-link { inset-inline-start: calc(max(var(--basalt-space-0), (100% - var(--basalt-shell-width)) / 2) + var(--_brand-start)); }
+  }
+  @media (width >= %bp-md%) and (width < %bp-lg%) {
+    :root:has(.app-shell) .skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
+  }
   .app-column { min-width: 0; }
   .app-sidebar {
     position: sticky;
@@ -72,6 +86,11 @@
     letter-spacing: var(--basalt-text-lg-tracking);
   }
   .app-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-2); }
+  /* Facts under the title (.app-facts in an .app-heading): one line at 13/18 in secondary ink, cut with an ellipsis; title and line are 44 together. */
+  .app-heading { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; }
+  .app-facts { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
+  .app-facts > * { vertical-align: top; }
+
 
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   @media (width >= %bp-md%) and (width < %bp-lg%) {
@@ -86,8 +105,8 @@
     .app-shell { grid-template-columns: minmax(0, 1fr); }
     .app-sidebar { display: none; }
     .app-actions { gap: var(--basalt-space-1); }
-    /* The header's one primary leaves the bar under 720, as the site header's does; the app puts it elsewhere. */
-    .app-header .btn[data-variant="primary"] { display: none; }
+    /* The header's one primary stays in the bar under 720 with its words, 44 tall like the bar's other buttons; the title gives way to it. */
+    .app-header .btn[data-variant="primary"] { flex: none; }
     .app-shell[data-tabbar] .app-main { padding-bottom: calc(var(--basalt-bottom-offset) + var(--basalt-space-6)); }
   }
 

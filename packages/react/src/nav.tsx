@@ -12,6 +12,14 @@ import { join } from "./utils";
 
 /** Whether the list is the collapsed rail. Set by `Nav`, read by its items. */
 const NavContext = React.createContext(false);
+/** The list's size. Set by `Nav`, read by its items for their glyph's size. */
+const NavSizeContext = React.createContext<NavSize>("md");
+
+/**
+ * `md`: the app's navigation, a 48px pill at 20/28 with a 24 glyph. `sm`: a second, quieter list under it (recent items,
+ * saved views, a workspace's projects), a 32px pill at 13/18 with a 16 glyph.
+ */
+export type NavSize = "md" | "sm";
 
 /**
  * Whether the app shell is showing the rail. `AppShell` sets it, so the `Nav`s it holds collapse by the width of the page
@@ -27,6 +35,11 @@ export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label"
    * `AppShell` it follows the shell's width (the rail from 720 to 1023); anywhere else it is the sidebar's full form.
    */
   collapsed?: boolean;
+  /**
+   * `md` (default): the app's navigation, a 48px pill at 20/28 with the glyph at 24. `sm`: a second list under it, a 32px pill at
+   * 13/18 (`text-sm`) with the glyph at 16, the same hover, glide, current page and ring. Compact steps it to 28; on touch it is 44.
+   */
+  size?: NavSize;
 }
 
 /**
@@ -35,14 +48,16 @@ export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label"
  * (150ms, ease-out); the first key hides it and the focus ring shows. The current page is its selected glyph and a 600
  * label, with no background and no bar. The column keeps `space-1-5` of inline padding so the focus ring never clips.
  */
-export function Nav({ collapsed: collapsedProp, className, children, ...props }: NavProps) {
+export function Nav({ collapsed: collapsedProp, size = "md", className, children, ...props }: NavProps) {
   const rail = React.useContext(NavRailContext);
   const collapsed = collapsedProp ?? rail;
   return (
-    <nav {...props} data-collapsed={collapsed ? "" : undefined} className={join("basalt-nav", className)}>
+    <nav {...props} data-collapsed={collapsed ? "" : undefined} data-size={size === "md" ? undefined : size} className={join("basalt-nav", className)}>
       <GlidePlate navigation />
       <NavContext.Provider value={collapsed}>
-        <ul className="basalt-nav-list">{children}</ul>
+        <NavSizeContext.Provider value={size}>
+          <ul className="basalt-nav-list">{children}</ul>
+        </NavSizeContext.Provider>
       </NavContext.Provider>
     </nav>
   );
@@ -68,7 +83,7 @@ export function NavGroup({ label, className, children, ...props }: NavGroupProps
 
 export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"> {
   /**
-   * The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 and in its selected form when the item is current. Leave it
+   * The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 (16 in a `size="sm"` list) and in its selected form when the item is current. Leave it
    * out for a row of words alone (the site header's narrow menu): the same 48px pill at 20/28, with no glyph and no seat for
    * one. The rail needs glyphs, so a list that collapses gives every item one.
    */
@@ -86,10 +101,11 @@ export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"
 /** One link in `Nav`. */
 export function NavItem({ icon, children, current = false, count, dot, className, ...props }: NavItemProps) {
   const collapsed = React.useContext(NavContext);
+  const size = React.useContext(NavSizeContext);
   const link = (
     <a {...props} aria-current={current ? "page" : props["aria-current"]} data-glyphless={icon ? undefined : ""} className={join("basalt-nav-item", className)}>
       <span className="basalt-nav-pill">
-        {icon ? <ControlIcon icon={icon} size={24} selected={current} eager={current} /> : null}
+        {icon ? <ControlIcon icon={icon} size={size === "sm" ? 16 : 24} selected={current} eager={current} /> : null}
         <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-label"} data-label={collapsed ? undefined : children}>{children}</span>
         {count !== undefined ? <span className={collapsed ? "basalt-visually-hidden" : "basalt-nav-count"}><span className="basalt-visually-hidden">, </span>{count}</span> : null}
         {dot ? (

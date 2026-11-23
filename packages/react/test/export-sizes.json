@@ -15,8 +15,8 @@
   "AlertDialogTitle": 69890,
   "AlertDialogTrigger": 69874,
   "AmbientMark": 569,
-  "AppHeader": 488,
-  "AppShell": 99096,
+  "AppHeader": 1260,
+  "AppShell": 99193,
   "AppTile": 1112,
   "ArrowDownGlyph": 2868,
   "ArrowLeftGlyph": 2869,
@@ -165,9 +165,9 @@
   "MoreNavGlyph": 2918,
   "MorphIcon": 6713,
   "MultiSelect": 150482,
-  "Nav": 4675,
-  "NavGroup": 514,
-  "NavItem": 110643,
+  "Nav": 4774,
+  "NavGroup": 538,
+  "NavItem": 110701,
   "NoticeBar": 813,
   "NotificationCenter": 151993,
   "NotificationCentre": 152003,
@@ -185,6 +185,7 @@
   "PageWait": 2453,
   "Pagination": 21695,
   "PairedArt": 462,
+  "PaneLayout": 1307,
   "PauseGlyph": 2819,
   "PeriodStepper": 17812,
   "PhaseChart": 51249,
@@ -248,10 +249,10 @@
   "ShortcutList": 10032,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 14782,
-  "SiteHeader": 175837,
+  "SiteFooter": 14780,
+  "SiteHeader": 175972,
   "SiteLockupDefs": 694,
-  "SiteMenu": 168176,
+  "SiteMenu": 168311,
   "SiteNav": 5102,
   "SiteNavLink": 411,
   "SiteNavList": 5112,
@@ -293,7 +294,7 @@
   "Tab": 40055,
   "TabBar": 1102,
   "TabBarItem": 1859,
-  "TabBarMore": 88312,
+  "TabBarMore": 88415,
   "Table": 8305,
   "TableBody": 143,
   "TableCall": 391,
@@ -380,6 +381,7 @@
   "useLoops": 1050,
   "useMediaQuery": 260,
   "useNow": 1614,
+  "usePaneScroller": 154,
   "useReducedMotion": 307,
   "useRefreshing": 272,
   "useRouteFocus": 361,
@@ -394,11 +396,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 791912,
-  "gzip": 260374
+  "bytes": 793546,
+  "gzip": 260832
  },
  "styles": {
-  "bytes": 323487,
-  "gzip": 42369
+  "bytes": 326780,
+  "gzip": 42808
  }
 }
