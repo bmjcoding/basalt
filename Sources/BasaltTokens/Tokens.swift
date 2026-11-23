@@ -407,6 +407,18 @@ extension Basalt {
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.45)
     )
 
+    /// A diagram card's rim while a mover rests on it: its arrival step (DECISIONS 292). 3:1 on levels 0 to 3. Under more contrast it steps to text-primary, because the rim it replaces is the input boundary's value there and secondary ink is under 3:1 against that.
+    public static let diagramHit = ThemedColor(
+      light: RGBA(red: 0.301921, green: 0.301921, blue: 0.301921, alpha: 1),
+      dark: RGBA(red: 0.730753, green: 0.730753, blue: 0.730753, alpha: 1)
+    )
+
+    /// The focal card's fill and edge while a mover rests on it: the primary action's hover value, a colour step of the fill (DECISIONS 292). Focal ink holds 4.5:1 on it at full strength and at opacity-amount.
+    public static let diagramFocalHit = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 1),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+    )
+
     /// The ground of drawn art and of a stage. It is the page colour, so a stage meets the page with no seam, and it is the stage's placeholder while the art loads.
     public static let artField = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 1),
@@ -692,6 +704,10 @@ extension Basalt {
     public static let diagramHead: Double = 8
     /// A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 281).
     public static let diagramGuideDash: Double = 4
+    /// A diagram pulse's bead, along the line (DECISIONS 292); never more than two fifths of the line's visible length.
+    public static let diagramBead: Double = 24
+    /// From one flow cut to the next on a diagram's live line (DECISIONS 292): a cut is size-cut, so 10 on, 2 off.
+    public static let diagramFlow: Double = 12
     /// A range meter's marker: a dot, ringed size-cut in the colour of the surface (DECISIONS 153, consent row 14).
     public static let meterMarker: Double = 12
     /// The top of a stage the art keeps quiet for the bar: size-header (56) plus space-6 (24). The top safe area is added by the layout CSS. No pixel of it passes art-quiet-limit, and a stage declares that the product's headroom check passed.

@@ -1227,6 +1227,22 @@
       },
       "$description": "A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 281)."
     },
+    "diagram-bead": {
+      "$type": "dimension",
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "A diagram pulse's bead, along the line (DECISIONS 292); never more than two fifths of the line's visible length."
+    },
+    "diagram-flow": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "From one flow cut to the next on a diagram's live line (DECISIONS 292): a cut is size-cut, so 10 on, 2 off."
+    },
     "meter-marker": {
       "$type": "dimension",
       "$value": {
@@ -1666,6 +1682,97 @@
       },
       "$description": "The step between the marks of one figure entering, shrunk so every start falls within duration-slow of the first. Under reduced motion 0."
     },
+"diagram": {
+      "$description": "A diagram's own motion (DECISIONS 292), when its author asks for it (motion=\"animated\"). They time nothing but a diagram, and they do not collapse under reduced motion: nothing they time runs there. rest is a hold, as confirm is.",
+      "line-min": {
+        "$type": "duration",
+        "$value": {
+          "value": 400,
+          "unit": "ms"
+        },
+        "$description": "The shortest a traced line takes to draw (a line takes its length at speed-diagram-trace, never under this nor over line-max)."
+      },
+      "line-max": {
+        "$type": "duration",
+        "$value": {
+          "value": 900,
+          "unit": "ms"
+        },
+        "$description": "The longest a traced line takes to draw."
+      },
+      "stagger": {
+        "$type": "duration",
+        "$value": {
+          "value": 220,
+          "unit": "ms"
+        },
+        "$description": "Between one traced line's start and the next. It shrinks by one factor when an entrance would pass duration-diagram-limit."
+      },
+      "step": {
+        "$type": "duration",
+        "$value": {
+          "value": 320,
+          "unit": "ms"
+        },
+        "$description": "Between one sequence message's start and the next. It shrinks to fit the limit, as the stagger does."
+      },
+      "arrow": {
+        "$type": "duration",
+        "$value": {
+          "value": 500,
+          "unit": "ms"
+        },
+        "$description": "A sequence message's arrow drawing."
+      },
+      "limit": {
+        "$type": "duration",
+        "$value": {
+          "value": 5000,
+          "unit": "ms"
+        },
+        "$description": "An entrance ends inside it (WCAG 2.2.2's five seconds): the stagger or the step shrinks to fit, and no line's own duration changes."
+      },
+      "leg-min": {
+        "$type": "duration",
+        "$value": {
+          "value": 500,
+          "unit": "ms"
+        },
+        "$description": "The shortest leg of a packet (a leg takes its length at speed-diagram-packet, never under this nor over leg-max)."
+      },
+      "leg-max": {
+        "$type": "duration",
+        "$value": {
+          "value": 1100,
+          "unit": "ms"
+        },
+        "$description": "The longest leg of a packet."
+      },
+      "rest": {
+        "$type": "duration",
+        "$value": {
+          "value": 400,
+          "unit": "ms"
+        },
+        "$description": "A mover's rest at a stop, while the stop holds its arrival step. A hold, not an animation."
+      },
+      "pause": {
+        "$type": "duration",
+        "$value": {
+          "value": 1200,
+          "unit": "ms"
+        },
+        "$description": "Between two runs of a pulse; and before the loops resume after a trace ends."
+      },
+      "repeat": {
+        "$type": "duration",
+        "$value": {
+          "value": 4000,
+          "unit": "ms"
+        },
+        "$description": "Between a repeating packet landing and its next start."
+      }
+    },
     "loop": {
       "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion a spinner fades instead of moving, and a loop is never cut to the 100ms floor, or it flickers.",
       "ring": {
@@ -1699,6 +1806,28 @@
           "unit": "ms"
         },
         "$description": "The middle period of a page's one ambient loop (opacity only, in its art): each mark runs 0.6 to 1.4 times it, with its own phase. Not run under reduced motion, in forced colours or in print."
+      }
+    }
+  },
+  "speed": {
+    "$type": "number",
+    "$description": "Speeds in pixels a second, plain numbers (as opacity and aspect are). A diagram's motion only (DECISIONS 292).",
+    "diagram": {
+      "trace": {
+        "$value": 300,
+        "$description": "A traced line's drawing, clamped by duration-diagram-line-min and -line-max."
+      },
+      "packet": {
+        "$value": 250,
+        "$description": "A packet's leg (4ms a pixel), clamped by duration-diagram-leg-min and -leg-max."
+      },
+      "pulse": {
+        "$value": 120,
+        "$description": "A pulse's bead along its route."
+      },
+      "flow": {
+        "$value": 16,
+        "$description": "A flow line's march: its cuts move toward the head."
       }
     }
   },
