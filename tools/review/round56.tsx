@@ -36,6 +36,7 @@ import {
   TabBarItem,
   Text,
   ThemeMenu,
+  useTheme,
   ToastProvider,
   TrendsGlyph,
 } from "../../packages/react/src/index";
@@ -70,7 +71,25 @@ function useDemoState(state: string) {
 
 // The bar's theme control is the shipped one (foundations, The theme choice): ThemeMenu, a sun or a moon for the theme in use, named
 // "Theme: System", opening System, Light and Dark.
-const toggle = <ThemeMenu />;
+// The walkthrough sets data-theme itself; the menu reads the theme store, so the shot takes the page's theme as the stored choice and the
+// glyph shows the theme the shot is in (a moon in dark, a sun in light).
+function BarTheme() {
+  const { setChoice } = useTheme();
+  // The walkthrough writes data-theme after this mounts (a parent's effect runs after a child's), and again when its switch is pressed, so
+  // the choice follows the attribute whenever it changes.
+  React.useEffect(() => {
+    const root = document.documentElement;
+    let last = "";
+    // Only a change is followed: the store may write the attribute back, and the same value must not loop.
+    const follow = () => { const shown = root.dataset.theme; if ((shown === "dark" || shown === "light") && shown !== last) { last = shown; setChoice(shown); } };
+    const watch = new MutationObserver(follow);
+    watch.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    const timer = window.setTimeout(follow, 0);
+    return () => { watch.disconnect(); window.clearTimeout(timer); };
+  }, [setChoice]);
+  return <ThemeMenu />;
+}
+const toggle = <BarTheme />;
 
 // ---- the two domains ----
 
