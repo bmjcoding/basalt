@@ -100,7 +100,18 @@ function boxesOf(root: Element, origin: DOMRect, out: string[]) {
     const x = r2(r.left - origin.left), y = r2(r.top - origin.top), w = r2(r.width), h = r2(r.height);
     const radius = Number.parseFloat(cs.borderTopLeftRadius) || 0;
     const fill = visible(cs.backgroundColor) ? cs.backgroundColor : "none";
-    const bw = Number.parseFloat(cs.borderTopWidth) || 0;
+    const sidesW = [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].map((v) => Number.parseFloat(v) || 0);
+    const uniform = sidesW.every((v) => v === sidesW[0]);
+    // An edge on some sides only (the key's divider) is drawn as those lines, not a box.
+    if (!uniform) {
+      const [t, r, b, l] = sidesW;
+      const edge = (on: number, color: string, x1: number, y1: number, x2: number, y2: number) => { if (on && visible(color)) out.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${on}"/>`); };
+      edge(t!, cs.borderTopColor, x, y + t! / 2, x + w, y + t! / 2);
+      edge(b!, cs.borderBottomColor, x, y + h - b! / 2, x + w, y + h - b! / 2);
+      edge(l!, cs.borderLeftColor, x + l! / 2, y, x + l! / 2, y + h);
+      edge(r!, cs.borderRightColor, x + w - r! / 2, y, x + w - r! / 2, y + h);
+    }
+    const bw = uniform ? sidesW[0]! : 0;
     const stroke = bw && cs.borderTopStyle !== "none" && visible(cs.borderTopColor) ? cs.borderTopColor : "none";
     if (fill !== "none" || stroke !== "none") {
       const dash = cs.borderTopStyle === "dashed" ? ` stroke-dasharray="4 2"` : "";

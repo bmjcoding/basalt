@@ -21,7 +21,7 @@ const isShot = () => new URLSearchParams(window.location.search).get("shot") ===
 const frames = (n: number) => new Promise<void>((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); });
 
 /** A figure exported to SVG (diagram-export) and shown as the file, beside nothing else: what an app's own Download button would write. */
-function Exported({ k, theme }: { k: Key; theme: "light" | "dark" }) {
+function Exported({ k }: { k: Key }) {
   const host = React.useRef<HTMLDivElement>(null);
   const [url, setUrl] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -31,12 +31,13 @@ function Exported({ k, theme }: { k: Key; theme: "light" | "dark" }) {
       await frames(8);
       const fig = host.current?.querySelector<HTMLElement>("figure");
       if (!fig) return;
-      const blob = await diagramToSvg(fig, { theme });
+      // The theme shown (the default), read when the shot has set it.
+      const blob = await diagramToSvg(fig);
       setUrl(URL.createObjectURL(blob));
       await frames(4);
       ready();
     })();
-  }, [theme]);
+  }, []);
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <div ref={host} style={{ position: "absolute", left: -10000, width: 1104 }}><Diagram k={k} state="" /></div>
@@ -194,7 +195,7 @@ export const ROUND_66: Round = {
       widths: [1440],
       scales: [2],
       height: 1100,
-      demo: () => <Exported k="architecture" theme={(document.documentElement.getAttribute("data-theme") as "light" | "dark") ?? "dark"} />,
+      demo: () => <Exported k="architecture" />,
     },
     {
       id: "print",
