@@ -287,7 +287,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
       // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog.
       if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace)) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); } return; }
       if (!stops) return;
-      const to = keyTarget(model, node.dataset.node!, event.key);
+      const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn", getComputedStyle(node).direction === "rtl");
       if (!to) return;
       event.preventDefault();
       const next = { ...dynRef.current, stop: to };
@@ -336,7 +336,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
       <span className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
     </button>
   );
-  const hint = hintEntries(model).map((entry) => (
+  const hint = hintEntries(model, dyn.layout === "drawn").map((entry) => (
     <span key={entry.words}>{entry.keys.map((k, i) => <React.Fragment key={k}>{i ? " " : null}<Kbd>{k}</Kbd></React.Fragment>)} {entry.words}</span>
   ));
   const tree = figureTree(model, dyn, options);

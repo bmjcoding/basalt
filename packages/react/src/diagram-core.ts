@@ -363,7 +363,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
   const cols = Math.max(1, ...nodes.map((n) => n.col));
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  return { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
+  if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
+  return model;
 }
 
 /** A card's mark from the author's data: a bundled id (a string), or `{ onLight, onDark }` (with the words a bundled one stands for, `says`). */
@@ -877,15 +879,55 @@ function buildList(P: string, m: Model): VNode[] {
   return out;
 }
 
-/** The keys sentence (hidden), which describes the drawing to a screen reader. */
-function keysSentence(m: Model): string {
+/** The keys sentence (hidden), which describes the drawing to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they fall back. */
+function keysSentence(m: Model, drawn = false): string {
   const noun = m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
-  return `Arrow keys move to the next or the previous ${noun}, in the author's order; Home and End go to the ends; Escape clears the trace.`;
+  const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
+  return `${arrows}; Home and End go to the ends; Escape clears the trace.`;
 }
 
-/** The key hint's entries: the keys and their words. */
-export function hintEntries(m: Model): Array<{ keys: string[]; words: string }> {
-  return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
+/** The key hint's entries: the keys and their words. Four arrows where a drawn figure has more than one row and more than one column (1.5). */
+export function hintEntries(m: Model, drawn = false): Array<{ keys: string[]; words: string }> {
+  const four = drawn && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
+  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
+}
+
+// ---- The spatial arrow keys (DECISIONS 306, 1.5): on a card's column and rows, never on its measured centre ----
+
+type Way = "right" | "left" | "down" | "up";
+/** Lexicographic order of two ranks. */
+const less = (a: number[], b: number[]) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k]! < b[k]!; return false; };
+/** A card's tracks: its column and its rows (a data flow's row is its lane, a sequence's heads are one row). */
+const tracksOf = (m: Model, n: MNode) => ({ col: m.type === "sequence" ? n.i + 1 : n.col, rows: [n.row, n.row2] as [number, number] });
+/**
+ * Where each arrow goes from each card, or null when some card cannot be reached from another by the arrows: then the arrows are the author's order.
+ * A card is "that way" when it starts past the focused card's last track on the arrow's axis. Among those sharing a track across the arrow, the nearest;
+ * otherwise the lowest of tracks along the arrow plus twice the tracks across; ties go to fewer across, then the nearer first row, then the author's order.
+ */
+export function spatialTable(m: Model): Record<string, Record<Way, string | null>> | null {
+  return memo(m, "spatial", () => {
+    const cards = m.nodes.map((n) => ({ id: n.id, ...tracksOf(m, n) }));
+    const target = (from: (typeof cards)[number], way: Way) => {
+      const horizontal = way === "right" || way === "left", forward = way === "right" || way === "down";
+      const along = (c: (typeof cards)[number]) => (horizontal ? [c.col, c.col] : c.rows), across = (c: (typeof cards)[number]) => (horizontal ? c.rows : [c.col, c.col]);
+      const a = along(from), x = across(from);
+      let best: { id: string; rank: number[] } | null = null;
+      cards.forEach((c, order) => {
+        if (c === from) return;
+        const b = along(c), y = across(c);
+        const d = forward ? b[0]! - a[1]! : a[0]! - b[1]!;
+        if (d < 1) return;
+        const off = Math.max(0, y[0]! - x[1]!, x[0]! - y[1]!);
+        const rank = [off === 0 ? 0 : 1, off === 0 ? d : d + 2 * off, off, Math.abs(y[0]! - x[0]!), order];
+        if (!best || less(rank, best.rank)) best = { id: c.id, rank };
+      });
+      return (best as { id: string } | null)?.id ?? null;
+    };
+    const table: Record<string, Record<Way, string | null>> = record();
+    for (const c of cards) table[c.id] = { right: target(c, "right"), left: target(c, "left"), down: target(c, "down"), up: target(c, "up") };
+    const reach = (start: string) => { const seen = new Set([start]); const todo = [start]; while (todo.length) for (const t of Object.values(table[todo.pop()!]!)) if (t && !seen.has(t)) { seen.add(t); todo.push(t); } return seen.size; };
+    return cards.every((c) => reach(c.id) === cards.length) ? table : null;
+  });
 }
 
 export interface FigureOptions {
@@ -958,7 +1000,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m)} ${o.viewer}` : keysSentence(m)),
+  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
@@ -2130,7 +2172,13 @@ export function settleEntrance(fig: HTMLElement): void {
 }
 
 /** The node a key moves to (1.14): → ↓ the next, ← ↑ the one before, in the author's order, stopping at the ends; Home and End the ends. */
-export function keyTarget(m: Model, from: string, key: string): string | null {
+export function keyTarget(m: Model, from: string, key: string, drawn = false, rtl = false): string | null {
+  // Drawn, the arrows are spatial and physical: in a right-to-left figure column 1 is at the right (1.5).
+  const table = drawn ? spatialTable(m) : null;
+  if (table && key.startsWith("Arrow")) {
+    const way = ({ ArrowRight: rtl ? "left" : "right", ArrowLeft: rtl ? "right" : "left", ArrowDown: "down", ArrowUp: "up" } as Record<string, Way>)[key];
+    return way ? table[from]?.[way] ?? null : null;
+  }
   const i = m.byId.get(from)?.i ?? 0;
   const n = m.nodes.length;
   let to: number;

@@ -97,6 +97,9 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
       state = measured.dyn;
       apply(state);
       syncToggle();
+      // The key hint follows the layout: four arrows where the drawn figure has rows and columns (DECISIONS 306, 1.5).
+      var hintEl = figure.querySelector(':scope > .diagram-hint');
+      if (hintEl) { var hintHtml = hintEntries(model, state.layout === 'drawn').map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
       // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
       if (!hasStops(model, state)) hoverTrace = null;
       var fresh = ink && measured.ink !== drawn;
@@ -118,7 +121,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureLis
       // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
       if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace)) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
-      var to = keyTarget(model, node.getAttribute('data-node'), event.key);
+      var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn', getComputedStyle(node).direction === 'rtl');
       if (!to) return;
       event.preventDefault();
       setStop(to);

@@ -127,7 +127,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
   const key = figureKey(P, model);
   const keyHtml = React.useMemo(() => ({ __html: key ? toHtml(key) : "" }), [key]);
   const listHtml = React.useMemo(() => ({ __html: figureList(P, model).map((v) => toHtml(v)).join("") }), [model]);
-  const hint = viewerHint(hintEntries(model)).map((entry) => (
+  const hint = viewerHint(hintEntries(model, layout.layout === "drawn")).map((entry) => (
     <span key={entry.words}>{entry.keys.map((k, i) => <React.Fragment key={k}>{i ? " " : null}<Kbd>{/* A fragment, not a string: Kbd reads a string as a shortcut, and "+" is its separator. */}<>{k}</></Kbd></React.Fragment>)} {entry.words}</span>
   ));
   const off = zoom.listOpen;

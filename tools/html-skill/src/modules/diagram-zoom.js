@@ -22,7 +22,7 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
     var model = kit.buildModel(still);
     var id = 'dgv' + (++serial);
     var key = kit.figureKey('diagram', model);
-    var hint = viewerHint(kit.hintEntries(model)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
+    var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
     d.className = 'panel float modal dialog diagram-viewer';
     d.setAttribute('data-form', '');

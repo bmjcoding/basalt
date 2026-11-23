@@ -1,0 +1,261 @@
+{
+ "architecture": {
+  "everyCardFromEveryCard": true,
+  "table": {
+   "browser": {
+    "right": "alb",
+    "left": null,
+    "down": "ecs",
+    "up": "aurora"
+   },
+   "alb": {
+    "right": "svc",
+    "left": "browser",
+    "down": "ecs",
+    "up": "aurora"
+   },
+   "svc": {
+    "right": "s3",
+    "left": "alb",
+    "down": "agent",
+    "up": "aurora"
+   },
+   "aurora": {
+    "right": null,
+    "left": "svc",
+    "down": "s3",
+    "up": null
+   },
+   "s3": {
+    "right": null,
+    "left": "svc",
+    "down": "bedrock",
+    "up": "aurora"
+   },
+   "ecs": {
+    "right": "bedrock",
+    "left": "browser",
+    "down": "agent",
+    "up": "alb"
+   },
+   "bedrock": {
+    "right": null,
+    "left": "ecs",
+    "down": "cw",
+    "up": "s3"
+   },
+   "agent": {
+    "right": "bedrock",
+    "left": "ecs",
+    "down": "sys",
+    "up": "svc"
+   },
+   "cw": {
+    "right": null,
+    "left": "sys",
+    "down": null,
+    "up": "bedrock"
+   },
+   "sys": {
+    "right": "cw",
+    "left": "ecs",
+    "down": null,
+    "up": "agent"
+   }
+  }
+ },
+ "flowchart": {
+  "everyCardFromEveryCard": true,
+  "table": {
+   "req": {
+    "right": "med",
+    "left": "obs",
+    "down": "risk",
+    "up": null
+   },
+   "risk": {
+    "right": "med",
+    "left": "obs",
+    "down": "who",
+    "up": "req"
+   },
+   "who": {
+    "right": "med",
+    "left": "obs",
+    "down": "may",
+    "up": "risk"
+   },
+   "obs": {
+    "right": "who",
+    "left": null,
+    "down": "told",
+    "up": "risk"
+   },
+   "med": {
+    "right": "wait",
+    "left": "who",
+    "down": "may",
+    "up": "risk"
+   },
+   "wait": {
+    "right": null,
+    "left": "med",
+    "down": "may",
+    "up": "risk"
+   },
+   "may": {
+    "right": "med",
+    "left": "obs",
+    "down": "first",
+    "up": "who"
+   },
+   "first": {
+    "right": "med",
+    "left": "told",
+    "down": "rec",
+    "up": "may"
+   },
+   "told": {
+    "right": "first",
+    "left": null,
+    "down": "rec",
+    "up": "obs"
+   },
+   "rec": {
+    "right": "med",
+    "left": "told",
+    "down": null,
+    "up": "first"
+   }
+  }
+ },
+ "data flow": {
+  "everyCardFromEveryCard": true,
+  "table": {
+   "send": {
+    "right": "append",
+    "left": null,
+    "down": "append",
+    "up": null
+   },
+   "append": {
+    "right": "row",
+    "left": "send",
+    "down": "seal",
+    "up": "send"
+   },
+   "row": {
+    "right": "hear",
+    "left": "seal",
+    "down": "seg",
+    "up": "append"
+   },
+   "hear": {
+    "right": "see",
+    "left": "row",
+    "down": "see",
+    "up": "row"
+   },
+   "see": {
+    "right": null,
+    "left": "hear",
+    "down": "seg",
+    "up": "hear"
+   },
+   "seal": {
+    "right": "row",
+    "left": "send",
+    "down": "seg",
+    "up": "append"
+   },
+   "seg": {
+    "right": "see",
+    "left": "seal",
+    "down": null,
+    "up": "row"
+   }
+  }
+ },
+ "schema": {
+  "everyCardFromEveryCard": true,
+  "table": {
+   "memberships": {
+    "right": "users",
+    "left": null,
+    "down": null,
+    "up": "log_segments"
+   },
+   "room_events": {
+    "right": "incidents",
+    "left": null,
+    "down": "log_segments",
+    "up": null
+   },
+   "log_segments": {
+    "right": "incidents",
+    "left": null,
+    "down": "memberships",
+    "up": "room_events"
+   },
+   "incidents": {
+    "right": "agent_runs",
+    "left": "room_events",
+    "down": "users",
+    "up": null
+   },
+   "users": {
+    "right": "sandboxes",
+    "left": "memberships",
+    "down": null,
+    "up": "incidents"
+   },
+   "sandboxes": {
+    "right": "approvals",
+    "left": "users",
+    "down": null,
+    "up": "agent_runs"
+   },
+   "agent_runs": {
+    "right": "approvals",
+    "left": "incidents",
+    "down": "sandboxes",
+    "up": null
+   },
+   "approvals": {
+    "right": null,
+    "left": "agent_runs",
+    "down": "sandboxes",
+    "up": null
+   }
+  }
+ },
+ "sequence": {
+  "everyCardFromEveryCard": true,
+  "table": {
+   "marcus": {
+    "right": "svc",
+    "left": null,
+    "down": null,
+    "up": null
+   },
+   "svc": {
+    "right": "ecs",
+    "left": "marcus",
+    "down": null,
+    "up": null
+   },
+   "ecs": {
+    "right": "agent",
+    "left": "svc",
+    "down": null,
+    "up": null
+   },
+   "agent": {
+    "right": null,
+    "left": "ecs",
+    "down": null,
+    "up": null
+   }
+  }
+ }
+}
