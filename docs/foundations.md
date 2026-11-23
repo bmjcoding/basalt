@@ -148,7 +148,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
   flush-field −2 inset above. A sortable table header is exactly that band (see the still table below). Navigation
   items are focusable rows: their ring goes around the hugging pill (see [Navigation](#navigation)). So are the
-  notification centre's entries: links or buttons, which join the hover glide on navigation's rules (below). Otherwise Basalt ships none:
+  notification centre's entries: links or buttons, which join the hover glide on navigation's rules (below), and the disclosure row (see [The conversation stream](#the-conversation-stream)). Otherwise Basalt ships none:
   the rows of Menu, Select, Combobox and CommandMenu are options and show the plate, breadcrumbs and pagination are
   inline, and a settings or list row is the app's own markup. The accordion trigger is the one full-width band that is
   itself a button; it keeps the ring it was built with
@@ -344,7 +344,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
   checked control's own look) sits in a seat reserved on every choice card, on its header line, inline-end of the title,
   empty at rest with the input boundary, so choosing moves no title. Selected is the selected wash as one solid fill at the
-  card's own level (the active-row plate recipe: `--_plate-solid`, about `#262626` on level 1 in dark and `#ededed` on
+  card's own level (the active-row plate, `--basalt-plate`, the token `plate-1` on level 1: about `#262626` on level 1 in dark and `#ededed` on
   white), with the rim and the level unchanged: level is position, and a chosen card is not nested deeper. The title stays
   primary with no weight change; tertiary content steps to secondary on the fill. Hover on an unselected card is the
   hover wash alone, with no further step on a selected one; there is no press scale; focus is the control ring at +2
@@ -451,7 +451,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
-  all"). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
+  all" at its end and, when the app offers it, "Clear all" at its start, disabled in place once nothing is left; DECISIONS 269). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
   line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
   the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
   entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
@@ -459,7 +459,34 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   their read state, persistence and the "View all" page; the component is presentational. **The hover glide** is navigation's,
   in the same plumbing: one plate follows the pointer between entries (40 or 58 tall; 44 or 58 on touch); the first key hides it and the resting
   hover, so only the shipped rounded control ring at +2, outside the row, shows; the next pointer move brings the plate back.
-  Off on touch, under reduced motion and in forced colours, where each entry paints its own.
+  Off on touch, under reduced motion and in forced colours, where each entry paints its own. Its US name is `NotificationCenter`
+  (`NotificationCenterProps`); `NotificationCentre` and `NotificationCentreProps` stay as aliases.
+  - **Pending** (waiting on the reader, in review, queued) is the toast's ring with nothing in it: Phosphor's Circle at 16 in the mark's
+    seat, the same drawing as CheckCircle and XCircle, in secondary ink and no colour, because waiting is not a warning. Badge's 6px ring is
+    pending's mark in a badge; in the entry's 16px seat it would sit beside the 6px unread dot as a second, hollow dot and read as a read
+    state, so the entry draws the ring at the size of its own marks. Like every mark it is `aria-hidden`, and the title says it in words
+    ("Waiting on you: approve release 4.2"). In forced colours it is `CanvasText`, as the other marks are.
+  - **Grouped repeats.** The app groups (an entry's `entries`, one level deep) and writes the group's title, naming who and what ("Sam, Priya
+    and Marcus mentioned you"); the row draws the four seats, then after the title the toast's count ("×3", `aria-hidden`, spoken ", 3 times")
+    and the core chevron on the disclosure's convention (`DisclosureRow`'s: to the end while closed, mirrored right to left, and down while open).
+    The title is cut first; the count and the chevron always show, and the time keeps the column every time ends on. `count` stands for more
+    than the entries listed, and is the app's only as a whole number above 0 (else the entries are counted). A group's row is a button with `aria-expanded`; its entries open in place under it on
+    the reveal's track (0fr to 1fr over `duration-slow` on `ease-out`, back at 0.75× on `ease-in`, at once under reduced motion; `inert`
+    while closed), indented by the dot's and the mark's seats and their gaps, so their seats sit under the group's words. Focus stays on the row (the entries are the next tab stops) and choosing the row never leaves the center. One unread rule serves
+    the row, the dot, the count and "Mark all as read": a group is unread while any of its entries is, and its own `unread` is ignored; the
+    unread count counts entries, not groups. Errors are never grouped, as the toast never groups them: a `danger` entry inside a group is
+    drawn at the top level right after it, and a group left with none is not drawn. A `current` group is `aria-current` too. In the HTML skill
+    the list drawn again (`setEntries`) keeps each group open or closed, by id, and gives focus back to the entry that held it.
+  - **The page form** (`NotificationList`) is the same rows in the page: the app's own notifications page ("View all" opens it), and on a
+    phone the tab bar's destination, because a bell does not fit a phone's header beside the page's buttons. A tab bar's cells are links to
+    pages, so the phone form is a page, never a sheet: the app's `TabBarItem` with `NotificationsGlyph` links to it and carries the
+    new-activity `dot` ("3 unread", spoken; counts are never drawn), and from 720 the app shows the bell in its header instead. It has no
+    popover, no title (the page's heading names the list, `aria-labelledby`), no rim and no glide: each entry paints its own plate, the
+    page's solid plate where it has no level. Its head band holds the count and "Mark all as read", its count lined up with the entries'
+    dots; `head={false}` drops it, for a list of entries in a sidebar or a page column. With `onClearAll` a foot holds "Clear all" at its start, as the
+    center's does (no "View all": this is that page). Paging is the app's (`ListBand` under it).
+  - **The current entry** (`current`, in a list of entries beside the page they open) is `aria-current` and its title at 600 from 400, the
+    selected rule's one of many; the title is one cut line, so nothing moves.
 - **A popup opens below its opener, never beside it** (the owner's word, DECISIONS 268). A popover, a menu, a select, a combobox and
   a filter's checklist open under the control (above it only when that side has more room) and never jump to its side when they are
   taller than the room; they fit the room they have and scroll inside. A submenu opens beside its row, and a tooltip and an app's
@@ -831,7 +858,7 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
 ## Space, size, radius
 
 - **Space:** a 4px base, with Tailwind-compatible names (`space-4` is 16px), plus the half
-  steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing, and `space-32` (128px), the large section gap.
+  steps 0.5, 1.5, 2.5 and 3.5 (2, 6, 10 and 14px) for control padding and optical spacing, and `space-32` (128px), the large section gap. There is no step above it: a larger length is a size with a role (a label column is `size-description-label`, 160), not a gap.
 - **Component sizes are tokens too:** the tab underline (2), tracks (4), dots (6), choice boxes,
   the switch, kbd and badge heights, table rows, and the widths of dialogs, sheets, toasts,
   popovers, tooltips and the command menu, all under `size-*`. Component CSS has no raw
@@ -1096,6 +1123,24 @@ implementation hasn't been reviewed.
   listbox keeps its ring on the list. A part whose text is not cut opens nothing. The open list keeps its "…" at rest. On touch the listbox has no hover, so its options wrap at rest (the
   name and detail wrap, the mark and the trailing word sit on the first line; the 44px floor holds) and none is cut, and the open list opens its plate on a 500ms long press: the release opens
   nothing, and a touch elsewhere closes it. Right to left mirrors the plate's edges and seats, and in forced colours it is `Canvas` with a `CanvasText` rim.
+- **Search in a page or a panel, with results from a server** (`SearchField`, `SearchPassages`, `SearchPassage`, `SearchMatch`, `markMatches`). A search
+  over one place (a document, a channel's history, a project's records) that runs on the app's server and returns passages, drawn in the page or a
+  panel, never the site search dialog (whose results are a fixed-height area of picture rows). `SearchField` is an `Input` in a `role="search"` form
+  with the core search glyph 10px inside its start in tertiary, and while there are words a 24px clear button (the core ×, "Clear search") 4px inside
+  its end; both seats are padding, kept whether the button shows or not, so the words never move, and the browser's own × is hidden. The first Esc
+  empties the words and goes no further; the next is the app's (`onEscape`: it closes its search, and nothing round the field closes with it); an
+  Esc that cancels an input method's composition is the input method's. A `disabled` or `readOnly` field cannot be cleared: its × is disabled and
+  Esc leaves the words. The count line is the app's `FilterResult` (drawn at once in
+  tertiary, spoken once it holds still). `SearchPassages` is an ordered list in the server's ranking that keeps `space-1-5` from its edges; a `SearchPassage`
+  is a link (`href`) or a button with the notification entry's row geometry (a plate inset 2px, radius 8, 12px to the words, the control ring at +2):
+  a head line of the source (who said it, or the section it is in) in primary at 400, cut, and the meta at its end (`text-sm`, tertiary, tabular,
+  lifting to secondary on the plate), then the passage in secondary at `text-base`, wrapping (its length is the server's). A **match** is a `mark` in
+  primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour; in forced colours it keeps its
+  weight in `CanvasText`. `markMatches(text, ranges)` draws a server's ranges (UTF-16 offsets, joined where they overlap or touch, clamped, a boundary
+  inside a code point widened to the whole of it, in any order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
+  results are a `LoadingShape` of stand-in passages (bones in the list's own shape); a changed query keeps the last results on screen
+  (`refreshing`) and shows `Refreshing` ("Searching") only after a second; no results is the app's sentence in the list's place. React's alone (the
+  HTML skill has no search over a server).
 - **The notice bar** is a full-width band above the header, in the level-1 fill with a `border-divider` under it (no majority, the first option stands), `text-sm`
   secondary with its first words primary at 600; it is a named region, not a live region, and under 720 it keeps 6px more above its line.
 
@@ -2126,6 +2171,68 @@ Across a paged list of 214 rows (every size, Next to the end and back at each si
 (`packages/react/test/lists-modals.test.mjs`). Not checked: a real phone (on iOS the held foot sits under the keyboard while typing, as in any web form), WebKit, Firefox, a screen reader and a
 Windows contrast theme.
 
+## The conversation stream
+
+**Status.** Decided and built by Opus on the no-council path (DECISIONS 226 and 265); the implementation is reviewed by Astra and the pixels by the
+lead, and the owner sees the pictures (review round 56) before merge. Found by the first app built on Basalt (the second gaps batch, B2). React's
+alone: the HTML skill has no stream module (a follow-up batch).
+
+A stream is one column of entries, oldest first: a support thread, a team chat, a document's comments, an assistant's answer, a build's history
+(`Stream`, an ordered list). It is not a live region and does not follow its end: an app that adds entries follows the end only while the reader is
+at it, as a `Terminal` does, and says what must be heard through `StatusLine`. Basalt draws; what joins, the words and the data are the app's.
+
+- **A message** (`StreamMessage`): the avatar's 32px gutter, `space-3`, then the text column. The head is the name at `text-base` and 500 in primary
+  and the time at `text-xs` in tertiary, tabular, on one baseline; meta (a `Presence`, a badge) follows the time, and controls sit at the head's end. The
+  words are `text-base` (14/20) in primary and wrap anywhere; they are in block flow, so a link or a badge stays in its sentence, and blocks inside
+  (a paragraph, a list, a quote, a disclosure row) stand `space-2` apart. The avatar is decoration (the name beside it is read). **Consecutive messages join** when
+  the app says so (`joined`: the author, the minutes between and an edit are the app's rules, never a number in Basalt): no avatar and no head are
+  drawn, and the name and time are said before the words. A new author starts `space-4` below the last entry, a joined message `space-1`.
+- **A note** (`StreamNote`, "Lee joined", "Status set to Open") is a quieter row: a sentence at `text-sm` in secondary in the text column, its time
+  after it, and an optional icon at 16 centred in the gutter. Two notes stand `space-2` apart. A day is `EventLogRule`.
+- **The other side of an exchange** (`StreamQuote`: what a person said to an assistant or a bot, the message a reply answers) is a fill one step from
+  its ground, radius 8, `space-2` by `space-3` inside, and **no rim**: the turn it sits in keeps the only frame. In dark the step is the level above
+  what it sits in (it is a well, with its own `data-level`); in light it is `surface-sunken-strong`, because light's levels 1 to 3 are one white. No
+  bar and no indent rule mark it. The words above it say whose it is ("Dana asked", "Replying to Sam", the app's), tertiary at 12 with the time, so the
+  fill never carries that alone; it is a `figure` with a `figcaption` and a `blockquote`.
+- **The entry you came to** (`arrived` on a message, a note, an entry or a block). The entry a link, a search result or a notice opened is scrolled to
+  (to the middle of what scrolls it; one taller than most of that, a pane's visible height or the window's, to its top) and focused with no ring, as a page's title is after a route change: it is a place,
+  not a control (it is `tabindex="-1"` from then on, so the mark's going never drops focus). It is marked by the selected wash on its own ground and by
+  a word. A message, a note or a block that is not a panel takes a **plate**: one solid fill per level (the choice card's recipe), radius 8, reaching
+  `space-2` past the entry at the sides and `space-1` above and below, behind its content, so nothing in it moves. **A panel is never framed from
+  outside** (no outer frame, no outline, no bar): its own fill takes the wash, inside its one rim. The word ("Linked" by default; the app says why:
+  "From your notice", "Search result") is secondary at 12 at the end of the head; a panel entry's app puts it in the panel's head
+  (`StreamArrivedWord`); a block's message says it in its head, in the block's own words, and a block in a joined message (no head) draws it above
+  itself, so the word is always seen while the mark is on. Tertiary words on the wash step up to secondary. A joined message that arrives draws
+  its head, and keeps it. **It lasts until the reader acts**: a press anywhere, or a key that does not scroll (the arrows, Page Up and Down, Home, End
+  and Space outside a field read around it and leave it); then it goes over 0.75 of `duration-slow` on `ease-in`, and the word's room stays, so
+  nothing moves. It comes at once. An entry that has no box yet (in a hidden tab or pane) is not spent: it is scrolled to, focused and armed once it is
+  shown. One entry arrives at a time: placing another ends the one before (its `onArrivedEnd` is called). In forced colours the fill drops and the word stays; under reduced motion the fade is
+  the same, being colour and opacity. In a `LoadingShape` (and its twin) it does nothing.
+- **A disclosure row** (`DisclosureRow`): one line that opens to its detail (a tool call, a thought, a folded stretch, a step's log). Lighter than
+  `Accordion`, which is for a page's sections: no heading, no divider, no wash. A button (`aria-expanded`, `aria-controls`) on Base UI's Collapsible: an
+  optional mark in a 16px seat, the line at `text-sm` in secondary, an optional meta in tertiary, and the core chevron at the end, which morphs from right
+  to down (a rotation group; under right-to-left it points left while closed). Closed, the line is cut with an ellipsis; open, it wraps, so it is read
+  whole in place (`wrap` keeps it wrapped while closed). Hover lifts the ink to primary and the meta to secondary, with no wash, as on a ruled list on
+  the page. It is a focusable row: the control ring at +2, radius 6. 28 tall, 44 on touch. The detail opens by height over `duration-slow` on
+  `ease-out` and closes at 0.75 on `ease-in`, at once under reduced motion; its clip reaches `space-1-5` past the detail, so a ring inside is whole.
+- **An activity list** (`ActivityList`, `ActivityStep`): steps that run and report, a sentence each at `text-sm`, wrapping at any width. It is not
+  `Stepper` (a known sequence), not `EventLog` (links in mono with a time column and one tab stop) and not `LogLine` (a log's mono fields). Each step has
+  the plain badge's status seat (6, and a gap as wide): braille while it runs, the tertiary dot once done, the danger dot when it failed, the hollow ring
+  while it waits. A failed or waiting step draws its word ("Failed", "Waiting", or the app's) at 500 in primary before its sentence, as a refused
+  command's word is; a running or done step's word is said and not drawn, unless the app gives one ("Skipped"). The running, failed and waiting sentences
+  are primary and done ones secondary: ink marks where the work is, and colour is only the danger dot beside its word. A step with detail is a
+  disclosure row; when any step has detail, every step keeps the chevron's seat, so the metas line up. It is not a live region.
+- **Presence with a duration** (`Presence`): a `Badge`, plain beside a name or in its outline: the success dot while active, the hollow ring while
+  away, the tertiary dot while offline, and always the state's word ("Active", "Away", "Offline", or the app's). With `since`, how long it has lasted
+  follows the word in its ink ("Away 6 min"): nothing under a minute (the element is there, empty and hidden, so a server's render and the
+  client's hydration agree), nothing for an invalid date, then "6 min", "1 hr 5 min", "3 days" (`formatElapsed`, US English; an app writing
+  another language passes `format`). **This is a duration, not a relative age:** it says how long something still true has been true, as a countdown
+  says the time left, so it stands without a date (a relative age, "11 days ago", is still written only beside its date). It is a `time` with an ISO
+  duration, ticks by the minute on the one shared timer, holds under `data-loops="held"`, is no live region and is not stopped by reduced motion.
+  `Elapsed` is the length alone, after any state's word ("Running 12 min").
+- **Loading.** The stream's parts are drawn by `LoadingShape` like any others: an avatar is a bone in its disc, the name, time and words are bars as
+  long as their words, a mark is a bone in its box. Nothing in them is sized by hand for loading.
+
 ## Loading in the page's own shape
 
 **Status.** Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258: the shape of what it stands for, known words kept and icons hidden,
@@ -2202,7 +2309,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
@@ -2250,6 +2357,40 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   formatter and part that writes a time takes `locale`, default `en-US`, so a server's render and the browser's agree on the hour; `dateTime` attributes stay ISO. A countdown is a length of time, not a clock. A relative age is written only beside its absolute date, never alone and never in a
   `Stat`'s source line. A countdown ticks by the second and a clock by the minute on one shared timer; `data-loops="held"` freezes both and releasing writes the current value; no live region; reduced motion does not stop them.
 - **Filter toolbar** (`FilterToolbar`): the kind select (phone only), the filter, `FilterResult` and the sort with the word "Sort" beside it (`aria-hidden`, and in the select's `aria-label`).
+
+## Writing to someone: the composer, the mention and the picker
+
+Found by an app's message stream (cimip-gaps-2, batch B3; the no-council path, DECISIONS 226 and 265: decided and built by Opus, the code reviewed by Astra and the pixels checked by
+the lead; the owner sees the pictures before merge). Every part serves any app where people write to each other: a support inbox, a build's comments, a team chat, a shared document.
+
+- **The composer** (`Composer`). The field is Basalt's `Textarea` with an accessible name (`label`) and no visible label; the placeholder says where the message goes too. Under it a row:
+  the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. Under that one status line, `text-xs` in
+  tertiary ink, one line tall even when empty and never more (a long list of names is cut with an ellipsis; the live region holds the whole text), a polite live region: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
+  are typing") or anything the app says there. Nothing moves when it fills. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
+  to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within
+  the same bounds.
+- **Sending.** Enter sends and Shift+Enter is a new line (the soft keyboard's key says Send), or with `sendKey="Mod+Enter"` Enter is a new line and the platform's modifier with Enter sends,
+  shown as chips beside Send (`ActionShortcut`). A key never sends, and never picks a name, while an input method is composing (`isComposing`, or the key code 229 some engines send instead). The key presses Send, so a key and a press are one send and the button's own wait
+  (`waitForAnswer`) guards both: a second Enter while a message is out sends nothing. On success the field is cleared, unless its text changed while the send was out; a refusal (a
+  rejection, or `false`) keeps the words. A press on Send keeps focus, and a phone's keyboard, in the field; after a keyboard press on Send, focus goes back to the field.
+- **A mention** (`Mention`) is the trigger and the name, "@Ana Ruiz", at 500 in primary ink: a glyph and a weight mark it, never a colour, and it wraps with its text. The trigger is a prop
+  ("#billing"). A mention that calls on the reader (`you`) also sits on its level's plate (`--basalt-plate`), radius 4, 2px each side of its own (given back by a margin, the plate ate half the space before it), drawn on
+  every line it wraps to; in forced colours it is `Mark` with `MarkText`, and in print the plate is dropped.
+- **The mention picker** (`MentionPicker`; `Composer`'s `mentions` renders it for the composer's field, and the app imports it, so a composer without names never carries it) is Combobox's popup and rows, reused: the popup's level (its opener's plus one), rim, `shadow-overlay`, radius 12,
+  one-line and two-line rows (40 and 58), group labels ("People", "Teams", "Roles", the app's words), the plate, its glide and the lift. `Listbox` is a list in the page that holds its own
+  focus, so it is not the picker. Focus stays in the field, which carries `aria-autocomplete="list"` and `aria-haspopup="listbox"`, and while the picker is open `aria-controls` and
+  `aria-activedescendant` to the active row (whose `aria-selected` is true). A trigger at the start of the text, or after a space or an opening bracket, opens it; one inside a word (an address)
+  does not. ↑ and ↓ move the plate, passing over a row that cannot be picked; Enter or Tab writes the trigger, the name and a space (the browser's own undo takes it back); a press on a row picks
+  it; Esc closes it until another trigger is typed, and a dialog round the field stays open. A name may hold a space while something matches it; once nothing does, the picker closes, so a
+  sentence is never held, and a query that matches nothing opens nothing (the app still hears it, `onQueryChange`, to look names up). The default match is each word typed starting a word of
+  the label or the description. It sits 6px under the trigger's line, or above it when there is more room there, inside what can be seen, 8px from its edges, at every width: the room is the visual viewport's where there is one, so a phone's keyboard (which shrinks it and not WebKit's `innerHeight`) counts. It never writes into a field that is read-only or disabled (it does not open there, and checks again as it writes), nor into a mention the field no longer holds: a value the app set while it was open closes it, and an Enter or Tab meant for its rows then writes and sends nothing. The field's own `aria-controls`, `aria-activedescendant`, `aria-autocomplete` and `aria-haspopup` are kept and put back when it closes or lets go. Rows are cut and never
+  wrap, as every popup row is (whether a described row may wrap is open). It enters and leaves as a popup does.
+- **The plate is public.** The lit row's plate as one opaque colour per level is the tokens `plate-0` to `plate-3` (the selected wash composited over the level, or in dark over the next
+  level; a test holds each to that recipe), in both themes and in Swift, and `--basalt-plate`, which follows the level a part sits in (`data-level`; the page and a nested theme root start
+  at `plate-0`). An app's own list draws its active row with it as Basalt's do (and gives that row a forced-colours form of its own, `Highlight` with `HighlightText`, since a fill is dropped there); Basalt's pressed toggle, chosen card and chosen peek read it, painting the pixel the private recipe did.
+- **No space step above `space-32`.** The 160 an app asked for was a label column, which `size-description-label` names. A space step is a gap; past 64 the scale holds only the section gaps
+  (96 and 128, `size-section-gap-md` and `size-section-gap`), and a larger gap than those has no role.
+- **The HTML skill** draws none of these: they are React's alone. A page the skill writes is read, not written into, so a composer and a picker have no use there; a quoted mention is words.
 
 ## Primitives
 
@@ -2318,6 +2459,9 @@ stays smoked with the setting on. It is a comfort and not a legibility matter: t
 read this from compatibility data and did not check it in Safari with the setting on.
 
 ## How these were decided
+
+The conversation stream (messages, notes, quotes, the entry you came to, the disclosure row, the activity list and presence) was decided and built by Opus on the
+no-council path (DECISIONS 226 and 265), with no council vote; its implementation is reviewed by Astra, and the owner sees round 56's pictures before merge.
 
 Loading in the page's own shape (`LoadingShape` and its parts) was decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258), with no
 council vote; its implementation is reviewed by Astra.

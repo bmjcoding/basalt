@@ -12,6 +12,7 @@
 import * as React from "react";
 
 import { measureBones } from "./bones-measure";
+import { InShapeContext } from "./in-shape";
 import type { Bone } from "./bones-measure";
 import { FIRST_PAINT, pageStartedAt, startOf } from "./page-start";
 import { KEEP } from "./shape-data";
@@ -49,18 +50,8 @@ export interface LoadingShapeProps {
 /** Waiting (structure and what is known, no bones) → shown (bones) → content. */
 export type ShapePhase = "waiting" | "shown" | "content";
 
-/** 0 outside a shape; 1 in a drawn shape; 2 in the unseen twin a prefill is compared with. */
-export type InShape = 0 | 1 | 2;
-
-const InShapeContext = /* @__PURE__ */ React.createContext<InShape>(0);
-
-/**
- * Where a part is drawn: 0 outside a shape (it is the content); 1 in a drawn shape, where a part that writes (saves a draft, marks something read)
- * does nothing; 2 in the unseen twin, where a part that draws outside itself (a portal into the header) draws nothing.
- */
-export function useInShape(): InShape {
-  return React.useContext(InShapeContext);
-}
+export { useInShape } from "./in-shape";
+export type { InShape } from "./in-shape";
 
 // True after hydration, false on the server and while hydrating: a phase worked out from the clock would differ between the two, so a server-rendered
 // shape starts waiting and draws its bones after hydration.
@@ -131,6 +122,15 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     const node = root.current;
     if (!node) return undefined;
     let frame = 0;
+    // The shape draws the app's own parts (twice with a prefill: the drawing and its twin), so it would hold the app's ids: duplicate ids are invalid, and
+    // the app's `getElementById` during loading found the inert copy. Each id inside the shape moves to `data-shape-id`, now and whenever one is set again.
+    const unId = (): void => {
+      for (const el of node.querySelectorAll("[id]")) {
+        el.setAttribute("data-shape-id", el.id);
+        el.removeAttribute("id");
+      }
+    };
+    unId();
     // Whether the shape holds a part that stays put while the page scrolls (sticky or fixed): only then does a scroll outside the shape move its bones.
     let moving = false;
     const measure = (): void => {
@@ -149,7 +149,8 @@ function BonesFrame({ shown = true, keep = KEEP, twin, onBones, children, classN
     // A part that settles its own layout after it is drawn moves what is inside without changing the region's size, and a prefill whose known part
     // grows changes its words: measure again when the drawing changes, but not for the marks the measure sets.
     const changed = new MutationObserver((records) => {
-      if (records.some((record) => record.attributeName !== "inert" && !record.attributeName?.startsWith("data-bone") && !(record.target as Element).closest?.(".basalt-bones-layer"))) again();
+      if (records.some((record) => record.type === "childList" || record.attributeName === "id")) unId();
+      if (records.some((record) => record.attributeName !== "inert" && record.attributeName !== "id" && record.attributeName !== "data-shape-id" && !record.attributeName?.startsWith("data-bone") && !(record.target as Element).closest?.(".basalt-bones-layer"))) again();
     });
     changed.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
     window.addEventListener("resize", again);

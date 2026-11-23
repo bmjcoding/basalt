@@ -159,6 +159,25 @@
         "$description": "Selected wash: the lit row's plate, the nav pill, a selected table row's band. A wash alone is about 1.2:1, so the state has a second cue: the ink step to primary, a check, a pill or a checked box."
       }
     },
+    "plate": {
+      "$description": "The lit row's plate as one opaque colour per level: the selected wash composited over that level, as a browser draws it. A plate never marks a state alone: it comes with the ink step to primary, a check or a weight. A test holds each to its recipe.",
+      "0": {
+        "$value": { "colorSpace": "oklch", "components": [0.9325, 0, 0] },
+        "$description": "The lit row's plate on the page (level 0), as one opaque colour: state-selected (black at 7%) over surface-0. For a part that replaces its own fill (a pressed toggle, a chosen card) or an app's own list row; --basalt-plate follows the level."
+      },
+      "1": {
+        "$value": { "colorSpace": "oklch", "components": [0.9466, 0, 0] },
+        "$description": "The plate on a level-1 surface: state-selected over surface-1. In light, levels 1 to 3 are one white, so their plates are one colour."
+      },
+      "2": {
+        "$value": { "colorSpace": "oklch", "components": [0.9466, 0, 0] },
+        "$description": "The plate on a level-2 surface: state-selected over surface-2."
+      },
+      "3": {
+        "$value": { "colorSpace": "oklch", "components": [0.9466, 0, 0] },
+        "$description": "The plate on a level-3 surface: state-selected over surface-3."
+      }
+    },
     "action": {
       "primary": {
         "$value": "{color.neutral.9}",

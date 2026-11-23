@@ -144,10 +144,12 @@ only where `prefers-reduced-transparency` is evaluated (Chromium 118 and later);
 | `RadioGroup`, `Radio` | A few options, all visible; arrow keys move the choice. |
 | `Select` | `options` of `{ value, label, disabled? }`; labelled by its `Field`. `numeric` makes a Select of numbers (a page size) as wide as its widest option, below `size-select-min`, whatever is chosen. |
 | `ToastProvider`, `useToast` | `useToast().show({ title, description?, status?, action?, home?, group?, running? })`, then `update(id, patch)`, `close(id)` or `promise(work, { running, success, error })`. A toast stays until dismissed unless it names a `home` for what it says (`"centre"`, `"row"`, `"key"` or `"page"`; an action needs one that is not the page), and then it closes after 5s. Level 1, three deep, danger announced assertively. A toast with an `action` is announced with one more sentence: "Undo is available. Press F6 to reach it." (F6 moves to the stack's named region, where the action is a stop.) Pass `actionWords={(label) => string}` to `ToastProvider` to say it in another language or other words; a toast with no action says nothing extra. Nothing extra is drawn, and it is said once. |
-| `NotificationCentre` | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, status?, unread?, href? }`), "Mark all as read" and "View all". Presentational: you own the entries, their read state and the page. |
+| `NotificationCenter` (alias `NotificationCentre`) | The durable copy a toast points to: a bell button with a dot (count in its name) opening a popover of `entries` (`{ id, title, description?, time, dateTime?, status?, unread?, href?, current?, entries?, count? }`), "Mark all as read", "View all" and, with `onClearAll`, "Clear all" at the footer's start. `status` is `success`, `warning`, `danger` or `pending` (waiting: the empty ring, no colour). An entry with `entries` is a group: its row shows the title, "×N" (`count`, default `entries.length`) and a chevron, and opens in place to them. Presentational: you own the entries, the grouping, their read state and the page. |
+| `NotificationList` | The center's entries in the page: your notifications page (what "View all" opens) and, on a phone, the tab bar's destination (`TabBarItem` with `NotificationsGlyph` and its `dot`). A head band with the count and "Mark all as read" (`head={false}` drops it, for a list in a sidebar), the list named by `label` or `aria-labelledby`, `empty`. No popover, title, rim or glide. `current` on an entry is `aria-current` and its title at 600. `onClearAll` adds a foot with "Clear all" at its start. |
 | `CommandMenu` | ⌘K: `groups` of `{ label, commands }`, each command `{ id, label, icon?, description?, shortcut?, keywords?, danger?, onSelect? }`; you bind the shortcut. A `description` is a second line, and is searched below the label; `danger` draws the command in the danger colour, as in `Menu`. `onSearchChange` hears what is typed and `search` controls it, so a command can carry the words ("Search this document for “budget”", with `keywords: [search]` so it stays found). Left uncontrolled, the search starts empty at every opening and `onSearchChange` hears `""` once the menu has closed; a controlled one is yours to clear (in `onOpenChange`). |
 | `CommandList` | The same panel set in the page (no dialog): a level-1 panel whose field keeps focus, with a count in its foot. `label` names it; `detail={(command) => pane}` adds a preview beside the list (a push under 816px); `bindShortcut` gives it ⌘K. One command surface per page owns ⌘K. |
-| `SearchTrigger`, `SearchDialog`, `SearchResults`, `SearchResult` | Search by following links. `SearchTrigger` is a button shaped like a field (a 1px input boundary, the glyph and the word, 200 by 44) from 720 and a 44px icon button under it; it opens whatever you open. `SearchDialog` is a centred dialog: a `type="search"` field and a close button (one ×: the browser's is hidden), a count line (`count` is a string, drawn at once and spoken once) and a results area of a fixed height, a full result's, so the field and the count never move. `SearchResults` holds `SearchResult` links: each a tab stop, `media` (96 by 48 with `mediaShape="logo"`, 48 by 60 by default), a name and a `detail` line, a `trailing` value, as tall as its picture plus 6px above and below (never under 48). Enter in the field calls `onSubmit(query)`. There is no active row and no arrow-key movement. |
+| `SearchTrigger`, `SearchDialog`, `SearchResults`, `SearchResult` | Search by following links. `SearchTrigger` is a button shaped like a field (a 1px input boundary, the glyph and the word, 200 by 44) from 720 and a 44px icon button under it; it opens whatever you open. `SearchDialog` is a centred dialog: a `type="search"` field and a close button (one ×: the browser's is hidden), a count line (`count` is a string, drawn at once and spoken once) and a results area of a fixed height, a full result's, so the field and the count never move. `SearchResults` holds `SearchResult` links: each a tab stop, `media` (96 by 48 with `mediaShape="logo"`, 48 by 60 by default), a name and a `detail` line, a `trailing` value, as tall as its picture plus 6px above and below (never under 48). Enter in the field calls `onSubmit(query)`. There is no active row and no arrow-key movement. `logoRows` (3), `rows` (5) and `all` are a shop's presets: set your own. |
+| `SearchField`, `SearchPassages`, `SearchPassage`, `SearchMatch`, `markMatches` | Search in a page or a panel whose results come from your server. `SearchField` (`label`, `value`, `onValueChange`, `onSubmit`, `onEscape`, `clearLabel`, `controlSize`) is an Input in a `role="search"` form with the search glyph and a clear ×; the first Esc empties it, the next calls `onEscape`. `SearchPassages` is the ordered list (name it; `rows` and `lines` give it a fixed results budget that scrolls inside); a `SearchPassage` is a link (`href`) or button with `source` (who or where), `meta` (when) and the passage as children, `current` for the one shown. `markMatches(text, ranges)` marks a server's `[start, end)` ranges with `SearchMatch` (primary ink at 600, no fill) and never parses HTML. Draw the first load in a `LoadingShape` of stand-in passages; keep the last results while a changed query runs (`refreshing`). |
 | `Listbox`, `ListboxGroup`, `ListboxOption` | One choice from a list that stays in the page: `role="listbox"` with one tab stop and `aria-activedescendant`, whose choice follows ↑ ↓ Home End. Options have a `detail` second line and a `trailing` cell; groups are named by their header. The chosen option has a chevron in its gutter and primary ink, never a heavier weight. Focus is a ring on the list's own box, 2px at +2 with radius 8 (DECISIONS 159: the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2); `flush` draws it inside at −2 where the list meets a clipping edge. The rows scroll in a box inside the focused one (`.basalt-listbox-scroll`), so the corners clip nothing and a script that scrolls the list scrolls that box. |
 | `OpenList`, `OpenListGroup`, `OpenListRow` | Rows that open (not a listbox). The name is a button stretched over the row; one row, the cursor, holds the tab stop; ↓ ↑ `j` `k`, Home `g`, End `G` move it and Enter opens. A row has `part`, `state` and `detail` cells, aligned down the list, and says what it `opens` into. `off` leaves a row in place that a filter does not match (unavailable to every input, DECISIONS 168: disabled ink, no cells, skipped by the cursor, `aria-disabled`, no hover step, a `not-allowed` cursor, and a press does not open it); count with a `FilterResult` outside the list. `OpenListGroup` is a named `group`, not a landmark. |
 | `NoticeBar` | One short notice across the top of a page, above the header: a named region (`label`, not a live region), the level-1 fill with a divider under it, `title` in primary at 600. |
@@ -429,6 +431,81 @@ const { shortcuts, keyshortcuts } = useShortcuts([{ key: "j", description: "Next
 - The formatters draw nothing: `formatStamp` ("14:49:07", to the second and always 24-hour), `formatClock` ("2:49 PM" in `en-US`, "14:49" in `en-GB`: a clock a person reads follows the locale, with a numeric hour), `formatDay` ("Nov 1"), `formatCountdown` ("18d 09:10:51", `null` once passed) and `formatAge`, each with its machine `dateTime` (ISO), the zone an argument and the `locale` too (default `en-US`, never the runtime's, so a server's render and the browser's agree). `Clock`, `Stat`, `SourceStamp`, `SourceStateWords` and `CommandBlock` take `locale` as well, and `EventLog` for the width its time column reserves.
 - `SourceStamp`'s name and time are the app's: Basalt ships no source's icon or name.
 
+## The conversation stream
+
+A support thread, a team chat, a document's comments, an assistant's answer, a build's history: one column of entries, oldest first (the
+no-council path, DECISIONS 226 and 265; `docs/foundations.md`, "The conversation stream"). Basalt draws; the app owns the data, what joins,
+the words, and following the end.
+
+```tsx
+import { ActivityList, ActivityStep, DisclosureRow, EventLogRule, Presence, Stream, StreamArrivedWord, StreamEntry, StreamMessage, StreamNote, StreamQuote } from "@srasyndicate/basalt";
+
+<Stream label="Ticket 4821">
+  <EventLogRule>Today</EventLogRule>
+  <StreamNote mark={<Icon icon={TagIcon} size={16} />} time="4:13 PM">Assigned to Ada Brooks</StreamNote>
+  <StreamMessage author="Jules Ferreira" time="4:12 PM" dateTime="2026-11-18T16:12">Exporting invoices gives me an empty file.</StreamMessage>
+  <StreamMessage author="Jules Ferreira" time="4:13 PM" joined>Since yesterday.</StreamMessage>   {/* the app decides what joins */}
+  <StreamMessage author="Ada Brooks" time="4:20 PM" meta={<Presence status="away" since={awayAt} />}
+    arrived={openedFrom === "notice"} arrivedLabel="From your notice" onArrivedEnd={clearArrival}>
+    <StreamQuote cite="Jules Ferreira asked">Why is my export empty?</StreamQuote>
+    <p>Which date range did you choose?</p>
+  </StreamMessage>
+  <StreamEntry panel arrived={linked}>   {/* a panel: its own fill takes the wash; the app puts the word in its head */}
+    <Card><CardHeader><CardTitle>Suggested edit</CardTitle><StreamArrivedWord /></CardHeader>…</Card>
+  </StreamEntry>
+</Stream>
+
+<DisclosureRow mark={<Icon icon={MagnifyingGlassIcon} size={16} />} title="Searched the help center" meta="0.8 s">…the detail…</DisclosureRow>
+
+<ActivityList label="Build 1287">
+  <ActivityStep status="done" meta="12 s">Installed 214 packages</ActivityStep>
+  <ActivityStep status="failed" meta="48 s" detail={<LogLine fields={["Expected 1,204.50"]} />}>3 of 412 unit tests failed</ActivityStep>
+  <ActivityStep status="running">Building the web app</ActivityStep>
+</ActivityList>
+```
+
+| Export | What it does |
+|---|---|
+| `Stream` | The ordered list (`label`). Not a live region, and it does not follow its end: follow the end only while the reader is at it, and say what must be heard through `StatusLine`. |
+| `StreamMessage` | `author`, `time` (the app's words), `dateTime`, `avatar` (default an `Avatar` at 32, hidden from assistive technology), `joined` (no avatar or head drawn; the name and time are said), `meta` (after the time), `actions` (end of the head), `children`. |
+| `StreamNote` | A quieter row: a sentence in secondary at 13, `time`, and an optional `mark` (an icon at 16) in the gutter. |
+| `StreamQuote` | The other side of an exchange: `cite` (the app's words: "Dana asked", "Replying to Sam"), `time`, the words. A fill one step from its ground, no rim. |
+| `StreamEntry`, `StreamBlock` | An entry of the app's own (a card, an update; `bleed` to span the gutter) and a part of a message that can be the one arrived on its own (its message's head says the block's word; in a joined message the block draws it above itself). `panel` when it holds a panel. |
+| `arrived`, `arrivedLabel`, `onArrivedEnd` | On every entry and block: scrolled to, focused (no ring), a plate in the selected wash and a word ("Linked" by default) until the reader presses or types (keys that scroll don't count); then it fades and nothing moves. One entry at a time: a new arrival ends the one before (calling its `onArrivedEnd`). An entry in a hidden pane waits until it is shown. Nothing happens inside a `LoadingShape`. |
+| `StreamArrivedWord` | The word, for a panel entry's own head. |
+| `DisclosureRow` | One line that opens to its detail: `title`, `mark`, `meta`, `wrap`, `open`/`defaultOpen`/`onOpenChange`, `hiddenUntilFound`. Base UI's Collapsible. |
+| `ActivityList`, `ActivityStep` | A sentence a step: `status` (`running`, `done`, `failed`, `waiting`), `word`, `meta`, `detail` (then the step is a disclosure row). |
+| `Presence`, `Elapsed`, `formatElapsed` | "Away 6 min": `status` (`active`, `away`, `offline`), `label`, `since`, `now`, `format`, `variant` (`plain` or `outline`). `Elapsed` is the length alone after any word; `formatElapsed` writes it (plain, safe on a server). |
+
+## Writing to someone
+
+The composer, the mention and the mention picker (cimip-gaps-2, B3; decided and built by Opus on the no-council path, not yet reviewed). See foundations, "Writing to
+someone".
+
+```tsx
+{/* A support inbox: Enter sends, Shift+Enter is a new line; the send waits for the server and keeps the words if it is refused */}
+<Composer
+  label="Reply to the customer"
+  placeholder="Reply to the customer. Type @ to bring someone in."
+  actions={<Button variant="ghost" size="sm" onClick={attach}>Attach</Button>}
+  status={typingStatus(typingNames)}
+  onSend={(text) => api.reply(ticket, text)}
+  mentions={(field) => <MentionPicker field={field} options={[{ label: "Ana Ruiz", value: "u1", description: "Support lead", group: "People" }, { label: "billing", value: "t1", description: "Team of 4", group: "Teams" }]} onPick={(o) => picked.add(o.value)} />}
+/>
+
+{/* A build's comments: Mod+Enter sends (⌘↵ or Ctrl Enter, shown beside Send) */}
+<Composer label="Comment on the build" sendKey="Mod+Enter" onSend={comment} />
+
+{/* In the stream: a mention, and one that calls on the reader (on the plate) */}
+<p>Thanks <Mention>Ana Ruiz</Mention>; <Mention you>Lee Park</Mention>, can you look? Routed to <Mention trigger="#">billing</Mention>.</p>
+
+{/* An app's own text field with the picker: its handlers see defaultPrevented on a key the picker used */}
+<MentionPicker field={ref} options={people} filter={null} onQueryChange={lookUp} />
+```
+
+An app's own list draws its active row with the plate Basalt's popups use: `background: var(--basalt-plate)` follows the level the row sits in, and the tokens
+`--basalt-plate-0` to `--basalt-plate-3` are each level's.
+
 ## Loading in the page's own shape
 
 A region whose data is on its way draws its own parts, and what isn't known is painted as bones measured from the drawing (DECISIONS 247, 248, 249b and 258;
@@ -465,7 +542,7 @@ const landed = useStaged({ people: Boolean(people), stream: Boolean(stream) });
 
 | Export | What it does |
 |---|---|
-| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`. |
+| `LoadingShape` | `loading`, `shape` or `prefill(variant)`, `children` (a function is called only once loaded), `refreshing`, `label` (said once for the page, default "Loading"), `showAfter` (300), `minShown` (400), `keep` (`KEEP`). `aria-busy` while loading; the shape is `aria-hidden` and `inert`, and the ids of what it draws move to `data-shape-id` so `getElementById` never finds the shape's copy. A text query in a test can skip it with `.basalt-bones`. |
 | `Bones` | The painting alone (`shown`, `keep`, `twin`), for a place a region can't wrap. |
 | `useStaged(ready, gap = 120, together = 250)` | Releases parts in phases. |
 | `useRefreshing(on, after = 1000)`, `Refreshing` | "Updating" for a refresh that takes more than a second: braille and its word, or the ring alone with `compact`. |
