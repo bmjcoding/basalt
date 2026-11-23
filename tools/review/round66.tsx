@@ -2,7 +2,6 @@
 // drafts and one check, decided by Fable, revised after the final positions. Part 9 (the viewer) is the owner's own addition and skipped three steps: no
 // draft, no check and no seat's position; every value in it is the decider's alone. Built by Opus from the decision; the implementation has not been
 // reviewed. The content is CIMIP's figures extended as each part needs (test/fixtures/cimip-diagrams-b.json), with automatic and text-art versions.
-// Cardinality, far keys and section 4's calls 2 and 3 are not built.
 
 import * as React from "react";
 
@@ -137,10 +136,15 @@ export const ROUND_66: Round = {
     },
     {
       id: "schema",
-      name: "Schema: a link table",
-      intro: "The incidents table is a link. Cardinality and far keys are not built yet.",
-      decisions: [...COMMON],
-      tryIt: ["Tab to the schema: the link table is the figure's roving stop."],
+      name: "Schema: cardinality, far keys and a link table",
+      intro: "Every foreign key states how many rows each end allows, so its dot and head give way to crow's-foot marks in the line's ink. approvals references incidents and users two columns away: the first runs along the margin above the first row, the second along the gap between rows 2 and 3, which grows to 40. The incidents table is a link.",
+      decisions: [
+        ...COMMON,
+        "Cardinality (1.1): bars at 4 and 8, a foot from a point at 7.5, a ring centred at 10.5, every mark inside the 14px zone; the column gap is 60 where marks are drawn, and a marked gutter's lanes keep 18 from the tables (three at most).",
+        "Far keys (1.1): a corridor is a row gap clear of the tables between, or the margin above or below, the one nearest the middle of the two rows. A gap that carries one is space-10; a margin adds space-8. A line with no lane left is not drawn, and its row still writes the target.",
+        "Builder's readings where the decision is silent: a bar's 1px ink is the pixel that ends at its distance (so 3 to 4 for \"a bar at 4\"); two far lines to one key share a corridor lane; an interior corridor's two lanes take the order that crosses least.",
+      ],
+      tryIt: ["Hover approvals: its three lines, marks included, take the main ink and the rest dim. Narrow to 390: the stack draws no lines, and the key keeps the foreign key's arrow. Open View as list: decided_by reads \"zero or many approvals to zero or one users\"."],
       widths: W,
       scales: [2],
       height: 1200,
@@ -150,17 +154,18 @@ export const ROUND_66: Round = {
     {
       id: "auto",
       name: "Automatic layout: elkjs places, Basalt draws",
-      intro: "The CIMIP schema and architecture with layout=\"auto\" and no col or row: elkjs gives each card a column and a row, and Basalt sizes, routes and seats the figure as it does an authored one.",
+      intro: "The CIMIP architecture, flowchart and schema with layout=\"auto\" and no col or row: elkjs gives each card a column and a row, and Basalt sizes, routes and seats the figure as it does an authored one.",
       decisions: [
         "elkjs (EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0) loads on demand here; an app that places at build time and passes placement ships none of it, and the HTML skill always places at build time.",
-        "The schema draws laid down (3 columns by 5 rows) through Basalt's router. The architecture places as the proof's 6 by 3 and 3 by 6, but stacks at 1104: the turn-back that carries \"HTTP + SSE\" finds no seat. The decision's proof routed on cells only; this is the first drawing of one, for the decider.",
+        "After the decider's ruling (DECISIONS 322): a main line that skips a layer keeps a way (a second elk run, its cells left empty), network simplex places the main path straight, a decision's point that a line leaves takes no other line, and a turn-back needs a gutter. At 1104 the architecture draws laid down (4 by 6, all 11 lines and 10 labels, one crossing, cut), the flowchart laid down (3 by 7) and the schema laid down (3 by 5), as the ruling's proof drew them.",
+        "When neither direction draws, a development build says why, once, with each direction's reason. The viewer takes the placements the page loaded and the direction with the larger Fit in its stage.",
       ],
       tryIt: ["Narrow the window: under 640 nothing is loaded and the figure is stacked."],
       widths: W,
       scales: [2],
-      height: 1800,
+      height: 3000,
       touch: true,
-      demo: ({ state }) => <><Diagram k="autoSchema" state={state} /><Diagram k="autoArchitecture" state={state} /></>,
+      demo: ({ state }) => <><Diagram k="autoArchitecture" state={state} /><Diagram k="autoFlowchart" state={state} /><Diagram k="autoSchema" state={state} /></>,
     },
     {
       id: "text",
