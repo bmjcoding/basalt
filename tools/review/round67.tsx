@@ -200,10 +200,10 @@ function ReleaseRail({ state }: { state: string }) {
   const { play } = played;
   // "words": the status seat holding words (a failed, a retrying and a canceled node beside a passed one), the picture the pixel review asked for.
   const [wordsAt] = React.useState(() => Date.now());
-  const run: RailRun = name === "words" ? { run: "retrying", start: wordsAt - 9000, events: [], nodes: [
+  const run: RailRun = name === "words" ? { run: "failed", start: wordsAt - 9000, end: wordsAt - 4500, events: [], nodes: [
     { name: "Build", state: "success", start: wordsAt - 9000, end: wordsAt - 6900 },
-    { name: "Checks", state: "retrying", word: "Retrying", start: wordsAt - 1200 },
-    { name: "Deploy", state: "failed", start: wordsAt - 6000, end: wordsAt - 4500 },
+    { name: "Checks", state: "failed", start: wordsAt - 6900, end: wordsAt - 4500 },
+    { name: "Deploy", state: "skipped" },
     { name: "Promote", state: "canceled" },
   ] } : played.state;
   const done = run.nodes.filter((n) => n.state === "success").length;
