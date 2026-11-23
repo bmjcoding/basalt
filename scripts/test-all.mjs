@@ -8,6 +8,7 @@ export const SUITES = [
   { label: "html skill", command: "npm run test:html-skill" },
   { label: "brand", command: "npm run test:brand" },
   { label: "sites", command: "npm run test:sites" },
+  { label: "changelog tool", command: "npm run test:changelog" },
 ];
 
 if (isMain(import.meta.url)) await runSteps(SUITES, { title: "npm test" });

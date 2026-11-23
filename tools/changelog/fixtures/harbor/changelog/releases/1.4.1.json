@@ -1,0 +1,22 @@
+{
+  "version": "1.4.1",
+  "date": "2026-12-08",
+  "previous": "1.4.0",
+  "entries": [
+    {
+      "id": "pr145-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Rooms",
+      "text": "Fixed the room timer showing 0:00 after a reload in a second tab",
+      "pr": {
+        "number": 145,
+        "href": "https://github.com/example/harbor/pull/145"
+      },
+      "commit": {
+        "sha": "2685abd5d6cd57ddf42ceb062093b713aaaf0095",
+        "href": "https://github.com/example/harbor/commit/2685abd5d6cd57ddf42ceb062093b713aaaf0095"
+      }
+    }
+  ]
+}

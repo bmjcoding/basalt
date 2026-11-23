@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0-rc.2",
+  "date": "2026-12-03",
+  "previous": "1.4.0",
+  "title": "A sign-in page names your identity provider",
+  "audiences": [
+    {
+      "text": "The sign-in page now names your company's identity provider, so responders know which account to use.",
+      "covers": [
+        "pr142-1"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "id": "pr142-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Sign-in",
+      "text": "Added a sign-in page that names your company's identity provider",
+      "pr": {
+        "number": 142,
+        "href": "https://github.com/example/harbor/pull/142"
+      },
+      "commit": {
+        "sha": "742f0bea9adf73118c34597c5a0b6b7acf89bcb4",
+        "href": "https://github.com/example/harbor/commit/742f0bea9adf73118c34597c5a0b6b7acf89bcb4"
+      }
+    }
+  ]
+}

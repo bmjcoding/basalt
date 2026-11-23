@@ -1,0 +1,33 @@
+{
+  "product": "Slate",
+  "repository": "https://github.com/example/slate",
+  "trackers": [
+    {
+      "name": "Linear",
+      "pattern": "(?:SL|DS)-[1-9][0-9]*",
+      "url": "https://linear.app/example/issue/{id}"
+    },
+    {
+      "name": "Jira",
+      "pattern": "PRJ-[1-9][0-9]*",
+      "url": "https://example.atlassian.net/browse/{id}",
+      "show": "text"
+    },
+    {
+      "name": "GitHub",
+      "pattern": "slate#(?<n>[1-9][0-9]*)",
+      "url": "https://github.com/example/slate/issues/{n}",
+      "label": "issue #{n}"
+    },
+    {
+      "name": "Support",
+      "pattern": "SUP-[1-9][0-9]*",
+      "show": "none"
+    }
+  ],
+  "people": {
+    "sam": {
+      "name": "Sam Rivera"
+    }
+  }
+}

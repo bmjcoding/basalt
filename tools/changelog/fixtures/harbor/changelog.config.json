@@ -1,0 +1,16 @@
+{
+  "product": "Harbor",
+  "repository": "https://github.com/example/harbor",
+  "trackers": [
+    {
+      "name": "Linear",
+      "pattern": "OPS-[1-9][0-9]*",
+      "url": "https://linear.app/example/issue/{id}"
+    }
+  ],
+  "people": {
+    "ada": {
+      "name": "Ada Okoye"
+    }
+  }
+}

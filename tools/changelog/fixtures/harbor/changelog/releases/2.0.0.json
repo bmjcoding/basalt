@@ -1,0 +1,100 @@
+{
+  "version": "2.0.0",
+  "date": "2026-12-07",
+  "previous": "1.4.0",
+  "replaces": [
+    "2.0.0-rc.1",
+    "2.0.0-rc.2"
+  ],
+  "title": "Responders sign in with their own account",
+  "summary": "Single sign-on replaces shared room codes, with a sign-in page for your company's identity provider.",
+  "audiences": [
+    {
+      "text": "Each responder now signs in with their own account, through your company's identity provider.",
+      "covers": [
+        "pr141-1",
+        "pr142-1"
+      ]
+    },
+    {
+      "text": "In Settings, open Sign-in and connect your identity provider. Shared room codes stop working on Jan 15, 2027.",
+      "covers": [
+        "pr140-1",
+        "pr141-1"
+      ],
+      "for": "For admins"
+    }
+  ],
+  "entries": [
+    {
+      "id": "pr140-1",
+      "type": "removed",
+      "bump": "major",
+      "area": "Sign-in",
+      "text": "Removed sign-in with a shared room code, so each responder signs in with their own account before Jan 15, 2027",
+      "action": true,
+      "pr": {
+        "number": 140,
+        "href": "https://github.com/example/harbor/pull/140"
+      },
+      "commit": {
+        "sha": "a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0",
+        "href": "https://github.com/example/harbor/commit/a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0"
+      }
+    },
+    {
+      "id": "pr141-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Sign-in",
+      "text": "Added single sign-on through your company's identity provider",
+      "pr": {
+        "number": 141,
+        "href": "https://github.com/example/harbor/pull/141"
+      },
+      "commit": {
+        "sha": "3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be",
+        "href": "https://github.com/example/harbor/commit/3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be"
+      },
+      "tickets": [
+        {
+          "tracker": "Linear",
+          "id": "OPS-230",
+          "label": "OPS-230",
+          "show": "link",
+          "href": "https://linear.app/example/issue/OPS-230"
+        }
+      ]
+    },
+    {
+      "id": "pr142-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Sign-in",
+      "text": "Added a sign-in page that names your company's identity provider",
+      "pr": {
+        "number": 142,
+        "href": "https://github.com/example/harbor/pull/142"
+      },
+      "commit": {
+        "sha": "742f0bea9adf73118c34597c5a0b6b7acf89bcb4",
+        "href": "https://github.com/example/harbor/commit/742f0bea9adf73118c34597c5a0b6b7acf89bcb4"
+      }
+    },
+    {
+      "id": "pr143-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Rooms",
+      "text": "Fixed the room list scrolling to the top when a new room opened",
+      "pr": {
+        "number": 143,
+        "href": "https://github.com/example/harbor/pull/143"
+      },
+      "commit": {
+        "sha": "1d6845348292ea8e2876f0c9667cc4fc2867346a",
+        "href": "https://github.com/example/harbor/commit/1d6845348292ea8e2876f0c9667cc4fc2867346a"
+      }
+    }
+  ]
+}

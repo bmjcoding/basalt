@@ -1,0 +1,68 @@
+{
+  "version": "1.3.1",
+  "date": "2026-11-23",
+  "previous": "1.3.0",
+  "summary": "Fixes to the recap, the room timer, the directory and sign-in.",
+  "entries": [
+    {
+      "id": "pr130-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Directory",
+      "text": "Fixed a vendor's support line showing the previous vendor's number after you switched rows quickly",
+      "pr": {
+        "number": 130,
+        "href": "https://github.com/example/harbor/pull/130"
+      },
+      "commit": {
+        "sha": "e4f9b9f23e31054ee7fcabb9d081b7ba207789f9",
+        "href": "https://github.com/example/harbor/commit/e4f9b9f23e31054ee7fcabb9d081b7ba207789f9"
+      }
+    },
+    {
+      "id": "pr129-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Rooms",
+      "text": "Fixed the recap starting from the room's first message when you had been away for under a minute",
+      "pr": {
+        "number": 129,
+        "href": "https://github.com/example/harbor/pull/129"
+      },
+      "commit": {
+        "sha": "b066b10badd591b2380af2aedb4771207f5137af",
+        "href": "https://github.com/example/harbor/commit/b066b10badd591b2380af2aedb4771207f5137af"
+      }
+    },
+    {
+      "id": "pr135-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Rooms",
+      "text": "Fixed the room timer showing 0:00 after a reload",
+      "pr": {
+        "number": 135,
+        "href": "https://github.com/example/harbor/pull/135"
+      },
+      "commit": {
+        "sha": "73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f",
+        "href": "https://github.com/example/harbor/commit/73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f"
+      }
+    },
+    {
+      "id": "pr136-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Sign-in",
+      "text": "Fixed the code field clearing when you pasted a code",
+      "pr": {
+        "number": 136,
+        "href": "https://github.com/example/harbor/pull/136"
+      },
+      "commit": {
+        "sha": "f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9",
+        "href": "https://github.com/example/harbor/commit/f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9"
+      }
+    }
+  ]
+}
