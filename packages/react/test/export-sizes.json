@@ -221,7 +221,10 @@
   "Reserve": 441,
   "Reveal": 19500,
   "RoutesGlyph": 3009,
+  "RunAnnouncer": 448,
+  "RunTimer": 5050,
   "RunsGlyph": 3128,
+  "STAGE_WORDS": 149,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
   "SchemaDiagram": 67494,
@@ -280,6 +283,8 @@
   "Sparkline": 4585,
   "Spinner": 1509,
   "Stage": 1219,
+  "StageBadge": 5045,
+  "StageMark": 14188,
   "Stat": 2226,
   "Stats": 314,
   "StatusBar": 6813,
@@ -364,6 +369,7 @@
   "formatCountdown": 393,
   "formatDay": 635,
   "formatElapsed": 393,
+  "formatRunTime": 515,
   "formatStamp": 685,
   "formatStatTime": 1116,
   "holdFirstPaint": 787,
@@ -412,11 +418,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 870189,
-  "gzip": 288896
+  "bytes": 879732,
+  "gzip": 291984
  },
  "styles": {
-  "bytes": 382510,
-  "gzip": 49971
+  "bytes": 386222,
+  "gzip": 50471
  }
 }

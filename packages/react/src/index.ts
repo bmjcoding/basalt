@@ -155,6 +155,17 @@ export { Clock, Countdown, DateAge, useNow } from "./time";
 export type { ClockProps, CountdownProps, DateAgeProps } from "./time";
 export { formatAge, formatClock, formatCountdown, formatDay, formatElapsed, formatStamp, formatStatTime } from "./time-format";
 export type { TimeOptions } from "./time-format";
+// Stages and runs (DECISIONS 316): the seven states' mark, a run's time, a status that changes in place, a run's one voice.
+export { formatRunTime, STAGE_WORDS } from "./run-format";
+export type { Moment, RunTimeScale, StageState } from "./run-format";
+export { StageMark } from "./stage-mark";
+export type { StageMarkProps } from "./stage-mark";
+export { RunTimer } from "./run-timer";
+export type { RunTimerProps } from "./run-timer";
+export { StageBadge } from "./stage-badge";
+export type { StageBadgeProps } from "./stage-badge";
+export { RunAnnouncer } from "./run-announcer";
+export type { RunAnnouncerProps, RunEvent } from "./run-announcer";
 export { Terminal } from "./terminal";
 export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStatus } from "./terminal";
 export { NumberTicker } from "./number-ticker";

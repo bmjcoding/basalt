@@ -4285,6 +4285,74 @@
     .basalt-terminal .basalt-code-line[data-kind] .basalt-terminal-mark, .basalt-terminal .basalt-terminal-done, .basalt-terminal .basalt-terminal-failed, .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-code-text, .basalt-terminal-state [data-error] { color: CanvasText; }
   }
 
+  /* ---- Stages and runs (DECISIONS 316) ----
+     The run parts: StageMark, RunTimer, StageBadge and RunAnnouncer here; StageList, StageRail, RunTimeline and Terminal's stage lines below. Every
+     class begins basalt-run-: basalt-stage is the full-bleed art's. */
+
+  /* StageMark: one seat of 16, 20 or 24 that never changes size, every face stacked in it. Ink by state. */
+  .basalt-run-mark { display: inline-grid; flex: none; place-items: center; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); vertical-align: middle; }
+  .basalt-run-mark[data-size="20"] { inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); }
+  .basalt-run-mark[data-size="24"] { inline-size: var(--basalt-size-icon-lg); block-size: var(--basalt-size-icon-lg); }
+  .basalt-run-mark-face { display: grid; grid-area: 1 / 1; place-items: center; }
+  .basalt-run-mark-face > * { display: grid; place-items: center; }
+  .basalt-run-mark-face .basalt-spinner { color: inherit; }
+  .basalt-run-mark-face[data-state="queued"], .basalt-run-mark-face[data-state="success"] { color: var(--basalt-text-secondary); }
+  .basalt-run-mark-face:is([data-state="running"], [data-state="retrying"]) { color: var(--basalt-text-primary); }
+  .basalt-run-mark-face[data-state="failed"] { color: var(--basalt-status-danger); }
+  .basalt-run-mark-face:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  /* A change of state crossfades in the one seat: both marks stand, the old fading out as the new fades in, over duration-fast on ease-out. It is
+     opacity alone, so reduced motion keeps it; the hold lands it at once (the component draws one face), and print draws the new face alone. */
+  .basalt-run-mark-face[data-entering] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out) both; }
+  .basalt-run-mark-face[data-leaving] { animation: basalt-run-fade-out var(--basalt-duration-fast) var(--basalt-ease-out) both; }
+  /* The queued breath: secondary ink from opacity-queued (0.65) to 1 and back on duration-loop-fade, on the shared clock; 3:1 at its lowest on
+     every surface. A loop, so the hold stops it, and it is still, at full, under reduced motion, in forced colours and in print. */
+  .basalt-run-mark-breath { animation: basalt-run-breath var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
+  @keyframes basalt-run-breath { from { opacity: var(--basalt-opacity-queued); } to { opacity: 1; } }
+  @keyframes basalt-run-fade-out { to { opacity: 0; } }
+  :root[data-loops="held"] .basalt-run-mark-breath { animation: none; }
+  :root[data-loops="held"] .basalt-run-mark-face { animation: none; }
+  :root[data-loops="held"] .basalt-run-mark-face[data-leaving] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-mark-breath { animation: none; } }
+  @media (forced-colors: active) {
+    /* currentColor, and no system colour named: the mark follows the row it sits in. */
+    .basalt-run-mark-face[data-state] { color: inherit; }
+    .basalt-run-mark-breath { animation: none; }
+  }
+  @media print {
+    .basalt-run-mark-breath, .basalt-run-mark-face { animation: none; }
+    .basalt-run-mark-face[data-leaving] { display: none; }
+  }
+
+  /* RunTimer: Geist Mono at text-xs, tertiary, tabular, in one Reserve cell as wide as its scale's widest form, end-aligned. A stage's own running
+     time hides under the hold with its box kept, and is written again on release. */
+  .basalt-run-timer { display: inline-grid; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  .basalt-run-timer > .basalt-reserve { justify-items: end; }
+  .basalt-run-timer[data-held] { visibility: hidden; }
+
+  /* StageBadge: one seat as wide as the widest face (the words in a hidden cell beside the dot's seat, which is braille's width), every face
+     stacked in it and stretched to it, so an outline pill is one width whatever it says. */
+  .basalt-run-badge { display: inline-grid; vertical-align: middle; }
+  .basalt-run-badge > * { display: grid; grid-area: 1 / 1; min-width: 0; }
+  .basalt-run-badge-measure { visibility: hidden; }
+  /* Sequential: out (0.75 of duration-base, ease-in, rising space-1), then in (duration-base, ease-out, from space-1 below), the new face held at
+     opacity 0 for the old one's time whether or not the old one is still there. */
+  .basalt-run-badge-face[data-leaving] { animation: basalt-run-face-out calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in) both; }
+  .basalt-run-badge-face[data-entering] { animation: basalt-run-face-in var(--basalt-duration-base) var(--basalt-ease-out) calc(var(--basalt-duration-base) * 0.75) both; }
+  @keyframes basalt-run-face-out { to { opacity: 0; transform: translateY(calc(-1 * var(--basalt-space-1))); } }
+  @keyframes basalt-run-face-in { from { opacity: 0; transform: translateY(var(--basalt-space-1)); } }
+  @keyframes basalt-run-face-out-still { to { opacity: 0; } }
+  @keyframes basalt-run-face-in-still { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-run-badge-face[data-leaving] { animation-name: basalt-run-face-out-still; }
+    .basalt-run-badge-face[data-entering] { animation-name: basalt-run-face-in-still; }
+  }
+  :root[data-loops="held"] .basalt-run-badge-face { animation: none; }
+  :root[data-loops="held"] .basalt-run-badge-face[data-leaving] { display: none; }
+  @media print {
+    .basalt-run-badge-face { animation: none; }
+    .basalt-run-badge-face[data-leaving] { display: none; }
+  }
+
   /* A prose page's column is size-prose-width on the row's start edge, never centred. */
   .basalt-prose { box-sizing: border-box; max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; min-width: 0; }
 

@@ -1265,6 +1265,32 @@
     "amount": {
       "$value": 0.72,
       "$description": "The ink of a button's amount (\"Add to cart $49\"), a step quieter than its label (DECISIONS 154, D11b). Used only on the variants whose ink holds 4.5:1 at this opacity on every surface the button can sit on (primary, secondary, outline); ghost and danger keep full ink."
+    },
+    "recede": {
+      "2": {
+        "$value": 0.5,
+        "$description": "A run timeline's tail, second step: text-secondary at this opacity over its own ground (DECISIONS 316, 2.2). Below 4.5:1 by the one named exception (foundations, Principles): the toggle above the tail opens the whole record at full contrast. No other text reads it."
+      },
+      "3": {
+        "$value": 0.32,
+        "$description": "A run timeline's tail, third step (DECISIONS 316). The same exception as opacity-recede-2."
+      },
+      "4": {
+        "$value": 0.2,
+        "$description": "A run timeline's tail, fourth step (DECISIONS 316). The same exception as opacity-recede-2."
+      },
+      "5": {
+        "$value": 0.12,
+        "$description": "A run timeline's tail, fifth step and every step older (DECISIONS 316). The same exception as opacity-recede-2."
+      },
+      "danger": {
+        "$value": 0.88,
+        "$description": "A failed row's first step back, in a timeline's tail or a stage transcript's older lines: status-danger at this opacity, 4.5:1 or better on every surface (worst 4.76, a light band), a muted red (DECISIONS 316, 2.2)."
+      }
+    },
+    "queued": {
+      "$value": 0.65,
+      "$description": "The bottom of a queued StageMark's breath: text-secondary from this opacity to 1 and back on duration-loop-fade, 3:1 or better on every surface at every moment (worst 3.19, a light band; DECISIONS 316, 2.2 and 4.1)."
     }
   },
   "aspect": {
