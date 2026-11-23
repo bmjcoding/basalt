@@ -54,14 +54,17 @@
   /* The band is the bar's own row, redrawn: the header's height, its line inside, and the gutter or the side safe area, whichever is larger. */
   .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding: var(--basalt-size-hairline) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) 0 max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0))); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
 
-  /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. */
+  /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. As React's (B5): the box reaches space-1-5 above the band it
+     draws, and that strip is clipped away, so a focused field right before the actions shows its whole ring at the end of the scroll; the band itself
+     (the divider, then space-4) is where it was. */
   .sheet > .dialog-actions {
     position: sticky;
     bottom: calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
     margin: auto calc(-1 * var(--_pad)) calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
-    padding: var(--basalt-space-4) var(--_pad) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    padding: calc(var(--basalt-space-4) + var(--basalt-space-1-5)) var(--_pad) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
     background: var(--panel-bg);
-    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
+    box-shadow: inset 0 calc(var(--basalt-space-1-5) + var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
+    clip-path: inset(var(--basalt-space-1-5) 0 0 0);
   }
 
   /* A sheet with a head, a body and a foot (React's SheetHeader, SheetBody and SheetFooter; DECISIONS 155, D10b): edge to edge, no padding of its own, the
@@ -88,6 +91,8 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-right, var(--basalt-space-0)));
+    /* The body clips what it scrolls: space-1-5 at each end keeps a focused control's ring (2px at +2) whole against the head and the foot (React's, B5). */
+    padding-block: var(--basalt-space-1-5);
   }
   .sheet-foot {
     box-sizing: border-box;

@@ -128,7 +128,8 @@ function App() {
   // A refresh from the server: a row is dealt with elsewhere, or leaves the list, while focus stays where the reader left it.
   window.markDone = (id) => setDone((d) => [...d, id]);
   window.remove = (id) => setGone((g) => [...g, id]);
-  const open = PEOPLE.map((p) => p[0]).filter((id) => !done.includes(id));
+  // A row taken out of the list is no longer one of its values either: the app's values are the rows it shows that can be chosen.
+  const open = PEOPLE.map((p) => p[0]).filter((id) => !done.includes(id) && !gone.includes(id));
   const n = chosen.filter((id) => open.includes(id)).length;
   return (
     <div id="scroller" style={{ margin: 24, width: 420, height: 220, overflowY: "auto" }}>

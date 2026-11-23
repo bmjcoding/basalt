@@ -103,7 +103,7 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
       ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || wait.busy ? true : props["aria-disabled"]}
+      aria-disabled={disabled || wait.busy || props["aria-disabled"] || undefined}
       aria-busy={wait.busy ? true : props["aria-busy"]}
       data-busy={wait.busy || wait.shown ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}
@@ -204,7 +204,7 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, do
       ref={useJoinedRef(ref, wait.ref)}
       render={link.render}
       disabled={disabled}
-      aria-disabled={disabled || wait.busy ? true : props["aria-disabled"]}
+      aria-disabled={disabled || wait.busy || props["aria-disabled"] || undefined}
       aria-busy={wait.busy ? true : props["aria-busy"]}
       data-busy={wait.busy || wait.shown ? "" : undefined}
       aria-pressed={toggles ? isPressed : undefined}

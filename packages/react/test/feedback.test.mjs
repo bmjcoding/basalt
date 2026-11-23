@@ -573,15 +573,17 @@ describe("Toast: swipe, placement and motion", () => {
     await page.close();
   });
 
-  test("at 390 it is the bottom edge, full width less the 16px insets, above the safe area", async () => {
+  // DECISIONS 274: under 720 the stack hangs from the top (space-2 under a bar; with none, as here, space-4 from the top edge and past its safe area).
+  test("at 390 it hangs from the top edge, full width less the 16px insets, below the top safe area; from 720 the bottom inset yields to the bottom one", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark", viewport: { width: 390, height: 844 }, hasTouch: true });
     await show(page, { title: "Saved" });
     await toasts(page).first().waitFor();
     await settle(page);
-    const box = await page.locator(".basalt-toast-viewport").evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: window.innerWidth - r.right, bottom: window.innerHeight - r.bottom }; });
-    assert.deepEqual(box, { left: 16, right: 16, bottom: 16 });
+    const box = await page.locator(".basalt-toast-viewport").evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: window.innerWidth - r.right, top: r.top }; });
+    assert.deepEqual(box, { left: 16, right: 16, top: 16 });
     const css = await page.evaluate(() => [...document.styleSheets].flatMap((s) => [...s.cssRules]).map((r) => r.cssText).join("\n"));
-    assert.match(css, /bottom: max\(var\(--basalt-space-4\),\s*env\(safe-area-inset-bottom\)\)/, "the bottom inset yields to the safe area");
+    assert.match(css, /top: max\(max\(var\(--basalt-space-4\),\s*env\(safe-area-inset-top\)\)/, "the top inset yields to the safe area");
+    assert.match(css, /bottom: max\(var\(--basalt-space-4\),\s*env\(safe-area-inset-bottom\)\)/, "from 720, the bottom inset yields to the safe area");
     await page.close();
   });
 

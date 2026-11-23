@@ -28,6 +28,9 @@ after(async () => { await browser?.close(); });
 const open = async (body, { theme = "dark", width = 1024, height = 900, ...options } = {}) => {
   const { page, errors } = await fixturePage(browser, body, { theme, viewport: { width, height }, ...options });
   page.errors = errors;
+  // A shape moves the ids of what it draws to data-shape-id (#114), so the app's getElementById never finds the shape's copy: these tests
+  // look a drawn part up by either.
+  await page.evaluate(() => { window.byId = (id) => document.getElementById(id) ?? document.querySelector(`[data-shape-id="${CSS.escape(id)}"]`); });
   return page;
 };
 const axe = async (page) => {
@@ -75,14 +78,14 @@ describe("bones follow the drawn parts", () => {
     const got = await page.evaluate(() => {
       const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
       const range = document.createRange();
-      range.selectNodeContents(document.getElementById("lines").firstChild);
+      range.selectNodeContents(byId("lines").firstChild);
       const lines = [...range.getClientRects()].map((r) => ({ x: r.left, y: r.top, w: r.width, h: r.height }));
-      const fill = (id) => getComputedStyle(document.getElementById(id)).webkitTextFillColor;
+      const fill = (id) => getComputedStyle(byId(id)).webkitTextFillColor;
       return {
-        bones: window.bones(), lines, filled: box(document.getElementById("filled")), filledRadius: getComputedStyle(document.getElementById("filled")).borderRadius,
-        ghost: box(document.getElementById("ghost")), dot: box(document.getElementById("dot")), icon: box(document.getElementById("icon")),
-        iconHidden: getComputedStyle(document.getElementById("icon")).visibility, headKept: Boolean(document.getElementById("head").closest("[data-bone-keep]")),
-        headFill: fill("head"), linesFill: fill("lines"), headColor: getComputedStyle(document.getElementById("head")).color,
+        bones: window.bones(), lines, filled: box(byId("filled")), filledRadius: getComputedStyle(byId("filled")).borderRadius,
+        ghost: box(byId("ghost")), dot: box(byId("dot")), icon: box(byId("icon")),
+        iconHidden: getComputedStyle(byId("icon")).visibility, headKept: Boolean(byId("head").closest("[data-bone-keep]")),
+        headFill: fill("head"), linesFill: fill("lines"), headColor: getComputedStyle(byId("head")).color,
       };
     });
     const near = (a, b, d = 1) => Math.abs(a - b) <= d;
@@ -116,7 +119,7 @@ describe("bones in a box that clips", () => {
 const Cells = () => <div id="scroller" style={{ width: 300, overflowX: "auto" }}><div style={{ display: "flex", gap: 24, width: 900 }}>{Array.from({ length: 6 }, (_, i) => <span key={i} style={{ flex: "none", width: 126 }}>{B.standIn(i, 14)}</span>)}</div></div>;
 createRoot(document.getElementById("root")).render(<div style={{ width: 600 }}><B.LoadingShape loading shape={() => <Cells />}>{() => null}</B.LoadingShape></div>);`);
     await until(page, () => window.bones().length > 0);
-    const got = await page.evaluate(() => ({ bones: window.bones(), edge: document.getElementById("scroller").getBoundingClientRect().right }));
+    const got = await page.evaluate(() => ({ bones: window.bones(), edge: byId("scroller").getBoundingClientRect().right }));
     assert.ok(got.bones.length >= 2, JSON.stringify(got.bones));
     assert.ok(got.bones.every((b) => b.x + b.w <= got.edge + 0.5), `bones past the scroller's edge at ${got.edge}: ${JSON.stringify(got.bones)}`);
     await page.close();
@@ -147,14 +150,14 @@ createRoot(document.getElementById("root")).render(<B.LoadingShape loading prefi
     await until(page, () => window.bones().length > 0);
     const got = await page.evaluate(() => {
       const shape = document.querySelector(".basalt-bones");
-      const el = (id) => shape.querySelector("#" + id);
+      const el = (id) => shape.querySelector(`[data-shape-id="${id}"]`);
       const known = (id) => el(id).hasAttribute("data-bone-keep") || el(id).hasAttribute("data-bone-ink");
       const covered = (id) => { const r = el(id).getBoundingClientRect(); return window.bones().some((b) => b.y >= r.top - 1 && b.y + b.h <= r.bottom + 1 && b.x >= r.left - 1); };
       return {
         title: el("title").textContent, titleKnown: known("title"), titleCovered: covered("title"), titleFill: getComputedStyle(el("title")).webkitTextFillColor,
         ownerKnown: known("owner"), ownerCovered: covered("owner"), summaryKnown: known("summary"), summaryCovered: covered("summary"),
         peopleKnown: known("people"), peopleCovered: covered("people"),
-        twinPeople: (() => { const t = document.querySelector(".basalt-bones-twin #people").getBoundingClientRect().top - document.querySelector(".basalt-bones-twin").getBoundingClientRect().top; const a = el("people").getBoundingClientRect().top - shape.getBoundingClientRect().top; return [a, t]; })(),
+        twinPeople: (() => { const t = document.querySelector(".basalt-bones-twin [data-shape-id=\"people\"]").getBoundingClientRect().top - document.querySelector(".basalt-bones-twin").getBoundingClientRect().top; const a = el("people").getBoundingClientRect().top - shape.getBoundingClientRect().top; return [a, t]; })(),
       };
     });
     assert.equal(got.title, "Checkout timing out");
@@ -174,7 +177,7 @@ describe("prefill, a first part with a top margin", () => {
 const Drawn = ({ v }) => <div><h2 id="known">Checkout timing out</h2><p id="unknown">{B.standIn(2, 30, v)}</p></div>;
 createRoot(document.getElementById("root")).render(<B.LoadingShape loading prefill={(v) => <Drawn v={v} />}>{() => null}</B.LoadingShape>);`);
     await until(page, () => window.bones().length > 0);
-    const got = await page.evaluate(() => { const h = document.querySelector(".basalt-bones #known"); return { margin: getComputedStyle(h).marginTop, known: h.hasAttribute("data-bone-keep") || h.hasAttribute("data-bone-ink") }; });
+    const got = await page.evaluate(() => { const h = document.querySelector(".basalt-bones [data-shape-id=\"known\"]"); return { margin: getComputedStyle(h).marginTop, known: h.hasAttribute("data-bone-keep") || h.hasAttribute("data-bone-ink") }; });
     assert.notEqual(got.margin, "0px");
     assert.ok(got.known);
     await page.close();
@@ -323,13 +326,13 @@ function App() {
     </div>
   );
 }
-window.record(() => Object.fromEntries(["p1", "p2", "p3", "p4"].map((id) => [id, window.layoutTop(document.getElementById(id))])));
+window.record(() => Object.fromEntries(["p1", "p2", "p3", "p4"].map((id) => [id, window.layoutTop(byId(id))])));
 createRoot(document.getElementById("root")).render(<App />);`;
 
 describe("phases", () => {
   test("useStaged lands parts arriving within 250ms together, and lands everything at once when the last part arrives", async () => {
     const page = await open(PHASES);
-    await until(page, () => document.getElementById("p4"));
+    await until(page, () => byId("p4"));
     const releases = await page.evaluate(() => window.releases);
     assert.ok(!releases.some((r) => r.a !== r.b), `a (60ms) and b (160ms) never land apart: ${JSON.stringify(releases)}`);
     const ab = releases.find((r) => r.a);
@@ -340,7 +343,7 @@ describe("phases", () => {
 
   test("parts land top-down, and nothing that has landed moves (0px), though every part's content is another height than its shape", async () => {
     const page = await open(PHASES);
-    await until(page, () => document.getElementById("p4"));
+    await until(page, () => byId("p4"));
     await page.waitForTimeout(400);
     const frames = await page.evaluate(() => window.frames);
     const first = Object.fromEntries(["p1", "p2", "p3", "p4"].map((id) => [id, frames.findIndex((f) => f[id] !== null)]));
@@ -466,7 +469,7 @@ describe("modes", () => {
     const got = await page.evaluate(() => {
       const shape = document.querySelector(".basalt-bones");
       const bone = getComputedStyle(shape.querySelector(".basalt-bones-layer > span"));
-      return { title: getComputedStyle(shape.querySelector("#title")).visibility, owner: getComputedStyle(shape.querySelector("#owner")).visibility, border: [bone.borderTopWidth, bone.borderTopStyle], layer: getComputedStyle(shape.querySelector(".basalt-bones-layer")).visibility, height: shape.getBoundingClientRect().height };
+      return { title: getComputedStyle(shape.querySelector('[data-shape-id="title"]')).visibility, owner: getComputedStyle(shape.querySelector('[data-shape-id="owner"]')).visibility, border: [bone.borderTopWidth, bone.borderTopStyle], layer: getComputedStyle(shape.querySelector(".basalt-bones-layer")).visibility, height: shape.getBoundingClientRect().height };
     });
     assert.equal(got.title, "visible");
     assert.equal(got.owner, "hidden");
@@ -523,7 +526,7 @@ describe("servers", () => {
     assert.equal(await page.evaluate(() => document.querySelectorAll(".basalt-bones-layer > span").length), 0, "server HTML holds no bone");
     await page.addScriptTag({ content: await bundleFixture(`import { hydrateRoot } from "react-dom/client"; const tree = (${TREE})(B, React.createElement); hydrateRoot(document.getElementById("root"), tree, { onRecoverableError: (e) => console.error("recoverable: " + e.message) });`) });
     await until(page, () => document.querySelectorAll(".basalt-bones[data-shown] > .basalt-bones-layer > span").length > 0);
-    const known = await page.evaluate(() => document.querySelector(".basalt-bones #title").hasAttribute("data-bone-ink") || document.querySelector(".basalt-bones #title").hasAttribute("data-bone-keep"));
+    const known = await page.evaluate(() => document.querySelector(".basalt-bones [data-shape-id=\"title\"]").hasAttribute("data-bone-ink") || document.querySelector(".basalt-bones [data-shape-id=\"title\"]").hasAttribute("data-bone-keep"));
     assert.ok(known, `the known title is measured as known after hydration: ${await page.evaluate(() => document.getElementById("root").innerHTML)}`);
     assert.deepEqual(errors, []);
     await page.close();
@@ -576,7 +579,7 @@ createRoot(document.getElementById("root")).render(<B.LoadingShape loading prefi
     await until(page, () => window.bones().length > 0);
     const got = await page.evaluate(() => {
       const shape = document.querySelector(".basalt-bones");
-      const el = (id) => shape.querySelector("#" + id);
+      const el = (id) => shape.querySelector(`[data-shape-id="${id}"]`);
       const box = (id) => { const r = el(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
       return { bones: window.bones(), fill: box("fill"), dot: box("dot"), fillHidden: getComputedStyle(el("fill")).visibility, dotHidden: getComputedStyle(el("dot")).visibility, known: el("known").hasAttribute("data-bone-keep") || el("known").hasAttribute("data-bone-ink") };
     });
@@ -608,7 +611,7 @@ const Drawn = () => <div style={{ width: 320, display: "flex", gap: 16, alignIte
 createRoot(document.getElementById("root")).render(<B.LoadingShape loading shape={() => <Drawn />}>{() => null}</B.LoadingShape>);`);
     await until(page, () => window.bones().length > 0);
     const got = await page.evaluate(() => {
-      const box = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+      const box = (id) => { const r = byId(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
       return { bones: window.bones(), black: box("black"), red: box("red") };
     });
     const near = (a, b) => Math.abs(a - b) <= 1;
@@ -622,7 +625,7 @@ createRoot(document.getElementById("root")).render(<B.LoadingShape loading shape
     const page = await open(`${HELPERS}
 createRoot(document.getElementById("root")).render(<B.LoadingShape loading shape={() => <div style={{ width: 300 }}><div id="plain" data-bone="box" style={{ width: 120, height: 40 }} /></div>}>{() => null}</B.LoadingShape>);`);
     await until(page, () => window.bones().length > 0);
-    const got = await page.evaluate(() => { const r = document.getElementById("plain").getBoundingClientRect(); return { bones: window.bones(), box: [r.left, r.top, r.width, r.height], bg: getComputedStyle(document.getElementById("plain")).backgroundColor }; });
+    const got = await page.evaluate(() => { const r = byId("plain").getBoundingClientRect(); return { bones: window.bones(), box: [r.left, r.top, r.width, r.height], bg: getComputedStyle(byId("plain")).backgroundColor }; });
     assert.equal(got.bg, "rgba(0, 0, 0, 0)", "transparent and borderless");
     assert.deepEqual(got.bones.map((b) => [b.x, b.y, b.w, b.h]), [got.box]);
     await page.close();
@@ -762,7 +765,7 @@ window.watch = () => {
     const scroll = (target) => page.evaluate((t) => new Promise((resolve) => {
       window.m_plain = 0; window.m_stuck = 0;
       let n = 0;
-      const step = () => { if (t === "window") window.scrollBy(0, 40); else document.getElementById(t).scrollLeft !== undefined && (t === "pane" ? (document.getElementById(t).scrollTop += 40) : (document.getElementById(t).scrollLeft += 40)); if (++n < 10) requestAnimationFrame(step); else requestAnimationFrame(() => requestAnimationFrame(() => resolve({ plain: window.m_plain, stuck: window.m_stuck }))); };
+      const step = () => { if (t === "window") window.scrollBy(0, 40); else byId(t).scrollLeft !== undefined && (t === "pane" ? (byId(t).scrollTop += 40) : (byId(t).scrollLeft += 40)); if (++n < 10) requestAnimationFrame(step); else requestAnimationFrame(() => requestAnimationFrame(() => resolve({ plain: window.m_plain, stuck: window.m_stuck }))); };
       requestAnimationFrame(step);
     }), target);
     assert.deepEqual(await scroll("pane"), { plain: 0, stuck: 0 }, "an unrelated pane");
@@ -841,12 +844,12 @@ async function switchTabs(fixture, { land = 0 } = {}) {
   await settle(page);
   await page.evaluate(() => window.record(() => {
     const panels = [...document.querySelectorAll('[role="tabpanel"]')].filter((p) => p.checkVisibility({ visibilityProperty: true }));
-    const desc = document.getElementById("desc");
+    const desc = byId("desc");
     const real = document.querySelector('.basalt-loading-shape[data-phase="content"]');
     return {
       panels: panels.length, desc: window.layoutTop(desc), region: window.layoutTop(desc?.nextElementSibling),
       wait: real ? window.layoutTop(real.querySelector("#wait")) : null, result: real ? window.layoutTop(real.querySelector("#result")) : null,
-      below: window.layoutTop(document.getElementById("below")), slide: desc ? desc.closest('[role="tabpanel"]').getAnimations().map((a) => a.animationName).join() : "",
+      below: window.layoutTop(byId("below")), slide: desc ? desc.closest('[role="tabpanel"]').getAnimations().map((a) => a.animationName).join() : "",
     };
   }));
   const at = await page.evaluate(() => performance.now() - window.t0);

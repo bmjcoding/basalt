@@ -84,7 +84,7 @@ export async function launch() {
  * It is paused before the fixture loads, so the fixture loads with time frozen. CSS transitions and
  * animations are not on that clock: pause them through `document.getAnimations()`.
  */
-export async function fixturePage(browser, body, { theme = "light", clock = false, ...options } = {}) {
+export async function fixturePage(browser, body, { theme = "light", clock = false, standards = false, ...options } = {}) {
   const page = await browser.newPage(options);
   page.setDefaultTimeout(5000);
   // Pause straight after installing, before the page loads anything. pauseAt throws if its time has already passed, and
@@ -96,7 +96,9 @@ export async function fixturePage(browser, body, { theme = "light", clock = fals
   }
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.setContent(`<html data-theme="${theme}"><head><style>${css()}</style></head><body><div id="root"></div></body></html>`);
+  // `standards` writes a doctype, so the page is in standards mode as an app's is (and as the HTML skill's pages are); without it the page is in quirks mode,
+  // where a line box takes no strut from its block, as every fixture here has been measured.
+  await page.setContent(`${standards ? "<!doctype html>" : ""}<html data-theme="${theme}"><head><style>${css()}</style></head><body><div id="root"></div></body></html>`);
   await page.addScriptTag({ content: await bundleFixture(body) });
   return { page, errors };
 }

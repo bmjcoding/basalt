@@ -95,7 +95,7 @@ export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
         {...props}
         // Unavailable while an item's answer is still to come (the menu will not open), but never disabled: focus stays on the trigger.
         aria-busy={waiting ? true : props["aria-busy"]}
-        aria-disabled={waiting ? true : props["aria-disabled"]}
+        aria-disabled={waiting ? true : props["aria-disabled"] || undefined}
         className={withClass("basalt-menu-trigger", className)}
       />
     </WaitContext.Provider>

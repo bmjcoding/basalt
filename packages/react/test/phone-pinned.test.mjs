@@ -536,7 +536,9 @@ describe("the toast stack on a phone", () => {
     await page.evaluate(() => { window.scrollTo(0, document.documentElement.scrollHeight); window.toast.show({ title: "Draft saved", home: "page", timeout: 0 }); window.toast.show({ title: "Check-in sent", home: "page", timeout: 0 }); });
     await settle(page);
     const got = await page.evaluate(() => {
-      const [behind, front] = [...document.querySelectorAll(".basalt-toast")].map((t) => t.getBoundingClientRect());
+      // The front toast by its mark, not by document order (Base UI lists the newest first).
+      const front = document.querySelector(".basalt-toast[data-front]").getBoundingClientRect();
+      const behind = document.querySelector(".basalt-toast:not([data-front])").getBoundingClientRect();
       const send = document.getElementById("send").getBoundingClientRect();
       return { front: { top: front.top, left: front.left, right: front.right }, behindBottom: behind.bottom, frontBottom: front.bottom, send: { top: send.top, bottom: send.bottom } };
     });

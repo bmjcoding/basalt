@@ -1031,7 +1031,9 @@ describe("Terminal: the head when narrow", () => {
     assert.ok(Math.abs(state - pause) < 8 && Math.abs(pause - copy) < 8, `the state, the pause control and the icon share a row: ${[state, pause, copy]}`);
     assert.ok(Math.min(state, pause, copy) - title > 20, `the title is a row above them: ${title} against ${[state, pause, copy]}`);
     const head = await box(page.locator(".basalt-terminal-head"));
-    assert.ok(head.height <= 36 + 28 + 2, `two rows: the head is ${head.height}px tall`);
+    // The title's 16px line, then the controls' row, which is 44 under 720 whatever the pointer (B5: every 44px target rule applies under 720), inside the
+    // head's 4px padding: 68. Three rows would be at least 16 more.
+    assert.ok(head.height <= 4 + 16 + 44 + 4, `two rows: the head is ${head.height}px tall`);
     await page.close();
   });
 });

@@ -144,6 +144,8 @@ describe("Base UI's inline style under style-src 'self'", () => {
       try {
         await page.evaluate((p) => window.show(p), provider);
         await openSelect(page);
+        // The popup's box once its entry has run: two frames after it opens it is still scaling in, by however far each page's frames got.
+        await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)));
         boxes.push(await page.evaluate(() => {
           const popup = document.querySelector(".basalt-select-popup");
           const r = popup.getBoundingClientRect();

@@ -137,6 +137,22 @@ const OWNED = ["aria-autocomplete", "aria-haspopup", "aria-controls", "aria-acti
 
 /** 6px from the trigger's line, as a popup sits from its trigger; 8px from the window's edges. */
 const OFFSET = 6;
+
+/**
+ * The lowest edge, above the caret, of what is pinned at the top of the view: the app's bar, a band stuck under it, an app's own strip marked
+ * `data-pinned-edge="top"` or `.basalt-sticky-bar`. The picker opens above only into the room below it, so it never covers them. Measured on
+ * each placement, so it holds whether or not the page measures its pinned edges (`usePinnedEdges`).
+ */
+function pinnedCeiling(viewTop: number, caretTop: number): number {
+  let ceiling = viewTop;
+  for (const part of document.querySelectorAll<HTMLElement>('[data-pinned-edge="top"], .basalt-sticky-bar')) {
+    const position = getComputedStyle(part).position;
+    if (position !== "sticky" && position !== "fixed") continue;
+    const box = part.getBoundingClientRect();
+    if (box.height > 0 && box.bottom <= caretTop && box.bottom > ceiling) ceiling = box.bottom;
+  }
+  return ceiling;
+}
 const MARGIN = 8;
 
 /**
@@ -348,7 +364,7 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     const height = view?.height ?? window.innerHeight;
     const viewWidth = view?.width ?? window.innerWidth;
     const below = top + height - caret.bottom - OFFSET - MARGIN;
-    const above = caret.top - top - OFFSET - MARGIN;
+    const above = caret.top - pinnedCeiling(top, caret.top) - OFFSET - MARGIN;
     list.style.removeProperty("--available-height");
     const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
     const down = below >= natural || below >= above;

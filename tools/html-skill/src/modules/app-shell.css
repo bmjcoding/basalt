@@ -97,6 +97,8 @@
     .app-shell { grid-template-columns: var(--basalt-size-rail-width) minmax(0, 1fr); }
     .app-sidebar { padding-inline: 0; }
     .app-brand { justify-content: center; padding-inline: 0; }
+    /* As React's: the link keeps its 44px target and the mark sits in its middle, on the nav glyphs' centre line. */
+    .app-brand .brand { justify-content: center; }
     .app-brand .brand > .brand-full { display: none; }
     .app-brand .brand > .brand-rail { display: inline-flex; }
   }

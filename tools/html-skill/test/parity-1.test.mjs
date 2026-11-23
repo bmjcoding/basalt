@@ -187,7 +187,8 @@ describe("native chrome", () => {
     assert.match(css, /::-webkit-search-cancel-button\{[^}]*mask:url\("data:image\/svg\+xml,%3Csvg[^"]*viewBox='0 0 24 24'[^"]*stroke-width='2\.25'/, "the mask is the core set's close glyph (the 24 grid, the 2.25 stroke)");
     const { page: p, context } = await page('<input class="input" id="s" type="search" value="query" style="width: 200px">');
     assert.match(css, /::-webkit-search-cancel-button\{appearance:none;width:var\(--basalt-size-control-xs\);height:var\(--basalt-size-control-xs\)/);
-    assert.match(css, /@media\(pointer:coarse\)\{\.input\[type=search\]::-webkit-search-cancel-button\{width:var\(--basalt-size-tap-min\)/);
+    // 44 on touch, and under 720 whatever the pointer (B5), in the one query that sizes the field for touch.
+    assert.match(css, /@media\(pointer:coarse\),\(width<720px\)\{[^@]*\.input\[type=search\]::-webkit-search-cancel-button\{width:var\(--basalt-size-tap-min\)/);
     await p.locator("#s").hover();
     const png = (await p.locator("#s").screenshot()).toString("base64");
     // the glyph is drawn at the right end: its ink box is 8 or 9px (the core close is 9.9 of 24 units across and a 2.25 stroke, at 16px) and it is not the browser's own

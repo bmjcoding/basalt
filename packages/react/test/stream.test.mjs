@@ -233,7 +233,15 @@ describe("the entry you came to", () => {
         probe.remove();
         return out;
       }, theme === "dark");
-      assert.equal(r.bg, recipe, "the panel's wash is the recipe over its own fill");
+      // The wash is the public plate (B3's --basalt-plate, an oklch value) and the recipe a color-mix: the same colour in two notations, so they are
+      // compared as the 8-bit sRGB a canvas paints them, to the rounding of each.
+      const [painted, expected] = await page.evaluate((colours) => colours.map((colour) => {
+        const ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d");
+        ctx.fillStyle = colour;
+        ctx.fillRect(0, 0, 1, 1);
+        return [...ctx.getImageData(0, 0, 1, 1).data];
+      }), [r.bg, recipe]);
+      assert.ok(painted.every((channel, i) => Math.abs(channel - expected[i]) <= 1), `the panel's wash is the recipe over its own fill: ${r.bg} (${painted}) against ${recipe} (${expected})`);
       await page.mouse.click(5, 5);
       await settle(page);
       const rest = await page.evaluate(() => getComputedStyle(document.querySelector("#card .basalt-card")).backgroundColor);
@@ -431,8 +439,9 @@ describe("the disclosure row", () => {
     assert.equal(await trigger.getAttribute("aria-expanded"), "false");
   });
 
+  // From 720: under it every target is 44 whatever the pointer (B5).
   test("hover lifts the ink and draws no wash; 28 tall with a fine pointer, 44 on touch", async () => {
-    const page = await open(render(ROWS), { width: 600 });
+    const page = await open(render(ROWS), { width: 800 });
     const row = page.locator("#row .basalt-disclosure-row");
     const rest = await row.evaluate((el) => getComputedStyle(el).color);
     await row.hover();

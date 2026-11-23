@@ -133,7 +133,11 @@ describe("the display steps and the roles", () => {
 
   test("no type rule is fluid: no clamp, no viewport or container unit in a size, and no breakpoint but 720 and 1024 in a rule about the roles", () => {
     const components = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8");
-    const block = components.slice(components.indexOf("Display type, the lead and the page"), components.indexOf("@media (pointer: coarse) {\n    .basalt-page-link"));
+    // The section ends where the touch targets begin (since B5 under 720 whatever the pointer as well as on touch).
+    const start = components.indexOf("Display type, the lead and the page");
+    const end = components.indexOf("@media (pointer: coarse), (width < 720px) {\n    .basalt-page-link");
+    assert.ok(start !== -1 && end > start, "found the section's start and end");
+    const block = components.slice(start, end);
     assert.ok(block.length > 3000, "found the section");
     assert.doesNotMatch(block, /clamp\(|\d(?:vw|vh|svh|dvh|cqw|cqi|vi)\b/);
     const widths = [...block.matchAll(/@media[^{]*/g)].map((m) => m[0]).join(" ");

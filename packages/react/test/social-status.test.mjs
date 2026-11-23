@@ -247,7 +247,8 @@ describe("the notification centre's unread dot", () => {
     await page.locator(".basalt-notification").first().hover();
     await settle(page);
     assert.equal((await dot()).borderTopColor, c.HighlightText, "a hovered entry is Highlight, and the dot follows with no override of its own");
-    const trigger = await page.evaluate(() => { const t = document.querySelector(".basalt-notifications-trigger"); const s = getComputedStyle(t, "::after"); return [s.borderTopWidth, s.backgroundColor, s.boxSizing]; });
+    // The bell's dot is its ::before since #105 (a pressed Button's ::after is its hit-box extension).
+    const trigger = await page.evaluate(() => { const t = document.querySelector(".basalt-notifications-trigger"); const s = getComputedStyle(t, "::before"); return [s.borderTopWidth, s.backgroundColor, s.boxSizing]; });
     assert.deepEqual([trigger[0], trigger[2]], ["3px", "border-box"], "the bell's dot is the same disc");
     await page.close();
   });

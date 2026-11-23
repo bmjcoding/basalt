@@ -47,7 +47,8 @@ const frames = (page, n = 3) => page.evaluate((n) => new Promise((resolve) => { 
 
 async function diagramPage(options = {}) {
   const { theme = "dark", viewport = { width: 1440, height: 1000 }, ...rest } = options;
-  const { page, errors } = await fixturePage(browser, HOST, { theme, viewport, ...rest });
+  // Standards mode, as an app's page is: in quirks mode a decision's words take no strut, so its diamond is drawn shorter than it is in an app.
+  const { page, errors } = await fixturePage(browser, HOST, { theme, viewport, standards: true, ...rest });
   const warnings = [];
   page.on("console", (m) => { if (m.type() === "warning" || m.type() === "error") warnings.push(m.text()); });
   await page.addStyleTag({ content: PAGE });
@@ -368,9 +369,11 @@ describe("accessibility (1.14)", () => {
     assert.equal(flow.split("May decide, high risk asks twice").length - 1, 1, "each node is written once");
     assert.match(flow, /If responder: go to 5, Risk medium or lower\?/);
     const df = await text("dataFlow");
-    assert.match(df, /Aurora: Event row \+ NOTIFY, one transaction\.( The one transaction\.)? Then to step 4, Hears it: NOTIFY \(The message's path\); to step 6, Keeps the newest 300: trim \(Housekeeping\); to step 7, Sealed segment: once 200 wait \(Later, in a batch\)\./);
+    // The focal node's line carries the legend's focal words (the fixture's, since fix round 2: "Where the event is written").
+    assert.match(df, /Aurora: Event row \+ NOTIFY, one transaction\. Where the event is written\. Then to step 4, Hears it: NOTIFY \(The message's path\); to step 6, Keeps the newest 300: trim \(Housekeeping\); to step 7, Sealed segment: once 200 wait \(Later, in a batch\)\./);
     const seq = await text("sequence");
-    assert.match(seq, /RunTask: cimip service to ECS \(Setup\)\. Idempotency token = sandbox id\./);
+    // A note is written as the data has it (fix round 2 dropped the capital it was given).
+    assert.match(seq, /RunTask: cimip service to ECS \(Setup\)\. idempotency token = sandbox id\./);
     const schema = await text("schema");
     assert.match(schema, /incident_id, primary key, references incidents\.id/);
     assert.match(schema, /and 8 more columns/);
@@ -385,7 +388,7 @@ describe("accessibility (1.14)", () => {
       let b = browser;
       if (engine === "webkit") { try { b = await webkit.launch(); } catch { t.skip("WebKit is not installed"); return; } }
       try {
-        const { page } = await fixturePage(b, HOST, { theme: "dark", viewport: { width: 1440, height: 1000 } });
+        const { page } = await fixturePage(b, HOST, { theme: "dark", viewport: { width: 1440, height: 1000 }, standards: true });
         await page.addStyleTag({ content: PAGE });
         await page.evaluate(() => document.fonts.ready);
         await frames(page, 4);
@@ -664,7 +667,8 @@ describe("rules", () => {
   test("the engine does no work when its module loads", async () => {
     const source = fs.readFileSync(path.join(pkg, "src", "diagram-core.ts"), "utf8");
     const topLevel = source.split("\n").filter((l) => /^(const|let|var) /.test(l));
-    for (const line of topLevel) assert.match(line, /^const \w+(?:: [^=]+)? = (?:\[|\{|"|'|\d|\(|new (?:Set|Map)\(\[)/, `a module-scope value that is not a literal or a function: ${line}`);
+    // A function is an arrow, a generic one (`<T>(from) => …`) included.
+    for (const line of topLevel) assert.match(line, /^const \w+(?:: [^=]+)? = (?:\[|\{|"|'|\d|\(|<\w+(?:, \w+)*>\(|new (?:Set|Map)\(\[)/, `a module-scope value that is not a literal or a function: ${line}`);
     // No statement at module scope calls anything.
     assert.doesNotMatch(source, /^[a-zA-Z_$][\w$.]*\(/m, "a call at module scope");
   });

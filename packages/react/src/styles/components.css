@@ -3276,7 +3276,7 @@
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   /* In a popover the plate is its level's; in the page (NotificationList, no level of its own) it is the page's solid plate. */
-  .basalt-notification:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
+  .basalt-notification:hover::before { background-color: var(--_plate, var(--basalt-plate)); transition-duration: var(--basalt-duration-instant); }
   /* The hover glide, navigation's rules: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it
      and the resting hover, so only the ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced
      colours, where each entry paints its own. */
@@ -5071,6 +5071,8 @@
   .basalt-chrome .basalt-profile-handle,
   .basalt-chrome .basalt-framed-credit,
   .basalt-chrome .basalt-link-tile-details,
+  /* LoadingShape's Refreshing is made for a bar (its compact form is a phone's): on the smoked bar its word and ring take secondary ink. */
+  .basalt-chrome .basalt-refreshing,
   .basalt-chrome .basalt-field-necessity { color: var(--basalt-text-secondary); }
 
   /* No backdrop-filter, or the reader asks for less transparency, or it is printed: the page colour, opaque. */
@@ -5518,7 +5520,7 @@
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   @media (hover: hover) {
-    .basalt-passage:hover::before { background-color: var(--_plate, var(--_plate-solid)); transition-duration: var(--basalt-duration-instant); }
+    .basalt-passage:hover::before { background-color: var(--_plate, var(--basalt-plate)); transition-duration: var(--basalt-duration-instant); }
     .basalt-passage:hover .basalt-passage-meta { color: var(--basalt-text-secondary); }
   }
   .basalt-passage:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(var(--basalt-size-focus-offset) - var(--_plate-inset)); }
@@ -7048,9 +7050,9 @@
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
     background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
   }
-  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived]:not([data-panel])::before { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived]:not([data-panel])::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
   :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrival] > :not(.basalt-visually-hidden, .basalt-stream-word) { transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
-  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrived] > :not(.basalt-visually-hidden, .basalt-stream-word) { background-color: var(--_plate-solid); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-stream-entry, .basalt-stream-block)[data-panel][data-arrived] > :not(.basalt-visually-hidden, .basalt-stream-word) { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
   :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrival]:focus { outline: none; }
   :is(.basalt-stream-message, .basalt-stream-note, .basalt-stream-entry, .basalt-stream-block)[data-arrived] :is(.basalt-stream-time, .basalt-stream-meta, .basalt-stream-quote-cite, .basalt-text[data-tone="tertiary"], .basalt-disclosure-meta, .basalt-activity-meta) { color: var(--basalt-text-secondary); }
   .basalt-stream-word { color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-slow) * 0.75); }

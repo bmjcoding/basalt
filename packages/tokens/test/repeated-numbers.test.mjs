@@ -46,8 +46,36 @@ function leastWidth(type, n, reach = 0) {
   return Math.max(breakpoint.containerLg, sum);
 }
 const DIAGRAM_WIDTHS = ["architecture", "flowchart", "data-flow", "schema", "sequence"].flatMap((type) => [1, 2, 3, 4, 5, 6].flatMap((n) => (type === "architecture" ? [0, 1, 2] : [0]).map((r) => leastWidth(type, n, r))));
-// The widths a query may name: the breakpoint tokens, the one sum the command list documents (its list column, a gap and the container breakpoint), and a diagram's least widths.
-const WIDTHS = new Set([...Object.values(breakpoint), px("size-list-width") + px("space-4") + breakpoint.container, ...DIAGRAM_WIDTHS]);
+// The widths a query may name: the breakpoint tokens, the two sums the components document (the command list's: its list column, a gap and the container
+// breakpoint; PaneLayout's, B4: the pane sits beside the page from size-sidebar-width + size-gutter + the large container breakpoint), and a diagram's least widths.
+const WIDTHS = new Set([
+  ...Object.values(breakpoint),
+  px("size-list-width") + px("space-4") + breakpoint.container,
+  px("size-sidebar-width") + px("size-gutter") + breakpoint.containerLg,
+  ...DIAGRAM_WIDTHS,
+]);
+
+/** A selector list split at its own commas, never at one inside parentheses. */
+const topLevel = (list) => {
+  const out = [];
+  let depth = 0;
+  let from = 0;
+  for (let i = 0; i < list.length; i += 1) {
+    if (list[i] === "(") depth += 1;
+    else if (list[i] === ")") depth -= 1;
+    else if (list[i] === "," && depth === 0) { out.push(list.slice(from, i)); from = i + 1; }
+  }
+  return [...out, list.slice(from)];
+};
+/** Every compound a selector names, with each `:is()` written out as its alternatives: `:is([a], [b]):is([c])` is `[a][c]` and `[b][c]`. */
+const expandIs = (selector) => {
+  const at = selector.indexOf(":is(");
+  if (at === -1) return [selector];
+  let depth = 0;
+  let end = at + 3;
+  for (; end < selector.length; end += 1) { if (selector[end] === "(") depth += 1; else if (selector[end] === ")" && --depth === 0) break; }
+  return topLevel(selector.slice(at + 4, end)).flatMap((alternative) => expandIs(selector.slice(0, at) + alternative + selector.slice(end + 1)));
+};
 
 test("each of the diagrams' least-width rules is the sum of tokens for every figure it names (DECISIONS 282, 1.19)", () => {
   const css = read("packages", "react", "src", "styles", "components.css");
@@ -55,7 +83,8 @@ test("each of the diagrams' least-width rules is the sum of tokens for every fig
   assert.ok(rules.length >= 15, `found ${rules.length} least-width rules`);
   const covered = new Set();
   for (const [, width, body] of rules) {
-    for (const selector of body.split(",")) {
+    // Each figure the rule names: its selector list at its own commas, and every `:is()` in it written out, so one compound is one type and one count.
+    for (const selector of topLevel(body.slice(0, body.indexOf("{"))).flatMap(expandIs)) {
       const types = [...selector.matchAll(/data-type="([a-z-]+)"/g)].map((m) => m[1]);
       const cols = [...selector.matchAll(/data-cols="(\d)"/g)].map((m) => Number(m[1]));
       const reach = selector.match(/data-reach="(\d)"/)?.[1];
@@ -78,13 +107,13 @@ test("each of the diagrams' least-width rules is the sum of tokens for every fig
 });
 const queryNumbers = (css) => [...css.matchAll(/@(?:media|container)\b[^{]*\{/g)].flatMap((query) => [...query[0].matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => ({ query: query[0].trim(), number: Number(match[1]) })));
 
-test("every pixel width in a media or container query of React's sheet is a breakpoint token (or the command list's sum of tokens)", () => {
+test("every pixel width in a media or container query of React's sheet is a breakpoint token (or a documented sum of tokens)", () => {
   const found = queryNumbers(read("packages", "react", "src", "styles", "components.css"));
   assert.ok(found.length > 20, "the scan found no queries");
   for (const { query, number } of found) assert.ok(WIDTHS.has(number), `${query}: ${number}px is not a token`);
 });
 
-test("every pixel width in a query of the HTML skill's sources and built parts is a breakpoint token (or the same sum)", () => {
+test("every pixel width in a query of the HTML skill's sources and built parts is a breakpoint token (or the same sums)", () => {
   const sources = fs.readdirSync(path.join(repo, "tools", "html-skill", "src", "modules")).filter((file) => file.endsWith(".css")).map((file) => read("tools", "html-skill", "src", "modules", file));
   const parts = fs.readdirSync(path.join(repo, ".agent", "skills", "basalt-html", "parts")).filter((file) => file.endsWith(".css")).map((file) => read(".agent", "skills", "basalt-html", "parts", file));
   const found = [...sources, read("tools", "html-skill", "src", "core.css"), ...parts].flatMap(queryNumbers);

@@ -104,8 +104,10 @@ for (const theme of ["dark", "light"]) {
       // The entry's dot sits where the group's words start: indented by the dot's and the mark's seats and their gaps (6 + 10 + 16 + 10).
       assert.ok(Math.abs(childDot.x - groupText.x) < 0.5, `the entry's dot (${childDot.x}) sits under the group's words (${groupText.x})`);
       assert.ok(Math.abs(childDot.x - plainDot.x - 42) < 0.5);
-      // The caret turns; the time keeps the column every entry's time ends on.
-      assert.notEqual(await group.locator(".basalt-notification-caret").evaluate((el) => getComputedStyle(el).transform), "none");
+      // The caret follows DisclosureRow's convention (B7): the core chevron to the end while closed, the chevron down while open (a glyph, not a turn);
+      // the time keeps the column every entry's time ends on.
+      await page.waitForFunction(() => document.querySelector(".basalt-notification[data-group] .basalt-notification-caret svg")?.getAttribute("data-glyph") === "chevron-down");
+      assert.equal(await group.locator(".basalt-notification-caret").evaluate((el) => getComputedStyle(el).transform), "none", "the open chevron is drawn down, not turned");
       const ends = await page.locator(".basalt-notification-time").evaluateAll((els) => els.filter((e) => e.getClientRects().length).map((e) => Math.round(e.getBoundingClientRect().right)));
       assert.equal(new Set(ends).size, 1, `every time ends on one edge (${ends})`);
       await page.keyboard.press("Tab");
@@ -156,7 +158,8 @@ for (const theme of ["dark", "light"]) {
 
   describe(`NotificationList, the page form (${theme})`, () => {
     test("is the center's rows in the page: no popover, no title, the list named by the page's heading, a head band with the count", async () => {
-      const { page } = await open(`<div style={{ padding: 24, width: 420 }}><h1 id="t">Notifications</h1><B.NotificationList entries={${INBOX}} aria-labelledby="t" /></div>`, { theme, viewport: { width: 600, height: 700 } });
+      // From 720: under it every target is 44 whatever the pointer (B5), checked at the end.
+      const { page } = await open(`<div style={{ padding: 24, width: 420 }}><h1 id="t">Notifications</h1><B.NotificationList entries={${INBOX}} aria-labelledby="t" /></div>`, { theme, viewport: { width: 800, height: 700 } });
       await settle(page);
       assert.equal(await page.locator(".basalt-popover, .basalt-notifications-trigger").count(), 0);
       assert.equal(await page.locator(".basalt-notification-list .basalt-notifications-title").count(), 0, "the page's heading names it");
@@ -173,6 +176,10 @@ for (const theme of ["dark", "light"]) {
       await settle(page);
       const plate = await row.evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
       assert.notEqual(plate, "rgba(0, 0, 0, 0)");
+      // Under 720 a one-line entry is 44 tall whatever the pointer (B5); a two-line entry is 58 already.
+      await page.setViewportSize({ width: 600, height: 700 });
+      await settle(page);
+      assert.deepEqual(await page.locator(".basalt-notifications-list > li > .basalt-notification").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)), [44, 44, 58, 44]);
       await page.close();
     });
 
