@@ -611,7 +611,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
-  secondary or ghost, labelled "Pause animations") or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
+  secondary or ghost, labelled "Pause animations", `size` `md` or `sm`) or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
   label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
   animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
   state. **The app's own text is its part too:** while held, an elapsed time shows when the work
@@ -1804,8 +1804,9 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
 - **One mover a figure:** a pulse or a packet, never both. A second message waits for the first, and one may wait. Flow is a state of a
   line and never runs on an edge the mover travels.
 - **The loops** (flow, a pulse, a packet that repeats) run only while the figure is in view, the tab is showing and no node is traced.
-  `data-loops="held"` clears them to rest. A figure that can loop draws "Pause animations", the hold's own button, in its foot after
-  "View as list" (WCAG 2.2.2).
+  `data-loops="held"` clears them to rest. A figure that can loop draws "Pause animations", the hold's own button (`LoopsToggle`'s
+  Button form at `size="sm"`), in its foot after "View as list" (WCAG 2.2.2). A trace stops them; they start again
+  `duration-diagram-pause` after it ends. Neither motion button prints.
 - **A sequence's run** (`run`): "Play the run" sends one packet through every message in order. It may pass five seconds; while it
   runs the button reads "Stop the run" and stops it. The hold does not stop it.
 - **Reduced motion:** the figure is still; a run steps through its messages by colour alone. **Forced colours:** the figure is still; a

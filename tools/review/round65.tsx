@@ -1,11 +1,12 @@
 // Round 65: motion and service marks for Basalt's diagrams (DECISIONS 292, the handoff 287 to 291, the answers 293). A heavy council round decided on the
-// owner's confirmed prototype and Neon's review (Fable decided, revised after Neon's final position). Built by Opus from the decision; the implementation has not
-// been reviewed, and the tests were written but not run (the owner paused test runs). The content is CIMIP's five diagrams, animated, and the kit ("How a change
+// owner's confirmed prototype and Neon's review (Fable decided, revised after Neon's final position). Built by Opus from the decision, then reviewed (Neon on the
+// code, Fable on the pixels) and fixed once; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). The content is CIMIP's five diagrams, animated, and the kit ("How a change
 // reaches production"), which carries the six named brands' marks and three cards with none, and a sheet of every bundled mark on every ground.
 //
-// A still of motion is a pose: the demo lets the motion run, then pauses the figure's own animations at a chosen point (the entrance part-way, the bead on a line,
-// the dot mid-leg, a card in its arrival step) and marks the figure posed, so the shot is the same each time. Media states (reduced motion, forced colours, more
-// contrast, print) are the build's own emulations.
+// A still of motion is a pose: in a shot (?shot=1) the demo lets the motion run, then pauses the figure's own animations at a chosen point (the entrance part-way,
+// the bead on a line, the dot mid-leg, a card in its arrival step) and marks the figure posed, so the shot is the same each time. Opened as the owner opens it, the
+// walkthrough poses nothing: every figure plays, loops and pauses as it would in an app. Media states (reduced motion, forced colours, more contrast, print) are the
+// build's own emulations.
 
 import * as React from "react";
 
@@ -71,6 +72,13 @@ function animated(key: Key): Spec {
   return withMarks(spec);
 }
 
+/** The screenshot build opens each step with ?shot=1; the live walkthrough is opened without it. */
+const isShot = () => typeof location !== "undefined" && new URLSearchParams(location.search).get("shot") === "1";
+/** The walkthrough's stage gives a demo about 830px, under the width a schema, a data flow and this flowchart draw at; live, each is given the shots' 1104
+ *  and scrolls, so it is drawn and its motion can be seen. */
+const LIVE_WIDTH = 1104;
+const LIVE_WIDE = ["schema", "data-flow", "flowchart"];
+
 const frames = (n: number) => new Promise<void>((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); });
 const until = async (test: () => boolean, limit = 8000) => { const end = performance.now() + limit; while (!test() && performance.now() < end) await frames(1); return test(); };
 
@@ -116,15 +124,23 @@ async function pose(fig: HTMLElement, state: string) {
 
 function Diagram({ spec, state }: { spec: Spec; state: string }) {
   const host = React.useRef<HTMLDivElement>(null);
-  if (state.startsWith("held") && typeof document !== "undefined") document.documentElement.setAttribute("data-loops", "held");
+  const shot = isShot();
+  // The held state's hold, set before the figure is first drawn and taken off when the step goes, so it never reaches another step.
+  React.useLayoutEffect(() => {
+    if (!shot || !state.startsWith("held")) return undefined;
+    const root = document.documentElement;
+    const was = root.getAttribute("data-loops");
+    root.setAttribute("data-loops", "held");
+    return () => { if (was === null) root.removeAttribute("data-loops"); else root.setAttribute("data-loops", was); };
+  }, [shot, state]);
   React.useEffect(() => {
     const fig = host.current?.querySelector("figure");
-    if (!fig) return;
+    if (!fig || !shot) return;
     if (state === "print") return;
     let ready: () => void = () => {};
     (window as unknown as { __BASALT_READY__?: Promise<void> }).__BASALT_READY__ = new Promise<void>((resolve) => { ready = resolve; });
     pose(fig, state).then(() => frames(4)).then(() => ready());
-  }, [state]);
+  }, [state, shot]);
   const { type, ...props } = spec;
   const figure = (() => {
     switch (type) {
@@ -135,6 +151,9 @@ function Diagram({ spec, state }: { spec: Spec; state: string }) {
       default: return <SchemaDiagram {...(props as unknown as React.ComponentProps<typeof SchemaDiagram>)} />;
     }
   })();
+  if (!shot && LIVE_WIDE.includes(type)) {
+    return <div style={{ overflowX: "auto" }}><div ref={host} style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", width: LIVE_WIDTH + 48, boxSizing: "border-box" }}>{figure}</div></div>;
+  }
   return <div ref={host} style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", maxWidth: 1104 + 48, boxSizing: "border-box" }}>{figure}</div>;
 }
 
@@ -160,7 +179,7 @@ function MarkSheet() {
 }
 
 const COMMON = [
-  "Decided by the council (DECISIONS 292, revised after Neon's final position; the answers are 293): the owner sees this PR before it merges. The implementation has not been reviewed, and the tests were written but not run.",
+  "Decided by the council (DECISIONS 292, revised after Neon's final position; the answers are 293): the owner sees this PR before it merges. Reviewed once (Neon on the code, 4/10; Fable on the pixels, 5/10) and fixed; the fixes have not been reviewed again, and the tests were written but not run.",
   "Still is the default and is the merged drawing, unchanged, with no motion code loaded. motion=\"animated\" adds an entrance when the figure comes into view (two fifths of it), once a page load, and whichever of flow, a pulse or a packet the data names.",
   "Every word is at rest from the first frame. Each line is revealed on its own, at speed-diagram-trace between duration-diagram-line-min and -line-max, duration-diagram-stagger apart, inside duration-diagram-limit (five seconds); a head fades in as its line is 85% drawn.",
   "It settles at once on a hover or focus of a node, a key in the drawing, a control, the hold, print, reduced motion or forced colours, and new data. Measuring again (the faces arriving, a resize) never restarts, hides or cuts short an entrance.",
@@ -177,7 +196,7 @@ export const ROUND_65: Round = {
   title: "Diagram motion and service marks (DECISIONS 292)",
   reviewed: false,
   summary:
-    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (37 bundled, each its owner's file, recorded in a manifest). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293); the implementation has not been reviewed, and the tests were written but not run (the owner paused test runs). Still is unchanged. Each still of motion is a pose held by the walkthrough; shot at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
+    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (37 bundled, each its owner's file, recorded in a manifest). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293), reviewed once (Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). Still is unchanged. On this page every figure plays as it would in an app; each screenshot of motion is a pose held by the shot, at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
   steps: [
     {
       id: "architecture",
@@ -201,7 +220,7 @@ export const ROUND_65: Round = {
     {
       id: "data-flow",
       name: "Data flow: trace and a repeating packet",
-      intro: "How one message reaches everyone in the room: a dot carries the message from step 1 to step 5, then again four seconds after it lands.",
+      intro: "How one message reaches everyone in the room: a dot carries the message from step 1 to step 5 (about 5 seconds), then again 4.55 seconds after it lands.",
       decisions: [
         ...COMMON,
         "Packet: a size-dot dot in the main ink with a hairline ring in the ground (a plate, not a glow). A leg at speed-diagram-packet between duration-diagram-leg-min and -leg-max on ease-in-out; it stops space-1 short of the line's end, so it never covers the head, and is taken in over duration-base as the stop takes its arrival step.",
