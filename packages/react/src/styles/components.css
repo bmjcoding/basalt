@@ -4491,6 +4491,99 @@
   .basalt-terminal[data-live] .basalt-code-pre { scrollbar-width: none; scrollbar-gutter: auto; }
   .basalt-terminal[data-live] .basalt-code-pre::-webkit-scrollbar { display: none; }
 
+  /* RunTimeline (1.8): a step is the mark, space-3, the sentence and the meta, at text-sm with space-2 above and below (34px; 52 under 640px of its
+     own width, where the meta goes under the sentence). */
+  .basalt-run-steps-box { container-type: inline-size; display: flex; flex-direction: column; min-width: 0; }
+  .basalt-run-steps { display: grid; align-content: start; margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-run-step { position: relative; min-width: 0; margin: 0; }
+  .basalt-run-step-line { display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: start; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .basalt-run-step-mark { display: grid; place-items: center; block-size: var(--basalt-size-icon-sm); margin-block-start: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); color: var(--basalt-text-secondary); }
+  .basalt-run-step-sentence { min-width: 0; overflow-wrap: anywhere; border-radius: var(--basalt-radius-xs); outline: none; }
+  .basalt-run-step-sentence:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-run-step:is([data-state="running"], [data-state="queued"]) .basalt-run-step-sentence { color: var(--basalt-text-primary); }
+  .basalt-run-step-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-step[data-state="failed"] .basalt-run-step-word { color: var(--basalt-status-danger); }
+  .basalt-run-step:is([data-state="skipped"], [data-state="canceled"]) .basalt-run-step-word { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
+  /* The meta (a result, a middle dot, the time) is tertiary at text-xs on the row's 18px line, and ends on the row's end edge: the figure is
+     end-aligned in its seat, and a step with no time ends its result on the same edge and holds no seat. */
+  .basalt-run-step-meta { display: block; justify-self: end; text-align: end; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-sm-line-height); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .basalt-run-step-meta .basalt-run-timer { line-height: inherit; }
+  /* The connector, as the list's: between two full steps, beside a detail too, never a state. */
+  .basalt-run-steps > .basalt-run-step:not([data-tail], :last-child)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+    inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+    border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    pointer-events: none;
+  }
+  /* A detail and an action are always drawn under a full step, indented to the sentence. */
+  .basalt-run-step-detail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2) var(--basalt-space-3); padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-3)); padding-block-end: var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  .basalt-run-step-detail code { padding: var(--basalt-space-1) var(--basalt-space-2); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); overflow-wrap: anywhere; line-height: var(--basalt-text-sm-line-height); }
+  .basalt-run-step-action { display: inline-flex; gap: var(--basalt-space-2); }
+  .basalt-run-step-detail[hidden] { display: none; }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-run-step:not([data-tail]) .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr); }
+    .basalt-run-step:not([data-tail]) .basalt-run-step-meta { grid-column: 2; justify-self: start; white-space: normal; }
+    .basalt-run-step:not([data-tail]) .basalt-run-step-meta .basalt-run-timer > .basalt-reserve { justify-items: start; }
+    .basalt-run-step[data-tail] .basalt-run-step-result, .basalt-run-step[data-tail] .basalt-run-step-dot { position: absolute; inline-size: var(--basalt-size-hairline); block-size: var(--basalt-size-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  }
+
+  /* The toggle's line: size-control-sm and space-2, held from the first frame and empty until a step has rolled. It stacks above the window, so a
+     touch target's 44px is never covered by it. */
+  .basalt-run-steps-toggle-line { position: relative; z-index: 1; display: flex; align-items: center; min-block-size: var(--basalt-size-control-sm); margin-block-end: var(--basalt-space-2); }
+  .basalt-run-steps-toggle { font-size: var(--basalt-text-xs-size); }
+  /* The window: the list's scrolling box. Its floor is `keep` rows of a row's least height and two and a half tail rows, from the first frame; it
+     only grows (a taller step grows it once). No scrollbar; a named tab stop while it overflows. */
+  .basalt-run-steps-window {
+    --_row: calc(var(--basalt-text-sm-line-height) + var(--basalt-space-2) * 2);
+    --_tail-row: calc(var(--basalt-text-xs-line-height) + var(--basalt-space-0-5) * 2);
+    block-size: max(calc(var(--_floor-rows) * var(--_row) + 2.5 * var(--_tail-row)), var(--_grown, var(--basalt-space-0)));
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    border-radius: var(--basalt-radius-xs);
+    outline: none;
+  }
+  .basalt-run-steps-window::-webkit-scrollbar { display: none; }
+  .basalt-run-steps-window:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) { .basalt-run-steps-window { --_row: calc(var(--basalt-text-sm-line-height) * 2 + var(--basalt-space-2) * 2); } }
+  /* Open is the whole record in full form: no floor, no window, no tail. */
+  .basalt-run-steps-box[data-open] .basalt-run-steps-window { block-size: auto; overflow: visible; }
+
+  /* A tail row: text-xs at 400, space-0-5 above and below (20px), one line cut with an ellipsis, its mark still 16, no connector and no detail. Its ink
+     is its depth's step; under more contrast and in forced colours every tail row is at the first step, and a failed one full danger. */
+  .basalt-run-step[data-tail] .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: center; padding-block: var(--basalt-space-0-5); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-slow) var(--basalt-ease-out), opacity var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-run-step[data-tail] .basalt-run-step-mark { margin-block-start: 0; }
+  .basalt-run-step[data-tail] :is(.basalt-run-step-sentence, .basalt-run-step-word, .basalt-run-step-meta, .basalt-run-timer, .basalt-run-step-mark, .basalt-run-mark-face) { color: inherit; font-weight: var(--basalt-font-weight-regular); }
+  .basalt-run-step[data-tail] .basalt-run-step-sentence { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-run-step[data-tail] .basalt-run-step-meta { line-height: var(--basalt-text-xs-line-height); }
+  .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: var(--basalt-status-danger); }
+  @media not ((prefers-contrast: more) or (forced-colors: active)) {
+    .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+    .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"]) > .basalt-run-step-line { color: var(--basalt-text-secondary); }
+    .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"])[data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: var(--basalt-status-danger); }
+    .basalt-run-steps > .basalt-run-step[data-depth="2"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-2); }
+    .basalt-run-steps > .basalt-run-step[data-depth="3"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-3); }
+    .basalt-run-steps > .basalt-run-step[data-depth="4"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-4); }
+    .basalt-run-steps > .basalt-run-step[data-depth="5"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-5); }
+    /* Hover and focus lift every tail row to the first step, over duration-fast: a convenience; the toggle is the way back that counts. */
+    .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail] > .basalt-run-step-line { opacity: 1; color: var(--basalt-text-tertiary); transition-duration: var(--basalt-duration-fast); }
+    .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+  }
+  /* Past REFLOW_BOUND counted rows, under reduced motion and under the hold, a roll lands at once: no colour transition either. */
+  .basalt-run-steps-window[data-landing] .basalt-run-step-line, :root[data-loops="held"] .basalt-run-step-line { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-step[data-tail] .basalt-run-step-line { transition: none; } }
+  @media print {
+    .basalt-run-steps-toggle-line { display: none; }
+    .basalt-run-steps-window { block-size: auto; overflow: visible; }
+    .basalt-run-step[data-tail] .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: start; padding-block: var(--basalt-space-2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+    .basalt-run-step[data-tail] .basalt-run-step-sentence { white-space: normal; }
+    .basalt-run-step[data-tail] .basalt-run-step-detail { display: flex; }
+  }
 
   /* A prose page's column is size-prose-width on the row's start edge, never centred. */
   .basalt-prose { box-sizing: border-box; max-inline-size: var(--basalt-size-prose-width); margin-inline: 0 auto; min-width: 0; }

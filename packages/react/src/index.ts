@@ -171,6 +171,8 @@ export { StageList } from "./stage-list";
 export type { StageListProps } from "./stage-list";
 export { StageRail } from "./stage-rail";
 export type { StageRailProps } from "./stage-rail";
+export { RunStep, RunTimeline } from "./run-timeline";
+export type { RunStepProps, RunTimelineProps } from "./run-timeline";
 export type { RunAnnouncerProps, RunEvent } from "./run-announcer";
 export { Terminal } from "./terminal";
 export type { TerminalLine, TerminalLineKind, TerminalProps, TerminalStatus } from "./terminal";

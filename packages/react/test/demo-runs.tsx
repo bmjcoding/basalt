@@ -1,7 +1,7 @@
 // The stages and runs (DECISIONS 316) on the demo page, for the browser tests' axe pass in both themes. Synthetic data only.
 import * as React from "react";
 
-import { Button, RunAnnouncer, RunStage, RunTimer, StageBadge, StageList, StageMark, StageRail } from "../src/index";
+import { Button, RunAnnouncer, RunStage, RunStep, RunTimeline, RunTimer, StageBadge, StageList, StageMark, StageRail } from "../src/index";
 import type { StageState } from "../src/index";
 
 const STATES: StageState[] = ["queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
@@ -32,6 +32,11 @@ export function RunsFixture() {
         <RunStage name="Checks" state="failed" start={0} end={2600} />
         <RunStage name="Deploy" state="canceled" />
       </StageRail>
+      {/* Open: the tail's steps 2 to 5 are below 4.5:1 by the one named exception, and the page's axe pass reads the conforming form. */}
+      <RunTimeline label="Agent steps" defaultOpen>
+        {["deploy/payments-api.yaml", "p99 latency", "deploy history", "pool settings"].map((f, i) => <RunStep key={f} state={i === 1 ? "failed" : "success"} meta={`${i + 1} results`} start={0} end={700}>Read <code>{f}</code></RunStep>)}
+        <RunStep state="queued" word="Waiting for approval" meta="Medium risk" detail={<code>kubectl rollout undo deployment/payments-api</code>}>Roll back payments-api</RunStep>
+      </RunTimeline>
       <p style={{ margin: 0 }}>Build took <RunTimer start={0} end={12_300} /></p>
       <RunAnnouncer label="Deploy 812 updates" events={[{ id: "start", text: "Deploy 812 started" }]} />
     </section>

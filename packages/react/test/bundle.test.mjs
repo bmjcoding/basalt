@@ -686,3 +686,11 @@ for (const [name, limit, phosphor] of [["StageMark", 14_350, true], ["StageBadge
     else assert.deepEqual(marks, []);
   });
 }
+
+// RunTimeline carries its toggle (TextButton, and so Base UI's button and the press wait) and the shared stage parts; StageList does not carry it (above).
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (39,250 bytes at most)", async () => {
+  const { bytes, inputs } = await graph("RunTimeline, RunStep");
+  assert.ok(bytes < 39_250, `RunTimeline bundle is ${bytes} bytes (limit 39,250)`);
+  assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
+  assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
+});
