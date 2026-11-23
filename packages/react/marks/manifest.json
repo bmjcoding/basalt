@@ -3317,8 +3317,7 @@
    "id": "aws-organizations-account",
    "name": "AWS Organizations account",
    "says": [
-    "Organizations",
-    "account"
+    "Organizations"
    ],
    "owner": "Amazon Web Services, Inc.",
    "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
