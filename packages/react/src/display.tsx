@@ -438,8 +438,8 @@ export interface TableCellProps extends React.ComponentProps<"td"> {
   mono?: boolean;
   /**
    * No reading was taken: the cell says "Not observed" in tertiary ink, with no mark, ending on the numbers' edge in a numeric
-   * column. It is not zero (`0` is a digit in primary) and not empty (an empty string stays blank). Children replace the words,
-   * for translation. A not-observed value sorts after every observed value in both directions: see foundations.
+   * column. It is not zero (`0` is a digit in primary) and not empty (an empty string stays blank). Children replace the words:
+   * for translation, and for a value that is absent rather than unmeasured, in the app's words ("No ticket", "None yet"), in the same ink. A not-observed value sorts after every observed value in both directions: see foundations.
    */
   notObserved?: boolean;
 }

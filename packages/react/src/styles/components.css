@@ -93,6 +93,7 @@
   /* Every panel has one rim: a real 1px border in two solid colours, the top lit in dark. Never on a
      control, chip or badge. A border (not a shadow) so forced colours keep it. */
   .basalt-card,
+  .basalt-panel-list,
   .basalt-table-container,
   .basalt-code,
   .basalt-callout,
@@ -711,8 +712,9 @@
      menu and the command list (52/56 and 48/52 when compact, the description 12/16 over a 13/18 title). The 20 and 18 line
      boxes touch, with no gap. The glyph, a check seat, a key chip and the push's chevron sit on the title line, centred on it
      (the title track is exactly the line height, so a 20px chip on an 18px line never grows the row); the description runs
-     from the text's edge to the row's end, under the chip's column too. Both lines are cut with an ellipsis and never wrap, so
-     a row's height is known. A row without a description is one line, and the two share a list, each its own height: the
+     from the text's edge to the row's end, under the chip's column too. The title is one line, cut with an ellipsis. In Select,
+     Combobox and the command menu the description is cut too, so a row's height is known; in a Menu it wraps and the row grows
+     (below). A row without a description is one line, and the two share a list, each its own height: the
      shared plate changes height as it glides. The columns are glyph, title, chip, chevron; a column with nothing in it is
      0 wide and spacing is margin, so a missing glyph leaves no gap. */
   .basalt-menu-item[data-described] {
@@ -755,7 +757,13 @@
   @media (pointer: coarse) {
     .basalt-menu-item[data-described] { min-height: max(calc(var(--_plate-height) + var(--_desc-line) + 2 * var(--_plate-inset)), var(--basalt-size-menu-row-touch)); }
   }
-  /* A menu with a described row is as wide as its content, up to the popover maximum; the descriptions are cut beyond it. */
+  /* A Menu's described row (DECISIONS 275, the owner's option B): the menu stays at most size-popover-max (320) wide, and a description longer than
+     that wraps, so the row grows by a line for each line it takes; the title stays one line. The row's own plate (its ::before, inset as on every row)
+     covers the whole taller row, and the shared plate takes each row's own height as it glides, as between a one-line and a two-line row. Menus only
+     (data-actions is MenuContent's popup): Select, Combobox and the command menu keep the cut. */
+  .basalt-menu[data-actions] .basalt-menu-item[data-described] { grid-template-rows: var(--_line) auto; }
+  .basalt-menu[data-actions] .basalt-menu-item[data-described] > .basalt-menu-item-description { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; }
+  /* A menu with a described row is as wide as its content, up to the popover maximum; beyond it a Menu's descriptions wrap and other popups' are cut. */
   .basalt-menu:has(.basalt-menu-item[data-described]) {
     width: max-content;
     /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
@@ -856,6 +864,9 @@
   .basalt-dialog[data-form] .basalt-sheet-body { padding-block: var(--basalt-space-5); }
   /* The description opens the body, so the held head stays one line. */
   .basalt-dialog[data-form] .basalt-sheet-body > .basalt-dialog-description:first-child { margin: 0 0 var(--basalt-space-5); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  /* What the body holds after the description is one stack at the form gap (space-4): a block between the description and the first field (a row of ready answers,
+     a callout, a sentence) sits space-4 above the field's label, as one field sits above the next. It collapses with the description's own space-5, which stays. */
+  .basalt-dialog[data-form] .basalt-sheet-body > * + * { margin-top: var(--basalt-space-4); }
   .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions { margin-top: 0; }
   /* Under 720 a form is a full-screen modal: the whole window, square, no rim or shadow (no edge meets the page), level 1, rising from the bottom on the sheet's motion. The
      head takes the top safe area and the foot the bottom one; the foot's two actions are equal 44px buttons, Cancel first. An alert dialog stays centred at every width. */
@@ -3033,6 +3044,14 @@
   .basalt-select-trigger:has(> .basalt-select-value[data-widest]) { width: auto; min-width: 0; font-variant-numeric: tabular-nums; }
   .basalt-select-value[data-widest] { display: inline-grid; justify-items: start; }
   .basalt-select-value[data-widest]::after { content: attr(data-widest); grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
+  /* A toolbar select (toolbar) is as wide as its widest label, not its container: every option and the placeholder stand unseen in the value's one cell, so a choice
+     moves nothing after it. In a column narrower than that it fills the column and the value is cut with an ellipsis. */
+  .basalt-select-trigger:has(.basalt-select-seat) { width: auto; max-width: 100%; min-width: 0; }
+  /* With a prefix the seat follows it on the one line, and is what is cut. */
+  .basalt-select-lead > .basalt-select-seat { min-width: 0; }
+  .basalt-select-seat { display: inline-grid; grid-template-columns: minmax(0, 1fr); justify-items: start; min-width: 0; }
+  .basalt-select-seat > * { grid-area: 1 / 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: var(--basalt-text-base-line-height); }
+  .basalt-select-seat > [aria-hidden] { visibility: hidden; user-select: none; pointer-events: none; }
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
   .basalt-select-trigger[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -4038,6 +4057,14 @@
   }
 
   .basalt-code[data-titled] .basalt-code-pre { padding-right: var(--basalt-space-4); }
+  /* wrap: a long line breaks at a space and nowhere else. Each run between spaces is a word that never breaks inside (white-space: nowrap on the word;
+     the break between a space and the next word belongs to the line, which wraps), so a flag, a path or a hyphenated name stays whole; a word longer than
+     the line still scrolls the block sideways. With no prompt each line is a row whose continuation is indented 2ch; beside a prompt the gutter marks a line. */
+  .basalt-code[data-wrap] .basalt-code-pre { white-space: pre-wrap; overflow-wrap: normal; }
+  .basalt-code[data-wrap] .basalt-code-lines { grid-template-columns: minmax(calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)), max-content) minmax(0, 1fr); width: auto; }
+  .basalt-code-word { white-space: nowrap; }
+  /* stylelint-disable-next-line unit-disallowed-list -- two characters of the code font, so the indent follows the font; no token holds a width in characters */
+  .basalt-code-row { display: block; min-height: var(--basalt-size-code-line-height); padding-inline-start: 2ch; text-indent: -2ch; }
   .basalt-code-pre code { font: inherit; }
   .basalt-code-pre:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* Copy sits top right: in the title row when there is one, else over the code's corner. */
@@ -4111,9 +4138,12 @@
   /* size-breakpoint-container (480px): a container query cannot read a token */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (width < 480px) {
-    .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
+    .basalt-description-list:not([data-narrow="line"]) .basalt-description-item { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); }
     /* several values stay space-1 apart: the row gap is already space-0-5 */
-    .basalt-description-details + .basalt-description-details { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
+    .basalt-description-list:not([data-narrow="line"]) .basalt-description-details + .basalt-description-details { grid-column: 1; margin-top: calc(var(--basalt-space-1) - var(--basalt-space-0-5)); }
+    /* narrow="line": the label and the value stay on one row in a narrow column, the label column at the inline field label's width (80), so the list is no taller
+       than its values. A long label wraps inside it; several values stack in the value column, space-1 apart, as they do from 480. */
+    .basalt-description-list[data-narrow="line"] .basalt-description-item { grid-template-columns: var(--basalt-size-field-label-inline) minmax(0, 1fr); }
   }
 
   /* Meter: how much of a cap is used. Not Progress: an outlined slot (8px, 1px input boundary, transparent inside) that is the cap
@@ -5237,6 +5267,93 @@
 
   /* The directory: a head, then rows ruled by hairlines, each one link with three fixed columns (name, sentence, state). The name and state
      columns are 160px, size-description-label's value, for another role here; the sentence takes the rest. */
+  /* ---- PanelList: rows of one list in one panel (cimip-gaps-2, B6) ----
+     The panel's level, one rim, radius 12 and a divider between rows. Each row is a band that is itself a link or a button: hover is the row's wash, full bleed,
+     lifting no ink; a press steps it to the selected wash; focus is the 2px ring inside at −2, because the band meets the panel's clipping edge, and the first
+     and last rows take the panel's inner corner so the ring follows it. Not DirectoryList, which is rimless, washless and on the page. */
+  /* The list is the grid and every row a subgrid of it, so the leading seats, the words and the trailing values line up down the list whatever each row holds
+     (a "Waiting" and an "Answered" badge start every title on one edge). The leading column is there only when a row has a seat. */
+  .basalt-panel-list { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .basalt-panel-item { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  .basalt-panel-item + .basalt-panel-item { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-panel-row {
+    box-sizing: border-box;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: var(--basalt-space-3);
+    align-items: start;
+    width: 100%;
+    margin: 0;
+    padding: var(--basalt-space-3) var(--basalt-space-4);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-panel-row-lead { grid-column: 1; }
+  .basalt-panel-row-words { grid-column: -3 / -2; }
+  .basalt-panel-row:not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column-end: -1; }
+  .basalt-panel-row-end { grid-column: -2 / -1; justify-self: end; }
+  .basalt-panel-row:hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  .basalt-panel-row:active { background-color: var(--basalt-state-selected); }
+  .basalt-panel-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-panel-item:first-child > .basalt-panel-row { border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-item:last-child > .basalt-panel-row { border-end-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-end-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-row-lead { display: flex; align-items: center; min-height: var(--basalt-text-base-line-height); }
+  .basalt-panel-row-words { display: grid; gap: var(--basalt-space-0-5); min-width: 0; }
+  .basalt-panel-row-title, .basalt-panel-row-description { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basalt-panel-row-title { font-weight: var(--basalt-font-weight-medium); }
+  .basalt-panel-row-description { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-panel-row-end { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (pointer: coarse) {
+    .basalt-panel-row { min-height: var(--basalt-size-tap-min); }
+  }
+
+  /* ---- SelectableList: a list to choose several from, outside a table (cimip-gaps-2, B6) ----
+     As a table's selection: a checkbox per row, the whole row its label; a chosen row is the selected wash as a band, its checked box the state (the wash alone
+     is about 1.2:1); the bar holds the all box (mixed while some are chosen), the count in words and the actions. Rows are divided as a table's are. The bar sticks
+     to its edge of the scroller, opaque in its surface's colour (it is not the smoked surface), on a divider. Focus is each box's own ring at +2, inside the row's padding. */
+  .basalt-selectable-list { min-width: 0; font-family: var(--basalt-font-family-sans); }
+  .basalt-selectable-items { margin: 0; padding: 0; list-style: none; }
+  .basalt-selectable-item + .basalt-selectable-item { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-selectable-item > .basalt-choice { box-sizing: border-box; display: flex; align-items: flex-start; gap: var(--basalt-space-3); width: 100%; padding: var(--basalt-space-2-5) var(--basalt-space-3); }
+  .basalt-selectable-item > .basalt-choice > .basalt-checkbox,
+  .basalt-selectable-seat { margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-choice)) / 2); }
+  .basalt-selectable-seat { flex: none; width: var(--basalt-size-choice); height: var(--basalt-size-choice); }
+  .basalt-selectable-item > .basalt-choice > .basalt-choice-label { flex: 1 1 auto; min-width: 0; }
+  .basalt-selectable-item[data-done] > .basalt-choice { cursor: default; }
+  .basalt-selectable-words { display: block; min-width: 0; }
+  @media (hover: hover) {
+    /* Hover is for a row that is not chosen: a chosen row keeps the selected wash under the pointer. */
+    .basalt-selectable-item:not([data-done], [data-selected]):hover { background: var(--basalt-state-hover); }
+  }
+  .basalt-selectable-item[data-selected] { background: var(--basalt-state-selected); }
+  @media (pointer: coarse) {
+    .basalt-selectable-item > .basalt-choice { min-height: var(--basalt-size-tap-min); }
+  }
+  .basalt-selection-bar {
+    position: sticky;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--basalt-space-4);
+    row-gap: var(--basalt-space-2);
+    padding: var(--basalt-space-2) var(--basalt-space-3);
+    background: var(--_surface, var(--basalt-surface-page));
+  }
+  .basalt-selectable-list[data-bar="top"] > .basalt-selection-bar { top: 0; border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-selectable-list[data-bar="bottom"] > .basalt-selection-bar { bottom: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-selection-count { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-selection-actions { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); margin-inline-start: auto; }
+  @media print { .basalt-selection-bar { position: static; } }
+
   .basalt-directory { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-directory-head { margin: 0; padding-block-end: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-directory-list { margin: 0; padding: 0; list-style: none; }
@@ -5727,7 +5844,7 @@
        tab's Highlight underline, and keeps its 600. Keyboard focus is the standard ring (2px, offset 2) on the chosen item as on every
        other control, which an outline of its own on the chosen item used to hide. */
     /* Panels: the rim is a real border already, so forced colours keep an edge; it just takes the system colour. */
-    .basalt-card, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-skip-link, .basalt-cell-peek, .basalt-peek, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
+    .basalt-card, .basalt-panel-list, .basalt-table-container, .basalt-code, .basalt-callout, .basalt-preview-card, .basalt-dialog, .basalt-menu, .basalt-popover, .basalt-tooltip, .basalt-skip-link, .basalt-cell-peek, .basalt-peek, .basalt-toast, .basalt-command-page, .basalt-command-pane, .basalt-framed-frame { border-color: CanvasText; }
     /* A callout's status is the icon's shape and the words. An SVG keeps its own authored colour in forced colours, so the
        green, amber or red would survive: the icon takes the system foreground like the text beside it. */
     .basalt-callout[data-status] .basalt-callout-icon { color: CanvasText; }
@@ -6284,6 +6401,8 @@
   .basalt-filter-toolbar:has(> .basalt-filter-toolbar-search) > .basalt-filter-toolbar-result { grid-column: 1 / -1; grid-row: auto; }
   /* A trigger in a toolbar fills its column and cuts its value with an ellipsis; the checklist shows it whole. */
   .basalt-filter-toolbar .basalt-filter-trigger { width: 100%; min-width: 0; justify-content: space-between; }
+  /* A toolbar Select fills its column under 720, as the filters' triggers do, and from 720 is as wide as its widest label. */
+  .basalt-filter-toolbar .basalt-select-trigger:has(.basalt-select-seat) { width: 100%; }
   .basalt-filter-toolbar .basalt-filter-trigger .basalt-button-label { min-width: 0; }
   .basalt-filter-toolbar-result { grid-column: 1; grid-row: 3; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   .basalt-filter-toolbar-result > * { margin: 0; }
@@ -6296,6 +6415,7 @@
     .basalt-filter-toolbar-kind { display: none; }
     .basalt-filter-toolbar-search { flex: none; order: -1; width: var(--basalt-size-search-trigger); }
     .basalt-filter-toolbar .basalt-filter-trigger { width: auto; }
+    .basalt-filter-toolbar .basalt-select-trigger:has(.basalt-select-seat) { width: auto; }
     .basalt-filter-toolbar-result { order: 2; }
     .basalt-filter-toolbar-sort { order: 3; margin-inline-start: auto; }
     .basalt-filter-toolbar-label { display: block; }
