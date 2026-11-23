@@ -7,7 +7,7 @@
 // This module plays that entrance when the figure comes into view, carries it across a re-measure on its one clock, settles it at once when the reader
 // acts or a mode turns on, and then runs the loops the data names while they may run. Every value is a token, read from the page.
 
-import { entranceBlocked, pathD, settleEntrance } from "./diagram-core";
+import { entranceBlocked, pathD, settleEntrance, visitKey } from "./diagram-core";
 import type { Geo, GLine, Model, Pt, Tokens } from "./diagram-core";
 
 declare const process: { env: { NODE_ENV?: string } };
@@ -246,6 +246,15 @@ class Figure implements MotionController {
     };
   }
   private entrance() { return this.host.fig.getAttribute("data-entrance"); }
+  /** The entrance ran on this visit (so a settle by the reader writes the first visit's mark). */
+  private played = false;
+  private byMode() { const m = this.modes(); return m.held || m.print || m.reduce || m.forced; }
+  /** Writes the first visit's mark, where the figure asks for it (1.5). Storage that throws writes nothing: the entrance plays again next time. */
+  private markVisit() {
+    const fig = this.host.fig;
+    if (!fig.hasAttribute("data-first-visit") || !fig.id) return;
+    try { localStorage.setItem(visitKey(fig), "1"); } catch { /* it plays again */ }
+  }
   private hasLines() { return Boolean(this.host.geo()?.lines.length); }
   // A figure whose viewer is open holds its loops as a traced one does (DECISIONS 310, 9.7), and they start again when it closes.
   private traced() { return this.host.fig.hasAttribute("data-tracing") || this.host.fig.hasAttribute("data-viewing"); }
@@ -299,7 +308,9 @@ class Figure implements MotionController {
   // ---- The entrance (1.3 to 1.5) ----
 
   private onSettle = () => {
-    // settleEntrance has already set data-entrance="done": every line whole, every label at rest, and then the loops may start.
+    // settleEntrance has already set data-entrance="done": every line whole, every label at rest, and then the loops may start. An entrance that played
+    // and gave way to the reader marks the first visit (1.5); one settled by a mode (the hold, print, reduced motion) does not.
+    if (this.played && !this.byMode()) this.markVisit();
     this.clearIntro();
     this.sync();
   };
@@ -341,6 +352,7 @@ class Figure implements MotionController {
     const geo = this.host.geo();
     if (!geo?.lines.length) return;
     this.host.fig.setAttribute("data-entrance", "running");
+    this.played = true;
     this.t0 = now();
     const { plans, factor } = this.plan(this.ordered(geo));
     this.factor = factor;
@@ -421,6 +433,7 @@ class Figure implements MotionController {
 
   private finishIntro() {
     if (this.entrance() !== "running") return;
+    this.markVisit();
     this.host.fig.setAttribute("data-entrance", "done");
     this.clearIntro();
     this.sync();

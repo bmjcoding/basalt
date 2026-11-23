@@ -99,7 +99,7 @@ export type { DiagramShapeLabels, FlowchartDiagramProps, FlowchartNode } from ".
 export { DataFlowDiagram } from "./data-flow-diagram";
 export type { DataFlowDiagramProps, DataFlowLane, DataFlowNode } from "./data-flow-diagram";
 export { SequenceDiagram } from "./sequence-diagram";
-export type { SequenceDiagramProps, SequenceParticipant, SequenceStep } from "./sequence-diagram";
+export type { DiagramFrameLabels, SequenceDiagramProps, SequenceMessage, SequenceParticipant, SequenceStep } from "./sequence-diagram";
 export { SchemaDiagram } from "./schema-diagram";
 export type { SchemaColumn, SchemaDiagramProps, SchemaTable } from "./schema-diagram";
 export { PhaseChart } from "./phase-chart";

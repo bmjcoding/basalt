@@ -120,6 +120,10 @@ export interface DiagramSpec {
   run?: boolean;
   /** A sequence's frame words (DECISIONS 306, 1.2): "Only if", "Repeats", "One of these", "Otherwise". */
   frameLabels?: DiagramFrameLabels;
+  /** `"first-visit"` (DECISIONS 306, 1.5): an animated figure's entrance plays until it has played once on this page, then is at rest. Needs an `id`. */
+  entrance?: "always" | "first-visit";
+  /** A sequence drawn as text art (DECISIONS 306, 1.2). */
+  variant?: "drawn" | "text";
 }
 
 // ============================================================================================================================================
@@ -199,7 +203,7 @@ export interface Model {
   stepWord: (n: number) => string;
   warnings: string[];
   /** Motion (DECISIONS 292). Read and ignored when still. */
-  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean };
+  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean; firstVisit?: boolean };
   /** Work that depends on the model alone, done once (see `memo`). */
   memo: Map<string, unknown>;
 }
@@ -455,6 +459,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     pulse: movers ? route(spec.pulse) : undefined,
     packet: packetPath ? { path: packetPath, repeat: packetIn!.repeat === true, send: packetIn!.send } : undefined,
     run: type === "sequence" && spec.run === true,
+    firstVisit: spec.entrance === "first-visit" || undefined,
   };
   if (checks) for (const n of nodes) {
     const says = n.mark?.says;
@@ -1216,6 +1221,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
     "data-motion": m.motion.animated ? "animated" : undefined,
+    "data-first-visit": m.motion.animated && m.motion.firstVisit ? "" : undefined,
     "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
@@ -2447,7 +2453,14 @@ export function entranceDrawn(fig: HTMLElement, lines: boolean): void {
   const state = fig.getAttribute("data-entrance");
   if (state === "running" || state === "done") return;
   if (!lines) { if (state) fig.removeAttribute("data-entrance"); return; }
-  if (!state) fig.setAttribute("data-entrance", entranceBlocked() ? "done" : "pending");
+  if (!state) fig.setAttribute("data-entrance", entranceBlocked() || seenBefore(fig) ? "done" : "pending");
+}
+/** The first visit's mark (DECISIONS 306, 1.5): where a figure's entrance has played on this page before. */
+export const visitKey = (fig: HTMLElement) => `basalt-diagram-entrance:${location.pathname}#${fig.id}`;
+function seenBefore(fig: HTMLElement): boolean {
+  if (!fig.hasAttribute("data-first-visit") || !fig.id) return false;
+  // Storage that throws: it plays again.
+  try { return localStorage.getItem(visitKey(fig)) !== null; } catch { return false; }
 }
 
 /** Settles a pending or running entrance at once (a node hovered or focused, a key, a control used): every line whole, and the module told. */
@@ -2487,7 +2500,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion"];
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {

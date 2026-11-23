@@ -45,6 +45,8 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
    * where the reader zooms (from Fit or 100% to 400%) and pans it. `false` leaves both out. Before script there is no button: it does nothing without it.
    */
   zoom?: boolean;
+  /** `"first-visit"` (DECISIONS 306, 1.5): an animated figure's entrance plays until it has played once on this page; later visits are at rest. Needs an `id`. */
+  entrance?: "always" | "first-visit";
 }
 
 const P = "basalt-diagram";
@@ -111,7 +113,7 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   viewer?: DiagramViewerMode;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
@@ -150,7 +152,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") for (const w of model.warnings) warnOnce(component, w);
-  }, [model, component]);
+    if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !props.id) warnOnce(component, 'entrance="first-visit" needs an id: without one the entrance plays on every visit');
+  }, [model, component, props.id]);
 
   const measure = React.useCallback(() => {
     const fig = figRef.current;
