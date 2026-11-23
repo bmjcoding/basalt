@@ -83,8 +83,9 @@ export interface DiagramPacket {
 export type DiagramMotion = "still" | "animated";
 export type FlowchartNode = DiagramNode & { shape?: "step" | "decision" | "terminal" };
 export interface DataFlowLane { id: string; label: string }
-export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string };
-export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean }
+export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string; mark?: DiagramMark };
+/** A participant may carry its service's mark (DECISIONS 306, 1.6), never a person. */
+export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean; mark?: DiagramMark }
 /** A message. `activate` starts its receiver working; `deactivate` stops its sender after it (DECISIONS 306, 1.2). */
 export type SequenceMessage = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind; activate?: boolean; deactivate?: boolean };
 /** A step: a message, a band, or a frame round a run of steps (`opt`, `loop`, or `alt` with two or more branches). Frames nest two deep. */
@@ -303,10 +304,11 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: stepWord(n), detail: txt(raw.detail), mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
         col: trackOf(raw.col, `the column of ${id}`), row: lane ?? 1, row2: lane ?? 1, branch: false, shape: "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? laneId, step: n,
+        mark: markOf((raw as { mark?: unknown }).mark),
       });
     }
   } else if (type === "sequence") {
-    (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name }); });
+    (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name, mark: markOf((p as { mark?: unknown }).mark) }); });
     let n = 0;
     const colOf = new Map(nodes.map((p) => [p.id, p.col]));
     // Messages number straight through frames. A frame spans the columns of the participants that send or receive inside it, and the column a
@@ -457,7 +459,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   if (checks) for (const n of nodes) {
     const says = n.mark?.says;
     if (!says?.length) continue;
-    const words = [n.name, n.kind, n.detail].filter(Boolean).join(" ").toLowerCase();
+    // A step's lane label counts as its words (DECISIONS 306, 1.6).
+    const words = [n.name, n.kind, n.detail, n.laneLabel].filter(Boolean).join(" ").toLowerCase();
     if (!says.some((w) => words.includes(w.toLowerCase()))) warn(`${n.id}'s mark stands for ${says.join(" or ")}, and none of its words say so`);
   }
   // Activation bars (1.2): a stack on each participant. `activate` opens one on the receiver, `deactivate` closes the sender's top one after its message;
@@ -1416,7 +1419,8 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
     }
     const pad = n.shape === "terminal" ? 2 * s("5") : 2 * s("3");
     // The first line (the kind, or the name on a card with no kind) keeps space-6 clear of a mark, except in forced colours, where none is drawn.
-    const seat = n.mark && !forced() ? s("6") : 0;
+    // A participant's head centres its words, so its first line keeps space-6 clear on both sides (1.6).
+    const seat = n.mark && !forced() ? (n.shape === "participant" ? 2 : 1) * s("6") : 0;
     let widest = 0;
     // A link card's last word carries its cue, 16 and space-1-5 before it (1.4).
     const cue = n.href ? 16 + s("1-5") : 0;

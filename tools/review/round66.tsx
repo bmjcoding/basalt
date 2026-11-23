@@ -10,6 +10,11 @@ import * as React from "react";
 import { ArchitectureDiagram, DataFlowDiagram, FlowchartDiagram, SchemaDiagram, SequenceDiagram } from "../../packages/react/src/index";
 import data from "../../packages/react/test/fixtures/cimip-diagrams-b.json";
 import type { Round } from "./rounds";
+import { awsEcsService } from "../../packages/react/src/marks/aws-ecs-service";
+import { awsEcsTask } from "../../packages/react/src/marks/aws-ecs-task";
+
+// Marks on a sequence's participants (DECISIONS 306, 1.6): the service and the sandbox, and none on Marcus, who is a person.
+const PARTICIPANT_MARKS: Record<string, unknown> = { svc: awsEcsService, agent: awsEcsTask };
 
 type Key = keyof typeof data;
 const isShot = () => new URLSearchParams(window.location.search).get("shot") === "1";
@@ -35,7 +40,8 @@ function Diagram({ k, state }: { k: Key; state: string }) {
       ready();
     })();
   }, [state]);
-  const { type, ...props } = data[k] as unknown as { type: string } & Record<string, unknown>;
+  const { type, ...props } = structuredClone(data[k]) as unknown as { type: string } & Record<string, unknown>;
+  if (type === "sequence") for (const p of props.participants as Array<{ id: string; mark?: unknown }>) if (PARTICIPANT_MARKS[p.id]) p.mark = PARTICIPANT_MARKS[p.id];
   const figure = (() => {
     switch (type) {
       case "architecture": return <ArchitectureDiagram {...(props as unknown as React.ComponentProps<typeof ArchitectureDiagram>)} />;

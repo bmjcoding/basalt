@@ -647,9 +647,11 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
     // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
     // the script reads carries the id and never a path.
-    if (spec && spec.type === "architecture" && Array.isArray(spec.nodes)) {
+    // An architecture's cards, a data flow's steps and a sequence's participants may carry one (DECISIONS 306, 1.6).
+    const cards = spec && (spec.type === "architecture" || spec.type === "data-flow") ? spec.nodes : spec && spec.type === "sequence" ? spec.participants : null;
+    if (Array.isArray(cards)) {
       let rewrote = false;
-      for (const n of spec.nodes) {
+      for (const n of cards) {
         if (!n || n.mark === undefined || n.mark === null) continue;
         if (typeof n.mark === "string") useMark(marks, n.mark, n, notes);
         else { n.mark = ownMark(marks, n.mark); rewrote = true; }
