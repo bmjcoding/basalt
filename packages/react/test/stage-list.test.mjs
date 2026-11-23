@@ -151,11 +151,13 @@ describe("the connector", () => {
 describe("the detail", () => {
   test("opens over duration-slow on ease-out and closes at 0.75 on ease-in, inert while closed; code is the row's size", async () => {
     const page = await open(DEPLOY());
-    const detail = () => page.evaluate(() => { const d = document.querySelector(".basalt-run-stage-detail"); if (!d) return null; const s = getComputedStyle(d); return { inert: d.inert, duration: s.transitionDuration, easing: s.transitionTimingFunction, h: d.getBoundingClientRect().height }; });
-    assert.equal(await detail(), null, "nothing until a stage has a detail");
+    const detail = () => page.evaluate(() => { const d = document.querySelectorAll(".basalt-run-stage-detail")[2]; const s = getComputedStyle(d); return { inert: d.inert, duration: s.transitionDuration, easing: s.transitionTimingFunction, h: d.getBoundingClientRect().height, opacity: Number(s.opacity), running: d.getAnimations().length }; });
+    const closed = await detail();
+    assert.deepEqual([closed.inert, closed.h, closed.opacity], [true, 0, 0], "closed, inert and empty until a stage has a detail");
     await page.evaluate(() => window.fail());
     const opened = await detail();
     assert.equal(opened.inert, false);
+    assert.ok(opened.running > 0 && opened.opacity < 1 && opened.h < 82, `the first opening runs from closed (${JSON.stringify(opened)})`);
     assert.match(opened.duration, /^0\.2s/);
     assert.match(opened.easing, /cubic-bezier\(0\.16, 1, 0\.3, 1\)/);
     await settle(page);
@@ -317,4 +319,18 @@ describe("modes and the page", () => {
     assert.equal(said.length, 1);
     assert.match(said[0], /^Basalt StageList: a child is not a RunStage/);
   });
+});
+
+test("an action removed as JSX leaves it (false or null) sends focus to the stage's name and leaves nothing open (Astra 5)", async () => {
+  for (const gone of ["false", "null"]) {
+    const body = `function App() { const [on, setOn] = React.useState(true); React.useEffect(() => { window.off = () => setOn(false); }, []);
+      return <div style={{ padding: 24, width: 640 }}><B.StageList label="Stages"><B.RunStage name="Test" state="failed" detail={on ? <p>3 tests failed</p> : ${gone}} action={on && <B.Button size="sm">Retry</B.Button>} /></B.StageList></div>; }
+      createRoot(document.getElementById("root")).render(<App />);`;
+    const page = await open(body);
+    await page.getByRole("button", { name: "Retry" }).focus();
+    await page.evaluate(() => window.off());
+    await settle(page);
+    const r = await page.evaluate(() => { const d = document.querySelector(".basalt-run-stage-detail"); return { focused: document.activeElement.className, inert: d.inert, h: d.getBoundingClientRect().height }; });
+    assert.deepEqual(r, { focused: "basalt-run-stage-name", inert: true, h: 0 }, gone);
+  }
 });

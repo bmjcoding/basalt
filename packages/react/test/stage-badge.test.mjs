@@ -127,3 +127,35 @@ describe("the swap", () => {
     assert.deepEqual(held.errors, []);
   });
 });
+
+test("its figures are tabular, so a changed digit never changes the seat; and its seat never gives way to a narrow column (ruling 10)", async () => {
+  const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 24 }}>
+    <span id="one"><B.StageBadge state="retrying" words={{ retrying: "Retrying, 1 of 2" }} /></span><br />
+    <span id="two"><B.StageBadge state="retrying" words={{ retrying: "Retrying, 2 of 2" }} /></span>
+    <table style={{ width: 120, tableLayout: "fixed" }}><tbody><tr><td id="cell" style={{ width: 40 }}><B.StageBadge variant="plain" state="queued" words={{ retrying: "Retrying, 2 of 3" }} /></td><td>Next</td></tr></tbody></table>
+  </div>);`;
+  const { page } = await fixturePage(browser, body, { theme: "dark", viewport: { width: 600, height: 400 } });
+  await settle(page);
+  const r = await page.evaluate(() => ({
+    one: document.querySelector("#one .basalt-run-badge").getBoundingClientRect().width,
+    two: document.querySelector("#two .basalt-run-badge").getBoundingClientRect().width,
+    nums: getComputedStyle(document.querySelector("#one .basalt-badge")).fontVariantNumeric,
+    seat: document.querySelector("#cell .basalt-run-badge").getBoundingClientRect().width,
+    measure: document.querySelector("#cell .basalt-run-badge-measure").scrollWidth,
+  }));
+  assert.equal(r.nums, "tabular-nums");
+  assert.equal(r.one, r.two);
+  assert.ok(r.seat >= r.measure - 0.5, `the seat ${r.seat} holds its widest face ${r.measure}`);
+});
+
+test("release plays no settled face's entry again (Astra 4)", async () => {
+  const page = await open();
+  await page.evaluate(() => window.setState("success"));
+  await settle(page);
+  await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.evaluate(() => document.documentElement.removeAttribute("data-loops"));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const r = await page.evaluate(() => [...document.querySelectorAll("#live .basalt-run-badge-face")].map((f) => [f.hasAttribute("data-entering"), getComputedStyle(f).opacity]));
+  assert.deepEqual(r, [[false, "1"]]);
+});

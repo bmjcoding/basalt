@@ -42,6 +42,9 @@ const DRAWN: Record<"list" | "rail", Record<StageState, boolean>> = {
   rail: { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true },
 };
 
+/** Whether a slot holds something drawn: `null`, `false`, `true` and "" (what `cond && <Button />` leaves) are nothing, as React draws them. */
+export const rendered = (node: React.ReactNode) => node !== undefined && node !== null && typeof node !== "boolean" && node !== "";
+
 /**
  * Focus that was inside a part that has closed or lost its action goes to `home` (a name with `tabindex="-1"`, `preventScroll`), never to the body,
  * whoever closed it: the reader's press, or the app (someone else approved, the retry started from elsewhere). `present` counts what the part holds (0
@@ -80,10 +83,11 @@ export function RunStage({ name, state, word, meta, start, end, detail, action, 
   const timer = <RunTimer start={start} end={end} whenHeld="hidden" />;
 
   // The detail keeps what it last held while it closes, so it closes over its own content and never over nothing.
-  const open = kind === "list" && (detail !== undefined || action !== undefined);
+  const hasAction = rendered(action);
+  const open = kind === "list" && (rendered(detail) || hasAction);
   const kept = React.useRef<{ detail: React.ReactNode; action: React.ReactNode }>({ detail: null, action: null });
   if (open) kept.current = { detail, action };
-  const track = useFocusHome(open ? (action === undefined ? 1 : 2) : 0, nameRef);
+  const track = useFocusHome(open ? (hasAction ? 2 : 1) : 0, nameRef);
 
   // Development: a rail's word is one or two short words, and one that its column cuts warns.
   const wordRef = React.useRef<HTMLSpanElement>(null);
@@ -123,16 +127,15 @@ export function RunStage({ name, state, word, meta, start, end, detail, action, 
         <span className="basalt-run-stage-meta">{meta}</span>
         {timer}
       </div>
-      {open || kept.current.detail !== null || kept.current.action !== null ? (
-        <div className="basalt-run-stage-detail" data-open={open ? "" : undefined} inert={!open || undefined} data-focus-home="" {...track}>
-          <div className="basalt-run-stage-detail-clip">
-            <div className="basalt-run-stage-detail-body">
-              {open ? detail : kept.current.detail}
-              {(open ? action : kept.current.action) ? <div className="basalt-run-stage-action">{open ? action : kept.current.action}</div> : null}
-            </div>
+      {/* Always in the row, closed until a stage has something to show, so its first opening runs from closed like every other. */}
+      <div className="basalt-run-stage-detail" data-open={open ? "" : undefined} inert={!open || undefined} data-focus-home="" {...track}>
+        <div className="basalt-run-stage-detail-clip">
+          <div className="basalt-run-stage-detail-body">
+            {open ? detail : kept.current.detail}
+            {rendered(open ? action : kept.current.action) ? <div className="basalt-run-stage-action">{open ? action : kept.current.action}</div> : null}
           </div>
         </div>
-      ) : null}
+      </div>
     </li>
   );
 }

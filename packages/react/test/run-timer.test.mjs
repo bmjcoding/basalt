@@ -187,3 +187,15 @@ test("never a live region, and a time element with an ISO duration", async () =>
   const r = await page.evaluate(() => { const t = document.querySelector("#t time"); return { tag: t.tagName, iso: t.getAttribute("datetime"), live: !!t.closest("[aria-live],[role=status],[role=log]") }; });
   assert.deepEqual(r, { tag: "TIME", iso: "PT12.3S", live: false });
 });
+
+test("a head's seat holds today's held form and not the dated one; a run started on another day widens it once when the hold is pressed (ruling 6)", async () => {
+  const page = await open(RUN(`<span id="head" style={{ display: "inline-flex" }}><B.RunTimer {...props} /><i id="after">|</i></span>`));
+  await page.evaluate(() => window.setProps({ start: 10_000 - 1_000, since: 10_000 - 400 * 86_400_000, carried: 0 }));
+  await page.clock.runFor(50);
+  const rest = await width(page, "#head time");
+  const sample = await page.evaluate(() => { const s = document.createElement("span"); s.style.cssText = "font: 400 12px/16px var(--basalt-font-family-mono); white-space: nowrap"; s.textContent = "Started Dec 30, 12:59 PM"; document.body.append(s); return s.getBoundingClientRect().width; });
+  assert.ok(rest < sample - 20, `the seat at rest (${rest}) is narrower than the dated form (${sample})`);
+  await hold(page, true);
+  await page.clock.runFor(50);
+  assert.match(plain(await text(page, "#head")), /^Started [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d\d [AP]M$/, "a start in another year says its year");
+});

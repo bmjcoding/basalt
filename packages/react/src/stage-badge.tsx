@@ -31,7 +31,8 @@ const STATUS: Record<StageState, BadgeStatus | undefined> = {
   queued: "pending", running: undefined, success: "success", failed: "danger", skipped: "neutral", canceled: "neutral", retrying: undefined,
 };
 
-interface Face { key: number; state: StageState; leaving?: boolean }
+/** A face in the seat. `settled` once its entry has run (or it arrived under the hold), so a release never plays an entry again. */
+interface Face { key: number; state: StageState; leaving?: boolean; settled?: boolean }
 
 function FaceBadge({ state, word, variant, size }: { state: StageState; word: string; variant: "outline" | "plain"; size: 16 | 20 | 24 }) {
   const running = state === "running" || state === "retrying";
@@ -48,11 +49,12 @@ export function StageBadge({ state, words, variant = "outline", size = 16, class
   const [faces, setFaces] = React.useState<Face[]>(() => [{ key: 0, state }]);
   const current = faces[faces.length - 1]!;
   // The hold lands every change at once: a face still leaving when it arrives goes now.
-  if (held && faces.length > 1) setFaces([current]);
+  if (held && (faces.length > 1 || (current.key > 0 && !current.settled))) setFaces([{ ...current, settled: true }]);
   else if (current.state !== state) {
-    if (held) setFaces([{ key: current.key + 1, state }]);
+    if (held) setFaces([{ key: current.key + 1, state, settled: true }]);
     else setFaces([{ ...current, leaving: true }, { key: current.key + 1, state }]);
   }
+  const settle = (key: number) => setFaces((list) => list.map((f) => (f.key === key && !f.leaving ? { ...f, settled: true } : f)));
   const drop = (key: number) => setFaces((list) => (list.some((f) => f.key === key && f.leaving) ? list.filter((f) => f.key !== key) : list));
   const measure = variant === "plain"
     ? <Badge variant="plain" size={size} status="neutral"><Reserve show="" alternatives={all} /></Badge>
@@ -62,13 +64,13 @@ export function StageBadge({ state, words, variant = "outline", size = 16, class
       {/* The seat: every word in one hidden cell, beside the dot's seat (as wide as braille's). Nothing in it moves or is read. */}
       <span className="basalt-run-badge-measure" aria-hidden="true" inert>{measure}</span>
       {faces.map((face) => {
-        const leave = face.leaving ? (event: React.AnimationEvent<HTMLSpanElement>) => { if (event.target === event.currentTarget) drop(face.key); } : undefined;
+        const leave = (event: React.AnimationEvent<HTMLSpanElement>) => { if (event.target !== event.currentTarget) return; if (face.leaving) drop(face.key); else settle(face.key); };
         return (
           <span
             key={face.key}
             className="basalt-run-badge-face"
             data-leaving={face.leaving ? "" : undefined}
-            data-entering={face.key > 0 && !face.leaving ? "" : undefined}
+            data-entering={face.key > 0 && !face.leaving && !face.settled ? "" : undefined}
             aria-hidden={face.leaving ? true : undefined}
             onAnimationEnd={leave}
           >

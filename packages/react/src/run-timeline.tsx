@@ -9,7 +9,7 @@ import { useLoops } from "./loops";
 import { useReducedMotion } from "./motion";
 import { STAGE_WORDS } from "./run-format";
 import type { Moment, RunTimeScale, StageState } from "./run-format";
-import { useFocusHome } from "./run-stage";
+import { rendered, useFocusHome } from "./run-stage";
 import { RunTimer, useRunTimeScale } from "./run-timer";
 import { warnRun } from "./run-warn";
 import { StageMark } from "./stage-mark";
@@ -86,8 +86,9 @@ export function RunStep({ state, mark, word, children, meta, start, end, detail,
   const said = word ?? (state ? STAGE_WORDS[state] : undefined);
   const drawn = word !== undefined || (state !== undefined && (tail ? DRAWN_TAIL : DRAWN_FULL)[state]);
   const sentence = React.useRef<HTMLSpanElement>(null);
-  const hasDetail = detail !== undefined || action !== undefined;
-  const track = useFocusHome(hasDetail ? (action === undefined ? 1 : 2) : 0, sentence);
+  const hasAction = rendered(action);
+  const hasDetail = rendered(detail) || hasAction;
+  const track = useFocusHome(hasDetail ? (hasAction ? 2 : 1) : 0, sentence);
   return (
     <li className={join("basalt-run-step", className)} data-state={state} data-tail={tail ? "" : undefined} data-depth={tail ? Math.min(depth, 5) : undefined} data-word={drawn ? "" : undefined}>
       <div className="basalt-run-step-line">
@@ -107,7 +108,7 @@ export function RunStep({ state, mark, word, children, meta, start, end, detail,
       {hasDetail ? (
         <div className="basalt-run-step-detail" hidden={tail || undefined} data-focus-home="" {...track}>
           {detail}
-          {action ? <div className="basalt-run-step-action">{action}</div> : null}
+          {hasAction ? <div className="basalt-run-step-action">{action}</div> : null}
         </div>
       ) : null}
     </li>
@@ -143,6 +144,8 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   let rolled = 0;
   if (counter) for (let i = 0; i < steps.length - (keep as number) && !unfinished(steps[i]!.props.state); i += 1) rolled = i + 1;
   const tailShown = counter && !open;
+  // The floor's row count is the larger of `keep` and `minRows` (DECISIONS 316, ruling 11).
+  const floorRows = counter ? Math.max(keep as number, minRows ?? 0, 1) : 0;
 
   const windowRef = React.useRef<HTMLDivElement>(null);
   const listRef = React.useRef<HTMLOListElement>(null);
@@ -161,13 +164,24 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   if (held() && rolled > lastRolled.current) rolled = lastRolled.current;
   lastRolled.current = rolled;
   const failed = steps.slice(0, rolled).filter((step) => step.props.state === "failed").length;
+  // Whether the reader is at the end is theirs to say: a scroll the window made itself (following, or keeping a control still) and a scroll
+  // while a roll is in flight (its transforms are clipped, but its rows are still landing) never change it. A reader's scroll does, read
+  // from geometry when it happens, and so does a scroll the reader made in the same task as an arrival (read just before the change).
+  const lastSet = React.useRef<number | null>(null);
+  const rolling = React.useRef(0);
+  const atEnd = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight <= 2;
   const onScroll = () => {
     const el = windowRef.current;
-    if (el) following.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 2;
+    if (!el || rolling.current > 0) return;
+    if (lastSet.current !== null && Math.abs(el.scrollTop - lastSet.current) < 1) return;
+    following.current = atEnd(el);
+    lastSet.current = null;
   };
+  const setTop = (el: HTMLElement, top: number) => { el.scrollTop = top; lastSet.current = el.scrollTop; };
   const toEnd = React.useCallback(() => {
     const el = windowRef.current;
-    if (el && following.current && !held()) el.scrollTop = el.scrollHeight;
+    if (el && following.current && !held()) setTop(el, el.scrollHeight);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- the floor that only grows: the newest `keep` full rows and two and a half tail rows, measured once a step is taller than a row
@@ -179,14 +193,20 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
     if (!el || !list || !tailShown) return;
     const full = [...list.children].filter((li) => !li.hasAttribute("data-tail")).slice(-(keep as number));
     const rows = full.reduce((sum, li) => sum + (li as HTMLElement).offsetHeight, 0);
-    // A tail row's height from its tokens (text-xs's line and space-0-5 twice), so the floor counts it before the first roll.
+    // The floor's own rows and a tail row from their tokens (a row: text-sm's line and space-2 twice, and a second line under 640px of the
+    // timeline's width; a tail row: text-xs's line and space-0-5 twice), so a slot no step has filled yet keeps its room, and the floor counts
+    // the tail before the first roll. An early tall step then grows the window once, by its own extra height, and later rows move nothing.
     const root = getComputedStyle(document.documentElement);
-    const tailRow = Number.parseFloat(root.getPropertyValue("--basalt-text-xs-line-height")) + 2 * Number.parseFloat(root.getPropertyValue("--basalt-space-0-5"));
-    const want = Math.ceil(rows + tailRow * 2.5);
+    const token = (name: string) => Number.parseFloat(root.getPropertyValue(name)) || 0;
+    const narrow = (el.parentElement?.clientWidth ?? el.clientWidth) < token("--basalt-size-breakpoint-container-lg");
+    const row = token("--basalt-text-sm-line-height") * (narrow ? 2 : 1) + 2 * token("--basalt-space-2");
+    const tailRow = token("--basalt-text-xs-line-height") + 2 * token("--basalt-space-0-5");
+    const slots = Math.max(0, floorRows - full.length);
+    const want = Math.ceil(rows + slots * row + tailRow * 2.5);
     if (want > grown.current) { grown.current = want; el.style.setProperty("--_grown", `${want}px`); }
     setOverflows(el.scrollHeight > el.clientHeight + 1);
     toEnd();
-  }, [tailShown, keep, toEnd]);
+  }, [tailShown, keep, toEnd, floorRows]);
 
   // ---- the roll: where each row was drawn before this change, read before React writes the DOM
   const shape = `${steps.length}:${rolled}:${open}`;
@@ -194,6 +214,9 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   const before = React.useRef<Map<Element, number> | null>(null);
   const controlAt = React.useRef<[Element, number] | null>(null);
   if (listRef.current && before.current === null) {
+    const win = windowRef.current;
+    // A reader who scrolled away in this same task, before any scroll event could say so, is not followed.
+    if (win && rolling.current === 0 && lastSet.current !== null && win.scrollTop < lastSet.current - 1 && !atEnd(win)) { following.current = false; lastSet.current = null; }
     const control = held();
     controlAt.current = control ? [control, control.getBoundingClientRect().top] : null;
     if (shape !== lastShape.current) {
@@ -208,7 +231,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
     // A control the reader is using stays where it was: the window scrolls by whatever moved it.
     const kept = controlAt.current;
     controlAt.current = null;
-    if (kept && kept[0].isConnected && windowRef.current) windowRef.current.scrollTop += kept[0].getBoundingClientRect().top - kept[1];
+    if (kept && kept[0].isConnected && windowRef.current) setTop(windowRef.current, windowRef.current.scrollTop + kept[0].getBoundingClientRect().top - kept[1]);
     const from = before.current;
     before.current = null;
     const changed = shape !== lastShape.current;
@@ -218,7 +241,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
     if (!changed || !from || !list) return;
     const arrivals = [...list.children].filter((li) => !from.has(li)) as HTMLElement[];
     // An arrival fades in (100ms under reduced motion), whatever else happens; the hold lands it at once.
-    if (!loopsHeld) for (const li of arrivals) li.animate([{ opacity: 0 }, { opacity: 1 }], { duration: tokenMs(li, reduced ? "--basalt-duration-fast" : "--basalt-duration-base"), easing: getComputedStyle(li).getPropertyValue("--basalt-ease-out").trim() || "ease-out" });
+    if (!loopsHeld) for (const li of arrivals) track(li.animate([{ opacity: 0 }, { opacity: 1 }], { duration: tokenMs(li, reduced ? "--basalt-duration-fast" : "--basalt-duration-base"), easing: getComputedStyle(li).getPropertyValue("--basalt-ease-out").trim() || "ease-out" }), false);
     if (!el || open || !counter) return;
     // Only rows the window shows are moved; counted as Reflow counts them, and past its one bound the roll lands at once.
     const box = el.getBoundingClientRect();
@@ -238,8 +261,29 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
       requestAnimationFrame(() => requestAnimationFrame(() => el.removeAttribute("data-landing")));
       return;
     }
-    for (const [li, dy] of moves) li.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], { duration: tokenMs(li, "--basalt-duration-slow"), easing: getComputedStyle(li).getPropertyValue("--basalt-ease-out").trim() || "ease-out" });
+    for (const [li, dy] of moves) track(li.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], { duration: tokenMs(li, "--basalt-duration-slow"), easing: getComputedStyle(li).getPropertyValue("--basalt-ease-out").trim() || "ease-out" }), true);
   });
+
+  // ---- the animations in flight: a roll's rows are clipped to the list while they move (so their transforms never stretch the scrollable
+  // box), and the hold or a change to reduced motion takes every one away at once, leaving each row where it rests.
+  const flying = React.useRef(new Set<Animation>());
+  function track(animation: Animation, roll: boolean) {
+    flying.current.add(animation);
+    const el = windowRef.current;
+    if (roll) { rolling.current += 1; el?.setAttribute("data-rolling", ""); }
+    const done = () => {
+      if (!flying.current.delete(animation)) return;
+      if (!roll) return;
+      rolling.current -= 1;
+      if (rolling.current === 0) { windowRef.current?.removeAttribute("data-rolling"); toEnd(); }
+    };
+    animation.addEventListener("finish", done);
+    animation.addEventListener("cancel", done);
+  }
+  React.useEffect(() => {
+    if (!loopsHeld && !reduced) return;
+    for (const animation of [...flying.current]) animation.cancel();
+  }, [loopsHeld, reduced]);
 
   // Every change of the content's height keeps the end while the reader is at it: a result or a time landing, a detail, a face loading, the width.
   React.useEffect(() => {
@@ -267,7 +311,6 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   const list = <ol ref={listRef} id={listId} className="basalt-run-steps" aria-label={label}>{provide(items)}</ol>;
   if (!counter) return <div className={join("basalt-run-steps-box", className)} data-open="">{list}</div>;
 
-  const floorRows = Math.max(minRows ?? (keep as number), 1);
   return (
     <div className={join("basalt-run-steps-box", className)} data-open={open ? "" : undefined}>
       {/* The toggle's line is held from the first frame and empty until a step has rolled, so its arrival moves nothing. */}

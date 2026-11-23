@@ -10,13 +10,14 @@
   var MARKS = { done: ['CheckCircle', 'Done'], warning: ['Warning', 'Warning'], error: ['XCircle', 'Error'] };
   // A stage line (DECISIONS 316): braille while running, the core check when done, XCircle when failed, the core minus when skipped, Prohibit when
   // canceled. Running, done and failed are said by the mark (a named image); skipped and canceled by their word, drawn before the text.
-  function stageMark(state) {
-    var named = function (svg, name) { return '<span role="img" aria-label="' + name + '" class="terminal-mark">' + svg.replace('aria-hidden="true" ', '') + '</span>'; };
-    if (state === 'done') return named('%glyph-svg:check%', 'Done');
-    if (state === 'failed') return icon('XCircle', { size: 16, label: 'Failed' }).replace('class="icon"', 'class="icon terminal-mark"');
-    if (state === 'skipped') return '<span class="terminal-mark" aria-hidden="true">' + '%glyph-svg:minus%' + '</span>';
-    if (state === 'canceled') return icon('Prohibit', { size: 16 }).replace('class="icon"', 'class="icon terminal-mark"');
-    return '<span role="img" aria-label="Running" class="terminal-braille"><braille-spinner></braille-spinner></span>';
+  // A state is said once: where a word is drawn (skipped, canceled, or the page's own data-word) the mark is hidden from assistive technology.
+  function stageMark(state, worded) {
+    var seat = function (svg, name) { return '<span ' + (name && !worded ? 'role="img" aria-label="' + name + '"' : 'aria-hidden="true"') + ' class="terminal-mark">' + svg.replace('aria-hidden="true" ', '') + '</span>'; };
+    if (state === 'done') return seat('%glyph-svg:check%', 'Done');
+    if (state === 'failed') return seat(icon('XCircle', { size: 16 }), 'Failed');
+    if (state === 'skipped') return seat('%glyph-svg:minus%');
+    if (state === 'canceled') return seat(icon('Prohibit', { size: 16 }));
+    return '<span ' + (worded ? 'aria-hidden="true"' : 'role="img" aria-label="Running"') + ' class="terminal-braille"><braille-spinner></braille-spinner></span>';
   }
   var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled' };
 
@@ -34,7 +35,7 @@
       node.className = 'terminal-line';
       node.setAttribute('data-kind', 'stage');
       node.setAttribute('data-state', state);
-      node.innerHTML = '<span class="terminal-gutter">' + stageMark(state) + '</span><span class="terminal-text terminal-stage"><span>' + (word ? '<span class="terminal-word">' + esc(word) + ' </span>' : '') + esc(line.text) + '</span>' + (line.time ? '<span class="terminal-duration">' + esc(line.time) + '</span>' : '') + '</span>';
+      node.innerHTML = '<span class="terminal-gutter">' + stageMark(state, Boolean(word)) + '</span><span class="terminal-text terminal-stage"><span>' + (word ? '<span class="terminal-word">' + esc(word) + ' </span>' : '') + esc(line.text) + '</span>' + (line.time ? '<span class="terminal-duration">' + esc(line.time) + '</span>' : '') + '</span>';
       return node;
     }
     var mark = MARKS[line.kind];
@@ -63,7 +64,9 @@
     var stages = root.hasAttribute('data-stages');
     if (stages) pre.setAttribute('data-stages', '');
     var commands = lines.filter(function (l) { return l.kind === 'command'; }).map(function (l) { return l.text; }).join('\n');
-    var failed = lines.length > 0 && lines[lines.length - 1].kind === 'error';
+    // A replay ends failed on an error, and on a stage line that failed.
+    var last = lines[lines.length - 1];
+    var failed = Boolean(last) && (last.kind === 'error' || (last.kind === 'stage' && last.state === 'failed'));
 
     var actions = '';
     if (replay) {

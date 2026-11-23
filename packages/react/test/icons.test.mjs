@@ -260,8 +260,9 @@ describe("the bytes, with the plugin and without it", () => {
   // The full-run fix (DECISIONS 246): a control that is not disabled no longer writes aria-disabled="false", 4 bytes a site; Terminal measures 28,655 (28,650 to 28,700).
   // Stages and runs (DECISIONS 316, 1.7): Terminal's stage lines bring RunTimer (its shared interval, its seats and the head's held form, which formats a
   // clock and a day), the canceled line's Prohibit and the core minus, so with the plugin it rose from 28,655 to 35,865 (28,700 to 35,900). Reported on the
-  // PR: more than the 5% margin, so it is the decider's to accept or to ask for the stage lines in a module of their own.
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 35_900, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
+  // PR: more than the 5% margin; the decider accepted it (the pixel review of 316, ruling 1). The review round's fixes (the failed outcome, the command
+  // that never steps back, RunTimer's print and redraw guards) bring it to 36,630 (36,650).
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 36_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first

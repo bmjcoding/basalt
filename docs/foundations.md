@@ -2713,7 +2713,8 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   only sign of anything. No bead and no pulse: the running ring is the rail's only moving thing. `Progress`'s value takes tabular figures and the
   room of "100%".
 - **`StageBadge`.** A `Badge` bound to the seven states (the pending ring, braille, the success, danger and neutral dots), `outline` in a run's
-  head and `plain` in a list or table. Its seat is as wide as its widest face from a static measure. A change of face is sequential: the old face
+  head and `plain` in a list or table. Its seat is as wide as its widest face from a static measure, and never narrower under width pressure;
+  its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
   fades and rises `space-1` over 0.75 of `duration-base` on `ease-in`, then the new one fades in from `space-1` below over `duration-base` on
   `ease-out`. One accessible name at every moment.
 - **The deploy log** is a `Terminal` declared `stages`, with lines `{ kind: "stage", state, text, word?, start?, end? }`. The gutter holds braille
@@ -2721,22 +2722,23 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   and `Prohibit` in tertiary when canceled. Skipped and canceled lines draw their word first ("Skipped cache restore (no cache)"). A duration
   stands at the line's end in tertiary, one column down the log. The head gains the run's time. A stage transcript is never a `log`: from its
   first frame its window is a named `region` (a `group` while empty) and the run's `RunAnnouncer` speaks. With `keep`, lines older than the
-  newest `keep` stages step back once (see Logs, status and forms).
+  newest `keep` stages step back once (see Logs, status and forms); a command never does.
 - **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result, a
-  middle dot, the time), at `text-sm`. From 640px of its own container the meta ends on the row's end edge; under it the meta goes under the
+  middle dot, the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge; under it the meta goes under the
   sentence. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
   the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying or waiting never
   rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
   no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's
-  scrolling box, its floor `keep` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
+  scrolling box, its floor the larger of `keep` and `minRows` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
   overflows. A roll moves the rows inside the window by transform over `duration-slow` on `ease-out`, the ink stepping on the same clock and
   the arrival fading over `duration-base`; past 48 counted rows it lands at once, as `Reflow` does. It follows new steps only while the reader
   is at its end (read from its geometry), holds still while a control in it has focus or the pointer, and starts at its end. The toggle above
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
-  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as
-  its scale's longest form, end-aligned and never empty; a list sets one scale for all its timers. It counts from `start`, is frozen at `end`,
+  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  start-aligned right after a `Terminal` head's state word; a list sets one scale for all its timers. A run's head seat also holds today's held form
+  ("Started 12:59 PM"); a run that started on another day widens it once when the hold is pressed, as a time that outgrows its scale does. It counts from `start`, is frozen at `end`,
   adds `carried` across a retry, and its held form reads from `since`. A run's time counts while it runs, retries or waits for an approval, and
   is frozen while it has failed, is canceled or has passed.
 - **`RunAnnouncer`.** One a run: a visually hidden `role="log"`, polite, additions only, each event its own appended element, said once and in
@@ -2838,7 +2840,7 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 
 - **A log line's fields** (V1, V2; `LogFields`, `LogLine`, `Terminal`'s `fields`). The fields that say what happened are primary ink at 400 and the rest secondary at
   400. Nothing steps back with age, with one exception: in a `Terminal` given `keep`, a stage line older than the
-  newest `keep` stage lines, and the output under it, is `text-tertiary` (a failed one `status-danger` at `opacity-recede-danger`). That is one
+  newest `keep` stage lines, and the output under it (never a command), is `text-tertiary` (a failed one `status-danger` at `opacity-recede-danger`). That is one
   step and it is 4.5:1 on every surface; a transcript never goes below it, because it has no open form to switch to. A refused field stays primary and its own word ("denied") says it: no colour. A refused command's status word is
   primary at 500 beside `exit N`. A line may be a node; copy still takes the plain text.
 - **The command block** (`CommandBlock`; R1 to R3): a sticky head, opaque in the page colour, over the output. The core chevron, the command at 500 in primary ink, then

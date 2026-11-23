@@ -222,10 +222,10 @@
   "Reveal": 19500,
   "RoutesGlyph": 3009,
   "RunAnnouncer": 448,
-  "RunStage": 20984,
-  "RunStep": 20722,
-  "RunTimeline": 20099,
-  "RunTimer": 5050,
+  "RunStage": 21697,
+  "RunStep": 21494,
+  "RunTimeline": 21843,
+  "RunTimer": 5645,
   "RunsGlyph": 3128,
   "STAGE_WORDS": 149,
   "STATUS_MESSAGE_MS": 26,
@@ -281,14 +281,14 @@
   "SocialLink": 38426,
   "SocialLinks": 434,
   "SourceStamp": 3895,
-  "SourceStateWords": 12709,
+  "SourceStateWords": 13579,
   "SourcesGlyph": 2938,
   "Sparkline": 4585,
   "Spinner": 1509,
   "Stage": 1219,
-  "StageBadge": 5045,
+  "StageBadge": 5176,
   "StageList": 1262,
-  "StageMark": 14188,
+  "StageMark": 14317,
   "StageRail": 1200,
   "Stat": 2226,
   "Stats": 314,
@@ -331,9 +331,9 @@
   "TabsList": 38844,
   "TabsPanel": 36673,
   "TabsPanels": 385,
-  "Terminal": 40562,
+  "Terminal": 41328,
   "Text": 922,
-  "TextButton": 10421,
+  "TextButton": 11289,
   "TextMorph": 4504,
   "Textarea": 26941,
   "ThemeChoiceControl": 4794,
@@ -423,11 +423,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 891654,
-  "gzip": 295476
+  "bytes": 893622,
+  "gzip": 296146
  },
  "styles": {
-  "bytes": 405629,
-  "gzip": 52558
+  "bytes": 406735,
+  "gzip": 52742
  }
 }

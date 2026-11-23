@@ -110,7 +110,7 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_700]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 10_600, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 141_700, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+for (const [name, limit, baseUi] of [["TextButton", 11_450, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 141_700, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -440,7 +440,8 @@ test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no S
 test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async () => {
   const { bytes, inputs } = await graph("Terminal");
   // Stages and runs (DECISIONS 316): stage lines, RunTimer and the Prohibit mark took it from about 32,300 to 40,670 (40,000 to 40,700); reported on the PR.
-  assert.ok(bytes < 40_700, `Terminal bundle is ${bytes} bytes`);
+  // The review round of 316: the failed outcome and the command that never steps back, and RunTimer's print and redraw guards: 41,435 (to 41,450).
+  assert.ok(bytes < 41_450, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -672,10 +673,11 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
   }
 });
 
+// DECISIONS 316, ruling 3: TextButton draws its end icon through ControlIcon, so a chevron that opens something in place morphs; measured 11,412 (10,600 to 11,450).
 // Stages and runs (DECISIONS 316): each new part has its own limit, the measured static graph rounded up to the next 50. StageMark carries Phosphor's five
 // circled marks (one file each, as Terminal imports its marks) and the ring; StageBadge, RunTimer, RunAnnouncer and formatRunTime load no Phosphor, and none
 // of them loads Base UI.
-for (const [name, limit, phosphor] of [["StageMark", 14_350, true], ["StageBadge", 5_400, false], ["RunTimer", 5_200, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 21_150, true], ["StageList, RunStage", 21_900, true], ["StageRail, RunStage", 21_850, true]]) {
+for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge", 5_450, false], ["RunTimer", 5_800, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 21_850, true], ["StageList, RunStage", 22_600, true], ["StageRail, RunStage", 22_550, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -688,9 +690,9 @@ for (const [name, limit, phosphor] of [["StageMark", 14_350, true], ["StageBadge
 }
 
 // RunTimeline carries its toggle (TextButton, and so Base UI's button and the press wait) and the shared stage parts; StageList does not carry it (above).
-test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (39,250 bytes at most)", async () => {
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (41,750 bytes at most)", async () => {
   const { bytes, inputs } = await graph("RunTimeline, RunStep");
-  assert.ok(bytes < 39_250, `RunTimeline bundle is ${bytes} bytes (limit 39,250)`);
+  assert.ok(bytes < 41_750, `RunTimeline bundle is ${bytes} bytes (limit 41,750)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
 });

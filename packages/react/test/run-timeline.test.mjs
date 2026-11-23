@@ -370,13 +370,150 @@ describe("modes", () => {
       const page = await open(APP(), { initial: [{ ...done(1), state: "failed" }, done(2), done(3), done(4), done(5), { id: "ap", state: "queued", word: "Waiting for approval", text: "Roll back", detail: "kubectl rollout undo", action: true }], theme });
       await page.evaluate(() => { document.title = "Basalt"; document.documentElement.lang = "en"; });
       await page.addScriptTag({ content: axeSource });
-      // The tail's steps 2 to 5 are below 4.5:1 on purpose (the one named exception, foundations' Principles), so color-contrast is checked open.
-      const run = () => page.evaluate(async () => (await globalThis.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } })).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(" ")).join(" | ")}`));
-      const closed = (await run()).filter((v) => !v.startsWith("color-contrast:"));
-      assert.deepEqual(closed, []);
+      // The tail's steps 2 to 5 are below 4.5:1 on purpose (the one named exception, foundations' Principles): only those rows' text is exempt from
+      // color-contrast, node by node; every other node on the closed timeline, the toggle and the newest tail row included, is held to it.
+      const run = () => page.evaluate(async () => {
+        const result = await globalThis.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } });
+        const exempt = (target) => { const el = document.querySelector(target.join(" ")); return Boolean(el?.closest(".basalt-run-step[data-tail]:not([data-depth='1'])")); };
+        return result.violations.map((x) => ({ id: x.id, nodes: x.nodes.filter((n) => !(x.id === "color-contrast" && exempt(n.target))).map((n) => n.target.join(" ")) })).filter((x) => x.nodes.length).map((x) => `${x.id}: ${x.nodes.join(" | ")}`);
+      });
+      assert.deepEqual(await run(), []);
+      // A closed toggle drawn too faint fails: the exemption is the tail's rows and nothing else.
+      await page.addStyleTag({ content: ".basalt-run-steps-toggle, .basalt-run-steps-toggle * { color: var(--basalt-border-divider) !important; }" });
+      const faint = await run();
+      assert.ok(faint.some((v) => v.startsWith("color-contrast:")), `a faint toggle is caught: ${JSON.stringify(faint)}`);
+      await page.evaluate(() => document.querySelectorAll("style")[document.querySelectorAll("style").length - 1].remove());
       await page.locator(".basalt-run-steps-toggle").click();
       await settle(page);
       assert.deepEqual(await run(), []);
     });
   }
+});
+
+// ---- The council's code review (Astra) and pixel review (Fable) of e5893f80: each blocking finding held by a test.
+
+describe("following the end through a played run", () => {
+  for (const width of [1440, 390]) {
+    test(`consecutive arrivals, each roll left to finish in real time, keep the newest step whole at the window's end (${width})`, async () => {
+      const page = await open(APP({ width: width === 390 ? 342 : 760 }), { initial: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => done(i)), width });
+      const short = () => page.evaluate(() => { const w = document.querySelector(".basalt-run-steps-window"); const last = [...document.querySelectorAll(".basalt-run-step")].at(-1).getBoundingClientRect(); return Math.round(last.bottom - w.getBoundingClientRect().bottom); });
+      for (const i of [11, 12, 13, 14]) {
+        await page.evaluate((i) => window.add({ id: "n" + i, state: "success", text: "Read file " + i, meta: i + " lines" }), i);
+        await page.waitForTimeout(450);
+        await settle(page);
+        assert.ok((await short()) <= 0, `after step ${i} the last step is ${await short()}px below the window`);
+      }
+    });
+  }
+
+  test("a reader's scroll in the same task as an arrival is kept: the window is not pulled back to the end", async () => {
+    const page = await open(APP(), { initial: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => done(i)) });
+    const top = await page.evaluate(() => { const w = document.querySelector(".basalt-run-steps-window"); w.scrollTop = 0; window.add({ id: "n", state: "success", text: "Arrived", meta: "1 line" }); return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(w.scrollTop)))); });
+    assert.equal(top, 0);
+  });
+});
+
+describe("the floor", () => {
+  test("an early tall step grows the window once; later one-line steps move nothing below it", async () => {
+    const page = await open(APP(), { initial: [] });
+    const at = () => page.evaluate(() => [document.querySelector(".basalt-run-steps-window").getBoundingClientRect().height, document.querySelector("#after").getBoundingClientRect().top]);
+    const [floor, after0] = await at();
+    assert.equal(floor, 152);
+    await page.evaluate(() => window.add({ id: "tall", state: "success", text: "Ran the migration", tall: "and wrote 3 tables, with a long second line", meta: "3 tables" }));
+    await settle(page);
+    const [grown, after1] = await at();
+    assert.equal(grown, floor + 18, "the tall step's extra line, once");
+    for (const i of [2, 3, 4, 5]) {
+      await page.evaluate((i) => window.add({ id: "x" + i, state: "success", text: "Read " + i, meta: "1 line" }), i);
+      await settle(page);
+      assert.deepEqual(await at(), [grown, after1], `step ${i} moved nothing`);
+    }
+    assert.equal(after1 - after0, 18);
+  });
+
+  test("the floor's row count is the larger of keep and minRows", async () => {
+    const low = await open(APP({ props: "keep={3} minRows={1}" }), { initial: [] });
+    assert.equal(await low.evaluate(() => document.querySelector(".basalt-run-steps-window").getBoundingClientRect().height), 152);
+    const high = await open(APP({ props: "keep={3} minRows={5}" }), { initial: [] });
+    assert.equal(await high.evaluate(() => document.querySelector(".basalt-run-steps-window").getBoundingClientRect().height), 5 * 34 + 50);
+  });
+});
+
+describe("print, the hold and the marks", () => {
+  test("printed, the timeline is the whole record in full form: no 12% row, the connector, the detail and the result, at 390 too", async () => {
+    for (const width of [1024, 390]) {
+      const initial = [{ ...done(1), detail: "kubectl rollout undo" }, { ...done(2), state: "failed" }, done(3), done(4), done(5), done(6), done(7), done(8)];
+      const page = await open(APP({ width: width === 390 ? 342 : 760 }), { initial, width });
+      await page.emulateMedia({ media: "print" });
+      const r = await page.evaluate(() => [...document.querySelectorAll(".basalt-run-step")].map((li) => { const line = li.querySelector(".basalt-run-step-line"); const result = li.querySelector(".basalt-run-step-result"); return { opacity: getComputedStyle(line).opacity, size: getComputedStyle(line).fontSize, connector: getComputedStyle(li, "::after").content, result: result ? result.getBoundingClientRect().width > 1 : null, detail: li.querySelector(".basalt-run-step-detail") ? getComputedStyle(li.querySelector(".basalt-run-step-detail")).display : null, white: getComputedStyle(li.querySelector(".basalt-run-step-sentence")).whiteSpace }; }));
+      assert.ok(r.every((x) => x.opacity === "1" && x.size === r.at(-1).size && x.white !== "nowrap"), `${width}: ${JSON.stringify(r.slice(0, 3))}`);
+      assert.ok(r.slice(0, -1).every((x) => x.connector !== "none"), "every connector");
+      assert.ok(r.every((x) => x.result !== false), "every result is drawn");
+      assert.equal(r[0].detail, "flex", "the oldest step's detail prints");
+    }
+  });
+
+  test("the hold takes away a roll in flight at once, and release plays no settled mark's entry again", async () => {
+    const page = await open(APP(), { initial: [1, 2, 3, 4, 5, 6].map((i) => done(i)) });
+    const clock = await freezeAnimations(page);
+    await page.evaluate(() => { window.add({ id: "n", state: "running", text: "Querying", start: Date.now() }); });
+    await clock.advance(16);
+    const moving = () => page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect.getKeyframes().some((k) => k.transform)).length);
+    assert.ok((await moving()) > 0, "a roll is in flight");
+    await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+    await clock.advance(16);
+    assert.equal(await moving(), 0, "held: nothing moves");
+    await clock.thaw();
+    await page.evaluate(() => window.patch("n", { state: "success" }));
+    await settle(page);
+    await page.evaluate(() => document.documentElement.removeAttribute("data-loops"));
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const faces = await page.evaluate(() => [...document.querySelectorAll(".basalt-run-mark-face")].map((f) => [f.hasAttribute("data-entering"), Number(getComputedStyle(f).opacity)]));
+    assert.ok(faces.every(([entering, opacity]) => !entering && opacity === 1), `released: ${JSON.stringify(faces)}`);
+  });
+});
+
+describe("focus and touch", () => {
+  test("an action removed as JSX leaves it (false or null) sends focus to the step's sentence, never to the body", async () => {
+    for (const gone of ["false", "null"]) {
+      const body = `function App() { const [on, setOn] = React.useState(true); React.useEffect(() => { window.off = () => setOn(false); }, []);
+        return <div style={{ padding: 24, width: 760 }}><B.RunTimeline label="Steps" keep={false}><B.RunStep state="queued" word="Waiting for approval" detail={on ? <code>kubectl rollout undo</code> : ${gone}} action={on && <B.Button size="sm">Approve</B.Button>}>Roll back</B.RunStep></B.RunTimeline></div>; }
+        createRoot(document.getElementById("root")).render(<App />);`;
+      const page = await open(body);
+      await page.getByRole("button", { name: "Approve" }).focus();
+      await page.evaluate(() => window.off());
+      await settle(page);
+      assert.equal(await page.evaluate(() => document.activeElement.className), "basalt-run-step-sentence", gone);
+      assert.equal(await page.locator(".basalt-run-step-detail").count(), 0, `${gone}: nothing is left open`);
+    }
+  });
+
+  for (const state of ["closed", "open"]) {
+    test(`on touch the toggle keeps its 44px target inside a list item too (${state})`, async () => {
+      const initial = [1, 2, 3, 4, 5].map((i) => done(i));
+      const body = APP({ width: 342 }).replace("<Nest level={1}>", '<ul style={{ listStyle: "none", margin: 0, padding: 0 }}><li><Nest level={1}>').replace("</B.RunTimeline></Nest>", "</B.RunTimeline></Nest></li></ul>");
+      const page = await open(body, { initial, width: 390, hasTouch: true, isMobile: true });
+      if (state === "open") { await page.locator(".basalt-run-steps-toggle").click(); await settle(page); }
+      const hits = await page.evaluate(() => {
+        const b = document.querySelector(".basalt-run-steps-toggle");
+        const box = b.getBoundingClientRect();
+        const x = box.left + Math.min(box.width / 2, 20);
+        let n = 0;
+        for (let y = Math.floor(box.top + box.height / 2 - 30); y <= box.bottom + 30; y += 1) if (b.contains(document.elementFromPoint(x, y))) n += 1;
+        return n;
+      });
+      assert.ok(hits >= 44, `${hits}px hit the toggle`);
+      assert.equal(await page.evaluate(() => !!document.querySelector("li .basalt-run-steps-toggle")), true, "nested in a list item");
+    });
+  }
+});
+
+describe("the toggle's chevron", () => {
+  test("morphs from down to up through ControlIcon (not a swap at once)", async () => {
+    const page = await open(APP(), { initial: [1, 2, 3, 4, 5].map((i) => done(i)) });
+    await page.waitForTimeout(300);
+    await page.locator(".basalt-run-steps-toggle").click();
+    const seen = await page.evaluate(() => new Promise((resolve) => { const frames = []; const step = (n) => { const svg = document.querySelector(".basalt-run-steps-toggle svg"); frames.push(svg.innerHTML); if (n < 12) requestAnimationFrame(() => step(n + 1)); else resolve(new Set(frames).size); }; step(0); }));
+    assert.ok(seen > 2, `${seen} drawings over 12 frames: a morph passes through between`);
+  });
 });

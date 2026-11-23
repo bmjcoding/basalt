@@ -180,3 +180,17 @@ test("Progress's value takes tabular figures and the room of \"100%\", end-align
   const tree = await page.locator(".basalt-progress").ariaSnapshot();
   assert.ok(!tree.includes("100%"), "the room is unseen and unsaid");
 });
+
+test("a node's figure is centred under its mark and name, under ten seconds too (ruling 5)", async () => {
+  const page = await open(RUN(800));
+  await page.evaluate(() => window.set(0, "success"));
+  await settle(page);
+  const off = await page.evaluate(() => {
+    const li = document.querySelector(".basalt-run-stage");
+    const mark = li.querySelector(".basalt-run-mark").getBoundingClientRect();
+    const on = li.querySelector(".basalt-run-stage-status .basalt-run-timer [data-on]");
+    const range = document.createRange(); range.selectNodeContents(on); const t = range.getBoundingClientRect();
+    return Math.abs((t.left + t.right) / 2 - (mark.left + mark.right) / 2);
+  });
+  assert.ok(off <= 0.5, `${off}px off centre`);
+});

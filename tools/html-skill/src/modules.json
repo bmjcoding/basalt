@@ -631,7 +631,7 @@
         "XCircle",
         "Prohibit"
       ],
-      "budget": 11750,
+      "budget": 11950,
       "usage": 1800,
       "builds": [
         "braille"
@@ -653,7 +653,8 @@
         "run-step-sentence",
         "run-step-word",
         "run-step-meta",
-        "run-step-detail"
+        "run-step-detail",
+        "run-step-time"
       ],
       "icons": [
         "Circle",
@@ -662,8 +663,11 @@
         "MinusCircle",
         "Prohibit"
       ],
-      "budget": 9650,
-      "usage": 1650
+      "budget": 10800,
+      "usage": 1700,
+      "requires": [
+        "loops"
+      ]
     },
     "chart": {
       "classes": [

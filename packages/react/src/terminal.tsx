@@ -144,7 +144,9 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     return () => clearTimeout(timer);
   }, [replay, mode, shown, lines.length, interval]);
 
-  const failed = lines[lines.length - 1]?.kind === "error";
+  // A replay ends failed on an error, and on a stage line that failed (a stage transcript's own failure).
+  const last = lines[lines.length - 1];
+  const failed = last?.kind === "error" || (last?.kind === "stage" && last.state === "failed");
   const state: TerminalStatus | undefined = replay ? (mode === "finished" ? (failed ? "failed" : "done") : mode) : status;
   const live = state !== undefined;
   const visible = replay ? lines.slice(0, shown) : lines;
@@ -197,12 +199,16 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
 
   const failedWord = exitCode === undefined ? "Failed" : `Failed, exit ${exitCode}`;
   // Every state's words stand in one cell (see `Reserve`), so the head is as wide as its widest and never moves.
-  // Which lines step back: every line from the start to the first of the newest `keep` stage lines, output included (one step, tertiary ink).
-  let receded = -1;
+  // Which lines step back (one step, tertiary ink): a stage line older than the newest `keep`, and the output under it. A command never does, and
+  // nothing before the first stage line does (ruling 7).
+  let boundary = -1;
+  let firstStage = -1;
   if (stages && keep !== undefined && keep >= 1) {
     const at = visible.map((line, i) => (line.kind === "stage" ? i : -1)).filter((i) => i >= 0);
-    if (at.length > keep) receded = at[at.length - keep]!;
+    firstStage = at[0] ?? -1;
+    if (at.length > keep) boundary = at[at.length - keep]!;
   }
+  const recedes = (i: number) => i < boundary && i >= firstStage && visible[i]!.kind !== "command";
   const words = state === undefined ? null : (
     swap(state, {
       idle: "Not started",
@@ -245,13 +251,13 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
         <code className="basalt-code-lines">
           {replay && mode === "idle" && visible.length === 0 ? <span className="basalt-terminal-hint">Press Play to start</span> : null}
           {visible.map((line, i) => {
-            if (line.kind === "stage") return <StageLine key={i} line={line} receded={i < receded} />;
+            if (line.kind === "stage") return <StageLine key={i} line={line} receded={recedes(i)} />;
             const mark = line.kind === "done" || line.kind === "warning" || line.kind === "error" ? MARKS[line.kind] : null;
             return (
               <CodeLine
                 key={i}
                 kind={line.kind}
-                receded={i < receded}
+                receded={recedes(i)}
                 gutter={line.kind === "command" ? <CodePrompt>{prompt}</CodePrompt> : mark ? <Icon icon={mark.icon} size={16} label={mark.name} className="basalt-terminal-mark" /> : null}
               >
                 {line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}
@@ -268,9 +274,11 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
 function StageLine({ line, receded }: { line: TerminalLine; receded: boolean }) {
   const state = line.state ?? "running";
   const word = line.word ?? STAGE_WORDS_DRAWN[state];
+  // A state is said once: where a word is drawn the mark is hidden from assistive technology; where none is, the mark is a named image.
+  const named = word ? undefined : state === "running" ? "Running" : STAGE_MARKS[state as Exclude<TerminalStageState, "running">].name;
   const mark = state === "running"
-    ? <span role="img" aria-label="Running" className="basalt-terminal-braille"><Spinner variant="braille" /></span>
-    : <Icon icon={STAGE_MARKS[state].icon} size={16} label={STAGE_MARKS[state].name} className="basalt-terminal-mark" />;
+    ? <span role={named ? "img" : undefined} aria-label={named} aria-hidden={named ? undefined : true} className="basalt-terminal-braille"><Spinner variant="braille" /></span>
+    : <Icon icon={STAGE_MARKS[state].icon} size={16} label={named} className="basalt-terminal-mark" />;
   const running = line.start !== undefined && line.end === undefined;
   return (
     <span className="basalt-code-line" data-kind="stage" data-state={state} data-receded={receded ? "" : undefined}>

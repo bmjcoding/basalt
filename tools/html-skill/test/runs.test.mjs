@@ -22,8 +22,9 @@ const reactPage = async (body, options) => { const r = await fixturePage(reactBr
 const STATES = ["queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
 const WORDS = { queued: "Queued", running: "Running", success: "Passed", failed: "Failed", skipped: "Skipped", canceled: "Canceled", retrying: "Retrying" };
 
-const SKILL_LIST = `<div style="width: 640px; padding: 24px"><ol class="run-stages" aria-label="Stages">${STATES.map((s) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Stage ${s} <span class="run-stage-word">${WORDS[s]}</span></span><span class="run-stage-meta">fact</span><span class="run-stage-time">1.2 s</span></li>`).join("")}</ol></div>`;
-const REACT_LIST = `createRoot(document.getElementById("root")).render(<div style={{ width: 640, padding: 24 }}><B.StageList label="Stages" reserveDetail={false}>{${JSON.stringify(STATES)}.map((s) => <B.RunStage key={s} name={"Stage " + s} state={s} meta="fact" start={0} end={1200} />)}</B.StageList></div>);`;
+// The row exactly as the usage file writes it: the word beside the name. The fixtures take the page's width up to 640, so 390 is a phone's list.
+const SKILL_LIST = `<div style="max-width: 640px; padding: 24px"><ol class="run-stages" aria-label="Stages">${STATES.map((s) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Stage ${s}</span><span class="run-stage-word">${WORDS[s]}</span><span class="run-stage-meta">fact</span><span class="run-stage-time">1.2 s</span></li>`).join("")}</ol></div>`;
+const REACT_LIST = `createRoot(document.getElementById("root")).render(<div style={{ maxWidth: 640, padding: 24 }}><B.StageList label="Stages" reserveDetail={false}>{${JSON.stringify(STATES)}.map((s) => <B.RunStage key={s} name={"Stage " + s} state={s} meta="fact" start={0} end={1200} />)}</B.StageList></div>);`;
 
 const SKILL_RAIL = `<div style="width: 640px; padding: 24px"><ol class="run-rail" aria-label="Release">${["success", "failed", "retrying", "queued"].map((s, i) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Node ${i}</span><span class="run-stage-word">${WORDS[s]}</span><span class="run-stage-time">2.1 s</span></li>`).join("")}</ol></div>`;
 
@@ -73,12 +74,14 @@ describe("against React", () => {
           const m = li.querySelector(mark);
           const w = li.querySelector(word);
           const after = getComputedStyle(li, "::after");
-          return { h: li.getBoundingClientRect().height, markW: m.getBoundingClientRect().width, markColor: getComputedStyle(m.querySelector(".basalt-run-mark-face") ?? m).color, word: w ? [getComputedStyle(w).color, getComputedStyle(w).fontWeight, w.getBoundingClientRect().width > 1] : null, connector: [after.content === "none" ? "none" : "line", after.borderInlineStartColor, after.top, after.bottom, after.left] };
+          const name = li.querySelector(".basalt-run-stage-label, .run-stage-name").getBoundingClientRect();
+          return { gap: w && w.getBoundingClientRect().width > 1 ? Math.round(w.getBoundingClientRect().left - name.right) : null, h: li.getBoundingClientRect().height, markW: m.getBoundingClientRect().width, markColor: getComputedStyle(m.querySelector(".basalt-run-mark-face") ?? m).color, word: w ? [getComputedStyle(w).color, getComputedStyle(w).fontWeight, w.getBoundingClientRect().width > 1] : null, connector: [after.content === "none" ? "none" : "line", after.borderInlineStartColor, after.top, after.bottom, after.left] };
         }), { row, mark, word });
         const react = await read(r, ".basalt-run-stages > .basalt-run-stage", ".basalt-run-mark", ".basalt-run-stage-line .basalt-run-stage-word, .basalt-visually-hidden");
         const skill = await read(s, ".run-stages > .run-stage", ".run-mark", ".run-stage-word");
         for (let i = 0; i < STATES.length; i += 1) {
           assert.equal(skill[i].h, react[i].h, `${STATES[i]}: row height`);
+          if (STATES[i] !== "success") assert.equal(skill[i].gap, react[i].gap, `${STATES[i]}: the word's gap after the name`);
           assert.equal(skill[i].markW, react[i].markW, `${STATES[i]}: mark seat`);
           assert.equal(skill[i].markColor, react[i].markColor, `${STATES[i]}: mark ink`);
           assert.deepEqual(skill[i].connector, react[i].connector, `${STATES[i]}: connector`);
@@ -141,6 +144,70 @@ describe("modes", () => {
     await s.evaluate(() => document.documentElement.removeAttribute("data-loops"));
     const queued = await s.evaluate(() => getComputedStyle(document.querySelector(".run-mark[data-state=queued]")).animationName);
     assert.equal(queued, "none");
+    await context.close();
+  });
+});
+
+// ---- The council's code review (Astra 8, 9, 10) and pixel review (Fable 5, 14) of e5893f80
+
+describe("the review's findings", () => {
+  test("the rail takes the usage's own row (the word beside the name) and draws the word in the status seat; five nodes are rows under 480px", async () => {
+    const row = (s, i) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Node ${i}</span><span class="run-stage-word">${WORDS[s]}</span><span class="run-stage-meta">fact</span><span class="run-stage-time">2.1 s</span></li>`;
+    const four = `<ol class="run-rail" aria-label="Four">${["success", "failed", "retrying", "queued"].map(row).join("")}</ol>`;
+    const five = `<ol class="run-rail" aria-label="Five">${["success", "success", "running", "queued", "queued"].map(row).join("")}</ol>`;
+    for (const width of [1440, 390]) {
+      const { page: s, context } = await openHtml(browser, page(`<div style="padding: 24px">${four}<div style="height: 24px"></div>${five}</div>`), { scheme: "dark", width });
+      const r = await s.evaluate(() => {
+        const [a, b] = document.querySelectorAll(".run-rail");
+        const failed = a.children[1];
+        const word = failed.querySelector(".run-stage-word").getBoundingClientRect();
+        const name = failed.querySelector(".run-stage-name").getBoundingClientRect();
+        const time = a.children[0].querySelector(".run-stage-time").getBoundingClientRect();
+        return { wordUnderName: word.top >= name.bottom, wordWithTime: Math.abs(word.top - time.top) < 1, fiveTops: [...b.children].map((li) => Math.round(li.getBoundingClientRect().top)) };
+      });
+      assert.ok(r.wordUnderName && r.wordWithTime, `${width}: the word stands in the time's seat (${JSON.stringify(r)})`);
+      const rows = r.fiveTops.every((t, i) => i === 0 || t > r.fiveTops[i - 1]);
+      assert.equal(rows, width === 390, `${width}: five nodes ${width === 390 ? "are rows" : "are one line"} (${r.fiveTops})`);
+      await context.close();
+    }
+  });
+
+  test("every stage line is 20px, a done or skipped line's core glyph included, and code in a row is plain Geist Mono at the row's size", async () => {
+    const body = `${STAGE_LINES.replace(" data-replay", "")}<ol class="run-steps" aria-label="Steps"><li class="run-step" data-state="success"><span class="run-mark" data-state="success" aria-hidden="true"></span><span class="run-step-sentence">Read <code>deploy.yaml</code></span><span class="run-step-meta">84 lines · <span class="run-step-time">0.7 s</span></span></li></ol>`;
+    const { page: s, context } = await openHtml(browser, page(body), { scheme: "dark" });
+    const r = await s.evaluate(() => ({
+      lines: [...document.querySelectorAll(".terminal-line")].map((l) => l.getBoundingClientRect().height),
+      code: (() => { const c = getComputedStyle(document.querySelector(".run-step code")); return [c.backgroundColor, c.paddingLeft, c.fontSize, c.fontFamily.includes("Mono")]; })(),
+      time: getComputedStyle(document.querySelector(".run-step-time")).fontFamily.includes("Mono"),
+    }));
+    assert.ok(r.lines.every((h) => h === 20), r.lines.join(", "));
+    assert.deepEqual(r.code, ["rgba(0, 0, 0, 0)", "0px", "13px", true]);
+    assert.ok(r.time, "a step's time is in Geist Mono");
+    await context.close();
+  });
+
+  test("a runs-only page takes the reader's stored hold before its first frame", async () => {
+    const html = page(SKILL_LIST);
+    assert.ok(compose(`<title>x</title>${SKILL_LIST}`, { fonts: false }).modules.includes("loops"));
+    const context = await browser.newContext();
+    await context.addInitScript(() => { try { localStorage.setItem("basalt-loops", "held"); } catch { /* none */ } });
+    await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: html }));
+    const p = await context.newPage();
+    await p.goto("https://basalt.test/");
+    const r = await p.evaluate(() => ({ attr: document.documentElement.getAttribute("data-loops"), running: document.getAnimations().filter((a) => a.effect?.target?.closest?.(".run-mark") && a.playState === "running").length }));
+    assert.deepEqual(r, { attr: "held", running: 0 });
+    await context.close();
+  });
+
+  test("a declared replay ending on a failed stage finishes Failed, and a drawn word hides the mark from assistive technology", async () => {
+    const body = `<figure class="code terminal" data-stages data-replay data-interval="40"><figcaption>Deploy</figcaption><pre class="code-body" tabindex="0"><code>
+<span data-kind="command">basalt deploy</span>
+<span data-kind="stage" data-state="failed" data-word="Failed" data-time="0.9 s">Tests</span></code></pre></figure>`;
+    const { page: s, context } = await openHtml(browser, page(body), { scheme: "dark" });
+    await s.getByRole("button", { name: /Play/ }).click();
+    await s.waitForFunction(() => document.querySelector(".terminal-state")?.getAttribute("data-state") === "failed", null, { timeout: 4000 });
+    const tree = await s.locator(".terminal pre").ariaSnapshot();
+    assert.equal((tree.match(/Failed/g) ?? []).length, 1, tree);
     await context.close();
   });
 });

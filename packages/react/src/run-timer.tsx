@@ -76,13 +76,34 @@ export interface RunTimerProps {
   className?: string;
 }
 
-/** Room for both held forms: the same day, and another day, at their widest. */
-function heldSamples(locale: string | undefined) {
-  const sample = new Date(2026, 11, 30, 12, 59);
-  const clock = formatClock(sample, { locale }).text;
-  const day = formatDay(sample, { now: sample, locale }).text;
-  return { held: `Started ${clock}`, heldDay: `Started ${day}, ${clock}` };
+/**
+ * Room for the held form of a run that started today, at its widest ("Started 12:59 PM"). A run that started on another day widens the seat once
+ * when the hold is pressed, as a time that outgrows its scale does (DECISIONS 316, ruling 6): the dated form is not held from the first frame.
+ */
+function heldSample(locale: string | undefined) {
+  return { heldSeat: `Started ${formatClock(new Date(2026, 11, 30, 12, 59), { locale }).text}` };
 }
+
+// ---- printing: a page being printed is held, so a running time prints the form the hold shows (DECISIONS 316, 1.11). The print media and the
+// browser's own beforeprint are listened to by the first reader, never at import.
+let printReaders: Set<() => void> | undefined;
+let printQuery: MediaQueryList | undefined;
+let printingNow = false;
+function subscribePrint(notify: () => void) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+  if (!printReaders) {
+    printReaders = new Set();
+    printQuery = window.matchMedia("print");
+    const tell = () => { for (const n of printReaders ?? []) n(); };
+    printQuery.addEventListener("change", tell);
+    window.addEventListener("beforeprint", () => { printingNow = true; tell(); });
+    window.addEventListener("afterprint", () => { printingNow = false; tell(); });
+  }
+  printReaders.add(notify);
+  return () => { printReaders?.delete(notify); };
+}
+const printing = () => printingNow || (printQuery?.matches ?? false);
+const usePrinting = () => React.useSyncExternalStore(subscribePrint, printing, () => false);
 
 function heldText(since: number, now: number, locale: string | undefined) {
   const clock = formatClock(since, { locale });
@@ -98,13 +119,19 @@ function heldText(since: number, now: number, locale: string | undefined) {
 export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds", whenHeld = "started", locale, format, className }: RunTimerProps) {
   const list = React.useContext(RunTimeScaleContext);
   const scale = list?.scale ?? own;
-  const { held } = useLoops();
+  const { held: loopsHeld } = useLoops();
+  const inPrint = usePrinting();
+  const held = loopsHeld || inPrint;
   const running = start !== undefined && end === undefined;
   const [now, setNow] = React.useState(() => Date.now());
+  // The shared interval asks every 100ms; the timer draws again only when its written figure changes (every 100ms under a minute, by the
+  // second to an hour, by the minute after).
+  const textAt = React.useRef<(t: number) => string>(() => "");
+  const shown = React.useRef("");
   React.useEffect(() => {
     if (!running || held) return;
     setNow(Date.now());
-    return subscribe(() => setNow(Date.now()));
+    return subscribe(() => { const t = Date.now(); if (textAt.current(t) !== shown.current) setNow(t); });
   }, [running, held]);
 
   if (process.env.NODE_ENV !== "production" && carried && since === undefined) warnRun("RunTimer", "`carried` is given without `since`: the held form would show when this attempt started, not when the work first did.");
@@ -113,6 +140,8 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const ms = from === undefined ? 0 : (end === undefined ? now : new Date(end).getTime()) - from + carried;
   const length = formatRunTime(ms);
   const text = from === undefined ? "\u00a0" : format ? format(ms) : length.text;
+  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return format ? format(at) : formatRunTime(at).text; };
+  shown.current = text;
 
   // A time that outgrows its scale is written whole; the list widens every seat together.
   const needed = from === undefined ? scale : scaleFor(ms);
@@ -130,7 +159,7 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const heldForm = showHeld && first !== undefined ? heldText(new Date(first).getTime(), now, locale) : null;
 
   const alternatives: Record<string, React.ReactNode> = { time: text, widest: format ? format(scale === "seconds" ? 59_900 : scale === "minutes" ? 3_599_000 : 86_340_000) : WIDEST[scale] };
-  if (startedForm) Object.assign(alternatives, heldSamples(locale));
+  if (startedForm) Object.assign(alternatives, heldSample(locale));
   if (heldForm) alternatives[heldForm.show] = heldForm.text;
   return (
     <time

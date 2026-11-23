@@ -176,11 +176,12 @@ describe("keep and time", () => {
     await page.evaluate(() => window.to(8));
     await settle(page);
     const r = await page.evaluate(() => [...document.querySelectorAll(".basalt-code-line")].map((l) => ({ kind: l.dataset.kind, state: l.dataset.state, receded: l.hasAttribute("data-receded"), color: getComputedStyle(l.querySelector(".basalt-code-text")).color, transition: getComputedStyle(l).transitionDuration })));
-    // 6 stage lines: the newest 3 (failed, canceled, running) stay; every line before the failed one steps back, the command included.
-    assert.deepEqual(r.map((x) => x.receded), [true, true, true, true, false, false, false, false]);
+    // 6 stage lines: the newest 3 (failed, canceled, running) stay; every stage line before the failed one steps back, and the command never does.
+    assert.deepEqual(r.map((x) => x.receded), [false, true, true, true, false, false, false, false]);
     const tertiary = await page.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--basalt-text-tertiary)"; document.body.append(p); return getComputedStyle(p).color; });
-    assert.ok(r.slice(0, 4).every((x) => x.color === tertiary), JSON.stringify(r.slice(0, 4)));
-    assert.equal(r[0].transition, "0.1s");
+    assert.ok(r.slice(1, 4).every((x) => x.color === tertiary), JSON.stringify(r.slice(1, 4)));
+    assert.notEqual(r[0].color, tertiary, "the command keeps its ink");
+    assert.equal(r[1].transition, "0.1s");
     await page.evaluate(`window.replace(${LINES}.map((l) => (l.state === "skipped" ? { ...l, state: "failed", text: "cache failed" } : l)))`);
     await settle(page);
     const failed = await page.evaluate(() => getComputedStyle(document.querySelector(".basalt-code-line[data-receded][data-state=failed] .basalt-code-text")).color);
@@ -265,4 +266,23 @@ describe("axe", () => {
       assert.deepEqual(v, []);
     });
   }
+});
+
+describe("the council's review", () => {
+  test("a declared replay that ends on a failed stage finishes Failed, and a drawn word hides the mark from assistive technology (Astra 8)", async () => {
+    const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 24, width: 640 }}><B.Terminal title="Deploy" stages replay interval={50} lines={[{ kind: "command", text: "basalt deploy" }, { kind: "stage", state: "failed", word: "Failed", text: "Tests", start: 0, end: 900 }]} /></div>);`;
+    const page = await open(body);
+    await page.getByRole("button", { name: "Play" }).click();
+    await page.waitForFunction(() => document.querySelector(".basalt-terminal-state")?.dataset.state === "failed", null, { timeout: 4000 });
+    const tree = await page.locator("pre").ariaSnapshot();
+    assert.equal((tree.match(/Failed/g) ?? []).length, 1, tree);
+  });
+
+  test("an older output line's loud field steps back with its line", async () => {
+    const page = await open(DRIVEN({ keep: 1 }));
+    await page.evaluate(() => window.replace([{ kind: "command", text: "basalt deploy" }, { kind: "stage", state: "done", text: "Built", start: 0, end: 900 }, { kind: "output", text: "route /docs", fields: [{ text: "route", loud: true }, " /docs"] }, { kind: "stage", state: "done", text: "Uploaded", start: 0, end: 300 }]));
+    await settle(page);
+    const r = await page.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--basalt-text-tertiary)"; document.body.append(p); return [getComputedStyle(document.querySelector(".basalt-code-line[data-receded] .basalt-log-field")).color, getComputedStyle(p).color]; });
+    assert.equal(r[0], r[1]);
+  });
 });
