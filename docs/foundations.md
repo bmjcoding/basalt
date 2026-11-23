@@ -2737,7 +2737,9 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
   (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
-  start-aligned right after a `Terminal` head's state word; a list sets one scale for all its timers. A run's head seat also holds today's held form
+  start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
+  the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
+  under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
   ("Started 12:59 PM"); a run that started on another day widens it once when the hold is pressed, as a time that outgrows its scale does. It counts from `start`, is frozen at `end`,
   adds `carried` across a retry, and its held form reads from `since`. A run's time counts while it runs, retries or waits for an approval, and
   is frozen while it has failed, is canceled or has passed.

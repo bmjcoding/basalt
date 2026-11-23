@@ -286,3 +286,47 @@ describe("the council's review", () => {
     assert.equal(r[0], r[1]);
   });
 });
+
+describe("the head under 480px of the Terminal's own width (ruling 12)", () => {
+  for (const width of [390, 320]) {
+    for (const theme of ["light", "dark"]) {
+      test(`a head with a run's time is two rows, 70px: the title and the copy button, then the state and its time from the title's edge (${width}, ${theme})`, async () => {
+        const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><B.Card style={{ padding: 16 }}><B.Terminal title="Deploy · basalt-sra" stages keep={3} status="running" time={{ start: Date.now() - 6300 }} lines={[{ kind: "command", text: "basalt deploy --prod" }, { kind: "stage", state: "running", text: "Cloning main@4f2a1c0", start: Date.now() - 300 }]} /></B.Card></div>);`;
+        const page = await open(body, { theme, viewport: { width, height: 500 } });
+        await page.evaluate(() => document.fonts.ready);
+        const r = await page.evaluate(() => {
+          const h = document.querySelector(".basalt-terminal-head");
+          const hr = h.getBoundingClientRect();
+          const pad = hr.right - parseFloat(getComputedStyle(h).paddingRight);
+          const range = document.createRange();
+          range.selectNodeContents(document.querySelector(".basalt-terminal-title"));
+          const title = range.getBoundingClientRect();
+          const state = document.querySelector(".basalt-terminal-state [data-on]").getBoundingClientRect();
+          const time = document.querySelector(".basalt-terminal-time").getBoundingClientRect();
+          const button = document.querySelector(".basalt-terminal-copy-compact").getBoundingClientRect();
+          const drawn = [...h.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility === "visible" && !e.closest(".basalt-visually-hidden"));
+          // The title's line box (text-xs's 16px line) is read from the row it is centred on, not from the fallback face's glyphs, which a fixture without Geist draws.
+          const line = parseFloat(getComputedStyle(document.querySelector(".basalt-terminal-title")).lineHeight);
+          const centre = (button.top + button.bottom) / 2;
+          const stateLine = document.querySelector(".basalt-terminal-state").getBoundingClientRect();
+          return { head: hr.height, titleTop: centre - line / 2 - hr.top, stateFromTitle: state.left - title.left, between: stateLine.top + (stateLine.height - line) / 2 - (centre + line / 2), under: hr.bottom - (stateLine.top + (stateLine.height + line) / 2), buttonEnd: Math.round(pad - button.right), buttonRow: Math.abs((button.top + button.bottom) / 2 - (title.top + title.bottom) / 2) < 1, timeAfterState: time.left > state.left && Math.abs(time.top - state.top) < 4, past: Math.max(...drawn.map((e) => e.getBoundingClientRect().right)) - pad };
+        });
+        assert.equal(r.head, 70);
+        assert.equal(r.titleTop, 18, "the title's line is centred on the button's row");
+        assert.equal(r.stateFromTitle, 0, "the state starts on the title's edge");
+        assert.equal(r.between, 8, "space-2 between the two lines");
+        assert.equal(r.under, 12, "space-3 under the status");
+        assert.equal(r.buttonEnd, 0, "the copy button on the end edge");
+        assert.ok(r.buttonRow && r.timeAfterState, JSON.stringify(r));
+        assert.ok(r.past <= 0.01, `${r.past}px past the head's padding`);
+      });
+    }
+  }
+
+  test("from 480px of its own width the head is one row, as built", async () => {
+    const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 16, width: 700 }}><B.Terminal title="Deploy · basalt-sra" stages status="running" time={{ start: Date.now() - 6300 }} lines={[{ kind: "command", text: "basalt deploy --prod" }]} /></div>);`;
+    const page = await open(body, { viewport: { width: 1024, height: 400 } });
+    const tops = await page.evaluate(() => [".basalt-terminal-title", ".basalt-terminal-state", ".basalt-terminal-time"].map((s) => Math.round(document.querySelector(s).getBoundingClientRect().top + document.querySelector(s).getBoundingClientRect().height / 2)));
+    assert.ok(tops.every((t) => Math.abs(t - tops[0]) <= 1), tops.join(", "));
+  });
+});

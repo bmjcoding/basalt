@@ -1,6 +1,6 @@
 // Round 67: stage animations (DECISIONS 302, 304, 307, 312 and 316). The owner confirmed a prototype; the council's heavy round reviewed it (Astra checked,
-// Fable decided, revised after the final positions) and this is the build of that decision, by Opus. Not reviewed: no panel or council member has read the
-// build yet. Synthetic, CIMIP-like content only.
+// Fable decided, revised after the final positions) and this is the build of that decision, by Opus. The build was reviewed by the council (Astra on the
+// code, Fable on the pixels, twice) and fixed after each; no screen reader was heard. Synthetic, CIMIP-like content only.
 //
 // Each step is a run that plays when the walkthrough opens it (Replay plays it again; a run the reader starts plays whatever the hold, and a page's own run
 // does not start under it). A shot (?shot=1) poses the run at a chosen moment: every step up to it is applied at once, with its times as they would be.
@@ -30,14 +30,24 @@ import type { RunEvent, StageState, TerminalLine } from "../../packages/react/sr
 import type { Round } from "./rounds";
 import connectorDark from "./assets/round-67/connector-before-dark.png";
 import connectorLight from "./assets/round-67/connector-before-light.png";
+import connectorDark390 from "./assets/round-67/connector-before-dark-390.png";
+import connectorLight390 from "./assets/round-67/connector-before-light-390.png";
 import heldDark1440 from "./assets/round-67/held-before-dark-1440.png";
 import heldDark390 from "./assets/round-67/held-before-dark-390.png";
 import heldLight1440 from "./assets/round-67/held-before-light-1440.png";
 import heldLight390 from "./assets/round-67/held-before-light-390.png";
 import logDark from "./assets/round-67/log-before-dark.png";
 import logLight from "./assets/round-67/log-before-light.png";
-import queuedDark from "./assets/round-67/queued-before-dark.png";
-import queuedLight from "./assets/round-67/queued-before-light.png";
+import logDark390 from "./assets/round-67/log-before-dark-390.png";
+import logLight390 from "./assets/round-67/log-before-light-390.png";
+import queuedDark1440Rest from "./assets/round-67/queued-before-dark-1440-rest.png";
+import queuedDark1440Low from "./assets/round-67/queued-before-dark-1440-low.png";
+import queuedDark390Rest from "./assets/round-67/queued-before-dark-390-rest.png";
+import queuedDark390Low from "./assets/round-67/queued-before-dark-390-low.png";
+import queuedLight1440Rest from "./assets/round-67/queued-before-light-1440-rest.png";
+import queuedLight1440Low from "./assets/round-67/queued-before-light-1440-low.png";
+import queuedLight390Rest from "./assets/round-67/queued-before-light-390-rest.png";
+import queuedLight390Low from "./assets/round-67/queued-before-light-390-low.png";
 import tailDark1440 from "./assets/round-67/tail-before-dark-1440.png";
 import tailDark390 from "./assets/round-67/tail-before-dark-390.png";
 import tailLight1440 from "./assets/round-67/tail-before-light-1440.png";
@@ -56,7 +66,7 @@ interface Step<S> { at: number; apply: (s: S, now: number) => S }
  * would land, and does not start under it (it shows where the run ends); `replay` is the reader's own start and runs whatever the hold. `pace` plays it
  * faster, for a shot of a run that played to its end.
  */
-function useRun<S>(initial: S, steps: Step<S>[], pose: number, { played = false } = {}) {
+function useRun<S>(initial: S, steps: Step<S>[], pose: number, { played = false, fixed = false } = {}) {
   const [state, setState] = React.useState(initial);
   const timer = React.useRef(0);
   const clear = () => window.clearTimeout(timer.current);
@@ -87,7 +97,8 @@ function useRun<S>(initial: S, steps: Step<S>[], pose: number, { played = false 
   }, []);
   const play = React.useCallback(() => run(true), [run]);
   React.useEffect(() => {
-    if (isShot() && played) run(false, 0.12);
+    if (fixed) posed(pose);
+    else if (isShot() && played) run(false, 0.12);
     else if (isShot()) posed(pose);
     else run(false);
     return clear;
@@ -150,10 +161,11 @@ function stageSteps(): Step<ListRun>[] {
 const LIST_STEPS = stageSteps();
 const LIST_POSES: Record<string, number> = { default: 8, failed: 8, passed: LIST_STEPS.length - 1, retrying: 9 };
 
-function DeployList({ state }: { state: string }) {
+/** `fixed`: a pair's "after" half, always at its pose and with no controls of its own (the hold the pair beside it sets is the page's). */
+function DeployList({ state, fixed = false }: { state: string; fixed?: boolean }) {
   useHeldState(state);
   const pose = LIST_POSES[state.replace(/-(reduced-motion|forced-colours|more-contrast)$/, "").replace(/^held-?/, "") || "default"] ?? 8;
-  const { state: run, play, setState } = useRun(LIST_START, LIST_STEPS, pose);
+  const { state: run, play, setState } = useRun(LIST_START, LIST_STEPS, pose, { fixed });
   const retry = () => new Promise<void>((resolve) => window.setTimeout(() => { setState((s) => LIST_STEPS[9]!.apply(s, Date.now())); resolve(); }, 300));
   return (
     <Card style={pad}>
@@ -161,7 +173,7 @@ function DeployList({ state }: { state: string }) {
         <h3 style={title}>Deploy #812</h3>
         <StageBadge state={run.run} words={{ retrying: "Retrying, 2 of 2" }} />
         <span style={timeEnd}><RunTimer start={run.start} end={run.end} carried={run.carried} since={run.since} /></span>
-        <Replay onClick={play} />
+        {fixed ? null : <Replay onClick={play} />}
       </div>
       <StageList label="Deploy 812 stages">
         {run.stages.map((s, i) => (
@@ -220,7 +232,7 @@ function ReleaseRail({ state }: { state: string }) {
         {run.nodes.map((n) => <RunStage key={n.name} name={n.name} state={n.state} word={n.word} start={n.start} end={n.end} />)}
       </StageRail>
       <div style={{ marginTop: 24 }}>
-        <Progress label={running ? `${running} running` : run.run === "success" ? "All stages passed" : "Waiting for a runner"} value={done} max={4} getAriaValueText={() => `${done} of 4 stages`} />
+        <Progress label={running ? `${running} running` : run.run === "success" ? "All stages passed" : run.run === "failed" ? "Checks failed" : "Waiting for a runner"} value={done} max={4} getAriaValueText={() => `${done} of 4 stages`} />
       </div>
       <RunAnnouncer label="Release v2.14.0 updates" events={run.events} />
     </Card>
@@ -253,13 +265,13 @@ function logSteps(): Step<LogRun>[] {
 }
 const LOG_STEPS = logSteps();
 
-function DeployLog({ state }: { state: string }) {
+function DeployLog({ state, fixed = false }: { state: string; fixed?: boolean }) {
   useHeldState(state);
   const name = state.replace(/-(reduced-motion|forced-colours|more-contrast)$/, "");
-  const { state: run, play } = useRun(LOG_START, LOG_STEPS, name === "passed" ? LOG_STEPS.length - 1 : LOG_STEPS.length - 3);
+  const { state: run, play } = useRun(LOG_START, LOG_STEPS, name === "passed" ? LOG_STEPS.length - 1 : LOG_STEPS.length - 3, { fixed });
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div><Replay onClick={play} /></div>
+      {fixed ? null : <div><Replay onClick={play} /></div>}
       <Terminal title="Deploy · basalt-sra" stages keep={3} status={run.status === "idle" ? undefined : run.status} time={{ start: run.start, end: run.end }} lines={run.lines} />
       <RunAnnouncer label="Deploy updates" events={run.events} />
     </div>
@@ -333,10 +345,10 @@ function agentSteps(): Step<AgentRun>[] {
 const AGENT_STEPS = agentSteps();
 const AGENT_POSES: Record<string, number> = { default: 10, waiting: 10, end: AGENT_STEPS.length - 1, open: AGENT_STEPS.length - 1, hover: AGENT_STEPS.length - 1 };
 
-function AgentRun({ state }: { state: string }) {
+function AgentRun({ state, fixed = false }: { state: string; fixed?: boolean }) {
   useHeldState(state);
   const name = state.replace(/-(reduced-motion|forced-colours|more-contrast)$/, "").replace(/^held-?/, "") || "default";
-  const { state: run, play, setState } = useRun(AGENT_START, AGENT_STEPS, AGENT_POSES[name] ?? 10, { played: name === "played-end" });
+  const { state: run, play, setState } = useRun(AGENT_START, AGENT_STEPS, AGENT_POSES[name] ?? 10, { played: name === "played-end", fixed });
   const { held } = useLoops();
   const approve = () => new Promise<void>((resolve) => window.setTimeout(() => { setState((s) => ({ ...s, items: s.items.map((x) => (x.id === "approve" ? { ...x, state: "success" as StageState, word: "Approved by you", end: Date.now(), approval: false } : x)) })); resolve(); }, 300));
   return (
@@ -345,7 +357,7 @@ function AgentRun({ state }: { state: string }) {
         <h3 style={title}>INC-0042 · Payments API latency</h3>
         <StageBadge state={run.run} words={{ running: "Investigating", success: "Completed" }} />
         <span style={timeEnd}><RunTimer start={run.start} end={run.end} /></span>
-        <Replay onClick={play} />
+        {fixed ? null : <Replay onClick={play} />}
       </div>
       {/* The app's step line hides under the hold (foundations: a streaming line hides while the status word stays). */}
       <p aria-hidden="true" style={{ margin: "-8px 0 12px", font: "400 12px / 16px var(--basalt-font-family-sans)", color: "var(--basalt-text-tertiary)", visibility: held && run.run === "running" ? "hidden" : undefined }}>{run.line}</p>
@@ -382,79 +394,60 @@ function States({ state }: { state: string }) {
 }
 
 // ---- The five departures from the prototype the owner confirmed, each before (the prototype) and after (this build), for his eye (DECISIONS 316).
+// Each pair is stacked, before above after, and each picture is drawn at its own size (a 2x capture at half its pixels), so the prototype's words are
+// as large as the build's. Under 720 the pictures are the prototype at 390.
 
 const BEFORE = {
   tail: { "dark-1440": tailDark1440, "dark-390": tailDark390, "light-1440": tailLight1440, "light-390": tailLight390 },
-  log: { dark: logDark, light: logLight },
-  queued: { dark: queuedDark, light: queuedLight },
-  connector: { dark: connectorDark, light: connectorLight },
+  log: { "dark-1440": logDark, "dark-390": logDark390, "light-1440": logLight, "light-390": logLight390 },
+  queued: { "dark-1440": [queuedDark1440Rest, queuedDark1440Low], "dark-390": [queuedDark390Rest, queuedDark390Low], "light-1440": [queuedLight1440Rest, queuedLight1440Low], "light-390": [queuedLight390Rest, queuedLight390Low] },
+  connector: { "dark-1440": connectorDark, "dark-390": connectorDark390, "light-1440": connectorLight, "light-390": connectorLight390 },
   held: { "dark-1440": heldDark1440, "dark-390": heldDark390, "light-1440": heldLight1440, "light-390": heldLight390 },
 };
+type Key = "dark-1440" | "dark-390" | "light-1440" | "light-390";
 const themeOf = (): "dark" | "light" => (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark");
 const narrow = () => typeof window !== "undefined" && window.innerWidth < 720;
 
-function Pair({ title, text, before, children }: { title: string; text: string; before: string; children: React.ReactNode }) {
+/** A 2x capture drawn at its own size: half its pixels, never wider than the column. */
+function Capture({ src, alt }: { src: string; alt: string }) {
+  const [width, setWidth] = React.useState<number | undefined>(undefined);
+  return <img src={src} alt={alt} onLoad={(e) => setWidth(e.currentTarget.naturalWidth / 2)} style={{ display: "block", width, maxWidth: "100%", height: "auto", borderRadius: 8 }} />;
+}
+
+const caption: React.CSSProperties = { font: "500 12px / 16px var(--basalt-font-family-sans)", color: "var(--basalt-text-secondary)" };
+function Pair({ title, text, before, children }: { title: string; text: string; before: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section style={{ display: "grid", gap: 12, marginBottom: 40 }}>
+    <section style={{ display: "grid", gap: 16, marginBottom: 56 }}>
       <h3 style={{ margin: 0, font: "600 15px / 20px var(--basalt-font-family-sans)" }}>{title}</h3>
       <p style={{ margin: 0, maxWidth: 640, color: "var(--basalt-text-secondary)", font: "400 13px / 18px var(--basalt-font-family-sans)" }}>{text}</p>
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))", alignItems: "start" }}>
-        <figure style={{ margin: 0, display: "grid", gap: 8 }}>
-          <figcaption style={{ font: "500 12px / 16px var(--basalt-font-family-sans)", color: "var(--basalt-text-secondary)" }}>Before: the prototype you confirmed</figcaption>
-          <img src={before} alt={`${title}: the prototype`} style={{ width: "100%", height: "auto", borderRadius: 8 }} />
-        </figure>
-        <figure style={{ margin: 0, display: "grid", gap: 8 }}>
-          <figcaption style={{ font: "500 12px / 16px var(--basalt-font-family-sans)", color: "var(--basalt-text-secondary)" }}>After: this build</figcaption>
-          {children}
-        </figure>
-      </div>
+      <figure style={{ margin: 0, display: "grid", gap: 8 }}><figcaption style={caption}>Before: the prototype you confirmed</figcaption>{before}</figure>
+      <figure style={{ margin: 0, display: "grid", gap: 8 }}><figcaption style={caption}>After: this build</figcaption>{children}</figure>
     </section>
   );
 }
 
-const T = Date.now() - 20_000;
-const TAIL_STEPS = [
-  ["Read", "deploy/payments-api.yaml", "84 lines", "success"], ["Queried", "p99 latency · payments-api · 2 h", "p99 1.8 s since 14:05", "success"], ["Searched logs for", "\"pool timeout\"", "Timed out after 10 s", "failed"],
-  ["Listed deploys of", "payments-api", "4f2a1c0 at 14:02", "success"], ["Ran", "kubectl rollout undo deployment/payments-api", "Rolled back to 4f29e0b", "success"], ["Queried", "p99 latency · last 10 min", "p99 240 ms", "success"],
-] as const;
-
 function Departures() {
   const [theme, setTheme] = React.useState(themeOf);
   React.useEffect(() => { const o = new MutationObserver(() => setTheme(themeOf())); o.observe(document.documentElement, { attributeFilter: ["data-theme"] }); return () => o.disconnect(); }, []);
-  const w = narrow() ? "390" : "1440";
-  const t = Date.now();
+  const key: Key = `${theme}-${narrow() ? "390" : "1440"}`;
+  const [rest, low] = BEFORE.queued[key] as [string, string];
   return (
     <div>
-      <Pair title="1. The timeline's tail goes below 4.5:1, with a way back" text="Your five ink steps are kept. Rows 2 to 5 of the tail are below 4.5:1 on purpose, and the button above the tail opens the whole record in full ink; it says when the tail holds a failure." before={BEFORE.tail[`${theme}-${w}` as "dark-1440"]}>
-        <Card style={pad}>
-          <RunTimeline label="Agent steps">
-            {TAIL_STEPS.map(([verb, arg, result, st], i) => <RunStep key={i} state={st as StageState} meta={result} start={T} end={T + 700 + i * 300}>{verb} <code>{arg}</code></RunStep>)}
-          </RunTimeline>
-        </Card>
+      <Pair title="1. The timeline's tail goes below 4.5:1, with a way back" text="Your five ink steps are kept. Rows 2 to 5 of the tail are below 4.5:1 on purpose, and the button above the tail opens the whole record in full ink; it says when the tail holds a failure." before={<Capture src={BEFORE.tail[key]} alt="The prototype's agent run, its tail receding" />}>
+        <AgentRun state="end" fixed />
       </Pair>
-      <Pair title="2. The deploy log's tail is one step, not five" text="Lines older than the newest three stages step down once, to tertiary ink (4.5:1 or better everywhere). The log has no open form to switch to, so the five-step ladder would leave unreadable lines with no way back." before={BEFORE.log[theme]}>
-        <Terminal title="Deploy · basalt-sra" stages keep={3} status="done" time={{ start: t - 6800, end: t }} lines={[
-          { kind: "command", text: "basalt deploy --prod" }, { kind: "stage", state: "done", text: "Cloned main@4f2a1c0", start: 0, end: 700 }, { kind: "stage", state: "skipped", text: "cache restore (no cache)" },
-          { kind: "stage", state: "done", text: "Installed 412 packages", start: 0, end: 1700 }, { kind: "stage", state: "done", text: "Built 142 routes", start: 0, end: 2300 }, { kind: "output", text: "Compiled 142 routes" },
-          { kind: "stage", state: "done", text: "Uploaded 3 artifacts", start: 0, end: 900 }, { kind: "stage", state: "done", text: "Promoted to production", start: 0, end: 500 }, { kind: "done", text: "Ready  https://basalt-sra.example" },
-        ]} />
+      <Pair title="2. The deploy log's tail is one step, not five" text="Lines older than the newest three stages step down once, to tertiary ink (4.5:1 or better everywhere). The log has no open form to switch to, so the five-step ladder would leave unreadable lines with no way back." before={<Capture src={BEFORE.log[key]} alt="The prototype's deploy log, its older lines on a five-step ladder" />}>
+        <DeployLog state="passed" fixed />
       </Pair>
-      <Pair title="3. The queued mark breathes from 65%, in secondary ink" text="The prototype breathed from 45% in tertiary ink, which fell to 1.89:1 in light. From 65% in secondary it is 3:1 or better at every moment on every surface. Above: at rest; below: the bottom of its breath." before={BEFORE.queued[theme]}>
-        <Card style={{ ...pad, gap: 12 }}>
-          {[1, 0.65].map((o) => <div key={o} style={{ display: "flex", alignItems: "center", gap: 12, font: "400 13px / 18px var(--basalt-font-family-sans)" }}><span style={{ opacity: o, display: "inline-flex" }}><StageMark state="queued" /></span>Queued<span style={{ color: "var(--basalt-text-tertiary)", fontSize: 12 }}>{o === 1 ? "at rest" : "at 65%"}</span></div>)}
-        </Card>
+      <Pair title="3. The queued mark breathes from 65%, in secondary ink" text="The prototype breathed from 45% in tertiary ink, which fell to 1.89:1 in light. From 65% in secondary it is 3:1 or better at every moment on every surface. Above, at rest; below, the bottom of its breath." before={<div style={{ display: "grid", gap: 8 }}><Capture src={rest} alt="The prototype's queued mark at rest" /><Capture src={low} alt="The prototype's queued mark at 45%" /></div>}>
+        <div style={{ display: "grid", gap: 8 }}>
+          {[1, 0.65].map((o) => <div key={o} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", font: "400 13px / 18px var(--basalt-font-family-sans)" }}><span style={{ opacity: o, display: "inline-flex" }}><StageMark state="queued" /></span>Queued</div>)}
+        </div>
       </Pair>
-      <Pair title="4. The connector no longer fills or breaks" text="One still line between two marks, drawn beside an open reason too. A vertical line that fills when a stage passes is a status mark on a vertical line, which your own rule bans; the rail's horizontal links keep their fill." before={BEFORE.connector[theme]}>
-        <Card style={pad}>
-          <StageList label="Deploy 812 stages">
-            {(["Clone", "Install", "Build"] as const).map((n, i) => <RunStage key={n} name={n} state="success" meta={["main@4f2a1c0", "412 packages", "142 routes"][i]} start={0} end={[800, 1600, 2100][i]} />)}
-            <RunStage name="Test" state="failed" meta="unit and e2e" start={0} end={1400} detail={<><p><strong>3 tests failed</strong> in <code>session.test.ts</code></p><small>Exit 1 · attempt 1 of 2</small></>} action={<Button size="sm" variant="secondary" icon={ArrowClockwiseIcon}>Retry</Button>} />
-            <RunStage name="Deploy" state="skipped" word="Blocked by Test" meta="production" />
-            <RunStage name="Promote" state="skipped" word="Blocked by Test" meta="basalt-sra.example" />
-          </StageList>
-        </Card>
+      <Pair title="4. The connector no longer fills or breaks" text="One still line between two marks, drawn beside an open reason too. A vertical line that fills when a stage passes is a status mark on a vertical line, which your own rule bans; the rail's horizontal links keep their fill." before={<Capture src={BEFORE.connector[key]} alt="The prototype's stage list with Test failed" />}>
+        <DeployList state="failed" fixed />
       </Pair>
-      <Pair title="5. Under Pause animations, a stage's own time hides and the head says when the run started" text="The prototype put the held form in every timer, which is wider than its seat and wrapped on the rail at 390. Now only the run's head says &quot;Started 3:47 PM&quot;; each stage's running time hides, its box kept." before={BEFORE.held[`${theme}-${w}` as "dark-1440"]}>
+      <Pair title="5. Under Pause animations, a stage's own time hides and the head says when the run started" text="The prototype put the held form in every timer, which is wider than its seat and wrapped on the rail at 390. Now only the run's head says &quot;Started 3:47 PM&quot;; each stage's running time hides, its box kept." before={<Capture src={BEFORE.held[key]} alt="The prototype's rail under the hold" />}>
         <HeldRail />
       </Pair>
     </div>
@@ -479,7 +472,7 @@ function HeldRail() {
 }
 
 const COMMON = [
-  "Decided by the council for the owner's handoff (DECISIONS 302, 304, 307, 312 and 316); built by Opus from the decision. Not reviewed: no panel or council member has read the build.",
+  "Decided by the council for the owner's handoff (DECISIONS 302, 304, 307, 312 and 316); built by Opus from the decision. Reviewed by the council: the code by Astra, the pixels by Fable (twice), and fixed after each. Not checked: no screen reader was heard, and WebKit was not opened by the pixel review. Waiting for the owner.",
   "Every class begins basalt-run- (Stage and .stage are the art's). Each run has one voice, RunAnnouncer: every event once, in order; never a timer, a roll or a passed stage.",
 ];
 
@@ -488,7 +481,7 @@ export const ROUND_67: Round = {
   title: "Stage animations (DECISIONS 316)",
   reviewed: false,
   summary:
-    "The owner's confirmed stage animations, built to the council's decision (DECISIONS 316): StageMark (seven states, the queued breath), StageBadge (a face that changes in place), RunTimer, RunAnnouncer, StageList and StageRail with RunStage, Terminal's declared stage transcript, and RunTimeline with the counter. Five departures from the confirmed prototype are for the owner's eye: the tail goes below 4.5:1 with the toggle as the way back; the deploy log steps back once; the queued mark breathes from 65% in secondary ink; the connector no longer fills or breaks; under the hold a stage's own time hides and the head shows when the run started. Not reviewed.",
+    "The owner's confirmed stage animations, built to the council's decision (DECISIONS 316): StageMark (seven states, the queued breath), StageBadge (a face that changes in place), RunTimer, RunAnnouncer, StageList and StageRail with RunStage, Terminal's declared stage transcript, and RunTimeline with the counter. Five departures from the confirmed prototype are for the owner's eye: the tail goes below 4.5:1 with the toggle as the way back; the deploy log steps back once; the queued mark breathes from 65% in secondary ink; the connector no longer fills or breaks; under the hold a stage's own time hides and the head shows when the run started. Reviewed by the council: the code by Astra, the pixels by Fable (twice), and fixed after each. Not checked: no screen reader was heard, and WebKit was not opened by the pixel review. Waiting for the owner.",
   steps: [
     {
       id: "departures",
@@ -537,7 +530,7 @@ export const ROUND_67: Round = {
       intro: "A Terminal declared `stages`: never a log, braille in the gutter while a stage runs, a duration column at the end of each line, and the lines older than the newest three stages stepped back once (departure 2).",
       decisions: [...COMMON, "No scrollbar on a live window, on either axis, from its first frame. Skipped and canceled draw their word first; a failed line is the error line."],
       tryIt: ["Scroll the log with the keys (Home, End, the arrows): no bar is drawn, with a mouse plugged in too."],
-      states: ["default", "passed", "held", "default-more-contrast@1440"],
+      states: ["default", "passed", "held", "default@320", "held@320", "default-more-contrast@1440"],
       widths: W,
       scales: [2],
       height: 440,

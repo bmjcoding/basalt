@@ -4487,6 +4487,23 @@
   .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
   /* A head with a run's time keeps every part inside its padding at every width: the actions give up the ghost button's optical overhang. */
   .basalt-terminal-actions:has(> .basalt-terminal-time) { margin-inline-end: 0; }
+  /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (on the end edge), then
+     the state and its time from the title's start edge; space-2 between the two lines, space-3 under the status. The button's row is its own height
+     (the control, 44 where touch sizes apply), the title centred on it, and the status line starts space-2 under the title's line. */
+  .basalt-terminal-head { --_head-button: var(--basalt-size-control-sm); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-terminal-head { --_head-button: var(--basalt-size-tap-min); } }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-terminal-head:has(.basalt-terminal-time) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0 var(--basalt-space-2); padding-block-end: var(--basalt-space-3); }
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-title { grid-area: 1 / 1 / 2 / 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; }
+    .basalt-terminal-head:has(.basalt-terminal-time) :is(.basalt-terminal-state, .basalt-terminal-time) { grid-row: 2; margin-block-start: calc(var(--basalt-space-2) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2); }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { grid-column: 1; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { grid-column: 2; justify-self: start; }
+  }
   /* keep: a line older than the newest keep stage lines, and its output, steps back once to tertiary, its mark and duration too; a failed one is
      danger at opacity-recede-danger. A colour step over duration-fast; nothing moves. Never under more contrast or in forced colours. */
   .basalt-terminal .basalt-code-line { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
