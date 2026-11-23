@@ -252,6 +252,40 @@
         "$description": "The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3."
       }
     },
+    "diagram": {
+      "edge-main": {
+        "$value": "{color.text.primary}",
+        "$description": "A diagram's main line and its head, and a traced line (DECISIONS 281). 3:1 or better on levels 0 to 3."
+      },
+      "edge": {
+        "$value": "{color.text.secondary}",
+        "$description": "A diagram's plain and dashed lines and their heads, a foreign key's line and dot, and an edge label's ink."
+      },
+      "edge-dim": {
+        "$value": "{color.border.input}",
+        "$description": "Every other line of a diagram while one node is traced: quieter, still 3:1. The input boundary; it does not step under more contrast."
+      },
+      "structure": {
+        "$value": "{color.border.input}",
+        "$description": "A diagram's group boundary, a sequence's lifeline and a flowchart shape's contour: 3:1, because each carries meaning. It does not step under more contrast."
+      },
+      "focal": {
+        "$value": "{color.action.primary}",
+        "$description": "A diagram's focal node: its fill and its edge, inverted ink. At most one a diagram, and never the accent."
+      },
+      "focal-ink": {
+        "$value": "{color.action.primary-text}",
+        "$description": "Ink on the focal node; its kind and detail are this ink at opacity-amount."
+      },
+      "focal-rule": {
+        "$value": "{color.white.6}",
+        "$description": "The focal table's header rule. Decorative: the other theme's divider, because the focal fill is the other theme's ground."
+      },
+      "focal-rule-contrast": {
+        "$value": "{color.white.38}",
+        "$description": "Under more contrast, the focal table's header rule: the other theme's input boundary (DECISIONS 281, 1.18). An alias, no new colour."
+      }
+    },
     "art": {
       "field": {
         "$value": "{color.neutral.98}",

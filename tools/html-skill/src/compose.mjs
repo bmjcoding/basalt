@@ -28,6 +28,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -303,7 +304,7 @@ export function readBody(body, stats = {}) {
   const placeholder = new RegExp(`${mark}(\\d+)${mark}(\\s*)`, "g");
   const blank = (item) => { let text = item.text; for (const [a, b] of [...item.comments].reverse()) text = text.slice(0, a) + " " + text.slice(b); return text; };
   return {
-    text: out, saved, scripts, placeholder, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
+    text: out, saved, scripts, placeholder, mark, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
     // The text put back; with `bare`, as detection reads it: no comment (an HTML one, or one in a nested element, or in a script).
     restore: (s, bare = false) => s.replace(placeholder, (_, k, ws) => {
       const item = saved[Number(k)];
@@ -539,7 +540,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   });
   for (const name of use) if (!(name in manifest.modules)) throw new Error(`basalt:use names "${name}", which is not a module (modules: ${Object.keys(manifest.modules).join(", ")})`);
 
-  const content = held.restore(markup).replace(/^\s+/, "");
+  const diagramNotes = [];
+  const content = held.restore(writeDiagrams(markup, held, parts, diagramNotes)).replace(/^\s+/, "");
   title ||= held.h1 || "Untitled page"; // an empty <title> names nothing: the heading does
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
@@ -587,7 +589,59 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
+}
+
+/**
+ * A diagram's words, written into the page (DECISIONS 281, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
+ * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
+ * attributes stay (its class joins ours, its id stays); the JSON stays for the script. A figure whose JSON does not parse is left for the script, which says why.
+ *
+ * It reads the body as readBody left it: every comment, script, style, textarea, title, svg and template is a placeholder there, so a figure written as an
+ * example inside one is text and is never expanded. A figure is found by the composer's own tag reader (quoted, single-quoted or unquoted attributes alike),
+ * and is expanded only when its class list holds `diagram` and its content is one `script` with `data-diagram` and nothing else but white space.
+ */
+function writeDiagrams(markup, held, parts, notes) {
+  if (!exists(parts, "diagram.js")) return markup;
+  const mark = held.mark;
+  const json = new RegExp(`^(\\s*)${mark}(\\d+)${mark}(\\s*)</figure(?=[\\t\\n\\f\\r />])[^>]*>`, "i");
+  let engine = null;
+  let serial = 0;
+  let out = "";
+  let at = 0;
+  for (let i = markup.indexOf("<"); i !== -1; i = markup.indexOf("<", i + 1)) {
+    if (!/^<figure[\t\n\f\r />]/i.test(markup.slice(i, i + 8))) continue;
+    const tag = readTag(markup, i);
+    if (!tag.terminated || tag.close) continue;
+    const attrs = new Map();
+    for (const [k, v] of tag.attrs) if (!attrs.has(k)) attrs.set(k, v); // the first of a repeated attribute wins, as in a browser
+    if (!(attrs.get("class") ?? "").split(/[\t\n\f\r ]+/).includes("diagram") || attrs.has("data-diagram-drawn")) continue;
+    const inside = json.exec(markup.slice(tag.end));
+    const item = inside && held.saved[Number(inside[2])];
+    if (!item || item.kind !== "script" || !item.attrs.some(([k]) => k === "data-diagram")) continue;
+    let spec;
+    try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
+    if (!engine) {
+      const context = { window: { Basalt: { _: { step() {}, esc: (x) => x } } }, console: { warn() {}, error() {}, log() {} } };
+      vm.runInNewContext(read(parts, "diagram.js"), context);
+      engine = context.window.Basalt._.diagramMarkup;
+    }
+    let made;
+    try { made = engine(spec, `dg${++serial}`); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }
+    for (const w of made.warnings) notes.push(`${spec.title ?? "a diagram"}: ${w}`);
+    const merged = new Map(attrs);
+    for (const [, k, v] of made.open.matchAll(/\s([\w:-]+)="([^"]*)"/g)) {
+      if (k === "class") merged.set("class", [...new Set(`${merged.get("class") ?? ""} ${v}`.split(/\s+/).filter(Boolean))].join(" "));
+      else if (k === "style") merged.set("style", merged.has("style") ? `${v};${merged.get("style")}` : v);
+      else merged.set(k, v);
+    }
+    const open = `<figure${[...merged].map(([k, v]) => ` ${k}="${v.replaceAll('"', "&quot;")}"`).join("")}>`;
+    const end = tag.end + inside[0].length;
+    out += markup.slice(at, i) + open + inside[1] + `${mark}${inside[2]}${mark}` + inside[3] + made.inner + "</figure>";
+    at = end;
+    i = end - 1;
+  }
+  return out + markup.slice(at);
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */
@@ -707,6 +761,7 @@ if (isMain) {
         const say = (l) => (l.name in result.built ? `  ${l.name}: built by the ${result.built[l.name]}; nothing to check.` : `  ${l.name}: ${l.warning}`);
         if (warnings.length) console.log(`Check before you hand it over (the full text of one: --usage NAME):\n${warnings.map(say).join("\n")}`);
       }
+      for (const note of result.diagrams) console.log(`Diagram: ${note}`);
       // After the page and the modules' lines: what the body references that is not in the file. The page is written; the warning is for the one who handed it over.
       if (result.external.length) console.log(`Warning: ${result.external.length} reference${result.external.length === 1 ? "" : "s"} leave${result.external.length === 1 ? "s" : ""} the file, and a page is one file with no network (nothing loads offline; a link is the reader's to follow):\n${result.external.map((line) => `  ${line}`).join("\n")}`);
     } catch (e) {

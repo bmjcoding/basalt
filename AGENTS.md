@@ -123,7 +123,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
-  `Separator` between groups of controls, and the edges between a `NumberField`'s value and its steppers. The active row in a menu, select, combobox or command menu is a rounded plate
+  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline. The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
@@ -188,6 +188,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts
   (info, warning, error, success). Status icons pair with words.
+- **Diagrams:** monochrome; one focal node, inverted. Three lines named by look (main 2px, plain 1px, dashed), and the key says what
+  each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
+  the author's order, at most 480 wide. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
+  record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
   arrives; it does not promise the same wrap at every width.
 - **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed

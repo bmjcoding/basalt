@@ -62,6 +62,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **period** `.period`: two ghost icon buttons round `.period-label`; at an end `aria-disabled`, never `disabled`.
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
+- **diagram** `.diagram`: JSON in `script[data-diagram]`; sides only to change the default; needs a `summary`.
 - **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.

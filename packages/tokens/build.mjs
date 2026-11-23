@@ -134,6 +134,8 @@ const MORE_CONTRAST = {
   "border-field": "field-contrast",
   // A hovered edge is never fainter than the edge at rest (decision 145): it steps to secondary ink, a colour the theme already has.
   "border-hover": "text-secondary",
+  // A diagram's focal table draws its header rule as the other theme's input boundary (DECISIONS 281, 1.18).
+  "diagram-focal-rule": "diagram-focal-rule-contrast",
 };
 for (const [token, alias] of Object.entries(MORE_CONTRAST)) {
   for (const name of [token, alias]) if (!lightNames.includes(`--${PREFIX}-${name}`)) throw new Error(`more contrast: --${PREFIX}-${name} does not exist`);
