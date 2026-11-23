@@ -4997,7 +4997,8 @@
   }
   /* The viewer and its scrim do not print: the page prints its own figure, untraced and light. "Expand" does not print. */
   @media print {
-    .basalt-diagram-expand, .basalt-diagram-viewer { display: none !important; }
+    /* With no transition: a display transition (the dialog's own, allow-discrete) would hold it on screen past the change. */
+    .basalt-diagram-expand, .basalt-diagram-viewer { display: none !important; transition: none !important; }
   }
 
   /* ---- Diagram viewer, React's dialog (DECISIONS 310): the form dialog's box on a native modal <dialog>, as the HTML skill's is ----

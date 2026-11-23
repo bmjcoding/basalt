@@ -165,7 +165,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, title: _ti
     setInk(result.ink);
     // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
     if (!hasStops(model, result.dyn)) setHoverTrace(null);
-    if (viewer) viewer.onMeasured(result, fig);
+    // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had.
+    if (viewer && result.tokens) viewer.onMeasured(result, fig);
   }, [model, base, options, component, viewer]);
 
   // Measured before the first paint, then whenever the figure's width changes or the real faces arrive.

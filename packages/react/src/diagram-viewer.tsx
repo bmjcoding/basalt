@@ -107,6 +107,9 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
     zoomRef.current?.size(fig.offsetWidth, fig.offsetHeight);
   }, []);
   const memo = React.useRef<ViewerMemo>({});
+  // The figure is laid out as the dialog opens, through its scale from .98; once the entrance has ended it is laid out again, unscaled, so its lines
+  // snap on the pixel grid they are drawn on.
+  const [settled, setSettled] = React.useState(0);
   const viewer = React.useMemo<DiagramViewerMode | undefined>(() => {
     const layer = layerRef.current;
     if (!(avail > 0) || !layer) return undefined;
@@ -115,7 +118,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
       onMeasured,
       measure: (fig, m, p, base, current, apply, warn) => measureViewerFigure(fig, m, p, base, current, apply, warn, { layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }),
     };
-  }, [avail, dims, onMeasured, measureFigure]);
+  }, [avail, dims, onMeasured, measureFigure, settled]);
 
   // A stack with no lines has its list open, as on the page (9.3).
   const showList = listOpen || Boolean(layout.bare);
@@ -166,11 +169,13 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
       const first = all[0]!, last = all[all.length - 1]!, at = document.activeElement;
       if (e.shiftKey && (at === first || at === d)) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
     };
+    const onEntered = (e: TransitionEvent) => { if (e.target === d && e.propertyName === "transform" && d.open && !closing.current) setSettled((n) => n + 1); };
+    d.addEventListener("transitionend", onEntered);
     d.addEventListener("close", onClose);
     d.addEventListener("pointerdown", onDown);
     d.addEventListener("click", onClick);
     d.addEventListener("keydown", onKey);
-    return () => { clearTimeout(timer); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
+    return () => { clearTimeout(timer); d.removeEventListener("transitionend", onEntered); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
   }, [opener, close]);
 
   return createPortal(
@@ -206,7 +211,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
             <p className={`${P}-hint ${P}-viewer-hint`} data-kbd-hint="" aria-hidden="true">{hint}</p>
             <div className={`${P}-viewer-end`}>
               {layout.bare ? null : (
-                <button type="button" className={`basalt-button ${P}-toggle`} data-variant="secondary" data-size="sm" aria-expanded={showList} onClick={() => setListOpen((v) => !v)}>
+                <button type="button" className={`basalt-button ${P}-toggle`} data-variant="secondary" data-size="sm" aria-expanded={showList} onClick={() => { if (!showList) zoomRef.current?.list(true); setListOpen((v) => !v); }}>
                   <span className="basalt-button-label">{showList ? "Hide the list" : "View as list"}</span>
                 </button>
               )}

@@ -167,6 +167,7 @@ export function attachZoom(host: ZoomHost): ZoomController {
   }
 
   function size(width: number, height: number) {
+    if (!width || !height) return;
     const keep = touched && W && H ? contentAt(middle()) : null;
     W = width;
     H = height;
@@ -363,7 +364,13 @@ export function measureViewerFigure(fig: HTMLElement, m: Model, P: string, base:
   layer.style.transform = "none";
   // A dialog still opening is scaled (from .98): the layer is scaled by the inverse while it is measured, so what is read is 100% whatever its ancestors do.
   const ancestors = layer.offsetWidth ? layer.getBoundingClientRect().width / layer.offsetWidth : 1;
-  if (Math.abs(ancestors - 1) > 1e-4) layer.style.transform = `scale(${1 / ancestors})`;
+  const unscale = Math.abs(ancestors - 1) > 1e-4 ? ` scale(${1 / ancestors})` : "";
+  layer.style.transform = unscale || "none";
+  // The engine snaps lines to the page's pixel grid from the drawing's origin. The layer sits wherever the stage centres it, so it is moved to the
+  // nearest whole pixel while it is measured (its drawing's origin): the ink is then the string a page drawing on whole pixels draws, whatever the zoom or the stage's size.
+  const r = (fig.querySelector(`.${P}-drawing`) ?? layer).getBoundingClientRect();
+  const fx = r.left - Math.round(r.left), fy = r.top - Math.round(r.top);
+  if (fx || fy) layer.style.transform = `translate(${-fx / ancestors}px, ${-fy / ancestors}px)${unscale}`;
   // Before the least drawn width is known, a refusal at the token sum is expected and is not the author's to fix: it says nothing.
   let result = measureFigure(fig, m, P, base, current, apply, memo.least === undefined ? undefined : warn, sizeTo);
   // The least drawn width is the first width the engine draws the figure at, which the token sum can undercount (a sequence's columns are measured, a

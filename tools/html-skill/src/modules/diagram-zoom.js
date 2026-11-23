@@ -86,9 +86,11 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
         list.innerHTML = kit.figureList('diagram', model).map(function (v) { return kit.toHtml(v); }).join('');
         stage.appendChild(list);
       }
+      // The place is kept before the drawing is hidden, and given back once it shows again.
+      if (open) zoom.list(true);
       if (list) list.hidden = !open;
       sizer.hidden = open;
-      zoom.list(open);
+      if (!open) zoom.list(false);
     }
     toggle.addEventListener('click', function () {
       listOpen = !listOpen;
@@ -117,6 +119,8 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
       if (fig.__diagram) fig.__diagram.layout();
     });
     observer.observe(stage);
+    // Laid out again once the dialog's entrance has ended, unscaled, so its lines snap on the pixel grid they are drawn on.
+    d.addEventListener('transitionend', function (e) { if (e.target === d && e.propertyName === 'transform' && d.open && fig.__diagram) fig.__diagram.layout(); });
     page.setAttribute('data-viewing', '');
     if (ctx.animated) ctx.settle();
     d.addEventListener('close', function () {
