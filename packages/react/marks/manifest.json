@@ -1,13 +1,113 @@
 {
- "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit. unofficial: true marks a drawing that is not the owner's own file (DECISIONS 297: the owner asked for a mark on these even where it is not an official logo); its edits list every change made to the fetched file before the pipeline's own, and both files are in source/ with their hashes.",
+ "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit. unofficial: true marks a drawing that is not the owner's own file (DECISIONS 297: the owner asked for a mark on these even where it is not an official logo); its edits list every change made to the fetched file before the pipeline's own, and both files are in source/ with their hashes. Batch C (DECISIONS 301) added more AWS Resource icons, two Azure, three Google Cloud and Kubernetes. The floor for a multi-colour file (Azure, Google Cloud) is measured on its principal ink: the colour most of its drawing is nearest to (drawn at 128px, each opaque coloured pixel assigned to the nearest hex in the file), and where two or more are within 5 points of the largest share, the weakest of them. The file's other fills are in the owner's palette and are recorded in the entry's departures, not held to the floor, because the contrast test reads one ink a form. A legible mark whose principal ink is under 3:1 is in notShipped with its measured ratio, and comes back when the council records an exception for it.",
  "notShipped": [
   {
    "service": "Amazon Aurora, RDS and ElastiCache",
-   "why": "Every instance icon carries lettering that is dust at 16px. A database card takes aws-database."
+   "why": "Every instance icon carries lettering that is dust at 16px (rechecked 23 Nov, Release 24-2026.07.31): Aurora's variants say \"Amazon Aurora\", \"PostgreSQL\", \"MySQL\", \"MariaDB\", \"Oracle\" and \"SQL Server\" in a few pixels, RDS says \"Amazon RDS\", RDS Proxy says \"RDS Proxy\", ElastiCache's cache node says \"CACHE\" and its Redis, Valkey and Memcached icons each carry one large letter (R, V, M). The one lettering-free icon, RDS Multi-AZ, draws the Multi-AZ feature, not the service. A database card takes aws-database."
   },
   {
    "service": "Amazon SNS",
-   "why": "Its topic is drawn in dotted rows that vanish at 16px."
+   "why": "Its topic and its notification icons are drawn in dotted rows that vanish at 16px (rechecked 23 Nov)."
+  },
+  {
+   "service": "AWS Step Functions, Amazon Kinesis, AWS Fargate, AWS Secrets Manager, Amazon Cognito",
+   "why": "The Resource-Icons set has no icon for the service itself, and its Architecture-Service icon is a coloured tile with a white glyph (AWS's terms forbid recolouring it or removing the tile; Bedrock's tile-removed mark is unofficial, DECISIONS 297). A card for it takes no mark unless the owner asks for an unofficial one."
+  },
+  {
+   "service": "Amazon EKS and AWS KMS",
+   "why": "The only Resource icons are for a feature, not the service: EKS on Outposts and KMS's External Key Store. The Resource-Icons set has no icon for the service itself, and its Architecture-Service icon is a coloured tile with a white glyph (AWS's terms forbid recolouring it or removing the tile; Bedrock's tile-removed mark is unofficial, DECISIONS 297). A card for it takes no mark unless the owner asks for an unofficial one."
+  },
+  {
+   "service": "Amazon Redshift",
+   "why": "Its Resource icons are node types that carry lettering (\"DC\", \"RA3\")."
+  },
+  {
+   "service": "AWS icons with lettering in the drawing",
+   "why": "IAM MFA Token (\"MFA\"), Transfer Family SFTP and FTPS (\"SFTP\", \"FTPS\"), IoT MQTT (\"MQTT\") and Managed Microsoft AD (\"MS\")."
+  },
+  {
+   "service": "Azure Functions (Function Apps)",
+   "why": "Its principal ink, #feb018, is 1.57:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Storage (Storage Accounts)",
+   "why": "Its principal ink, #37c2b1, is 1.89:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Cosmos DB",
+   "why": "Its principal ink, #50e6ff, is 1.27:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure SQL Database",
+   "why": "Its principal ink, #0060a9, is 2.77:1 on the dark theme's levels, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Kubernetes Service (AKS)",
+   "why": "Its principal ink, #773adc, is 2.92:1 on the dark theme's levels, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Service Bus",
+   "why": "Its principal ink, #50e6ff, is 1.27:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Event Hubs",
+   "why": "Its principal ink, #76bc2d, is 1.99:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Key Vault",
+   "why": "Its principal ink, #ffcb12, is 1.30:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure Front Door",
+   "why": "Its principal ink, #5ea0ef, is 2.31:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Azure API Management",
+   "why": "Its principal ink, #32d4f5, is 1.51:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Azure_Public_Service_Icons_V25"
+  },
+  {
+   "service": "Microsoft Entra ID",
+   "why": "Its mark is in the separate Microsoft Entra architecture icons package (Oct 2023, \"Microsoft Entra ID color icon.svg\"; the Azure package has none). Its principal ink, #66ddff, is 1.34:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "Microsoft Entra architecture icons - Oct 2023.zip"
+  },
+  {
+   "service": "Google Compute Engine",
+   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "core-products-icons.zip"
+  },
+  {
+   "service": "Google Cloud Storage",
+   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "core-products-icons.zip"
+  },
+  {
+   "service": "Google BigQuery",
+   "why": "Its principal ink, #34a853, is 2.61:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "core-products-icons.zip"
+  },
+  {
+   "service": "Google Vertex AI",
+   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
+   "source": "core-products-icons.zip"
+  },
+  {
+   "service": "Google Pub/Sub and Cloud Functions",
+   "why": "The core-products set has no icon for either; the legacy console set (google-cloud-legacy-icons.zip) has them, and both are drawn mostly in tints (#AECBFA is 1.41:1 on the dark theme's focal card and 1.65:1 on white; #669df6 2.7:1 on white), far under the 3:1 floor.",
+   "source": "google-cloud-legacy-icons.zip"
+  },
+  {
+   "service": "Kubernetes component icons",
+   "why": "Pod, service, deployment, ingress and the rest (github.com/kubernetes/community/icons, Apache-2.0) are one blue heptagon each with a white glyph under 9px at 16, which does not tell one from another. The control-plane components exist only as labelled icons, whose lettering is dust at 16."
   }
  ],
  "marks": [
@@ -2358,6 +2458,2167 @@
     "Unofficial (DECISIONS 297): BlazeMeter publishes no mark file; this is Simple Icons' drawing, shown black on light grounds and white on dark rather than its red.",
     "The mark is wide: at 16px wide it is about 6px tall. It holds a letter B, which the set's no-lettering rule would exclude; the owner asked for it (DECISIONS 297)."
    ]
+  },
+  {
+   "id": "aws-vpc",
+   "name": "Amazon VPC",
+   "says": [
+    "VPC",
+    "virtual private cloud"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_Amazon-VPC_Virtual-private-cloud-VPC_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-VPC_Virtual-private-cloud-VPC_48.svg": "4cb934198b019bccdd8efc2ef7e95d3bb200148b14919f36082a26436a9bcd8c"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-VPC_Virtual-private-cloud-VPC_48.svg",
+    "dark": "aws/Res_Amazon-VPC_Virtual-private-cloud-VPC_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.96,
+     3,
+     44.05,
+     42.03
+    ],
+    "dark": [
+     1.96,
+     3,
+     44.05,
+     42.03
+    ]
+   }
+  },
+  {
+   "id": "aws-vpc-endpoints",
+   "name": "Amazon VPC endpoints",
+   "says": [
+    "VPC endpoint",
+    "VPC endpoints",
+    "PrivateLink"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_Amazon-VPC_Endpoints_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-VPC_Endpoints_48.svg": "08ca5b0393a5df5a5342d0d9612ff27df86b413087ed15222530c3add811fbf6"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-VPC_Endpoints_48.svg",
+    "dark": "aws/Res_Amazon-VPC_Endpoints_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     43.91,
+     43.91
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     43.91,
+     43.91
+    ]
+   }
+  },
+  {
+   "id": "aws-vpn-connection",
+   "name": "AWS Site-to-Site VPN connection",
+   "says": [
+    "VPN"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_Amazon-VPC_VPN-Connection_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-VPC_VPN-Connection_48.svg": "e7c5f104022a48716b1de5f038264ad7deb6af4ada3ada136d53ab4a47d09cae"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-VPC_VPN-Connection_48.svg",
+    "dark": "aws/Res_Amazon-VPC_VPN-Connection_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     3.98,
+     1.99,
+     39.62,
+     44.05
+    ],
+    "dark": [
+     3.98,
+     1.99,
+     39.62,
+     44.05
+    ]
+   }
+  },
+  {
+   "id": "aws-transit-gateway-attachment",
+   "name": "AWS Transit Gateway",
+   "says": [
+    "Transit Gateway"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_AWS-Transit-Gateway_Attachment_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Transit-Gateway_Attachment_48.svg": "530d547ffe1d5ad2f9d733b0ab6d8601dad2e7cb067185eb54ad2ca58debfad5"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Transit-Gateway_Attachment_48.svg",
+    "dark": "aws/Res_AWS-Transit-Gateway_Attachment_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-direct-connect-gateway",
+   "name": "AWS Direct Connect gateway",
+   "says": [
+    "Direct Connect"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_AWS-Direct-Connect_Gateway_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Direct-Connect_Gateway_48.svg": "65ed91fa95886b340dfc49f2f820269d89b1c08f4f98030c3f13888bfc6dc569"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Direct-Connect_Gateway_48.svg",
+    "dark": "aws/Res_AWS-Direct-Connect_Gateway_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     3,
+     1.99,
+     42.9,
+     43.91
+    ],
+    "dark": [
+     3,
+     1.99,
+     42.9,
+     43.91
+    ]
+   }
+  },
+  {
+   "id": "aws-app-mesh-mesh",
+   "name": "AWS App Mesh",
+   "says": [
+    "App Mesh"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Networking-Content-Delivery/Res_AWS-App-Mesh_Mesh_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-App-Mesh_Mesh_48.svg": "c12a67d86fa730bd7b05a7d6c8f9e3161bafaad7a0b01f2f408e1fcf4f62b267"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-App-Mesh_Mesh_48.svg",
+    "dark": "aws/Res_AWS-App-Mesh_Mesh_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     2.97,
+     1.99,
+     42.32,
+     44.02
+    ],
+    "dark": [
+     2.97,
+     1.99,
+     42.32,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-glue-data-catalog",
+   "name": "AWS Glue Data Catalog",
+   "says": [
+    "Glue"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_AWS-Glue_Data-Catalog_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Glue_Data-Catalog_48.svg": "d870d9c1e8fe9d3db69f754341438a4a366742697f6fc24f17a57aeb4a5b6b81"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Glue_Data-Catalog_48.svg",
+    "dark": "aws/Res_AWS-Glue_Data-Catalog_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     3.98,
+     1.99,
+     40.04,
+     44.02
+    ],
+    "dark": [
+     3.98,
+     1.99,
+     40.04,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-athena-data-source-connectors",
+   "name": "Amazon Athena data source connectors",
+   "says": [
+    "Athena"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_Amazon-Athena_Data-Source-Connectors_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-Athena_Data-Source-Connectors_48.svg": "64daaca3e7f43d67b11fc56426a2c0812a647b26656c0adb0f37e97ba697d121"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-Athena_Data-Source-Connectors_48.svg",
+    "dark": "aws/Res_Amazon-Athena_Data-Source-Connectors_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-emr-cluster",
+   "name": "Amazon EMR cluster",
+   "says": [
+    "EMR"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_Amazon-EMR_Cluster_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-EMR_Cluster_48.svg": "e8399b29419c3c8d51969ab3f51cc6d35ff6450cf921e7341ad3bdfa6992be8f"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-EMR_Cluster_48.svg",
+    "dark": "aws/Res_Amazon-EMR_Cluster_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     43.98,
+     43.95
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     43.98,
+     43.95
+    ]
+   }
+  },
+  {
+   "id": "aws-lake-formation-data-lake",
+   "name": "AWS Lake Formation data lake",
+   "says": [
+    "Lake Formation"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_AWS-Lake-Formation_Data-Lake_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Lake-Formation_Data-Lake_48.svg": "ee329d4fb38decf8dbdb5d8551962c20245566549a8829c10cba17a034af7d7e"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Lake-Formation_Data-Lake_48.svg",
+    "dark": "aws/Res_AWS-Lake-Formation_Data-Lake_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     43.62
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     43.62
+    ]
+   }
+  },
+  {
+   "id": "aws-opensearch-data-node",
+   "name": "Amazon OpenSearch Service",
+   "says": [
+    "OpenSearch"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_Amazon-OpenSearch-Service_Data-Node_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-OpenSearch-Service_Data-Node_48.svg": "da1a73d2e04ebf115cb6d4fd3ce99954d81664485b093385d1f9de61e0092d23"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-OpenSearch-Service_Data-Node_48.svg",
+    "dark": "aws/Res_Amazon-OpenSearch-Service_Data-Node_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-msk-connect",
+   "name": "Amazon MSK Connect",
+   "says": [
+    "MSK",
+    "MSK Connect"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Analytics/Res_Amazon-MSK_Amazon-MSK-Connect_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-MSK_Amazon-MSK-Connect_48.svg": "619ae67b80a241e44058cd60a1bcdc256121d3a3e874d6d4127ba4b4bfd1ef3b"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-MSK_Amazon-MSK-Connect_48.svg",
+    "dark": "aws/Res_Amazon-MSK_Amazon-MSK-Connect_48.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     3,
+     44.02,
+     43.01
+    ],
+    "dark": [
+     1.99,
+     3,
+     44.02,
+     43.01
+    ]
+   }
+  },
+  {
+   "id": "aws-eventbridge-scheduler",
+   "name": "Amazon EventBridge Scheduler",
+   "says": [
+    "EventBridge Scheduler",
+    "Scheduler"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Application-Integration/Res_Amazon-EventBridge_Scheduler_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-EventBridge_Scheduler_48.svg": "5e1bd3512901e512409e394e225196ada796f9f59eaf7df74c0a7917462cfa99"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-EventBridge_Scheduler_48.svg",
+    "dark": "aws/Res_Amazon-EventBridge_Scheduler_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     43.01
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     43.01
+    ]
+   }
+  },
+  {
+   "id": "aws-eventbridge-pipes",
+   "name": "Amazon EventBridge Pipes",
+   "says": [
+    "EventBridge Pipes",
+    "Pipes"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Application-Integration/Res_Amazon-EventBridge_Pipes_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-EventBridge_Pipes_48.svg": "b778dcc43e473b07e4f06b724983046b461e0a7a511838731f466b0d9ccf1fbf"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-EventBridge_Pipes_48.svg",
+    "dark": "aws/Res_Amazon-EventBridge_Pipes_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-dynamodb-accelerator",
+   "name": "Amazon DynamoDB Accelerator",
+   "says": [
+    "DAX",
+    "DynamoDB Accelerator"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Databases/Res_Amazon-DynamoDB_Amazon-DynamoDB-Accelerator_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-DynamoDB_Amazon-DynamoDB-Accelerator_48.svg": "a64dee8ecc04207aac8d34b9597fac08015098fd844a593a426699ccfeeced60"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-DynamoDB_Amazon-DynamoDB-Accelerator_48.svg",
+    "dark": "aws/Res_Amazon-DynamoDB_Amazon-DynamoDB-Accelerator_48.svg"
+   },
+   "ink": {
+    "light": "#C925D1",
+    "dark": "#C925D1"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     3,
+     43.84,
+     42.61
+    ],
+    "dark": [
+     1.99,
+     3,
+     43.84,
+     42.61
+    ]
+   }
+  },
+  {
+   "id": "aws-cloudformation-stack",
+   "name": "AWS CloudFormation stack",
+   "says": [
+    "CloudFormation"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Management-Governance/Res_AWS-CloudFormation_Stack_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-CloudFormation_Stack_48.svg": "5c1798f6dfcc1e9b3098aada29d0dd253856abd60236aff9c6d36a8be96784f5"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-CloudFormation_Stack_48.svg",
+    "dark": "aws/Res_AWS-CloudFormation_Stack_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     43.95,
+     43.06
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     43.95,
+     43.06
+    ]
+   }
+  },
+  {
+   "id": "aws-cloudtrail-lake",
+   "name": "AWS CloudTrail Lake",
+   "says": [
+    "CloudTrail"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Management-Governance/Res_AWS-CloudTrail_CloudTrail-Lake_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-CloudTrail_CloudTrail-Lake_48.svg": "3a001c0b84a4717d32dfd6490aa93836ceb4caf38424d4825951b1aaeeef0758"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-CloudTrail_CloudTrail-Lake_48.svg",
+    "dark": "aws/Res_AWS-CloudTrail_CloudTrail-Lake_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     43.25,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     43.25,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-organizations-account",
+   "name": "AWS Organizations account",
+   "says": [
+    "Organizations",
+    "account"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Management-Governance/Res_AWS-Organizations_Account_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Organizations_Account_48.svg": "767410eeea775f5629c837ee29cd9bb089e6d1993b38057eed3ecdc3dcb0c8e3"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Organizations_Account_48.svg",
+    "dark": "aws/Res_AWS-Organizations_Account_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-ses-email",
+   "name": "Amazon SES",
+   "says": [
+    "SES",
+    "Simple Email Service"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Business-Applications/Res_Amazon-Simple-Email-Service_Email_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-Simple-Email-Service_Email_48.svg": "22162171d74eaadb68ea03f7412117084366a76229308c65869501bb4d558fbd"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-Simple-Email-Service_Email_48.svg",
+    "dark": "aws/Res_Amazon-Simple-Email-Service_Email_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     4.99,
+     44.02,
+     38.61
+    ],
+    "dark": [
+     1.99,
+     4.99,
+     44.02,
+     38.61
+    ]
+   }
+  },
+  {
+   "id": "aws-mq-broker",
+   "name": "Amazon MQ broker",
+   "says": [
+    "Amazon MQ",
+    "MQ"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Application-Integration/Res_Amazon-MQ_Broker_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-MQ_Broker_48.svg": "754e2a1d99750b9ce47b36f97abc1a8aa0f9aecd8ef9a67bfdb4070665df2d4c"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-MQ_Broker_48.svg",
+    "dark": "aws/Res_Amazon-MQ_Broker_48.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     4.99,
+     44.02,
+     38.26
+    ],
+    "dark": [
+     1.99,
+     4.99,
+     44.02,
+     38.26
+    ]
+   }
+  },
+  {
+   "id": "aws-waf-rule",
+   "name": "AWS WAF",
+   "says": [
+    "WAF"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Security-Identity/Res_AWS-WAF_Rule_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-WAF_Rule_48.svg": "6f47cd4723b1838c2d660fec5660c6171504ccbf0975ee3f1c59226fbd78ca49"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-WAF_Rule_48.svg",
+    "dark": "aws/Res_AWS-WAF_Rule_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-shield-advanced",
+   "name": "AWS Shield Advanced",
+   "says": [
+    "Shield"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Security-Identity/Res_AWS-Shield_AWS-Shield-Advanced_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Shield_AWS-Shield-Advanced_48.svg": "41790417b033815db98a65d51b1c97506a15376571c7db17d982a0cb212db37c"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Shield_AWS-Shield-Advanced_48.svg",
+    "dark": "aws/Res_AWS-Shield_AWS-Shield-Advanced_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     4.99,
+     1.99,
+     38.37,
+     44
+    ],
+    "dark": [
+     4.99,
+     1.99,
+     38.37,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-security-hub-finding",
+   "name": "AWS Security Hub",
+   "says": [
+    "Security Hub"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Security-Identity/Res_AWS-Security-Hub_Finding_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Security-Hub_Finding_48.svg": "b5afb778f2144645039ec22cd5ee8f5a3841a21faba9e6b82b1a63b7b553d55f"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Security-Hub_Finding_48.svg",
+    "dark": "aws/Res_AWS-Security-Hub_Finding_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     3.98,
+     1.99,
+     40.88,
+     43.93
+    ],
+    "dark": [
+     3.98,
+     1.99,
+     40.88,
+     43.93
+    ]
+   }
+  },
+  {
+   "id": "aws-inspector-agent",
+   "name": "Amazon Inspector",
+   "says": [
+    "Inspector"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Security-Identity/Res_Amazon-Inspector_Agent_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-Inspector_Agent_48.svg": "03e76e54d32e62fd655d4853d9f5ea709e54e6a00f5dac124fc10786c174b10b"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-Inspector_Agent_48.svg",
+    "dark": "aws/Res_Amazon-Inspector_Agent_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     3,
+     44.05,
+     41.7
+    ],
+    "dark": [
+     1.99,
+     3,
+     44.05,
+     41.7
+    ]
+   }
+  },
+  {
+   "id": "aws-network-firewall-endpoints",
+   "name": "AWS Network Firewall",
+   "says": [
+    "Network Firewall"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Security-Identity/Res_AWS-Network-Firewall_Endpoints_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Network-Firewall_Endpoints_48.svg": "26a1adcb36ef75bbd9987c5c6613609eb586870ebff2b175a84cdb4d49b83d4f"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Network-Firewall_Endpoints_48.svg",
+    "dark": "aws/Res_AWS-Network-Firewall_Endpoints_48.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     43.72,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     43.72,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-documentdb-elastic-clusters",
+   "name": "Amazon DocumentDB",
+   "says": [
+    "DocumentDB"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Databases/Res_Amazon-DocumentDB_Elastic-Clusters_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-DocumentDB_Elastic-Clusters_48.svg": "a07e594dbd32fc243d9ef09b8e77a41e65adb73de3ff1e15d29f941de3bdc23c"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-DocumentDB_Elastic-Clusters_48.svg",
+    "dark": "aws/Res_Amazon-DocumentDB_Elastic-Clusters_48.svg"
+   },
+   "ink": {
+    "light": "#C925D1",
+    "dark": "#C925D1"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-dms-migration-job",
+   "name": "AWS Database Migration Service",
+   "says": [
+    "DMS",
+    "Database Migration Service"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Databases/Res_AWS-Database-Migration-Service_Database-migration-workflow-or-job_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Database-Migration-Service_Database-migration-workflow-or-job_48.svg": "cd67de813227972a590cfdb6e49800d3900e309e6553caa892c0672ce2683a19"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Database-Migration-Service_Database-migration-workflow-or-job_48.svg",
+    "dark": "aws/Res_AWS-Database-Migration-Service_Database-migration-workflow-or-job_48.svg"
+   },
+   "ink": {
+    "light": "#C925D1",
+    "dark": "#C925D1"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     9.98,
+     1.99,
+     28.04,
+     44.02
+    ],
+    "dark": [
+     9.98,
+     1.99,
+     28.04,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-rekognition-image",
+   "name": "Amazon Rekognition",
+   "says": [
+    "Rekognition"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Artificial-Intelligence/Res_Amazon-Rekognition_Image_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-Rekognition_Image_48.svg": "dac7154eabd888f948b9e637adfb2894ec89f8b9f5a711abef42702ef40c7633"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-Rekognition_Image_48.svg",
+    "dark": "aws/Res_Amazon-Rekognition_Image_48.svg"
+   },
+   "ink": {
+    "light": "#01A88D",
+    "dark": "#01A88D"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44,
+     43.98
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44,
+     43.98
+    ]
+   }
+  },
+  {
+   "id": "aws-datasync-agent",
+   "name": "AWS DataSync",
+   "says": [
+    "DataSync"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Migration-Modernization/Res_AWS-Datasync_Agent_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Datasync_Agent_48.svg": "1241f0e1bcca0cb78ca2e760422f2279512a06c39d160c2af71c0fa178dd4c74"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Datasync_Agent_48.svg",
+    "dark": "aws/Res_AWS-Datasync_Agent_48.svg"
+   },
+   "ink": {
+    "light": "#01A88D",
+    "dark": "#01A88D"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     43.95
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     43.95
+    ]
+   }
+  },
+  {
+   "id": "aws-storage-gateway-file-gateway",
+   "name": "AWS Storage Gateway",
+   "says": [
+    "Storage Gateway"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Storage/Res_AWS-Storage-Gateway_File-Gateway_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Storage-Gateway_File-Gateway_48.svg": "dfb5f636704b81c1713a6650e7effb66df2c02017c5197db196ee7dbed3da461"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Storage-Gateway_File-Gateway_48.svg",
+    "dark": "aws/Res_AWS-Storage-Gateway_File-Gateway_48.svg"
+   },
+   "ink": {
+    "light": "#7AA116",
+    "dark": "#7AA116"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     4.99,
+     1.99,
+     38.82,
+     44.12
+    ],
+    "dark": [
+     4.99,
+     1.99,
+     38.82,
+     44.12
+    ]
+   }
+  },
+  {
+   "id": "aws-efs-file-system",
+   "name": "Amazon EFS file system",
+   "says": [
+    "EFS",
+    "Elastic File System"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Storage/Res_Amazon-Elastic-File-System_File-System_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_Amazon-Elastic-File-System_File-System_48.svg": "af1a30ef42101d1a3b1656010ec4bc0679d804614268f7b43aecb20bcbbaa2c0"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_Amazon-Elastic-File-System_File-System_48.svg",
+    "dark": "aws/Res_Amazon-Elastic-File-System_File-System_48.svg"
+   },
+   "ink": {
+    "light": "#7AA116",
+    "dark": "#7AA116"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     3,
+     44,
+     41.25
+    ],
+    "dark": [
+     1.99,
+     3,
+     44,
+     41.25
+    ]
+   }
+  },
+  {
+   "id": "aws-backup-vault",
+   "name": "AWS Backup vault",
+   "says": [
+    "Backup"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Storage/Res_AWS-Backup_Backup-Vault_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Backup_Backup-Vault_48.svg": "f07e4aacb11b7bcd3c8298e243bf1feacabd0f55effa3c05076e18acf919b980"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Backup_Backup-Vault_48.svg",
+    "dark": "aws/Res_AWS-Backup_Backup-Vault_48.svg"
+   },
+   "ink": {
+    "light": "#7AA116",
+    "dark": "#7AA116"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ],
+    "dark": [
+     1.99,
+     1.99,
+     44.02,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "aws-elastic-beanstalk-application",
+   "name": "AWS Elastic Beanstalk",
+   "says": [
+    "Elastic Beanstalk",
+    "Beanstalk"
+   ],
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Resource-Icons_07312026/Res_Compute/Res_AWS-Elastic-Beanstalk_Application_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Res_AWS-Elastic-Beanstalk_Application_48.svg": "d330abba89ad544291553a7eaf34a9c4076ecb2adcce316e4df3cf45f6233ebf"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "forms": {
+    "light": "aws/Res_AWS-Elastic-Beanstalk_Application_48.svg",
+    "dark": "aws/Res_AWS-Elastic-Beanstalk_Application_48.svg"
+   },
+   "ink": {
+    "light": "#ED7100",
+    "dark": "#ED7100"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291).",
+    "The view box is fitted to the artwork (DECISIONS 292, 2.3), so the icon fills the 16px seat where the package's 48px box leaves about 8% clear."
+   ],
+   "viewBox": {
+    "light": [
+     9.98,
+     1.99,
+     27.71,
+     44.02
+    ],
+    "dark": [
+     9.98,
+     1.99,
+     27.71,
+     44.02
+    ]
+   }
+  },
+  {
+   "id": "azure-app-service",
+   "name": "Azure App Service",
+   "says": [
+    "App Service",
+    "App Services"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/compute/10035-icon-service-App-Services.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10035-icon-service-App-Services.svg": "529d83fc80637a96b6d27f6cfac7536e1c5f9b1b67f58aef4e2e3d6f47fd4925"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10035-icon-service-App-Services.svg",
+    "dark": "azure/10035-icon-service-App-Services.svg"
+   },
+   "ink": {
+    "light": "#0078D4",
+    "dark": "#0078D4"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark has; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "A multi-colour mark: its floor is measured on its principal ink (#0078d4, the colour most of its drawing is nearest to, which is 4.53:1 on white and 4.37:1 on dark level 1, 3.87:1 on the dark focal fill and 3.96:1 on the light one). Its other fills are in the owner's palette and not held to the floor: #5ea0ef (29% of the colour) is 2.71:1 on white and 7.31:1 on near-black; #cccccc (19% of the colour) is 1.61:1 on white and 12.33:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     0.52,
+     16.99,
+     16.99
+    ],
+    "dark": [
+     0.49,
+     0.52,
+     16.99,
+     16.99
+    ]
+   }
+  },
+  {
+   "id": "azure-monitor",
+   "name": "Azure Monitor",
+   "says": [
+    "Azure Monitor",
+    "Monitor"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/monitor/00001-icon-service-Monitor.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/00001-icon-service-Monitor.svg": "1396f59a7d8fd7505a423842b987c9b343a092263d1ab5c7b0d94d58d8b17448"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/00001-icon-service-Monitor.svg",
+    "dark": "azure/00001-icon-service-Monitor.svg"
+   },
+   "ink": {
+    "light": "#2387DE",
+    "dark": "#2387DE"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark has; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "A multi-colour mark: its floor is measured on its principal ink (#2387de, the colour most of its drawing is nearest to, which is 3.76:1 on white and 5.27:1 on dark level 1, 3.21:1 on the dark focal fill and 4.77:1 on the light one). Its other fills are in the owner's palette and not held to the floor: #32bedd (22% of the colour) is 2.2:1 on white and 9:1 on near-black; #087bd6 (14% of the colour) is 4.36:1 on white and 4.54:1 on near-black; #9cebff (14% of the colour) is 1.33:1 on white and 14.84:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     0.52,
+     17.02,
+     16.96
+    ],
+    "dark": [
+     0.49,
+     0.52,
+     17.02,
+     16.96
+    ]
+   }
+  },
+  {
+   "id": "gcp-cloud-run",
+   "name": "Google Cloud Run",
+   "says": [
+    "Cloud Run"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/Cloud Run/SVG/CloudRun-512-color-rgb.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/CloudRun-512-color-rgb.svg": "42a910e5d9f5a8685227f91623bf50c8c9259c556a41eb9a97157fd1e78b0cea"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/CloudRun-512-color-rgb.svg",
+    "dark": "gcp/CloudRun-512-color-rgb.svg"
+   },
+   "ink": {
+    "light": "#4285F4",
+    "dark": "#4285F4"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "A multi-colour mark: its floor is measured on its principal ink (#4285f4, the colour most of its drawing is nearest to, which is 3.56:1 on white and 5.56:1 on dark level 1, 3.04:1 on the dark focal fill and 5.03:1 on the light one). Its other fills are in the owner's palette and not held to the floor: #ea4335 (35% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #34a853 (15% of the colour) is 3.06:1 on white and 6.48:1 on near-black; #fbbc04 (15% of the colour) is 1.71:1 on white and 11.59:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     54,
+     53.75,
+     404.25,
+     404.25
+    ],
+    "dark": [
+     54,
+     53.75,
+     404.25,
+     404.25
+    ]
+   }
+  },
+  {
+   "id": "gcp-gke",
+   "name": "Google Kubernetes Engine",
+   "says": [
+    "GKE",
+    "Google Kubernetes Engine"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/GKE/SVG/GKE-512-color.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/GKE-512-color.svg": "6a33654c499bc4c38012661875a1a8c1bf2cdf01be8fdcc90d1c6504657878ec"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/GKE-512-color.svg",
+    "dark": "gcp/GKE-512-color.svg"
+   },
+   "ink": {
+    "light": "#EA4335",
+    "dark": "#EA4335"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "A multi-colour mark: its floor is measured on its principal ink (#ea4335, the colour most of its drawing is nearest to, which is 3.92:1 on white and 5.05:1 on dark level 1, 3.35:1 on the dark focal fill and 4.57:1 on the light one). Its other fills are in the owner's palette and not held to the floor: #4285f4 (26% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #fbbc04 (25% of the colour) is 1.71:1 on white and 11.59:1 on near-black; #34a853 (16% of the colour) is 3.06:1 on white and 6.48:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     73.75,
+     52.75,
+     364.75,
+     406.25
+    ],
+    "dark": [
+     73.75,
+     52.75,
+     364.75,
+     406.25
+    ]
+   }
+  },
+  {
+   "id": "gcp-cloud-sql",
+   "name": "Google Cloud SQL",
+   "says": [
+    "Cloud SQL"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/Cloud SQL/SVG/CloudSQL-512-color.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/CloudSQL-512-color.svg": "4e0d3d2049a67f64e5a2c88f836bf2d1786f809a72d82279b18906ec9d6b35c9"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/CloudSQL-512-color.svg",
+    "dark": "gcp/CloudSQL-512-color.svg"
+   },
+   "ink": {
+    "light": "#4285F4",
+    "dark": "#4285F4"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "A multi-colour mark: its floor is measured on its principal ink (#4285f4, the colour most of its drawing is nearest to, which is 3.56:1 on white and 5.56:1 on dark level 1, 3.04:1 on the dark focal fill and 5.03:1 on the light one). Its other fills are in the owner's palette and not held to the floor: #34a853 (26% of the colour) is 3.06:1 on white and 6.48:1 on near-black; #ea4335 (19% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #fbbc04 (19% of the colour) is 1.71:1 on white and 11.59:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     54,
+     54,
+     404.25,
+     404
+    ],
+    "dark": [
+     54,
+     54,
+     404.25,
+     404
+    ]
+   }
+  },
+  {
+   "id": "kubernetes",
+   "name": "Kubernetes",
+   "says": [
+    "Kubernetes",
+    "K8s"
+   ],
+   "owner": "The Linux Foundation",
+   "source": "https://raw.githubusercontent.com/cncf/artwork/main/projects/kubernetes/icon/color/kubernetes-icon-color.svg",
+   "page": "https://github.com/cncf/artwork/tree/main/projects/kubernetes",
+   "file": "projects/kubernetes/icon/color/kubernetes-icon-color.svg (CNCF artwork, the icon in colour)",
+   "release": "cncf/artwork main as of 23 Nov 2026",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "kubernetes/kubernetes-icon-color.svg": "ff5427cfeeff39e82834ab1b4fe3ed61fc08596225a17eed56adc04f7cc1f712"
+   },
+   "terms": {
+    "url": "https://github.com/kubernetes/kubernetes/blob/master/logo/usage_guidelines.md",
+    "quotes": [
+     "All artwork is made available under the Linux Foundation trademark usage guidelines.",
+     "The use of the mark cannot imply that The Linux Foundation or its projects are sponsoring or endorsing the product.",
+     "The Kubernetes logo files are licensed under a choice of either Apache-2.0 or CC-BY-4.0 (Creative Commons Attribution 4.0 International). (logo/LICENSE)"
+    ],
+    "also": "https://www.linuxfoundation.org/legal/trademark-usage"
+   },
+   "attribution": "The Kubernetes logo is the Kubernetes Authors' artwork, used under Apache-2.0 (its logo folder offers a choice of Apache-2.0 or CC-BY-4.0: https://github.com/kubernetes/kubernetes/blob/master/logo/LICENSE). Kubernetes is a registered trademark of The Linux Foundation.",
+   "forms": {
+    "light": "kubernetes/kubernetes-icon-color.svg",
+    "dark": "kubernetes/kubernetes-icon-color.svg"
+   },
+   "ink": {
+    "light": "#326CE5",
+    "dark": "#326CE5"
+   },
+   "changes": [
+    "fitted"
+   ],
+   "departures": [
+    "The CNCF publishes the icon in colour, black and white. The colour file is drawn on every ground: its blue is 3:1 or more on all of them, and the white of its wheel sits inside the blue heptagon.",
+    "Kubernetes' component icons (pod, service, deployment and the rest; github.com/kubernetes/community/icons) are not bundled: each is the same blue heptagon with a white glyph under 9px at 16, which does not tell one from another."
+   ],
+   "viewBox": {
+    "light": [
+     4.43,
+     4.46,
+     221.35,
+     214.71
+    ],
+    "dark": [
+     4.43,
+     4.46,
+     221.35,
+     214.71
+    ]
+   }
   }
  ]
 }

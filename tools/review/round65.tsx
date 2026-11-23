@@ -56,7 +56,46 @@ import { blacksmith } from "../../packages/react/src/marks/blacksmith";
 import { jenkins } from "../../packages/react/src/marks/jenkins";
 import { servicenow } from "../../packages/react/src/marks/servicenow";
 import { blazemeter } from "../../packages/react/src/marks/blazemeter";
-const MARKS: Record<string, DiagramMark> = { "aws-application-load-balancer": awsApplicationLoadBalancer, "aws-network-load-balancer": awsNetworkLoadBalancer, "aws-cloudfront-distribution": awsCloudfrontDistribution, "aws-route-53-hosted-zone": awsRoute53HostedZone, "aws-api-gateway-endpoint": awsApiGatewayEndpoint, "aws-internet-gateway": awsInternetGateway, "aws-nat-gateway": awsNatGateway, "aws-ecs-service": awsEcsService, "aws-ecs-task": awsEcsTask, "aws-ecr-registry": awsEcrRegistry, "aws-ec2-instance": awsEc2Instance, "aws-lambda-function": awsLambdaFunction, "aws-s3-bucket": awsS3Bucket, "aws-dynamodb-table": awsDynamodbTable, "aws-sqs-queue": awsSqsQueue, "aws-eventbridge-event-bus": awsEventbridgeEventBus, "aws-cloudwatch-logs": awsCloudwatchLogs, "aws-cloudwatch-alarm": awsCloudwatchAlarm, "aws-parameter-store": awsParameterStore, "aws-iam-role": awsIamRole, "aws-sagemaker-model": awsSagemakerModel, "aws-bedrock": awsBedrock, "aws-client": awsClient, "aws-mobile-client": awsMobileClient, "aws-user": awsUser, "aws-users": awsUsers, "aws-internet": awsInternet, "aws-server": awsServer, "aws-database": awsDatabase, "aws-application": awsApplication, "aws-git-repository": awsGitRepository, "aws-email": awsEmail, "temporal": temporal, "sonarqube": sonarqube, "github": github, "coderabbit": coderabbit, "greptile": greptile, "blacksmith": blacksmith, "jenkins": jenkins, "servicenow": servicenow, "blazemeter": blazemeter };
+import { awsVpc } from "../../packages/react/src/marks/aws-vpc";
+import { awsVpcEndpoints } from "../../packages/react/src/marks/aws-vpc-endpoints";
+import { awsVpnConnection } from "../../packages/react/src/marks/aws-vpn-connection";
+import { awsTransitGatewayAttachment } from "../../packages/react/src/marks/aws-transit-gateway-attachment";
+import { awsDirectConnectGateway } from "../../packages/react/src/marks/aws-direct-connect-gateway";
+import { awsAppMeshMesh } from "../../packages/react/src/marks/aws-app-mesh-mesh";
+import { awsGlueDataCatalog } from "../../packages/react/src/marks/aws-glue-data-catalog";
+import { awsAthenaDataSourceConnectors } from "../../packages/react/src/marks/aws-athena-data-source-connectors";
+import { awsEmrCluster } from "../../packages/react/src/marks/aws-emr-cluster";
+import { awsLakeFormationDataLake } from "../../packages/react/src/marks/aws-lake-formation-data-lake";
+import { awsOpensearchDataNode } from "../../packages/react/src/marks/aws-opensearch-data-node";
+import { awsMskConnect } from "../../packages/react/src/marks/aws-msk-connect";
+import { awsEventbridgeScheduler } from "../../packages/react/src/marks/aws-eventbridge-scheduler";
+import { awsEventbridgePipes } from "../../packages/react/src/marks/aws-eventbridge-pipes";
+import { awsDynamodbAccelerator } from "../../packages/react/src/marks/aws-dynamodb-accelerator";
+import { awsCloudformationStack } from "../../packages/react/src/marks/aws-cloudformation-stack";
+import { awsCloudtrailLake } from "../../packages/react/src/marks/aws-cloudtrail-lake";
+import { awsOrganizationsAccount } from "../../packages/react/src/marks/aws-organizations-account";
+import { awsSesEmail } from "../../packages/react/src/marks/aws-ses-email";
+import { awsMqBroker } from "../../packages/react/src/marks/aws-mq-broker";
+import { awsWafRule } from "../../packages/react/src/marks/aws-waf-rule";
+import { awsShieldAdvanced } from "../../packages/react/src/marks/aws-shield-advanced";
+import { awsSecurityHubFinding } from "../../packages/react/src/marks/aws-security-hub-finding";
+import { awsInspectorAgent } from "../../packages/react/src/marks/aws-inspector-agent";
+import { awsNetworkFirewallEndpoints } from "../../packages/react/src/marks/aws-network-firewall-endpoints";
+import { awsDocumentdbElasticClusters } from "../../packages/react/src/marks/aws-documentdb-elastic-clusters";
+import { awsDmsMigrationJob } from "../../packages/react/src/marks/aws-dms-migration-job";
+import { awsRekognitionImage } from "../../packages/react/src/marks/aws-rekognition-image";
+import { awsDatasyncAgent } from "../../packages/react/src/marks/aws-datasync-agent";
+import { awsStorageGatewayFileGateway } from "../../packages/react/src/marks/aws-storage-gateway-file-gateway";
+import { awsEfsFileSystem } from "../../packages/react/src/marks/aws-efs-file-system";
+import { awsBackupVault } from "../../packages/react/src/marks/aws-backup-vault";
+import { awsElasticBeanstalkApplication } from "../../packages/react/src/marks/aws-elastic-beanstalk-application";
+import { azureAppService } from "../../packages/react/src/marks/azure-app-service";
+import { azureMonitor } from "../../packages/react/src/marks/azure-monitor";
+import { gcpCloudRun } from "../../packages/react/src/marks/gcp-cloud-run";
+import { gcpGke } from "../../packages/react/src/marks/gcp-gke";
+import { gcpCloudSql } from "../../packages/react/src/marks/gcp-cloud-sql";
+import { kubernetes } from "../../packages/react/src/marks/kubernetes";
+const MARKS: Record<string, DiagramMark> = { "aws-application-load-balancer": awsApplicationLoadBalancer, "aws-network-load-balancer": awsNetworkLoadBalancer, "aws-cloudfront-distribution": awsCloudfrontDistribution, "aws-route-53-hosted-zone": awsRoute53HostedZone, "aws-api-gateway-endpoint": awsApiGatewayEndpoint, "aws-internet-gateway": awsInternetGateway, "aws-nat-gateway": awsNatGateway, "aws-ecs-service": awsEcsService, "aws-ecs-task": awsEcsTask, "aws-ecr-registry": awsEcrRegistry, "aws-ec2-instance": awsEc2Instance, "aws-lambda-function": awsLambdaFunction, "aws-s3-bucket": awsS3Bucket, "aws-dynamodb-table": awsDynamodbTable, "aws-sqs-queue": awsSqsQueue, "aws-eventbridge-event-bus": awsEventbridgeEventBus, "aws-cloudwatch-logs": awsCloudwatchLogs, "aws-cloudwatch-alarm": awsCloudwatchAlarm, "aws-parameter-store": awsParameterStore, "aws-iam-role": awsIamRole, "aws-sagemaker-model": awsSagemakerModel, "aws-bedrock": awsBedrock, "aws-client": awsClient, "aws-mobile-client": awsMobileClient, "aws-user": awsUser, "aws-users": awsUsers, "aws-internet": awsInternet, "aws-server": awsServer, "aws-database": awsDatabase, "aws-application": awsApplication, "aws-git-repository": awsGitRepository, "aws-email": awsEmail, "temporal": temporal, "sonarqube": sonarqube, "github": github, "coderabbit": coderabbit, "greptile": greptile, "blacksmith": blacksmith, "jenkins": jenkins, "servicenow": servicenow, "blazemeter": blazemeter, "aws-vpc": awsVpc, "aws-vpc-endpoints": awsVpcEndpoints, "aws-vpn-connection": awsVpnConnection, "aws-transit-gateway-attachment": awsTransitGatewayAttachment, "aws-direct-connect-gateway": awsDirectConnectGateway, "aws-app-mesh-mesh": awsAppMeshMesh, "aws-glue-data-catalog": awsGlueDataCatalog, "aws-athena-data-source-connectors": awsAthenaDataSourceConnectors, "aws-emr-cluster": awsEmrCluster, "aws-lake-formation-data-lake": awsLakeFormationDataLake, "aws-opensearch-data-node": awsOpensearchDataNode, "aws-msk-connect": awsMskConnect, "aws-eventbridge-scheduler": awsEventbridgeScheduler, "aws-eventbridge-pipes": awsEventbridgePipes, "aws-dynamodb-accelerator": awsDynamodbAccelerator, "aws-cloudformation-stack": awsCloudformationStack, "aws-cloudtrail-lake": awsCloudtrailLake, "aws-organizations-account": awsOrganizationsAccount, "aws-ses-email": awsSesEmail, "aws-mq-broker": awsMqBroker, "aws-waf-rule": awsWafRule, "aws-shield-advanced": awsShieldAdvanced, "aws-security-hub-finding": awsSecurityHubFinding, "aws-inspector-agent": awsInspectorAgent, "aws-network-firewall-endpoints": awsNetworkFirewallEndpoints, "aws-documentdb-elastic-clusters": awsDocumentdbElasticClusters, "aws-dms-migration-job": awsDmsMigrationJob, "aws-rekognition-image": awsRekognitionImage, "aws-datasync-agent": awsDatasyncAgent, "aws-storage-gateway-file-gateway": awsStorageGatewayFileGateway, "aws-efs-file-system": awsEfsFileSystem, "aws-backup-vault": awsBackupVault, "aws-elastic-beanstalk-application": awsElasticBeanstalkApplication, "azure-app-service": azureAppService, "azure-monitor": azureMonitor, "gcp-cloud-run": gcpCloudRun, "gcp-gke": gcpGke, "gcp-cloud-sql": gcpCloudSql, "kubernetes": kubernetes };
 
 type Key = keyof typeof still;
 type Spec = Record<string, unknown> & { type: string; nodes?: Array<Record<string, unknown>>; edges?: Array<Record<string, unknown>> };
@@ -200,7 +239,7 @@ export const ROUND_65: Round = {
   title: "Diagram motion and service marks (DECISIONS 292)",
   reviewed: false,
   summary:
-    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (41 bundled, recorded in a manifest: 37 their owners' files, and Bedrock, Jenkins, ServiceNow and BlazeMeter unofficial, DECISIONS 297). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293), reviewed once (Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). Still is unchanged. On this page every figure plays as it would in an app; each screenshot of motion is a pose held by the shot, at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
+    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (80 bundled, recorded in a manifest: 37 their owners' files, and Bedrock, Jenkins, ServiceNow and BlazeMeter unofficial, DECISIONS 297). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293), reviewed once (Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). Still is unchanged. On this page every figure plays as it would in an app; each screenshot of motion is a pose held by the shot, at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
   steps: [
     {
       id: "architecture",
@@ -303,7 +342,7 @@ export const ROUND_65: Round = {
     {
       id: "marks",
       name: "Every mark, on a card and on the focal card",
-      intro: "The 41 bundled marks at 16px in the seat. In the dark and light shots together, each is on all four grounds: the card and the focal card of each theme.",
+      intro: "The 80 bundled marks at 16px in the seat. In the dark and light shots together, each is on all four grounds: the card and the focal card of each theme.",
       decisions: [
         "Every ink is 3:1 or more on levels 1 to 3 in both themes. On the dark theme's focal card four are under it and recorded by name: AWS's orange (2.58), green (2.59) and teal (2.57), and CodeRabbit's orange (2.71). Accepted: the mark is decoration beside a name at 17.9:1, and each alternative is worse.",
         "Each is recorded in packages/react/marks/manifest.json: its source and terms, the date it was fetched, its hash, its forms and inks, and what was done to the file (stripped, fitted, swapped); for the four unofficial marks (Bedrock, Jenkins, ServiceNow, BlazeMeter; DECISIONS 297), every edit made before those.",

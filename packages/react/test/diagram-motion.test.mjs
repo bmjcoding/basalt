@@ -792,7 +792,7 @@ describe("marks (first for the first three)", () => {
     const { FIELDS } = await import("../marks/generate.mjs");
     const crypto = await import("node:crypto");
     const listed = new Set();
-    assert.equal(MANIFEST.marks.length, 41);
+    assert.equal(MANIFEST.marks.length, 80);
     for (const mark of MANIFEST.marks) {
       for (const field of FIELDS) assert.ok(mark[field] !== undefined, `${mark.id}: ${field}`);
       for (const [file, hash] of Object.entries(mark.sha256)) {

@@ -12,7 +12,7 @@ source, the date it was fetched and its hash. A mark is removed by deleting its 
 
 ## Amazon Web Services, Inc.
 
-Application Load Balancer (`aws-application-load-balancer`), Network Load Balancer (`aws-network-load-balancer`), Amazon CloudFront distribution (`aws-cloudfront-distribution`), Amazon Route 53 hosted zone (`aws-route-53-hosted-zone`), Amazon API Gateway endpoint (`aws-api-gateway-endpoint`), Amazon VPC internet gateway (`aws-internet-gateway`), Amazon VPC NAT gateway (`aws-nat-gateway`), Amazon ECS service (`aws-ecs-service`), Amazon ECS task (`aws-ecs-task`), Amazon ECR registry (`aws-ecr-registry`), Amazon EC2 instance (`aws-ec2-instance`), AWS Lambda function (`aws-lambda-function`), Amazon S3 bucket (`aws-s3-bucket`), Amazon DynamoDB table (`aws-dynamodb-table`), Amazon SQS queue (`aws-sqs-queue`), Amazon EventBridge event bus (`aws-eventbridge-event-bus`), Amazon CloudWatch Logs (`aws-cloudwatch-logs`), Amazon CloudWatch alarm (`aws-cloudwatch-alarm`), AWS Systems Manager Parameter Store (`aws-parameter-store`), AWS IAM role (`aws-iam-role`), Amazon SageMaker AI model (`aws-sagemaker-model`), Amazon Bedrock (`aws-bedrock`, unofficial), Client (`aws-client`), Mobile client (`aws-mobile-client`), User (`aws-user`), Users (`aws-users`), Internet (`aws-internet`), Server (`aws-server`), Database (`aws-database`), Generic application (`aws-application`), Git repository (`aws-git-repository`), Email (`aws-email`).
+Application Load Balancer (`aws-application-load-balancer`), Network Load Balancer (`aws-network-load-balancer`), Amazon CloudFront distribution (`aws-cloudfront-distribution`), Amazon Route 53 hosted zone (`aws-route-53-hosted-zone`), Amazon API Gateway endpoint (`aws-api-gateway-endpoint`), Amazon VPC internet gateway (`aws-internet-gateway`), Amazon VPC NAT gateway (`aws-nat-gateway`), Amazon ECS service (`aws-ecs-service`), Amazon ECS task (`aws-ecs-task`), Amazon ECR registry (`aws-ecr-registry`), Amazon EC2 instance (`aws-ec2-instance`), AWS Lambda function (`aws-lambda-function`), Amazon S3 bucket (`aws-s3-bucket`), Amazon DynamoDB table (`aws-dynamodb-table`), Amazon SQS queue (`aws-sqs-queue`), Amazon EventBridge event bus (`aws-eventbridge-event-bus`), Amazon CloudWatch Logs (`aws-cloudwatch-logs`), Amazon CloudWatch alarm (`aws-cloudwatch-alarm`), AWS Systems Manager Parameter Store (`aws-parameter-store`), AWS IAM role (`aws-iam-role`), Amazon SageMaker AI model (`aws-sagemaker-model`), Amazon Bedrock (`aws-bedrock`, unofficial), Client (`aws-client`), Mobile client (`aws-mobile-client`), User (`aws-user`), Users (`aws-users`), Internet (`aws-internet`), Server (`aws-server`), Database (`aws-database`), Generic application (`aws-application`), Git repository (`aws-git-repository`), Email (`aws-email`), Amazon VPC (`aws-vpc`), Amazon VPC endpoints (`aws-vpc-endpoints`), AWS Site-to-Site VPN connection (`aws-vpn-connection`), AWS Transit Gateway (`aws-transit-gateway-attachment`), AWS Direct Connect gateway (`aws-direct-connect-gateway`), AWS App Mesh (`aws-app-mesh-mesh`), AWS Glue Data Catalog (`aws-glue-data-catalog`), Amazon Athena data source connectors (`aws-athena-data-source-connectors`), Amazon EMR cluster (`aws-emr-cluster`), AWS Lake Formation data lake (`aws-lake-formation-data-lake`), Amazon OpenSearch Service (`aws-opensearch-data-node`), Amazon MSK Connect (`aws-msk-connect`), Amazon EventBridge Scheduler (`aws-eventbridge-scheduler`), Amazon EventBridge Pipes (`aws-eventbridge-pipes`), Amazon DynamoDB Accelerator (`aws-dynamodb-accelerator`), AWS CloudFormation stack (`aws-cloudformation-stack`), AWS CloudTrail Lake (`aws-cloudtrail-lake`), AWS Organizations account (`aws-organizations-account`), Amazon SES (`aws-ses-email`), Amazon MQ broker (`aws-mq-broker`), AWS WAF (`aws-waf-rule`), AWS Shield Advanced (`aws-shield-advanced`), AWS Security Hub (`aws-security-hub-finding`), Amazon Inspector (`aws-inspector-agent`), AWS Network Firewall (`aws-network-firewall-endpoints`), Amazon DocumentDB (`aws-documentdb-elastic-clusters`), AWS Database Migration Service (`aws-dms-migration-job`), Amazon Rekognition (`aws-rekognition-image`), AWS DataSync (`aws-datasync-agent`), AWS Storage Gateway (`aws-storage-gateway-file-gateway`), Amazon EFS file system (`aws-efs-file-system`), AWS Backup vault (`aws-backup-vault`), AWS Elastic Beanstalk (`aws-elastic-beanstalk-application`).
 
 Source: https://aws.amazon.com/architecture/icons/. Terms: https://aws.amazon.com/architecture/icons/.
 
@@ -71,3 +71,23 @@ Source: https://github.com/devicons/devicon/tree/develop/icons/servicenow. Terms
 BlazeMeter (`blazemeter`, unofficial).
 
 Source: https://simpleicons.org/?q=blazemeter. Terms: https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/LICENSE.md.
+
+## Microsoft Corporation
+
+Azure App Service (`azure-app-service`), Azure Monitor (`azure-monitor`).
+
+Source: https://learn.microsoft.com/en-us/azure/architecture/icons/. Terms: https://learn.microsoft.com/en-us/azure/architecture/icons/.
+
+## Google LLC
+
+Google Cloud Run (`gcp-cloud-run`), Google Kubernetes Engine (`gcp-gke`), Google Cloud SQL (`gcp-cloud-sql`).
+
+Source: https://cloud.google.com/icons. Terms: https://cloud.google.com/icons.
+
+## The Linux Foundation
+
+Kubernetes (`kubernetes`).
+
+Source: https://github.com/cncf/artwork/tree/main/projects/kubernetes. Terms: https://github.com/kubernetes/kubernetes/blob/master/logo/usage_guidelines.md.
+
+The Kubernetes logo is the Kubernetes Authors' artwork, used under Apache-2.0 (its logo folder offers a choice of Apache-2.0 or CC-BY-4.0: https://github.com/kubernetes/kubernetes/blob/master/logo/LICENSE). Kubernetes is a registered trademark of The Linux Foundation.
