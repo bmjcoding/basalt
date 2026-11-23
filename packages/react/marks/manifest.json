@@ -1,5 +1,5 @@
 {
- "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit. unofficial: true marks a drawing that is not the owner's own file (DECISIONS 297: the owner asked for a mark on these even where it is not an official logo); its edits list every change made to the fetched file before the pipeline's own, and both files are in source/ with their hashes. Batch C (DECISIONS 301) added more AWS Resource icons, two Azure, three Google Cloud and Kubernetes. The floor for a multi-colour file (Azure, Google Cloud) is measured on its principal ink: the colour most of its drawing is nearest to (drawn at 128px, each opaque coloured pixel assigned to the nearest hex in the file), and where two or more are within 5 points of the largest share, the weakest of them. The file's other fills are in the owner's palette and are recorded in the entry's departures, not held to the floor, because the contrast test reads one ink a form. A legible mark whose principal ink is under 3:1 is in notShipped with its measured ratio, and comes back when the council records an exception for it.",
+ "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit. unofficial: true marks a drawing that is not the owner's own file (DECISIONS 297: the owner asked for a mark on these even where it is not an official logo); its edits list every change made to the fetched file before the pipeline's own, and both files are in source/ with their hashes. Batch C (DECISIONS 301, 303) added more AWS Resource icons, Azure, Google Cloud and Kubernetes marks, and unofficial tile-removed AWS service icons (DECISIONS 297: Bedrock's rule). A multi-colour file (Azure, Google Cloud) is measured on its principal ink: the colour most of its drawing is nearest to (drawn at 128px, each opaque coloured pixel assigned to the nearest hex in the file), and where two or more are within 5 points of the largest share, the weakest of them. The contrast test reads one ink a form, so a multi-colour mark whose principal ink is under 3:1 on a ground has floorException (DECISIONS 303): its ink and the ratio on each ground under 3:1, and the test names every such mark and holds it to those values, so no other mark can slip under. The file's other fills are in the owner's palette, listed in the entry's departures.",
  "notShipped": [
   {
    "service": "Amazon Aurora, RDS and ElastiCache",
@@ -10,100 +10,12 @@
    "why": "Its topic and its notification icons are drawn in dotted rows that vanish at 16px (rechecked 23 Nov)."
   },
   {
-   "service": "AWS Step Functions, Amazon Kinesis, AWS Fargate, AWS Secrets Manager, Amazon Cognito",
-   "why": "The Resource-Icons set has no icon for the service itself, and its Architecture-Service icon is a coloured tile with a white glyph (AWS's terms forbid recolouring it or removing the tile; Bedrock's tile-removed mark is unofficial, DECISIONS 297). A card for it takes no mark unless the owner asks for an unofficial one."
-  },
-  {
-   "service": "Amazon EKS and AWS KMS",
-   "why": "The only Resource icons are for a feature, not the service: EKS on Outposts and KMS's External Key Store. The Resource-Icons set has no icon for the service itself, and its Architecture-Service icon is a coloured tile with a white glyph (AWS's terms forbid recolouring it or removing the tile; Bedrock's tile-removed mark is unofficial, DECISIONS 297). A card for it takes no mark unless the owner asks for an unofficial one."
-  },
-  {
    "service": "Amazon Redshift",
    "why": "Its Resource icons are node types that carry lettering (\"DC\", \"RA3\")."
   },
   {
    "service": "AWS icons with lettering in the drawing",
    "why": "IAM MFA Token (\"MFA\"), Transfer Family SFTP and FTPS (\"SFTP\", \"FTPS\"), IoT MQTT (\"MQTT\") and Managed Microsoft AD (\"MS\")."
-  },
-  {
-   "service": "Azure Functions (Function Apps)",
-   "why": "Its principal ink, #feb018, is 1.57:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Storage (Storage Accounts)",
-   "why": "Its principal ink, #37c2b1, is 1.89:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Cosmos DB",
-   "why": "Its principal ink, #50e6ff, is 1.27:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure SQL Database",
-   "why": "Its principal ink, #0060a9, is 2.77:1 on the dark theme's levels, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Kubernetes Service (AKS)",
-   "why": "Its principal ink, #773adc, is 2.92:1 on the dark theme's levels, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Service Bus",
-   "why": "Its principal ink, #50e6ff, is 1.27:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Event Hubs",
-   "why": "Its principal ink, #76bc2d, is 1.99:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Key Vault",
-   "why": "Its principal ink, #ffcb12, is 1.30:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure Front Door",
-   "why": "Its principal ink, #5ea0ef, is 2.31:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Azure API Management",
-   "why": "Its principal ink, #32d4f5, is 1.51:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Azure_Public_Service_Icons_V25"
-  },
-  {
-   "service": "Microsoft Entra ID",
-   "why": "Its mark is in the separate Microsoft Entra architecture icons package (Oct 2023, \"Microsoft Entra ID color icon.svg\"; the Azure package has none). Its principal ink, #66ddff, is 1.34:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "Microsoft Entra architecture icons - Oct 2023.zip"
-  },
-  {
-   "service": "Google Compute Engine",
-   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "core-products-icons.zip"
-  },
-  {
-   "service": "Google Cloud Storage",
-   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "core-products-icons.zip"
-  },
-  {
-   "service": "Google BigQuery",
-   "why": "Its principal ink, #34a853, is 2.61:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "core-products-icons.zip"
-  },
-  {
-   "service": "Google Vertex AI",
-   "why": "Its principal ink, #fbbc04, is 1.46:1 on the dark theme's focal card, under the 3:1 floor of DECISIONS 292, 2.2 (the principal ink is the colour most of the drawing is nearest to; among colours within 5 points of it, the weakest). It comes back if the council records an exception for multi-colour marks, or Microsoft or Google publish a form that meets the floor.",
-   "source": "core-products-icons.zip"
-  },
-  {
-   "service": "Google Pub/Sub and Cloud Functions",
-   "why": "The core-products set has no icon for either; the legacy console set (google-cloud-legacy-icons.zip) has them, and both are drawn mostly in tints (#AECBFA is 1.41:1 on the dark theme's focal card and 1.65:1 on white; #669df6 2.7:1 on white), far under the 3:1 floor.",
-   "source": "google-cloud-legacy-icons.zip"
   },
   {
    "service": "Kubernetes component icons",
@@ -4617,6 +4529,1567 @@
      4.46,
      221.35,
      214.71
+    ]
+   }
+  },
+  {
+   "id": "azure-functions",
+   "name": "Azure Functions",
+   "says": [
+    "Azure Functions",
+    "Functions",
+    "Function App"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/compute/10029-icon-service-Function-Apps.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10029-icon-service-Function-Apps.svg": "1a6c9c108d5f63f7b78bc6fbc464059acd2eaa8c1d111e9bcd28a8b2cdf470b9"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10029-icon-service-Function-Apps.svg",
+    "dark": "azure/10029-icon-service-Function-Apps.svg"
+   },
+   "ink": {
+    "light": "#FEB018",
+    "dark": "#FEB018"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #FEB018 is under the 3:1 floor on dark focal (1.57:1), light surface-1 (1.84:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #1490df (20% of the colour) is 3.45:1 on white and 5.74:1 on near-black; #50e6ff (17% of the colour) is 1.49:1 on white and 13.3:1 on near-black; #ffc314 (16% of the colour) is 1.61:1 on white and 12.32:1 on near-black; #fea51a (12% of the colour) is 1.98:1 on white and 10:1 on near-black.",
+    "ink": "#FEB018",
+    "below": {
+     "dark focal": 1.57,
+     "light surface-1": 1.84
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #FEB018 is under the 3:1 floor on dark focal (1.57:1), light surface-1 (1.84:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #1490df (20% of the colour) is 3.45:1 on white and 5.74:1 on near-black; #50e6ff (17% of the colour) is 1.49:1 on white and 13.3:1 on near-black; #ffc314 (16% of the colour) is 1.61:1 on white and 12.32:1 on near-black; #fea51a (12% of the colour) is 1.98:1 on white and 10:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.05,
+     1.01,
+     17.9,
+     15.98
+    ],
+    "dark": [
+     0.05,
+     1.01,
+     17.9,
+     15.98
+    ]
+   }
+  },
+  {
+   "id": "azure-storage-account",
+   "name": "Azure Storage account",
+   "says": [
+    "Azure Storage",
+    "Storage account",
+    "Blob Storage"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/storage/10086-icon-service-Storage-Accounts.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10086-icon-service-Storage-Accounts.svg": "7190d3bb14ce30ce74bd0af873915830fe821e8c5f6ef6f3149e6f7cfb2aa4f7"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10086-icon-service-Storage-Accounts.svg",
+    "dark": "azure/10086-icon-service-Storage-Accounts.svg"
+   },
+   "ink": {
+    "light": "#37C2B1",
+    "dark": "#37C2B1"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #37C2B1 is under the 3:1 floor on dark focal (1.89:1), light surface-1 (2.21:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #258277 (23% of the colour) is 4.63:1 on white and 4.28:1 on near-black.",
+    "ink": "#37C2B1",
+    "below": {
+     "dark focal": 1.89,
+     "light surface-1": 2.21
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #37C2B1 is under the 3:1 floor on dark focal (1.89:1), light surface-1 (2.21:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #258277 (23% of the colour) is 4.63:1 on white and 4.28:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     2.17,
+     17.02,
+     13.68
+    ],
+    "dark": [
+     0.49,
+     2.17,
+     17.02,
+     13.68
+    ]
+   }
+  },
+  {
+   "id": "azure-cosmos-db",
+   "name": "Azure Cosmos DB",
+   "says": [
+    "Cosmos DB"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/databases/10121-icon-service-Azure-Cosmos-DB.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10121-icon-service-Azure-Cosmos-DB.svg": "b6f1f2afac15762d1de44366d34984c5a3e6e58f94d9e81407ac01565212e8e3"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10121-icon-service-Azure-Cosmos-DB.svg",
+    "dark": "azure/10121-icon-service-Azure-Cosmos-DB.svg"
+   },
+   "ink": {
+    "light": "#50E6FF",
+    "dark": "#50E6FF"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #50E6FF is under the 3:1 floor on dark focal (1.27:1), light surface-1 (1.49:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #0078d4 (36% of the colour) is 4.53:1 on white and 4.37:1 on near-black; #5ea0ef (26% of the colour) is 2.71:1 on white and 7.31:1 on near-black.",
+    "ink": "#50E6FF",
+    "below": {
+     "dark focal": 1.27,
+     "light surface-1": 1.49
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #50E6FF is under the 3:1 floor on dark focal (1.27:1), light surface-1 (1.49:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #0078d4 (36% of the colour) is 4.53:1 on white and 4.37:1 on near-black; #5ea0ef (26% of the colour) is 2.71:1 on white and 7.31:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     0.54,
+     17.02,
+     16.92
+    ],
+    "dark": [
+     0.49,
+     0.54,
+     17.02,
+     16.92
+    ]
+   }
+  },
+  {
+   "id": "azure-sql-database",
+   "name": "Azure SQL Database",
+   "says": [
+    "SQL Database",
+    "Azure SQL"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/databases/10130-icon-service-SQL-Database.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10130-icon-service-SQL-Database.svg": "a26124a2b188ccf910520c935c726f7364e0f5935d7a4319ebcab9c80a40e475"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10130-icon-service-SQL-Database.svg",
+    "dark": "azure/10130-icon-service-SQL-Database.svg"
+   },
+   "ink": {
+    "light": "#0060A9",
+    "dark": "#0060A9"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #0060A9 is under the 3:1 floor on dark surface-2 (2.92:1), dark surface-3 (2.77:1), light focal (2.77:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #006abb (20% of the colour) is 5.56:1 on white and 3.56:1 on near-black; #0071c8 (16% of the colour) is 5:1 on white and 3.96:1 on near-black; #50e6ff (11% of the colour) is 1.49:1 on white and 13.3:1 on near-black; #0074cd (11% of the colour) is 4.79:1 on white and 4.13:1 on near-black.",
+    "ink": "#0060A9",
+    "below": {
+     "dark surface-2": 2.92,
+     "dark surface-3": 2.77,
+     "light focal": 2.77
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #0060A9 is under the 3:1 floor on dark surface-2 (2.92:1), dark surface-3 (2.77:1), light focal (2.77:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #006abb (20% of the colour) is 5.56:1 on white and 3.56:1 on near-black; #0071c8 (16% of the colour) is 5:1 on white and 3.96:1 on near-black; #50e6ff (11% of the colour) is 1.49:1 on white and 13.3:1 on near-black; #0074cd (11% of the colour) is 4.79:1 on white and 4.13:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     2.58,
+     0.5,
+     12.84,
+     17
+    ],
+    "dark": [
+     2.58,
+     0.5,
+     12.84,
+     17
+    ]
+   }
+  },
+  {
+   "id": "azure-aks",
+   "name": "Azure Kubernetes Service",
+   "says": [
+    "AKS",
+    "Azure Kubernetes Service"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/compute/10023-icon-service-Kubernetes-Services.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10023-icon-service-Kubernetes-Services.svg": "81954a481503057498d543a51863b2eb4673284e109662cdc421051d11dba25c"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10023-icon-service-Kubernetes-Services.svg",
+    "dark": "azure/10023-icon-service-Kubernetes-Services.svg"
+   },
+   "ink": {
+    "light": "#773ADC",
+    "dark": "#773ADC"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #773ADC is under the 3:1 floor on dark surface-3 (2.92:1), light focal (2.92:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #341a6e (26% of the colour) is 13.83:1 on white and 1.43:1 on near-black; #b77af4 (22% of the colour) is 2.96:1 on white and 6.7:1 on near-black.",
+    "ink": "#773ADC",
+    "below": {
+     "dark surface-3": 2.92,
+     "light focal": 2.92
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #773ADC is under the 3:1 floor on dark surface-3 (2.92:1), light focal (2.92:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #341a6e (26% of the colour) is 13.83:1 on white and 1.43:1 on near-black; #b77af4 (22% of the colour) is 2.96:1 on white and 6.7:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0,
+     1.21,
+     18,
+     15.92
+    ],
+    "dark": [
+     0,
+     1.21,
+     18,
+     15.92
+    ]
+   }
+  },
+  {
+   "id": "azure-service-bus",
+   "name": "Azure Service Bus",
+   "says": [
+    "Service Bus"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/integration/10836-icon-service-Azure-Service-Bus.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10836-icon-service-Azure-Service-Bus.svg": "eaf42cb87aedf608f60d40b601eb86491daaa71b8eab40a935e8e7fa2e62a2cf"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10836-icon-service-Azure-Service-Bus.svg",
+    "dark": "azure/10836-icon-service-Azure-Service-Bus.svg"
+   },
+   "ink": {
+    "light": "#50E6FF",
+    "dark": "#50E6FF"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #50E6FF is under the 3:1 floor on dark focal (1.27:1), light surface-1 (1.49:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #198ab3 (21% of the colour) is 3.94:1 on white and 5.02:1 on near-black; #32bedd (20% of the colour) is 2.2:1 on white and 9:1 on near-black.",
+    "ink": "#50E6FF",
+    "below": {
+     "dark focal": 1.27,
+     "light surface-1": 1.49
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #50E6FF is under the 3:1 floor on dark focal (1.27:1), light surface-1 (1.49:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #198ab3 (21% of the colour) is 3.94:1 on white and 5.02:1 on near-black; #32bedd (20% of the colour) is 2.2:1 on white and 9:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     1.42,
+     17.02,
+     15.16
+    ],
+    "dark": [
+     0.49,
+     1.42,
+     17.02,
+     15.16
+    ]
+   }
+  },
+  {
+   "id": "azure-event-hubs",
+   "name": "Azure Event Hubs",
+   "says": [
+    "Event Hubs",
+    "Event Hub"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/analytics/00039-icon-service-Event-Hubs.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/00039-icon-service-Event-Hubs.svg": "55187fecea1de7b135e53cc100bc765ad06ab419365263456bf548906c3107f8"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/00039-icon-service-Event-Hubs.svg",
+    "dark": "azure/00039-icon-service-Event-Hubs.svg"
+   },
+   "ink": {
+    "light": "#76BC2D",
+    "dark": "#76BC2D"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #76BC2D is under the 3:1 floor on dark focal (1.99:1), light surface-1 (2.33:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #86d633 (17% of the colour) is 1.8:1 on white and 11.01:1 on near-black.",
+    "ink": "#76BC2D",
+    "below": {
+     "dark focal": 1.99,
+     "light surface-1": 2.33
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #76BC2D is under the 3:1 floor on dark focal (1.99:1), light surface-1 (2.33:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #86d633 (17% of the colour) is 1.8:1 on white and 11.01:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     1.5,
+     17.02,
+     15.16
+    ],
+    "dark": [
+     0.49,
+     1.5,
+     17.02,
+     15.16
+    ]
+   }
+  },
+  {
+   "id": "azure-key-vault",
+   "name": "Azure Key Vault",
+   "says": [
+    "Key Vault"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/security/10245-icon-service-Key-Vaults.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10245-icon-service-Key-Vaults.svg": "712b426f54f0fc50d0816dc79df709daa7ac5f93ccaf4e9b3527f627f6e9ad97"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10245-icon-service-Key-Vaults.svg",
+    "dark": "azure/10245-icon-service-Key-Vaults.svg"
+   },
+   "ink": {
+    "light": "#FFCB12",
+    "dark": "#FFCB12"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #FFCB12 is under the 3:1 floor on dark focal (1.3:1), light surface-1 (1.52:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ffd70f (20% of the colour) is 1.4:1 on white and 14.12:1 on near-black; #2387de (20% of the colour) is 3.76:1 on white and 5.27:1 on near-black; #087bd6 (11% of the colour) is 4.36:1 on white and 4.54:1 on near-black.",
+    "ink": "#FFCB12",
+    "below": {
+     "dark focal": 1.3,
+     "light surface-1": 1.52
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #FFCB12 is under the 3:1 floor on dark focal (1.3:1), light surface-1 (1.52:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ffd70f (20% of the colour) is 1.4:1 on white and 14.12:1 on near-black; #2387de (20% of the colour) is 3.76:1 on white and 5.27:1 on near-black; #087bd6 (11% of the colour) is 4.36:1 on white and 4.54:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     0.5,
+     17.02,
+     17
+    ],
+    "dark": [
+     0.49,
+     0.5,
+     17.02,
+     17
+    ]
+   }
+  },
+  {
+   "id": "azure-front-door",
+   "name": "Azure Front Door",
+   "says": [
+    "Front Door"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/web/10073-icon-service-Front-Door-and-CDN-Profiles.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10073-icon-service-Front-Door-and-CDN-Profiles.svg": "b2e9c9a8b091a0694532257354dea94bb8c65b33876826e44dbc9b2aae01cf17"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10073-icon-service-Front-Door-and-CDN-Profiles.svg",
+    "dark": "azure/10073-icon-service-Front-Door-and-CDN-Profiles.svg"
+   },
+   "ink": {
+    "light": "#5EA0EF",
+    "dark": "#5EA0EF"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #5EA0EF is under the 3:1 floor on dark focal (2.31:1), light surface-1 (2.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #0078d4 (32% of the colour) is 4.53:1 on white and 4.37:1 on near-black; #50e6ff (26% of the colour) is 1.49:1 on white and 13.3:1 on near-black.",
+    "ink": "#5EA0EF",
+    "below": {
+     "dark focal": 2.31,
+     "light surface-1": 2.71
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #5EA0EF is under the 3:1 floor on dark focal (2.31:1), light surface-1 (2.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #0078d4 (32% of the colour) is 4.53:1 on white and 4.37:1 on near-black; #50e6ff (26% of the colour) is 1.49:1 on white and 13.3:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0,
+     1.06,
+     18,
+     15.88
+    ],
+    "dark": [
+     0,
+     1.06,
+     18,
+     15.88
+    ]
+   }
+  },
+  {
+   "id": "azure-api-management",
+   "name": "Azure API Management",
+   "says": [
+    "API Management",
+    "APIM"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+   "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+   "file": "Azure_Public_Service_Icons/Icons/integration/10042-icon-service-API-Management-Services.svg",
+   "release": "Azure_Public_Service_Icons_V25 (the page was last updated 2026-11-05)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "azure/10042-icon-service-API-Management-Services.svg": "cf794288575f2f7b080c50aa8319d42b02a2f2ae5351e4712c574353fc801f9a"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Icons may not be cropped, flipped or rotated, and their shape may not be distorted or changed. (the package's Azure_Icons_FAQ.pdf)",
+     "The full name of the service should always appear near the icon, but not so close that it looks like it's overlapping the icon. (the package's Azure_Icons_FAQ.pdf)"
+    ]
+   },
+   "forms": {
+    "light": "azure/10042-icon-service-API-Management-Services.svg",
+    "dark": "azure/10042-icon-service-API-Management-Services.svg"
+   },
+   "ink": {
+    "light": "#32D4F5",
+    "dark": "#32D4F5"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #32D4F5 is under the 3:1 floor on dark focal (1.51:1), light surface-1 (1.77:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #28b5d9 (20% of the colour) is 2.41:1 on white and 8.2:1 on near-black; #2dc6e9 (19% of the colour) is 2.03:1 on white and 9.77:1 on near-black; #31d1f2 (14% of the colour) is 1.82:1 on white and 10.87:1 on near-black.",
+    "ink": "#32D4F5",
+    "below": {
+     "dark focal": 1.51,
+     "light surface-1": 1.77
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes one colour file with no dark-ground form and states no rule against drawing it on a dark ground; it is drawn as published on every ground.",
+    "The package's FAQ says an icon may not be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft asks that the service's full name appear near the icon; the card's name does.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #32D4F5 is under the 3:1 floor on dark focal (1.51:1), light surface-1 (1.77:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #28b5d9 (20% of the colour) is 2.41:1 on white and 8.2:1 on near-black; #2dc6e9 (19% of the colour) is 2.03:1 on white and 9.77:1 on near-black; #31d1f2 (14% of the colour) is 1.82:1 on white and 10.87:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0.49,
+     1.17,
+     17.02,
+     15.67
+    ],
+    "dark": [
+     0.49,
+     1.17,
+     17.02,
+     15.67
+    ]
+   }
+  },
+  {
+   "id": "azure-entra-id",
+   "name": "Microsoft Entra ID",
+   "says": [
+    "Entra ID",
+    "Entra",
+    "Azure AD",
+    "Azure Active Directory"
+   ],
+   "owner": "Microsoft Corporation",
+   "source": "https://download.microsoft.com/download/3/1/a/31a56038-856a-4489-88e4-ee5a1c4352be/Microsoft%20Entra%20architecture%20icons%20-%20Oct%202023.zip",
+   "page": "https://learn.microsoft.com/en-us/entra/architecture/architecture-icons",
+   "file": "Microsoft Entra architecture icons - Oct 2023/Microsoft Entra color icons SVG/Microsoft Entra ID color icon.svg",
+   "release": "Microsoft Entra architecture icons - Oct 2023 (the page was last updated 2023-10-23)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "entra/Microsoft Entra ID color icon.svg": "efd9f54562bfb78bf3c77aecdd5fc31b61fce8a1cec78c4370b41fc470e54eda"
+   },
+   "terms": {
+    "url": "https://learn.microsoft.com/en-us/entra/architecture/architecture-icons",
+    "quotes": [
+     "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You might copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft.",
+     "Don't crop, flip, or rotate icons. Don't distort or change the icon shape in any way.",
+     "In diagrams, we recommend including the product name somewhere close to the icon."
+    ]
+   },
+   "forms": {
+    "light": "entra/Microsoft Entra ID color icon.svg",
+    "dark": "entra/Microsoft Entra ID color icon.svg"
+   },
+   "ink": {
+    "light": "#66DDFF",
+    "dark": "#66DDFF"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #66DDFF is under the 3:1 floor on dark focal (1.34:1), light surface-1 (1.57:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #074793 (35% of the colour) is 9.01:1 on white and 2.2:1 on near-black; #cbf8ff (10% of the colour) is 1.14:1 on white and 17.36:1 on near-black; #96bcc2 (10% of the colour) is 2.04:1 on white and 9.68:1 on near-black.",
+    "ink": "#66DDFF",
+    "below": {
+     "dark focal": 1.34,
+     "light surface-1": 1.57
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Microsoft publishes the Entra ID mark in a package of its own (the Azure icon package has none), in colour and in black and white; the colour file is drawn on every ground.",
+    "The page says an icon is not to be cropped. The view box is fitted to the artwork (DECISIONS 292, 2.3), the same fitting every mark gets; no path is changed.",
+    "Microsoft recommends the product name near the icon; the card's name is there.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #66DDFF is under the 3:1 floor on dark focal (1.34:1), light surface-1 (1.57:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #074793 (35% of the colour) is 9.01:1 on white and 2.2:1 on near-black; #cbf8ff (10% of the colour) is 1.14:1 on white and 17.36:1 on near-black; #96bcc2 (10% of the colour) is 2.04:1 on white and 9.68:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     0,
+     0.99,
+     18,
+     16.02
+    ],
+    "dark": [
+     0,
+     0.99,
+     18,
+     16.02
+    ]
+   }
+  },
+  {
+   "id": "gcp-compute-engine",
+   "name": "Google Compute Engine",
+   "says": [
+    "Compute Engine",
+    "GCE"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/Compute Engine/SVG/ComputeEngine-512-color-rgb.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/ComputeEngine-512-color-rgb.svg": "5cf9e57e4f99e125e45f9db269f3d5d1fa0dfd187aebfe00f3f97b9caf488af2"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/ComputeEngine-512-color-rgb.svg",
+    "dark": "gcp/ComputeEngine-512-color-rgb.svg"
+   },
+   "ink": {
+    "light": "#FBBC04",
+    "dark": "#FBBC04"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (28% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (25% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (20% of the colour) is 3.06:1 on white and 6.48:1 on near-black.",
+    "ink": "#FBBC04",
+    "below": {
+     "dark focal": 1.46,
+     "light surface-1": 1.71
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (28% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (25% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (20% of the colour) is 3.06:1 on white and 6.48:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     53,
+     53,
+     406,
+     406
+    ],
+    "dark": [
+     53,
+     53,
+     406,
+     406
+    ]
+   }
+  },
+  {
+   "id": "gcp-cloud-storage",
+   "name": "Google Cloud Storage",
+   "says": [
+    "Cloud Storage",
+    "GCS"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/Cloud Storage/SVG/Cloud_Storage-512-color.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/Cloud_Storage-512-color.svg": "df42fc4b652cb133a4150bea7988aa965651d2c52fdfd141b6e8a359552eec8e"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/Cloud_Storage-512-color.svg",
+    "dark": "gcp/Cloud_Storage-512-color.svg"
+   },
+   "ink": {
+    "light": "#FBBC04",
+    "dark": "#FBBC04"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (27% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (26% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (24% of the colour) is 3.06:1 on white and 6.48:1 on near-black.",
+    "ink": "#FBBC04",
+    "below": {
+     "dark focal": 1.46,
+     "light surface-1": 1.71
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (27% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (26% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (24% of the colour) is 3.06:1 on white and 6.48:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     54,
+     54,
+     404,
+     404.75
+    ],
+    "dark": [
+     54,
+     54,
+     404,
+     404.75
+    ]
+   }
+  },
+  {
+   "id": "gcp-bigquery",
+   "name": "Google BigQuery",
+   "says": [
+    "BigQuery"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/BigQuery/SVG/BigQuery-512-color.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/BigQuery-512-color.svg": "6c088a2a7afbfcab01918c959aad90d76835093cfc2ec8314bf7ba25b85aaae8"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/BigQuery-512-color.svg",
+    "dark": "gcp/BigQuery-512-color.svg"
+   },
+   "ink": {
+    "light": "#34A853",
+    "dark": "#34A853"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #34A853 is under the 3:1 floor on dark focal (2.61:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #4285f4 (25% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #ea4335 (23% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #fbbc04 (22% of the colour) is 1.71:1 on white and 11.59:1 on near-black.",
+    "ink": "#34A853",
+    "below": {
+     "dark focal": 2.61
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #34A853 is under the 3:1 floor on dark focal (2.61:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #4285f4 (25% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #ea4335 (23% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #fbbc04 (22% of the colour) is 1.71:1 on white and 11.59:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     22,
+     22,
+     470.25,
+     470.25
+    ],
+    "dark": [
+     22,
+     22,
+     470.25,
+     470.25
+    ]
+   }
+  },
+  {
+   "id": "gcp-vertex-ai",
+   "name": "Google Vertex AI",
+   "says": [
+    "Vertex AI",
+    "Vertex"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "core-products-icons.zip: Unique Icons/Vertex AI/SVG/VertexAI-512-color.svg",
+   "release": "core-products-icons.zip as published on 23 Nov 2026 (the page says the core icons were updated in early 2025)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/VertexAI-512-color.svg": "17922247f3110026fd637c531d0604c67a00c9a58a6e152030f2242b9fd48a8e"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/VertexAI-512-color.svg",
+    "dark": "gcp/VertexAI-512-color.svg"
+   },
+   "ink": {
+    "light": "#FBBC04",
+    "dark": "#FBBC04"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (13% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (13% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (11% of the colour) is 3.06:1 on white and 6.48:1 on near-black.",
+    "ink": "#FBBC04",
+    "below": {
+     "dark focal": 1.46,
+     "light surface-1": 1.71
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #FBBC04 is under the 3:1 floor on dark focal (1.46:1), light surface-1 (1.71:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #ea4335 (13% of the colour) is 3.92:1 on white and 5.05:1 on near-black; #4285f4 (13% of the colour) is 3.56:1 on white and 5.56:1 on near-black; #34a853 (11% of the colour) is 3.06:1 on white and 6.48:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     54,
+     54,
+     404,
+     404
+    ],
+    "dark": [
+     54,
+     54,
+     404,
+     404
+    ]
+   }
+  },
+  {
+   "id": "gcp-pubsub",
+   "name": "Google Pub/Sub",
+   "says": [
+    "Pub/Sub",
+    "PubSub"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "google-cloud-legacy-icons.zip: pubsub/pubsub.svg",
+   "release": "google-cloud-legacy-icons.zip as published on 23 Nov 2026 (the page's \"Legacy console icons\"; the core set has no icon for this product)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/pubsub.svg": "bd71cb16b24c5a368fc7913525e093f03e426d06e8917c1f255187e9f6c10217"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/pubsub.svg",
+    "dark": "gcp/pubsub.svg"
+   },
+   "ink": {
+    "light": "#AECBFA",
+    "dark": "#AECBFA"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #AECBFA is under the 3:1 floor on dark focal (1.41:1), light surface-1 (1.65:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #669df6 (25% of the colour) is 2.72:1 on white and 7.28:1 on near-black; #4285f4 (10% of the colour) is 3.56:1 on white and 5.56:1 on near-black.",
+    "ink": "#AECBFA",
+    "below": {
+     "dark focal": 1.41,
+     "light surface-1": 1.65
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "From Google's legacy console set: the page lists the core icons as the current ones and these as the older drawing, in a lighter palette. The core set has no icon for this product.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #AECBFA is under the 3:1 floor on dark focal (1.41:1), light surface-1 (1.65:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #669df6 (25% of the colour) is 2.72:1 on white and 7.28:1 on near-black; #4285f4 (10% of the colour) is 3.56:1 on white and 5.56:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     2.83,
+     1.99,
+     18.34,
+     20.02
+    ],
+    "dark": [
+     2.83,
+     1.99,
+     18.34,
+     20.02
+    ]
+   }
+  },
+  {
+   "id": "gcp-cloud-functions",
+   "name": "Google Cloud Functions",
+   "says": [
+    "Cloud Functions",
+    "Cloud Run functions"
+   ],
+   "owner": "Google LLC",
+   "source": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+   "page": "https://cloud.google.com/icons",
+   "file": "google-cloud-legacy-icons.zip: cloud_functions/cloud_functions.svg",
+   "release": "google-cloud-legacy-icons.zip as published on 23 Nov 2026 (the page's \"Legacy console icons\"; the core set has no icon for this product)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "gcp/cloud_functions.svg": "4083203f7fc949eca008ad06b9495d89c3ceff7b3980948f6093bd4e7db4d734"
+   },
+   "terms": {
+    "url": "https://cloud.google.com/icons",
+    "quotes": [
+     "Welcome to the official library for Google Cloud product icons. Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more."
+    ],
+    "also": "https://services.google.com/fh/files/misc/google-cloud-product-icons.pdf"
+   },
+   "forms": {
+    "light": "gcp/cloud_functions.svg",
+    "dark": "gcp/cloud_functions.svg"
+   },
+   "ink": {
+    "light": "#AECBFA",
+    "dark": "#AECBFA"
+   },
+   "floorException": {
+    "decision": "DECISIONS 303",
+    "note": "Multi-colour exception (DECISIONS 303): the principal ink #AECBFA is under the 3:1 floor on dark focal (1.41:1), light surface-1 (1.65:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #669df6 (29% of the colour) is 2.72:1 on white and 7.28:1 on near-black.",
+    "ink": "#AECBFA",
+    "below": {
+     "dark focal": 1.41,
+     "light surface-1": 1.65
+    }
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "The icons page states no terms of use beyond the sentence quoted, and the guide it links (a PDF) could not be read as text; whether the icons may be bundled in a package is the owner's decision (291), not something Google's page grants.",
+    "Google publishes one colour file with no dark-ground form; it is drawn as published on every ground.",
+    "From Google's legacy console set: the page lists the core icons as the current ones and these as the older drawing, in a lighter palette. The core set has no icon for this product.",
+    "Multi-colour exception (DECISIONS 303): the principal ink #AECBFA is under the 3:1 floor on dark focal (1.41:1), light surface-1 (1.65:1). The principal ink is the colour most of the drawing is nearest to, and among colours within 5 points of the largest share, the weakest. The other fills are in the owner's palette: #669df6 (29% of the colour) is 2.72:1 on white and 7.28:1 on near-black."
+   ],
+   "viewBox": {
+    "light": [
+     1.99,
+     2,
+     20.02,
+     20.01
+    ],
+    "dark": [
+     1.99,
+     2,
+     20.02,
+     20.01
+    ]
+   }
+  },
+  {
+   "id": "aws-step-functions",
+   "name": "AWS Step Functions",
+   "says": [
+    "Step Functions"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Application-Integration/48/Arch_AWS-Step-Functions_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_AWS-Step-Functions_48.svg": "c1bb81d6504d283c6b31cbd9516fa6b8364010ea3c30ae614507114ca34192ad",
+    "aws/Arch_AWS-Step-Functions_48_tile-removed.svg": "aa0a56fe5403e9cc5f34f54b8bce8d38b10f91a914a375b4c80ce13d5dbbdf18"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_AWS-Step-Functions_48.svg",
+     "to": "aws/Arch_AWS-Step-Functions_48_tile-removed.svg",
+     "edit": "Tile removed: the Application-Integration background group (its #E7157B 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #E7157B, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_AWS-Step-Functions_48_tile-removed.svg",
+    "dark": "aws/Arch_AWS-Step-Functions_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#E7157B",
+    "dark": "#E7157B"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Step Functions, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     10,
+     10,
+     44,
+     44
+    ],
+    "dark": [
+     10,
+     10,
+     44,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-kinesis",
+   "name": "Amazon Kinesis",
+   "says": [
+    "Kinesis"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Analytics/48/Arch_Amazon-Kinesis_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_Amazon-Kinesis_48.svg": "c9a1573c77bfbf7c8b99f44fb216e24910d45b00e37f4e30fa346daae4759445",
+    "aws/Arch_Amazon-Kinesis_48_tile-removed.svg": "38ef1ef04aad96d8ac966ce3e9807722a6388d1664ba040625687a6db7628764"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_Amazon-Kinesis_48.svg",
+     "to": "aws/Arch_Amazon-Kinesis_48_tile-removed.svg",
+     "edit": "Tile removed: the Analytics background group (its #8C4FFF 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #8C4FFF, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_Amazon-Kinesis_48_tile-removed.svg",
+    "dark": "aws/Arch_Amazon-Kinesis_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#8C4FFF",
+    "dark": "#8C4FFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Kinesis, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     10.96,
+     10,
+     43.04,
+     44
+    ],
+    "dark": [
+     10.96,
+     10,
+     43.04,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-fargate",
+   "name": "AWS Fargate",
+   "says": [
+    "Fargate"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Containers/48/Arch_AWS-Fargate_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_AWS-Fargate_48.svg": "2b1b00e6e702e9bd1a1cc8bba077e05f214889c145186b9a44c28a74943b38ce",
+    "aws/Arch_AWS-Fargate_48_tile-removed.svg": "af61bf6798c3558d7e2d19c52306b8c8cb443b1005c2f3d8c0fbcdabbfe8235e"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_AWS-Fargate_48.svg",
+     "to": "aws/Arch_AWS-Fargate_48_tile-removed.svg",
+     "edit": "Tile removed: the Compute background group (its #ED7100 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #ED7100, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_AWS-Fargate_48_tile-removed.svg",
+    "dark": "aws/Arch_AWS-Fargate_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#ED7100",
+    "dark": "#ED7100"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Fargate, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     10.96,
+     10,
+     43.04,
+     44
+    ],
+    "dark": [
+     10.96,
+     10,
+     43.04,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-secrets-manager",
+   "name": "AWS Secrets Manager",
+   "says": [
+    "Secrets Manager"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Security-Identity/48/Arch_AWS-Secrets-Manager_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_AWS-Secrets-Manager_48.svg": "0258cbde7033b45683db4e814980f5871d3e88fd8490ad9e9f3f531049fffe40",
+    "aws/Arch_AWS-Secrets-Manager_48_tile-removed.svg": "3c2c7cc6ddff1494770ad0d15bee94262e18fc3f332d8d6b1b96656990cda347"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_AWS-Secrets-Manager_48.svg",
+     "to": "aws/Arch_AWS-Secrets-Manager_48_tile-removed.svg",
+     "edit": "Tile removed: the Security-Identity-Compliance background group (its #DD344C 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #DD344C, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_AWS-Secrets-Manager_48_tile-removed.svg",
+    "dark": "aws/Arch_AWS-Secrets-Manager_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Secrets Manager, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     10,
+     10,
+     44,
+     44
+    ],
+    "dark": [
+     10,
+     10,
+     44,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-cognito",
+   "name": "Amazon Cognito",
+   "says": [
+    "Cognito"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Security-Identity/48/Arch_Amazon-Cognito_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_Amazon-Cognito_48.svg": "66a89c507aced4afefe99d39fa7d5b7bd22e3f6bed03f511a031bf44f57f34ce",
+    "aws/Arch_Amazon-Cognito_48_tile-removed.svg": "c599b2c1d996cc4922e604c67f4949c256b63ae78521e5204225ec8fa8434e01"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_Amazon-Cognito_48.svg",
+     "to": "aws/Arch_Amazon-Cognito_48_tile-removed.svg",
+     "edit": "Tile removed: the Security-Identity-Compliance background group (its #DD344C 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #DD344C, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_Amazon-Cognito_48_tile-removed.svg",
+    "dark": "aws/Arch_Amazon-Cognito_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Cognito, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     9.96,
+     12,
+     44.04,
+     41
+    ],
+    "dark": [
+     9.96,
+     12,
+     44.04,
+     41
+    ]
+   }
+  },
+  {
+   "id": "aws-eks",
+   "name": "Amazon EKS",
+   "says": [
+    "EKS",
+    "Elastic Kubernetes Service"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Containers/48/Arch_Amazon-Elastic-Kubernetes-Service_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_Amazon-Elastic-Kubernetes-Service_48.svg": "83125d0b8a7920b7a13381a8645aacb4efa5ea7a0af3049949e4530491b46ca8",
+    "aws/Arch_Amazon-Elastic-Kubernetes-Service_48_tile-removed.svg": "5f5274a669ea37c192767b779ff3c09f281bcb8997ff404f7186f123c17c6aff"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_Amazon-Elastic-Kubernetes-Service_48.svg",
+     "to": "aws/Arch_Amazon-Elastic-Kubernetes-Service_48_tile-removed.svg",
+     "edit": "Tile removed: the Compute background group (its #ED7100 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #ED7100, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_Amazon-Elastic-Kubernetes-Service_48_tile-removed.svg",
+    "dark": "aws/Arch_Amazon-Elastic-Kubernetes-Service_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#ED7100",
+    "dark": "#ED7100"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for EKS, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     13,
+     10,
+     39,
+     44
+    ],
+    "dark": [
+     13,
+     10,
+     39,
+     44
+    ]
+   }
+  },
+  {
+   "id": "aws-kms",
+   "name": "AWS Key Management Service",
+   "says": [
+    "KMS",
+    "Key Management Service"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Security-Identity/48/Arch_AWS-Key-Management-Service_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_AWS-Key-Management-Service_48.svg": "5655b1815bdfe9ea75a26c702efaac8d884884cccb3b306f75e54d6f542a325e",
+    "aws/Arch_AWS-Key-Management-Service_48_tile-removed.svg": "df46541d8ed6e267dbeb2f936320bd12f41308e7b859d3bd0644d8c82d4971f7"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_AWS-Key-Management-Service_48.svg",
+     "to": "aws/Arch_AWS-Key-Management-Service_48_tile-removed.svg",
+     "edit": "Tile removed: the Security-Identity-Compliance background group (its #DD344C 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #DD344C, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_AWS-Key-Management-Service_48_tile-removed.svg",
+    "dark": "aws/Arch_AWS-Key-Management-Service_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#DD344C",
+    "dark": "#DD344C"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "departures": [
+    "Unofficial (DECISIONS 297, 303): the release has no Resource icon for Key Management Service, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ],
+   "viewBox": {
+    "light": [
+     10,
+     11,
+     43.85,
+     43
+    ],
+    "dark": [
+     10,
+     11,
+     43.85,
+     43
     ]
    }
   }

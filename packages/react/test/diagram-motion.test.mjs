@@ -742,22 +742,39 @@ describe("marks (first for the first three)", () => {
     assert.ok(!fs.readFileSync(path.join(pkg, "dist", "index.js"), "utf8").includes("marks/"));
   });
 
-  test("every mark's ink, read from the manifest, is 3:1 on levels 1 to 3 in both themes; on the focal fills too, but for the four recorded", async () => {
+  test("every mark's ink, read from the manifest, is 3:1 on levels 1 to 3 in both themes; on the focal fills too, but for the four recorded inks (DECISIONS 292) and the multi-colour exceptions named here (DECISIONS 303)", async () => {
     const tokens = JSON.parse(fs.readFileSync(path.join(pkg, "..", "tokens", "dist", "json", "tokens.json"), "utf8"));
     const hex = (theme, name) => tokens[theme][name].hex.slice(0, 7);
     const lum = (h) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
     const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
     const RECORDED = { "#ED7100": 2.58, "#7AA116": 2.59, "#01A88D": 2.57, "#FF570A": 2.71 };
+    // DECISIONS 303: a multi-colour mark may fall under the floor on its principal ink, and only these do. Each is named here, so no other mark can
+    // slip under; its manifest entry records the decision and the ratio on every ground that is under 3:1, and the test holds it to those values.
+    const MULTI_COLOUR = new Set(["azure-functions", "azure-storage-account", "azure-cosmos-db", "azure-sql-database", "azure-aks", "azure-service-bus", "azure-event-hubs", "azure-key-vault", "azure-front-door", "azure-api-management", "azure-entra-id", "gcp-compute-engine", "gcp-cloud-storage", "gcp-bigquery", "gcp-vertex-ai", "gcp-pubsub", "gcp-cloud-functions"]);
+    const exceptions = MANIFEST.marks.filter((m) => m.floorException).map((m) => m.id);
+    assert.deepEqual([...exceptions].sort(), [...MULTI_COLOUR].sort(), "the marks with a recorded exception are the ones named in this test");
     for (const mark of MANIFEST.marks) {
+      // Every ground the floor reads, by name: the card levels of each theme, and the focal fill (which takes the other theme's form).
+      const seen = {};
       for (const theme of ["dark", "light"]) {
         const ink = (theme === "dark" ? mark.ink.dark : mark.ink.light).toUpperCase();
-        for (const level of ["surface-1", "surface-2", "surface-3"]) assert.ok(ratio(ink, hex(theme, level)) >= 3, `${mark.id} on ${theme} ${level}: ${ratio(ink, hex(theme, level)).toFixed(2)}`);
-        // The focal card takes the other theme's form.
+        for (const level of ["surface-1", "surface-2", "surface-3"]) seen[`${theme} ${level}`] = ratio(ink, hex(theme, level));
         const focalInk = (theme === "dark" ? mark.ink.light : mark.ink.dark).toUpperCase();
-        const r = ratio(focalInk, hex(theme, "diagram-focal"));
-        if (theme === "dark" && RECORDED[focalInk]) assert.ok(Math.abs(r - RECORDED[focalInk]) < 0.015, `${mark.id} on the dark focal card is ${r.toFixed(2)}, recorded ${RECORDED[focalInk]}`);
-        else assert.ok(r >= 3, `${mark.id} on the ${theme} focal card: ${r.toFixed(2)}`);
+        seen[`${theme} focal`] = ratio(focalInk, hex(theme, "diagram-focal"));
+        if (theme === "dark" && RECORDED[focalInk] && !MULTI_COLOUR.has(mark.id)) assert.ok(Math.abs(seen["dark focal"] - RECORDED[focalInk]) < 0.015, `${mark.id} on the dark focal card is ${seen["dark focal"].toFixed(2)}, recorded ${RECORDED[focalInk]}`);
+        else if (!MULTI_COLOUR.has(mark.id)) assert.ok(seen[`${theme} focal`] >= 3, `${mark.id} on the ${theme} focal card: ${seen[`${theme} focal`].toFixed(2)}`);
       }
+      if (!MULTI_COLOUR.has(mark.id)) { for (const [ground, r] of Object.entries(seen)) if (!(ground === "dark focal" && RECORDED[mark.ink.light.toUpperCase()])) assert.ok(r >= 3, `${mark.id} on ${ground}: ${r.toFixed(2)}`); continue; }
+      // A multi-colour exception: the entry says so, names its ink, and records each ground under 3:1 at its measured ratio; no other ground is under it.
+      const fe = mark.floorException;
+      assert.equal(fe.decision, "DECISIONS 303", mark.id);
+      assert.equal(fe.ink.toUpperCase(), mark.ink.light.toUpperCase(), `${mark.id}: the recorded ink is the mark's ink`);
+      assert.ok(mark.ink.light.toUpperCase() === mark.ink.dark.toUpperCase());
+      const recorded = {};
+      for (const [ground, r] of Object.entries(fe.below)) { recorded[ground] = r; if (ground === "light surface-1") { recorded["light surface-2"] = r; recorded["light surface-3"] = r; } }
+      const under = Object.fromEntries(Object.entries(seen).filter(([, r]) => r < 3));
+      assert.deepEqual(Object.keys(under).sort(), Object.keys(recorded).sort(), `${mark.id}: the grounds under 3:1 are the recorded ones`);
+      for (const [ground, r] of Object.entries(under)) assert.ok(Math.abs(r - recorded[ground]) < 0.015, `${mark.id} on ${ground} is ${r.toFixed(2)}, recorded ${recorded[ground]}`);
     }
   });
 
@@ -792,7 +809,7 @@ describe("marks (first for the first three)", () => {
     const { FIELDS } = await import("../marks/generate.mjs");
     const crypto = await import("node:crypto");
     const listed = new Set();
-    assert.equal(MANIFEST.marks.length, 80);
+    assert.equal(MANIFEST.marks.length, 104);
     for (const mark of MANIFEST.marks) {
       for (const field of FIELDS) assert.ok(mark[field] !== undefined, `${mark.id}: ${field}`);
       for (const [file, hash] of Object.entries(mark.sha256)) {
