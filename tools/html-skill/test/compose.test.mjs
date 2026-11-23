@@ -366,6 +366,31 @@ describe("the command line", () => {
     }
   });
 
+  test("--marks prints each bundled mark with the words its card must say, marks the unofficial ones, and takes a provider prefix; it writes no page", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-compose-"));
+    try {
+      const marksFile = JSON.parse(read(skillDir, "parts", "marks.json"));
+      const all = run(["--marks"], dir);
+      assert.equal(all.status, 0, all.stderr);
+      const lines = all.stdout.trim().split("\n");
+      assert.deepEqual(lines.map((l) => l.split(":")[0]), Object.keys(marksFile.says), "every bundled mark, in the manifest's order");
+      assert.ok(lines.includes("aws-ecs-service: ECS, ECS service") || lines.some((l) => l.startsWith("aws-ecs-service: ")), "an id is followed by the words its card must say");
+      assert.deepEqual(lines.filter((l) => l.endsWith(" (unofficial)")).map((l) => l.split(":")[0]), marksFile.unofficial, "the unofficial marks say so");
+      const aws = run(["--marks", "aws", "kubernetes"], dir);
+      assert.equal(aws.status, 0, aws.stderr);
+      assert.deepEqual(aws.stdout.trim().split("\n").map((l) => l.split(":")[0]), Object.keys(marksFile.says).filter((id) => id.startsWith("aws-") || id === "kubernetes"));
+      const bad = run(["--marks", "nope"], dir);
+      assert.equal(bad.status, 1);
+      assert.match(bad.stderr, /no mark starts with nope; the marks are aws, /);
+      assert.equal(run(["--marks", "aws", "--out", "x.html"], dir).status, 2, "--marks is not mixed with a page's options");
+      assert.equal(run(["--marks", "--usage", "core"], dir).status, 2, "--marks is not mixed with --usage");
+      assert.deepEqual(fs.readdirSync(dir), [], "no page is written");
+      assert.ok(Buffer.byteLength(usageOf("diagram")) <= manifest.modules.diagram.usage, "the diagram usage names the provider patterns and this command, not the ids");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("--usage alone prints the index, one line for the core and each module; an unknown name fails with the index and a non-zero exit", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-compose-"));
     try {
