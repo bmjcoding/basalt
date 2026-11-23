@@ -6,6 +6,7 @@
     "@phosphor-icons/react": "The web icon set (foundations: Icons).",
     "@srasyndicate/basalt-tokens": "Basalt's own tokens.",
     "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
+    "elkjs": "Automatic diagram layout (`layout=\"auto\"`), loaded on demand through `diagram-layout` and never from the index. EPL-2.0 OR GPL-3.0-or-later; used under EPL-2.0, unmodified. The owner approved it (DECISIONS 301).",
     "react": "Peer: the host app's React.",
     "react-dom": "Peer: the host app's React DOM."
   },

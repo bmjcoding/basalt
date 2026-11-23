@@ -29,6 +29,7 @@
 // file; PREFIX (aws, azure, gcp) keeps the ids that start with it. It reads parts/marks.json only, so the diagram usage need not list them.
 //
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -647,6 +648,15 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
     // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
     // the script reads carries the id and never a path.
+    // An automatic figure (DECISIONS 306, 1.8) is placed here, at build time, for both directions; the page holds the placement and never elkjs.
+    if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema"].includes(spec.type)) {
+      try {
+        spec.placement = JSON.parse(execFileSync(process.execPath, [path.join(parts, "diagram-place.mjs")], { input: JSON.stringify(spec), encoding: "utf8" }));
+        const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
+        item.text = item.text.replace(item.inner, () => inner);
+        item.inner = inner;
+      } catch (e) { notes.push(`${spec.title ?? "a diagram"} could not be placed (${String(e.message).split("\n")[0]}); it is stacked`); }
+    }
     // An architecture's cards, a data flow's steps and a sequence's participants may carry one (DECISIONS 306, 1.6).
     const cards = spec && (spec.type === "architecture" || spec.type === "data-flow") ? spec.nodes : spec && spec.type === "sequence" ? spec.participants : null;
     if (Array.isArray(cards)) {

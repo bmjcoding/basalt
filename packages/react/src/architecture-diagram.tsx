@@ -2,12 +2,22 @@ import * as React from "react";
 
 import { DiagramFigure } from "./diagram-figure";
 import type { DiagramFigureProps } from "./diagram-figure";
-import type { ArchitectureNode, DiagramFlowEdge, DiagramGroup, DiagramPacket } from "./diagram-core";
+import type { ArchitectureNode, DiagramFlowEdge, DiagramGroup, DiagramPacket, DiagramPlacement } from "./diagram-core";
 
 export type { ArchitectureNode, DiagramEdge, DiagramFlowEdge, DiagramGroup, DiagramLegend, DiagramLineKind, DiagramMark, DiagramMotion, DiagramNode, DiagramPacket, DiagramSide } from "./diagram-core";
 export type { DiagramFigureProps } from "./diagram-figure";
 
 export interface ArchitectureDiagramProps extends DiagramFigureProps {
+  /**
+   * `"auto"` (DECISIONS 306, 1.8): elkjs gives each card a column and a row, and Basalt sizes, routes and seats the figure as it does an authored one; a
+   * card's `col` and `row` are left out (and not read). Place at build time with `placeDiagram` from `@srasyndicate/basalt/diagram-layout` and pass
+   * `placement`: then elkjs never loads in the browser. Without it the layout module loads on demand at 640 or wider.
+   */
+  layout?: "authored" | "auto";
+  /** Under `"auto"`: the one direction tried. Left out, the type's own (right for an architecture and a schema, down for a flowchart), then the other. */
+  direction?: "right" | "down";
+  /** Under `"auto"`: `placeDiagram`'s answer for one direction or both. */
+  placement?: DiagramPlacement | DiagramPlacement[];
   /** The parts, in the author's order: the stacked order, the focus order and the list's. `col` and `row` place each in the drawn layout. */
   nodes: ArchitectureNode[];
   /** One level of grouping: `group: "aws"` on the members and `{ id, label }` here. The box is derived from its members. */
@@ -21,7 +31,7 @@ export interface ArchitectureDiagramProps extends DiagramFigureProps {
 }
 
 /** An architecture diagram (DECISIONS 281): nodes with a kind, a name and a detail, groups, and three kinds of line. */
-export function ArchitectureDiagram({ nodes, groups, edges, pulse, packet, motion, entrance, title, heading, legend, ...props }: ArchitectureDiagramProps) {
-  const spec = React.useMemo(() => ({ type: "architecture" as const, title, heading, legend, nodes, groups, edges, motion, entrance, pulse, packet }), [title, heading, legend, nodes, groups, edges, motion, entrance, pulse, packet]);
+export function ArchitectureDiagram({ nodes, groups, edges, pulse, packet, motion, entrance, layout, direction, placement, title, heading, legend, ...props }: ArchitectureDiagramProps) {
+  const spec = React.useMemo(() => ({ type: "architecture" as const, title, heading, legend, nodes, groups, edges, motion, entrance, layout, direction, placement, pulse, packet }), [title, heading, legend, nodes, groups, edges, motion, entrance, layout, direction, placement, pulse, packet]);
   return <DiagramFigure {...props} entrance={entrance} title={title} heading={heading} legend={legend} spec={spec} component="ArchitectureDiagram" />;
 }

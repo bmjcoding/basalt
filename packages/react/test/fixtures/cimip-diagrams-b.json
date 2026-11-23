@@ -897,5 +897,535 @@
         ]
       }
     ]
+  },
+  "autoArchitecture": {
+    "type": "architecture",
+    "title": "How a request reaches the agent (placed automatically)",
+    "source": "docs/architecture.md, \"The shape\"",
+    "summary": "Requests travel from the browser over HTTPS through the ALB to the cimip service. The service writes to Aurora PostgreSQL, puts sealed segments in S3, calls Bedrock for the scribe and has ECS start one agent sandbox per incident. It streams HTTP + SSE to the sandbox, which calls Bedrock for inference, sends its logs to CloudWatch and runs approved tools against production.",
+    "legend": {
+      "main": "Request path",
+      "plain": "Call",
+      "dashed": "Async or one-way",
+      "focal": "The service"
+    },
+    "groups": [
+      {
+        "id": "aws",
+        "label": "AWS · your account"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "browser",
+        "kind": "client",
+        "name": "Browser",
+        "detail": "Edge on iOS, Android"
+      },
+      {
+        "id": "alb",
+        "kind": "load balancer",
+        "name": "ALB",
+        "detail": "OIDC sign-in · HTTP/2",
+        "detailMono": true,
+        "group": "aws"
+      },
+      {
+        "id": "svc",
+        "kind": "ECS service",
+        "name": "cimip service",
+        "detail": "N tasks · stateless",
+        "detailMono": true,
+        "focal": true,
+        "group": "aws"
+      },
+      {
+        "id": "aurora",
+        "kind": "database",
+        "name": "Aurora PostgreSQL",
+        "detail": "metadata · live window",
+        "detailMono": true,
+        "group": "aws",
+        "branch": true
+      },
+      {
+        "id": "s3",
+        "kind": "object store",
+        "name": "S3",
+        "detail": "sealed segments · transcripts",
+        "detailMono": true,
+        "group": "aws",
+        "branch": true
+      },
+      {
+        "id": "ecs",
+        "kind": "control plane",
+        "name": "ECS",
+        "detail": "RunTask · StopTask",
+        "detailMono": true,
+        "group": "aws",
+        "branch": true
+      },
+      {
+        "id": "bedrock",
+        "kind": "model",
+        "name": "Bedrock",
+        "detail": "the scribe · the agent",
+        "group": "aws",
+        "branch": true
+      },
+      {
+        "id": "agent",
+        "kind": "ECS task · one per incident",
+        "name": "Agent sandbox",
+        "detail": "private IP · :8080",
+        "detailMono": true,
+        "group": "aws"
+      },
+      {
+        "id": "cw",
+        "kind": "logs",
+        "name": "CloudWatch",
+        "detail": "the agent's logs, traces",
+        "group": "aws",
+        "branch": true
+      },
+      {
+        "id": "sys",
+        "kind": "your systems",
+        "name": "Production",
+        "detail": "read-only tools",
+        "group": "aws"
+      }
+    ],
+    "edges": [
+      {
+        "from": "browser",
+        "to": "alb",
+        "kind": "main",
+        "label": "HTTPS"
+      },
+      {
+        "from": "alb",
+        "to": "svc",
+        "kind": "main"
+      },
+      {
+        "from": "svc",
+        "to": "aurora",
+        "label": "SQL · NOTIFY"
+      },
+      {
+        "from": "svc",
+        "to": "s3",
+        "label": "PUT"
+      },
+      {
+        "from": "svc",
+        "to": "ecs",
+        "label": "RunTask"
+      },
+      {
+        "from": "svc",
+        "to": "bedrock",
+        "label": "scribe"
+      },
+      {
+        "from": "svc",
+        "to": "agent",
+        "kind": "main",
+        "label": "HTTP + SSE"
+      },
+      {
+        "from": "ecs",
+        "to": "agent",
+        "kind": "dashed",
+        "label": "starts"
+      },
+      {
+        "from": "agent",
+        "to": "bedrock",
+        "label": "inference"
+      },
+      {
+        "from": "agent",
+        "to": "cw",
+        "kind": "dashed",
+        "label": "logs"
+      },
+      {
+        "from": "agent",
+        "to": "sys",
+        "label": "tools · approved actions"
+      }
+    ],
+    "layout": "auto"
+  },
+  "autoFlowchart": {
+    "type": "flowchart",
+    "title": "Who may decide what the agent asks to run (placed automatically)",
+    "source": "docs/agent-contract.md and the approvals section of the architecture",
+    "summary": "When the agent asks to run a command, CIMIP sets the higher of the two risk levels, then checks the decider's role: observers cannot decide, commanders and deputies may always decide, responders may decide only at medium risk or lower, and the first recorded decision stands.",
+    "legend": {
+      "main": "Usual path",
+      "focal": "CIMIP's own step"
+    },
+    "nodes": [
+      {
+        "id": "req",
+        "shape": "terminal",
+        "name": "Agent asks to run a command",
+        "detail": "approval.requested",
+        "detailMono": true
+      },
+      {
+        "id": "risk",
+        "name": "CIMIP sets the risk",
+        "detail": "higher of the agent's and its own",
+        "focal": true
+      },
+      {
+        "id": "who",
+        "shape": "decision",
+        "name": "Who is deciding?"
+      },
+      {
+        "id": "obs",
+        "shape": "terminal",
+        "name": "Can't decide",
+        "detail": "observers only read",
+        "branch": true
+      },
+      {
+        "id": "med",
+        "shape": "decision",
+        "name": "Risk medium or lower?",
+        "branch": true
+      },
+      {
+        "id": "wait",
+        "shape": "terminal",
+        "name": "Waits for the commander or deputy",
+        "branch": true
+      },
+      {
+        "id": "may",
+        "name": "May decide",
+        "detail": "high risk asks twice"
+      },
+      {
+        "id": "first",
+        "shape": "decision",
+        "name": "First decision?"
+      },
+      {
+        "id": "told",
+        "shape": "terminal",
+        "name": "Told it was already decided",
+        "branch": true
+      },
+      {
+        "id": "rec",
+        "shape": "terminal",
+        "name": "Recorded, then sent until acknowledged"
+      }
+    ],
+    "edges": [
+      {
+        "from": "req",
+        "to": "risk",
+        "kind": "main"
+      },
+      {
+        "from": "risk",
+        "to": "who",
+        "kind": "main"
+      },
+      {
+        "from": "who",
+        "to": "obs",
+        "label": "observer"
+      },
+      {
+        "from": "who",
+        "to": "med",
+        "label": "responder"
+      },
+      {
+        "from": "who",
+        "to": "may",
+        "kind": "main",
+        "label": "commander or deputy"
+      },
+      {
+        "from": "med",
+        "to": "wait",
+        "label": "no"
+      },
+      {
+        "from": "med",
+        "to": "may",
+        "label": "yes"
+      },
+      {
+        "from": "may",
+        "to": "first",
+        "kind": "main"
+      },
+      {
+        "from": "first",
+        "to": "told",
+        "label": "no"
+      },
+      {
+        "from": "first",
+        "to": "rec",
+        "kind": "main",
+        "label": "yes"
+      }
+    ],
+    "layout": "auto"
+  },
+  "autoSchema": {
+    "type": "schema",
+    "title": "The tables an incident and its runs live in (placed automatically)",
+    "source": "server/db/schema.ts; each table shows its keys and a few columns",
+    "summary": "Eight PostgreSQL tables center on incidents: memberships, room_events, log_segments, sandboxes and agent_runs reference incidents.id; memberships and incidents reference users.id; agent_runs references sandboxes.id; and approvals references agent_runs.id.",
+    "legend": {
+      "plain": "A foreign key, to the key it references",
+      "focal": "The table most of the others reference"
+    },
+    "tables": [
+      {
+        "name": "memberships",
+        "more": 8,
+        "columns": [
+          {
+            "name": "incident_id",
+            "key": "PK",
+            "references": "incidents.id"
+          },
+          {
+            "name": "user_id",
+            "key": "PK",
+            "references": "users.id"
+          },
+          {
+            "name": "role",
+            "type": "text"
+          },
+          {
+            "name": "state",
+            "type": "text"
+          },
+          {
+            "name": "deputy",
+            "type": "boolean"
+          }
+        ]
+      },
+      {
+        "name": "room_events",
+        "more": 4,
+        "columns": [
+          {
+            "name": "incident_id",
+            "key": "PK",
+            "references": "incidents.id"
+          },
+          {
+            "name": "seq",
+            "key": "PK",
+            "type": "integer"
+          },
+          {
+            "name": "channel",
+            "type": "room | bridge"
+          },
+          {
+            "name": "body",
+            "type": "jsonb"
+          }
+        ]
+      },
+      {
+        "name": "log_segments",
+        "more": 4,
+        "columns": [
+          {
+            "name": "incident_id",
+            "key": "PK",
+            "references": "incidents.id"
+          },
+          {
+            "name": "first_seq",
+            "key": "PK",
+            "type": "integer"
+          },
+          {
+            "name": "key",
+            "type": "S3 key"
+          },
+          {
+            "name": "sha256",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "name": "incidents",
+        "focal": true,
+        "more": 10,
+        "columns": [
+          {
+            "name": "id",
+            "key": "PK",
+            "type": "text"
+          },
+          {
+            "name": "number",
+            "type": "unique"
+          },
+          {
+            "name": "title",
+            "type": "text"
+          },
+          {
+            "name": "severity",
+            "type": "text"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          },
+          {
+            "name": "commander_id",
+            "key": "FK",
+            "references": "users.id"
+          },
+          {
+            "name": "last_seq",
+            "type": "integer"
+          },
+          {
+            "name": "summary",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "name": "users",
+        "more": 2,
+        "columns": [
+          {
+            "name": "id",
+            "key": "PK",
+            "type": "text"
+          },
+          {
+            "name": "subject",
+            "type": "unique"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "roles",
+            "type": "jsonb"
+          }
+        ]
+      },
+      {
+        "name": "sandboxes",
+        "more": 5,
+        "columns": [
+          {
+            "name": "id",
+            "key": "PK",
+            "type": "text"
+          },
+          {
+            "name": "incident_id",
+            "key": "FK",
+            "references": "incidents.id"
+          },
+          {
+            "name": "state",
+            "type": "text"
+          },
+          {
+            "name": "endpoint",
+            "type": "private IP"
+          }
+        ]
+      },
+      {
+        "name": "agent_runs",
+        "more": 14,
+        "columns": [
+          {
+            "name": "id",
+            "key": "PK",
+            "type": "text"
+          },
+          {
+            "name": "incident_id",
+            "key": "FK",
+            "references": "incidents.id"
+          },
+          {
+            "name": "sandbox_id",
+            "key": "FK",
+            "references": "sandboxes.id"
+          },
+          {
+            "name": "kind",
+            "type": "responder | ask"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          },
+          {
+            "name": "agent_cursor",
+            "type": "integer"
+          },
+          {
+            "name": "owner",
+            "type": "lease"
+          }
+        ]
+      },
+      {
+        "name": "approvals",
+        "more": 8,
+        "columns": [
+          {
+            "name": "id",
+            "key": "PK",
+            "type": "text"
+          },
+          {
+            "name": "run_id",
+            "key": "FK",
+            "references": "agent_runs.id"
+          },
+          {
+            "name": "command",
+            "type": "text"
+          },
+          {
+            "name": "risk",
+            "type": "low | medium | high"
+          },
+          {
+            "name": "status",
+            "type": "pending"
+          }
+        ]
+      }
+    ],
+    "layout": "auto"
   }
 }

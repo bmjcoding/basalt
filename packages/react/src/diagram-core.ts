@@ -124,7 +124,14 @@ export interface DiagramSpec {
   entrance?: "always" | "first-visit";
   /** A sequence drawn as text art (DECISIONS 306, 1.2). */
   variant?: "drawn" | "text";
+  /** Automatic layout (1.8): `"auto"` takes each card's column and row from `placement` (elkjs's, from `placeDiagram`), and a card's own are not read. */
+  layout?: "authored" | "auto";
+  direction?: "right" | "down";
+  placement?: DiagramPlacement | DiagramPlacement[];
 }
+
+/** Where an automatic figure's cards go in one direction (1.8): `placeDiagram`'s answer. */
+export interface DiagramPlacement { direction: "right" | "down"; cells: Record<string, { col: number; row: number }> }
 
 // ============================================================================================================================================
 // The model
@@ -208,6 +215,8 @@ export interface Model {
   memo: Map<string, unknown>;
   /** Mirrored for a right-to-left figure (1.7). */
   rtl?: boolean;
+  /** An automatic figure with no placement yet (1.8): it is stacked, every word present, until one arrives. */
+  unplaced?: boolean;
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
@@ -222,6 +231,8 @@ const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign
 const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
 
 export interface BuildOptions {
+  /** The placement an automatic figure is drawn from (1.8), chosen by the figure from those it has. */
+  placement?: DiagramPlacement;
   /** The figure's computed direction is right to left (DECISIONS 306, 1.7): the model is mirrored, so column 1 is drawn at the right and a named left or
    *  right side swaps. The engine then lays out and routes as it does any figure; the words do not mirror. */
   rtl?: boolean;
@@ -262,6 +273,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   };
   const trackOf = (v: unknown, what: string): number => {
     if (typeof v === "number" && Number.isInteger(v) && v >= 1) return v;
+    // An automatic figure's cards take the placement's tracks (1.8).
+    if (spec.layout === "auto" && (v === undefined || v === null)) return 1;
     dev && warn(`${what} is ${JSON.stringify(v)}, not a whole number from 1: it is placed at 1`);
     return 1;
   };
@@ -380,6 +393,15 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     }
   }
 
+  // Automatic layout (1.8): each card's column and row are the placement's; a card's own are not read (a development build says so once).
+  let unplaced = false;
+  if (spec.layout === "auto" && (type === "architecture" || type === "flowchart" || type === "schema")) {
+    const raw = (type === "schema" ? spec.tables : spec.nodes) as Array<{ col?: unknown; row?: unknown }> | undefined;
+    if (checks && (raw ?? []).some((n) => n && (n.col !== undefined || n.row !== undefined))) warn('a card under layout="auto" has a col or row, which is not read: there are no hints');
+    const cells = options.placement?.cells;
+    if (!cells) unplaced = true;
+    for (const n of nodes) { const c = cells?.[n.id]; n.col = c?.col ?? 1; n.row = n.row2 = c?.row ?? 1; }
+  } else if (spec.layout === "auto") dev && warn(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
   // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
   const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
   (rawCards ?? []).forEach((raw, k) => {
@@ -427,7 +449,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
 
   // Placement checks (development only): two nodes in one cell, a non-member inside a group's box, more than one focal node.
-  if (checks && type !== "sequence") {
+  if (checks && type !== "sequence" && !unplaced) {
     const cells = new Map<string, string>();
     for (const n of nodes) for (let r = n.row; r <= n.row2; r++) {
       const key = `${n.col}:${r}`;
@@ -435,7 +457,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       cells.set(key, n.id);
     }
   }
-  if (checks) {
+  if (checks && !unplaced) {
     for (const g of groups) {
       const m = g.all.map((id) => byId.get(id)!);
       if (!m.length) continue;
@@ -508,9 +530,49 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     cols = Math.max(1, ...nodes.map((n) => n.col));
   }
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined };
+  if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
+}
+
+/**
+ * An automatic figure's sides (1.8): nobody names one, so each line tries the router's shapes in order (sideways out and up or down in, up or down out
+ * and sideways in, then the two straight-on shapes; in one row or column the straight line, then a turn-back either side) and takes the first that
+ * passes through no card and puts no fourth line on a side. The line with the fewest clean shapes chooses first, then main lines, then the author's
+ * order. A side the author named is kept.
+ */
+function chooseSides(m: Model) {
+  const taken = new Set(m.nodes.map((n) => `${n.col},${n.row}`));
+  const between = (p: number, q: number) => { const out: number[] = []; for (let k = Math.min(p, q) + 1; k < Math.max(p, q); k++) out.push(k); return out; };
+  type Shape = { sides: [DiagramSide, DiagramSide]; cells: Array<[number, number]> };
+  const shapes = (e: MEdge): Shape[] => {
+    const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
+    const sx: DiagramSide = b.col > a.col ? "right" : "left", sy: DiagramSide = b.row > a.row ? "bottom" : "top";
+    const ex: DiagramSide = b.col > a.col ? "left" : "right", ey: DiagramSide = b.row > a.row ? "top" : "bottom";
+    const along = (lo: number, hi: number, at: number, horizontal: boolean) => between(lo, hi).map((k) => (horizontal ? [k, at] : [at, k]) as [number, number]);
+    let list: Shape[];
+    if (a.row === b.row) list = [{ sides: [sx, ex], cells: along(a.col, b.col, a.row, true) }, { sides: ["bottom", "bottom"], cells: [] }, { sides: ["top", "top"], cells: [] }];
+    else if (a.col === b.col) list = [{ sides: [sy, ey], cells: along(a.row, b.row, a.col, false) }, { sides: ["right", "right"], cells: [] }, { sides: ["left", "left"], cells: [] }];
+    else list = [
+      { sides: [sx, ey], cells: [...along(a.col, b.col, a.row, true), [b.col, a.row], ...along(a.row, b.row, b.col, false)] },
+      { sides: [sy, ex], cells: [...along(a.row, b.row, a.col, false), [a.col, b.row], ...along(a.col, b.col, b.row, true)] },
+      { sides: [sx, ex], cells: along(a.col, b.col, a.row, true) },
+      { sides: [sy, ey], cells: along(a.row, b.row, a.col, false) },
+    ];
+    return list.filter((c) => c.cells.every(([x, y]) => !taken.has(`${x},${y}`)));
+  };
+  const load = new Map<string, number>();
+  const order = m.edges.map((_, k) => k).sort((p, q) => shapes(m.edges[p]!).length - shapes(m.edges[q]!).length || Number(m.edges[q]!.kind === "main") - Number(m.edges[p]!.kind === "main") || p - q);
+  for (const k of order) {
+    const e = m.edges[k]!;
+    if (e.fromSide || e.toSide) continue;
+    const ok = shapes(e).find((c) => (load.get(`${e.from}.${c.sides[0]}`) ?? 0) < 3 && (load.get(`${e.to}.${c.sides[1]}`) ?? 0) < 3);
+    if (!ok) continue;
+    for (const [id, side] of [[e.from, ok.sides[0]], [e.to, ok.sides[1]]] as const) load.set(`${id}.${side}`, (load.get(`${id}.${side}`) ?? 0) + 1);
+    e.fromSide = ok.sides[0];
+    e.toSide = ok.sides[1];
+  }
 }
 
 /** A card's mark from the author's data: a bundled id (a string), or `{ onLight, onDark }` (with the words a bundled one stands for, `says`). */
@@ -2360,7 +2422,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // A list a bare stack opened closes when the figure is laid out again (it opens again if the stack is still bare).
   const closed: Dyn = current.autoOpen ? { open: false, autoOpen: undefined } : {};
   const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
-  if (W >= mins.least) {
+  if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
       let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined });
       dd = heightsFor(dd);

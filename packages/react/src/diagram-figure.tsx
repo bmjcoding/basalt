@@ -6,13 +6,18 @@ import { inLevel, usePanelLevel } from "./layers";
 import {
   applyTrace, buildModel, tapTrace, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
 
 type MotionModule = typeof import("./diagram-motion");
 let motionLoading: Promise<MotionModule> | undefined;
 /** The motion code (DECISIONS 292, 2.6): a module of its own, loaded the first time a figure is animated, so a still figure never pays for it. */
 const loadMotion = () => (motionLoading ??= import("./diagram-motion").catch((error) => { motionLoading = undefined; throw error; }));
+
+type LayoutModule = typeof import("./diagram-layout");
+let layoutLoading: Promise<LayoutModule> | undefined;
+/** Automatic layout (DECISIONS 306, 1.8): elkjs's module, loaded the first time an automatic figure with no placement is measured at 640 or wider. */
+const loadLayout = () => (layoutLoading ??= import("./diagram-layout").catch((error) => { layoutLoading = undefined; throw error; }));
 
 type ViewerModule = typeof import("./diagram-viewer");
 let viewerLoading: Promise<ViewerModule> | undefined;
@@ -121,7 +126,15 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // The development checks (placement, groups, the key's words) cost production nothing: a bundler that sets NODE_ENV drops them.
   // Right to left (DECISIONS 306, 1.7): no prop; the figure follows its computed direction, read as it is measured, and the model is mirrored.
   const [rtl, setRtl] = React.useState(false);
-  const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production", rtl }), [spec, rtl]);
+  // Automatic layout (1.8): the placements given or loaded, and the direction tried (the type's own, then the other, unless the author named one).
+  const auto = spec.layout === "auto" && (spec.type === "architecture" || spec.type === "flowchart" || spec.type === "schema");
+  const given = React.useMemo(() => (spec.placement ? (Array.isArray(spec.placement) ? spec.placement : [spec.placement]) : []), [spec.placement]);
+  const [loaded, setLoaded] = React.useState<DiagramPlacement[] | null>(null);
+  const placements = given.length ? given : loaded ?? [];
+  const order = React.useMemo<Array<"right" | "down">>(() => (spec.direction ? [spec.direction] : spec.type === "flowchart" ? ["down", "right"] : ["right", "down"]), [spec.direction, spec.type]);
+  const [dirAt, setDirAt] = React.useState(0);
+  const placementFor = React.useCallback((k: number) => placements.find((p) => p.direction === order[k]), [placements, order]);
+  const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production", rtl, placement: auto ? placementFor(dirAt) : undefined }), [spec, rtl, auto, placementFor, dirAt]);
   const animated = model.motion.animated;
   const figRef = React.useRef<HTMLElement>(null);
   // The figure's own ref, which measuring reads, and the caller's, both set: a caller's ref never replaces the figure's.
@@ -165,6 +178,26 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     if (!fig) return;
     const dirRtl = getComputedStyle(fig).direction === "rtl";
     if (dirRtl !== rtl) { setRtl(dirRtl); return; }
+    // An automatic figure with no placement loads the layout module once it is measured at 640 or wider (never at a phone's width); until it answers, and
+    // if it fails, the figure is stacked with every word present. elk runs once a direction: a resize or the faces arriving never run it again.
+    if (auto && !given.length && !loaded && fig.clientWidth >= 640) {
+      const input = { type: spec.type as "architecture" | "flowchart" | "schema", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups };
+      loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => setLoaded(all), (error: unknown) => {
+        if (process.env.NODE_ENV !== "production") warnOnce(component, `the automatic layout could not load (${String(error)}), so the figure is stacked`);
+      });
+    }
+    // The direction: the first, in order, whose drawn layout fits at this width (each placement measured as it would be drawn); none fits, the first, stacked.
+    if (auto && placements.length > 1 && !viewer) {
+      let pick = 0;
+      for (let k = 0; k < order.length; k++) {
+        const place = placementFor(k);
+        if (!place) continue;
+        const trial = buildModel(spec, { rtl, placement: place });
+        const t = measureFigure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
+        if (t.dyn.layout === "drawn") { pick = k; break; }
+      }
+      if (pick !== dirAt) { setDirAt(pick); return; }
+    }
     const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
     const apply = (d: Dyn) => syncAttributes(fig, figureTree(model, d, options));
     const result = (viewer ? viewer.measure : measureFigure)(fig, model, P, base, dynRef.current, apply, warn);
@@ -177,7 +210,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had.
     if (viewer && result.tokens) viewer.onMeasured(result, fig);
-  }, [model, base, options, component, viewer, rtl]);
+  }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec]);
 
   // Measured before the first paint, then whenever the figure's width changes or the real faces arrive.
   React.useLayoutEffect(() => {

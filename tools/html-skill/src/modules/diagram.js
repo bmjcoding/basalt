@@ -47,7 +47,14 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
     if (figure.__diagram) figure.__diagram.stop();
     var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
     // Right to left (DECISIONS 306, 1.7): the figure follows its computed direction, and the model is mirrored.
-    var model = buildModel(spec, { rtl: getComputedStyle(figure).direction === 'rtl' });
+    var rtl = getComputedStyle(figure).direction === 'rtl';
+    // Automatic layout (DECISIONS 306, 1.8): a page places at build time (compose.mjs writes `placement` for both directions); a page never holds elkjs.
+    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var placements = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
+    if (auto && !placements.length) console.warn('Basalt diagram: "layout": "auto" needs a placement, which compose.mjs writes at build time; drawn from script, place it with placeDiagram (@srasyndicate/basalt/diagram-layout) and pass "placement". The figure is stacked');
+    var order = spec.direction ? [spec.direction] : spec.type === 'flowchart' ? ['down', 'right'] : ['right', 'down'];
+    var placeOf = function (d) { for (var i = 0; i < placements.length; i++) if (placements[i].direction === d) return placements[i]; return undefined; };
+    var model = buildModel(spec, { rtl: rtl, placement: auto ? placeOf(order[0]) : undefined });
     if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
       // Keep the figure's base when it has ours, so its ids stay; otherwise take the next free one.
       if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
@@ -122,6 +129,18 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       toggle.firstElementChild.textContent = state.open ? 'Hide the list' : 'View as list';
     }
     function layout() {
+      // An automatic figure: the first direction, in order, whose drawn layout fits at this width; none fits, the first, stacked.
+      if (auto && placements.length > 1 && !viewer) {
+        var chosen = null;
+        for (var k = 0; k < order.length && !chosen; k++) {
+          var place = placeOf(order[k]);
+          if (!place) continue;
+          var trial = buildModel(spec, { rtl: rtl, placement: place });
+          var t = measureFigure(figure, trial, P, base, {}, function (d) { syncAttributes(figure, figureTree(trial, d, opts)); });
+          if (t.dyn.layout === 'drawn') chosen = trial;
+        }
+        model = chosen || buildModel(spec, { rtl: rtl, placement: placeOf(order[0]) });
+      }
       // The viewer's figure (DECISIONS 310, the diagram-zoom module) is laid out at the stage's width and measured only at 100%.
       measured = (viewer ? viewer.measure : measureFigure)(figure, model, P, base, state, apply, warn);
       state = measured.dyn;

@@ -62,6 +62,7 @@
     "@phosphor-icons/react": "2.1.10",
     "@srasyndicate/basalt-tokens": "0.1.0",
     "cmdk": "1.1.1",
+    "elkjs": "0.12.1",
     "shiki": "4.6.0"
   },
   "devDependencies": {

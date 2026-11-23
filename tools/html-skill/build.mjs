@@ -297,6 +297,8 @@ export function build() {
   const manifest = JSON.parse(src("modules.json"));
   const files = {};
   files["compose.mjs"] = src("compose.mjs");
+  // The placer compose.mjs runs for an automatic diagram (DECISIONS 306, 1.8): React's placeDiagram, with elkjs left to resolve from the repository.
+  files["parts/diagram-place.mjs"] = esbuild.buildSync({ entryPoints: [path.join(srcDir, "diagram-place.mjs")], bundle: true, format: "esm", platform: "node", target: "node20", write: false, logLevel: "silent", external: ["elkjs", "elkjs/*"] }).outputFiles[0].text;
   files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
   files["parts/core.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inCore))}\n${src("core.css")}`);
   files["parts/core.js"] = minifyJs(src("core.js"));
