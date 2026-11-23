@@ -157,6 +157,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
       if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length)); if (fresh && motion) motion.redrawn(); }
       if (viewer && viewer.onMeasured && measured.tokens) viewer.onMeasured(measured, figure);
+      // The text variant (DECISIONS 306, 1.2): the art where its widest line fits the block (the diagram-text module's), the transcript otherwise.
+      if (model.text && typeof _.diagramText === 'function') _.diagramText(figure, model, spec);
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.

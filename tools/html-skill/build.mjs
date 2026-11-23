@@ -317,7 +317,7 @@ export function build() {
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && (name === "diagram" || name === "diagram-motion" || name === "diagram-zoom" || name === "diagram-export")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
+      if (ext === "js" && (name === "diagram" || name === "diagram-motion" || name === "diagram-zoom" || name === "diagram-export" || name === "diagram-text")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }

@@ -1427,5 +1427,168 @@
       }
     ],
     "layout": "auto"
+  },
+  "textSequence": {
+    "type": "sequence",
+    "title": "An agent run, as text art",
+    "source": "\"Runs and sandboxes\" and the agent contract",
+    "summary": "Marcus mentions @agent in the room. The cimip service records the run, starts and health-checks an ECS sandbox on the incident's first run, posts the run, streams the turn back to Marcus, and relays Marcus's approval until the sandbox says it is done.",
+    "legend": {
+      "main": "Request",
+      "plain": "Setup",
+      "dashed": "Stream or reply",
+      "focal": "The service",
+      "activation": "Working"
+    },
+    "participants": [
+      {
+        "id": "marcus",
+        "kind": "person",
+        "name": "Marcus, in the room",
+        "short": "Marcus"
+      },
+      {
+        "id": "svc",
+        "kind": "ECS service",
+        "name": "cimip service",
+        "focal": true
+      },
+      {
+        "id": "ecs",
+        "kind": "control plane",
+        "name": "ECS"
+      },
+      {
+        "id": "agent",
+        "kind": "ECS task",
+        "name": "Agent sandbox"
+      }
+    ],
+    "steps": [
+      {
+        "from": "marcus",
+        "to": "svc",
+        "kind": "main",
+        "label": "@agent check the proxy",
+        "note": "a message in the room",
+        "activate": true
+      },
+      {
+        "from": "svc",
+        "to": "svc",
+        "label": "records the run",
+        "note": "run.started, one transaction"
+      },
+      {
+        "frame": "opt",
+        "label": "First run on an incident only",
+        "steps": [
+          {
+            "from": "svc",
+            "to": "ecs",
+            "label": "RunTask",
+            "note": "idempotency token = sandbox id"
+          },
+          {
+            "frame": "loop",
+            "label": "Until private IP",
+            "steps": [
+              {
+                "from": "svc",
+                "to": "ecs",
+                "label": "DescribeTasks",
+                "note": "until it has a private IP"
+              }
+            ]
+          },
+          {
+            "from": "svc",
+            "to": "agent",
+            "label": "GET /healthz",
+            "note": "up to a minute"
+          }
+        ]
+      },
+      {
+        "band": "Every run"
+      },
+      {
+        "from": "svc",
+        "to": "agent",
+        "kind": "main",
+        "label": "POST /v1/runs",
+        "note": "facts, recent transcript, prompt",
+        "activate": true
+      },
+      {
+        "from": "agent",
+        "to": "svc",
+        "kind": "dashed",
+        "label": "events, over SSE",
+        "note": "status · tool.started · finding"
+      },
+      {
+        "from": "svc",
+        "to": "marcus",
+        "kind": "dashed",
+        "label": "the turn, as it happens",
+        "note": "text in 40 ms frames, not stored"
+      },
+      {
+        "from": "agent",
+        "to": "svc",
+        "kind": "main",
+        "label": "approval.requested",
+        "note": "the exact command · risk: medium"
+      },
+      {
+        "band": "The agent waits for a person"
+      },
+      {
+        "frame": "alt",
+        "branches": [
+          {
+            "label": "Approved",
+            "steps": [
+              {
+                "from": "marcus",
+                "to": "svc",
+                "kind": "main",
+                "label": "Approve",
+                "note": "first decision stands"
+              },
+              {
+                "from": "svc",
+                "to": "agent",
+                "kind": "main",
+                "label": "POST /v1/runs/{id}/input",
+                "note": "sent until acknowledged"
+              }
+            ]
+          },
+          {
+            "label": "Rejected or timed out",
+            "steps": [
+              {
+                "from": "svc",
+                "to": "agent",
+                "kind": "main",
+                "label": "POST /v1/runs/{id}/input",
+                "note": "the run stops"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "from": "agent",
+        "to": "svc",
+        "kind": "dashed",
+        "label": "done",
+        "note": "outcome: completed",
+        "deactivate": true
+      }
+    ],
+    "variant": "text"
   }
 }

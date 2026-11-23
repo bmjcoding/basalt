@@ -4797,6 +4797,37 @@
   .basalt-diagram-fword { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); background: var(--_ground); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
   .basalt-diagram-fword + .basalt-diagram-flabel { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); }
   .basalt-diagram-key-letters[data-op] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  /* A sequence as text (DECISIONS 306, 1.2): a code block (surface-sunken, the rim, radius 8, space-4 padding; Geist Mono text-xs on the code line height),
+     always left to right. The art where its widest line fits, the transcript where it does not: nothing scrolls sideways, and a transcript's line breaks
+     between participants and words, never inside a name. Inks: the focal participant primary 600, others secondary; lifelines tertiary, a working stretch
+     secondary; a main arrow primary, plain and dashed secondary; labels primary; numbers, notes and frames tertiary, the operator primary 600. */
+  .basalt-diagram-text {
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--basalt-space-4);
+    overflow: hidden;
+    border: var(--basalt-size-hairline) solid var(--basalt-border-rim);
+    border-top-color: var(--basalt-border-rim-top);
+    border-radius: var(--basalt-radius-md);
+    background: var(--basalt-surface-sunken);
+    color: var(--basalt-text-secondary);
+    direction: ltr;
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  .basalt-diagram-text[data-art] { white-space: pre; overflow-wrap: normal; }
+  .basalt-diagram-drawing:has(> .basalt-diagram-text) { max-width: none; }
+  .basalt-diagram-text-ink { font: inherit; }
+  .basalt-diagram-tx-name { white-space: nowrap; color: var(--basalt-text-primary); }
+  .basalt-diagram-text [data-ink="focal"], .basalt-diagram-text [data-ink="op"] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  .basalt-diagram-text :is([data-ink="name"], [data-ink="working"], [data-ink="plain"]) { color: var(--basalt-text-secondary); }
+  .basalt-diagram-text :is([data-ink="main"], [data-ink="label"]) { color: var(--basalt-text-primary); }
+  .basalt-diagram-text :is([data-ink="life"], [data-ink="num"], [data-ink="note"], [data-ink="frame"], [data-ink="band"]) { color: var(--basalt-text-tertiary); }
+  .basalt-diagram-key-glyph { font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); color: var(--basalt-text-secondary); }
+  .basalt-diagram-key-glyph[data-ink="main"] { color: var(--basalt-text-primary); }
+  @media (forced-colors: active) { .basalt-diagram-text :is([data-ink]) { color: CanvasText; } }
+
   /* A band names a phase: drawn, a 36px row with a full-width divider rule and its words on a plate; stacked, a line of words. */
   .basalt-diagram-band {
     --_d-bh: var(--_drawn) var(--basalt-size-control-lg);

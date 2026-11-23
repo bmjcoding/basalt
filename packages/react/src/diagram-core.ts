@@ -217,6 +217,8 @@ export interface Model {
   rtl?: boolean;
   /** An automatic figure with no placement yet (1.8): it is stacked, every word present, until one arrives. */
   unplaced?: boolean;
+  /** A sequence drawn as text art (1.2): a code block holding the art where it fits and the transcript where it does not. */
+  text?: boolean;
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
@@ -530,7 +532,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     cols = Math.max(1, ...nodes.map((n) => n.col));
   }
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined };
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
@@ -737,6 +739,8 @@ export interface Dyn {
   bare?: boolean;
   /** The list was opened by a bare stack, not by the reader: it closes again when lines are drawn. A press of the toggle clears it. */
   autoOpen?: boolean;
+  /** The text variant shows its art (1.2): its widest line fits the block. */
+  art?: boolean;
   /** The drawn layout keeps space-3 above its first row and below its last, so a label beside a line in a 40px row has a seat (1.8). */
   pad?: boolean;
 }
@@ -924,9 +928,11 @@ function buildKey(P: string, m: Model): VElement | null {
     if (used.has("decision")) entry(boxSwatch(P, "decision"), m.shapeLabels.decision);
   }
   const kinds = new Set<DiagramLineKind>(m.type === "sequence" ? m.steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : m.edges.filter((e) => !e.fk).map((e) => e.kind));
+  // The text art's key is its own glyphs (1.2): the key is built from what is drawn.
+  const glyph = (g: string, ink: string) => h("span", { class: `${P}-key-glyph`, "data-ink": ink, "aria-hidden": "true" }, g);
   for (const k of ["main", "plain", "dashed"] as const) {
     const words = m.legend[k];
-    if (kinds.has(k) && words) entry(lineSwatch(P, k), words, { "data-line": "" });
+    if (kinds.has(k) && words) entry(m.text ? glyph(k === "main" ? "━━▶" : k === "dashed" ? "┄┄▷" : "──▶", k === "main" ? "main" : "plain") : lineSwatch(P, k), words, { "data-line": m.text ? undefined : "" });
   }
   if (m.type === "schema" && m.edges.length) {
     // The foreign-key line where it is drawn; where it is not, the row says it, and so does the key.
@@ -935,7 +941,7 @@ function buildKey(P: string, m: Model): VElement | null {
   }
   if (m.type === "sequence") {
     // A bar on a dashed lifeline, where one is drawn (1.2); then each frame operator drawn, its letters set as the tab sets them, and its words.
-    if (m.bars.length) entry(h("svg", { class: `${P}-swatch`, "data-shape": "bar", ...svgA(16, 16) }, h("path", { class: `${P}-life`, d: "M8 0V16" }), h("rect", { class: `${P}-bar`, x: 4.5, y: 2.5, width: 7, height: 11, rx: 1.5 })), m.legend.activation ?? "Working", { "data-when": "drawn" });
+    if (m.bars.length) entry(m.text ? glyph("┃", "working") : h("svg", { class: `${P}-swatch`, "data-shape": "bar", ...svgA(16, 16) }, h("path", { class: `${P}-life`, d: "M8 0V16" }), h("rect", { class: `${P}-bar`, x: 4.5, y: 2.5, width: 7, height: 11, rx: 1.5 })), m.legend.activation ?? "Working", m.text ? {} : { "data-when": "drawn" });
     const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
     for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
   }
@@ -1050,6 +1056,9 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
       out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
     }
   }
+  // The text variant (1.2): one code block, aria-hidden (the title, the summary and the list carry the figure). Before script it holds the transcript;
+  // script writes the art where its widest line fits (the diagram-text module).
+  if (m.text) return [h("pre", { class: `${P}-text`, "aria-hidden": "true", "data-art": dyn.art ? "" : undefined }, h("code", { class: `${P}-text-ink` }, transcript(P, m)))];
   if (m.type === "sequence") {
     // Drawn, each head is in its column (mirrored right to left, 1.7).
     out.push(h("ul", { class: `${P}-cast` }, m.nodes.map((n) => h("li", { class: `${P}-actor`, style: m.rtl ? `--_ac:${n.col}` : undefined }, nodeTree(ctx, m, n, dyn)))));
@@ -1080,6 +1089,28 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
       kids.push(wrap(inner, sub, sub.map((x) => nodeTree(ctx, m, x, dyn))));
     }
     out.push(wrap(g, run, kids));
+  }
+  return out;
+}
+
+/**
+ * The text variant's transcript (1.2), where the art does not fit: the participants on a line, then each message as number, sender, arrow, receiver,
+ * label and note; frames as indented brackets. A line breaks between participants and between words, never inside a name (each name is held whole).
+ */
+export function transcript(P: string, m: Model): VNode[] {
+  const out: VNode[] = [];
+  const held = (s: string) => h("span", { class: `${P}-tx-name` }, s);
+  const arrow = (k: DiagramLineKind) => (k === "main" ? "━▶" : k === "dashed" ? "┄▷" : "─▶");
+  out.push(h("span", { class: `${P}-tx-line`, "data-ink": "names" }, m.nodes.flatMap((n, k) => [k ? " · " : "", held(n.name)])), "\n");
+  let indent = 0;
+  for (const s of m.steps) {
+    const pad = "  ".repeat(indent);
+    if ("band" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "band" }, `${pad}── ${s.band} ──`), "\n"); continue; }
+    if ("open" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, pad, h("span", { "data-ink": "op" }, `[${s.open}]`), ` ${s.label}`), "\n"); indent++; continue; }
+    if ("otherwise" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, "  ".repeat(indent - 1), h("span", { "data-ink": "op" }, "[else]"), ` ${s.otherwise}`), "\n"); continue; }
+    if ("close" in s) { indent = Math.max(0, indent - 1); out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, `${"  ".repeat(indent)}[end]`), "\n"); continue; }
+    const a = m.byId.get(s.from)?.name ?? s.from, b = m.byId.get(s.to)?.name ?? s.to;
+    out.push(h("span", { class: `${P}-tx-line`, "data-n": s.n }, pad, h("span", { "data-ink": "num" }, `${s.n} `), held(a), " ", h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", held(b), " ", h("span", { "data-ink": "label" }, s.label), s.note ? [" ", h("span", { "data-ink": "note" }, `(${s.note})`)] : null), "\n");
   }
   return out;
 }
@@ -1328,7 +1359,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     // The keys sentence describes the drawing only where it has stops (a bare stack has none).
     "aria-describedby": group ? (stops ? `${ids.summary} ${ids.keys}` : ids.summary) : undefined,
     "data-stops": stops ? "" : undefined,
-  }, drawingChildren(ctx, m, dyn), h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
+  }, drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keyTree(P, m),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
@@ -2422,6 +2453,8 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // A list a bare stack opened closes when the figure is laid out again (it opens again if the stack is still bare).
   const closed: Dyn = current.autoOpen ? { open: false, autoOpen: undefined } : {};
   const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
+  // The text variant is one code block: no drawn layout and no lines; the art module chooses art or transcript by width (1.2).
+  if (m.text) return { dyn: { ...current, layout: "stacked", bare: undefined }, geo: null, ink: "", tokens: tk, least: mins.least };
   if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
       let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined });
@@ -2596,7 +2629,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  * A tree element is paired with the next DOM element of its tag and class, so an element the tree does not hold (the HTML skill's JSON
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
-const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
+const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;

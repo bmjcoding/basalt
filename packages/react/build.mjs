@@ -163,7 +163,7 @@ await esbuild.build({
     ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
   define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice), __BASALT_ROOT_MAP__: JSON.stringify(JSON.stringify(rootMap)) },
-  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion|diagram-viewer|diagram-layout)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
+  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion|diagram-viewer|diagram-layout|diagram-text)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
   splitting: true,

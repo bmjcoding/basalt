@@ -844,9 +844,6 @@
       ]
     },
     "diagram-export": {
-      "classes": [
-        "diagram-download"
-      ],
       "text": [
         "\"export\"\\s*:\\s*true"
       ],
@@ -857,6 +854,19 @@
         "diagram"
       ],
       "budget": 12000,
+      "usage": 700
+    },
+    "diagram-text": {
+      "text": [
+        "\"variant\"\\s*:\\s*\"text\""
+      ],
+      "textWords": [
+        "a sequence's \"variant\": \"text\""
+      ],
+      "requires": [
+        "diagram"
+      ],
+      "budget": 8000,
       "usage": 700
     },
     "sparkline": {
