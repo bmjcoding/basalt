@@ -2,6 +2,7 @@
 //
 //   node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]
 //   node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]
+//   node .agent/skills/basalt-html/compose.mjs --marks [PREFIX ...]
 //
 // The body is the part of the page you write: HTML for inside <body>, which may also carry
 //   <title>…</title>                          the page title (default: the first <h1>, else "Untitled page")
@@ -24,6 +25,8 @@
 // itself: then one line says so), and for each the classes, attributes and tags that bring it in (read from the manifest, the same
 // file detection reads); NAME is `core` or a module. --usage alone prints SKILL.md's index
 // of modules; an unknown name prints it too and exits 1. --usage reads no body and writes no page.
+// --marks prints the bundled service marks a diagram card can name: each id, the words the card must say, and "(unofficial)" where it is not its owner's own
+// file; PREFIX (aws, azure, gcp) keeps the ids that start with it. It reads parts/marks.json only, so the diagram usage need not list them.
 //
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
 import fs from "node:fs";
@@ -780,8 +783,17 @@ function indexText(skill) {
   return `Modules (node .agent/skills/basalt-html/compose.mjs --usage core NAME ... prints their usage; core is layout, type, panels and buttons):\n${lines.join("\n")}\n`;
 }
 
+/** The bundled marks as the text --marks prints: one line an id with the words its card must say; `prefixes` keeps the ids that are one or start with one. */
+export function marksText(prefixes = [], { parts = path.join(here, "parts") } = {}) {
+  const file = JSON.parse(read(parts, "marks.json"));
+  const unofficial = new Set(file.unofficial ?? []);
+  const ids = Object.keys(file.says).filter((id) => !prefixes.length || prefixes.some((p) => id === p || id.startsWith(`${p}-`)));
+  if (!ids.length) throw new Error(`no mark starts with ${prefixes.join(" or ")}; the marks are ${[...new Set(Object.keys(file.says).map((id) => id.split("-")[0]))].join(", ")}`);
+  return `${ids.map((id) => `${id}: ${file.says[id].join(", ")}${unofficial.has(id) ? " (unofficial)" : ""}`).join("\n")}\n`;
+}
+
 function usage() {
-  console.error("usage: node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]\n       node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]");
+  console.error("usage: node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]\n       node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]\n       node .agent/skills/basalt-html/compose.mjs --marks [PREFIX ...]");
   process.exit(2);
 }
 
@@ -793,11 +805,15 @@ if (isMain) {
   let input = null;
   let out = null;
   let usageNames = null;
+  let markPrefixes = null;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--usage") {
       usageNames = [];
       while (args[i + 1] !== undefined && !args[i + 1].startsWith("--")) usageNames.push(args[++i]);
+    } else if (a === "--marks") {
+      markPrefixes = [];
+      while (args[i + 1] !== undefined && !args[i + 1].startsWith("--")) markPrefixes.push(args[++i]);
     } else if (a === "--no-fonts") options.fonts = false;
     else if (a === "--all") options.all = true;
     else if (a === "--out" || a === "--lang") {
@@ -807,7 +823,11 @@ if (isMain) {
     else input = a;
   }
   const skill = path.join(here, "SKILL.md");
-  if (usageNames) {
+  if (markPrefixes) {
+    // The bundled marks: no body is read and no page is written.
+    if (input || out || usageNames) usage();
+    try { console.log(marksText(markPrefixes)); } catch (e) { console.error(`compose.mjs: ${e.message}`); process.exitCode = 1; }
+  } else if (usageNames) {
     // The usage of modules: no body is read and no page is written.
     if (input || out) usage();
     const index = indexText(skill);
