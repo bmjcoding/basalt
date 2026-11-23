@@ -843,6 +843,22 @@
         "sheet"
       ]
     },
+    "diagram-export": {
+      "classes": [
+        "diagram-download"
+      ],
+      "text": [
+        "\"export\"\\s*:\\s*true"
+      ],
+      "textWords": [
+        "a diagram's \"export\": true"
+      ],
+      "requires": [
+        "diagram"
+      ],
+      "budget": 12000,
+      "usage": 700
+    },
     "sparkline": {
       "classes": [
         "sparkline",

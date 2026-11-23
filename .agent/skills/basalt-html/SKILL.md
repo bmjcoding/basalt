@@ -65,6 +65,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **diagram** `.diagram`: JSON in `script[data-diagram]`; sides only to change the default; needs a `summary`.
 - **diagram-motion** `"motion": "animated"`: added for you, with `loops`; a flow line needs a label; one mover a figure.
 - **diagram-zoom** `.diagram`: added for you, with `dialog`; `"zoom": false` drops Expand.
+- **diagram-export** `"export": true`: added for you; "Download SVG" and "Download PNG" in the foot.
 - **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.

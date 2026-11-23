@@ -4711,7 +4711,7 @@
     padding: 0;
     list-style: none;
   }
-  .basalt-diagram-actor { display: flex; min-width: 0; }
+  .basalt-diagram-actor { --_d-ac: var(--_drawn) var(--_ac, auto); display: flex; min-width: 0; grid-column: var(--_d-ac, auto); grid-row: 1; }
   .basalt-diagram-node[data-shape="participant"] {
     --_d-pd: var(--_drawn) var(--basalt-space-2-5) var(--basalt-space-3);
     --_d-pr: var(--_drawn) var(--basalt-radius-md);
@@ -4994,6 +4994,9 @@
     .basalt-diagram .basalt-diagram-edge .basalt-diagram-tip[data-kind="main"]:not([data-open]) { fill: var(--basalt-diagram-edge-main) !important; }
     .basalt-diagram .basalt-diagram-label { color: var(--basalt-diagram-edge) !important; }
   }
+
+  /* While a figure is read for a file (diagram-export), nothing in it transitions, so a theme it is read in applies at once. */
+  .basalt-exporting, .basalt-exporting * { transition: none !important; }
 
   /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's two buttons ----
      Only on a figure that asks for it (data-motion="animated"); a still figure is the drawing above, unchanged. The motion code is a module of its

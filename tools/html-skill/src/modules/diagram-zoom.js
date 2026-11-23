@@ -106,6 +106,8 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
       if (node && stage.contains(node)) revealIn(stage, node, px(stage, '--_clear') || 16);
     });
 
+    // The viewer's foot has the downloads too, writing the viewer's drawing (DECISIONS 310, 9.11).
+    if (spec.export === true && typeof _.diagramExport === 'function') _.diagramExport(d.querySelector('.diagram-viewer-end'), fig);
     B.openDialog(d, opener);
     readStage();
     kit.draw(fig, still, false, view);

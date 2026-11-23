@@ -213,9 +213,13 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
     if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
     // "Expand" and the viewer (DECISIONS 310) are the diagram-zoom module's: compose.mjs adds it to a page unless every figure on it says "zoom": false.
     var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated }) : null;
+    // "Download SVG" and "Download PNG" (DECISIONS 306, 1.7) are the diagram-export module's, for a figure that says "export": true.
+    var exportFoot = figure.querySelector(':scope > .diagram-foot');
+    var exports = !viewer && spec.export === true && exportFoot && typeof _.diagramExport === 'function' ? _.diagramExport(exportFoot, figure) : [];
     figure.__diagram = {
       stop: function () {
         if (zoom) zoom.destroy();
+        exports.forEach(function (b) { b.remove(); });
         live = false; observer.disconnect(); cancelAnimationFrame(frame);
         if (marks) forced.removeEventListener('change', layout);
         if (motion) motion.destroy();

@@ -989,7 +989,8 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     }
   }
   if (m.type === "sequence") {
-    out.push(h("ul", { class: `${P}-cast` }, m.nodes.map((n) => h("li", { class: `${P}-actor` }, nodeTree(ctx, m, n, dyn)))));
+    // Drawn, each head is in its column (mirrored right to left, 1.7).
+    out.push(h("ul", { class: `${P}-cast` }, m.nodes.map((n) => h("li", { class: `${P}-actor`, style: m.rtl ? `--_ac:${n.col}` : undefined }, nodeTree(ctx, m, n, dyn)))));
     out.push(sequenceSteps(ctx, m));
     return out;
   }
