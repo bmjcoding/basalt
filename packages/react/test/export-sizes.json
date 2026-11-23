@@ -16,7 +16,7 @@
   "AlertDialogTrigger": 69874,
   "AmbientMark": 569,
   "AppHeader": 1285,
-  "AppShell": 115101,
+  "AppShell": 104373,
   "AppTile": 1112,
   "ArchitectureDiagram": 67580,
   "ArrowDownGlyph": 2868,
@@ -66,7 +66,7 @@
   "CommandList": 33063,
   "CommandMenu": 86834,
   "Composer": 51970,
-  "CopyButton": 18441,
+  "CopyButton": 18466,
   "CopyGlyph": 2884,
   "Countdown": 3016,
   "CoverageStrip": 1570,
@@ -219,7 +219,7 @@
   "ReflowItem": 470,
   "Refreshing": 1911,
   "ReleaseIndex": 30827,
-  "ReleaseNotes": 173137,
+  "ReleaseNotes": 66889,
   "Reserve": 441,
   "Reveal": 19500,
   "RoutesGlyph": 3009,
@@ -415,11 +415,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 885426,
-  "gzip": 293738
+  "bytes": 885948,
+  "gzip": 294011
  },
  "styles": {
-  "bytes": 398334,
-  "gzip": 51909
+  "bytes": 399616,
+  "gzip": 52059
  }
 }

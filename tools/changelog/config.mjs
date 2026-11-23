@@ -6,7 +6,7 @@ export const CONFIG_FILE = "changelog.config.json";
 
 const VARIABLE = /\{([A-Za-z][A-Za-z0-9]*)\}/g;
 const TRACKER_KEYS = ["name", "pattern", "url", "label", "show"];
-const TOP_KEYS = ["product", "repository", "trackers", "people"];
+const TOP_KEYS = ["product", "repository", "form", "trackers", "people"];
 const PERSON_KEYS = ["name"];
 export const SHOWS = ["link", "text", "none"];
 
@@ -34,6 +34,9 @@ export function readConfig(raw) {
   if (/[{}]/.test(raw.repository)) fail("repository", "holds no variable");
   checkHttps("repository", raw.repository);
   const repository = raw.repository.replace(/\/+$/, "");
+  // A package's changelog ("reference") or a product's release notes ("notes"): the outputs follow the page's form.
+  const form = raw.form ?? "reference";
+  if (!["reference", "notes"].includes(form)) fail("form", `is "reference" (a package) or "notes" (a product)`);
 
   const names = new Set();
   const trackers = (raw.trackers ?? []).map((tracker, index) => {
@@ -69,7 +72,7 @@ export function readConfig(raw) {
     return { name, pattern, regexp, url: url ?? null, label: label ?? null, show };
   });
 
-  const people = {};
+  const people = Object.create(null);
   for (const [key, person] of Object.entries(raw.people ?? {})) {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(key)) fail(`people.${key}`, "a person's key is lowercase letters, digits and hyphens");
     if (!person || typeof person !== "object") fail(`people.${key}`, "is not an object");
@@ -78,7 +81,7 @@ export function readConfig(raw) {
     people[key] = { name: person.name };
   }
 
-  return { product: raw.product, repository, trackers, people };
+  return { product: raw.product, repository, form, trackers, people };
 }
 
 /** Read and check the config at a repository's root. */
@@ -110,15 +113,21 @@ export function resolveTicket(id, config, where) {
   if (hits.length > 1) throw new Error(`${where}: ticket "${id}" matches ${hits.length} trackers (${hits.map((hit) => hit.tracker.name).join(", ")})`);
   const [{ tracker, match }] = hits;
   const values = { id, ...(match.groups ?? {}) };
+  // A pattern with alternatives may leave a named group unset for this id: a link or label that uses it would say "undefined".
+  for (const template of [ticketTemplate(tracker)].flat()) {
+    for (const [, name] of template.matchAll(VARIABLE)) if (values[name] === undefined) throw new Error(`${where}: ticket "${id}" leaves {${name}} unset, which ${tracker.name}'s ${tracker.show === "link" ? "url or label" : "label"} uses`);
+  }
   const fill = (template, encode) => template.replace(VARIABLE, (_, name) => (encode ? encodeURIComponent(values[name]) : values[name]));
   const ticket = { tracker: tracker.name, id, label: tracker.label ? fill(tracker.label, false) : id, show: tracker.show };
   if (tracker.show === "link") ticket.href = fill(tracker.url, true);
   return ticket;
 }
 
+const ticketTemplate = (tracker) => [tracker.show === "link" ? tracker.url : null, tracker.label].filter(Boolean);
+
 /** A person's name from their key, or a stop naming the file. */
 export function resolvePerson(key, config, where) {
-  const person = config.people[key];
+  const person = Object.hasOwn(config.people, key) ? config.people[key] : undefined;
   if (!person) throw new Error(`${where}: author "${key}" is not a key of the config's "people" (${Object.keys(config.people).join(", ") || "none"})`);
   return person.name;
 }

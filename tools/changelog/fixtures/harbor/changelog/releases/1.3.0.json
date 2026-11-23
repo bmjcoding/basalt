@@ -1,6 +1,7 @@
 {
   "version": "1.3.0",
   "date": "2026-11-20",
+  "repository": "https://github.com/example/harbor",
   "title": "Updates need a second approval",
   "audiences": [
     {
@@ -24,8 +25,8 @@
         "href": "https://github.com/example/harbor/pull/126"
       },
       "commit": {
-        "sha": "879654ad138e381be9af010c62d1868ff7600c9d",
-        "href": "https://github.com/example/harbor/commit/879654ad138e381be9af010c62d1868ff7600c9d"
+        "sha": "2c4871d3254c112ba29d82602cc94275572ce257",
+        "href": "https://github.com/example/harbor/commit/2c4871d3254c112ba29d82602cc94275572ce257"
       }
     },
     {
@@ -39,8 +40,8 @@
         "href": "https://github.com/example/harbor/pull/126"
       },
       "commit": {
-        "sha": "c8476fd49935f1b91a266a5077c687982941d2f5",
-        "href": "https://github.com/example/harbor/commit/c8476fd49935f1b91a266a5077c687982941d2f5"
+        "sha": "393ee05942dff95b0943289abdc6ddc0a51ca987",
+        "href": "https://github.com/example/harbor/commit/393ee05942dff95b0943289abdc6ddc0a51ca987"
       }
     }
   ]

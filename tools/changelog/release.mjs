@@ -75,12 +75,34 @@ export function checkVersion(version, records, entries) {
 }
 
 /**
- * Freeze `version`, shipped on `date`. `root` is the repository. Returns what it wrote. Nothing is written until every check has passed.
+ * Freeze `version`, shipped on `date`. `root` is the repository. Returns what it wrote.
+ *
+ * It is one step that either happens or does not: every check runs and every output is built in memory first; the record and CHANGELOG.md are
+ * written beside their places and then moved in (the record with a hard link, which fails if another freeze wrote it first), and only then are
+ * the pending files consumed. A freeze that stops before that leaves the inputs as they were. One that was interrupted after its record was
+ * written (the record is there, and is exactly what this freeze would write) is finished by running it again.
  */
 export function freeze({ root, version, date }) {
   if (!isDate(date)) throw new Error(`--date "${date}" is a calendar date, YYYY-MM-DD`);
+  const file = path.join(root, RECORDS_DIR, `${version}.json`);
+  if (!fs.existsSync(file)) return commit({ root, version, date });
+  // The record is there: this freeze finishes an interrupted one, or the version is published. Anything that stops it says the second.
+  try {
+    return commit({ root, version, date });
+  } catch (error) {
+    if (error.finishing) throw error;
+    throw new Error(`${version} is published, and a published version is never edited`);
+  }
+}
+
+function commit({ root, version, date }) {
   const config = loadConfig(root);
-  const records = readRecords(root);
+  const file = path.join(root, RECORDS_DIR, `${version}.json`);
+  const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+  // A record already there is measured against what this freeze would write: equal, and the freeze finishes; different, and it is published.
+  const allRecords = readRecords(root);
+  const records = existing === null ? allRecords : allRecords.filter((record) => record.version !== version);
+  if (existing !== null && records.length === allRecords.length) throw new Error(`${path.join(RECORDS_DIR, `${version}.json`)} exists and is not a record of ${version}`);
   const pending = readPending(root, config);
   const ids = new Set(pending.map((entry) => entry.id));
   const notes = readPendingNotes(root, ids);
@@ -111,6 +133,8 @@ export function freeze({ root, version, date }) {
   const record = { version, date };
   if (base) record.previous = base.version;
   if (!pre && candidates.length) record.replaces = candidates.map((candidate) => candidate.version).sort(compare);
+  // The repository is frozen with the release, so a later config cannot re-point its comparison ("Full diff").
+  record.repository = config.repository;
   if (notes?.title) record.title = notes.title;
   if (notes?.summary) record.summary = notes.summary;
   if (notes?.audiences) {
@@ -120,26 +144,53 @@ export function freeze({ root, version, date }) {
     record.audiences = notes.audiences;
   }
   record.entries = entries;
+  const recordText = `${JSON.stringify(record, null, 2)}\n`;
+  if (existing !== null && existing !== recordText) throw new Error(`${version} is published, and a published version is never edited`);
 
-  const file = path.join(root, RECORDS_DIR, `${version}.json`);
-  if (fs.existsSync(file)) throw new Error(`${path.join(RECORDS_DIR, `${version}.json`)} exists; a record is written once and never overwritten`);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`, { flag: "wx" });
+  // Every output, in memory: the records with this one, and the pending files this freeze leaves.
+  const consumed = pre ? [] : pending;
+  const left = pre ? pending : [];
+  const changelog = changelogMarkdown(pageReleases(root, { config, records: [...records, record], pending: left }), { product: config.product, form: config.form });
+
+  // Stage, then move in. Nothing is consumed until both are in place.
+  const changelogFile = path.join(root, "CHANGELOG.md");
+  const stage = `.freeze-${process.pid}-${Date.now()}`;
+  const recordTemp = `${file}${stage}`;
+  const changelogTemp = `${changelogFile}${stage}`;
+  let wroteRecord = false;
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(changelogTemp, changelog);
+    if (existing === null) {
+      fs.writeFileSync(recordTemp, recordText, { flag: "wx" });
+      try {
+        fs.linkSync(recordTemp, file);
+      } catch (error) {
+        if (error.code === "EEXIST") throw new Error(`${path.join(RECORDS_DIR, `${version}.json`)} was written by another freeze; run this one again to finish or to see what differs`);
+        throw error;
+      }
+      wroteRecord = true;
+    }
+    fs.renameSync(changelogTemp, changelogFile);
+  } catch (error) {
+    if (wroteRecord) fs.rmSync(file, { force: true });
+    error.finishing = true;
+    throw error;
+  } finally {
+    fs.rmSync(recordTemp, { force: true });
+    fs.rmSync(changelogTemp, { force: true });
+  }
 
   const removed = [];
-  if (!pre) {
-    for (const entry of pending) {
-      fs.unlinkSync(path.join(root, CHANGES_DIR, `${entry.id}.md`));
-      removed.push(`${CHANGES_DIR}/${entry.id}.md`);
-    }
-    if (notes) {
-      fs.unlinkSync(path.join(root, CHANGES_DIR, NOTES_FILE));
-      removed.push(`${CHANGES_DIR}/${NOTES_FILE}`);
-    }
+  for (const entry of consumed) {
+    fs.rmSync(path.join(root, CHANGES_DIR, `${entry.id}.md`), { force: true });
+    removed.push(`${CHANGES_DIR}/${entry.id}.md`);
   }
-  const releases = pageReleases(root, { config });
-  fs.writeFileSync(path.join(root, "CHANGELOG.md"), changelogMarkdown(releases, { product: config.product }));
-  return { record, file, removed };
+  if (!pre && notes) {
+    fs.rmSync(path.join(root, CHANGES_DIR, NOTES_FILE), { force: true });
+    removed.push(`${CHANGES_DIR}/${NOTES_FILE}`);
+  }
+  return { record, file, removed, finished: existing !== null };
 }
 
 function main(argv) {

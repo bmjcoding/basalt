@@ -76,7 +76,10 @@
     if (anchor) {
       anchor.setAttribute('aria-expanded', 'true');
       if (!anchor.hasAttribute('aria-haspopup')) anchor.setAttribute('aria-haspopup', pop.getAttribute('role') === 'menu' ? 'menu' : 'dialog');
-      var again = function () { _.place(pop, anchor, { side: pop.dataset.side, align: pop.dataset.align }); };
+      // Start and end are the opener's own: in a right-to-left page "end" is the left edge.
+      var rtl = getComputedStyle(anchor).direction === 'rtl';
+      var align = rtl && pop.dataset.align === 'end' ? 'start' : rtl && (!pop.dataset.align || pop.dataset.align === 'start') ? 'end' : pop.dataset.align;
+      var again = function () { _.place(pop, anchor, { side: pop.dataset.side, align: align }); };
       again();
       pop.__again = again;
       window.addEventListener('resize', again);
@@ -89,7 +92,26 @@
         if (to && !pop.contains(to) && to !== pop.__anchor && !(to.closest && to.closest('[popover]:popover-open')) && pop.matches(':popover-open')) pop.hidePopover();
       });
     }
-    if (!pop.matches('[role="menu"], .combobox-popup')) {
+    // A popup marked data-focus-self takes focus itself, as React's Sources panel does: Tab goes on into it from there, and in Safari, whose Tab skips
+    // links by default, it reaches the panel's button rather than leaving the popup from a focused link.
+    if (pop.hasAttribute('data-focus-self')) {
+      pop.setAttribute('tabindex', '-1');
+      pop.focus({ preventScroll: true });
+      // Tab walks the popup's own controls whatever the browser's Tab setting (Safari's skips links, and can leave the popup for the page's start):
+      // forward from the panel to its first, back from its first to the panel; past the last it closes, and focus goes back to the opener.
+      if (!pop.__bhTab) {
+        pop.__bhTab = true;
+        pop.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Tab' || ev.defaultPrevented) return;
+          var list = _.tabbables(pop);
+          var at = document.activeElement === pop ? -1 : list.indexOf(document.activeElement);
+          var next = at + (ev.shiftKey ? -1 : 1);
+          ev.preventDefault();
+          if (next >= list.length) { pop.hidePopover(); if (pop.__anchor) pop.__anchor.focus({ preventScroll: true }); return; }
+          (next < 0 ? pop : list[next]).focus({ preventScroll: true });
+        });
+      }
+    } else if (!pop.matches('[role="menu"], .combobox-popup')) {
       var first = _.tabbables(pop)[0];
       if (!first) pop.setAttribute('tabindex', '-1');
       (first || pop).focus({ preventScroll: true });

@@ -1,6 +1,7 @@
 {
   "product": "Harbor",
   "repository": "https://github.com/example/harbor",
+  "form": "notes",
   "trackers": [
     {
       "name": "Linear",

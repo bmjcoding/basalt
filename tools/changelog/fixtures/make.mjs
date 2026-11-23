@@ -50,7 +50,7 @@ export const SLATE = {
         { id: "pr50-1", pr: 50, type: "fixed", area: "Sidebar", text: "Fixed the brand mark sitting off center when the sidebar collapsed to its rail" },
         { id: "docs-contrast-note", type: "fixed", area: "Docs", text: "Fixed the contrast table listing secondary ink on the sunken band at 4.1:1, where it measures 4.6:1" },
       ],
-      notes: { summary: "Slate 0.2.0 adds a composer with mentions and a plate token for highlighted rows. Four changes to layout and stored data need a look before upgrading." },
+      notes: { summary: "Slate 0.2.0 adds a composer with mentions and a plate token for highlighted rows. Check existing layout rules and stored data before upgrading." },
       version: "0.2.0",
       date: "2026-11-16",
     },
@@ -71,6 +71,7 @@ export const HARBOR = {
   config: {
     product: "Harbor",
     repository: "https://github.com/example/harbor",
+    form: "notes",
     trackers: [{ name: "Linear", pattern: "OPS-[1-9][0-9]*", url: "https://linear.app/example/issue/{id}" }],
     people: { ada: { name: "Ada Okoye" } },
   },
@@ -107,8 +108,8 @@ export const HARBOR = {
         title: "A monitor can open an incident room",
         summary: "Monitors can open incident rooms through a webhook, and Home marks the incidents they open. The open incident list keeps its place, and two fixes cover the lobby and search.",
         audiences: [
-          { covers: ["pr131-1"], text: "A monitor that can send a webhook can now open an incident room when its alarm fires. The room shows the alarm, the service it names and the checks already run." },
-          { for: "For responders", covers: ["pr131-2"], text: "On Home, open an incident marked \"Opened by a monitor\". The first message in the room is the alarm, with a link to the monitor." },
+          { covers: ["pr131-1"], text: "A monitor that can send a webhook can now open an incident room when its alarm fires." },
+          { for: "For responders", covers: ["pr131-2"], text: "On Home, open an incident marked \"Opened by a monitor\"." },
           { for: "For admins", covers: ["pr131-1"], text: "In Settings, open Integrations and add a webhook. Paste its address into your monitor." },
         ],
       },
@@ -232,7 +233,7 @@ export function buildRepository(project, dir = fs.mkdtempSync(path.join(os.tmpdi
       // The default branch's CHANGELOG.md is regenerated with the record in it.
       const { changelogMarkdown } = OUTPUTS;
       const config = loadConfig(dir);
-      fs.writeFileSync(path.join(dir, "CHANGELOG.md"), changelogMarkdown(pageReleases(dir, { config }), { product: config.product }));
+      fs.writeFileSync(path.join(dir, "CHANGELOG.md"), changelogMarkdown(pageReleases(dir, { config }), { product: config.product, form: config.form }));
       git("add", "-A");
       git("commit", "-q", "-m", `Add the ${step.version} record (#146)`);
     } else if (step.branch) {
@@ -258,7 +259,7 @@ export function copyOut(project, dir, out = path.join(HERE, project.name)) {
   // Entries merged since the last release are in CHANGELOG.md's Unreleased section, as `node tools/changelog/build.mjs` writes it.
   const config = loadConfig(out);
   const releases = pageReleases(out, { config });
-  fs.writeFileSync(path.join(out, "CHANGELOG.md"), OUTPUTS.changelogMarkdown(releases, { product: config.product }));
+  fs.writeFileSync(path.join(out, "CHANGELOG.md"), OUTPUTS.changelogMarkdown(releases, { product: config.product, form: config.form }));
   fs.writeFileSync(path.join(out, "releases.json"), `${JSON.stringify(releases, null, 2)}\n`);
 }
 

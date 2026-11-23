@@ -49,7 +49,7 @@ describe("arriving", () => {
     assert.deepEqual(await state(page), { arrived: ["v0.2.0"], focused: "v0.2.0", word: "Linked" });
     assert.ok(await inView(page, "v0.2.0"));
     assert.equal(await page.locator('[id="v0.2.0"]').evaluate((el) => getComputedStyle(el).outlineStyle), "none");
-    const plate = await page.locator('[id="v0.2.0"] .basalt-release-head-text').evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
+    const plate = await page.locator('[id="v0.2.0"] > .basalt-release-head').evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
     assert.notEqual(plate, "rgba(0, 0, 0, 0)", "the plate is on its header");
     await page.context_.close();
   });

@@ -2,6 +2,7 @@
   "version": "1.3.1",
   "date": "2026-11-23",
   "previous": "1.3.0",
+  "repository": "https://github.com/example/harbor",
   "summary": "Fixes to the recap, the room timer, the directory and sign-in.",
   "entries": [
     {
@@ -15,8 +16,8 @@
         "href": "https://github.com/example/harbor/pull/130"
       },
       "commit": {
-        "sha": "e4f9b9f23e31054ee7fcabb9d081b7ba207789f9",
-        "href": "https://github.com/example/harbor/commit/e4f9b9f23e31054ee7fcabb9d081b7ba207789f9"
+        "sha": "d5c0cac2cecaee7c66b0d2f15c31ed1ba245ca66",
+        "href": "https://github.com/example/harbor/commit/d5c0cac2cecaee7c66b0d2f15c31ed1ba245ca66"
       }
     },
     {
@@ -30,8 +31,8 @@
         "href": "https://github.com/example/harbor/pull/129"
       },
       "commit": {
-        "sha": "b066b10badd591b2380af2aedb4771207f5137af",
-        "href": "https://github.com/example/harbor/commit/b066b10badd591b2380af2aedb4771207f5137af"
+        "sha": "d5a5398a6de3d34b72bff90064483ca838cc22c0",
+        "href": "https://github.com/example/harbor/commit/d5a5398a6de3d34b72bff90064483ca838cc22c0"
       }
     },
     {
@@ -45,8 +46,8 @@
         "href": "https://github.com/example/harbor/pull/135"
       },
       "commit": {
-        "sha": "73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f",
-        "href": "https://github.com/example/harbor/commit/73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f"
+        "sha": "e94330f40ba8bd8dce7574923ccc238c5831d573",
+        "href": "https://github.com/example/harbor/commit/e94330f40ba8bd8dce7574923ccc238c5831d573"
       }
     },
     {
@@ -60,8 +61,8 @@
         "href": "https://github.com/example/harbor/pull/136"
       },
       "commit": {
-        "sha": "f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9",
-        "href": "https://github.com/example/harbor/commit/f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9"
+        "sha": "79ac5b66ce07b63548e1511a069cd8ebe5eb4b7c",
+        "href": "https://github.com/example/harbor/commit/79ac5b66ce07b63548e1511a069cd8ebe5eb4b7c"
       }
     }
   ]

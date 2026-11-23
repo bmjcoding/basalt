@@ -42,7 +42,8 @@ export function compare(a, b) {
     if (p === undefined) return -1;
     if (q === undefined) return 1;
     if (p === q) continue;
-    if (numeric(p) && numeric(q)) return Number(p) - Number(q);
+    // Compared as integers of any size: Number would make rc.9007199254740992 and rc.9007199254740993 equal.
+    if (numeric(p) && numeric(q)) { const a = BigInt(p); const b = BigInt(q); return a < b ? -1 : a > b ? 1 : 0; }
     if (numeric(p)) return -1;
     if (numeric(q)) return 1;
     return p < q ? -1 : 1;

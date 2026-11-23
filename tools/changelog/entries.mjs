@@ -82,6 +82,8 @@ export function readEntry(source, file, config) {
   }
   const fromPr = /^pr([1-9][0-9]*)-[1-9][0-9]*$/.exec(id);
   if (fromPr && pr !== Number(fromPr[1])) throw new Error(`${file}: the file is named for pull request ${fromPr[1]}, so it says "pr: ${fromPr[1]}"${pr ? `, not ${pr}` : ""}`);
+  // Both ways: an entry from a pull request is named for it; a free slug is for a change with no pull request.
+  if (pr && !fromPr) throw new Error(`${file}: an entry from pull request ${pr} is named pr${pr}-1.md (pr${pr}-2.md for its second); a free name is for a change with no pull request`);
 
   let action = false;
   if ("action" in head) {
@@ -164,6 +166,12 @@ export function readNotes(source, file, ids) {
       continue;
     }
     const [first, ...rest] = filled;
+    // One paragraph a block: a second "covers" line, or words after a blank line, would publish unchecked words (start the next with a ## heading).
+    const stray = rest.find((entry) => /^covers:/.test(entry.text.trim()));
+    if (stray) throw new Error(`${file}:${stray.line}: a second "covers" line in one block; each paragraph is its own block under its own "## " heading`);
+    const start = lines.indexOf(first);
+    const gap = lines.findIndex((entry, index) => index > start && entry.text.trim() === "" && lines.slice(index + 1).some((after) => after.text.trim() !== ""));
+    if (gap >= 0) throw new Error(`${file}:${lines[gap].line + 1}: ${group ? `"${group}"` : "the paragraph for everyone"} holds two paragraphs; it is one paragraph of one to three sentences`);
     const covers = /^covers: ?(.*)$/.exec(first.text.trim());
     if (!covers) throw new Error(`${file}:${first.line}: a paragraph opens with a "covers: [ids]" line naming the entries it is about`);
     const list = readList(covers[1].trim(), `${file}:${first.line}`, "covers");

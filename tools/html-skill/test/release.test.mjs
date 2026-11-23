@@ -45,8 +45,8 @@ describe("the markup and compose", () => {
 
   test("the folds are written open: no hidden in the markup, and the panel holds its entries", () => {
     assert.doesNotMatch(SLATE_BODY, /\shidden[\s=>]/);
-    assert.match(SLATE_BODY, /<button type="button" class="disclosure release-fold" aria-expanded="true" aria-controls="v0\.2\.0-fixed">/);
-    assert.match(HARBOR_BODY, /aria-controls="v1\.4\.0-all"><span>All changes<span class="release-count">/);
+    assert.match(SLATE_BODY, /<button type="button" class="disclosure release-fold" aria-expanded="true" aria-controls="v0\.2\.0__fixed"><span>/);
+    assert.match(HARBOR_BODY, /aria-controls="v1\.4\.0__all"><span>All changes<span class="release-count">/);
     // The version's name is its visible words, then where it goes.
     assert.match(versionLink({ version: "2.0.0-rc.2", date: "2026-12-03", href: "#v2.0.0-rc.2" }), /aria-label="Version 2\.0\.0-rc\.2, Dec 3, 2026, release notes"/);
     assert.match(versionLink({ version: "2.0.0-rc.2", date: "2026-12-03", href: "#" }), /2\.0\.0<wbr><span class="version-link-pre">-rc\.2<\/span>/);
@@ -60,10 +60,10 @@ describe("the markup and compose", () => {
 
   test("with script the folds close to hidden until found, and a press opens one", async () => {
     const { page, context, errors } = await open(SLATE_BODY);
-    const panel = page.locator('[id="v0.2.0-fixed"]');
+    const panel = page.locator('[id="v0.2.0__fixed"]');
     assert.equal(await panel.getAttribute("hidden"), "until-found");
     assert.equal(await page.locator('[id="pr49-1"]').isVisible(), false);
-    const button = page.locator('[aria-controls="v0.2.0-fixed"]');
+    const button = page.locator('[aria-controls="v0.2.0__fixed"]');
     assert.equal(await button.getAttribute("aria-expanded"), "false");
     await button.click();
     assert.equal(await panel.getAttribute("hidden"), null);
@@ -152,6 +152,62 @@ describe("copied addresses and the version link", () => {
     const violations = await page.evaluate(async () => (await globalThis.axe.run({ exclude: [["[data-base-ui-focus-guard]"]] }, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } })).violations.map((v) => v.id));
     assert.deepEqual(violations, []);
     assert.deepEqual(errors, []);
+    await context.close();
+  });
+});
+
+describe("the Sources panel: Safari's keyboard and touch", () => {
+  test("in WebKit at 390, with Tab skipping links: Enter focuses the panel, Tab reaches Copy link to this change, Escape returns to the source line", async () => {
+    const { webkit } = await import("playwright");
+    const safari = await webkit.launch();
+    try {
+      const html = compose(`<title>Release notes</title>${SLATE_BODY}`, { fonts: false }).html;
+      const context = await safari.newContext({ viewport: { width: 390, height: 844 } });
+      const page = await context.newPage();
+      await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: html }));
+      await page.goto("https://basalt.test/changelog");
+      await page.waitForTimeout(100);
+      const line = page.locator('[id="pr41-1"] .release-source');
+      await line.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => document.activeElement?.classList.contains("release-sources"));
+      // Tab walks the panel's own controls, links included, and reaches its button; focus never leaves the panel for the page.
+      const walked = [];
+      for (let step = 0; step < 8 && walked.at(-1) !== "Copy link to this change"; step++) {
+        await page.keyboard.press("Tab");
+        walked.push(await page.evaluate(() => (document.activeElement?.closest(".release-sources") ? document.activeElement.textContent.trim().replace(/Copied$/, "") : `outside: ${document.activeElement?.tagName}`)));
+      }
+      assert.deepEqual(walked, ["#41", "SL-112", "678c43d8", "Copy link to this change"].slice(0, walked.length));
+      assert.equal(walked.at(-1), "Copy link to this change");
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => document.activeElement?.classList.contains("release-source"));
+      assert.equal(await page.evaluate(() => document.activeElement?.closest(".release-entry")?.id), "pr41-1");
+      await context.close();
+    } finally {
+      await safari.close();
+    }
+  });
+
+  test("on touch at 390 every link in the open panel is 44 tall to a finger", async () => {
+    const { page, context } = await open(SLATE_BODY, { width: 390, hasTouch: true });
+    await page.locator('[id="pr46-1"] .release-source').click();
+    await page.locator(".release-sources:popover-open a").first().waitFor();
+    const rows = await page.evaluate(() => {
+      const owner = (x, y) => document.elementFromPoint(x, y)?.closest("a, button") ?? null;
+      return [...document.querySelectorAll(".release-sources:popover-open a, .release-sources:popover-open button")].map((el) => {
+        el.scrollIntoView({ block: "center" });
+        const b = el.getBoundingClientRect();
+        const cx = b.x + Math.min(b.width / 2, 20);
+        const cy = b.y + b.height / 2;
+        let top = cy;
+        let bottom = cy;
+        while (top > cy - 60 && owner(cx, top - 1) === el) top--;
+        while (bottom < cy + 60 && owner(cx, bottom + 1) === el) bottom++;
+        return { label: el.textContent.trim(), hit: owner(cx, cy) === el ? Math.round(bottom - top) + 1 : 0 };
+      });
+    });
+    assert.ok(rows.length >= 6);
+    assert.deepEqual(rows.filter((row) => row.hit < 44).map((row) => `${row.label}: ${row.hit}`), []);
     await context.close();
   });
 });

@@ -68,6 +68,47 @@ export function auditEntry(entry, config) {
   return flags;
 }
 
+// R18: nothing in a headline, a summary or a paragraph that the list does not hold. Whether a sentence's claim is in an entry is a reader's call, so
+// the audit flags a sentence for a person when most of what it names appears in none of the entries it covers (their words and areas). An
+// instruction ("In Settings, open Integrations", "Paste its address") tells a reader where to find what an entry says, and is not a claim.
+const STOP = new Set("about above across after again already also another because been before being below between both cannot could does doing down during each every from have having here into itself just more most much must never only other over same should since some such than that their them then there these they this those through under until upon very were what when where which while will with within without would your yours first".split(" "));
+const INSTRUCTION = /^(?:(?:in|on|from|under)\s+[^,]+,\s*)?(?:open|add|paste|choose|select|press|go|click|tap|type|name|set|turn|run|check|use|find|connect|read|copy|see|remove|move|pass|replace)\b/i;
+/** A word's plain forms, so "codes", "coded" and "coding" meet "code", and "fixes" meets "fixed". */
+const forms = (word) => {
+  const bare = word.replace(/'s?$/, "");
+  const out = new Set([bare]);
+  for (const end of ["ing", "ed", "es", "s", "d"]) if (bare.endsWith(end) && bare.length - end.length >= 3) { const root = bare.slice(0, -end.length); out.add(root); out.add(`${root}e`); }
+  return [...out];
+};
+const words = (text) => text.toLowerCase().replace(/`[^`]*`/g, " ").split(/[^a-z']+/).filter((word) => word.length >= 4 && !STOP.has(word));
+
+/** Sentences of a headline, summary or paragraph that name mostly what the entries they cover do not. Each is `{ sentence, unknown }`. */
+export function unsupported(text, entries, { product } = {}) {
+  if (!entries.length) return [];
+  const known = new Set([...entries.flatMap((entry) => words(`${entry.area ?? ""} ${entry.text}`)), ...words(product ?? "")].flatMap(forms));
+  const out = [];
+  for (const sentence of text.split(/(?<=[.!?])\s+/).map((part) => part.trim()).filter(Boolean)) {
+    if (INSTRUCTION.test(sentence)) continue;
+    const named = words(sentence);
+    const unknown = [...new Set(named.filter((word) => !forms(word).some((form) => known.has(form))))];
+    if (unknown.length >= 2 && unknown.length * 2 >= new Set(named).size) out.push({ sentence, unknown });
+  }
+  return out;
+}
+
+/** R18 flags for a release's words: its headline and summary against every entry, each paragraph against the entries it covers. */
+export function auditNotes(release, { product } = {}) {
+  const flags = [];
+  const byId = new Map(release.entries.map((entry) => [entry.id, entry]));
+  const check = (text, entries, what) => {
+    for (const { sentence, unknown } of unsupported(text, entries, { product })) flags.push({ rule: "R18", line: sentence, message: `${what}: ${unknown.join(", ")} ${unknown.length === 1 ? "is" : "are"} in no entry it covers; give it an entry or take it out` });
+  };
+  if (release.title) check(release.title, release.entries, "the headline");
+  if (release.summary) check(release.summary, release.entries, "the summary");
+  for (const audience of release.audiences ?? []) check(audience.text, audience.covers.map((id) => byId.get(id)).filter(Boolean), audience.for ? `"${audience.for}"` : "the paragraph for everyone");
+  return flags;
+}
+
 /** Flags for one frozen release against the others. */
 export function auditRecord(record, records) {
   const flags = [];
@@ -111,7 +152,8 @@ export function audit(root) {
   const notesFile = path.join(dir, NOTES_FILE);
   if (fs.existsSync(notesFile)) {
     try {
-      readNotes(fs.readFileSync(notesFile, "utf8"), path.join(CHANGES_DIR, NOTES_FILE), new Set(pending.map(({ entry }) => entry.id)));
+      const notes = readNotes(fs.readFileSync(notesFile, "utf8"), path.join(CHANGES_DIR, NOTES_FILE), new Set(pending.map(({ entry }) => entry.id)));
+      for (const found of auditNotes({ ...notes, entries: pending.map(({ entry }) => entry) }, { product: config.product })) flags.push({ where: path.join(CHANGES_DIR, NOTES_FILE), ...found });
     } catch (error) {
       flags.push({ where: path.join(CHANGES_DIR, NOTES_FILE), rule: "R18", line: "", message: error.message });
     }
@@ -121,10 +163,11 @@ export function audit(root) {
   // An area on every entry when the package or product has more than one surface: when any entry has one, every entry does.
   if (all.some(({ entry }) => entry.area)) for (const { where, entry } of all) if (!entry.area) flags.push({ where, rule: "Structure", line: entry.text, message: "no area, where other entries have one" });
   for (const record of records) for (const found of auditRecord(record, records)) flags.push({ where: record.version, line: "", ...found });
+  for (const record of records) for (const found of auditNotes(record, { product: config.product })) flags.push({ where: record.version, ...found });
   for (const entry of all) if (!TYPES.includes(entry.entry.type)) flags.push({ where: entry.where, rule: "Structure", line: entry.entry.text, message: `type "${entry.entry.type}"` });
   const changelog = path.join(root, "CHANGELOG.md");
   if (fs.existsSync(changelog) && records.length) {
-    const expected = changelogMarkdown(pageReleases(root, { config, records, pending: pending.map(({ entry }) => entry) }), { product: config.product });
+    const expected = changelogMarkdown(pageReleases(root, { config, records, pending: pending.map(({ entry }) => entry) }), { product: config.product, form: config.form });
     if (fs.readFileSync(changelog, "utf8") !== expected) flags.push({ where: "CHANGELOG.md", rule: "Structure", line: "", message: "is not what the records give: run node tools/changelog/build.mjs" });
   }
   for (const difference of taggedDifferences(root)) flags.push({ where: "records", rule: "Version", line: "", message: difference });

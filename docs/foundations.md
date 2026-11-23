@@ -2674,8 +2674,10 @@ for the owner's answers, 320 revised by 321 for the rest); the implementation ha
 - **The header:** one heading holds the number and the date. With no headline the number is the heading, Geist Mono at `text-2xl`, 600, the meta
   line under it at `space-1`; with a headline the meta line comes first (the number in Geist, as at the foot), then the headline at `text-2xl`, 600,
   balanced. The meta line is 13/18 secondary, joined by dots: the date, the counts computed from the list ("17 changes", "4 need action", which links
-  to Action needed and takes the touch box), then the plain badges "Pre-release" and "Your version". Copy link is a ghost `sm` `CopyButton` at the
-  header's end, named for its release, copying the page's own address.
+  to Action needed and takes the touch box), then "Pre-release" and "Your version", each the neutral outline `Badge` with no status. Copy link is a
+  ghost `sm` `CopyButton` at the end of the header's first line (the number, or a headline release's number and date), its centre on that line's
+  centre whatever its height, taking no height of its own; only that line makes room for it, and the headline and the counts take the release's
+  width. It is named for its release and copies the page's own address, read when it is pressed.
 - **The order:** the header; a package's summary (16/24, primary, `space-4` under the header); Action needed; a product's paragraphs (an `h3` at 16/24
   600 over each, none for everyone, `space-4` apart); then the list: Security, Deprecated, Removed, Added, Changed, Fixed, `space-6` apart, each an
   `h3` at 16/24 600 with its count after it in tertiary at `space-1`. Empty sections are left out.

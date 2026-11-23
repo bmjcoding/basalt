@@ -170,8 +170,13 @@ describe("its places", () => {
     const rail = await box(page.locator(".basalt-app-sidebar"));
     const number = await box(link.locator(".basalt-version-link-number"));
     assert.ok(Math.abs((number.x + number.width / 2) - (rail.x + rail.width / 2)) <= 1.5, "centred in the rail");
-    await link.hover();
+    // The rail's tooltip loads on demand: until it is there the number stands alone, so a pointer that arrived first moves off and back.
     const tip = page.getByRole("tooltip");
+    for (let attempt = 0; attempt < 10 && !(await tip.count()); attempt++) {
+      await page.mouse.move(400, 400);
+      await link.hover();
+      await page.waitForTimeout(300);
+    }
     await tip.waitFor();
     // The tooltip says the whole line: the dot is DotSep's, drawn as a dot and read as a comma.
     assert.equal(await tip.evaluate((el) => [...(el.querySelector(":scope > span") ?? el).childNodes].map((n) => (n.nodeType === 3 ? n.data : n.classList?.contains("basalt-dot-sep") ? " · " : n.textContent)).join("").replace(/\s+/g, " ").trim()), "Version 1.4.0 · Nov 23, 2026");

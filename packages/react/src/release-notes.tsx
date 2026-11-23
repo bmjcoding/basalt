@@ -5,7 +5,8 @@ import { CopyButton } from "./copy-button";
 import { DescriptionItem, DescriptionList } from "./description-list";
 import { Badge } from "./display";
 import { DotLine, DotSep } from "./dot-sep";
-import { Accordion, AccordionItem, Callout, Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
+import { Accordion, AccordionItem, Callout } from "./feedback";
+import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { Link } from "./navigation";
 import { formatReleaseDate } from "./release-date";
 import type { ReleaseEntryRecord, ReleaseEntryType, ReleaseRecord } from "./release-types";
@@ -149,7 +150,8 @@ function partsOf(release: ReleaseRecord, form: ReleaseNotesProps["form"]) {
   const inside = sections.reduce((sum, section) => sum + section.entries.length, 0);
   const leads = form === "notes" && Boolean(release.audiences?.length);
   const folded = leads && inside > 0;
-  const fixedFolds = !folded && release.entries.length > FOLD_OVER && (sections.find((section) => section.type === "fixed")?.entries.length ?? 0) > FOLD_FIXED;
+  // Only a package's list folds Fixed; a product's patch with no paragraphs shows its list open (2.7).
+  const fixedFolds = form === "reference" && release.entries.length > FOLD_OVER && (sections.find((section) => section.type === "fixed")?.entries.length ?? 0) > FOLD_FIXED;
   return { action, sections, inside, leads, folded, fixedFolds };
 }
 
@@ -160,24 +162,20 @@ function foldsOf(release: ReleaseRecord, form: ReleaseNotesProps["form"]) {
   const all: string[] = [];
   const holding = new Map<string, string>();
   if (folded) {
-    all.push(`${id}-all`);
-    for (const section of sections) for (const entry of section.entries) holding.set(entry.id, `${id}-all`);
+    all.push(`${id}__all`);
+    for (const section of sections) for (const entry of section.entries) holding.set(entry.id, `${id}__all`);
   } else if (fixedFolds) {
-    all.push(`${id}-fixed`);
-    for (const entry of sections.find((section) => section.type === "fixed")?.entries ?? []) holding.set(entry.id, `${id}-fixed`);
+    all.push(`${id}__fixed`);
+    for (const entry of sections.find((section) => section.type === "fixed")?.entries ?? []) holding.set(entry.id, `${id}__fixed`);
   }
   return { all, holding };
 }
 
-/** The page's own address with no fragment and no query: from the app, or the window's once the page is in a browser. */
-function useBase(baseHref: string | undefined) {
-  const [base, setBase] = React.useState(baseHref ?? "");
-  React.useEffect(() => {
-    if (baseHref !== undefined) setBase(baseHref);
-    else setBase(`${window.location.origin}${window.location.pathname}`);
-  }, [baseHref]);
-  return base;
-}
+/**
+ * The page's own address with no fragment and no query, read when a Copy button is pressed: the app's, or the window's then, so a page that has
+ * changed its route since it was drawn copies where it is now.
+ */
+const baseOf = (baseHref: string | undefined) => () => (baseHref !== undefined ? baseHref : `${window.location.origin}${window.location.pathname}`);
 
 /** The arrived target: the app's, or the window's fragment followed on hashchange. Each change is a fresh arrival. */
 function useTarget(arrived: string | null | undefined) {
@@ -203,7 +201,7 @@ function useTarget(arrived: string | null | undefined) {
 
 interface Shared {
   words: ReleaseWords;
-  base: string;
+  base: () => string;
   locale: string;
   level: 2 | 3;
   target: string | null;
@@ -235,9 +233,20 @@ function Fold({ name, title, level, shared, className, children }: { name: strin
 /** A count after its name, `space-1` away: the space is read, the gap drawn. */
 const Count = ({ n }: { n: number }) => <span className="basalt-release-count"><span className="basalt-visually-hidden"> </span>{n}</span>;
 
+// The Sources popup loads the first time a reader reaches for a source line (release-sources.tsx): the page draws the line, and the popup, its
+// positioning and Floating UI come only when someone asks. Pointing at or focusing a line starts the load; pressing it opens the panel as soon as
+// the popup is there (a press that waits shows the TextButton's own busy mark after 300ms). Assigned on first use, so loading this module does nothing.
+type SourcesModule = typeof import("./release-sources");
+let sourcesLoading: Promise<SourcesModule> | undefined;
+const loadSources = () => (sourcesLoading ??= import("./release-sources").catch((error) => { sourcesLoading = undefined; throw error; }));
+
 function SourceLine({ entry, textId, shared }: { entry: ReleaseEntryRecord; textId: string; shared: Shared }) {
   // The panel itself takes focus when it opens (its first link would draw a ring the reader did not ask for); Tab goes on into it.
   const panel = React.useRef<HTMLDivElement>(null);
+  const level = usePopupLevel();
+  const layer = useFloatingLayer();
+  const [Popup, setPopup] = React.useState<SourcesModule["SourcesPopup"] | null>(null);
+  const [open, setOpen] = React.useState(false);
   const { words } = shared;
   const tickets = entry.tickets ?? [];
   const ids: string[] = [];
@@ -247,49 +256,56 @@ function SourceLine({ entry, textId, shared }: { entry: ReleaseEntryRecord; text
   if (!ids.length) return null;
   const more = tickets.length - SHOWN_TICKETS;
   const shown = more > 0 ? [...ids, words.more(more)] : ids;
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={(
-          <TextButton quiet className="basalt-release-source" aria-describedby={textId}>
-            <span className="basalt-visually-hidden">{words.sources}: </span>
-            {shown.map((id, index) => (
-              <React.Fragment key={index}>
-                {index > 0 ? <DotSep spaced /> : null}
-                <span className="basalt-release-id">{id}</span>
-              </React.Fragment>
-            ))}
-          </TextButton>
-        )}
-      />
-      <PopoverContent ref={panel} initialFocus={panel} align="end" collisionPadding={16} className="basalt-release-sources">
-        <PopoverTitle className="basalt-popover-title">{words.sources}</PopoverTitle>
-        <DescriptionList className="basalt-release-sources-list">
-          {entry.pr ? <DescriptionItem term={words.pullRequest} mono><a className="basalt-link" href={entry.pr.href}><span className="basalt-link-label">#{entry.pr.number}</span></a></DescriptionItem> : null}
-          {tickets.length ? (
-            <DescriptionItem
-              term={tickets.length === 1 ? words.ticket : words.tickets}
-              values={tickets.map((ticket) => (
-                <>{ticket.tracker} {ticket.href ? <a className="basalt-link basalt-release-mono" href={ticket.href}><span className="basalt-link-label">{ticket.label}</span></a> : <span className="basalt-release-mono">{ticket.label}</span>}</>
-              ))}
-            />
-          ) : null}
-          {entry.commit ? (
-            <DescriptionItem term={words.commit} mono>
-              {entry.commit.href ? <a className="basalt-link" href={entry.commit.href}><span className="basalt-link-label">{entry.commit.sha.slice(0, 8)}</span></a> : entry.commit.sha.slice(0, 8)}
-            </DescriptionItem>
-          ) : null}
-          {entry.authors?.length ? <DescriptionItem term={entry.authors.length === 1 ? words.author : words.authors} values={entry.authors} /> : null}
-        </DescriptionList>
-        <CopyButton size="sm" text={`${shared.base}#${entry.id}`} copiedLabel={words.copied} statusLabel={words.linkCopied}>{words.copyLinkToChange}</CopyButton>
-      </PopoverContent>
-    </Popover>
+  const warm = () => { loadSources().catch(() => {}); };
+  const trigger = (
+    <TextButton
+      quiet
+      className="basalt-release-source"
+      aria-describedby={textId}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onPointerEnter={Popup ? undefined : warm}
+      onFocus={Popup ? undefined : warm}
+      onClick={Popup ? undefined : () => loadSources().then((module) => { setPopup(() => module.SourcesPopup); setOpen(true); })}
+    >
+      <span className="basalt-visually-hidden">{words.sources}: </span>
+      {shown.map((id, index) => (
+        <React.Fragment key={index}>
+          {index > 0 ? <DotSep spaced /> : null}
+          <span className="basalt-release-id">{id}</span>
+        </React.Fragment>
+      ))}
+    </TextButton>
   );
+  if (!Popup) return trigger;
+  const rows = (
+    <>
+      <DescriptionList className="basalt-release-sources-list">
+        {entry.pr ? <DescriptionItem term={words.pullRequest} mono><a className="basalt-link" href={entry.pr.href}><span className="basalt-link-label">#{entry.pr.number}</span></a></DescriptionItem> : null}
+        {tickets.length ? (
+          <DescriptionItem
+            term={tickets.length === 1 ? words.ticket : words.tickets}
+            values={tickets.map((ticket) => (
+              <>{ticket.tracker} {ticket.href ? <a className="basalt-link basalt-release-mono" href={ticket.href}><span className="basalt-link-label">{ticket.label}</span></a> : <span className="basalt-release-mono">{ticket.label}</span>}</>
+            ))}
+          />
+        ) : null}
+        {entry.commit ? (
+          <DescriptionItem term={words.commit} mono>
+            {entry.commit.href ? <a className="basalt-link" href={entry.commit.href}><span className="basalt-link-label">{entry.commit.sha.slice(0, 8)}</span></a> : entry.commit.sha.slice(0, 8)}
+          </DescriptionItem>
+        ) : null}
+        {entry.authors?.length ? <DescriptionItem term={entry.authors.length === 1 ? words.author : words.authors} values={entry.authors} /> : null}
+      </DescriptionList>
+      <CopyButton size="sm" text={() => `${shared.base()}#${entry.id}`} copiedLabel={words.copied} statusLabel={words.linkCopied}>{words.copyLinkToChange}</CopyButton>
+    </>
+  );
+  return <Popup open={open} onOpenChange={setOpen} trigger={trigger} level={level} layer={layer} panelRef={panel} title={words.sources}>{inLevel(level, rows)}</Popup>;
 }
 
 function Entry({ entry, shared }: { entry: ReleaseEntryRecord; shared: Shared }) {
   const arrival = useArrival<HTMLLIElement>({ arrived: shared.target === entry.id, onArrivedEnd: shared.onArrivedEnd });
-  const textId = `${entry.id}-words`;
+  const textId = `${entry.id}__words`;
   return (
     <li {...arrival.attrs} id={entry.id} data-link={entry.link ? "" : undefined} className="basalt-release-entry">
       <ArrivedWord on={arrival.on} ever={arrival.ever} label={shared.words.linked} />
@@ -318,7 +334,7 @@ function Sections({ release, sections, level, foldFixed, shared }: { release: Re
         if (section.type === "fixed" && foldFixed) {
           return (
             <section key={section.type} className="basalt-release-section" data-folded="">
-              <Fold name={`${id}-fixed`} title={title} level={level} shared={shared}><List entries={section.entries} shared={shared} /></Fold>
+              <Fold name={`${id}__fixed`} title={title} level={level} shared={shared}><List entries={section.entries} shared={shared} /></Fold>
             </section>
           );
         }
@@ -336,7 +352,7 @@ function Sections({ release, sections, level, foldFixed, shared }: { release: Re
 function BuildDetails({ rows, shared }: { rows: readonly ReleaseBuildRow[]; shared: Shared }) {
   return (
     <div className="basalt-release-build">
-      <Fold name="build" title={shared.words.buildDetails} level={shared.level + 1} shared={shared}>
+      <Fold name="__build" title={shared.words.buildDetails} level={shared.level + 1} shared={shared}>
         <DescriptionList className="basalt-release-build-list">
           {rows.map((row) => <DescriptionItem key={row.label} term={row.label} mono={row.mono}>{row.value}</DescriptionItem>)}
         </DescriptionList>
@@ -359,7 +375,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
   const date = release.date && day ? <time dateTime={release.date}>{day}</time> : null;
   const counts = [
     total ? <React.Fragment key="c">{words.changes(total)}</React.Fragment> : null,
-    action.length ? <a key="a" href={`#${id}-action`} className="basalt-release-action-link">{words.needAction(action.length)}</a> : null,
+    action.length ? <a key="a" href={`#${id}__action`} className="basalt-release-action-link">{words.needAction(action.length)}</a> : null,
   ];
   const badges = pre || yours ? (
     <span className="basalt-release-badges">
@@ -368,12 +384,13 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
     </span>
   ) : null;
   const facts = counts.filter(Boolean);
-  const headingId = `${id}-heading`;
+  const headingId = `${id}__heading`;
   const heading = release.title ? (
     <>
+      {/* The first line, drawn: the number and the date. The heading says them itself, so the drawn line is not read twice. */}
+      <p className="basalt-release-meta basalt-release-number-line" aria-hidden="true"><DotLine>{release.version}{date}</DotLine></p>
       <Heading level={level} id={headingId} className="basalt-release-heading" data-headline="">
-        <span className="basalt-release-meta basalt-release-number-line"><DotLine>{release.version}{date}</DotLine></span>
-        <span className="basalt-visually-hidden">: </span>
+        <span className="basalt-visually-hidden">{release.version}{day ? `, ${day}` : ""}: </span>
         <span className="basalt-release-title">{release.title}</span>
       </Heading>
       {facts.length || badges ? <p className="basalt-release-meta"><DotLine>{facts}</DotLine>{badges}</p> : null}
@@ -391,7 +408,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
   const actionBlock = action.length ? (
     <Callout
       status="warning"
-      id={`${id}-action`}
+      id={`${id}__action`}
       className="basalt-release-action"
       title={<Heading level={level + 1} className="basalt-release-callout-title">{words.actionNeeded}<Count n={action.length} /></Heading>}
     >
@@ -406,7 +423,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
           <ArrivedWord on={arrival.on} ever={arrival.ever} label={words.linked} />
           {heading}
         </div>
-        <CopyButton variant="ghost" size="sm" text={`${shared.base}#${id}`} aria-label={words.copyLinkTo(name)} copiedLabel={words.copied} statusLabel={words.linkCopied} className="basalt-release-copy">
+        <CopyButton variant="ghost" size="sm" text={() => `${shared.base()}#${id}`} aria-label={words.copyLinkTo(name)} copiedLabel={words.copied} statusLabel={words.linkCopied} className="basalt-release-copy">
           {words.copyLink}
         </CopyButton>
       </header>
@@ -420,7 +437,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
       )) : null}
       {folded ? (
         <div className="basalt-release-all">
-          <Fold name={`${id}-all`} level={level + 1} shared={shared} title={<>{action.length ? words.otherChanges : words.allChanges}<Count n={inside} /></>}>
+          <Fold name={`${id}__all`} level={level + 1} shared={shared} title={<>{action.length ? words.otherChanges : words.allChanges}<Count n={inside} /></>}>
             {summary}
             <Sections release={release} sections={sections} level={level + 2} foldFixed={false} shared={shared} />
           </Fold>
@@ -440,7 +457,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
 export function ReleaseNotes({ releases, form, product, baseHref, running, runningBuild, headingLevel = 2, arrived, onArrivedEnd, words: wordsProp, locale = "en-US", className, ...props }: ReleaseNotesProps) {
   const words = React.useMemo(() => ({ ...WORDS, ...wordsProp, sections: { ...WORDS.sections, ...wordsProp?.sections } }), [wordsProp]);
   const drawn = React.useMemo(() => releases.filter((release) => !(form === "notes" && release.unreleased)), [releases, form]);
-  const base = useBase(baseHref);
+  const base = React.useMemo(() => baseOf(baseHref), [baseHref]);
   const raw = useTarget(arrived);
   // A version that a drawn release replaces opens that release.
   const target = React.useMemo(() => {
@@ -453,7 +470,7 @@ export function ReleaseNotes({ releases, form, product, baseHref, running, runni
   const [open, setOpen] = React.useState<ReadonlySet<string>>(() => new Set());
   React.useLayoutEffect(() => setWired(true), []);
   const folds = React.useMemo(() => {
-    const all: string[] = ["build"];
+    const all: string[] = ["__build"];
     const holding = new Map<string, string>();
     for (const release of drawn) {
       const own = foldsOf(release, form);

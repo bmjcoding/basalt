@@ -22,6 +22,8 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const count = (n) => `<span class="release-count"><span class="visually-hidden"> </span>${n}</span>`;
 export const releaseId = (release) => (release.unreleased ? "unreleased" : `v${release.version}`);
 const SHOWN_TICKETS = 2;
+// An element's own id that is not an address ends "__words", "__heading" and the like: a public id is lowercase letters, digits and hyphens, so the
+// two never meet (an entry may be named "fix-words").
 
 /** The version with its date, one link (VersionLink). `label` is the word before the number; a site's footer gives the product. */
 export function versionLink({ version, date, href, label = "Version", current = false, destination = "release notes" }) {
@@ -45,16 +47,16 @@ function sources(entry) {
   if (tickets.length) rows.push(`<div><dt>${tickets.length === 1 ? "Ticket" : "Tickets"}</dt>${tickets.map((ticket) => `<dd>${esc(ticket.tracker)} ${ticket.href ? `<a class="release-mono" href="${esc(ticket.href)}">${esc(ticket.label)}</a>` : `<span class="release-mono">${esc(ticket.label)}</span>`}</dd>`).join("")}</div>`);
   if (entry.commit) rows.push(`<div><dt>Commit</dt><dd data-mono>${entry.commit.href ? `<a href="${esc(entry.commit.href)}">${entry.commit.sha.slice(0, 8)}</a>` : entry.commit.sha.slice(0, 8)}</dd></div>`);
   if (entry.authors?.length) rows.push(`<div><dt>${entry.authors.length === 1 ? "Author" : "Authors"}</dt>${entry.authors.map((name) => `<dd>${esc(name)}</dd>`).join("")}</div>`);
-  const panel = `${entry.id}-sources`;
-  return `<button type="button" class="release-source" popovertarget="${panel}" aria-describedby="${entry.id}-words"><span class="visually-hidden">Sources: </span>${ids.map((id) => `<span class="release-id">${esc(id)}</span>`).join(DOT)}</button>` +
-    `<div class="panel float popover release-sources" popover id="${panel}" data-align="end"><h2 class="popover-title">Sources</h2><dl class="dlist release-sources-list">${rows.join("")}</dl>` +
+  const panel = `${entry.id}__sources`;
+  return `<button type="button" class="release-source" popovertarget="${panel}" aria-describedby="${entry.id}__words"><span class="visually-hidden">Sources: </span>${ids.map((id) => `<span class="release-id">${esc(id)}</span>`).join(DOT)}</button>` +
+    `<div class="panel float popover release-sources" popover id="${panel}" data-align="end" data-focus-self><h2 class="popover-title">Sources</h2><dl class="dlist release-sources-list">${rows.join("")}</dl>` +
     `<button class="btn" data-size="sm" data-copy-text="#${esc(entry.id)}" data-copy-fragment="${esc(entry.id)}" data-copy-words="Copied" data-copy-status="Link copied"><span>Copy link to this change</span></button></div>`;
 }
 
 function entry(item) {
   const area = item.area ? `<span class="release-area">${esc(item.area)}:</span> ` : "";
   const link = item.link ? `<a class="release-migrate" href="${esc(item.link.href)}">${esc(item.link.label)}</a>` : "";
-  return `<li class="release-entry" id="${esc(item.id)}"${item.link ? " data-link" : ""}><span class="release-word" aria-hidden="true">Linked</span><div class="release-entry-words"><p class="release-entry-text" id="${esc(item.id)}-words">${area}${sentence(item.text)}</p>${link}</div><span class="release-source-cell">${sources(item)}</span></li>`;
+  return `<li class="release-entry" id="${esc(item.id)}"${item.link ? " data-link" : ""}><span class="release-word" aria-hidden="true">Linked</span><div class="release-entry-words"><p class="release-entry-text" id="${esc(item.id)}__words">${area}${sentence(item.text)}</p>${link}</div><span class="release-source-cell">${sources(item)}</span></li>`;
 }
 
 const list = (entries) => `<ul class="release-list">${entries.map(entry).join("")}</ul>`;
@@ -65,7 +67,7 @@ const fold = (id, level, title, body, className = "") => `<h${level} class="rele
 function sectionsHtml(release, sections, level, foldFixed) {
   return sections.map((section) => {
     const title = `${SECTION_NAMES[section.key]}${count(section.entries.length)}`;
-    if (section.key === "fixed" && foldFixed) return `<section class="release-section" data-folded>${fold(`${releaseId(release)}-fixed`, level, title, list(section.entries))}</section>`;
+    if (section.key === "fixed" && foldFixed) return `<section class="release-section" data-folded>${fold(`${releaseId(release)}__fixed`, level, title, list(section.entries))}</section>`;
     return `<section class="release-section"><h${level} class="release-section-title">${title}</h${level}>${list(section.entries)}</section>`;
   }).join("");
 }
@@ -85,44 +87,45 @@ function release(item, { form, product, running, runningBuild, level }) {
   const leads = form === "notes" && Boolean(item.audiences?.length);
   const folded = leads && inside > 0;
   const fixed = sections.find((section) => section.key === "fixed")?.entries.length ?? 0;
-  const fixedFolds = !folded && item.entries.length > 10 && fixed > 3;
+  // Only a package's list folds Fixed; a product's patch with no paragraphs shows its list open (2.7).
+  const fixedFolds = form === "reference" && item.entries.length > 10 && fixed > 3;
   const total = item.entries.length;
   const yours = running !== undefined && !item.unreleased && running === item.version;
   const pre = !item.unreleased && item.version.includes("-");
   const date = item.date ? `<time datetime="${item.date}">${usDate(item.date)}</time>` : "";
-  const facts = [total ? plural(total, "change", "changes") : "", action.length ? `<a class="release-action-link" href="#${id}-action">${plural(action.length, "needs action", "need action")}</a>` : ""];
+  const facts = [total ? plural(total, "change", "changes") : "", action.length ? `<a class="release-action-link" href="#${id}__action">${plural(action.length, "needs action", "need action")}</a>` : ""];
   const badges = pre || yours ? `<span class="release-badges">${pre ? `<span class="badge">Pre-release</span>` : ""}${yours ? `<span class="badge">Your version</span>` : ""}</span>` : "";
   const h = `h${level}`;
   const heading = item.title
-    ? `<${h} class="release-heading" id="${id}-heading" data-headline><span class="release-meta release-number-line">${dots([esc(item.version), date])}</span><span class="visually-hidden">: </span><span class="release-title">${esc(item.title)}</span></${h}>` + (facts.some(Boolean) || badges ? `<p class="release-meta">${dots(facts)}${badges}</p>` : "")
-    : `<${h} class="release-heading" id="${id}-heading"><span class="release-version"${item.unreleased ? " data-words" : ""}>${item.unreleased ? "Unreleased" : esc(item.version)}</span>${date ? `<span class="visually-hidden">, ${usDate(item.date)}</span>` : ""}</${h}>` + (date || facts.some(Boolean) || badges ? `<p class="release-meta">${dots([date, ...facts])}${badges}</p>` : "");
+    ? `<p class="release-meta release-number-line" aria-hidden="true">${dots([esc(item.version), date])}</p><${h} class="release-heading" id="${id}__heading" data-headline><span class="visually-hidden">${esc(item.version)}${item.date ? `, ${usDate(item.date)}` : ""}: </span><span class="release-title">${esc(item.title)}</span></${h}>` + (facts.some(Boolean) || badges ? `<p class="release-meta">${dots(facts)}${badges}</p>` : "")
+    : `<${h} class="release-heading" id="${id}__heading"><span class="release-version"${item.unreleased ? " data-words" : ""}>${item.unreleased ? "Unreleased" : esc(item.version)}</span>${date ? `<span class="visually-hidden">, ${usDate(item.date)}</span>` : ""}</${h}>` + (date || facts.some(Boolean) || badges ? `<p class="release-meta">${dots([date, ...facts])}${badges}</p>` : "");
   const name = item.unreleased ? "Unreleased" : `${product} ${item.version}`;
   const head = `<header class="release-head"><div class="release-head-text"><span class="release-word" aria-hidden="true">Linked</span>${heading}</div><button class="btn release-copy" data-variant="ghost" data-size="sm" data-copy-text="#${id}" data-copy-fragment="${id}" data-copy-words="Copied" data-copy-status="Link copied" aria-label="Copy link to ${esc(name)}"><span>Copy link</span></button></header>`;
   const summary = item.summary ? `<p class="release-summary">${esc(item.summary)}</p>` : "";
   const upgrade = form === "reference" ? upgradeLine(item) : null;
-  const callout = action.length ? `<div class="callout release-action" data-status="warning" id="${id}-action"><i data-icon="Warning"></i><div><div class="callout-title"><h${level + 1} class="release-callout-title">Action needed${count(action.length)}</h${level + 1}></div><div class="callout-body">${upgrade ? `<p class="release-upgrade">${esc(upgrade)}</p>` : ""}${list(action)}</div></div></div>` : "";
+  const callout = action.length ? `<div class="callout release-action" data-status="warning" id="${id}__action"><i data-icon="Warning"></i><div><div class="callout-title"><h${level + 1} class="release-callout-title">Action needed${count(action.length)}</h${level + 1}></div><div class="callout-body">${upgrade ? `<p class="release-upgrade">${esc(upgrade)}</p>` : ""}${list(action)}</div></div></div>` : "";
   const audiences = leads ? item.audiences.map((audience) => `<section class="release-audience">${audience.for ? `<h${level + 1} class="release-audience-title">${esc(audience.for)}</h${level + 1}>` : ""}<p class="release-paragraph">${esc(audience.text)}</p></section>`).join("") : "";
   const body = folded
-    ? `<div class="release-all">${fold(`${id}-all`, level + 1, `${action.length ? "Other changes" : "All changes"}${count(inside)}`, summary + sectionsHtml(item, sections, level + 2, false))}</div>`
+    ? `<div class="release-all">${fold(`${id}__all`, level + 1, `${action.length ? "Other changes" : "All changes"}${count(inside)}`, summary + sectionsHtml(item, sections, level + 2, false))}</div>`
     : (leads ? summary : "") + sectionsHtml(item, sections, level + 1, fixedFolds);
-  const build = yours && runningBuild?.length ? buildDetails(runningBuild, `${id}-build`, level + 1) : "";
+  const build = yours && runningBuild?.length ? buildDetails(runningBuild, `${id}__build`, level + 1) : "";
   const replaces = item.replaces?.length ? ` data-replaces="${esc(item.replaces.join(" "))}"` : "";
-  return `<section class="release" id="${id}" aria-labelledby="${id}-heading" data-release-form="${form}"${replaces}>${head}${leads ? "" : summary}${callout}${audiences}${body}${build}</section>`;
+  return `<section class="release" id="${id}" aria-labelledby="${id}__heading" data-release-form="${form}"${replaces}>${head}${leads ? "" : summary}${callout}${audiences}${body}${build}</section>`;
 }
 
 /** The releases, as `ReleaseNotes` draws them. `base` is the page's address for copied links; without it the script reads the window's. */
 export function releaseNotesHtml(releases, { form, product, running, runningBuild, base, level = 2 }) {
   const drawn = releases.filter((item) => !(form === "notes" && item.unreleased));
   const matches = running !== undefined && drawn.some((item) => !item.unreleased && item.version === running);
-  const top = running !== undefined && !matches && runningBuild?.length ? buildDetails(runningBuild, "build", level + 1) : "";
+  const top = running !== undefined && !matches && runningBuild?.length ? buildDetails(runningBuild, "__build", level + 1) : "";
   return `<div class="release-notes" data-release-form="${form}"${base ? ` data-base="${esc(base)}"` : ""}>${top}${drawn.map((item) => release(item, { form, product, running, runningBuild, level })).join("")}</div>`;
 }
 
 /** The versions, as `ReleaseIndex` draws them: "pane" beside the page, "fold" above the first release. */
 export function releaseIndexHtml(releases, { form = "pane", label = "Versions" } = {}) {
   const rows = `<ul class="release-index-list">${releases.map((item) => `<li><a class="release-index-link" href="#${releaseId(item)}"><span class="release-index-number"${item.unreleased ? " data-words" : ""}>${item.unreleased ? "Unreleased" : esc(item.version)}</span>${item.date ? `<span class="visually-hidden">, </span><time datetime="${item.date}">${usDate(item.date)}</time>` : ""}</a></li>`).join("")}</ul>`;
-  if (form === "fold") return `<nav class="release-index" data-release-form="fold" aria-label="${esc(label)}">${fold("versions-fold", 2, esc(label), rows)}</nav>`;
-  return `<nav class="release-index" data-release-form="pane" aria-labelledby="versions-title"><h2 class="release-index-title" id="versions-title">${esc(label)}</h2>${rows}</nav>`;
+  if (form === "fold") return `<nav class="release-index" data-release-form="fold" aria-label="${esc(label)}">${fold("__versions-fold", 2, esc(label), rows)}</nav>`;
+  return `<nav class="release-index" data-release-form="pane" aria-labelledby="__versions-title"><h2 class="release-index-title" id="__versions-title">${esc(label)}</h2>${rows}</nav>`;
 }
 
 /** A whole page body: a package's changelog with its versions, or a product's release notes. */

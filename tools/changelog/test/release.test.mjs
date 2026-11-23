@@ -245,3 +245,40 @@ test("a stable version removes the pending files and release.md, and regenerates
   assert.match(changelog, /^- Stepper: Added `Stepper` with queued and running states \(\[#80\]\(https:\/\/github\.com\/example\/repo\/pull\/80\), Linear \[ENG-12\]\(https:\/\/linear\.app\/example\/issue\/ENG-12\), Jira PROJ-4\)$/m);
   assert.deepEqual(result.record.entries[0].tickets.map((ticket) => ticket.id), ["ENG-12", "PROJ-4"]);
 });
+
+test("a freeze that fails consumes nothing, and the same freeze then succeeds", () => {
+  const repo = repository();
+  repo.entry("pr90-1", { type: "added", area: "Stepper", pr: 90 }, "Added `Stepper` with queued and running states");
+  repo.notes("---\nsummary: The first version in this changelog.\n---\n");
+  // An output that cannot be written: CHANGELOG.md is a directory.
+  fs.mkdirSync(path.join(repo.dir, "CHANGELOG.md"));
+  assert.match(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" })), /EISDIR|directory/);
+  assert.equal(fs.existsSync(path.join(repo.dir, "changelog", "releases", "1.0.0.json")), false, "no record");
+  assert.deepEqual(repo.pending(), ["pr90-1.md", "release.md"], "every input is where it was");
+  assert.deepEqual(fs.readdirSync(path.join(repo.dir, "changelog", "releases")), [], "no staged file is left");
+  fs.rmSync(path.join(repo.dir, "CHANGELOG.md"), { recursive: true });
+  const { record, removed } = freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" });
+  assert.equal(record.summary, "The first version in this changelog.");
+  assert.deepEqual(removed, [".changes/pr90-1.md", ".changes/release.md"]);
+});
+
+test("a freeze interrupted after its record was written is finished by running it again", () => {
+  const repo = repository();
+  repo.entry("pr91-1", { type: "fixed", area: "List", pr: 91 }, "Fixed the list losing its place when a row was removed");
+  freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" });
+  // As if it had stopped before consuming its inputs: the pending file is back, the record is there.
+  repo.git("checkout", "--", ".changes");
+  assert.deepEqual(repo.pending(), ["pr91-1.md"]);
+  const again = freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" });
+  assert.equal(again.finished, true);
+  assert.deepEqual(repo.pending(), []);
+  // A different freeze of the same version is refused: it is published.
+  repo.git("checkout", "--", ".changes");
+  assert.equal(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-24" })), "1.0.0 is published, and a published version is never edited");
+});
+
+test("pre-release numbers compare as integers of any size", async () => {
+  const { compare } = await import("../semver.mjs");
+  assert.ok(compare("1.0.0-rc.9007199254740993", "1.0.0-rc.9007199254740992") > 0);
+  assert.ok(compare("1.0.0-rc.10", "1.0.0-rc.9") > 0);
+});

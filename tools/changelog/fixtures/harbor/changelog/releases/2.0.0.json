@@ -6,6 +6,7 @@
     "2.0.0-rc.1",
     "2.0.0-rc.2"
   ],
+  "repository": "https://github.com/example/harbor",
   "title": "Responders sign in with their own account",
   "summary": "Single sign-on replaces shared room codes, with a sign-in page for your company's identity provider.",
   "audiences": [
@@ -38,8 +39,8 @@
         "href": "https://github.com/example/harbor/pull/140"
       },
       "commit": {
-        "sha": "a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0",
-        "href": "https://github.com/example/harbor/commit/a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0"
+        "sha": "1f1eabacd6e698c20de36b74406b3daaeda818dd",
+        "href": "https://github.com/example/harbor/commit/1f1eabacd6e698c20de36b74406b3daaeda818dd"
       }
     },
     {
@@ -53,8 +54,8 @@
         "href": "https://github.com/example/harbor/pull/141"
       },
       "commit": {
-        "sha": "3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be",
-        "href": "https://github.com/example/harbor/commit/3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be"
+        "sha": "e9d0f6591487e04f2d5618d23e6998f8aa5ed398",
+        "href": "https://github.com/example/harbor/commit/e9d0f6591487e04f2d5618d23e6998f8aa5ed398"
       },
       "tickets": [
         {
@@ -77,8 +78,8 @@
         "href": "https://github.com/example/harbor/pull/142"
       },
       "commit": {
-        "sha": "742f0bea9adf73118c34597c5a0b6b7acf89bcb4",
-        "href": "https://github.com/example/harbor/commit/742f0bea9adf73118c34597c5a0b6b7acf89bcb4"
+        "sha": "090709e865e860827cbffa34fc9c12c33481dd35",
+        "href": "https://github.com/example/harbor/commit/090709e865e860827cbffa34fc9c12c33481dd35"
       }
     },
     {
@@ -92,8 +93,8 @@
         "href": "https://github.com/example/harbor/pull/143"
       },
       "commit": {
-        "sha": "1d6845348292ea8e2876f0c9667cc4fc2867346a",
-        "href": "https://github.com/example/harbor/commit/1d6845348292ea8e2876f0c9667cc4fc2867346a"
+        "sha": "07336e6cb9e6ef3e87f17d49313afd5f30f99569",
+        "href": "https://github.com/example/harbor/commit/07336e6cb9e6ef3e87f17d49313afd5f30f99569"
       }
     }
   ]

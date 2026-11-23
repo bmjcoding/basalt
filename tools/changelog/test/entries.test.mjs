@@ -132,3 +132,21 @@ test("the release notes: each paragraph opens with covers, names entries that ex
   assert.match(stops(() => readNotes("---\n---\nA claim with no covers line.\n", ".changes/release.md", entries)), /opens with a "covers: \[ids\]" line/);
   assert.match(stops(() => readNotes("---\n---\n## For admins\n\n", ".changes/release.md", entries)), /"For admins" has no paragraph/);
 });
+
+test("an entry from a pull request is named for it, and a free name is for a change with none", () => {
+  assert.match(stops(() => read(entryText({ type: "fixed", pr: 123 }), ".changes/editor.md")), /an entry from pull request 123 is named pr123-1\.md/);
+  assert.equal(read(entryText({ type: "fixed" }), ".changes/editor.md").id, "editor");
+});
+
+test("the author is an own key of the config's people: constructor and the like are refused", () => {
+  const empty = readConfig({ ...CONFIG, people: {} });
+  for (const key of ["constructor", "toString", "__proto__"]) {
+    assert.match(stops(() => readEntry(entryText({ type: "fixed", pr: 120, author: key }), FILE, empty)), /is not a key of the config's "people"/);
+  }
+});
+
+test("a paragraph is one block: a second covers line, or a second paragraph, stops with its line", () => {
+  const entries = new Set(["pr131-1"]);
+  assert.match(stops(() => readNotes("---\n---\ncovers: [pr131-1]\nFirst paragraph.\n\ncovers: [missing]\nSecond paragraph.\n", ".changes/release.md", entries)), /release\.md:6: a second "covers" line in one block/);
+  assert.match(stops(() => readNotes("---\n---\ncovers: [pr131-1]\nFirst paragraph.\n\nSecond paragraph.\n", ".changes/release.md", entries)), /release\.md:\d+: the paragraph for everyone holds two paragraphs/);
+});

@@ -132,10 +132,15 @@ function pageEntry(entry) {
  */
 export function pageReleases(root, { config, records = readRecords(root), pending } = {}) {
   const replaced = replacedVersions(records);
-  const drawn = records.filter((record) => !replaced.has(record.version));
+  const drawn = records.filter((record) => !replaced.has(record.version)).sort((a, b) => descending(a.version, b.version));
   const out = [];
   const held = new Set(records.filter((record) => must(record.version).pre.length).flatMap((record) => record.entries.map((entry) => entry.id)));
-  const waiting = (pending ?? (config ? readPending(root, config) : [])).filter((entry) => !held.has(entry.id));
+  // An entry is at one address: a pending file whose id a stable release holds would draw it twice (a candidate's pending copies are kept on purpose).
+  const shipped = new Map(records.filter((record) => !must(record.version).pre.length).flatMap((record) => record.entries.map((entry) => [entry.id, record.version])));
+  const all = pending ?? (config ? readPending(root, config) : []);
+  const twice = all.find((entry) => shipped.has(entry.id));
+  if (twice) throw new Error(`.changes/${twice.id}.md: the id is held by ${shipped.get(twice.id)}, which has shipped; an entry is never used twice (remove the file, or write a new entry with its own id)`);
+  const waiting = all.filter((entry) => !held.has(entry.id));
   if (waiting.length) {
     out.push({ version: "Unreleased", unreleased: true, entries: waiting.map((entry) => pageEntry(recordEntry(entry, config))).sort(byImpact) });
   }

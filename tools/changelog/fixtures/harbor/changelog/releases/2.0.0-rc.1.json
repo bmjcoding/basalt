@@ -2,6 +2,7 @@
   "version": "2.0.0-rc.1",
   "date": "2026-12-01",
   "previous": "1.4.0",
+  "repository": "https://github.com/example/harbor",
   "title": "Responders sign in with their own account",
   "audiences": [
     {
@@ -32,8 +33,8 @@
         "href": "https://github.com/example/harbor/pull/140"
       },
       "commit": {
-        "sha": "a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0",
-        "href": "https://github.com/example/harbor/commit/a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0"
+        "sha": "1f1eabacd6e698c20de36b74406b3daaeda818dd",
+        "href": "https://github.com/example/harbor/commit/1f1eabacd6e698c20de36b74406b3daaeda818dd"
       }
     },
     {
@@ -47,8 +48,8 @@
         "href": "https://github.com/example/harbor/pull/141"
       },
       "commit": {
-        "sha": "3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be",
-        "href": "https://github.com/example/harbor/commit/3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be"
+        "sha": "e9d0f6591487e04f2d5618d23e6998f8aa5ed398",
+        "href": "https://github.com/example/harbor/commit/e9d0f6591487e04f2d5618d23e6998f8aa5ed398"
       },
       "tickets": [
         {

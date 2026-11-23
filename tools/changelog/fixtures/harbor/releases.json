@@ -39,8 +39,8 @@
           "href": "https://github.com/example/harbor/pull/140"
         },
         "commit": {
-          "sha": "a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0",
-          "href": "https://github.com/example/harbor/commit/a8304b10a2ecf43758b15ddec4253ca7cd8c1ea0"
+          "sha": "1f1eabacd6e698c20de36b74406b3daaeda818dd",
+          "href": "https://github.com/example/harbor/commit/1f1eabacd6e698c20de36b74406b3daaeda818dd"
         }
       },
       {
@@ -54,8 +54,8 @@
           "href": "https://github.com/example/harbor/pull/141"
         },
         "commit": {
-          "sha": "3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be",
-          "href": "https://github.com/example/harbor/commit/3552f8a84ab38591bc0b0ddd1e3dd2a9d4b8a0be"
+          "sha": "e9d0f6591487e04f2d5618d23e6998f8aa5ed398",
+          "href": "https://github.com/example/harbor/commit/e9d0f6591487e04f2d5618d23e6998f8aa5ed398"
         },
         "tickets": [
           {
@@ -76,8 +76,8 @@
           "href": "https://github.com/example/harbor/pull/142"
         },
         "commit": {
-          "sha": "742f0bea9adf73118c34597c5a0b6b7acf89bcb4",
-          "href": "https://github.com/example/harbor/commit/742f0bea9adf73118c34597c5a0b6b7acf89bcb4"
+          "sha": "090709e865e860827cbffa34fc9c12c33481dd35",
+          "href": "https://github.com/example/harbor/commit/090709e865e860827cbffa34fc9c12c33481dd35"
         }
       },
       {
@@ -91,8 +91,8 @@
           "href": "https://github.com/example/harbor/pull/143"
         },
         "commit": {
-          "sha": "1d6845348292ea8e2876f0c9667cc4fc2867346a",
-          "href": "https://github.com/example/harbor/commit/1d6845348292ea8e2876f0c9667cc4fc2867346a"
+          "sha": "07336e6cb9e6ef3e87f17d49313afd5f30f99569",
+          "href": "https://github.com/example/harbor/commit/07336e6cb9e6ef3e87f17d49313afd5f30f99569"
         }
       }
     ]
@@ -113,8 +113,8 @@
           "href": "https://github.com/example/harbor/pull/145"
         },
         "commit": {
-          "sha": "2685abd5d6cd57ddf42ceb062093b713aaaf0095",
-          "href": "https://github.com/example/harbor/commit/2685abd5d6cd57ddf42ceb062093b713aaaf0095"
+          "sha": "b87ac424f7c5d86741be5e40def96fcae58503f4",
+          "href": "https://github.com/example/harbor/commit/b87ac424f7c5d86741be5e40def96fcae58503f4"
         }
       }
     ]
@@ -127,13 +127,13 @@
     "summary": "Monitors can open incident rooms through a webhook, and Home marks the incidents they open. The open incident list keeps its place, and two fixes cover the lobby and search.",
     "audiences": [
       {
-        "text": "A monitor that can send a webhook can now open an incident room when its alarm fires. The room shows the alarm, the service it names and the checks already run.",
+        "text": "A monitor that can send a webhook can now open an incident room when its alarm fires.",
         "covers": [
           "pr131-1"
         ]
       },
       {
-        "text": "On Home, open an incident marked \"Opened by a monitor\". The first message in the room is the alarm, with a link to the monitor.",
+        "text": "On Home, open an incident marked \"Opened by a monitor\".",
         "covers": [
           "pr131-2"
         ],
@@ -159,8 +159,8 @@
           "href": "https://github.com/example/harbor/pull/131"
         },
         "commit": {
-          "sha": "df4cb3713024be1fef5e811e8d2bfd8063513935",
-          "href": "https://github.com/example/harbor/commit/df4cb3713024be1fef5e811e8d2bfd8063513935"
+          "sha": "2c1f382d8af35dbf349b6054d80009be806a25e8",
+          "href": "https://github.com/example/harbor/commit/2c1f382d8af35dbf349b6054d80009be806a25e8"
         },
         "authors": [
           "Ada Okoye"
@@ -177,8 +177,8 @@
           "href": "https://github.com/example/harbor/pull/131"
         },
         "commit": {
-          "sha": "ba23aba5af21c20ad6fbbc4e15b596a01880026d",
-          "href": "https://github.com/example/harbor/commit/ba23aba5af21c20ad6fbbc4e15b596a01880026d"
+          "sha": "f972daff12326b42cdc2f6cbc77f0c3544476b35",
+          "href": "https://github.com/example/harbor/commit/f972daff12326b42cdc2f6cbc77f0c3544476b35"
         },
         "tickets": [
           {
@@ -202,8 +202,8 @@
           "href": "https://github.com/example/harbor/pull/132"
         },
         "commit": {
-          "sha": "ceb39214c38800084176cfb676c70c26876d1d5e",
-          "href": "https://github.com/example/harbor/commit/ceb39214c38800084176cfb676c70c26876d1d5e"
+          "sha": "ac34519ba05096cf79627037004d77b7b7a53c62",
+          "href": "https://github.com/example/harbor/commit/ac34519ba05096cf79627037004d77b7b7a53c62"
         }
       },
       {
@@ -217,8 +217,8 @@
           "href": "https://github.com/example/harbor/pull/133"
         },
         "commit": {
-          "sha": "2808edaebcb0058ec82faacd8aecac2842bb269e",
-          "href": "https://github.com/example/harbor/commit/2808edaebcb0058ec82faacd8aecac2842bb269e"
+          "sha": "8b6460d2486ee68f4ec5cd340b5632b53ab6fc8c",
+          "href": "https://github.com/example/harbor/commit/8b6460d2486ee68f4ec5cd340b5632b53ab6fc8c"
         }
       },
       {
@@ -232,8 +232,8 @@
           "href": "https://github.com/example/harbor/pull/134"
         },
         "commit": {
-          "sha": "342fe80e1e928871370d38fcbea88459f8c6d602",
-          "href": "https://github.com/example/harbor/commit/342fe80e1e928871370d38fcbea88459f8c6d602"
+          "sha": "5fc5342c90440fe75be4511bf9874f3f48fb3b13",
+          "href": "https://github.com/example/harbor/commit/5fc5342c90440fe75be4511bf9874f3f48fb3b13"
         }
       }
     ]
@@ -255,8 +255,8 @@
           "href": "https://github.com/example/harbor/pull/130"
         },
         "commit": {
-          "sha": "e4f9b9f23e31054ee7fcabb9d081b7ba207789f9",
-          "href": "https://github.com/example/harbor/commit/e4f9b9f23e31054ee7fcabb9d081b7ba207789f9"
+          "sha": "d5c0cac2cecaee7c66b0d2f15c31ed1ba245ca66",
+          "href": "https://github.com/example/harbor/commit/d5c0cac2cecaee7c66b0d2f15c31ed1ba245ca66"
         }
       },
       {
@@ -270,8 +270,8 @@
           "href": "https://github.com/example/harbor/pull/129"
         },
         "commit": {
-          "sha": "b066b10badd591b2380af2aedb4771207f5137af",
-          "href": "https://github.com/example/harbor/commit/b066b10badd591b2380af2aedb4771207f5137af"
+          "sha": "d5a5398a6de3d34b72bff90064483ca838cc22c0",
+          "href": "https://github.com/example/harbor/commit/d5a5398a6de3d34b72bff90064483ca838cc22c0"
         }
       },
       {
@@ -285,8 +285,8 @@
           "href": "https://github.com/example/harbor/pull/135"
         },
         "commit": {
-          "sha": "73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f",
-          "href": "https://github.com/example/harbor/commit/73aa7ad5925fe59e1eefd7f19f7b5dceeba3574f"
+          "sha": "e94330f40ba8bd8dce7574923ccc238c5831d573",
+          "href": "https://github.com/example/harbor/commit/e94330f40ba8bd8dce7574923ccc238c5831d573"
         }
       },
       {
@@ -300,8 +300,8 @@
           "href": "https://github.com/example/harbor/pull/136"
         },
         "commit": {
-          "sha": "f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9",
-          "href": "https://github.com/example/harbor/commit/f51c9f452aa51fa3eac4366b4d3dbde7c45a53a9"
+          "sha": "79ac5b66ce07b63548e1511a069cd8ebe5eb4b7c",
+          "href": "https://github.com/example/harbor/commit/79ac5b66ce07b63548e1511a069cd8ebe5eb4b7c"
         }
       }
     ]
@@ -332,8 +332,8 @@
           "href": "https://github.com/example/harbor/pull/126"
         },
         "commit": {
-          "sha": "879654ad138e381be9af010c62d1868ff7600c9d",
-          "href": "https://github.com/example/harbor/commit/879654ad138e381be9af010c62d1868ff7600c9d"
+          "sha": "2c4871d3254c112ba29d82602cc94275572ce257",
+          "href": "https://github.com/example/harbor/commit/2c4871d3254c112ba29d82602cc94275572ce257"
         }
       },
       {
@@ -347,8 +347,8 @@
           "href": "https://github.com/example/harbor/pull/126"
         },
         "commit": {
-          "sha": "c8476fd49935f1b91a266a5077c687982941d2f5",
-          "href": "https://github.com/example/harbor/commit/c8476fd49935f1b91a266a5077c687982941d2f5"
+          "sha": "393ee05942dff95b0943289abdc6ddc0a51ca987",
+          "href": "https://github.com/example/harbor/commit/393ee05942dff95b0943289abdc6ddc0a51ca987"
         }
       }
     ]

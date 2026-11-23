@@ -672,10 +672,11 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 });
 
 // DECISIONS 320, 2.15: the version link, the release notes and the versions are each a module of their own, so an app that shows only the foot's link
-// loads only that (VersionLink takes the rail's tooltip from AppShell, which carries it for Nav, so it imports none). Measured with splitting: VersionLink
-// 2,107, ReleaseIndex 31,035 (Base UI's accordion), ReleaseNotes 173,798 (the popover, the accordion, the callout, the copy and text buttons);
-// each limit is the measurement rounded up to the next 50.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 173_850]]) {
+// loads only that (VersionLink takes the rail's tooltip from AppShell, which loads it on demand). The Sources popup loads on a reader's first reach for a
+// source line (release-sources.js, built on its own with Base UI's popover inlined, so it makes no shared chunk), and AppShell's rail tooltip for the
+// version the same way (rail-tooltip.js). Measured with splitting: VersionLink 2,107, ReleaseIndex 31,035 (Base UI's accordion), ReleaseNotes 67,232
+// (the accordion, the callout, the copy and text buttons; 173,798 with the popup up front); each limit is the measurement rounded up to the next 50.
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 67_250]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -685,4 +686,14 @@ for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], [
 test("VersionLink loads none of the release notes, the versions or the tooltip", async () => {
   const { inputs } = await graph("VersionLink");
   assert.deepEqual(inputs.filter((input) => /release-notes|release-index|display\.js|@base-ui/.test(input)), []);
+});
+
+test("ReleaseNotes loads no popup up front: no popover, no positioning, no Floating UI until a source line is pressed", async () => {
+  const { inputs } = await graph("ReleaseNotes");
+  assert.deepEqual(inputs.filter((input) => /floating-ui|@base-ui\/react\/popover|release-sources|useAnchorPositioning|FloatingFocusManager/.test(input)), []);
+});
+
+test("AppShell loads the rail's tooltip for the version on demand: its static graph is what it was before the version", async () => {
+  const { inputs } = await graph("AppShell");
+  assert.deepEqual(inputs.filter((input) => /rail-tooltip|@base-ui\/react\/tooltip\/(root|trigger|popup|positioner)/.test(input)), []);
 });

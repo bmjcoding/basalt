@@ -79,10 +79,10 @@ describe("the two forms from one record", () => {
     assert.equal(await words(release(slate, "v0.2.0").locator(".basalt-release-meta")), "Nov 16, 2026 · 14 changes · 4 need action");
     assert.equal(await words(release(slate, "v0.2.1").locator(".basalt-release-meta")), "Nov 16, 2026 · 1 change");
     assert.equal(await words(release(slate, "v0.1.0").locator(".basalt-release-meta")), "Nov 2, 2026");
-    assert.equal(await release(slate, "v0.2.0").getByRole("link", { name: "4 need action" }).getAttribute("href"), "#v0.2.0-action");
+    assert.equal(await release(slate, "v0.2.0").getByRole("link", { name: "4 need action" }).getAttribute("href"), "#v0.2.0__action");
     const harbor = await open(harborShell());
-    assert.equal(await words(release(harbor, "v1.3.0").locator("p.basalt-release-meta")), "2 changes · 1 needs action");
-    assert.equal(await words(release(harbor, "v1.4.0").locator("p.basalt-release-meta")), "5 changes Your version");
+    assert.equal(await words(release(harbor, "v1.3.0").locator("p.basalt-release-meta:not(.basalt-release-number-line)")), "2 changes · 1 needs action");
+    assert.equal(await words(release(harbor, "v1.4.0").locator("p.basalt-release-meta:not(.basalt-release-number-line)")), "5 changes Your version");
     // Releases highest first by precedence: a backport to 1.x sits under 2.0.0 though it shipped after it.
     assert.deepEqual(await harbor.locator(".basalt-release").evaluateAll((els) => els.map((el) => el.id)), ["v2.0.0", "v1.4.1", "v1.4.0", "v1.3.1", "v1.3.0"]);
   });
@@ -142,7 +142,7 @@ describe("the two forms from one record", () => {
       assert.equal(await own.locator(".basalt-release-all .basalt-release-entry").count(), count, `${id} opens ${count}`);
     }
     // The header keeps the release's totals.
-    assert.equal(await words(release(page, "v1.3.0").locator("p.basalt-release-meta")), "2 changes · 1 needs action");
+    assert.equal(await words(release(page, "v1.3.0").locator("p.basalt-release-meta:not(.basalt-release-number-line)")), "2 changes · 1 needs action");
   });
 
   test("the number in a headline's meta line is Geist; standing alone it is mono", async () => {
@@ -184,7 +184,7 @@ describe("entries and their sources", () => {
     assert.equal(await words(tokens), "#46 · DS-27 · DS-31 · 3 more");
     // The name is the visible words after a hidden "Sources: ", each dot read as a comma.
     assert.equal(await page.getByRole("button", { name: named("Sources: #46, DS-27, DS-31, 3 more") }).count(), 1);
-    assert.equal(await tokens.getAttribute("aria-describedby"), "pr46-1-words");
+    assert.equal(await tokens.getAttribute("aria-describedby"), "pr46-1__words");
     // An entry with no pull request leads with its commit; an unreleased one with nothing to show has no line.
     assert.match(await words(page.locator('[id="docs-contrast-note"] .basalt-release-source')), /^[0-9a-f]{8}$/);
     const family = await tokens.evaluate((el) => getComputedStyle(el).fontFamily);
@@ -227,8 +227,19 @@ describe("entries and their sources", () => {
     await settle(page);
     await page.getByRole("button", { name: "Copy link to Slate 0.2.0" }).click();
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "https://slate.example/changelog#v0.2.0");
+    // The page changes its route with the part still drawn: the address is read when the button is pressed, for a release and for an entry.
+    await page.evaluate(() => history.pushState({}, "", "/new-notes?context=two"));
+    await page.getByRole("button", { name: "Copy link to Slate 0.2.1" }).click();
+    await page.waitForFunction(() => navigator.clipboard.readText().then((text) => text.endsWith("#v0.2.1")));
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "https://slate.example/new-notes#v0.2.1");
+    await page.locator('[id="pr41-1"] .basalt-release-source').click();
+    await page.getByRole("button", { name: "Copy link to this change" }).click();
+    await page.waitForFunction(() => navigator.clipboard.readText().then((text) => text.endsWith("#pr41-1")));
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "https://slate.example/new-notes#pr41-1");
+    await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Copy link to Unreleased" }).click();
-    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "https://slate.example/changelog#unreleased");
+    await page.waitForFunction(() => navigator.clipboard.readText().then((text) => text.endsWith("#unreleased")));
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "https://slate.example/new-notes#unreleased");
     await context.close();
     // An app that gives its address: that is what is copied, whatever the window's is.
     const other = await open(harborShell());
@@ -236,6 +247,86 @@ describe("entries and their sources", () => {
     await other.getByRole("button", { name: "Copy link to Harbor 1.4.0" }).click();
     await other.waitForFunction(() => window.copied.length === 1);
     assert.deepEqual(await other.evaluate(() => window.copied), ["https://harbor.example/release-notes#v1.4.0"]);
+  });
+});
+
+describe("the header, the lazy panel and long sources", () => {
+  for (const [width, touch] of [[1440, false], [390, false], [390, true]]) {
+    test(`Copy link is centred on the header's first line, which alone makes room for it (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [jsx, ids] of [[harborShell(), ["v1.4.0", "v1.4.1"]], [SLATE_PAGE(), ["v0.2.0", "unreleased"]]]) {
+        const page = await open(jsx, { width, height: 900, hasTouch: touch });
+        for (const id of ids) {
+          const r = await page.locator(`[id="${id}"]`).evaluate((el) => {
+            const box = (n) => n.getBoundingClientRect();
+            const first = el.querySelector(".basalt-release-number-line, .basalt-release-heading:not([data-headline])");
+            const copy = el.querySelector(".basalt-release-copy");
+            const title = el.querySelector(".basalt-release-title");
+            const centre = (n) => box(n).top + box(n).height / 2;
+            return { off: Math.abs(centre(copy) - centre(first)), title: title ? box(title.closest("h2, h3")).width : null, release: box(el).width, firstTop: box(first).top, headTop: box(el.querySelector(".basalt-release-head")).top };
+          });
+          assert.ok(r.off <= 1, `${id}: Copy link is ${r.off}px off the first line`);
+          assert.equal(Math.round(r.firstTop), Math.round(r.headTop), `${id}: the first line is the header's top`);
+          if (r.title !== null) assert.ok(Math.abs(r.title - Math.min(r.release, 824)) <= 1, `${id}: the headline takes the release's width (${r.title} of ${r.release})`);
+        }
+      }
+    });
+  }
+
+  test("the Sources popup is not on the page until a reader asks; the first press, or Enter, opens it with focus on the panel", async () => {
+    const page = await open(SLATE_PAGE());
+    assert.equal(await page.locator(".basalt-release-sources").count(), 0);
+    const line = page.locator('[id="pr45-1"] .basalt-release-source');
+    assert.equal(await line.getAttribute("aria-haspopup"), "dialog");
+    assert.equal(await line.getAttribute("aria-expanded"), "false");
+    await line.focus();
+    await page.keyboard.press("Enter");
+    await page.locator(".basalt-release-sources").waitFor();
+    await page.waitForFunction(() => document.activeElement?.classList.contains("basalt-release-sources"));
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.activeElement?.closest?.(".basalt-release-entry")?.id === "pr45-1");
+    assert.equal(await page.locator('[id="pr45-1"] .basalt-release-source').getAttribute("aria-expanded"), "false");
+  });
+
+  test("on touch at 390 every link in the open Sources panel is 44 tall to a finger, and none takes another's taps", async () => {
+    const page = await open(SLATE_PAGE(), { width: 390, height: 844, hasTouch: true });
+    await page.locator('[id="pr46-1"] .basalt-release-source').click();
+    await page.locator(".basalt-release-sources a").first().waitFor();
+    await settle(page);
+    const rows = await page.evaluate(() => {
+      const owner = (x, y) => document.elementFromPoint(x, y)?.closest("a, button") ?? null;
+      return [...document.querySelectorAll(".basalt-release-sources a, .basalt-release-sources button")].map((el) => {
+        el.scrollIntoView({ block: "center" });
+        const b = el.getBoundingClientRect();
+        const cx = b.x + Math.min(b.width / 2, 20);
+        const cy = b.y + b.height / 2;
+        let top = cy;
+        let bottom = cy;
+        while (top > cy - 60 && owner(cx, top - 1) === el) top--;
+        while (bottom < cy + 60 && owner(cx, bottom + 1) === el) bottom++;
+        return { label: el.textContent.trim(), hit: owner(cx, cy) === el ? Math.round(bottom - top) + 1 : 0 };
+      });
+    });
+    assert.ok(rows.length >= 6, `${rows.length} controls`);
+    assert.deepEqual(rows.filter((row) => row.hit < 44).map((row) => `${row.label}: ${row.hit}`), []);
+  });
+
+  test("a long source id keeps to the release's width beside the words, and breaks inside itself", async () => {
+    const long = `PRJ-${"9".repeat(100)}`;
+    const release = { version: "3.0.0", date: "2026-12-01", entries: [{ id: "pr60-1", type: "fixed", bump: "patch", area: "List", text: "Fixed the list losing its place", pr: { number: 60, href: "https://example.test/pull/60" }, tickets: [{ tracker: "Jira", label: long }] }] };
+    for (const width of [1000, 1440]) {
+      const page = await open(`return <div style={{ padding: 16 }}><B.ReleaseNotes releases={${JSON.stringify([release])}} form="reference" product="Slate" /></div>;`, { width });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
+      const list = await box(page.locator(".basalt-release-list"));
+      const source = await box(page.locator(".basalt-release-source"));
+      assert.ok(source.right <= list.right + 0.5, `the source line ends inside the list (${source.right} of ${list.right})`);
+    }
+  });
+
+  test("a product's patch with no paragraphs shows its list open, however many fixes", async () => {
+    const fixes = Array.from({ length: 11 }, (_, index) => ({ id: `pr${70 + index}-1`, type: "fixed", bump: "patch", area: "Rooms", text: `Fixed the room timer in case ${index + 1}` }));
+    const page = await open(`return <B.ReleaseNotes releases={${JSON.stringify([{ version: "1.4.2", date: "2026-12-09", summary: "Fixes to the room timer.", entries: fixes }])}} form="notes" product="Harbor" />;`);
+    assert.equal(await page.locator(".basalt-accordion-trigger").count(), 0);
+    assert.equal(await page.locator(".basalt-release-entry").count(), 11);
   });
 });
 

@@ -79,3 +79,9 @@ test("people are keys with a name; the config needs a product and a repository",
   assert.match(stops(() => readConfig({ product: "Example", repository: "https://github.com/example/repo", people: { Sam: { name: "Sam" } } })), /lowercase/);
   assert.match(stops(() => readConfig({ product: "Example", repository: "https://github.com/example/repo", people: { sam: {} } })), /"name" is required/);
 });
+
+test("a named group that this id's match leaves unset is refused, never written as undefined", () => {
+  const config = one({ name: "Tickets", pattern: "(?:OTH-[0-9]+|T-(?<n>[0-9]+))", url: "https://tickets.example/{n}" });
+  assert.equal(resolveTicket("T-7", config, "f").href, "https://tickets.example/7");
+  assert.match(stops(() => resolveTicket("OTH-2", config, "f")), /ticket "OTH-2" leaves \{n\} unset/);
+});

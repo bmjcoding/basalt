@@ -43,12 +43,23 @@ test("CHANGELOG.md, the page's data and the GitHub body hold the same entries in
   for (const heading of headings) assert.ok(Object.values(SECTION_NAMES).includes(heading));
 });
 
-test("a product's release with a headline: no upgrade line, the notes first, and the list in the same order", () => {
+test("a product's release: Action needed first with no upgrade line, then the headline over its paragraphs, then the fold over the summary and the list", () => {
   const harbor = outputs(path.join(FIXTURES, "harbor"));
   const markdown = section(harbor.changelog, "## 2.0.0 - 2026-12-07", "## 1.4.1");
   assert.doesNotMatch(markdown, /Before upgrading/);
-  assert.deepEqual([...markdown.matchAll(/^### (.+)$/gm)].map((match) => match[1]), ["For admins", "Action needed", "Added", "Fixed"]);
-  assert.match(markdown, /^\*\*Responders sign in with their own account\*\*$/m);
+  assert.deepEqual([...markdown.matchAll(/^(#{3,4}) (.+)$/gm)].map((match) => `${match[1]} ${match[2]}`), ["### Action needed", "### Responders sign in with their own account", "#### For admins", "### Other changes", "#### Added", "#### Fixed"]);
+  // Every paragraph sits under a heading of its own: none follows a list.
+  const blocks = markdown.split(/\n\n/).map((block) => block.trim()).filter(Boolean);
+  blocks.forEach((block, index) => { if (!/^[#-]/.test(block) && index > 0) assert.match(blocks[index - 1], /^#/, `"${block.slice(0, 40)}" follows a heading`); });
+  const github = harbor.github("2.0.0");
+  assert.deepEqual([...github.matchAll(/^(#{2,3}) (.+)$/gm)].map((match) => `${match[1]} ${match[2]}`), ["## Action needed", "## Responders sign in with their own account", "### For admins", "## Other changes", "### Added", "### Fixed"]);
+});
+
+test("a product's patch with an action and no headline gets no package upgrade line: the form is the config's", async () => {
+  const { changelogMarkdown } = await import("../outputs.mjs");
+  const release = { version: "1.3.2", date: "2026-11-24", previous: "1.3.1", entries: [{ id: "pr9-1", type: "changed", bump: "patch", action: true, text: "Changed the room timer to stop at midnight, so restart long rooms each day" }] };
+  assert.doesNotMatch(changelogMarkdown([release], { form: "notes" }), /Before upgrading/);
+  assert.match(changelogMarkdown([release], { form: "reference" }), /Before upgrading from 1\.3\.1, check this change\./);
 });
 
 test("a replaced pre-release is in no output, and its entries are each in one place", () => {
@@ -95,6 +106,7 @@ test("a changed config does not change a frozen release", () => {
   const copy = path.join(tempDir(), "slate");
   fs.cpSync(path.join(FIXTURES, "slate"), copy, { recursive: true });
   const before = outputs(copy).releases.filter((release) => !release.unreleased);
+  const githubBefore = Object.fromEntries(["0.2.1", "0.1.0", "0.2.0"].map((version) => [version, outputs(copy).github(version)]));
   const config = JSON.parse(fs.readFileSync(path.join(copy, "changelog.config.json"), "utf8"));
   config.repository = "https://git.example/elsewhere/slate";
   config.trackers = config.trackers.map((tracker) => ({ ...tracker, url: tracker.url ? "https://tracker.example/{id}" : undefined, show: tracker.show === "none" ? "link" : tracker.show, ...(tracker.show === "none" ? { url: "https://tracker.example/{id}" } : {}) }));
@@ -102,6 +114,8 @@ test("a changed config does not change a frozen release", () => {
   fs.writeFileSync(path.join(copy, "changelog.config.json"), JSON.stringify(config));
   const after = outputs(copy).releases.filter((release) => !release.unreleased);
   assert.deepEqual(after, before);
+  // The GitHub body's comparison is the frozen record's repository, the empty release's too.
+  for (const version of ["0.2.1", "0.1.0", "0.2.0"]) assert.equal(outputs(copy).github(version), githubBefore[version], version);
 });
 
 test("a hidden tracker's tickets are recorded and not published; a text tracker's are not linked", () => {
@@ -135,4 +149,34 @@ test("the fixtures are what the tool writes, from their histories", () => {
     }
     assert.deepEqual(fs.readdirSync(path.join(out, "changelog", "releases")).sort(), fs.readdirSync(path.join(FIXTURES, project.name, "changelog", "releases")).sort());
   }
+});
+
+test("a tagged record that is deleted is found, as an edited one is", () => {
+  const repo = repository();
+  writeRecord(repo.dir, { version: "1.0.0", date: "2026-11-20", entries: [] });
+  repo.commitAll("Release 1.0.0");
+  repo.git("tag", "v1.0.0");
+  fs.rmSync(path.join(repo.dir, "changelog", "releases", "1.0.0.json"));
+  assert.deepEqual(taggedDifferences(repo.dir), ["changelog/releases/1.0.0.json is gone, and v1.0.0 released it; a published version is never deleted"]);
+  // A maintained line's tag is not in the default branch's history, so the default branch does not answer for it.
+  repo.git("checkout", "-q", "--", ".");
+  repo.git("checkout", "-q", "-b", "release/0.x", "HEAD~1");
+  writeRecord(repo.dir, { version: "0.9.1", date: "2026-11-21", entries: [] });
+  repo.commitAll("Release 0.9.1");
+  repo.git("tag", "v0.9.1");
+  repo.git("checkout", "-q", "main");
+  assert.deepEqual(taggedDifferences(repo.dir), []);
+});
+
+test("a pending file whose id a shipped release holds stops the build; a candidate's pending copy does not", () => {
+  const copy = path.join(tempDir(), "slate");
+  fs.cpSync(path.join(FIXTURES, "slate"), copy, { recursive: true });
+  fs.writeFileSync(path.join(copy, ".changes", "pr52-1.md"), "---\ntype: fixed\narea: Composer\npr: 52\n---\nFixed `Composer` losing its draft when the window lost focus\n");
+  assert.throws(() => outputs(copy), /\.changes\/pr52-1\.md: the id is held by 0\.2\.1, which has shipped/);
+  // Harbor before 2.0.0: the candidates' entries are pending on purpose, and Unreleased leaves them out.
+  const root = path.join(FIXTURES, "harbor");
+  const config = loadConfig(root);
+  const records = readRecords(root).filter((record) => record.version !== "2.0.0");
+  const pending = [readEntry("---\ntype: added\narea: Sign-in\npr: 141\n---\nAdded single sign-on through your company's identity provider\n", ".changes/pr141-1.md", config)];
+  assert.equal(pageReleases(root, { config, records, pending })[0].version, "2.0.0-rc.2");
 });

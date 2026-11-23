@@ -2,6 +2,7 @@
   "version": "1.4.1",
   "date": "2026-12-08",
   "previous": "1.4.0",
+  "repository": "https://github.com/example/harbor",
   "entries": [
     {
       "id": "pr145-1",
@@ -14,8 +15,8 @@
         "href": "https://github.com/example/harbor/pull/145"
       },
       "commit": {
-        "sha": "2685abd5d6cd57ddf42ceb062093b713aaaf0095",
-        "href": "https://github.com/example/harbor/commit/2685abd5d6cd57ddf42ceb062093b713aaaf0095"
+        "sha": "b87ac424f7c5d86741be5e40def96fcae58503f4",
+        "href": "https://github.com/example/harbor/commit/b87ac424f7c5d86741be5e40def96fcae58503f4"
       }
     }
   ]

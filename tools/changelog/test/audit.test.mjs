@@ -6,7 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { audit, auditEntry, auditRecord } from "../audit.mjs";
+import { audit, auditEntry, auditNotes, auditRecord } from "../audit.mjs";
 import { readConfig } from "../config.mjs";
 import { CONFIG, repository, tempDir, writeRecord } from "./support.mjs";
 
@@ -94,4 +94,21 @@ test("an area on every entry when any has one, and a tagged record that changed"
   writeRecord(repo.dir, { version: "1.0.0", date: "2026-11-21", entries: [{ id: "a", type: "fixed", bump: "patch", area: "List", text: "Fixed the list losing its place" }, { id: "b", type: "fixed", bump: "patch", text: "Fixed the sheet losing its place" }] });
   const flags = audit(repo.dir);
   assert.deepEqual(flags.map((flag) => [flag.where, flag.rule]), [["1.0.0 b", "Structure"], ["records", "Version"]]);
+});
+
+test("R18: a sentence in a headline, summary or paragraph naming mostly what its entries do not is flagged; an instruction is not", () => {
+  const entries = [
+    { id: "pr131-1", type: "added", bump: "minor", area: "Integrations", text: "Added webhook declarations so a monitor can open an incident room when its alarm fires" },
+    { id: "pr131-2", type: "added", bump: "minor", area: "Home", text: "Added an \"Opened by a monitor\" mark to incidents that a webhook declared" },
+  ];
+  // The two claims the code review found in Harbor 1.4.0's first draft.
+  const release = { version: "1.4.0", entries, title: "A monitor can open an incident room", audiences: [
+    { covers: ["pr131-1"], text: "A monitor that can send a webhook can now open an incident room when its alarm fires. The room shows the alarm, the service it names and the checks already run." },
+    { for: "For responders", covers: ["pr131-2"], text: "On Home, open an incident marked \"Opened by a monitor\". The first message in the room is the alarm, with a link to the monitor." },
+    { for: "For admins", covers: ["pr131-1"], text: "In Settings, open Integrations and add a webhook. Paste its address into your monitor." },
+  ] };
+  assert.deepEqual(auditNotes(release).map((flag) => flag.line), [
+    "The room shows the alarm, the service it names and the checks already run.",
+    "The first message in the room is the alarm, with a link to the monitor.",
+  ]);
 });

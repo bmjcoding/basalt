@@ -7229,15 +7229,26 @@
   .basalt-release:first-of-type { padding-top: 0; border-top: 0; }
   .basalt-release-notes > .basalt-release-build:first-child { max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width)); margin: 0 0 var(--basalt-space-6); }
   .basalt-release:focus, .basalt-release-entry:focus { outline: none; }
-  .basalt-release-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--basalt-space-4); }
-  .basalt-release-head-text { position: relative; isolation: isolate; display: grid; gap: var(--basalt-space-1); min-width: 0; }
-  .basalt-release-heading { display: grid; gap: var(--basalt-space-1); margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
+  /* The header is a grid: Copy link stands at the end of the first line (the number, or a headline release's number-and-date line), centred on it,
+     and only that line makes room for it; the headline and the counts take the release's whole width. The button takes no height of its own (its
+     margins take it back), so a 44px button on touch moves no line. */
+  .basalt-release-head { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--basalt-space-4); align-items: center; }
+  .basalt-release-head-text { display: contents; }
+  .basalt-release-head-text > * { grid-column: 1 / -1; min-width: 0; }
+  .basalt-release-head-text > .basalt-release-word { grid-row: 1; }
+  .basalt-release-head-text > :is(.basalt-release-number-line, .basalt-release-heading:not([data-headline])) { grid-column: 1; grid-row: 2; }
+  .basalt-release-head-text > .basalt-release-heading[data-headline] { grid-row: 3; }
+  .basalt-release-head-text > .basalt-release-heading[data-headline] ~ .basalt-release-meta { grid-row: 4; }
+  .basalt-release-head-text > .basalt-release-heading:not([data-headline]) ~ .basalt-release-meta { grid-row: 3; }
+  .basalt-release-head-text > :not(.basalt-release-word) ~ * { margin-top: var(--basalt-space-1); }
+  .basalt-release-head > .basalt-release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); }
+  .basalt-release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
   /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
   .basalt-release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .basalt-release-version[data-words] { font-family: var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); }
   .basalt-release-meta { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); font-variant-numeric: tabular-nums; }
   .basalt-release-badges { display: inline-flex; gap: var(--basalt-space-2); margin-inline-start: var(--basalt-space-2); vertical-align: middle; }
-  .basalt-release-action-link { position: relative; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
+  .basalt-release-action-link { position: relative; z-index: 1; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
   .basalt-release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
   .basalt-release-action-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-release-copy { flex: none; }
@@ -7271,7 +7282,7 @@
 
   /* The list is a grid and each entry a subgrid of it: column one the words, at most the measure; column two the source lines, as wide as the
      list's widest, space-6 away, starting on one edge. So the words keep one measure down a list. */
-  .basalt-release-list { display: grid; grid-template-columns: minmax(0, var(--basalt-size-prose-width)) auto; justify-content: start; column-gap: var(--basalt-space-6); margin: 0; padding: 0; list-style: none; }
+  .basalt-release-list { display: grid; grid-template-columns: min(var(--basalt-size-prose-width), 100%) minmax(0, max-content); justify-content: start; column-gap: var(--basalt-space-6); margin: 0; padding: 0; list-style: none; }
   .basalt-release-entry {
     position: relative;
     display: grid;
@@ -7292,7 +7303,7 @@
   .basalt-release-source-cell:empty { display: none; }
   /* The source line: a quiet TextButton in Geist Mono at 13 on the entry's 20px line, its hit 24 tall on a fine pointer. Ids never break inside
      (an id longer than the line breaks anywhere); beside the words the line does not wrap. */
-  .basalt-text-button.basalt-release-source { display: inline; padding-block: var(--basalt-space-0-5); margin-block: calc(-1 * var(--basalt-space-0-5)); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); letter-spacing: 0; white-space: nowrap; }
+  .basalt-text-button.basalt-release-source { display: inline; padding-block: var(--basalt-space-0-5); margin-block: calc(-1 * var(--basalt-space-0-5)); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); letter-spacing: 0; }
   /* Each id carries the underline (an id never breaks inside, so it is a box of its own, which a label's underline would not reach). */
   .basalt-text-button.basalt-release-source > .basalt-text-button-label { text-decoration: none; }
   .basalt-release-id { display: inline-block; max-width: 100%; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
@@ -7318,6 +7329,10 @@
     .basalt-release-action-link::after,
     .basalt-release-migrate::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
     .basalt-release-fold .basalt-accordion-trigger { min-height: var(--basalt-size-tap-min); }
+    /* In the Sources panel each linked value is a row of its own, 44 tall, so no link's box reaches another's. */
+    .basalt-release-sources .basalt-description-details:has(a) { display: flex; align-items: center; min-height: var(--basalt-size-tap-min); margin-top: 0; }
+    .basalt-release-sources .basalt-description-details a { position: relative; }
+    .basalt-release-sources .basalt-description-details a::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
     /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
     @container (width < 640px) {
       .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
@@ -7330,14 +7345,16 @@
   /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
      on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
   .basalt-release-entry[data-arrival] { isolation: isolate; }
-  :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] .basalt-release-head-text)::before {
+  .basalt-release[data-arrival] > .basalt-release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
+  :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] > .basalt-release-head)::before {
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
     background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
   }
-  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] .basalt-release-head-text)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
-  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] .basalt-release-head-text) .basalt-release-count { color: var(--basalt-text-secondary); }
+  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] > .basalt-release-head)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
+  :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] > .basalt-release-head) .basalt-release-count { color: var(--basalt-text-secondary); }
   @media (forced-colors: active) {
-    :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] .basalt-release-head-text)::before { display: none; }
+    .basalt-release[data-arrival] > .basalt-release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
+  :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] > .basalt-release-head)::before { display: none; }
   }
 
   /* The versions: a nav of links, the number in mono and primary, the date at the row's end in tertiary, 13/18, 30 tall and 44 on touch.

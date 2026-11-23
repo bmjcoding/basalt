@@ -2,6 +2,7 @@
   "version": "0.2.1",
   "date": "2026-11-16",
   "previous": "0.2.0",
+  "repository": "https://github.com/example/slate",
   "entries": [
     {
       "id": "pr52-1",
@@ -14,8 +15,8 @@
         "href": "https://github.com/example/slate/pull/52"
       },
       "commit": {
-        "sha": "8dd53e0a84b90794230c39970fb0b39b293a110f",
-        "href": "https://github.com/example/slate/commit/8dd53e0a84b90794230c39970fb0b39b293a110f"
+        "sha": "eb8028ba88c28077a2106030c2692135bb638d6f",
+        "href": "https://github.com/example/slate/commit/eb8028ba88c28077a2106030c2692135bb638d6f"
       }
     }
   ]

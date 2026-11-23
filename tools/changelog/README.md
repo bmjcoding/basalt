@@ -54,8 +54,10 @@ Changed the parent layout item for `FormGrid` to `.basalt-form-grid-frame`, wher
 ```
 
 - **The id** is the file's name, set once and never changed or reused: `pr120-1` (the pull request and the entry's number in it), or any
-  `a-z0-9-` slug for a change with no pull request. `pr120-1.md` must say `pr: 120`. `unreleased` and anything starting `v` and a digit are
-  reserved. A backport is its own pull request and its own entry.
+  `a-z0-9-` slug for a change with no pull request. `pr120-1.md` must say `pr: 120`, and an entry that says `pr: 120` is named `pr120-N.md`.
+  `unreleased` and anything starting `v` and a digit are reserved. A backport is its own pull request and its own entry. A pending file whose id a
+  shipped release holds stops the build (a candidate's pending files are kept on purpose until its stable version ships). The parts' own
+  element ids end `__words`, `__heading` and the like, outside the ids' alphabet, so an entry named `fix-words` never meets one.
 - **The head** is `key: value` lines between two `---`. It is not YAML. An unknown key, a key written twice or a line that is not `key: value`
   stops the tool, naming the file and the line.
 
@@ -74,7 +76,8 @@ Each type's least bump: Removed is major; Added and Deprecated are minor; Fixed 
 
 **Release notes** are one more file, `.changes/release.md`, when a release has them: a head with `title` and `summary`, then a paragraph for
 everyone with no heading and a `## For admins` heading for each audience, each paragraph opening with a `covers:` line naming the entries it
-is about. A paragraph that covers none, or names an entry the release does not hold, stops the tool.
+is about. A paragraph that covers none, names an entry the release does not hold, holds a second `covers` line or runs to a second paragraph
+stops the tool, naming the line.
 
 ```md
 ---
@@ -108,9 +111,15 @@ A release with no entries must have a summary, and so must one of more than thre
 }
 ```
 
+`form` is optional: `"reference"` (the default, a package's changelog) or `"notes"` (a product's release notes). It decides how `CHANGELOG.md` and a
+GitHub Release are written: a package's opens Action needed with "Before upgrading from 0.1.0, check these 4 changes." and groups a GitHub Release's
+sections under "Changes"; a product's puts Action needed first with no upgrade line, then its headline as a heading over its paragraphs, then the
+fold's heading ("All changes", or "Other changes") over the summary and the sections, so every paragraph sits under a heading of its own.
+
 - `name` is the word shown, and is unique. `pattern` is matched against the whole id: write it without `^` and `$`, name team keys and never
   a catch-all, and write a number as `[1-9][0-9]*`.
-- `url` and `label` may use `{id}` and the pattern's named groups; any other variable is refused. Each value is percent-encoded into the URL,
+- `url` and `label` may use `{id}` and the pattern's named groups; any other variable is refused, and so is an id whose match leaves a used group
+  unset (a pattern with alternatives). Each value is percent-encoded into the URL,
   which must be `https` with no variable in its host.
 - `show` is `link` (the default), `text` (shown, not linked) or `none` (recorded, never published).
 - A GitHub issue is written `repo#45`, never `#45`, which is a pull request.
@@ -120,12 +129,12 @@ A release with no entries must have a summary, and so must one of more than thre
 
 | Command | What it does |
 |---|---|
-| `node tools/changelog/release.mjs <version> --date <YYYY-MM-DD>` | Freezes a release on the branch it is cut from. Checks every pending file, the version against its line and the highest bump among the entries, and each entry's commit (the first-parent commit that added its file; a shallow clone is refused). Writes `changelog/releases/<version>.json` once; for a stable version removes the pending files and `release.md`. Regenerates `CHANGELOG.md` |
+| `node tools/changelog/release.mjs <version> --date <YYYY-MM-DD>` | Freezes a release on the branch it is cut from. Checks every pending file, the version against its line and the highest bump among the entries, and each entry's commit (the first-parent commit that added its file; a shallow clone is refused). Builds every output in memory, then writes `changelog/releases/<version>.json` once (with the repository, so a later config cannot re-point its comparison) and `CHANGELOG.md`, and only then, for a stable version, removes the pending files and `release.md`. A freeze that stops consumes nothing; one interrupted after its record was written is finished by running it again |
 | `node tools/changelog/build.mjs` | Regenerates `CHANGELOG.md` from the records and the pending files (the Unreleased section is what no pre-release holds) |
 | `node tools/changelog/build.mjs --json <file>` | Writes the page's data |
 | `node tools/changelog/build.mjs --github <version>` | Prints a GitHub Release's body |
-| `node tools/changelog/build.mjs --check` | Fails when `CHANGELOG.md` is not what the records give, or a tagged record differs from its tag's copy |
-| `node tools/changelog/audit.mjs` | Runs the lines of the release-words audit marked (m). It flags and a person decides |
+| `node tools/changelog/build.mjs --check` | Fails when `CHANGELOG.md` is not what the records give, a tagged record differs from its tag's copy, or a release tag in this branch's history has lost its record |
+| `node tools/changelog/audit.mjs` | Runs the lines of the release-words audit marked (m). It flags and a person decides. For R18 it flags a sentence of a headline, summary or paragraph when most of what it names is in none of the entries it covers (an instruction, "In Settings, open …", is not a claim) |
 | `node tools/changelog/fixtures/make.mjs` | Rebuilds the two made-up fixtures by running the tool over their histories |
 | `node tools/changelog/skill-body.mjs --form <reference\|notes>` | Writes a body for the HTML skill's `release` module from the records |
 

@@ -1,11 +1,12 @@
 import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import * as React from "react";
 
-import { Tooltip, TooltipProvider } from "./display";
+import { TooltipProvider } from "./display";
 import { DotLine } from "./dot-sep";
 import { NavRailContext } from "./nav";
 import { usePinnedEdges } from "./pinned-edges";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
+import type { TooltipProps } from "./display";
 import { useMediaQuery } from "./use-media";
 import { join } from "./utils";
 import { RailTooltipContext, VersionContext, VersionPlaceContext } from "./version-place";
@@ -15,6 +16,15 @@ import { RailTooltipContext, VersionContext, VersionPlaceContext } from "./versi
 // `PaneLayout`, sticky, like the sidebar). The layout lengths are tokens (size-sidebar-width, size-rail-width, size-header,
 // size-tab-bar and the breakpoints; decision 101). The capped form is --basalt-shell-width wide at most, centred: by default
 // size-sidebar-width plus size-page-width, so at the cap the column is exactly the page's own cap.
+
+// The rail's tooltip for the version, on demand: only a shell in the rail with a version loads it (rail-tooltip.tsx). Until it is there the number
+// stands alone, with its whole line in its name. A lazy component is made on first use, so loading this module does nothing.
+let railTooltip: React.ComponentType<TooltipProps> | undefined;
+function LazyRailTooltip(props: TooltipProps) {
+  railTooltip ??= React.lazy(() => import("./rail-tooltip").then((module) => ({ default: module.RailTooltip })));
+  const Tip = railTooltip;
+  return <React.Suspense fallback={props.children}><Tip {...props} /></React.Suspense>;
+}
 
 export interface AppShellProps extends Omit<React.ComponentProps<"div">, "children"> {
   /** The brand in the sidebar's 56px band: the lockup (mark and word). It links home and draws no line of its own. A brand file goes in as `<BrandSvg source={file} />`, which hides it and drops its title; the link's name is `brandLabel`. */
@@ -90,7 +100,7 @@ export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar
                 {account}
                 {version ? (
                   <div className="basalt-app-version">
-                    <VersionPlaceContext.Provider value={rail ? "rail" : "foot"}><RailTooltipContext.Provider value={Tooltip}>{version}</RailTooltipContext.Provider></VersionPlaceContext.Provider>
+                    <VersionPlaceContext.Provider value={rail ? "rail" : "foot"}><RailTooltipContext.Provider value={LazyRailTooltip}>{version}</RailTooltipContext.Provider></VersionPlaceContext.Provider>
                   </div>
                 ) : null}
               </div>

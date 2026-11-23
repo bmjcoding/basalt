@@ -2,7 +2,8 @@
   "version": "0.2.0",
   "date": "2026-11-16",
   "previous": "0.1.0",
-  "summary": "Slate 0.2.0 adds a composer with mentions and a plate token for highlighted rows. Four changes to layout and stored data need a look before upgrading.",
+  "repository": "https://github.com/example/slate",
+  "summary": "Slate 0.2.0 adds a composer with mentions and a plate token for highlighted rows. Check existing layout rules and stored data before upgrading.",
   "entries": [
     {
       "id": "pr42-1",
@@ -16,8 +17,8 @@
         "href": "https://github.com/example/slate/pull/42"
       },
       "commit": {
-        "sha": "c3b9399994e9c5bd188419bd1ffd5690aad75589",
-        "href": "https://github.com/example/slate/commit/c3b9399994e9c5bd188419bd1ffd5690aad75589"
+        "sha": "82fb3df79be2ac6451f4589e55eb79951b1f4086",
+        "href": "https://github.com/example/slate/commit/82fb3df79be2ac6451f4589e55eb79951b1f4086"
       }
     },
     {
@@ -36,8 +37,8 @@
         "href": "https://github.com/example/slate/pull/41"
       },
       "commit": {
-        "sha": "1b1a1576308eb1076a5aa2eb43ad7e7969a0f9de",
-        "href": "https://github.com/example/slate/commit/1b1a1576308eb1076a5aa2eb43ad7e7969a0f9de"
+        "sha": "678c43d8a10a4ae7c62a1da937f08d4b42680f42",
+        "href": "https://github.com/example/slate/commit/678c43d8a10a4ae7c62a1da937f08d4b42680f42"
       },
       "tickets": [
         {
@@ -74,8 +75,8 @@
         "href": "https://github.com/example/slate/pull/41"
       },
       "commit": {
-        "sha": "aec1f736bd0b0969da984872f8793217968b7694",
-        "href": "https://github.com/example/slate/commit/aec1f736bd0b0969da984872f8793217968b7694"
+        "sha": "69d07142a7bb472c3ddb4dd2b4030ce29823a57f",
+        "href": "https://github.com/example/slate/commit/69d07142a7bb472c3ddb4dd2b4030ce29823a57f"
       }
     },
     {
@@ -90,8 +91,8 @@
         "href": "https://github.com/example/slate/pull/43"
       },
       "commit": {
-        "sha": "fc0148481a9c5ba95e0b5d2dabd873cfa73532df",
-        "href": "https://github.com/example/slate/commit/fc0148481a9c5ba95e0b5d2dabd873cfa73532df"
+        "sha": "897fa5905a841db8f081670aa625c18ce6f6b1aa",
+        "href": "https://github.com/example/slate/commit/897fa5905a841db8f081670aa625c18ce6f6b1aa"
       }
     },
     {
@@ -105,8 +106,8 @@
         "href": "https://github.com/example/slate/pull/44"
       },
       "commit": {
-        "sha": "eca071c45b6c0141f05fb8b419af7e67857962d6",
-        "href": "https://github.com/example/slate/commit/eca071c45b6c0141f05fb8b419af7e67857962d6"
+        "sha": "5e5902046b8892bbe63216e16af0647c10a744ee",
+        "href": "https://github.com/example/slate/commit/5e5902046b8892bbe63216e16af0647c10a744ee"
       }
     },
     {
@@ -120,8 +121,8 @@
         "href": "https://github.com/example/slate/pull/45"
       },
       "commit": {
-        "sha": "e641f77b510ba8971aef844024dcd41cfb833e02",
-        "href": "https://github.com/example/slate/commit/e641f77b510ba8971aef844024dcd41cfb833e02"
+        "sha": "5e84c6544e6bfee98d639cbe6b81091279cf846e",
+        "href": "https://github.com/example/slate/commit/5e84c6544e6bfee98d639cbe6b81091279cf846e"
       },
       "tickets": [
         {
@@ -147,8 +148,8 @@
         "href": "https://github.com/example/slate/pull/45"
       },
       "commit": {
-        "sha": "5e1f6f1d3ed82af99639612755ac4c874d01f113",
-        "href": "https://github.com/example/slate/commit/5e1f6f1d3ed82af99639612755ac4c874d01f113"
+        "sha": "bf14c30afcb2e3321134233c7d6cc5a7069e6997",
+        "href": "https://github.com/example/slate/commit/bf14c30afcb2e3321134233c7d6cc5a7069e6997"
       }
     },
     {
@@ -162,8 +163,8 @@
         "href": "https://github.com/example/slate/pull/47"
       },
       "commit": {
-        "sha": "cf88219bf09469ab4ee79ff13f01b450d81ff3d5",
-        "href": "https://github.com/example/slate/commit/cf88219bf09469ab4ee79ff13f01b450d81ff3d5"
+        "sha": "6305bea62d1eeffb606f12efb6d568f8c2704144",
+        "href": "https://github.com/example/slate/commit/6305bea62d1eeffb606f12efb6d568f8c2704144"
       }
     },
     {
@@ -177,8 +178,8 @@
         "href": "https://github.com/example/slate/pull/46"
       },
       "commit": {
-        "sha": "f56c4cb85c0d47be47322a741b7e25d16e7c8352",
-        "href": "https://github.com/example/slate/commit/f56c4cb85c0d47be47322a741b7e25d16e7c8352"
+        "sha": "01bba6343c13e202aebb88cac07e25063f90eac4",
+        "href": "https://github.com/example/slate/commit/01bba6343c13e202aebb88cac07e25063f90eac4"
       },
       "tickets": [
         {
@@ -234,8 +235,8 @@
         "href": "https://github.com/example/slate/pull/48"
       },
       "commit": {
-        "sha": "0dcee7ffc7519acff066200cf79fb6b0f3317114",
-        "href": "https://github.com/example/slate/commit/0dcee7ffc7519acff066200cf79fb6b0f3317114"
+        "sha": "3f842bfcee12cbbfc899975588325fc12cdc7772",
+        "href": "https://github.com/example/slate/commit/3f842bfcee12cbbfc899975588325fc12cdc7772"
       },
       "tickets": [
         {
@@ -254,8 +255,8 @@
       "area": "Docs",
       "text": "Fixed the contrast table listing secondary ink on the sunken band at 4.1:1, where it measures 4.6:1",
       "commit": {
-        "sha": "52ead666ac257d2f3725d452ae5ddf9e2aed3e3a",
-        "href": "https://github.com/example/slate/commit/52ead666ac257d2f3725d452ae5ddf9e2aed3e3a"
+        "sha": "b703be2fcc41217ae7ab767e7987389c3e954f30",
+        "href": "https://github.com/example/slate/commit/b703be2fcc41217ae7ab767e7987389c3e954f30"
       }
     },
     {
@@ -269,8 +270,8 @@
         "href": "https://github.com/example/slate/pull/49"
       },
       "commit": {
-        "sha": "b10bb6bd1c92af9c6581dfefaacfe71376d3b4f3",
-        "href": "https://github.com/example/slate/commit/b10bb6bd1c92af9c6581dfefaacfe71376d3b4f3"
+        "sha": "71c54b0a5104dca190cad0815a4a72304b3c259a",
+        "href": "https://github.com/example/slate/commit/71c54b0a5104dca190cad0815a4a72304b3c259a"
       }
     },
     {
@@ -284,8 +285,8 @@
         "href": "https://github.com/example/slate/pull/49"
       },
       "commit": {
-        "sha": "7b6478fd517c65c3b8395d06ba590f93f1160c75",
-        "href": "https://github.com/example/slate/commit/7b6478fd517c65c3b8395d06ba590f93f1160c75"
+        "sha": "f8eb7a17a49c2cbd289f8a6c323787918d5d8c01",
+        "href": "https://github.com/example/slate/commit/f8eb7a17a49c2cbd289f8a6c323787918d5d8c01"
       }
     },
     {
@@ -299,8 +300,8 @@
         "href": "https://github.com/example/slate/pull/50"
       },
       "commit": {
-        "sha": "cc6365db1aa8887f71b6c00384ccdd013c51d664",
-        "href": "https://github.com/example/slate/commit/cc6365db1aa8887f71b6c00384ccdd013c51d664"
+        "sha": "fc8a00590e637a58f13d8b87c6927f6afd34c439",
+        "href": "https://github.com/example/slate/commit/fc8a00590e637a58f13d8b87c6927f6afd34c439"
       }
     }
   ]

@@ -12,46 +12,68 @@ import path from "node:path";
 import { loadConfig } from "./config.mjs";
 import { changelogMarkdown, githubBody } from "./outputs.mjs";
 import { pageReleases, readRecords, RECORDS_DIR } from "./records.mjs";
+import { parse } from "./semver.mjs";
 
 /** Every output for a repository, as strings, from its records and pending files. */
 export function outputs(root) {
   const config = loadConfig(root);
-  const releases = pageReleases(root, { config });
+  const records = readRecords(root);
+  const releases = pageReleases(root, { config, records });
   return {
     config,
     releases,
-    changelog: changelogMarkdown(releases, { product: config.product }),
+    changelog: changelogMarkdown(releases, { product: config.product, form: config.form }),
     json: `${JSON.stringify(releases, null, 2)}\n`,
     github: (version) => {
       const release = releases.find((candidate) => candidate.version === version);
       if (!release) throw new Error(`${version} is not a drawn release`);
-      return githubBody(release, { repository: config.repository });
+      // The comparison is the frozen record's repository, so a later config cannot re-point it.
+      const record = records.find((candidate) => candidate.version === version);
+      return githubBody(release, { repository: record?.repository ?? config.repository, form: config.form });
     },
   };
 }
 
 /**
- * A published version is never edited (S 3.2.10): every record whose tag exists must equal the tag's copy, byte for byte. Returns the
- * differences, each a sentence; empty when every tagged record matches.
+ * A published version is never edited (S 3.2.10), and never deleted: every record whose tag exists must equal the tag's copy, byte for byte, and every
+ * release tag this branch's history holds must still have its record. A maintained line's tags are not in the default branch's history, so a branch
+ * answers only for the releases it was cut from (the default branch for its own, release/1.x for 1.x). Returns the differences, each a sentence.
  */
 export function taggedDifferences(root) {
   const differences = [];
-  for (const record of readRecords(root)) {
+  const recordFile = (version) => `${RECORDS_DIR.split(path.sep).join("/")}/${version}.json`;
+  const tagged = (tag, file) => {
+    try {
+      return execFileSync("git", ["show", `${tag}:${file}`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    } catch {
+      return null;
+    }
+  };
+  const records = readRecords(root);
+  const have = new Set(records.map((record) => record.version));
+  for (const record of records) {
     const tag = `v${record.version}`;
-    const file = `${RECORDS_DIR.split(path.sep).join("/")}/${record.version}.json`;
-    let tagged;
     try {
       execFileSync("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`], { cwd: root, stdio: "ignore" });
     } catch {
       continue;
     }
-    try {
-      tagged = execFileSync("git", ["show", `${tag}:${file}`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    } catch {
-      differences.push(`${file}: the tag ${tag} holds no record`);
-      continue;
-    }
-    if (tagged !== fs.readFileSync(path.join(root, file), "utf8")) differences.push(`${file} differs from the copy tagged ${tag}; a published version is never edited`);
+    const file = recordFile(record.version);
+    const copy = tagged(tag, file);
+    if (copy === null) differences.push(`${file}: the tag ${tag} holds no record`);
+    else if (copy !== fs.readFileSync(path.join(root, file), "utf8")) differences.push(`${file} differs from the copy tagged ${tag}; a published version is never edited`);
+  }
+  let merged = [];
+  try {
+    merged = execFileSync("git", ["tag", "--list", "v*", "--merged", "HEAD"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);
+  } catch {
+    merged = [];
+  }
+  for (const tag of merged) {
+    const version = tag.slice(1);
+    if (have.has(version) || !parse(version)) continue;
+    // A tag with a record in its own tree is a release; one with none (a tag from before the changelog) is not this tool's.
+    if (tagged(tag, recordFile(version)) !== null) differences.push(`${recordFile(version)} is gone, and ${tag} released it; a published version is never deleted`);
   }
   return differences;
 }
