@@ -4,9 +4,15 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, figureTree, hasStops, hintEntries, keyTarget, measureFigure, syncAttributes,
+  applyTrace, buildModel, entranceDrawn, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramSpec, Dyn, Measured, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramSpec, Dyn, Measured, VNode } from "./diagram-core";
+import type { MotionController } from "./diagram-motion-core";
+
+type MotionModule = typeof import("./diagram-motion");
+let motionLoading: Promise<MotionModule> | undefined;
+/** The motion code (DECISIONS 292, 2.6): a module of its own, loaded the first time a figure is animated, so a still figure never pays for it. */
+const loadMotion = () => (motionLoading ??= import("./diagram-motion").catch((error) => { motionLoading = undefined; throw error; }));
 
 // The figure every diagram shares (DECISIONS 281): the title, the drawing, the key, the key hint, the required summary and "View as list".
 // Not exported from the package: each of the five diagrams is its own module on top of it. The markup is the engine's tree, so it is the
@@ -23,6 +29,12 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
   summary: React.ReactNode;
   /** The words for the marks. The key is built from what is drawn; main, dashed and the focal node must have words when drawn. */
   legend?: DiagramLegend;
+  /**
+   * `"still"` (the default) is the drawing as it is, with no motion code loaded. `"animated"` (DECISIONS 292) draws each line once when the figure
+   * comes into view, every word at rest, and runs whichever of flow, a pulse or a packet the data names, with "Pause animations" in the foot. A
+   * reduced-motion or forced-colours figure is still. Motion never carries a fact alone: the words say what moves.
+   */
+  motion?: DiagramMotion;
 }
 
 const P = "basalt-diagram";
@@ -70,13 +82,14 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   component: string;
 }
 
-export function DiagramFigure({ spec, component, title: _title, heading: _heading, legend: _legend, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();
   // The development checks (placement, groups, the key's words) cost production nothing: a bundler that sets NODE_ENV drops them.
   const model = React.useMemo(() => buildModel(spec, { checks: process.env.NODE_ENV !== "production" }), [spec]);
+  const animated = model.motion.animated;
   const figRef = React.useRef<HTMLElement>(null);
   // The figure's own ref, which measuring reads, and the caller's, both set: a caller's ref never replaces the figure's.
   const setRef = React.useCallback((el: HTMLElement | null) => {
@@ -89,6 +102,17 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   const measured = React.useRef<Measured | null>(null);
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
+  const [motionModule, setMotionModule] = React.useState<MotionModule | null>(null);
+  // A development error (DECISIONS 292, 4.1), checked once the motion code is here: a mover's route that does not exist, two movers, flow on a dashed
+  // line or on the mover's route. A flow line with no label is a warning.
+  if (process.env.NODE_ENV !== "production" && motionModule && animated) {
+    const { errors, warnings } = motionModule.motionErrors(model);
+    if (errors.length) throw new Error(`Basalt ${component}: ${errors.join("; ")}`);
+    for (const w of warnings) warnOnce(component, w);
+  }
+  const [controller, setController] = React.useState<MotionController | null>(null);
+  const modelRef = React.useRef(model);
+  modelRef.current = model;
   const [focusTrace, setFocusTrace] = React.useState<string | null>(null);
   const [hoverTrace, setHoverTrace] = React.useState<string | null>(null);
   const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden" }), [base, level, source]);
@@ -127,14 +151,45 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     observer.observe(fig);
     let live = true;
     document.fonts?.ready.then(() => { if (live) measure(); });
-    return () => { live = false; observer.disconnect(); cancelAnimationFrame(frame); };
-  }, [measure]);
+    // A card's mark keeps its seat's padding out of forced colours, where no mark is drawn: the mode changing is a new measure (DECISIONS 292, 2.7).
+    const forced = matchMedia("(forced-colors: active)");
+    const marks = model.nodes.some((n) => n.mark);
+    if (marks) forced.addEventListener("change", measure);
+    return () => { live = false; observer.disconnect(); cancelAnimationFrame(frame); if (marks) forced.removeEventListener("change", measure); };
+  }, [measure, model]);
 
   const trace = focusTrace ?? hoverTrace;
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (fig) applyTrace(fig, P, measured.current?.geo ?? null, measured.current?.tokens ?? null, base, trace);
   }, [trace, ink, base]);
+  // In the frame an animated figure's lines are first drawn it is marked pending, before any paint (DECISIONS 292, 1.5); the module, once loaded,
+  // follows the lines each time they are drawn again differently.
+  React.useLayoutEffect(() => {
+    const fig = figRef.current;
+    if (!fig || !animated || !measured.current?.tokens) return;
+    entranceDrawn(fig, Boolean(measured.current.geo?.lines.length));
+    controller?.redrawn();
+  }, [ink, animated, controller]);
+  React.useEffect(() => {
+    if (!animated) return undefined;
+    let live = true;
+    // If the motion code cannot load, the figure settles: every line whole, as still.
+    loadMotion().then((mod) => { if (live) setMotionModule(() => mod); }, () => { const fig = figRef.current; if (fig && live) settleEntrance(fig); });
+    return () => { live = false; };
+  }, [animated]);
+  React.useLayoutEffect(() => {
+    const fig = figRef.current;
+    if (!fig || !animated || !motionModule) return undefined;
+    const made = motionModule.attachMotion({ fig, P, base, model: () => modelRef.current, geo: () => measured.current?.geo ?? null, tokens: () => measured.current?.tokens ?? null });
+    setController(made);
+    return () => { made.destroy(); setController(null); };
+  }, [animated, motionModule, base]);
+  // New data is a different figure: its entrance settles if its lines are not the same lines (1.5), and its mover follows the new route.
+  React.useEffect(() => { controller?.changed(); }, [model, controller]);
+  const sendValue = model.motion.packet?.send;
+  React.useEffect(() => { controller?.sendValue(sendValue); }, [sendValue, controller]);
+  const settle = () => { if (animated && figRef.current) settleEntrance(figRef.current); };
 
   const nodeOf = (target: EventTarget | null) => {
     const el = (target as HTMLElement | null)?.closest?.<HTMLElement>(`.${P}-node`);
@@ -151,6 +206,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
       onKeyDown?.(event);
       const node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
+      settle();
       if (event.key === "Escape") { if (focusTrace || hoverTrace) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); } return; }
       if (!stops) return;
       const to = keyTarget(model, node.dataset.node!, event.key);
@@ -165,6 +221,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
       onFocus?.(event);
       const node = nodeOf(event.target);
       if (!node) return;
+      settle();
       const id = node.dataset.node!;
       // Tracing follows the keyboard's focus (:focus-visible), so a press that focuses a node traces nothing.
       setFocusTrace(node.matches(":focus-visible") ? id : null);
@@ -182,6 +239,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
       onPointerOver?.(event);
       if (event.pointerType !== "mouse" || !window.matchMedia("(hover: hover)").matches) return;
       const node = nodeOf(event.target);
+      if (node) settle();
       setHoverTrace(node && hasStops(model, dynRef.current) ? node.dataset.node! : null);
     },
     onPointerLeave: (event: React.PointerEvent<HTMLElement>) => { onPointerLeave?.(event); setHoverTrace(null); },
@@ -195,7 +253,7 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
       data-size="sm"
       aria-expanded={Boolean(dyn.open)}
       aria-controls={`${base}-list`}
-      onClick={() => { const next = { ...dynRef.current, open: !dynRef.current.open, autoOpen: undefined }; dynRef.current = next; setDyn(next); }}
+      onClick={() => { settle(); const next = { ...dynRef.current, open: !dynRef.current.open, autoOpen: undefined }; dynRef.current = next; setDyn(next); }}
     >
       <span className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
     </button>
@@ -204,5 +262,8 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
     <span key={entry.words}>{entry.keys.map((k, i) => <React.Fragment key={k}>{i ? " " : null}<Kbd>{k}</Kbd></React.Fragment>)} {entry.words}</span>
   ));
   const tree = figureTree(model, dyn, options);
-  return toReact(tree, { source, summary, hint, toggle }, ink, root) as React.ReactElement;
+  // The foot (1.9): "View as list", then the run button and "Pause animations", which the motion module draws when it has loaded.
+  const Foot = motionModule?.MotionFoot;
+  const foot = Foot && controller ? <>{toggle}<Foot controller={controller} /></> : toggle;
+  return toReact(tree, { source, summary, hint, toggle: foot }, ink, root) as React.ReactElement;
 }
