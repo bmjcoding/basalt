@@ -4856,10 +4856,10 @@
     .basalt-diagram .basalt-diagram-mark { display: none; }
     .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; }
   }
-  /* Print: the lines, the key's swatches, a card's mark and the fill of a focal node that carries a mark print whatever the reader's "Background
-     graphics" setting (DECISIONS 292, 2.6). A focal node with no mark prints as it did. */
+  /* Print: the lines, the key's swatches, a card's mark and every focal node's fill print whatever the reader's "Background graphics" setting
+     (DECISIONS 292, 2.6; every focal node, with a mark or without, DECISIONS 298). */
   @media print {
-    .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal][data-mark] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .basalt-diagram-hint { display: none; }
   }
 

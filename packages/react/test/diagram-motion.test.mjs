@@ -160,7 +160,7 @@ describe("nothing is ever missing (first)", () => {
     assert.equal(seen, "visible");
   });
 
-  test("in the print media every mark, and a focal node that carries one, compute print-color-adjust: exact; a focal node with no mark does not", async () => {
+  test("in the print media every mark and every focal node, with a mark or without, compute print-color-adjust: exact (DECISIONS 298)", async () => {
     const { page } = await motionPage();
     await draw(page, [["kit", `{ ...S.kit(), nodes: S.kit().nodes.map((n) => (n.id === "github" ? { ...n, focal: true } : n)), legend: { ...S.kit().legend, focal: "The start" } }`], ["arch", `{ ...S.still.architecture }`]]);
     await page.emulateMedia({ media: "print" });
@@ -172,7 +172,7 @@ describe("nothing is ever missing (first)", () => {
     }));
     assert.ok(seen.marks.length >= 6 && seen.marks.every((v) => v === "exact"), JSON.stringify(seen.marks));
     assert.equal(seen.focalMarked, "exact");
-    assert.equal(seen.focalBare, "economy");
+    assert.equal(seen.focalBare, "exact");
     assert.equal(seen.lines, "exact");
   });
 

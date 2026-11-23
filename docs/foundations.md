@@ -1845,8 +1845,8 @@ behind it. The card's first line keeps `space-6` clear of it.
   it and every colour inside set by hand (Chromium otherwise paints a `Canvas` backplate under its words); the focus ring `Highlight`.
 - More contrast: the aliases apply. The focal node's quiet ink goes to full strength. `diagram-structure` and `diagram-edge-dim` are
   the input boundary and do not step.
-- Print: the lines, the key's swatches, a card's mark and the fill of a focal node that carries a mark print whatever the reader's
-  "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
+- Print: the lines, the key's swatches, a card's mark and every focal node's fill (with a mark or without, DECISIONS 298) print whatever
+  the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
 
 ### Diagram tokens
 
