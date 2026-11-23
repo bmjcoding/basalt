@@ -778,7 +778,7 @@
         "art",
         "kbd"
       ],
-      "budget": 127150,
+      "budget": 137700,
       "usage": 4300,
       "builds": [
         "kbd"
@@ -804,7 +804,7 @@
         "loops",
         "toggle"
       ],
-      "budget": 27850,
+      "budget": 28450,
       "usage": 1300,
       "builds": [
         "loops",
