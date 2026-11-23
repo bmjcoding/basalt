@@ -639,7 +639,8 @@ function writeDiagrams(markup, held, parts, notes, marks) {
         else { n.mark = ownMark(marks, n.mark); rewrote = true; }
       }
       if (rewrote) {
-        const inner = `\n${JSON.stringify(spec)}\n`;
+        // Every < as \u003c, which JSON reads as the same character: a title holding </script> or <!-- cannot end or bend the script it is in.
+        const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
         item.text = item.text.replace(item.inner, () => inner);
         item.inner = inner;
       }
@@ -669,20 +670,21 @@ function writeDiagrams(markup, held, parts, notes, marks) {
 
 /** The bundled marks file (parts/marks.json), read once a page names a mark. */
 const marksFile = (marks) => (marks.file ??= JSON.parse(read(marks.parts, "marks.json")));
-/** A URL as a CSS string. */
-const cssUrl = (u) => `url("${u.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, "\\a ")}")`;
+/** A URL as a CSS string inside a <style>: a backslash and a quote escaped, a newline as \a and every < as \3c (CSS reads both as the character), so a data URI
+ *  holding </style> cannot end the style sheet. */
+const cssUrl = (u) => `url("${u.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, "\\a ").replace(/</g, "\\3c ")}")`;
 
 /** A bundled mark a page uses: known, its rule written once, and (for a card) its words checked: a mark never carries a fact alone. */
 function useMark(marks, id, node, notes) {
   const file = marksFile(marks);
   if (marks.used.has(id)) { if (node) checkSays(file, id, node, notes); return; }
-  const mark = file.marks[id];
+  const mark = Object.hasOwn(file.marks, id) ? file.marks[id] : undefined;
   if (!mark) throw new Error(`"${id}" is not a bundled service mark (the marks: ${Object.keys(file.marks).join(", ")}); a page's own mark is { "onLight": "path", "onDark": "path" }`);
   marks.used.set(id, mark);
   if (node) checkSays(file, id, node, notes);
 }
 function checkSays(file, id, node, notes) {
-  const says = file.says[id] ?? [];
+  const says = (Object.hasOwn(file.says, id) ? file.says[id] : undefined) ?? [];
   const words = [node.name, node.kind, node.detail].filter(Boolean).join(" ").toLowerCase();
   if (says.length && !says.some((w) => words.includes(w.toLowerCase()))) notes.push(`${node.id}'s mark (${id}) stands for ${says.join(" or ")}, and none of its words say so: a mark never carries a fact alone`);
 }
@@ -695,11 +697,16 @@ function ownMark(marks, mark) {
     if (/^data:/i.test(at)) return at;
     if (/^[a-z][\w+.-]*:/i.test(at)) throw new Error(`a card's mark is ${at}, which leaves the file: give a path beside the body, which compose.mjs reads into the page`);
     const file = path.resolve(marks.baseDir, at);
-    const bytes = fs.readFileSync(file);
     const ext = path.extname(file).toLowerCase();
-    if (ext === ".svg") return `data:image/svg+xml,${bytes.toString("utf8").replace(/"/g, "'").replace(/%/g, "%25").replace(/#/g, "%23").replace(/</g, "%3C").replace(/>/g, "%3E").replace(/\s+/g, " ").trim()}`;
     const type = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" }[ext];
-    if (!type) throw new Error(`a card's mark is ${at}: an SVG, PNG, JPEG, WebP or GIF file`);
+    if (ext !== ".svg" && !type) throw new Error(`a card's mark is ${at}: an SVG, PNG, JPEG, WebP or GIF file`);
+    // Beside the body means inside its folder: a path that climbs out of it, or a link that points out of it, is not read.
+    const inside = (dir, f) => { const rel = path.relative(dir, f); return rel !== "" && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel); };
+    if (!inside(marks.baseDir, file)) throw new Error(`a card's mark is ${at}, which is outside the body's folder: put the file beside the body`);
+    if (!fs.existsSync(file)) throw new Error(`a card's mark is ${at}, and there is no such file beside the body`);
+    if (!inside(fs.realpathSync(marks.baseDir), fs.realpathSync(file))) throw new Error(`a card's mark is ${at}, which links outside the body's folder: put the file itself beside the body`);
+    const bytes = fs.readFileSync(file);
+    if (ext === ".svg") return `data:image/svg+xml,${bytes.toString("utf8").replace(/"/g, "'").replace(/%/g, "%25").replace(/#/g, "%23").replace(/</g, "%3C").replace(/>/g, "%3E").replace(/\s+/g, " ").trim()}`;
     return `data:${type};base64,${bytes.toString("base64")}`;
   };
   const onLight = uri(mark.onLight);

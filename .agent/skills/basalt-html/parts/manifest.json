@@ -801,10 +801,15 @@
       ],
       "requires": [
         "diagram",
-        "loops"
+        "loops",
+        "toggle"
       ],
       "budget": 26200,
-      "usage": 1300
+      "usage": 1300,
+      "builds": [
+        "loops",
+        "toggle"
+      ]
     },
     "sparkline": {
       "classes": [

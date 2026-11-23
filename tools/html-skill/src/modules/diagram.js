@@ -184,7 +184,17 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
         if (toggle) toggle.removeEventListener('click', onToggle);
       },
       layout: layout,
+      key: sendless(spec),
+      // The same figure with only a new packet.send: the message goes on the figure as it is, so a dot in flight is not cut short (1.8, 1.9).
+      send: motion && motion.sendValue ? motion.sendValue : null,
     };
+  }
+
+  /** A spec as text without its packet's send, so two calls that differ only in what they send are seen as the same figure. */
+  function sendless(spec) {
+    try {
+      return JSON.stringify(spec, function (k, v) { return k === 'packet' && v && typeof v === 'object' ? Object.assign({}, v, { send: undefined }) : v; });
+    } catch (e) { return null; }
   }
 
   function wireDiagrams() {
@@ -197,6 +207,11 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   }
 
   _.diagramMarkup = markup;
-  B.diagram = function (figure, spec) { draw(figure, spec); };
+  B.diagram = function (figure, spec) {
+    var d = figure.__diagram;
+    var key = d && d.send ? sendless(spec) : null;
+    if (key !== null && key === d.key) { d.send(spec.packet ? spec.packet.send : undefined); return; }
+    draw(figure, spec);
+  };
   _.step(62, 'wireDiagrams', wireDiagrams);
 })(window.Basalt);

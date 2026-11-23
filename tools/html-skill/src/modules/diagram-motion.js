@@ -59,6 +59,7 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
     figure.__diagramSend = send;
     return {
       redrawn: controller.redrawn,
+      sendValue: function (v) { controller.sendValue(v); figure.__diagramSend = v; },
       destroy: function () { unsubscribe(); controller.destroy(); if (run) run.remove(); if (pause) pause.remove(); },
     };
   };
