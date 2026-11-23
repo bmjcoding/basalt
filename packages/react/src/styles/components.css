@@ -4567,6 +4567,50 @@
   .basalt-diagram-node[data-shape="decision"][data-near] .basalt-diagram-diamond path { stroke: var(--basalt-text-secondary); }
   .basalt-diagram-node[data-shape="decision"][data-focal] .basalt-diagram-diamond path { fill: var(--basalt-diagram-focal); stroke: var(--basalt-diagram-focal); }
 
+  /* A card that is a link (DECISIONS 306, 1.4): the card is the link and the figure's roving stop. Its cue is foundations' arrow (the core arrow-right, or
+     external for a new tab) at 16, space-1-5 after the name's last word, which it never leaves: secondary at rest (the focal card's quiet ink), primary
+     on hover and focus, travelling space-0-5. Hover and focus underline the name; a press is a colour step, never a scale. */
+  .basalt-diagram-node[data-link] { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .basalt-diagram-name-end { white-space: nowrap; }
+  .basalt-diagram-node[data-link] .basalt-diagram-name-end::after {
+    content: "";
+    display: inline-block;
+    width: var(--basalt-size-icon-sm);
+    height: var(--basalt-size-icon-sm);
+    margin-inline-start: var(--basalt-space-1-5);
+    vertical-align: calc(-1 * var(--basalt-space-0-5));
+    background: var(--basalt-text-secondary);
+    mask: url("%glyph-mask:arrow-right%") center / contain no-repeat;
+    transition: transform var(--basalt-duration-base) var(--basalt-ease-out), background-color var(--basalt-duration-base) var(--basalt-ease-out);
+  }
+  .basalt-diagram-node[data-link="external"] .basalt-diagram-name-end::after { mask-image: url("%glyph-mask:external%"); }
+  .basalt-diagram-node[data-link][data-focal] .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: var(--basalt-opacity-amount); }
+  .basalt-diagram-node[data-link]:is(:hover, :focus-visible) .basalt-diagram-name-end::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+  .basalt-diagram-node[data-link][data-focal]:is(:hover, :focus-visible) .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: 1; }
+  .basalt-diagram-node[data-link]:is(:hover, :focus-visible) :is(.basalt-diagram-name, .basalt-diagram-tname) { text-decoration: underline var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  /* The press: the card's fill under state-hover's wash, one colour from color-mix at the token's own alpha (black 4% in light, white 6% in dark), as the
+     still table's pinned cells take theirs. */
+  .basalt-diagram-node[data-link]:active { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-1))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-1)))); }
+  @supports not (color: light-dark(white, black)) {
+    .basalt-diagram-node[data-link]:active { background: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-1))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-1)))); }
+  }
+  .basalt-diagram-node[data-link][data-focal]:active { background: var(--basalt-action-primary-press); }
+  .basalt-diagram-node[data-link]:dir(rtl) .basalt-diagram-name-end::after { scale: -1 1; }
+  .basalt-diagram-node[data-link]:dir(rtl):is(:hover, :focus-visible) .basalt-diagram-name-end::after { transform: translateX(calc(-1 * var(--basalt-space-0-5))); }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-diagram-node[data-link]:is(:hover, :focus-visible) .basalt-diagram-name-end::after, .basalt-diagram-node[data-link]:dir(rtl):is(:hover, :focus-visible) .basalt-diagram-name-end::after { transform: none; }
+  }
+  /* A card that answers a tap is at least size-tap-min tall on touch (1.5). */
+  @media (pointer: coarse) {
+    .basalt-diagram-node[data-link] { min-height: var(--basalt-size-tap-min); }
+  }
+  @media (forced-colors: active) {
+    .basalt-diagram .basalt-diagram-node[data-link] :is(.basalt-diagram-name, .basalt-diagram-tname) { color: LinkText; text-decoration: underline; }
+    .basalt-diagram .basalt-diagram-node[data-link] .basalt-diagram-name-end::after { forced-color-adjust: none; background: LinkText; }
+    .basalt-diagram .basalt-diagram-node[data-link][data-focal] :is(.basalt-diagram-name, .basalt-diagram-tname) { color: Canvas; }
+    .basalt-diagram .basalt-diagram-node[data-link][data-focal] .basalt-diagram-name-end::after { background: Canvas; }
+  }
+
   /* A group: a transparent box with a 1px dashed structure edge, radius 12, its label at the top start. Stacked, the box wraps its members;
      drawn, the members sit in the author's grid and the box spans their cells, space-4 outside them and space-8 above. */
   .basalt-diagram-group {

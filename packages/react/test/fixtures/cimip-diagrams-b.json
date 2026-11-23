@@ -49,7 +49,8 @@
         "focal": true,
         "group": "aws",
         "col": 3,
-        "row": 2
+        "row": 2,
+        "href": "#fig-sequence"
       },
       {
         "id": "aurora",
@@ -734,7 +735,8 @@
             "name": "summary",
             "type": "text"
           }
-        ]
+        ],
+        "href": "#fig-architecture"
       },
       {
         "name": "users",

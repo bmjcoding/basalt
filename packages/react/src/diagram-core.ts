@@ -38,6 +38,10 @@ export interface DiagramNode {
   row: number;
   /** Indented in the stacked drawing; a node is on the spine unless it is a branch. */
   branch?: boolean;
+  /** The card is a link (DECISIONS 306, 1.4): the card itself is an `<a>`, the figure's roving stop, and Enter follows it. */
+  href?: string;
+  /** `"_blank"` opens a new tab (with `rel="noopener noreferrer"`); the cue is then the external arrow. */
+  target?: "_blank";
 }
 
 export interface DiagramEdge {
@@ -83,7 +87,7 @@ export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane
 export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean }
 export type SequenceStep = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind } | { band: string };
 export interface SchemaColumn { name: string; type?: string; key?: "PK" | "FK"; references?: string }
-export interface SchemaTable { name: string; col: number; row: number | [number, number]; focal?: boolean; more?: number; columns: SchemaColumn[] }
+export interface SchemaTable { name: string; col: number; row: number | [number, number]; focal?: boolean; more?: number; columns: SchemaColumn[]; href?: string; target?: "_blank" }
 export interface DiagramShapeLabels { terminal?: string; step?: string; decision?: string }
 
 /** Everything a figure is drawn from: the React props, or the HTML skill's JSON, key for key. */
@@ -137,6 +141,9 @@ export interface MNode {
   short?: string;
   /** A card's mark: a bundled id (the HTML skill's page holds its rule) or the two URLs. */
   mark?: { id?: string; onLight?: string; onDark?: string; says?: string[] };
+  /** A link card (1.4). */
+  href?: string;
+  blank?: boolean;
 }
 export interface MEdge {
   i: number;
@@ -306,6 +313,16 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     }
   }
 
+  // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
+  const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
+  (rawCards ?? []).forEach((raw, k) => {
+    if (!raw || raw.href === undefined || raw.href === null) return;
+    const href = String(raw.href);
+    if (type === "sequence") { dev && warn(`${nodes[k]?.id}: a participant cannot be a link (href)`); return; }
+    if (!href) { dev && warn(`${nodes[k]?.id}'s href is empty`); return; }
+    const n = nodes[k];
+    if (n) { n.href = href; n.blank = raw.target === "_blank"; }
+  });
   const byId = new Map<string, MNode>();
   for (const n of nodes) {
     if (dev && !n.id) warn("a node has no id");
@@ -744,12 +761,19 @@ function inlineArrow(P: string, kind: DiagramLineKind): VElement {
 
 // ---- Nodes ----
 
+/** A card's name; a link card's last word is held with its cue (the stylesheet's arrow after it), so the arrow never leaves the name's last word (1.4). */
+function linkName(P: string, n: MNode): VChild {
+  if (!n.href) return n.name;
+  const at = n.name.trimEnd().lastIndexOf(" ");
+  return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
+}
+
 function nodeText(P: string, m: Model, n: MNode): VChild[] {
-  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, n.name))];
+  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
   if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, n.kind!, h("span", { class: `${P}-lane-word` }, ` · ${n.laneLabel}`)));
   else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
-  kids.push(h("span", { class: `${P}-name` }, n.name));
+  kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
   if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)]) : n.detail));
   return kids;
@@ -757,7 +781,7 @@ function nodeText(P: string, m: Model, n: MNode): VChild[] {
 
 function tableText(P: string, n: MNode): VChild[] {
   return [
-    h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, n.name)),
+    h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, linkName(P, n))),
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
       h("span", { class: `${P}-cname` }, c.name),
@@ -791,8 +815,13 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   const wordsWidth = own(dyn.words, n.id);
   if (wordsWidth) style.push(`--_ww:${wordsWidth}px`);
   const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
-  return h("div", {
+  // A link card is the link itself (1.4): its name is its sentence, read with the link role, and it begins with the card's visible name.
+  return h(n.href ? "a" : "div", {
     class: `${P}-node`,
+    href: n.href,
+    target: n.href && n.blank ? "_blank" : undefined,
+    rel: n.href && n.blank ? "noopener noreferrer" : undefined,
+    "data-link": n.href ? (n.blank ? "external" : "") : undefined,
     "data-node": n.id,
     "data-shape": n.shape,
     "data-focal": n.focal ? "" : undefined,
@@ -800,8 +829,8 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
-    role: images ? "img" : undefined,
-    "aria-label": images ? nodeSentence(m, n) : undefined,
+    role: images && !n.href ? "img" : undefined,
+    "aria-label": images || n.href ? nodeSentence(m, n) : undefined,
     tabindex: tabbable,
   },
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
@@ -889,12 +918,14 @@ function buildList(P: string, m: Model): VNode[] {
   const sub = Math.min(6, m.heading + 1);
   const H = (text: string) => h(`h${sub}`, { class: `${P}-list-head` }, text);
   const strong = (s: string) => h("strong", null, s);
+  // A link card's name in the list is the same link (1.4).
+  const named = (n: MNode) => (n.href ? h("a", { href: n.href, target: n.blank ? "_blank" : undefined, rel: n.blank ? "noopener noreferrer" : undefined }, strong(n.name)) : strong(n.name));
   const code = (s: string) => h("code", { class: `${P}-code` }, s);
   const name = (id: string) => m.byId.get(id)?.name ?? id;
   const kw = (k: DiagramLineKind) => { const w = kindWord(m, k); return w ? ` (${w})` : ""; };
   const focal = (n: MNode) => (n.focal && m.legend.focal ? ` ${sentence(m.legend.focal)}` : "");
   if (m.type === "architecture") {
-    const part = (n: MNode) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", n.detail ? [". ", n.mono ? code(n.detail) : n.detail, /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", focal(n));
+    const part = (n: MNode) => h("li", null, named(n), n.kind ? `, ${n.kind}` : "", n.detail ? [". ", n.mono ? code(n.detail) : n.detail, /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", focal(n));
     const out: VNode[] = [H("Parts")];
     const loose = m.nodes.filter((n) => !n.group);
     if (loose.length) out.push(h("ul", { class: `${P}-list-items` }, loose.map(part)));
@@ -917,14 +948,14 @@ function buildList(P: string, m: Model): VNode[] {
       const exits = m.edges.filter((e) => e.from === n.id);
       const what = n.shape === "decision" ? "Decision" : n.shape === "terminal" ? (exits.length ? "Start" : "End") : "Step";
       const stop = !n.detail && /[.!?]$/.test(n.name) ? " " : ". ";
-      return h("li", null, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
+      return h("li", null, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
         exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${said(e.label)}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
     }))];
   }
   if (m.type === "data-flow") {
     return [h("ol", { class: `${P}-list-items` }, m.nodes.map((n) => {
       const exits = m.edges.filter((e) => e.from === n.id);
-      return h("li", null, `${n.laneLabel}: `, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
+      return h("li", null, `${n.laneLabel}: `, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
         exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", kw(e.kind)]), "."] : "");
     }))];
   }
@@ -944,7 +975,7 @@ function buildList(P: string, m: Model): VNode[] {
   const out: VNode[] = [];
   for (const n of m.nodes) {
     // A table's name is a sub-heading one level under the title's, as "Parts" and "Connections" are.
-    out.push(h(`h${sub}`, { class: `${P}-list-group` }, code(n.name), focal(n)));
+    out.push(h(`h${sub}`, { class: `${P}-list-group` }, n.href ? h("a", { href: n.href, target: n.blank ? "_blank" : undefined, rel: n.blank ? "noopener noreferrer" : undefined }, code(n.name)) : code(n.name), focal(n)));
     out.push(h("ul", { class: `${P}-list-items` }, [
       ...(n.columns ?? []).map((c) => h("li", null, code(c.name), c.key === "PK" ? ", primary key" : c.key === "FK" ? ", foreign key" : "", c.ref ? [", references ", code(`${c.ref.table}.${c.ref.column}`)] : c.type ? `, ${c.type}` : "")),
       ...(n.more ? [h("li", null, `and ${n.more} more ${n.more === 1 ? "column" : "columns"}`)] : []),
@@ -957,13 +988,15 @@ function buildList(P: string, m: Model): VNode[] {
 function keysSentence(m: Model, drawn = false): string {
   const noun = m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
   const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
-  return `${arrows}; Home and End go to the ends; Escape clears the trace.`;
+  // Where a card is a link (1.4), Enter follows it.
+  return `${arrows}; Home and End go to the ends; Escape clears the trace.${m.nodes.some((n) => n.href) ? " Enter opens a part that is a link." : ""}`;
 }
 
 /** The key hint's entries: the keys and their words. Four arrows where a drawn figure has more than one row and more than one column (1.5). */
 export function hintEntries(m: Model, drawn = false): Array<{ keys: string[]; words: string }> {
   const four = drawn && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
-  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
+  const open = m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [];
+  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, ...open, { keys: ["Esc"], words: "clear" }];
 }
 
 // ---- The spatial arrow keys (DECISIONS 306, 1.5): on a card's column and rows, never on its measured centre ----
@@ -1249,14 +1282,17 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
         const row = s("6") + measure(c.name, "mono") + (type ? s("3") + measure(type, "mono") : 0) + 2 * s("3") + 2 * tk.hair;
         table = Math.max(table, Math.ceil(row));
       }
-      table = Math.max(table, Math.ceil(measure(n.name, "table") + 2 * s("3") + 2 * tk.hair));
+      table = Math.max(table, Math.ceil(measure(n.name, "table") + 2 * s("3") + 2 * tk.hair + (n.href ? 16 + s("1-5") : 0)));
       continue;
     }
     const pad = n.shape === "terminal" ? 2 * s("5") : 2 * s("3");
     // The first line (the kind, or the name on a card with no kind) keeps space-6 clear of a mark, except in forced colours, where none is drawn.
     const seat = n.mark && !forced() ? s("6") : 0;
     let widest = 0;
-    for (const w of words(n.name)) widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat));
+    // A link card's last word carries its cue, 16 and space-1-5 before it (1.4).
+    const cue = n.href ? 16 + s("1-5") : 0;
+    const nameWords = words(n.name);
+    nameWords.forEach((w, j) => { widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat) + (j === nameWords.length - 1 ? cue : 0)); });
     if (m.type !== "data-flow") for (const w of words(n.kind)) widest = Math.max(widest, measure(w, "mono") + seat);
     for (const w of words(n.detail)) widest = Math.max(widest, measure(w, n.mono ? "mono" : "sans"));
     const need = n.shape === "decision" ? widest / 0.62 : widest + pad + 2 * tk.hair;
