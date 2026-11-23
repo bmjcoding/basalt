@@ -45,7 +45,8 @@
   },
   "files": [
     "dist",
-    "THIRD-PARTY-MARKS.md"
+    "THIRD-PARTY-MARKS.md",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
     "build": "node build.mjs",
