@@ -198,14 +198,15 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (the faces arriving, a resize) never restarts, hides or cuts short an entrance. An architecture card may carry its service's own mark,
   16px in the top end corner: the owner's file, never recoloured, a form for each ground, decoration beside the name, recorded in
   `packages/react/marks/manifest.json`; a service without one is its name alone. In print a mark prints, and so does the fill of a
-  focal node that carries one (`print-color-adjust: exact`). A sequence may show a participant working (a bar) and frame a run of messages
+  focal node that carries one (`print-color-adjust: exact`). A schema may state how many (crow's foot in the line's ink, on every key or none) and
+  draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
   (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
   Groups nest two deep; four end lanes at most. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
   author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. In print a figure is untraced and light.
   Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure
   is never scaled. elkjs loads on demand or not at all: place at build time. "Expand" opens the viewer: the drawn layout in a dialog (full screen under
   720), laid out at 100% and zoomed by the reader with one transform, from Fit or 100% to 400%, in steps that land at once; it pans by scrolling; it
-  is never a picture, a `viewBox` or CSS `zoom`; it is still, and it does not print. Cardinality and far keys (DECISIONS 306, 1.1) are not built yet.
+  is never a picture, a `viewBox` or CSS `zoom`; it is still, and it does not print.
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
   arrives; it does not promise the same wrap at every width.
 - **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed

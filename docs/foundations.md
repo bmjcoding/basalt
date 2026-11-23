@@ -62,7 +62,8 @@ levels changed no pixel.
 Dark steps up from true black in small increments, as Linear does. Nothing above the page
 is pure black, so large moving surfaces never smear on OLED (pixels at `#000` switch fully
 off and lag when they turn back on). Light sits the page just below white, as Vercel does,
-so white cards lift without a shadow.
+so white cards lift without a shadow. In print the tokens are the light set, whatever theme the screen shows: the tokens build writes
+it, and an app that prints dark on purpose overrides it.
 
 **Depth is by level, and the level is not a prop.** It is a private context, rendered as
 `data-level`, that crosses portals as the modal depth does:
@@ -1460,8 +1461,8 @@ Basalt allows a short list of vertical lines. Each is structure, and none is a s
 ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
 the app sidebar's 1px edge, a meter's labelled target tick, the vertical `Separator` between groups of controls (1px
 `border-divider`, as tall as the controls), the edges between a `NumberField`'s value and its steppers (part of the
-field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses) and a
-sequence diagram's lifeline. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
+field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses), a
+sequence diagram's lifeline and the activation bar on it, and a frame's sides. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
 Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the diagram's connector and lifeline decided by the
 council (DECISIONS 281, a handoff); the implementation hasn't been reviewed.
 
@@ -1684,8 +1685,8 @@ owner's prototype, one draft, a check and a decision, revised after the final po
 
 The parts of DECISIONS 301 (cardinality and far keys, activations and frames, the text art, nested groups, four end lanes, link cards,
 two-line labels, spatial keys, a trace on touch, marks on steps and participants, right to left, export and automatic layout) were
-decided by the council from two drafts and a check (DECISIONS 306, revised by 313). **Status:** the implementation has not been reviewed,
-and cardinality and far keys are not built yet. Automatic layout leads with build time: place with `placeDiagram` and pass `placement`, and
+decided by the council from two drafts and a check (DECISIONS 306, revised by 313). **Status:** the implementation has not been reviewed.
+Automatic layout leads with build time: place with `placeDiagram` and pass `placement`, and
 elkjs (EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0) never reaches the browser.
 
 **The idea: the words are in the boxes, the lines say how they connect, and the key says what each line means.** A diagram is
@@ -1712,12 +1713,15 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 - Lines are orthogonal, with elbows of 8 or half the shorter leg. One head, `size-diagram-head`, at the far end. A line ends on the
   shape drawn, not on its box. A 1px line sits on half pixels, a 2px line on whole ones, and a head snaps with its line.
 - **Ports are derived.** Nodes in a row or a column face each other; otherwise a line leaves sideways and enters from above or below.
-  A side's one line is at its middle; a straight line keeps the middle and others take the quarter points. An author names a side only
-  to change that.
+  A side's one line is at its middle. A straight line keeps the middle; one other takes the quarter point toward its far end, and
+  two or more share that half evenly. A port is on the flat part of its side, never nearer a corner than the corner's radius, and
+  two ports on a side are at least `size-diagram-head` apart: a card whose side holds more than its height allows grows to the least
+  height at which both hold (48 for a straight line and two others), and its row takes that height. A side never stacks a figure. An
+  author names a side only to change that.
 - **Crossings:** place to avoid them; lines to one port share one lane and join; of two bypasses from one side, the farther-going
   leaves higher and takes the outer lane. A crossing that is left is cut: the line underneath breaks `size-cut` each side of the one
   on top. The horizontal run is on top, and a traced line is on top of an untraced one.
-- **A label** is `text-xs` Mono in secondary ink, one line, never cut. On its own line it has a ground-colour plate; beside its line
+- **A label** is `text-xs` Mono in secondary ink, one line, or two where the author writes a break (never a break of the engine's), never cut. On its own line it has a ground-colour plate; beside its line
   it is `space-2` clear of the stroke. Seats are taken along the run's clear shaft (the run without its head). A seat is taken only if
   the label, grown `space-1`, overlaps no node as drawn (the diamond or the capsule, not its box), label, head, boundary, rule or other
   line. A seat is measured from its line's place before the half-pixel snap, so whether it fits never turns on which way a half pixel
@@ -1730,9 +1734,19 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   and no line passes through a node. Otherwise the figure is stacked. This is a measured fit, not a breakpoint.
 - **Stacked** is one column in the author's order, at most 480 wide (`size-breakpoint-container`) on the start edge. Architecture and
   flowchart are a spine with indented branches: a rail and a trunk at the start, one lane at the end, every route taken from the order.
-  A line that leaves or passes a spine card runs in an end gutter outside the cards (`space-10`, two lanes at most), down into a card's
-  top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
+  A line that leaves or passes a spine card runs in an end gutter outside the cards (lanes `space-3-5` apart, four at most; the gutter is
+  its lanes and `space-3`), down into a card's top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target.
+- **Several end lines into one card nest:** the line from the outermost lane turns lowest and enters nearest the end edge; each
+  line from a lane further in turns `space-5` higher and enters `space-3` further in. Their labels are seated `space-2-5` clear of
+  the innermost entry, each on its own turn's height, taken before the half-pixel snap.
+- **Automatic layout** (`layout: "auto"`): the author leaves placement out and elkjs gives each card a column and a row. Nothing
+  else of elk's is read. Basalt sizes, routes, seats and stacks the figure as it does an authored one, and chooses each line's sides
+  from its router's four shapes, the line with the fewest clean shapes first. A main line that passes a layer keeps a way there:
+  cells no card takes. A decision's point that a line leaves takes no other line, and a line turns back only where there is a gutter
+  (DECISIONS 322). It tries the type's direction, then the other, then
+  stacks; a figure is never scaled. A `col` or `row` left on a card is not read: there are no hints. elkjs is loaded on demand, or
+  not at all where `placement` is given; the HTML skill places at build time.
 - **A stack that would still overlap draws no lines** (the decider's answers, review round 64): a drawing known to overlap is never drawn, and all its lines go,
   not some. It is dressed as where scripting is off: no line in the key, no key hint, no roving stops, and the list open (the toggle
   stays and reads "Hide the list"). This is the one exception to every edge and label being present at every width; a development
@@ -1741,23 +1755,37 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 
 ### The types
 
-- **Architecture:** a group is a transparent box with a 1px dashed `diagram-structure` edge, radius 12, its label at the top start. Its
-  extent is its members'. One level of grouping.
+- **Architecture:** a group is a transparent box with a 1px dashed `diagram-structure` edge, radius 12, its label at the top start.
+  Its extent is its members'. A group may hold groups, two levels in all; an inner group is `space-4` inside the outer and radius 8.
 - **Flowchart:** shape carries type: a step is the box, a start or end a capsule, a decision a diamond behind its words. **Every
   flowchart shape has a 1px `diagram-structure` contour** in place of the rim, because the shape has to be seen at 3:1. A decision is
-  at least `space-16` tall and never flatter than 5:1.
+  at least `space-16` tall and never flatter than 5:1. A decision is never taller than it is wide: a width at which one would be is not
+  a width the flowchart is drawn at.
 - **Data flow:** lanes are bands ruled apart with the divider, named at the start. A node's kind line is its step number.
 - **Sequence:** a head per participant; a lifeline is 1px `diagram-structure`, dashed 4 on 4 off; a message is a 56px row with its
   number and label above the line and a note below, on plates that mask the lifelines; a self-call is a small loop; a reply is dashed;
-  a band is a ruled line of words, never a frame.
+  a band is a ruled line of words. **A bar** on a lifeline (`size-diagram-activation`, the head's fill, a 1px `diagram-structure`
+  edge) shows a participant working, from the message that starts it to the one that ends it. **A frame** (`opt`, `loop`, `alt`) is a
+  transparent box round a run of messages, 1px solid `diagram-structure`, radius 12, as wide as the participants inside it: structure,
+  never a panel. Its operator is in a tab at its top start, its condition beside it, and an `alt`'s later branches start under a
+  dashed rule and the word `else`. Every word of a frame is plated. Frames nest two deep. In a run, messages not yet reached are
+  quiet: label `text-secondary`, line `diagram-edge-dim`. **As text** (`variant: "text"`) the same data is box-drawing characters in a
+  code block, and a transcript where the art does not fit; it never scrolls sideways, no character is written over a word, and no
+  line is ever hidden.
 - **Schema:** a table is a card with a header band and 28px rows (a key seat, the name, the type or "→ table"). A foreign key is a
-  plain line from a dot on its row to a head on the referenced row. It comes from the column's own record.
+  plain line from a dot on its row to a head on the referenced row. It comes from the column's own record. Where the author states
+  how many (`cardinality`, on every foreign key or none), the dot and the head give way to crow's-foot marks in the line's ink, inside
+  `size-diagram-foot` at each end, and the column gap is `space-12` plus `space-3`: three lanes at most, none nearer a table than the
+  zone plus `radius-xs`. A key two or more columns away is drawn along a corridor: a row gap clear of the tables between, or the margin
+  above or below. A line that cannot be drawn clean is left out alone, and its row still writes the target.
 
 ### The key, the summary and the list
 
 - The key is under the drawing and is built from the marks actually drawn, each swatch drawn like its mark. The author writes the
   words. Main, dashed and the focal node must have them. A schema's key starts with the key seats it uses, the letters set as the
-  seat sets them, then "Primary key" and "Foreign key" (built in; the decider's answers, review round 64).
+  seat sets them, then "Primary key" and "Foreign key" (built in; the decider's answers, review round 64). A schema that draws
+  cardinality shows each form drawn ("Exactly one", "Zero or one", "One or many", "Zero or many"), and a sequence each frame operator
+  drawn, the letters set as the tab sets them ("Only if", "Repeats", "One of these"): built in, because they are notation.
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
 - The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is
@@ -1768,10 +1796,17 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 
 - Where lines are drawn the drawing is one tab stop: a `role="group"` with `aria-roledescription="diagram"`, named by the title and
   described by the summary and a sentence about the keys. Each node is a focusable `role="img"` named by a sentence that says what it
-  is, where it sits, and what it connects from and to. → ↓ the next, ← ↑ the one before, Home and End the ends, Esc clears. No live
-  region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
+  is, where it sits, and what it connects from and to. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
+  or column, then the lowest of tracks along the arrow plus twice the tracks across it. The rule runs on a part's column and rows,
+  never on its measured centre, and a figure whose parts cannot all be reached that way keeps the author's order. Stacked, the keys
+  are the author's order. Home and End the ends, Esc clears. No live region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
 - **Tracing** a node (hover, or keyboard focus) lifts its lines to primary ink and dims the rest to `diagram-edge-dim`. It changes ink
-  and never weight, dash or head, so the key stays true. There is no trace on touch, and a node is not a target.
+  and never weight, dash or head, so the key stays true.
+- **A card may be a link** (`href`): the card is the link and the figure's roving stop, Enter follows it, and its cue is the arrow
+  after its name ([Links and rows](#links-and-rows)); a press is a colour step.
+- **On touch a tap traces,** where lines are drawn. It clears by a tap on the same card, a tap on the ground or "Clear highlight", a
+  button that stays in the foot and is `aria-disabled` until a trace is up. A hint line says so. A card that answers a tap is at
+  least 44px tall. A linked card follows its link and is never traced by a tap. Nothing is announced.
 - A diagram is still unless its author asks for motion (`motion="animated"`); see [Motion in a diagram](#motion-in-a-diagram). A
   trace's ink changes over `duration-fast`, at once under reduced motion.
 
@@ -1810,7 +1845,9 @@ Still is the default and is the drawing above, unchanged. Animated adds an entra
 or a packet. Motion never carries a fact alone, and it runs only where lines are drawn.
 
 - **The entrance plays when the figure comes into view** (two fifths of the drawing, or of the window for a taller one), once a figure
-  a page load, on every figure that asks for it. It is not the page's one entrance and is not stored between visits.
+  a page load, on every figure that asks for it. It is not the page's one entrance and is not stored between visits, unless the figure
+  asks for `entrance: "first-visit"`: then a mark is stored when an entrance that played finishes or gives way to the reader, and later
+  visits are at rest. A visit at rest by mode stores nothing.
 - **Trace:** each line draws along its length at `speed-diagram-trace`, between `duration-diagram-line-min` and `-line-max`, on
   `ease-in-out`, in the author's order (a schema's by where each starts), `duration-diagram-stagger` apart. A head fades in over
   `duration-slow` as its line is 85% drawn. Each line is revealed on its own.
@@ -1824,9 +1861,10 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
 - **Measured again** (the faces arriving, a change of width, a parent's render), a figure whose lines are the same is not written to; a
   pending figure stays pending on its new lines; a running entrance carries on, on the new lines, from the clock it started on, with
   every line that was whole still whole; a layout with no lines is at rest. A loop starts again on the new lines.
-- **Flow** (`flow` on a main or plain edge): cuts of `size-cut` in the ground colour every `size-diagram-flow` march toward the head at
+- **Flow** (`flow` on an edge): cuts of `size-cut` in the ground colour every `size-diagram-flow` march toward the head at
   `speed-diagram-flow`. Cuts exist only while they move: held, traced, still and printed, the line is solid, so the key stays true. A line
-  with under 48px showing does not flow.
+  with under 48px showing does not flow. A dashed line's own dashes march, one period every 625ms, and sit where the key draws them
+  whenever they are not moving.
 - **Pulse** (`pulse`, a route of nodes): a solid bead of `size-diagram-bead`, at most two fifths of the line showing, one hairline proud
   of its line on each side, at `speed-diagram-pulse`. It leaves from a card's edge and is taken in at the line's end, rests
   `duration-diagram-rest` at each card, and starts again `duration-diagram-pause` after the route.
@@ -1841,6 +1879,8 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
   `data-loops="held"` clears them to rest. A figure that can loop draws "Pause animations", the hold's own button (`LoopsToggle`'s
   Button form at `size="sm"`), in its foot after "View as list" (WCAG 2.2.2). A trace stops them; they start again
   `duration-diagram-pause` after it ends. Neither motion button prints.
+- **A text sequence** builds by ink: a message's label and arrow lift to their resting ink at its turn. No line is hidden and there is
+  no caret.
 - **A sequence's run** (`run`): "Play the run" sends one packet through every message in order. It may pass five seconds; while it
   runs the button reads "Stop the run" and stops it. The hold does not stop it.
 - **Reduced motion:** the figure is still; a run steps through its messages by colour alone. **Forced colours:** the figure is still; a
@@ -1851,8 +1891,9 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
 
 Decided by the council for the owner's handoff (DECISIONS 287 to 291 and 292). **Status:** the implementation has not been reviewed.
 
-An architecture card may carry its service's own mark: 16px (`size-icon-sm`), in the top end corner inside the padding, with nothing
-behind it. The card's first line keeps `space-6` clear of it.
+An architecture card, a data flow's step and a sequence's participant may carry its service's own mark: 16px (`size-icon-sm`), in the top end corner inside the padding, with nothing
+behind it. The card's first line keeps `space-6` clear of it. A participant's head keeps `space-6` clear on both sides, so its name stays
+over its lifeline; a stacked chip draws the mark before the name.
 
 - **A mark is its owner's file and Basalt never recolours it.** It has a form for light grounds and a form for dark grounds; a card takes
   the form for its ground, and the focal card the other theme's. A one-colour mark with one published file and no rule against it gets its
@@ -1881,6 +1922,11 @@ behind it. The card's first line keeps `space-6` clear of it.
   the input boundary and do not step.
 - Print: the lines, the key's swatches, a card's mark and every focal node's fill (with a mark or without, DECISIONS 298) print whatever
   the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
+- Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
+  linked name is `LinkText`, underlined.
+- Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
+- Right to left: the figure mirrors and its words do not. Identifiers are isolated left to right as runs; named sides swap; the
+  arrow keys stay physical; the text art stays left to right.
 
 ### Diagram tokens
 
@@ -1902,6 +1948,8 @@ behind it. The card's first line keeps `space-6` clear of it.
 | `size-diagram-step` | 56px | A sequence's message row |
 | `size-diagram-head` | 8px | An arrowhead's length and its width |
 | `size-diagram-guide-dash` | 4px | A lifeline's dash, on and off |
+| `size-diagram-activation` | 8px | An activation bar's width |
+| `size-diagram-foot` | 14px | The room of a cardinality mark at a line's end |
 
 The motion tokens (DECISIONS 292). The motion tokens do not collapse under reduced motion: nothing they time runs there.
 
@@ -1931,7 +1979,9 @@ Under more contrast `diagram-focal-rule` is drawn as `diagram-focal-rule-contras
 theme's input boundary, 1.18), the way the other aliases of that mode are declared.
 
 **Not tokens, by choice:** the gaps, the rail (`space-3`), the trunk (`space-8`), the branch indent (`space-12`), the entry inset
-(`space-6`), the end gutter (`space-10`, lanes at `space-3-5`) and the quarter-point slots are rules made of the space scale.
+(`space-6`), the end gutter (lanes at `space-3-5`, four at most), the turn stagger (`space-5`), the schema's gap where marks are drawn
+(`space-12` plus `space-3`), a corridor's lanes (`space-3`), the viewer's zoom steps and limits (ratios, the reader's) and the
+quarter-point slots are rules made of the space scale.
 
 ## Layout
 
@@ -2264,7 +2314,8 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
 
 - **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
   set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the social
-  marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
+  marks, a diagram's "Expand", `ArrowsOutSimple`, until the core set draws one; built with words only for now, a deviation the
+  diagrams PR records), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
   agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
@@ -2419,6 +2470,9 @@ built here after the owner's word on Opus's second prototype (DECISIONS 227 and 
 form of a column the page docks when it is wide enough, and it opens from the side where the column docks. Under 720 that column is a bottom `Sheet`, as is a short list opened
 from the bottom of the screen. The top `Sheet` stays the site's narrow menu. (The owner's DECISIONS 222: lists are paginated with a choice of how many to show, and can be filtered;
 a form or task opens as a centered modal over a darkened page, not a side panel.)
+
+A diagram's viewer is not a task: it is a figure at the window's size ([Diagrams](#the-viewer)). It uses the dialog's box and the
+full-screen modal under 720, and the scrim always closes it.
 
 ### Everything that changes a list sits above it
 
