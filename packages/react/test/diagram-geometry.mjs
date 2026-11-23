@@ -115,9 +115,24 @@ function inspect(P, selector) {
     const aH = Math.abs(p1.y - p2.y) < 0.01, bH = Math.abs(q1.y - q2.y) < 0.01;
     if (aH === bH) continue;
     const [h1, h2, v1, v2] = aH ? [p1, p2, q1, q2] : [q1, q2, p1, p2];
-    if (v1.x > Math.min(h1.x, h2.x) + 0.75 && v1.x < Math.max(h1.x, h2.x) - 0.75 && h1.y > Math.min(v1.y, v2.y) + 0.75 && h1.y < Math.max(v1.y, v2.y) - 0.75) crossings.push({ a: lines[x], b: lines[y], x: v1.x, y: h1.y, under: aH ? lines[y] : lines[x] });
+    if (v1.x > Math.min(h1.x, h2.x) + 0.75 && v1.x < Math.max(h1.x, h2.x) - 0.75 && h1.y > Math.min(v1.y, v2.y) + 0.75 && h1.y < Math.max(v1.y, v2.y) - 0.75) crossings.push({ a: lines[x], b: lines[y], x: v1.x, y: h1.y, h: aH ? lines[x] : lines[y], v: aH ? lines[y] : lines[x] });
   }
-  const cuts = crossings.map((c) => { const path = drawing.querySelector(`.${P}-edge[data-edge="${c.under.i}"] .${P}-line`); return Boolean(path?.getAttribute("mask")); });
+  // A cut is a hole in a line's mask over the crossing's point. Which lines are cut there, read from the masks themselves: so a cut at the wrong
+  // place, or on the wrong line, is seen. The rule (1.7, 4): the horizontal run is on top, and a traced line is on top of an untraced one.
+  const cutAt = (line, x, y) => {
+    const ref = drawing.querySelector(`.${P}-edge[data-edge="${line.i}"] .${P}-line`)?.getAttribute("mask")?.match(/url\(#([^)]+)\)/)?.[1];
+    const mask = ref && drawing.querySelector(`mask[id="${ref}"]`);
+    if (!mask) return false;
+    return [...mask.querySelectorAll("rect[fill='black']")].some((r) => { const rx = +r.getAttribute("x"), ry = +r.getAttribute("y"), rw = +r.getAttribute("width"), rh = +r.getAttribute("height"); return x > rx && x < rx + rw && y > ry && y < ry + rh; });
+  };
+  const lit = (line) => drawing.querySelector(`.${P}-edge[data-edge="${line.i}"]`).hasAttribute("data-lit");
+  const cuts = crossings.map((c) => {
+    const under = lit(c.v) && !lit(c.h) ? c.h : c.v;
+    const over = under === c.h ? c.v : c.h;
+    const ok = cutAt(under, c.x, c.y) && !cutAt(over, c.x, c.y);
+    if (!ok) problems.push(`the crossing of ${c.h.from} to ${c.h.to} and ${c.v.from} to ${c.v.to} at (${c.x.toFixed(1)}, ${c.y.toFixed(1)}) is not cut on ${under.from} to ${under.to} alone`);
+    return { ok, under: `${under.from}>${under.to}` };
+  });
   // ---- labels ----
   for (const lab of labels) {
     const G = grow(lab, 0);
@@ -137,7 +152,7 @@ function inspect(P, selector) {
     layout, type, width: fig.clientWidth, problems: [...new Set(problems)],
     lines: lines.map((l) => ({ i: l.i, from: l.from, to: l.to, pts: l.pts, width: l.width })),
     labels: labels.map((l) => ({ i: l.i, text: l.text })),
-    crossings: crossings.map((c, k) => ({ a: `${c.a.from}>${c.a.to}`, b: `${c.b.from}>${c.b.to}`, cut: cuts[k] })),
+    crossings: crossings.map((c, k) => ({ a: `${c.a.from}>${c.a.to}`, b: `${c.b.from}>${c.b.to}`, cut: cuts[k].ok, under: cuts[k].under })),
     nodes: nodes.map((n) => ({ id: n.id, shape: n.shape, w: n.r - n.l, h: n.b - n.t, l: n.l, t: n.t })),
   };
 }

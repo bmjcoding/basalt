@@ -136,6 +136,9 @@ const MORE_CONTRAST = {
   "border-hover": "text-secondary",
   // A diagram's focal table draws its header rule as the other theme's input boundary (DECISIONS 281, 1.18).
   "diagram-focal-rule": "diagram-focal-rule-contrast",
+  // A diagram card's arrival rim (DECISIONS 292, 1.12): the rim it replaces is the input boundary's value in the mode, and secondary ink is under 3:1
+  // against that, and the same colour as a traced neighbour's rim (border-hover). It steps to primary ink, a colour the theme already has.
+  "diagram-hit": "text-primary",
 };
 for (const [token, alias] of Object.entries(MORE_CONTRAST)) {
   for (const name of [token, alias]) if (!lightNames.includes(`--${PREFIX}-${name}`)) throw new Error(`more contrast: --${PREFIX}-${name} does not exist`);
@@ -168,7 +171,7 @@ const css = [
   "",
   "/* More contrast (decisions 138 and 139, part D). A person who asks for it (prefers-contrast: more) gets three aliases and no new",
   "   colour: lines (the hairline, the divider, the rim and the pill's hairline) are drawn in the input boundary's value, and tertiary ink,",
-  "   a hovered edge (decision 145) and a field's boundary as secondary. The same declarations are made on every selector that sets a theme, after all of",
+  "   a hovered edge (decision 145) and a field's boundary as secondary, and a diagram card's arrival rim as primary (DECISIONS 292). The same declarations are made on every selector that sets a theme, after all of",
   "   them and at the system-dark rule's own specificity, so they win in both themes and under a theme chosen with data-theme. A var()",
   "   is substituted where it is declared, so each alias reads the theme of the element it is on. */",
   "@media (prefers-contrast: more) {",

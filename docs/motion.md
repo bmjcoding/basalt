@@ -77,6 +77,14 @@ A traveller that leaves a resting place and stops at another, carrying something
 
 One a page, only in its art, opacity only, from 1 to 0.2 and back on `ease-in-out`; each mark runs 0.6 to 1.4 times `duration-loop-ambient` with its own phase; a looping mark is no wider than `size-dot` and a page has at most 24. It joins the hold, and is still under reduced motion, in forced colours and in print. `LoopsToggle` is the control. A closing block's art (`Stage closing`) is held still: its marks stay at full opacity, because the page's one loop is the top stage's (DECISIONS 162, vote 2). Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
 
+## A diagram's motion
+
+A diagram is still unless its author asks for motion (`motion="animated"`). Still is the default and is the drawing as merged, unchanged.
+Animated adds an entrance and, where the data names them, a flow line, a pulse or a packet. Motion never carries a fact alone, and it runs
+only where lines are drawn. The entrance plays when the figure comes into view and is not the page's one entrance; the loops join the hold.
+The rules and the tokens are in [Motion in a diagram](foundations.md#motion-in-a-diagram). Status: decided by the council (DECISIONS 287
+to 291 and 292); the implementation hasn't been reviewed.
+
 ## The hover glide
 
 Menu, Select, Combobox and CommandMenu draw one plate per popup, and navigation draws one pill per list, which follows the pointer between rows on `duration-base` and `ease-out`, whatever the distance. Each row's own plate is the fallback and stays correct with no script. Base UI's `data-highlighted` (and cmdk's `data-selected`) stays the authority for which row is active; the glide only paints it, and an input-modality check decides whether the plate travels (pointer) or snaps (keyboard).

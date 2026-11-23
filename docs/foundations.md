@@ -611,7 +611,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
-  secondary or ghost, labelled "Pause animations") or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
+  secondary or ghost, labelled "Pause animations", `size` `md` or `sm`) or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
   label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
   animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
   state. **The app's own text is its part too:** while held, an elapsed time shows when the work
@@ -684,7 +684,8 @@ selected washes and the smoked header do not change: the washes stay at their va
 selected wash put it at 3.5:1). The aliases are declared on every selector that sets a theme, after all of them, so the mode works
 in both themes and under a theme chosen with `data-theme`; each alias reads the theme of the element it is on. The contrast tests
 prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. A diagram's focal node draws its quiet ink at full strength, and its structure lines (`diagram-structure`) stay on the input boundary
-as a chart's baseline does (DECISIONS 281). Status: decided by the council and approved by the owner
+as a chart's baseline does (DECISIONS 281). A service mark does not change in the mode. A diagram card's arrival rim (`diagram-hit`) is drawn as `text-primary`: the rim it
+replaces is the input boundary's value in the mode, and secondary ink is under 3:1 against that (DECISIONS 292). Status: decided by the council and approved by the owner
 (DECISIONS 138, 139 and 145); the implementation hasn't been reviewed.
 
 ### Accent classes
@@ -1682,7 +1683,8 @@ owner's prototype, one draft, a check and a decision, revised after the final po
 **Status:** decided by the council (DECISIONS 281, a handoff); the implementation has not been reviewed.
 
 **The idea: the words are in the boxes, the lines say how they connect, and the key says what each line means.** A diagram is
-monochrome. Nothing takes a colour, the accent or a status. One node may be focal, and it is inverted ink.
+monochrome. Nothing takes a colour, the accent or a status, with one exception: a service's own mark on an architecture
+card keeps its owner's colours ([Service marks](#service-marks)). One node may be focal, and it is inverted ink.
 
 ### The figure
 
@@ -1763,7 +1765,78 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
   region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
 - **Tracing** a node (hover, or keyboard focus) lifts its lines to primary ink and dims the rest to `diagram-edge-dim`. It changes ink
   and never weight, dash or head, so the key stays true. There is no trace on touch, and a node is not a target.
-- No motion in the drawing and no entrance. A trace's ink changes over `duration-fast`, at once under reduced motion.
+- A diagram is still unless its author asks for motion (`motion="animated"`); see [Motion in a diagram](#motion-in-a-diagram). A
+  trace's ink changes over `duration-fast`, at once under reduced motion.
+
+### Motion in a diagram
+
+Decided by the council for the owner's handoff (DECISIONS 287 to 291 and 292). **Status:** the implementation has not been reviewed.
+
+Still is the default and is the drawing above, unchanged. Animated adds an entrance and, where the data names them, a flow line, a pulse
+or a packet. Motion never carries a fact alone, and it runs only where lines are drawn.
+
+- **The entrance plays when the figure comes into view** (two fifths of the drawing, or of the window for a taller one), once a figure
+  a page load, on every figure that asks for it. It is not the page's one entrance and is not stored between visits.
+- **Trace:** each line draws along its length at `speed-diagram-trace`, between `duration-diagram-line-min` and `-line-max`, on
+  `ease-in-out`, in the author's order (a schema's by where each starts), `duration-diagram-stagger` apart. A head fades in over
+  `duration-slow` as its line is 85% drawn. Each line is revealed on its own.
+- **A sequence:** its messages go in order, `duration-diagram-step` apart. A message's label lifts from secondary to primary ink over
+  `duration-slower`, then its arrow draws over `duration-diagram-arrow`.
+- **Every word is at rest in the first frame,** edge labels included. An entrance ends inside `duration-diagram-limit` (five seconds):
+  the stagger or the step shrinks to fit.
+- **It never plays** when the figure is still, under reduced motion, in forced colours, under the hold or in print. **It settles at
+  once** when a node is hovered or focused, a key is pressed in the drawing, one of the figure's controls is used, the hold is set, the
+  page prints or the figure's data changes.
+- **Measured again** (the faces arriving, a change of width, a parent's render), a figure whose lines are the same is not written to; a
+  pending figure stays pending on its new lines; a running entrance carries on, on the new lines, from the clock it started on, with
+  every line that was whole still whole; a layout with no lines is at rest. A loop starts again on the new lines.
+- **Flow** (`flow` on a main or plain edge): cuts of `size-cut` in the ground colour every `size-diagram-flow` march toward the head at
+  `speed-diagram-flow`. Cuts exist only while they move: held, traced, still and printed, the line is solid, so the key stays true. A line
+  with under 48px showing does not flow.
+- **Pulse** (`pulse`, a route of nodes): a solid bead of `size-diagram-bead`, at most two fifths of the line showing, one hairline proud
+  of its line on each side, at `speed-diagram-pulse`. It leaves from a card's edge and is taken in at the line's end, rests
+  `duration-diagram-rest` at each card, and starts again `duration-diagram-pause` after the route.
+- **Packet** (`packet`, a route of nodes): a `size-dot` dot with a hairline ring in the ground colour. A leg runs at
+  `speed-diagram-packet`, between `duration-diagram-leg-min` and `-leg-max`, on `ease-in-out`; the dot stops `space-1` short of the line's
+  end, is taken in over `duration-base`, and rests `duration-diagram-rest`. It sends itself every `duration-diagram-repeat` (`repeat`), or
+  once for each new `send` value.
+- **A card a mover rests on** takes its arrival step: its rim `diagram-hit`; the focal card's fill and edge `diagram-focal-hit`.
+- **One mover a figure:** a pulse or a packet, never both. A second message waits for the first, and one may wait. Flow is a state of a
+  line and never runs on an edge the mover travels.
+- **The loops** (flow, a pulse, a packet that repeats) run only while the figure is in view, the tab is showing and no node is traced.
+  `data-loops="held"` clears them to rest. A figure that can loop draws "Pause animations", the hold's own button (`LoopsToggle`'s
+  Button form at `size="sm"`), in its foot after "View as list" (WCAG 2.2.2). A trace stops them; they start again
+  `duration-diagram-pause` after it ends. Neither motion button prints.
+- **A sequence's run** (`run`): "Play the run" sends one packet through every message in order. It may pass five seconds; while it
+  runs the button reads "Stop the run" and stops it. The hold does not stop it.
+- **Reduced motion:** the figure is still; a run steps through its messages by colour alone. **Forced colours:** the figure is still; a
+  run's dot is `Highlight` with a `Canvas` ring. **More contrast:** a card's arrival rim is `text-primary`. **Print:** at rest, every
+  line whole.
+
+### Service marks
+
+Decided by the council for the owner's handoff (DECISIONS 287 to 291 and 292). **Status:** the implementation has not been reviewed.
+
+An architecture card may carry its service's own mark: 16px (`size-icon-sm`), in the top end corner inside the padding, with nothing
+behind it. The card's first line keeps `space-6` clear of it.
+
+- **A mark is its owner's file and Basalt never recolours it.** It has a form for light grounds and a form for dark grounds; a card takes
+  the form for its ground, and the focal card the other theme's. A one-colour mark with one published file and no rule against it gets its
+  second form by swapping its one fill for white or black. Nothing else is done to a file but stripping what does not draw and fitting
+  the view box to the artwork.
+- **A mark is decoration.** It is hidden from assistive technology and not drawn in forced colours, and it never carries a fact alone:
+  the card's words name the service. It is not a control or a status and does not change on hover, trace or arrival.
+- **A mark is in Basalt's set only if** it is the owner's own file, has both forms, reads at 16px on every ground, holds no lettering,
+  and its ink is 3:1 on levels 1 to 3 in both themes. A service without one is its name alone, never a stand-in. On the dark theme's
+  focal card AWS's orange, green and teal and CodeRabbit's orange are 2.57 to 2.71:1; that is recorded and accepted, and the test names
+  them. **The exceptions** (the owner's word, DECISIONS 297): Jenkins, ServiceNow and BlazeMeter carry unofficial one-colour drawings
+  (Simple Icons' and Devicon's), black on light grounds and white on dark, and Bedrock carries AWS's service icon with its tile removed and
+  its glyph in the tile's teal. Each is marked unofficial in the manifest, with every edit made to the fetched file.
+- **Each mark is recorded** in `packages/react/marks/manifest.json`: its source, the date fetched, its terms, its forms and what was done
+  to the file. Each is one module (`@srasyndicate/basalt/marks/<id>`), outside the package's index, and the HTML skill writes into a page
+  only the marks it names. The owner decided to bundle them and may remove any (DECISIONS 291).
+- An app's own mark is `{ onLight, onDark }`, two URLs it has the right to show, drawn in the same seat.
+- **In print** a mark prints (`print-color-adjust: exact`, with the `-webkit-` form), in the form of the theme the page prints in.
 
 ### Forced colours and more contrast
 
@@ -1772,6 +1845,8 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
   it and every colour inside set by hand (Chromium otherwise paints a `Canvas` backplate under its words); the focus ring `Highlight`.
 - More contrast: the aliases apply. The focal node's quiet ink goes to full strength. `diagram-structure` and `diagram-edge-dim` are
   the input boundary and do not step.
+- Print: the lines, the key's swatches, a card's mark and every focal node's fill (with a mark or without, DECISIONS 298) print whatever
+  the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
 
 ### Diagram tokens
 
@@ -1793,6 +1868,30 @@ monochrome. Nothing takes a colour, the accent or a status. One node may be foca
 | `size-diagram-step` | 56px | A sequence's message row |
 | `size-diagram-head` | 8px | An arrowhead's length and its width |
 | `size-diagram-guide-dash` | 4px | A lifeline's dash, on and off |
+
+The motion tokens (DECISIONS 292). The motion tokens do not collapse under reduced motion: nothing they time runs there.
+
+| Token | Value | Use |
+|---|---|---|
+| `duration-diagram-line-min` | 400ms | The shortest a traced line takes to draw |
+| `duration-diagram-line-max` | 900ms | The longest |
+| `duration-diagram-stagger` | 220ms | Between one traced line's start and the next |
+| `duration-diagram-step` | 320ms | Between one sequence message's start and the next |
+| `duration-diagram-arrow` | 500ms | A sequence message's arrow drawing |
+| `duration-diagram-limit` | 5000ms | An entrance ends inside it; the stagger or the step shrinks to fit |
+| `duration-diagram-leg-min` | 500ms | The shortest leg of a packet |
+| `duration-diagram-leg-max` | 1100ms | The longest |
+| `duration-diagram-rest` | 400ms | A mover's rest at a stop, while the stop holds its arrival step |
+| `duration-diagram-pause` | 1200ms | Between two runs of a pulse; and before loops resume after a trace |
+| `duration-diagram-repeat` | 4000ms | Between a repeating packet landing and its next start |
+| `speed-diagram-trace` | 300 | A traced line, in pixels a second, clamped by the two line durations |
+| `speed-diagram-packet` | 250 | A packet's leg (4ms a pixel), clamped by the two leg durations |
+| `speed-diagram-pulse` | 120 | A pulse's bead |
+| `speed-diagram-flow` | 16 | A flow line's march |
+| `size-diagram-bead` | 24px | A pulse's bead, along the line |
+| `size-diagram-flow` | 12px | From one flow cut to the next (a cut is `size-cut`, so 10 on, 2 off) |
+| `diagram-hit` | `text-secondary`; `text-primary` under more contrast | A card's rim while a mover rests on it |
+| `diagram-focal-hit` | `action-primary-hover` (`#fff` dark, `#000` light) | The focal card's fill and edge while a mover rests on it |
 
 Under more contrast `diagram-focal-rule` is drawn as `diagram-focal-rule-contrast` (`black-45` in dark, `white-38` in light: the other
 theme's input boundary, 1.18), the way the other aliases of that mode are declared.
@@ -1993,6 +2092,8 @@ A picture in the flow is a distinct object, so a panel's geometry.
 
 `duration-stagger` is 22ms: the step between the marks of one figure entering, shrunk so every start falls within `duration-slow`
 of the first. Under reduced motion `duration-figure` is 100ms and `duration-stagger` is 0.
+A diagram's own durations and speeds (`duration-diagram-*`, `speed-diagram-*`) are in [Motion in a diagram](#motion-in-a-diagram);
+they time nothing but a diagram.
 
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
 `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms and `duration-loop-ambient` 6000ms, the middle period of a page's
@@ -2012,9 +2113,10 @@ else (no row, card, menu item, command row or the parts of a field; there is no 
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. A Dialog enters the same way from its own centre (it grows from no opener), in `duration-slow`, and leaves at three quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
-`duration-slow` `ease-out`; the panel never remounts. Two kinds of thing loop, and nothing else: a mark that says work is running
-(the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's
-one ambient loop, opacity only, in its art; `data-loops="held"` stops both.
+`duration-slow` `ease-out`; the panel never remounts. Three kinds of thing loop, and nothing else: a mark that says work is running
+(the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a
+page's one ambient loop, opacity only, in its art, and an animated diagram's live lines (a flow line, a pulse, a packet that repeats);
+`data-loops="held"` stops all three.
 
 **The sliding pill.** A one-of-many control, the segmented control and vertical tabs, holds one pill, and it slides to
 the chosen item by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`,
@@ -2070,6 +2172,8 @@ change without a reload counts as a load (DECISIONS 143): the app tells the entr
 with nothing reported, the document's own clock is used. A path reached that way is stored as seen when its entrance finishes or gives way.
 The skill's chart glides every mark from where it is drawn when a new data set arrives mid-entrance, as React's does. One a page, and only for a figure whose marks carry the page's point: a `Chart` with `entrance`.
 A brand mark's own entrance is the brand player's rule and is not counted here. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+A diagram's entrance is a rule of its own and is not this one: it plays when its figure comes into view, on every figure that asks for
+it ([Motion in a diagram](#motion-in-a-diagram)).
 
 **Travel.** A traveller that leaves a resting place and stops at another on screen, carrying something the reader follows, moves by
 transform on `ease-in-out`: a leg is `duration-slower` up to 150px, 2ms a pixel above that, and `duration-figure` from 300px (so a
@@ -2079,7 +2183,8 @@ two in flight a third lands the oldest at once, its outcome written. Under reduc
 with a 100ms fade and the outcome is written at once. The hold does not stop a travel the reader started, and nothing sends itself
 under it. The timing is `travelLeg`, `travelRun` and `createTravellers`, exported; a run ends inside five seconds for every plan it accepts (no leg is made shorter than 100ms, and a plan whose rests and shortest legs cannot fit, more than 17 legs, 16 stops, is refused with an error); `TravelSpinner` keeps its single `duration-slower`
 leg, because it answers an accept in an app. Anything that answers a pointer or key in place (the pill, the plate), an entry or exit,
-scroll and a loop is not a travel. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
+scroll and a loop is not a travel. Basalt's own diagrams move their packet on slower legs of their own, hold one mover at a time and let a run the reader starts pass five
+seconds with a button that stops it ([Motion in a diagram](#motion-in-a-diagram)). The hold still never stops what the reader started. Status: decided by the council (DECISIONS 136) and approved by the owner (DECISIONS 139); the implementation hasn't been reviewed.
 
 **An ambient loop.** One a page, only in its art (a `Stage`'s art or a framed drawing; a closing block's art is held still, DECISIONS 162), and never on text, a control, a data mark, a
 panel, a rim, a block or anything that carries information. Opacity only, from 1 to 0.2 and back on `ease-in-out`: no translate,
@@ -2120,7 +2225,8 @@ The components and what each does are in [Motion and primitives](motion.md).
 Basalt has a core set of its own, drawn by the design council (decisions 38 to 40, 54 and 55): the
 core actions, navigation and Blacksand's product nouns. Each glyph is a module of
 `@srasyndicate/basalt` (`HomeGlyph`), and the long tail is Phosphor (MIT), Bold at 16, 20 and 24.
-A product's own logo is its own; the social marks are Phosphor's (below).
+A product's own logo is its own; the social marks are Phosphor's (below). A diagram's service marks are not icons: they are their owners' files, in their owners' colours, with rules of their own
+([Service marks](#service-marks)).
 
 - **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
   set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the social
@@ -2252,9 +2358,9 @@ for large; 2 from 480 and 4 from 960 of the container for small) and the breakpo
 superellipse of exponent 5 at every size and takes no radius**; the hairline follows it, drawn over the picture and half a pixel outside it, `border-hairline`,
 non-scaling. It is flat: a tile in the flow does not float, so no shadow. Nothing is drawn over the picture, and none is recoloured, dimmed, cropped, turned or
 animated. Sizes: 20, 32, 36, 40, 44, 48 and 52 (or the parent's, square). It is decorative (`aria-hidden`), **always beside the company's name,** and not drawn in
-forced colours. Each tile carries its own clip, so none can be left unclipped by a page that forgot a definition. **Basalt ships no company's icon file,** in the
+forced colours. Each tile carries its own clip, so none can be left unclipped by a page that forgot a definition. **Basalt ships no company's picture for a tile,** in the
 package, the reference or the skill: the tile shows what a product has the right to show, and the tests and the round use a neutral stand-in. There is no
-fallback when the picture is missing.
+fallback when the picture is missing. The one set of company files Basalt ships is a diagram's service marks, by the owner's decision ([Service marks](#service-marks)).
 
 ### The period stepper
 

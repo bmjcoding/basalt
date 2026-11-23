@@ -14,7 +14,8 @@
 // compose.mjs wraps it in the doctype, meta and theme bootstrap, adds Geist (inlined, unless --no-fonts), the core CSS and
 // script and only the modules the body uses, the icons it names, and `Basalt.init()` unless the body already calls it.
 // A comment, script, style, svg or template that is never closed is refused. A style, title, meta or link inside an svg or a template is left where it is.
-// The output is the same for the same input. It reads only the files beside it (parts/ and SKILL.md) and writes only --out.
+// The output is the same for the same input. It reads only the files beside it (parts/ and SKILL.md), and a diagram's own service-mark files where a
+// card names one by path (read from beside the body, so the page stays one file), and writes only --out.
 // --all adds every module and every icon (for a page that builds markup at run time, and for measuring). No dependencies.
 // After the page, it prints the one-line warning of each module it added (the module's line in SKILL.md's index), to stdout; a module
 // the body never uses itself, which is in only because another module's script builds it, says so instead.
@@ -513,7 +514,7 @@ export function brandSvg(text) {
  * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts).
  * Returns { html, modules, icons, glyphs, built, external, bytes } (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
  */
-export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts") } = {}) {
+export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts"), baseDir = process.cwd() } = {}) {
   if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) throw new Error(`"${lang}" is not a language code`);
   const manifest = JSON.parse(read(parts, "manifest.json"));
   const iconFile = JSON.parse(read(parts, "icons.json"));
@@ -524,6 +525,9 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   let markup = held.text;
   if (held.whole) throw new Error("the input is a whole page; give compose.mjs the body fragment only (the HTML that goes inside <body>)");
   const use = [];
+  // A diagram's service marks (DECISIONS 292, 2.6): the bundled ids a page names (in its cards, or in a <!-- basalt:marks … --> comment for a figure drawn
+  // from script) and its own marks, read into the page. One rule a mark, however many cards use it.
+  const marks = { named: [], used: new Map(), baseDir, file: null, parts };
   const styles = [];
   const headTags = [];
   let title = null;
@@ -533,6 +537,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     if (kind === "title" && title === null) { title = inner.trim(); return ""; }
     if (kind === "head") { headTags.push(headTag(text.trim(), held.saved[Number(i)].attrs)); return ""; }
     if (kind === "svg" && readTag(text, 0).attrs.some((a) => a[0] === "data-brand")) return brandSvg(text) + ws;
+    const named = kind === "comment" && text.match(/^<!--\s*basalt:marks\s+([\s\S]*?)-->$/);
+    if (named) { marks.named.push(...named[1].split(/[\s,]+/).filter(Boolean)); return ws; }
     const directive = kind === "comment" && text.match(/^<!--\s*basalt:use\s+([\s\S]*?)-->$/);
     if (!directive) return all$;
     use.push(...directive[1].split(/[\s,]+/).filter(Boolean));
@@ -541,7 +547,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   for (const name of use) if (!(name in manifest.modules)) throw new Error(`basalt:use names "${name}", which is not a module (modules: ${Object.keys(manifest.modules).join(", ")})`);
 
   const diagramNotes = [];
-  const content = held.restore(writeDiagrams(markup, held, parts, diagramNotes)).replace(/^\s+/, "");
+  const content = held.restore(writeDiagrams(markup, held, parts, diagramNotes, marks)).replace(/^\s+/, "");
   title ||= held.h1 || "Untitled page"; // an empty <title> names nothing: the heading does
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
@@ -552,7 +558,9 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   const direct = detect(code, bare, [], { all, use }).modules;
   const built = Object.fromEntries(chosen.modules.filter((n) => !direct.includes(n)).flatMap((n) => chosen.modules.filter((m) => (manifest.modules[m].builds ?? []).includes(n)).slice(0, 1).map((m) => [n, m])));
 
-  const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`))].join("");
+  for (const id of marks.named) useMark(marks, id, null);
+  const markCss = chosen.modules.includes("diagram") ? markRules(marks) : "";
+  const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`)), markCss].join("");
   const icons = Object.fromEntries(chosen.icons.map((n) => [n, iconFile.icons[n]]));
   const script = [
     read(parts, "core.js"),
@@ -601,7 +609,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
  * example inside one is text and is never expanded. A figure is found by the composer's own tag reader (quoted, single-quoted or unquoted attributes alike),
  * and is expanded only when its class list holds `diagram` and its content is one `script` with `data-diagram` and nothing else but white space.
  */
-function writeDiagrams(markup, held, parts, notes) {
+function writeDiagrams(markup, held, parts, notes, marks) {
   if (!exists(parts, "diagram.js")) return markup;
   const mark = held.mark;
   const json = new RegExp(`^(\\s*)${mark}(\\d+)${mark}(\\s*)</figure(?=[\\t\\n\\f\\r />])[^>]*>`, "i");
@@ -621,6 +629,22 @@ function writeDiagrams(markup, held, parts, notes) {
     if (!item || item.kind !== "script" || !item.attrs.some(([k]) => k === "data-diagram")) continue;
     let spec;
     try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
+    // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
+    // the script reads carries the id and never a path.
+    if (spec && spec.type === "architecture" && Array.isArray(spec.nodes)) {
+      let rewrote = false;
+      for (const n of spec.nodes) {
+        if (!n || n.mark === undefined || n.mark === null) continue;
+        if (typeof n.mark === "string") useMark(marks, n.mark, n, notes);
+        else { n.mark = ownMark(marks, n.mark); rewrote = true; }
+      }
+      if (rewrote) {
+        // Every < as \u003c, which JSON reads as the same character: a title holding </script> or <!-- cannot end or bend the script it is in.
+        const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
+        item.text = item.text.replace(item.inner, () => inner);
+        item.inner = inner;
+      }
+    }
     if (!engine) {
       const context = { window: { Basalt: { _: { step() {}, esc: (x) => x } } }, console: { warn() {}, error() {}, log() {} } };
       vm.runInNewContext(read(parts, "diagram.js"), context);
@@ -642,6 +666,61 @@ function writeDiagrams(markup, held, parts, notes) {
     i = end - 1;
   }
   return out + markup.slice(at);
+}
+
+/** The bundled marks file (parts/marks.json), read once a page names a mark. */
+const marksFile = (marks) => (marks.file ??= JSON.parse(read(marks.parts, "marks.json")));
+/** A URL as a CSS string inside a <style>: a backslash and a quote escaped, a newline as \a and every < as \3c (CSS reads both as the character), so a data URI
+ *  holding </style> cannot end the style sheet. */
+const cssUrl = (u) => `url("${u.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, "\\a ").replace(/</g, "\\3c ")}")`;
+
+/** A bundled mark a page uses: known, its rule written once, and (for a card) its words checked: a mark never carries a fact alone. */
+function useMark(marks, id, node, notes) {
+  const file = marksFile(marks);
+  if (marks.used.has(id)) { if (node) checkSays(file, id, node, notes); return; }
+  const mark = Object.hasOwn(file.marks, id) ? file.marks[id] : undefined;
+  if (!mark) throw new Error(`"${id}" is not a bundled service mark (the marks: ${Object.keys(file.marks).join(", ")}); a page's own mark is { "onLight": "path", "onDark": "path" }`);
+  marks.used.set(id, mark);
+  if (node) checkSays(file, id, node, notes);
+}
+function checkSays(file, id, node, notes) {
+  const says = (Object.hasOwn(file.says, id) ? file.says[id] : undefined) ?? [];
+  const words = [node.name, node.kind, node.detail].filter(Boolean).join(" ").toLowerCase();
+  if (says.length && !says.some((w) => words.includes(w.toLowerCase()))) notes.push(`${node.id}'s mark (${id}) stands for ${says.join(" or ")}, and none of its words say so: a mark never carries a fact alone`);
+}
+
+/** A page's own mark, { onLight, onDark }: each file read from beside the body into a data URI (a page is one file with no network), and an id for its rule. */
+function ownMark(marks, mark) {
+  const uri = (ref) => {
+    const at = String(ref ?? "");
+    if (!at) throw new Error("a card's own mark needs onLight: a path to the file beside the body");
+    if (/^data:/i.test(at)) return at;
+    if (/^[a-z][\w+.-]*:/i.test(at)) throw new Error(`a card's mark is ${at}, which leaves the file: give a path beside the body, which compose.mjs reads into the page`);
+    const file = path.resolve(marks.baseDir, at);
+    const ext = path.extname(file).toLowerCase();
+    const type = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" }[ext];
+    if (ext !== ".svg" && !type) throw new Error(`a card's mark is ${at}: an SVG, PNG, JPEG, WebP or GIF file`);
+    // Beside the body means inside its folder: a path that climbs out of it, or a link that points out of it, is not read.
+    const inside = (dir, f) => { const rel = path.relative(dir, f); return rel !== "" && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel); };
+    if (!inside(marks.baseDir, file)) throw new Error(`a card's mark is ${at}, which is outside the body's folder: put the file beside the body`);
+    if (!fs.existsSync(file)) throw new Error(`a card's mark is ${at}, and there is no such file beside the body`);
+    if (!inside(fs.realpathSync(marks.baseDir), fs.realpathSync(file))) throw new Error(`a card's mark is ${at}, which links outside the body's folder: put the file itself beside the body`);
+    const bytes = fs.readFileSync(file);
+    if (ext === ".svg") return `data:image/svg+xml,${bytes.toString("utf8").replace(/"/g, "'").replace(/%/g, "%25").replace(/#/g, "%23").replace(/</g, "%3C").replace(/>/g, "%3E").replace(/\s+/g, " ").trim()}`;
+    return `data:${type};base64,${bytes.toString("base64")}`;
+  };
+  const onLight = uri(mark.onLight);
+  const onDark = mark.onDark ? uri(mark.onDark) : onLight;
+  for (const [id, m] of marks.used) if (m.onLight === onLight && (m.onDark ?? m.onLight) === onDark) return id;
+  const id = `page-${marks.used.size + 1}`;
+  marks.used.set(id, { onLight, onDark });
+  return id;
+}
+
+/** One rule a mark the page uses, in the diagram's layer: the two forms, which the stylesheet picks between by the ground. */
+function markRules(marks) {
+  if (!marks.used.size) return "";
+  return `@layer basalt{${[...marks.used].map(([id, m]) => `.diagram-node[data-mark="${id}"]>.diagram-mark{--_ml:${cssUrl(m.onLight)}${m.onDark ? `;--_md:${cssUrl(m.onDark)}` : ""}}`).join("")}}`;
 }
 
 /** The module lines of SKILL.md's "## Modules" index: [{ name, trigger, warning }]. A line is `- **name** \`trigger\`: warning`. */
@@ -751,7 +830,7 @@ if (isMain) {
         if (path.resolve(out) === path.resolve(input)) throw new Error(`${input} would be overwritten; name the page with --out`);
       }
       if (path.resolve(out) === path.resolve(input)) throw new Error("--out is the input file; name another file");
-      const result = compose(fs.readFileSync(input, "utf8"), options);
+      const result = compose(fs.readFileSync(input, "utf8"), { ...options, baseDir: path.dirname(path.resolve(input)) });
       fs.writeFileSync(out, result.html);
       console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}`);
       // One line of warning for each module added: the mistake an agent makes with it. The full text is `--usage NAME`.

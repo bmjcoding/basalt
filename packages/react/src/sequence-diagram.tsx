@@ -11,10 +11,12 @@ export interface SequenceDiagramProps extends DiagramFigureProps {
   participants: SequenceParticipant[];
   /** The messages in order, numbered through; `{ band }` names a phase. A reply or a stream is `dashed`. */
   steps: SequenceStep[];
+  /** Animated only: "Play the run" in the foot sends one packet through every message in order; while it runs it reads "Stop the run". */
+  run?: boolean;
 }
 
 /** A sequence diagram (DECISIONS 281): a head and a lifeline a participant, a 56px row a message; stacked, a numbered list. */
-export function SequenceDiagram({ participants, steps, title, heading, legend, ...props }: SequenceDiagramProps) {
-  const spec = React.useMemo(() => ({ type: "sequence" as const, title, heading, legend, participants, steps }), [title, heading, legend, participants, steps]);
+export function SequenceDiagram({ participants, steps, run, motion, title, heading, legend, ...props }: SequenceDiagramProps) {
+  const spec = React.useMemo(() => ({ type: "sequence" as const, title, heading, legend, participants, steps, motion, run }), [title, heading, legend, participants, steps, motion, run]);
   return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="SequenceDiagram" />;
 }

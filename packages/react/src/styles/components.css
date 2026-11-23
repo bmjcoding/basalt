@@ -4519,6 +4519,30 @@
   /* An identifier breaks only at its spaces: each run is kept whole, and is one word for the track's least width; break-word stays the net. */
   .basalt-diagram-run { display: inline-block; max-width: 100%; }
 
+  /* A service's own mark on an architecture card (DECISIONS 292, 2.1 to 2.7): 16px in the top end corner inside the padding, with nothing behind it,
+     the owner's file as a background image so its colours cannot be restyled. Its form follows the ground it sits on: a card takes the form for its
+     theme, the focal card the other theme's, because its fill is the other theme's ink. --_dkm is the theme's switch (empty in dark, `initial` in
+     light), set on every selector that sets a theme, so a theme nested in another picks its own form. The first line (the kind, or the name on a
+     card with no kind) keeps space-6 clear of it: the mark plus space-2. A mark is decoration: hidden from assistive technology, never a control. */
+  :root, [data-theme="light"], .light { --_dkm: initial; }
+  [data-theme="dark"], .dark { --_dkm: ; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) { --_dkm: ; }
+  }
+  .basalt-diagram-mark {
+    --_mf: var(--_dkm) var(--_md);
+    position: absolute;
+    inset-block-start: var(--basalt-space-2-5);
+    inset-inline-end: var(--basalt-space-3);
+    width: var(--basalt-size-icon-sm);
+    height: var(--basalt-size-icon-sm);
+    background: var(--_mf, var(--_ml)) center / contain no-repeat;
+    pointer-events: none;
+  }
+  /* A mark with one form for both grounds may set --_ml alone (the skill writes it once): the dark form falls back to it. */
+  .basalt-diagram-node[data-focal] > .basalt-diagram-mark { --_mf: var(--_dkm) var(--_ml); background-image: var(--_mf, var(--_md, var(--_ml))); }
+  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: var(--basalt-space-6); }
+
   /* The focal node: inverted ink; its quiet lines at opacity-amount, at full strength under more contrast. */
   .basalt-diagram-node[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-name, .basalt-diagram-kind, .basalt-diagram-detail, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more) { color: var(--basalt-diagram-focal-ink); }
@@ -4722,7 +4746,8 @@
   /* A stack drawn with no lines (1.13) is dressed as where scripting is off: no line in the key and no key hint (the list is open by script). */
   .basalt-diagram[data-bare] :is(.basalt-diagram-entry[data-line], .basalt-diagram-hint) { display: none; }
   .basalt-diagram-summary { order: 1; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); text-wrap: pretty; }
-  .basalt-diagram-foot { order: 2; display: flex; }
+  /* The foot: "View as list", then an animated figure's run button and "Pause animations" (DECISIONS 292, 1.9), space-2 apart and wrapping. */
+  .basalt-diagram-foot { order: 2; display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); }
   /* "View as list": real lists, no box round them. */
   .basalt-diagram-list { order: 3; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-list[hidden] { display: none; }
@@ -4828,10 +4853,73 @@
     .basalt-diagram .basalt-diagram-node[data-focal] .basalt-diagram-th { border-bottom-color: Canvas; }
     .basalt-diagram .basalt-diagram-node[data-focal]:focus-visible { outline: var(--basalt-size-focus-width) solid Highlight; }
     .basalt-diagram .basalt-diagram-node[data-focal][data-shape="decision"] .basalt-diagram-diamond path { fill: CanvasText; stroke: CanvasText; }
+    /* No mark is drawn, and the first line keeps no padding for one (DECISIONS 292, 2.7): the card's words name the service. */
+    .basalt-diagram .basalt-diagram-mark { display: none; }
+    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; }
   }
+  /* Print: the lines, the key's swatches, a card's mark and every focal node's fill print whatever the reader's "Background graphics" setting
+     (DECISIONS 292, 2.6; every focal node, with a mark or without, DECISIONS 298). */
   @media print {
-    .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow { print-color-adjust: exact; }
+    .basalt-diagram-svg, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .basalt-diagram-hint { display: none; }
+  }
+
+  /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's two buttons ----
+     Only on a figure that asks for it (data-motion="animated"); a still figure is the drawing above, unchanged. The motion code is a module of its
+     own (diagram-motion), loaded on demand; the still engine marks a figure pending in the frame its lines are first drawn (data-entrance). Every
+     moving part is hidden from assistive technology. Order, back to front: lines; flow cuts, the bead and the dot; labels and their plates; nodes.
+     Reviewed once (round 65: Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again. */
+  /* Pending: the lines are not shown until the figure comes into view, and a sequence's labels are in their quieter ink, still 4.5:1. */
+  .basalt-diagram[data-motion="animated"][data-entrance="pending"] .basalt-diagram-edges { visibility: hidden; }
+  .basalt-diagram[data-motion="animated"]:is([data-entrance="pending"], [data-entrance="running"]) .basalt-diagram-mlabel { color: var(--basalt-text-secondary); }
+  .basalt-diagram-motion-defs { position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none; }
+  /* Flow: cuts of size-cut in the ground colour every size-diagram-flow, only while they move. The bead: a solid segment of the main ink, a hairline
+     proud of its line on each side, butt ends. Each in a small overlay the size of its own line. */
+  .basalt-diagram-flow, .basalt-diagram-bead { position: absolute; overflow: visible; pointer-events: none; }
+  .basalt-diagram-flow path { fill: none; stroke: var(--_ground); stroke-linecap: butt; }
+  .basalt-diagram-bead path { fill: none; stroke: var(--basalt-diagram-edge-main); stroke-linecap: butt; }
+  /* The packet: a round dot of size-dot in the main ink with a hairline ring in the ground colour (a plate, not a glow), moved along offset-path. */
+  .basalt-diagram-packet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: content-box;
+    width: var(--basalt-size-dot);
+    height: var(--basalt-size-dot);
+    border: var(--basalt-size-hairline) solid var(--_ground);
+    border-radius: var(--basalt-radius-full);
+    background: var(--basalt-diagram-edge-main);
+    offset-anchor: center;
+    offset-rotate: 0deg;
+    pointer-events: none;
+  }
+  /* A card's arrival step while a mover rests on it: its rim diagram-hit, the focal card's fill and edge diagram-focal-hit; in over duration-slower
+     on ease-out, out over three quarters of it on ease-in. Written to outrank the type selectors. A sequence's number lifts to primary. */
+  .basalt-diagram .basalt-diagram-node[data-arrival]:not([data-focal]) { border-color: var(--basalt-diagram-hit); transition: border-color var(--basalt-duration-slower) var(--basalt-ease-out); }
+  .basalt-diagram .basalt-diagram-node[data-arrival-out]:not([data-focal]) { transition: border-color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  .basalt-diagram .basalt-diagram-node[data-focal][data-arrival] { background-color: var(--basalt-diagram-focal-hit); border-color: var(--basalt-diagram-focal-hit); transition: background-color var(--basalt-duration-slower) var(--basalt-ease-out), border-color var(--basalt-duration-slower) var(--basalt-ease-out); }
+  .basalt-diagram .basalt-diagram-node[data-focal][data-arrival-out] { transition: background-color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in), border-color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  .basalt-diagram[data-motion="animated"] .basalt-diagram-num { transition: color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
+  .basalt-diagram .basalt-diagram-msg[data-arrival] .basalt-diagram-num { color: var(--basalt-text-primary); transition: color var(--basalt-duration-slower) var(--basalt-ease-out); }
+  @media (pointer: coarse) {
+    .basalt-diagram-play, .basalt-diagram-pause { min-height: var(--basalt-size-tap-min); }
+  }
+  @media (forced-colors: active) {
+    /* The figure is still in forced colours; a run the reader starts and an app's send still travel, in Highlight. The focal card keeps its edge. */
+    .basalt-diagram .basalt-diagram-packet { forced-color-adjust: none; background: Highlight; border-color: Canvas; }
+    .basalt-diagram .basalt-diagram-node[data-arrival]:not([data-focal]) { border-color: Highlight; }
+    .basalt-diagram .basalt-diagram-node[data-focal][data-arrival] { background: CanvasText; border-color: CanvasText; }
+    .basalt-diagram .basalt-diagram-msg[data-arrival] .basalt-diagram-num { color: Highlight; }
+    .basalt-diagram :is(.basalt-diagram-flow, .basalt-diagram-bead) { display: none; }
+  }
+  /* Print, with or without script: every line whole and shown, every label in its resting ink, no mover, and no motion control (a pause or a run
+     button on paper says nothing). Important, so it outranks a running animation and the pending rule. */
+  @media print {
+    .basalt-diagram :is(.basalt-diagram-play, .basalt-diagram-pause) { display: none !important; }
+    .basalt-diagram .basalt-diagram-edges { visibility: visible !important; }
+    .basalt-diagram .basalt-diagram-edge { mask: none !important; }
+    .basalt-diagram .basalt-diagram-mlabel { color: var(--basalt-text-primary) !important; }
+    .basalt-diagram :is(.basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet, .basalt-diagram-motion-defs) { display: none !important; }
   }
 
   /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----

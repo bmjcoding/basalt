@@ -844,7 +844,7 @@ const MORE = Object.fromEntries([...moreBlock[2].matchAll(/--basalt-([\w-]+): va
 const more = (theme, name) => color(theme, MORE[name] ?? name);
 
 test("more contrast: lines step to border-input, tertiary ink to text-secondary and a field's boundary to text-secondary, and nothing else is replaced", () => {
-  assert.deepEqual(MORE, { "border-hairline": "line-contrast", "border-rim": "line-contrast", "border-rim-top": "line-contrast", "border-divider": "line-contrast", "text-tertiary": "ink-contrast", "border-field": "field-contrast", "border-hover": "text-secondary", "diagram-focal-rule": "diagram-focal-rule-contrast" });
+  assert.deepEqual(MORE, { "border-hairline": "line-contrast", "border-rim": "line-contrast", "border-rim-top": "line-contrast", "border-divider": "line-contrast", "text-tertiary": "ink-contrast", "border-field": "field-contrast", "border-hover": "text-secondary", "diagram-focal-rule": "diagram-focal-rule-contrast", "diagram-hit": "text-primary" });
   // the block is declared on every selector that sets a theme, the system-dark rule's own selector included, so it wins in both themes
   for (const selector of [":root", '[data-theme="light"]', '[data-theme="dark"]', ".light", ".dark", ':root:not([data-theme="light"]):not(.light)']) assert.ok(moreBlock[1].includes(selector), `the mode is not declared on ${selector}`);
   assert.ok(tokensCss.indexOf("prefers-contrast: more") > tokensCss.indexOf("@media (prefers-color-scheme: dark)"), "the mode comes after the system-dark rule, which it must outrank");
@@ -995,6 +995,26 @@ for (const theme of THEMES) {
   test(`${theme}: a node's text holds 4.5:1 on the level it is drawn at, and a traced line stays 3:1 while the rest dim`, () => {
     for (const name of ["text-primary", "text-secondary", "text-tertiary"]) atLeast(theme, name, 4.5, levels.slice(1));
     atLeast(theme, "diagram-edge-dim", 3, levels);
+  });
+
+  // DECISIONS 292 (1.2, 1.12): the two motion roles are aliases, the arrival rim is 3:1 on every level and, under more contrast, 3:1 against the rim it
+  // replaces there (the input boundary over each level) and never the colour of a traced neighbour's rim (border-hover); focal ink holds on the focal step.
+  test(`${theme}: a diagram's arrival step: the rim and the focal fill are aliases, 3:1 at rest and under more contrast, and focal ink holds on the step`, () => {
+    assert.deepEqual(color(theme, "diagram-hit"), color(theme, "text-secondary"));
+    assert.deepEqual(color(theme, "diagram-focal-hit"), color(theme, "action-primary-hover"));
+    assert.deepEqual(more(theme, "diagram-hit"), color(theme, "text-primary"), "under more contrast the arrival rim is primary ink");
+    atLeast(theme, "diagram-hit", 3, levels);
+    for (const [bgName, bg] of levels) {
+      const rim = over(more(theme, "border-rim"), bg);
+      const hit = over(more(theme, "diagram-hit"), bg);
+      assert.ok(ratio(hit, rim) >= 3, `${theme}: the arrival rim against the resting rim over ${bgName} under more contrast is ${fmt(ratio(hit, rim))}:1`);
+      assert.notDeepEqual(hit, over(more(theme, "border-hover"), bg), `${theme}: under more contrast the arrival rim is the traced neighbour's rim over ${bgName}`);
+    }
+    const step = color(theme, "diagram-focal-hit");
+    const ink = color(theme, "diagram-focal-ink");
+    const amount = Number.parseFloat(tokens.primitives["opacity-amount"].css);
+    assert.ok(ratio(ink, step) >= 4.5, `${theme}: focal ink on the focal step is ${fmt(ratio(ink, step))}:1`);
+    assert.ok(ratio(over({ ...ink, alpha: amount }, step), step) >= 4.5, `${theme}: focal ink at opacity-amount on the focal step`);
   });
 }
 

@@ -47,7 +47,29 @@ export interface DiagramEdge {
 }
 
 export interface DiagramGroup { id: string; label: string }
-export type ArchitectureNode = DiagramNode & { group?: string };
+/**
+ * A service's own mark for an architecture card (DECISIONS 292, 2.7): its owner's file for light grounds and, if it has one, for dark grounds, each
+ * a URL the app has the right to show (a file path or a data URI). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner
+ * and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
+ */
+export interface DiagramMark {
+  onLight: string;
+  onDark?: string;
+  /** The words the mark stands for (each bundled mark carries them): a development build warns when a card's words say none of them. */
+  says?: readonly string[];
+}
+export type ArchitectureNode = DiagramNode & { group?: string; mark?: DiagramMark };
+/** A line of an architecture or a data flow. `flow` marks a live stream (main or plain only): an animated figure marches it. */
+export type DiagramFlowEdge = DiagramEdge & { flow?: boolean };
+/** A packet (DECISIONS 292, 1.8): a dot that carries one message along `path`, a route of node ids. */
+export interface DiagramPacket {
+  path: string[];
+  /** It sends itself: when the entrance settles, then duration-diagram-repeat after each landing. */
+  repeat?: boolean;
+  /** A number or a string the app changes: each new value sends one message (the first render sends none). */
+  send?: number | string;
+}
+export type DiagramMotion = "still" | "animated";
 export type FlowchartNode = DiagramNode & { shape?: "step" | "decision" | "terminal" };
 export interface DataFlowLane { id: string; label: string }
 export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string };
@@ -72,6 +94,11 @@ export interface DiagramSpec {
   tables?: SchemaTable[];
   shapeLabels?: DiagramShapeLabels;
   stepLabel?: ((n: number) => string) | string;
+  /** Default "still": the drawing as merged, with no motion code loaded (DECISIONS 292). */
+  motion?: DiagramMotion;
+  pulse?: string[];
+  packet?: DiagramPacket;
+  run?: boolean;
 }
 
 // ============================================================================================================================================
@@ -101,6 +128,8 @@ export interface MNode {
   columns?: MColumn[];
   more?: number;
   short?: string;
+  /** A card's mark: a bundled id (the HTML skill's page holds its rule) or the two URLs. */
+  mark?: { id?: string; onLight?: string; onDark?: string; says?: string[] };
 }
 export interface MEdge {
   i: number;
@@ -114,6 +143,8 @@ export interface MEdge {
   fromRow?: number;
   toRow?: number;
   fk?: boolean;
+  /** A live stream (DECISIONS 292, 1.6). */
+  flow?: boolean;
 }
 export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind };
 export interface Model {
@@ -132,6 +163,8 @@ export interface Model {
   shapeLabels: Required<DiagramShapeLabels>;
   stepWord: (n: number) => string;
   warnings: string[];
+  /** Motion (DECISIONS 292). Read and ignored when still. */
+  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean };
   /** Work that depends on the model alone, done once (see `memo`). */
   memo: Map<string, unknown>;
 }
@@ -202,6 +235,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
         focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? txt(raw.group) : undefined,
+        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark) : undefined,
       });
     }
     if (type === "architecture") for (const g of spec.groups ?? []) { const gid = String(g.id ?? ""); groups.push({ id: gid, label: String(g.label ?? ""), members: nodes.filter((n) => n.group === gid).map((n) => n.id) }); }
@@ -266,7 +300,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (!byId.has(from) || !byId.has(to)) { warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
       const label = txt(e.label);
       if (label && label.length > MAX_LABEL) warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
-      edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide) });
+      edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
   } else {
     for (const s of steps) if ("n" in s) {
@@ -301,10 +335,40 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     if (nodes.some((n) => n.focal) && !legend.focal) warn("a focal node is drawn but the legend has no words for what it marks (legend.focal)");
   }
 
+  // Motion (DECISIONS 292). Movers and flow belong to an architecture and a data flow, the run to a sequence; anywhere else they are not read. The
+  // development errors about them are the motion module's (motionErrors), which only an animated figure loads.
+  const movers = type === "architecture" || type === "data-flow";
+  const route = (v: unknown): string[] | undefined => (Array.isArray(v) && v.length > 1 ? v.map(String) : undefined);
+  const packetIn = movers && spec.packet && typeof spec.packet === "object" ? spec.packet : undefined;
+  const packetPath = packetIn && route(packetIn.path);
+  const motion: Model["motion"] = {
+    animated: spec.motion === "animated",
+    pulse: movers ? route(spec.pulse) : undefined,
+    packet: packetPath ? { path: packetPath, repeat: packetIn!.repeat === true, send: packetIn!.send } : undefined,
+    run: type === "sequence" && spec.run === true,
+  };
+  if (checks) for (const n of nodes) {
+    const says = n.mark?.says;
+    if (!says?.length) continue;
+    const words = [n.name, n.kind, n.detail].filter(Boolean).join(" ").toLowerCase();
+    if (!says.some((w) => words.includes(w.toLowerCase()))) warn(`${n.id}'s mark stands for ${says.join(" or ")}, and none of its words say so`);
+  }
   const cols = Math.max(1, ...nodes.map((n) => n.col));
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  return { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, memo: new Map() };
+  return { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
 }
+
+/** A card's mark from the author's data: a bundled id (a string), or `{ onLight, onDark }` (with the words a bundled one stands for, `says`). */
+function markOf(v: unknown): MNode["mark"] {
+  if (typeof v === "string") return v ? { id: v } : undefined;
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as { onLight?: unknown; onDark?: unknown; says?: unknown };
+  const onLight = txt(o.onLight);
+  if (!onLight) return undefined;
+  return { onLight, onDark: txt(o.onDark) ?? onLight, says: Array.isArray(o.says) ? o.says.map(String) : undefined };
+}
+/** A URL as a CSS string: what would end it or the declaration is escaped, so a URL can only ever be read as one. */
+const cssUrl = (u: string) => `url("${u.replace(/[\\"\n;]/g, (c) => (c === "\n" ? "\\a " : c === ";" ? "\\3b " : `\\${c}`))}")`;
 
 /** A value worked out once a model (the stack's plan, the sentences, the key and the list), kept on the model so a state change does not redo it. */
 function memo<T>(m: Model, key: string, make: () => T): T {
@@ -662,6 +726,7 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-shape": n.shape,
     "data-focal": n.focal ? "" : undefined,
     "data-branch": n.branch ? "" : undefined,
+    "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
     role: images ? "img" : undefined,
@@ -669,6 +734,8 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     tabindex: tabbable,
   },
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
+  // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
+  n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
   n.shape === "table" ? tableText(P, n) : nodeText(P, m, n));
 }
 
@@ -849,6 +916,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-layout": dyn.layout,
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
+    "data-motion": m.motion.animated ? "animated" : undefined,
     style: style.join(";"),
   },
   h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
@@ -918,14 +986,14 @@ export interface Geo {
   oy: number;
 }
 
-interface Tokens {
+export interface Tokens {
   space: (step: string) => number;
   node: number; table: number; lane: number; step: number; head: number; guide: number;
   hair: number; line: number; cut: number; dot: number; dash: number; dashGap: number;
   wide: number; cap: number; radius: number; radiusXs: number;
 }
 
-function readTokens(el: Element): Tokens {
+export function readTokens(el: Element): Tokens {
   const style = getComputedStyle(el);
   const px = (name: string, fallback: number) => { const v = parseFloat(style.getPropertyValue(`--basalt-${name}`)); return Number.isFinite(v) ? v : fallback; };
   const cache = new Map<string, number>();
@@ -1012,6 +1080,8 @@ function segmentThrough(a: Pt, b: Pt, n: GNode): boolean {
 
 // ---- Measuring words ----
 
+const forced = () => matchMedia("(forced-colors: active)").matches;
+
 function ruler(drawing: Element, P: string) {
   const el = drawing.querySelector<HTMLElement>(`.${P}-ruler`)!;
   const known = new Map<string, number>();
@@ -1039,9 +1109,11 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
       continue;
     }
     const pad = n.shape === "terminal" ? 2 * s("5") : 2 * s("3");
+    // The first line (the kind, or the name on a card with no kind) keeps space-6 clear of a mark, except in forced colours, where none is drawn.
+    const seat = n.mark && !forced() ? s("6") : 0;
     let widest = 0;
-    for (const w of words(n.name)) widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name"));
-    if (m.type !== "data-flow") for (const w of words(n.kind)) widest = Math.max(widest, measure(w, "mono"));
+    for (const w of words(n.name)) widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat));
+    if (m.type !== "data-flow") for (const w of words(n.kind)) widest = Math.max(widest, measure(w, "mono") + seat);
     for (const w of words(n.detail)) widest = Math.max(widest, measure(w, n.mono ? "mono" : "sans"));
     const need = n.shape === "decision" ? widest / 0.62 : widest + pad + 2 * tk.hair;
     track = Math.max(track, Math.ceil(need));
@@ -1712,7 +1784,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
 
 // ---- The ink: one string of SVG and labels, the same in React and in the skill ----
 
-function pathD(pts: Pt[], radius: number): string {
+export function pathD(pts: Pt[], radius: number): string {
   const f = (n: number) => String(Math.round(n * 100) / 100);
   let d = `M${f(pts[0]!.x)} ${f(pts[0]!.y)}`;
   for (let k = 1; k < pts.length - 1; k++) {
@@ -1931,6 +2003,33 @@ export function applyTrace(fig: HTMLElement, P: string, geo: Geo | null, tokens:
   });
 }
 
+// ============================================================================================================================================
+// The entrance's first frame (DECISIONS 292, 1.5): the part of motion the still code holds, so nothing drawn is ever taken away
+// ============================================================================================================================================
+
+/** Whether an entrance may not play now: reduced motion, forced colours, print or the page's hold. */
+export const entranceBlocked = (): boolean => matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active), print").matches || document.documentElement.getAttribute("data-loops") === "held";
+
+/**
+ * Called by both engines each time an animated figure's lines are drawn. In the frame the lines are first drawn the figure is marked pending (its lines
+ * not shown, a sequence's labels in their quieter ink), unless an entrance may not play, when it is at rest for good. A layout with no lines is not
+ * pending. A running or settled entrance is the motion module's and is left alone: measuring again never replays, hides or cuts one short.
+ */
+export function entranceDrawn(fig: HTMLElement, lines: boolean): void {
+  const state = fig.getAttribute("data-entrance");
+  if (state === "running" || state === "done") return;
+  if (!lines) { if (state) fig.removeAttribute("data-entrance"); return; }
+  if (!state) fig.setAttribute("data-entrance", entranceBlocked() ? "done" : "pending");
+}
+
+/** Settles a pending or running entrance at once (a node hovered or focused, a key, a control used): every line whole, and the module told. */
+export function settleEntrance(fig: HTMLElement): void {
+  const state = fig.getAttribute("data-entrance");
+  if (state !== "pending" && state !== "running") return;
+  fig.setAttribute("data-entrance", "done");
+  fig.dispatchEvent(new Event("basalt-diagram-settle"));
+}
+
 /** The node a key moves to (1.14): → ↓ the next, ← ↑ the one before, in the author's order, stopping at the ends; Home and End the ends. */
 export function keyTarget(m: Model, from: string, key: string): string | null {
   const i = m.byId.get(from)?.i ?? 0;
@@ -1954,7 +2053,7 @@ export function keyTarget(m: Model, from: string, key: string): string | null {
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare"];
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_gap", "--_ggrow", "--_gpad"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {

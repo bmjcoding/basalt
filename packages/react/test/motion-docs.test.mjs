@@ -13,11 +13,14 @@ const foundations = flat(read("docs/foundations.md"));
 const motion = flat(read("docs/motion.md"));
 const agents = flat(read("AGENTS.md"));
 
-const SENTENCE = "Two kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), and a page's one ambient loop, opacity only, in its art; `data-loops=\"held\"` stops both.";
+// DECISIONS 292 (5.3, 5.9) added a third kind, an animated diagram's live lines; foundations names them, AGENTS.md keeps the shorter form.
+const LOOPS = "Three kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a page's one ambient loop, opacity only, in its art, and an animated diagram's live lines";
+const SENTENCE = `${LOOPS} (a flow line, a pulse, a packet that repeats); \`data-loops="held"\` stops all three.`;
+const AGENTS_SENTENCE = `${LOOPS}; \`data-loops="held"\` stops all three.`;
 
 test("the one sentence for loops is in foundations and in AGENTS.md, and the three older wordings are gone", () => {
   assert.ok(foundations.includes(SENTENCE), "foundations");
-  assert.ok(agents.includes(SENTENCE), "AGENTS.md");
+  assert.ok(agents.includes(AGENTS_SENTENCE), "AGENTS.md");
   for (const [name, text] of [["foundations", foundations], ["motion", motion], ["AGENTS.md", agents]]) {
     assert.ok(!/Nothing loops except spinners/.test(text), `${name}: the old sentence`);
     assert.ok(!/Nothing overshoots or loops, except spinners/.test(text), `${name}: the old sentence`);
