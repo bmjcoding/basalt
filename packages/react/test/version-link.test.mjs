@@ -174,7 +174,7 @@ describe("its places", () => {
     const tip = page.getByRole("tooltip");
     await tip.waitFor();
     // The tooltip says the whole line: the dot is DotSep's, drawn as a dot and read as a comma.
-    assert.equal(await tip.evaluate((el) => [...el.childNodes].map((n) => (n.nodeType === 3 ? n.data : n.classList?.contains("basalt-dot-sep") ? " · " : n.textContent)).join("").replace(/\s+/g, " ").trim()), "Version 1.4.0 · Nov 23, 2026");
+    assert.equal(await tip.evaluate((el) => [...(el.querySelector(":scope > span") ?? el).childNodes].map((n) => (n.nodeType === 3 ? n.data : n.classList?.contains("basalt-dot-sep") ? " · " : n.textContent)).join("").replace(/\s+/g, " ").trim()), "Version 1.4.0 · Nov 23, 2026");
   });
 
   test("in the rail a release candidate breaks before its hyphen, and nothing is wider than the rail", async () => {

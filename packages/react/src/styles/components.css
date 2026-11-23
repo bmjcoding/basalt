@@ -7261,6 +7261,8 @@
   /* A fold: its heading holds the button, at the section heading's size, the chevron at the release's end. */
   .basalt-release-fold .basalt-accordion-trigger { min-height: var(--basalt-text-md-line-height); padding: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-release-fold .basalt-accordion-content { padding-bottom: 0; font: inherit; color: inherit; }
+  /* An open fold's panel lets the arrival's plate and a focus ring reach space-2 past its sides (it clips only while it opens and closes). */
+  .basalt-release-fold .basalt-accordion-panel { overflow: clip; overflow-clip-margin: var(--basalt-space-2); }
   .basalt-release-section[data-folded] .basalt-accordion-content { padding-top: var(--basalt-space-2); }
   /* Build details: at the release's foot, quieter than the fold above it (14/20, 400). */
   .basalt-release-build { margin-top: var(--basalt-space-2); }

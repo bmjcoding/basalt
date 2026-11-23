@@ -68,5 +68,5 @@ export function VersionLink({ version, date, href, label = "Version", destinatio
     </a>
   );
   if (!rail || !RailTooltip) return link;
-  return <RailTooltip content={<>{label} {version}<DotSep spaced />{day}</>} side="right">{link}</RailTooltip>;
+  return <RailTooltip content={<span>{label} {version}<DotSep spaced />{day}</span>} side="right">{link}</RailTooltip>;
 }

@@ -236,6 +236,8 @@ function Fold({ name, title, level, shared, className, children }: { name: strin
 const Count = ({ n }: { n: number }) => <span className="basalt-release-count"><span className="basalt-visually-hidden"> </span>{n}</span>;
 
 function SourceLine({ entry, textId, shared }: { entry: ReleaseEntryRecord; textId: string; shared: Shared }) {
+  // The panel itself takes focus when it opens (its first link would draw a ring the reader did not ask for); Tab goes on into it.
+  const panel = React.useRef<HTMLDivElement>(null);
   const { words } = shared;
   const tickets = entry.tickets ?? [];
   const ids: string[] = [];
@@ -260,7 +262,7 @@ function SourceLine({ entry, textId, shared }: { entry: ReleaseEntryRecord; text
           </TextButton>
         )}
       />
-      <PopoverContent align="end" collisionPadding={16} className="basalt-release-sources">
+      <PopoverContent ref={panel} initialFocus={panel} align="end" collisionPadding={16} className="basalt-release-sources">
         <PopoverTitle className="basalt-popover-title">{words.sources}</PopoverTitle>
         <DescriptionList className="basalt-release-sources-list">
           {entry.pr ? <DescriptionItem term={words.pullRequest} mono><a className="basalt-link" href={entry.pr.href}><span className="basalt-link-label">#{entry.pr.number}</span></a></DescriptionItem> : null}

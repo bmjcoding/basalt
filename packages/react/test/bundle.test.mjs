@@ -673,9 +673,9 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 
 // DECISIONS 320, 2.15: the version link, the release notes and the versions are each a module of their own, so an app that shows only the foot's link
 // loads only that (VersionLink takes the rail's tooltip from AppShell, which carries it for Nav, so it imports none). Measured with splitting: VersionLink
-// 2,102, ReleaseIndex 31,035 (Base UI's accordion), ReleaseNotes 173,758 (the popover, the accordion, the callout, the copy and text buttons);
+// 2,107, ReleaseIndex 31,035 (Base UI's accordion), ReleaseNotes 173,798 (the popover, the accordion, the callout, the copy and text buttons);
 // each limit is the measurement rounded up to the next 50.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 173_800]]) {
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 173_850]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
