@@ -573,6 +573,16 @@ class Figure implements MotionController {
     const l = geo.lines.find((x) => x.i === i);
     if (!l) return;
     const tk = this.host.tokens();
+    // A dashed line's own dashes march toward the head (DECISIONS 306, 1.5): one period (its 6 on 4 off, 10px) at speed-diagram-flow on ease-linear.
+    // Its open head does not move, and still it is the line the key draws. The 48px rule holds as for cuts.
+    if (l.kind === "dashed") {
+      if (this.visible(l, trimmed(l, tk?.head ?? 8)) < 48) return;
+      const line = this.host.fig.querySelector<SVGGeometryElement>(`.${this.host.P}-edge[data-edge="${i}"] .${this.host.P}-line`);
+      if (!line) return;
+      const period = (tk?.dash ?? 6) + (tk?.dashGap ?? 4);
+      this.track(line.animate([{ strokeDashoffset: "0px" }, { strokeDashoffset: `${-period}px` }], { duration: (period / this.t.flow) * 1000, iterations: Infinity, easing: "linear" }), this.loops);
+      return;
+    }
     let made = this.flowEls.get(i);
     // An overlay lives in the ink: one the host wrote over is made again.
     if (made && !made.isConnected) { this.flowEls.delete(i); made = undefined; }
@@ -839,7 +849,6 @@ export function motionErrors(m: Model): { errors: string[]; warnings: string[] }
   }
   for (const e of m.edges) {
     if (!e.flow) continue;
-    if (e.kind === "dashed") errors.push(`the line from ${e.from} to ${e.to} is dashed and flows: flow is on a main or plain line only`);
     if (onPath.has(e.i)) errors.push(`the line from ${e.from} to ${e.to} flows and is on the ${what}'s route: flow never runs on a line the mover travels`);
     if (!e.label) warnings.push(`the line from ${e.from} to ${e.to} flows but has no label: motion never carries a fact alone, so its label says it is a stream`);
   }

@@ -166,7 +166,7 @@ export interface MEdge {
   fromRow?: number;
   toRow?: number;
   fk?: boolean;
-  /** A live stream (DECISIONS 292, 1.6). */
+  /** A live stream (DECISIONS 292, 1.6); on a dashed line its own dashes march (DECISIONS 306, 1.5). */
   flow?: boolean;
 }
 export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind; activate?: boolean; deactivate?: boolean }
