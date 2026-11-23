@@ -5,7 +5,7 @@ import { Select } from "./choice";
 import { StatusLine } from "./filter-result";
 import { Pagination } from "./navigation";
 import { Reserve } from "./reserve";
-import { contentTop, scrollElement, scrollOwnerTo } from "./scroll-owner";
+import { contentTop, scrollOwnerTo, useScrollElement } from "./scroll-owner";
 import type { ScrollOwner } from "./scroll-owner";
 import { join } from "./utils";
 
@@ -24,6 +24,7 @@ interface Asked {
   what: true | "previous" | "next";
   page: number;
   size: number;
+  /** What the app's own page and size were at the press (the page as the app holds it, before the band clamps it). */
   from: { page: number; size: number };
 }
 
@@ -109,7 +110,9 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   const count = Math.max(0, Math.floor(total) || 0);
   const size = Math.max(1, Math.floor(pageSize) || 1);
   const pages = Math.max(1, Math.ceil(count / size));
-  const current = Math.max(1, Math.min(pages, Math.floor(page) || 1));
+  // The app's own page, and the page shown: clamped to the pages there are. A size change the app commits before its page shows a clamped page for a render.
+  const own = Math.max(1, Math.floor(page) || 1);
+  const current = Math.min(pages, own);
   const from = count ? (current - 1) * size + 1 : 0;
   const to = Math.min(current * size, count);
   const reach = Math.max(count, Math.floor(maxTotal ?? 0) || 0);
@@ -121,14 +124,15 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
   // What the last press asked for, until the app has moved to it (however long that takes: an app may set it after an await). It is forgotten when a filter changes, when another
   // press replaces it, or when the page or size moves somewhere that is neither what was there nor what was asked.
   const asked = React.useRef<Asked | null>(null);
-  const ask = (what: Asked["what"], page: number, pageSize: number) => { asked.current = { what, page, size: pageSize, from: { page: current, size } }; };
+  const ask = (what: Asked["what"], page: number, pageSize: number) => { asked.current = { what, page, size: pageSize, from: { page: own, size } }; };
+  const owner = useScrollElement(scroller);
 
   // From 720 the band is `position: sticky`: a sentinel just above it says when it is stuck. A hidden sentinel, or a band that does not stick (under 720), is never stuck.
   React.useEffect(() => {
     const mark = band.current;
     const above = sentinel.current;
     if (!mark || !above || typeof IntersectionObserver === "undefined") return undefined;
-    const root = scrollElement(scroller);
+    const root = owner;
     let observer: IntersectionObserver | undefined;
     const watch = () => {
       observer?.disconnect();
@@ -144,34 +148,36 @@ export function ListBand({ total, maxTotal, page, pageSize, pageSizes = DEFAULT_
     const wide = window.matchMedia("(width >= 720px)");
     wide.addEventListener("change", watch);
     return () => { observer?.disconnect(); wide.removeEventListener("change", watch); };
-  }, [scroller]);
+  }, [owner]);
 
   // What the band says: a page or size change, once. A filter or a search (a change of `filterKey`; without one, a change of `total`) clears what was said, since FilterResult speaks
   // that. With a `filterKey`, a total that changes by itself (rows arriving in a live list) is neither, so a page change that lands with it is still said.
-  const last = React.useRef({ total: count, page: current, size, filterKey });
+  const last = React.useRef({ total: count, page: current, own, size, filterKey });
   const [said, setSaid] = React.useState({ text: "", id: 0 });
   React.useLayoutEffect(() => {
     const before = last.current;
-    last.current = { total: count, page: current, size, filterKey };
+    last.current = { total: count, page: current, own, size, filterKey };
     const filtered = filterKey === undefined ? before.total !== count : before.filterKey !== filterKey;
     const moved = before.page !== current || before.size !== size;
+    const ownMoved = moved || before.own !== own;
     if (filtered) setSaid((now) => (now.text ? { text: "", id: now.id + 1 } : now));
     else if (moved) setSaid((now) => ({ text: `Page ${current} of ${pages}. ${noun} ${from} to ${to} of ${count}.`, id: now.id + 1 }));
     // A press is kept until the page and size it asked for arrive (a `stuck` flip in between must not forget it). A filter forgets it, and so does a move to a page or size that is
-    // neither what was there nor what was asked (the app went elsewhere). A size change may land as two renders (the size, then the page): each half is on the way.
+    // neither what was there nor what was asked (the app went elsewhere). A size change may land as two renders (the size, then the page): each half is on the way, read on the
+    // app's own page, so the clamped page shown between them (page 8 of 10 at 50 a page shows page 3 of 3) does not cancel it.
     const press = asked.current;
-    if (!press || (!filtered && !moved)) return;
-    const arrived = current === press.page && size === press.size;
-    const onTheWay = (current === press.page || current === press.from.page) && (size === press.size || size === press.from.size);
+    if (!press || (!filtered && !ownMoved)) return;
+    const arrived = own === press.page && size === press.size;
+    const onTheWay = (own === press.page || own === press.from.page) && (size === press.size || size === press.from.size);
     if (filtered || !onTheWay) { asked.current = null; return; }
     if (!arrived || !sentinel.current) return;
     asked.current = null;
-    if (stuck || press.what !== true) returnToRest(sentinel.current, scrollElement(scroller));
+    if (stuck || press.what !== true) returnToRest(sentinel.current, owner);
     if (press.what !== true) {
       const arrows = band.current?.querySelectorAll<HTMLElement>(".basalt-pagination > .basalt-button");
       arrows?.[press.what === "previous" ? 0 : arrows.length - 1]?.focus({ preventScroll: true });
     }
-  }, [count, current, size, pages, noun, from, to, stuck, filterKey, scroller]);
+  }, [count, current, own, size, pages, noun, from, to, stuck, filterKey, owner]);
 
   const widest = eights(reach);
   const range = (

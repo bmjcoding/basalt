@@ -7,7 +7,8 @@
 //
 // An example in the code itself (a fixture shipped for tests, say) is marked on the line before, with a reason, in any comment form:
 //   // basalt-vocabulary-example -- the reason this one line is an example and not the API
-// A marker without a reason, or one that excuses nothing, fails too.
+// A marker without a reason, or one that excuses nothing, fails too, and so does one on a line that is the API: an `export`, a typed member (a prop),
+// a default value, or an `aria-` or `data-` attribute. A marker excuses data, never a name or a default an app receives.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,8 +29,21 @@ export const SURFACE = [
 const NOUNS = new Set(["incident", "incidents", "commander", "commanders", "severity", "severities", "sev", "sev1", "sev2", "sev3", "sev4", "scribe", "scribes", "rolodex", "rolodexes", "servicenow", "warroom", "warrooms"]);
 /** Two words that are a noun together. */
 const PAIRS = [["war", "room"], ["war", "rooms"]];
-/** A person's full name as a whole string: two or three capitalised words, the way a fixture's default person is written ("Dana Whitfield"). */
-const PERSON = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,2}$/;
+/**
+ * A person's full name as a whole string: a common given name and a capitalised family name ("Dana Whitfield"), the way a fixture's default person is
+ * written. Title-case words that are not a given name ("Account Settings", "Geist Mono") are not names.
+ */
+const PERSON = /^([A-Z][a-z]+) (?:[A-Z][a-z]+(?:[-' ][A-Z][a-z]+)?)$/;
+const GIVEN = new Set([
+  "aaron", "adam", "aditi", "ahmed", "aisha", "alex", "alice", "amara", "amir", "amy", "ana", "andrea", "anna", "arjun", "ava", "ben", "carlos", "chen", "chloe", "chris",
+  "daniel", "dana", "david", "diego", "elena", "ella", "emily", "emma", "fatima", "grace", "hana", "hannah", "hiro", "ines", "isabel", "jack", "james", "jamal", "jane",
+  "jo", "john", "jordan", "jose", "julia", "kai", "kate", "kenji", "laura", "lee", "leo", "liam", "lily", "lucas", "lucy", "maria", "marcus", "mark", "maya", "mei",
+  "mia", "michael", "mohammed", "nadia", "nina", "noah", "noor", "olivia", "omar", "oscar", "paul", "priya", "rahul", "raj", "rosa", "ryan", "sam", "sara", "sarah",
+  "sofia", "sophie", "tom", "wei", "yuki", "zara", "zoe",
+]);
+const isPerson = (text) => { const m = PERSON.exec(text); return Boolean(m && GIVEN.has(m[1].toLowerCase())); };
+/** A line the marker may not excuse, because it is the API: an export, a typed member (a prop), a default value, an `aria-` or `data-` attribute. */
+const API_LINE = [/^\s*export\b/, /^\s*(?:readonly\s+)?["'\w$-]+\??\s*:\s*(?!["'`\d-])[A-Za-z_$({[<|]/, /(?:^|[({,]\s*)[\w$]+\s*=\s*["'`]/, /\b(?:aria|data)-[\w-]+\s*[=:]/];
 const MARKER = /basalt-vocabulary-example\b(.*)$/;
 
 /** The words of a run of code: split on anything that is not a letter or digit, then inside each identifier at its case changes. */
@@ -42,17 +56,16 @@ const parts = (raw) => raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z
 /** The app nouns in a run of code, as written. */
 export function nounsIn(text) {
   const found = [];
-  // A whole identifier first ("ServiceNow", "warRoom"), then the words inside it, then two words that are a noun together.
+  const add = (noun) => { if (!found.includes(noun)) found.push(noun); };
   const list = [];
   for (const raw of identifiers(text)) {
-    const whole = raw.toLowerCase();
-    if (NOUNS.has(whole)) { found.push(whole); list.push(whole); continue; }
-    list.push(...parts(raw));
+    // Inside one identifier, any run of up to three of its words is a noun when joined ("ServiceNowClient" holds "servicenow", "warRoomPanel" "warroom").
+    const words = parts(raw);
+    for (let i = 0; i < words.length; i += 1) for (let j = i + 1; j <= Math.min(words.length, i + 3); j += 1) { const joined = words.slice(i, j).join(""); if (NOUNS.has(joined)) add(joined); }
+    list.push(...words);
   }
-  list.forEach((word, i) => {
-    if (NOUNS.has(word) && !found.includes(word)) found.push(word);
-    for (const [a, b] of PAIRS) if (word === a && list[i + 1] === b) found.push(`${a} ${b}`);
-  });
+  // Two words that are a noun together, across identifiers ("War room").
+  list.forEach((word, i) => { for (const [a, b] of PAIRS) if (word === a && list[i + 1] === b) add(`${a} ${b}`); });
   return found;
 }
 
@@ -68,7 +81,8 @@ export function stripCode(source) {
   // The last character that was code and not space, to tell a regular expression's slash from a division.
   let last = "";
   const blank = (text) => text.replace(/[^\n]/g, " ");
-  const isRegexStart = () => last === "" || "(,=:[!&|?{};+-*%<>~^".includes(last) || /\b(return|typeof|case|do|else|in|of|void|yield|await)$/.test(out.trimEnd());
+  // A JSX closing tag (`</a>`) and a self-closing one (`<br />`) are not regular expressions, so a `//` after them is a comment.
+  const isRegexStart = (i) => source[i - 1] !== "<" && source[i + 1] !== ">" && (last === "" || "(,=:[!&|?{};+-*%~^".includes(last) || /\b(return|typeof|case|do|else|in|of|void|yield|await)$/.test(out.trimEnd()));
   while (i < source.length) {
     const c = source[i];
     if (c === "/" && source[i + 1] === "/") {
@@ -104,7 +118,7 @@ export function stripCode(source) {
       out += source.slice(i, j + 1);
       i = j + 1;
       last = "`";
-    } else if (c === "/" && isRegexStart()) {
+    } else if (c === "/" && isRegexStart(i)) {
       let j = i + 1;
       let inClass = false;
       while (j < source.length && source[j] !== "\n") {
@@ -157,19 +171,31 @@ export function checkSource(file, source) {
     if (!/^--\s*\S/.test(reason)) problems.push({ line: line - 1, message: "a basalt-vocabulary-example marker needs a reason after `--`" });
     excused.set(line, { used: false, at: line - 1 });
   }
+  const sourceLines = source.split("\n");
+  // A marker on an API line is refused: the noun on it is still a problem.
+  const excuses = (line) => {
+    const excuse = excused.get(line);
+    if (!excuse) return false;
+    if (API_LINE.some((pattern) => pattern.test(sourceLines[line - 1] ?? ""))) {
+      if (!excuse.refused) problems.push({ line: excuse.at, message: "a basalt-vocabulary-example marker cannot excuse an export, a prop, a default or an aria or data attribute" });
+      excuse.refused = true;
+      excuse.used = true;
+      return false;
+    }
+    excuse.used = true;
+    return true;
+  };
   code.split("\n").forEach((text, index) => {
     const line = index + 1;
     const found = nounsIn(text);
     if (!found.length) return;
-    const excuse = excused.get(line);
-    if (excuse) { excuse.used = true; return; }
+    if (excuses(line)) return;
     problems.push({ line, message: `an app's noun in the public surface: ${[...new Set(found)].join(", ")} (name it for what it is, or take the word from the app as a prop)` });
   });
   for (const s of strings) {
-    if (!PERSON.test(s.text.trim())) continue;
+    if (!isPerson(s.text.trim())) continue;
     const line = lineOf(source, s.at);
-    const excuse = excused.get(line);
-    if (excuse) { excuse.used = true; continue; }
+    if (excuses(line)) continue;
     problems.push({ line, message: `a person's name as a default: "${s.text}" (an app's people are its data; Basalt takes them as props)` });
   }
   for (const excuse of excused.values()) if (!excuse.used) problems.push({ line: excuse.at, message: "a basalt-vocabulary-example marker that excuses nothing" });

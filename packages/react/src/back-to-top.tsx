@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { ArrowUpGlyph } from "./glyphs/arrow-up";
-import { scrollElement, scrolled, scrollOwnerTo, scrollTarget, viewHeight, viewTop } from "./scroll-owner";
+import { scrolled, scrollOwnerTo, scrollTarget, useScrollElement, viewHeight, viewTop } from "./scroll-owner";
 import type { ScrollOwner } from "./scroll-owner";
 import { join } from "./utils";
 
@@ -32,6 +32,7 @@ const TURN = 8;
  * a scroll would only stream rows past), and focuses the list's heading. A secondary `sm` Button with the core up arrow and its words, solid, with `shadow-overlay`, at every width.
  */
 export function BackToTop({ list, band, heading, label = "Back to top", scroller, className, ...props }: BackToTopProps) {
+  const owner = useScrollElement(scroller);
   const dock = React.useRef<HTMLDivElement>(null);
   const button = React.useRef<HTMLButtonElement>(null);
   const [shown, setShown] = React.useState(false);
@@ -39,9 +40,8 @@ export function BackToTop({ list, band, heading, label = "Back to top", scroller
 
   const evaluate = React.useCallback((): boolean => {
     const top = list.current;
-    const owner = scrollElement(scroller);
     return state.current.down && !state.current.modal && Boolean(top && top.getClientRects().length && top.getBoundingClientRect().top - viewTop(owner) < -viewHeight(owner));
-  }, [list, scroller]);
+  }, [list, owner]);
   const sync = React.useCallback(() => {
     const show = evaluate();
     // It never leaves while it holds focus: the reader would lose their place. It goes when focus leaves it.
@@ -50,7 +50,6 @@ export function BackToTop({ list, band, heading, label = "Back to top", scroller
   }, [evaluate]);
 
   React.useEffect(() => {
-    const owner = scrollElement(scroller);
     const s = state.current;
     s.peak = s.trough = scrolled(owner);
     let frame = 0;
@@ -82,7 +81,7 @@ export function BackToTop({ list, band, heading, label = "Back to top", scroller
     observer.observe(document.body, { attributes: true, attributeFilter: ["inert", "aria-hidden"], subtree: true });
     sync();
     return () => { target.removeEventListener("scroll", onScroll); observer.disconnect(); if (frame) cancelAnimationFrame(frame); };
-  }, [sync, scroller]);
+  }, [sync, owner]);
 
   // From 720 the dock sticks under the stuck band, so the band's height is written beside it (a measured length).
   React.useEffect(() => {
@@ -111,7 +110,7 @@ export function BackToTop({ list, band, heading, label = "Back to top", scroller
             if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
             target.focus({ preventScroll: true });
           }
-          scrollOwnerTo(scrollElement(scroller), 0);
+          scrollOwnerTo(owner, 0);
           sync();
         }}
       >

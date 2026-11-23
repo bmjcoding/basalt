@@ -65,22 +65,24 @@ interface FormState {
 }
 
 /**
- * What one field holds, by its structure and not only its `.value`: every selected option of a `<select>` (one or many), whether a checkbox or a radio is checked, the files a
- * file input holds (name, size and date), and the text of the rest. A Base UI control (Select, Combobox, Switch, Checkbox, a checkbox group) keeps hidden inputs, so a change of
- * value is seen whether or not it fires an event, and a control that adds an input per chosen value changes the count.
+ * What one field holds, by its structure and not only its `.value`: its name and kind, and its values as a list, so no two states can read alike (an empty multiple
+ * select is `[]`, one option whose value is "" is `[""]`). Every selected option of a `<select>` (one or many), whether a checkbox or a radio is checked, the files a
+ * file input holds (name, size and date), and the text of the rest. A Base UI control (Select, Combobox, Switch, Checkbox, a checkbox group) keeps hidden inputs, so a
+ * change of value is seen whether or not it fires an event, and a control that adds an input per chosen value changes the list's length.
  */
-function held(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
-  if (el.tagName === "SELECT") return Array.from((el as HTMLSelectElement).selectedOptions, (option) => option.value).join("\u0002");
+function held(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): [string, string, unknown[]] {
+  const kind = el.tagName === "INPUT" ? `input:${(el as HTMLInputElement).type}` : el.tagName.toLowerCase();
+  if (el.tagName === "SELECT") return [el.name, kind, Array.from((el as HTMLSelectElement).selectedOptions, (option) => option.value)];
   if (el.tagName === "INPUT") {
     const input = el as HTMLInputElement;
-    if (input.type === "checkbox" || input.type === "radio") return String(input.checked);
-    if (input.type === "file") return Array.from(input.files ?? [], (file) => `${file.name}\u0003${file.size}\u0003${file.lastModified}`).join("\u0002");
+    if (input.type === "checkbox" || input.type === "radio") return [el.name, kind, [input.value, input.checked]];
+    if (input.type === "file") return [el.name, kind, Array.from(input.files ?? [], (file) => [file.name, file.size, file.lastModified])];
   }
-  return el.value;
+  return [el.name, kind, [el.value]];
 }
-/** What the fields of a form hold, in the order they are in the form. */
+/** What the fields of a form hold, in the order they are in the form: a list of fields, each a list, written as JSON so the comparison is of the structure. */
 function values(box: HTMLElement): string {
-  return Array.from(box.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"), held).join("\u0001");
+  return JSON.stringify(Array.from(box.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"), held));
 }
 /**
  * Something is entered: the app says so (`dirty`), or, when it says nothing, a field holds something other than it held when the form opened. Read at the press, so a form typed

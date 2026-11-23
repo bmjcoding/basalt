@@ -2257,9 +2257,9 @@ another status, the other role, a different hour), so no guess can match in both
 where a branch is itself unknown (it is then a bone as a whole, the safe failure); a list's variant 1 has one more row, so every count differs; and nothing
 is assumed about content (who said what, and when, is a bone until it arrives). The unseen variant's words are half again as long and a dozen letters more,
 so what sits under text of unknown length is at another place and is a bone. Rows: the count the list had last time (`rememberCount` keeps the count and
-nothing else, where the app says: a `CountStore` it passes, scoped to whoever the list belongs to; with none, only for the page's life), else what fits the window, never more than
+nothing else, where the app says: a `CountStore` it passes, scoped to whoever the list belongs to; with none, only for the page's life in a browser and not at all on a server), else what fits the window, never more than
 a page. **Known-empty is not unknown:** `fillIn` merges plain records only (an array, a `Date` and every atomic value are taken as given), a field left out or `undefined` is unknown and
-stood in, and a field set to `null` is known to be empty and is drawn empty.
+stood in, and a field set to `null` is known to be empty and is drawn empty; a known value of another kind than its stand-in keeps the stand-in.
 
 **The six rules** (DECISIONS 249b):
 

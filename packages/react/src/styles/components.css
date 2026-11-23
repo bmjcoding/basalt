@@ -5301,9 +5301,10 @@
      its own width (720 on a coarse pointer) the numbers go and the page size follows the pager, or is the end of a second row where they do not fit. */
   /* The sentinel's scroll-margin-top is the bar's room as a length (script reads it: where the band rests); it scrolls nothing itself. */
   .basalt-list-band-sentinel { height: 0; scroll-margin-top: var(--basalt-sticky-offset); }
-  /* A list in a pane that scrolls on its own (`scroller`): the pane has no bar over it, so the band, the sentinel and Back to top's dock rest at the pane's top edge. An app with a
-     sticky header of its own inside the pane sets the property on the wrap in its own CSS, which wins over this layer. */
-  :is(.basalt-list-band-wrap, .basalt-back-to-top-dock)[data-scroller] { --basalt-sticky-offset: var(--basalt-space-0); }
+  /* A list in a pane that scrolls on its own (`scroller`): the pane has no bar over it, so the band, the sentinel and Back to top's dock rest at the pane's top edge. The default is
+     set once, on the wrap, and the band's own Back to top inherits it: an app with a sticky header of its own inside the pane sets the property on the wrap in its own CSS (which
+     wins over this layer), and the band, the return to rest and Back to top all move under that header together. A standalone BackToTop in a pane takes the same default itself. */
+  .basalt-list-band-wrap[data-scroller], .basalt-back-to-top-dock[data-scroller]:not(.basalt-list-band-wrap > *) { --basalt-sticky-offset: var(--basalt-space-0); }
   .basalt-list-band { container-type: inline-size; background: var(--basalt-surface-page); z-index: var(--basalt-layer-sticky); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width >= 720px) {

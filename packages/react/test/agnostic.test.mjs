@@ -49,6 +49,16 @@ describe("the public surface names no app's nouns (npm run lint)", () => {
     assert.deepEqual(nounsIn('label="War room" severityLevel ServiceNow rolodexes').sort(), ["rolodexes", "servicenow", "severity", "war room"]);
     assert.deepEqual(nounsIn("the service now responds"), [], "two ordinary words are not the product's name");
     assert.deepEqual(nounsIn("several seven severe"), []);
+    // Compound identifiers: a noun joined inside a longer name.
+    assert.deepEqual(nounsIn("class ServiceNowClient {}"), ["servicenow"]);
+    assert.ok(nounsIn("const warRoomPanel = 1;").includes("warroom"));
+    assert.deepEqual(nounsIn("<IncidentCommanderCard />").sort(), ["commander", "incident"]);
+  });
+
+  test("a // after JSX is a comment, not the end of a regular expression", () => {
+    assert.deepEqual(checkSource("x.tsx", 'const a = <a href="x">Text</a>; // the incident'), []);
+    assert.deepEqual(checkSource("x.tsx", "const b = <br />; // a severity"), []);
+    assert.deepEqual(checkSource("x.tsx", "const c = <p>a</p>; const re = /incident/;").map((p) => p.line), [1], "a real regular expression is still code");
   });
 
   test("it reads exported names, props, default strings, aria labels, errors, data attributes, selectors and token names, and not comments", () => {
@@ -66,12 +76,29 @@ describe("the public surface names no app's nouns (npm run lint)", () => {
     assert.deepEqual(checkSource("x.tokens.json", '{ "color": { "ink": { "$value": "#000", "$description": "not for an incident" } } }'), []);
   });
 
-  test("a person's name as a default fails; a marked example is excused, and a marker needs a reason and must excuse something", () => {
+  test("a person's name as a default fails; title-case UI words do not; a marked example is excused, and a marker needs a reason and must excuse something", () => {
     assert.match(checkSource("x.ts", 'export const OWNER = "Dana Whitfield";')[0].message, /person's name/);
+    assert.match(checkSource("x.ts", 'const who = "Priya Shah";')[0].message, /person's name/);
     assert.deepEqual(checkSource("x.ts", 'export const LABEL = "Not observed";'), []);
-    assert.deepEqual(checkSource("x.ts", "// basalt-vocabulary-example -- a fixture's own data, shipped for tests\nexport const ROW = { title: \"An incident\" };"), []);
+    for (const words of ["Account Settings", "Geist Mono", "Back To Top", "Order History", "Geist Fallback"]) assert.deepEqual(checkSource("x.ts", `export const T = "${words}";`), [], words);
+    assert.deepEqual(checkSource("x.ts", "const ROWS = [\n  // basalt-vocabulary-example -- a fixture's own data, shipped for tests\n  { title: \"An incident\" },\n];"), []);
     assert.match(checkSource("x.ts", "// basalt-vocabulary-example\nexport const ROW = \"incident\";")[0].message, /needs a reason/);
-    assert.match(checkSource("x.ts", "// basalt-vocabulary-example -- nothing here\nexport const ROW = \"order\";")[0].message, /excuses nothing/);
+    assert.match(checkSource("x.ts", "// basalt-vocabulary-example -- nothing here\nconst ROW = \"order\";")[0].message, /excuses nothing/);
+  });
+
+  test("a marker cannot excuse the API: an export, a prop, a default, an aria or data attribute", () => {
+    const refused = (src) => checkSource("x.tsx", src).map((p) => p.message);
+    for (const src of [
+      "// basalt-vocabulary-example -- tried\nexport const ROW = \"incident\";",
+      "interface P {\n  // basalt-vocabulary-example -- tried\n  severity?: string;\n}",
+      "function F({\n  // basalt-vocabulary-example -- tried\n  label = \"Incident\",\n}) {}",
+      "const a = (\n  // basalt-vocabulary-example -- tried\n  <div aria-label=\"Incident\" />\n);",
+      "const b = (\n  // basalt-vocabulary-example -- tried\n  <div data-severity=\"1\" />\n);",
+    ]) {
+      const messages = refused(src);
+      assert.ok(messages.some((m) => /cannot excuse/.test(m)), src);
+      assert.ok(messages.some((m) => /app's noun/.test(m)), `the noun still fails: ${src}`);
+    }
   });
 
   test("it runs in npm run lint", async () => {
@@ -509,17 +536,25 @@ describe("ownership: stand-ins, counts and storage", () => {
     assert.equal(out.unknown, "kept", "undefined is unknown: the stand-in's value");
     assert.deepEqual(fillIn(null, { a: 1 }), { a: 1 }, "nothing known");
     assert.deepEqual(fillIn(Object.assign(Object.create(null), { a: 2 }), { a: 1, b: 1 }), { a: 2, b: 1 }, "a record with no prototype is plain");
-    const record = { a: 1 };
-    assert.equal(fillIn(record, new Date(0)), record, "a record over a Date is taken as given");
+    // A known value of another kind than its stand-in is not what the type promises: the stand-in is kept.
+    const date = new Date(0);
+    assert.equal(fillIn({ a: 1 }, date), date, "a record over a Date keeps the Date");
+    assert.deepEqual(fillIn({ n: "five" }, { n: 5 }), { n: 5 }, "a string over a number keeps the number");
+    assert.deepEqual(fillIn({ list: { 0: 1 } }, { list: [2] }), { list: [2] }, "a record over an array keeps the array");
+    class Money { constructor(cents) { this.cents = cents; } }
+    const price = new Money(250);
+    assert.equal(fillIn({ price }, { price: new Money(0) }).price, price, "an instance of the same class is taken whole");
+    assert.ok(fillIn({ price: { cents: 9 } }, { price: new Money(0) }).price instanceof Money, "a plain record over a class instance is not merged: the instance stays");
+    assert.equal(fillIn({ extra: "x" }, {}).extra, "x", "a field the stand-in leaves out takes what is known");
   });
 
-  test("a count is kept where the app says, or for the page's life; nothing reaches storage the app did not pass", async () => {
+  test("a count is kept where the app says; on a server with no store nothing is kept, so no count passes between requests", async () => {
     const { rememberCount, rememberedCount, forgetCount } = await shapeData();
     assert.equal(typeof globalThis.localStorage, "undefined", "no storage in Node");
+    assert.equal(typeof globalThis.window, "undefined", "a server: no window");
     rememberCount("orders", 12);
-    assert.equal(rememberedCount("orders"), 12, "the page's own memory");
-    forgetCount("orders");
-    assert.equal(rememberedCount("orders"), null);
+    assert.equal(rememberedCount("orders"), null, "one request's count is not the next request's");
+    assert.doesNotThrow(() => forgetCount("orders"));
     const kept = new Map();
     const store = { getItem: (k) => kept.get(k) ?? null, setItem: (k, v) => kept.set(k, v), removeItem: (k) => kept.delete(k) };
     rememberCount("builds", 7, store);
@@ -527,6 +562,16 @@ describe("ownership: stand-ins, counts and storage", () => {
     assert.deepEqual([...kept], [["basalt-shape:builds", "7"]]);
     assert.equal(rememberedCount("builds", store), 7);
     assert.equal(rememberedCount("builds"), null, "the page's memory is not the store");
+    forgetCount("builds", store);
+    assert.equal(rememberedCount("builds", store), null, "forgotten");
+    // A store with getItem and setItem only: forgetting leaves an empty mark, which reads as none.
+    const plain = new Map();
+    const bare = { getItem: (k) => plain.get(k) ?? null, setItem: (k, v) => plain.set(k, v) };
+    rememberCount("drafts", 3, bare);
+    assert.equal(rememberedCount("drafts", bare), 3);
+    forgetCount("drafts", bare);
+    assert.equal(rememberedCount("drafts", bare), null, "forgotten on a store with no removeItem");
+    assert.equal(plain.get("basalt-shape:drafts"), "", "the empty mark");
     const blocked = () => { throw new Error("SecurityError"); };
     assert.doesNotThrow(() => rememberCount("x", 1, blocked));
     assert.equal(rememberedCount("x", blocked), null, "blocked storage reads as none");
@@ -547,7 +592,7 @@ describe("ownership: stand-ins, counts and storage", () => {
 function App() {
   const [page, setPage] = React.useState(1);
   const [count] = React.useState(() => B.rememberedCount("orders") ?? 3);
-  React.useEffect(() => { B.rememberCount("orders", 4); }, []);
+  React.useEffect(() => { B.rememberCount("orders", 4); window.__remembered = () => B.rememberedCount("orders"); }, []);
   return (
     <div style={{ padding: 16, minHeight: 3000 }}>
       <B.ListBand noun="Orders" total={120} page={page} pageSize={25} onPageChange={setPage}><ul>{Array.from({ length: 25 }, (_, i) => <li key={i}>Order {i}</li>)}</ul></B.ListBand>
@@ -577,6 +622,7 @@ createRoot(document.getElementById("root")).render(<App />);`);
     await page.waitForTimeout(300);
     assert.deepEqual(errors, []);
     assert.equal(await page.locator("#count").textContent(), "3", "no stored count: the app's own default");
+    assert.equal(await page.evaluate(() => window.__remembered()), 4, "in a browser, with no store, the count lasts for the page");
     assert.deepEqual(await page.evaluate(() => window.__touched), [], "no storage, fetch, beacon or request was touched");
     assert.deepEqual(requests, ["https://basalt.test/"], "the page asked for nothing more");
     await context.close();
@@ -624,5 +670,179 @@ createRoot(document.getElementById("root")).render(<App />);`);
       assert.equal(await page.evaluate(() => window.__sent()), 1, "the other modifier does not");
       await context.close();
     });
+  }
+});
+
+// ---- AF fix pass 1 (Astra's review): the scroller's element, a size change in two renders, a pane's own header, the snapshot, writingEmpty ----
+
+const SWAP = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+const ROWS = Array.from({ length: 200 }, (_, i) => "Ticket " + (i + 1));
+// Two boxes, one inside the other, around one list (so the band is the same instance throughout): the ref and the scrolling move between them, or neither has them.
+function App() {
+  const pane = React.useRef(null);
+  const [which, setWhich] = React.useState("${"${START}"}");
+  const [page, setPage] = React.useState(1);
+  window.__which = setWhich;
+  const rows = ROWS.slice((page - 1) * 50, page * 50);
+  const scrolls = { height: 500, overflow: "auto", border: "1px solid", margin: 16 };
+  return (
+    <div style={{ minHeight: 3000 }}>
+      <div id="b" ref={which === "b" ? pane : undefined} style={which === "b" ? scrolls : undefined}>
+        <div id="a" ref={which === "a" ? pane : undefined} style={which === "a" ? scrolls : undefined}>
+          <B.ListBand id="band" scroller={pane} noun="Tickets" total={ROWS.length} page={page} pageSize={50} onPageChange={setPage}><ul id="rows" style={{ margin: 0, padding: 0, listStyle: "none" }}>{rows.map((r) => <li key={r} style={{ height: 40 }}>{r}</li>)}</ul></B.ListBand>
+        </div>
+      </div>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+const swapFixture = (start) => SWAP.replace("${START}", start);
+const backShown = (page) => page.evaluate(() => document.querySelector(".basalt-back-to-top")?.hasAttribute("data-shown"));
+
+describe("the scroller's element can change, and a ref can fill late", () => {
+  test("a ref that moves to another pane moves the band's and Back to top's listeners with it", async () => {
+    const page = await open(swapFixture("a"));
+    await page.evaluate(() => window.__which("b"));
+    await frames(page); await frames(page);
+    // The new pane scrolls: the band sticks to it and Back to top is drawn (the old one no longer scrolls, and nothing listens to it).
+    for (const y of [400, 1100, 1700]) { await page.locator("#b").evaluate((el, to) => { el.scrollTop = to; }, y); await frames(page); }
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator("#band").getAttribute("data-stuck"), "", "stuck in the new pane");
+    assert.equal(await backShown(page), true, "Back to top watches the new pane");
+    await tap(page.locator(".basalt-back-to-top"));
+    await frames(page);
+    assert.equal(await page.locator("#b").evaluate((el) => el.scrollTop), 0, "and takes the new pane to its top");
+    await page.close();
+  });
+
+  test("a ref that is empty at first uses the window, then the pane once it fills", async () => {
+    const page = await open(swapFixture("none"));
+    // The ref is empty (neither box has it, and neither scrolls): the window is the scroller.
+    for (const y of [400, 1100, 1900]) { await page.evaluate((to) => window.scrollTo(0, to), y); await frames(page); }
+    assert.equal(await backShown(page), true, "the window, while the ref is empty");
+    await page.evaluate(() => { window.scrollTo(0, 0); window.__which("a"); });
+    await frames(page); await frames(page);
+    for (const y of [400, 1100, 1700]) { await page.locator("#a").evaluate((el, to) => { el.scrollTop = to; }, y); await frames(page); }
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator("#band").getAttribute("data-stuck"), "", "the pane, once the ref fills");
+    await page.close();
+  });
+});
+
+describe("a size change the app commits in two renders keeps its handoff", () => {
+  test("101 rows, page 8 at 10 a page, 50 chosen: the size lands first (page 3 of 3 shown), then page 2, and the window returns to the band's rest", async () => {
+    const fixture = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+const ROWS = Array.from({ length: 101 }, (_, i) => "Row " + (i + 1));
+function App() {
+  const [page, setPage] = React.useState(8);
+  const [size, setSize] = React.useState(10);
+  const rows = ROWS.slice((page - 1) * size, page * size);
+  // The app commits the size at once and the page a moment later (after an await, say).
+  return (
+    <div style={{ padding: "96px 16px 0", minHeight: 6000 }}>
+      <B.ListBand id="band" noun="Rows" total={101} page={page} pageSize={size} onPageSizeChange={setSize} onPageChange={(n) => window.setTimeout(() => setPage(n), 200)}>
+        <ul id="rows" style={{ margin: 0, padding: 0, listStyle: "none" }}>{rows.map((r) => <li key={r} style={{ height: 40 }}>{r}</li>)}</ul>
+      </B.ListBand>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+    const page = await open(fixture);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await frames(page); await page.waitForTimeout(100);
+    assert.equal(await page.locator("#band").getAttribute("data-stuck"), "", "stuck");
+    await page.getByRole("combobox", { name: "Rows per page" }).click();
+    await tap(page.getByRole("option", { name: "50", exact: true }));
+    await page.waitForFunction(() => document.querySelector("#rows li")?.textContent === "Row 51");
+    await frames(page);
+    const rest = await page.evaluate(() => { const s = document.querySelector(".basalt-list-band-sentinel"); return Math.max(0, Math.round(s.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(s).scrollMarginTop))); });
+    assert.equal(await page.evaluate(() => Math.round(window.scrollY)), rest, "the handoff survived the clamped page between the two renders");
+    await page.close();
+  });
+});
+
+describe("a pane with its own sticky header", () => {
+  test("the app sets the offset on the wrap: the band sticks under the pane's 48px header and Back to top sits under the band", async () => {
+    const fixture = `document.body.style.margin = "0"; document.body.style.background = "var(--basalt-surface-page)"; document.body.style.color = "var(--basalt-text-primary)";
+const style = document.createElement("style"); style.textContent = "#pane .basalt-list-band-wrap { --basalt-sticky-offset: 48px; }"; document.head.append(style);
+const ROWS = Array.from({ length: 200 }, (_, i) => "Message " + (i + 1));
+function App() {
+  const pane = React.useRef(null);
+  const [page, setPage] = React.useState(1);
+  return (
+    <div id="pane" ref={pane} style={{ height: 600, overflow: "auto", margin: 16, border: "1px solid" }}>
+      <header id="head" style={{ position: "sticky", top: 0, height: 48, zIndex: 50, background: "var(--basalt-surface-page)" }}>Inbox</header>
+      <B.ListBand id="band" scroller={pane} noun="Messages" total={200} page={page} pageSize={100} onPageChange={setPage}>
+        <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>{ROWS.slice((page - 1) * 100, page * 100).map((r) => <li key={r} style={{ height: 40 }}>{r}</li>)}</ul>
+      </B.ListBand>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+    const page = await open(fixture);
+    for (const y of [300, 1200, 1900]) { await page.locator("#pane").evaluate((el, to) => { el.scrollTop = to; }, y); await frames(page); }
+    await page.waitForTimeout(150);
+    const at = await page.evaluate(() => {
+      const pane = document.getElementById("pane").getBoundingClientRect().top + 1;
+      const band = document.getElementById("band").getBoundingClientRect();
+      const back = document.querySelector(".basalt-back-to-top").getBoundingClientRect();
+      return { band: Math.round(band.top - pane), bandBottom: band.bottom - pane, back: back.top - pane, shown: document.querySelector(".basalt-back-to-top").hasAttribute("data-shown") };
+    });
+    assert.equal(at.band, 48, "the band rests under the pane's header");
+    assert.equal(at.shown, true);
+    assert.ok(at.back >= at.bandBottom, `Back to top sits under the band, not over it: ${at.back} against ${at.bandBottom}`);
+    await page.close();
+  });
+});
+
+describe("the dialog's snapshot is structural", () => {
+  test("an empty multiple select and one whose single option, with the value \"\", is chosen read differently", async () => {
+    const fixture = `document.body.style.margin = "0";
+function App() {
+  const [open, setOpen] = React.useState(false);
+  window.__open = () => open;
+  return (
+    <div style={{ padding: 16 }}>
+      <B.Dialog open={open} onOpenChange={setOpen}>
+        <B.DialogTrigger id="opener" className="basalt-button">Edit</B.DialogTrigger>
+        <B.DialogContent form id="dialog"><B.SheetHeader closeLabel="Close"><B.DialogTitle>Labels</B.DialogTitle></B.SheetHeader>
+          <B.SheetBody><label htmlFor="m">Labels</label><select id="m" multiple><option value="">None</option></select></B.SheetBody></B.DialogContent>
+      </B.Dialog>
+    </div>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+    const page = await open(fixture);
+    await openForm(page);
+    await page.evaluate(() => { document.getElementById("m").options[0].selected = true; });
+    assert.equal(await scrim(page), true, "choosing the empty option is something entered");
+    await page.evaluate(() => { document.getElementById("m").options[0].selected = false; });
+    assert.equal(await scrim(page), false, "put back, nothing is entered");
+    await page.close();
+  });
+});
+
+describe("writingEmpty on Input and Textarea", () => {
+  const FIELD = (tag, policy) => `document.body.style.margin = "0";
+function App() {
+  const [value, setValue] = React.useState("A first draft");
+  const [writing, setWriting] = React.useState(false);
+  window.__clear = () => { setWriting(true); setValue(""); };
+  return <B.Field label="Draft"><B.${tag} id="f" value={value} onChange={(e) => setValue(e.target.value)} writing={writing}${policy ? ` writingEmpty="${policy}"` : ""} /></B.Field>;
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+  for (const tag of ["Input", "Textarea"]) {
+    for (const [policy, shown] of [[undefined, "A first draft"], ["keep", "A first draft"], ["clear", ""]]) {
+      test(`${tag}, ${policy ?? "the default"}: cleared while written, it shows ${shown ? "the last text" : "nothing"} and stays busy`, async () => {
+        const page = await open(FIELD(tag, policy));
+        assert.equal(await page.locator("#f").inputValue(), "A first draft");
+        await page.evaluate(() => window.__clear());
+        await frames(page);
+        assert.equal(await page.locator("#f").inputValue(), shown);
+        assert.equal(await page.locator("#f").getAttribute("aria-busy"), "true", "the busy look stays");
+        assert.equal(await page.locator("#f").getAttribute("readonly"), "", "read-only while written");
+        await page.close();
+      });
+    }
   }
 });

@@ -210,7 +210,7 @@ export function FormPlaces({ form, state }: { form: keyof typeof FORMS; state: s
           </DialogContent>
         </Dialog>
       </div>
-      <aside aria-label={f.title} style={{ borderInlineStart: "var(--basalt-size-hairline) solid var(--basalt-border-divider)", paddingInlineStart: "var(--basalt-space-6)", display: "grid", alignContent: "start", gap: "var(--basalt-space-4)" }}>
+      <aside aria-label={f.title} style={{ display: "grid", alignContent: "start", gap: "var(--basalt-space-4)" }}>
         <Text size="sm" tone="secondary">{f.lead}</Text>
         <Form><FormGrid columns="1-1">{f.fields(`${form}-p`)}</FormGrid></Form>
       </aside>

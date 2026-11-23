@@ -414,7 +414,7 @@ for (const id of rounds) {
           // Round 55 (the column explainer): "explain-hover" rests a real pointer on the header that marks itself `data-wt-explain` past the 600ms wait,
           // "explain-focus" reaches it from the keyboard (Tab from the header marked `data-wt-before`), and "explain-touch" holds a finger on it for 750ms,
           // longer than the 500ms long press, and lifts it. Each then waits for the card's entry to end.
-          if ((id === "55" || id === "57") && state.startsWith("explain-")) {
+          if ((id === "55" || id === "61") && state.startsWith("explain-")) {
             const target = page.locator("[data-wt-explain]").first();
             if (state.startsWith("explain-hover")) {
               await target.hover();
