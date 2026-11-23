@@ -43,16 +43,21 @@ function template(columns: string): string {
 }
 
 /**
- * A form's fields in columns that line up (DECISIONS 237, 239 to 242: Declare's layout; the implementation hasn't been reviewed). Every `Field` (and `FormGridItem`) in it is
+ * A form's fields in columns that line up (DECISIONS 237, 239 to 242; the implementation hasn't been reviewed). Every `Field` (and `FormGridItem`) in it is
  * placed by `column`, `row` and `rows`, and takes four tracks a row: label, control, hint and error. The fields beside each other share those tracks (each field is a subgrid on
  * them), so a label, a control's top and bottom, a hint and an error on one row sit on the same lines across the columns. The spaces are Basalt's: the field gap (`space-1-5`)
  * inside a field, the form gap (`space-4`) between rows and `space-8` between columns, each held by its track. Every control is `size-control-md` tall.
- * From 720 it is the columns; under 720 it is one column in the markup's order, as a `Form` is, so keep the markup in the order it is to be read.
- * For a place at least 640px wide: a narrower one (a 480px dialog) wants one column, which is a `Form`.
+ * It answers the room it is given, not the window: it is the columns where its own width is at least `size-breakpoint-container-lg` (640) and the window at least
+ * `size-breakpoint-md` (720), and one column in the markup's order anywhere else (a phone, a 480 dialog, a narrow pane), as a `Form` is, so keep the markup in the order it is
+ * to be read. The grid sits in a frame of its own (`basalt-form-grid-frame`), the container its width is read from; the props go to the grid.
  */
 export function FormGrid({ columns = "1-1", className, style, ...props }: FormGridProps) {
   const own = { "--_fg-columns": template(columns) } as React.CSSProperties;
-  return <div {...props} style={{ ...own, ...style }} className={join("basalt-form-grid", className)} />;
+  return (
+    <div className="basalt-form-grid-frame">
+      <div {...props} style={{ ...own, ...style }} className={join("basalt-form-grid", className)} />
+    </div>
+  );
 }
 
 export interface FormGridItemProps extends React.ComponentProps<"div">, FormGridPlacement {}

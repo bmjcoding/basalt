@@ -5,9 +5,12 @@ import { GRACE, LEAVE, WAIT } from "./cell-peek";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { join } from "./utils";
 
-// A column explainer (DECISIONS 257 and 261): a small popover that says what a column means, opened from the sortable header itself. It is
-// not a Tooltip, because it may hold a link, and it is not a Base UI Popover: its opener is the sort button, whose press must sort and never
-// toggle anything, and whose name and role must stay "Input, button" (a popover trigger would add a popup and an expanded state to it).
+// A column explainer (DECISIONS 257 and 261): a small popover that says what a column means, opened from the header itself. It is
+// not a Tooltip, because it may hold a link, and it is not a Base UI Popover: on a sortable header its opener is the sort button, whose press
+// must sort and never toggle anything, and whose name and role must stay the column's name and "button" (a popover trigger would add a popup
+// and an expanded state to it). On a header that does not sort, the opener is the header cell itself, made a focus stop (`tabindex="0"`) and
+// described by the card's words: the header keeps its role and name (a column header), as a cut cell of a still table is a focus stop of its
+// own, and no new control is drawn in the header (a trigger there would need a seat that every header of the column's kind then reserves).
 // The rules, in foundations ("The still table"):
 //   - it opens on hover after the tooltip's wait (600ms, then at once within 400ms of another closing), at once on keyboard focus, and on a
 //     long press (500ms) on touch; a press before the wait cancels it, and a sort press closes an open one, which then stays closed until
@@ -18,7 +21,8 @@ import { join } from "./utils";
 //     header and card keeps it), and it stays until hover and focus have both left;
 //   - inside a dialog, sheet or popup it is written into that modal's own portal, so the modal counts it as inside and its link stays reachable;
 //   - it is the opener's level plus one, with the neutral rim, radius 12 and shadow-overlay (the popover's own look);
-//   - its words are the sort button's description, so they are heard with the header; Tab from an open header goes into its link, and on.
+//   - its words are the opener's description, so they are heard with the header; Tab from an open header goes into its link, and on;
+//   - on a header that does not sort, a press does nothing but what hover does: it never closes or pins the card, and a long press opens it.
 // Nothing here runs when the module loads; a table without explainers never imports it.
 
 /** How long a finger rests on a header before its explainer opens instead of the press sorting. */
@@ -106,9 +110,9 @@ export interface TableHeadExplainerProps extends Omit<React.ComponentProps<"div"
 }
 
 /**
- * What a column means, for a header a reader could misread without it. Give it to a sortable `TableHead` as `explainer`. It opens from
+ * What a column means, for a header a reader could misread without it. Give it to a `TableHead` as `explainer`. It opens from
  * the header itself (hover after 600ms, keyboard focus, a long press on touch), above the header or beside it, never over its column,
- * and its words are the header's description. A press still sorts.
+ * and its words are the header's description. On a sortable header a press still sorts; a header that does not sort becomes a focus stop.
  */
 export function TableHeadExplainer({ title, className, style, children, id, ...props }: TableHeadExplainerProps) {
   const level = usePopupLevel();
@@ -127,9 +131,13 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
 
   React.useEffect(() => {
     const th = anchor.current?.closest("th");
-    const button = th?.querySelector<HTMLButtonElement>(":scope > .basalt-sort");
+    const sorts = th?.querySelector<HTMLButtonElement>(":scope > .basalt-sort") ?? null;
+    // The opener: the sort button, or the header cell itself when the column does not sort (a focus stop of its own while it has an explainer).
+    const button: HTMLElement | null | undefined = sorts ?? th;
     const box = card.current;
     if (!mounted || !th || !button || !box) return undefined;
+    const ownStop = !sorts && !th.hasAttribute("tabindex");
+    if (ownStop) th.tabIndex = 0;
     let open = false;
     // Held shut after Esc or a sort press, until the pointer and focus have left the header.
     let held = false;
@@ -267,15 +275,16 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
         press = window.setTimeout(() => { longPressed = true; show("touch"); }, LONG_PRESS);
         return;
       }
-      // A press before the wait cancels it.
+      // A press before the wait cancels it, on a header that sorts (the press is a sort).
       longPressed = false;
-      held = true;
+      if (sorts) held = true;
     };
     const onPointerMove = (e: PointerEvent) => {
       if (start && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > SLOP) { window.clearTimeout(press); start = null; }
     };
     const onPointerEnd = () => { window.clearTimeout(press); start = null; };
-    // The press that ended a long press does not sort. Any other press sorts (React's own handler) and closes the card.
+    // The press that ended a long press does not sort. Any other press sorts (React's own handler) and closes the card. A header that does not sort has
+    // nothing for a press to do, so a press there leaves the card as it is.
     const onClick = (e: MouseEvent) => {
       if (longPressed) {
         longPressed = false;
@@ -283,6 +292,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
         e.stopPropagation();
         return;
       }
+      if (!sorts) return;
       held = true;
       hide();
     };
@@ -367,6 +377,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       if (left.length) button.setAttribute("aria-describedby", left.join(" "));
       else button.removeAttribute("aria-describedby");
       th.removeAttribute("data-explained");
+      if (ownStop) th.removeAttribute("tabindex");
     };
   }, [mounted, bodyId]);
 

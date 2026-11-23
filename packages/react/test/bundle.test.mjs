@@ -96,8 +96,9 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleto
 // The overlays and search batch (DECISIONS 155). A sheet's head and the search dialog are Base UI's dialog plus a Button for the close, and nothing else:
 // no cmdk (the command panel is the one lazy module), no Phosphor, and the listbox, the opening list, the notice bar and the trigger load no Base UI at all.
 // cimip-gaps-2 B5 (DECISIONS 246: trim first, then the raise a feature needs): every modal lays itself out above an on-screen keyboard (the shared
-// watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; its limit is 88,200.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_200]]) {
+// watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; merged with main (5ad5345a), whose own
+// changes added about 490 bytes, it measures 88,683, so its limit is 88,700.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_700]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -107,7 +108,9 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 88_200]])
 
 // DECISIONS 154, the controls port: each new export alone, with splitting. Measured: TextButton 8,570, SwitchRow 24,794, SwitchRowGroup 10,977,
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
-for (const [name, limit, baseUi] of [["TextButton", 10_600, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 141_500, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+// cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
+// after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
+for (const [name, limit, baseUi] of [["TextButton", 10_600, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 141_700, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -347,10 +350,13 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // by itself with the old Toast around it; the marks (three Phosphor icons), braille, the controller (queue, grouping, timers, the
 // announcer) and the running state bring it to about 91,000. The limits sit just above what is measured. NotificationCentre was 140,000
 // before DECISIONS 103 (F2) gave it the hover glide: the plate's script (plate.tsx, shared with Menu and navigation) is about 2,500 bytes,
-// so its limit is 146,000.
+// so its limit is 146,000; 147,700 since DECISIONS 268 kept popovers below their opener (an 18-byte default); 147,900 for Clear all (DECISIONS 269, 98 bytes).
+// cimip-gaps-2, B7 (DECISIONS 265, the rise accepted under DECISIONS 246): the pending ring (Phosphor's Circle), a group's disclosure chevron (core
+// chevron-right and chevron-down), the reveal's track, the lifted errors and the shared Clear all take NotificationCentre's static graph to 152,538
+// (the limit 147,900 to 152,550).
 // cimip-gaps-2 B5 (DECISIONS 246, 274): the stack stands above an on-screen keyboard (the shared watcher), closes toasts that echoed a page on a
 // page change, and swipes upward under 720 where it hangs from the bar; ToastProvider measures 93,451, so its limit is 93,500.
-for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 147_600]]) {
+for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 152_550]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -476,7 +482,9 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // Links and rows (DECISIONS 152). The cards, the rows and the back link are plain markup and the core arrow glyphs: no Base UI part, no Phosphor
 // and no Shiki. The three that carry a button (Reveal, DirectoryList's show all, CopyButton) carry Base UI's Button and nothing else.
 // Measured: LinkCard 5,174 bytes, LinkTile 4,597, BackLink 4,004, BigLinkList 391, DirectoryList 16,729, Reveal 16,328, CopyButton 15,495.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_000, true], ["Reveal", 19_600, true], ["CopyButton", 18_550, true]]) {
+// cimip-gaps-2, B7: `useReveal` takes `focusFirst` (a group's entries follow its row, so a keyboard open keeps focus there), 6 and 8 bytes: Reveal
+// 19,600 to 19,650 (19,606 measured) and DirectoryList 20,000 to 20,050 (20,008).
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_050, true], ["Reveal", 19_650, true], ["CopyButton", 18_550, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -529,12 +537,13 @@ test("the whole package up front and styles.css, minified and gzipped, stay with
 });
 
 // Loading a module does nothing, for every file in dist (the lazy command panel apart: it loads on first open, and the Maps it builds are Phosphor's icon
-// tables, bundled in). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
+// tables, bundled in; and the two head scripts, dist/head/theme.js and dist/head/loops.js, by name, which are not modules: each is a classic script that runs in a document's head, and reads the page's
+// storage as it loads, which is what it is for; test/content-policy.test.mjs runs them in a page). Each file is imported in turn in one process, chunks first, with React loaded beforehand; a Set, Map, WeakMap, WeakSet or Intl
 // formatter that the file itself allocates while it loads (the frame that called `new` is in this package's dist) is counted against it, and so is any throw.
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js").sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -553,4 +562,102 @@ test("importing every file in dist allocates no registry or formatter, reads no 
   `;
   const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, dist, ...files], { encoding: "utf8", cwd: pkg, maxBuffer: 1 << 24 });
   assert.deepEqual(JSON.parse(out.trim().split("\n").at(-1)), []);
+});
+
+// First-load chunking (DECISIONS 265, batch B0). An app that splits its bundle draws its shell up front and its forms and popups in a route it loads later, and
+// imports everything from the root. esbuild places a module by which entries reach it before tree shaking, and every `export … from` in the root is a path, so
+// without the imports plugin the route's modules ride in a chunk the first screen loads (measured: 341 KB up front, Base UI's combobox, select and menu in it).
+// With the plugin the first screen loads exactly what it would if each import named its own module. The limit is the measurement (160,341 bytes) rounded up to the next 1,000.
+async function firstScreen({ plugin, entry = "shell.jsx" } = {}) {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const result = await esbuild.build({
+    absWorkingDir: path.join(here, "fixtures", "split-app"), entryPoints: [entry],
+    outdir: path.join(pkg, ".bundle-check"), bundle: true, minify: true, format: "esm", splitting: true, write: false, metafile: true, jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    plugins: plugin ? [basaltImportsEsbuild()] : [],
+  });
+  const outputs = result.metafile.outputs;
+  const start = Object.keys(outputs).find((file) => outputs[file].entryPoint === entry);
+  const seen = new Set();
+  const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+  visit(start);
+  // What contributes bytes, from the package and its dependencies (the app's own file and the plugin's small barrels left out).
+  const inputs = [...new Set([...seen].flatMap((file) => Object.entries(outputs[file].inputs).filter(([input, { bytesInOutput }]) => bytesInOutput > 0 && /\/dist\/|node_modules/.test(input)).map(([input]) => input)))].sort();
+  const later = [...new Set(Object.keys(outputs).filter((file) => !seen.has(file)).flatMap((file) => Object.keys(outputs[file].inputs)))];
+  return { bytes: [...seen].reduce((sum, file) => sum + outputs[file].bytes, 0), inputs, later };
+}
+
+test("a split app's first screen, through the imports plugin, loads what it would if each import named its own module, and none of a later route's", async () => {
+  const through = await firstScreen({ plugin: true });
+  const direct = await firstScreen({ entry: "shell-direct.jsx" });
+  assert.deepEqual(through.inputs, direct.inputs, "the same files up front as imports that name each module");
+  const route = through.inputs.filter((f) => /@base-ui\/react\/(esm\/)?(combobox|select|menu|dialog|field|input)\//.test(f));
+  assert.deepEqual(route, [], "none of the route's popups and fields are up front");
+  assert.ok(through.inputs.some((f) => /@base-ui\/react\/(esm\/)?tooltip\//.test(f)), "the rail's tooltip, which Nav draws, is");
+  assert.ok(through.bytes < 161_000, `first screen ${through.bytes} bytes (limit 161,000)`);
+});
+
+test("the imports plugin changes where code lands, not what the route gets: the route still loads every part it draws", async () => {
+  const { later } = await firstScreen({ plugin: true });
+  for (const part of ["combobox", "select", "menu", "dialog", "field"]) assert.ok(later.some((f) => new RegExp(`@base-ui/react/(esm/)?${part}/`).test(f)), `Base UI's ${part} loads with the route`);
+});
+
+test("the imports plugin's map holds every name the root exports at run time, each from a module that exports it", async () => {
+  const { rootMap } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const map = rootMap();
+  const exported = await runtimeExports();
+  assert.deepEqual([...map.keys()].sort(), exported);
+  const modules = new Map();
+  for (const [name, { module, local }] of map) {
+    modules.set(module, modules.get(module) ?? await import(path.join(pkg, "dist", module)));
+    assert.ok(local in modules.get(module), `${name}: ${module} exports ${local}`);
+  }
+});
+
+test("the plugin reads a file's imports from the root by esbuild's parser, and takes the whole root for a form it cannot place", async () => {
+  const { readRootImports } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const cases = [
+    ["semicolon-free.ts", 'export type Local = { id: string }\nimport { Button } from "@srasyndicate/basalt"\nexport const x: Local = { id: String(Button) }\n', ["Button"]],
+    ["comment.js", '// import { Menu } from "@srasyndicate/basalt";\n/* import { Dialog } from "@srasyndicate/basalt" */\nimport { Button } from "@srasyndicate/basalt";\nconsole.log(Button);\n', ["Button"]],
+    ["default.js", 'import Default, { A } from "@srasyndicate/basalt";\nconsole.log(Default, A);\n', null],
+    ["typed.ts", 'import { type A, B } from "@srasyndicate/basalt";\nexport const y: A = B;\n', ["B"]],
+    ["reexport.js", 'export { A as B } from "@srasyndicate/basalt";\n', ["A"]],
+    ["multi-line.tsx", "import {\n  Button,\n  // a comment\n  Menu as M,\n} from '@srasyndicate/basalt'\nexport const C = () => <M><Button>Don't</Button></M>\n", ["Button", "Menu"]],
+    ["type-only.ts", 'import type { MenuProps } from "@srasyndicate/basalt";\nimport { Spinner } from "@srasyndicate/basalt/other";\nexport const p: MenuProps | null = null; console.log(Spinner);\n', []],
+    ["template.js", 'import { Button } from "@srasyndicate/basalt";\nconst s = `import { Menu } from "@srasyndicate/basalt"`;\nconsole.log(Button, s);\n', null],
+    ["dynamic.js", 'import { Button } from "@srasyndicate/basalt";\nconst later = () => import("@srasyndicate/basalt");\nconsole.log(Button, later);\n', ["Button"]],
+    ["namespace.js", 'import * as B from "@srasyndicate/basalt";\nconsole.log(B);\n', null],
+    ["star.js", 'export * from "@srasyndicate/basalt";\n', null],
+    ["jsx-in-plain.js", 'import { Button } from "@srasyndicate/basalt";\nexport const C = () => <Button />;\n', null],
+  ];
+  for (const [file, source, expected] of cases) assert.deepEqual(await readRootImports(source, file, esbuild.transform), expected, file);
+  // The build's own loader for an extension is the one used: JSX in a .js file is read when the build says so.
+  assert.deepEqual(await readRootImports(cases.at(-1)[1], "jsx-in-plain.js", esbuild.transform, { ".js": "jsx" }), ["Button"]);
+});
+
+// A dependency with its own nested copy of the package keeps it: the plugin rewrites only an import that resolves to the root beside it.
+test("the imports plugin never rewrites a file that resolves another copy of Basalt", async () => {
+  const { basaltImportsEsbuild } = await import(path.join(pkg, "dist", "tooling", "imports.js"));
+  const root = path.join(pkg, ".bundle-check", "nested-copy");
+  nodeFs.rmSync(root, { recursive: true, force: true });
+  const write = (file, text) => { nodeFs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); nodeFs.writeFileSync(path.join(root, file), text); };
+  write("app.js", 'import { Button } from "@srasyndicate/basalt";\nimport { fromDependency } from "dep";\nconsole.log(Button, fromDependency);\n');
+  write("node_modules/dep/package.json", JSON.stringify({ name: "dep", version: "1.0.0", type: "module", main: "index.js" }));
+  write("node_modules/dep/index.js", 'import { Button } from "@srasyndicate/basalt";\nexport const fromDependency = Button;\n');
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/package.json", JSON.stringify({ name: "@srasyndicate/basalt", version: "0.0.1", type: "module", exports: { ".": "./index.js" }, sideEffects: false }));
+  write("node_modules/dep/node_modules/@srasyndicate/basalt/index.js", 'export const Button = "the nested copy";\n');
+  try {
+    const result = await esbuild.build({
+      absWorkingDir: root, entryPoints: ["app.js"], bundle: true, format: "esm", write: false, metafile: true,
+      external: ["react", "react-dom", "react/jsx-runtime", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"],
+      logLevel: "silent", plugins: [basaltImportsEsbuild()],
+    });
+    const inputs = Object.keys(result.metafile.inputs);
+    assert.ok(result.outputFiles[0].text.includes("the nested copy"), "the dependency's own copy is what it gets");
+    assert.ok(inputs.some((f) => /node_modules\/dep\/node_modules\/@srasyndicate\/basalt\/index\.js$/.test(f)), "the nested copy is resolved as esbuild would resolve it");
+    assert.ok(inputs.some((f) => f.startsWith("basalt-imports:") && f.endsWith(`${path.sep}app.js`)), "the app's own import is still rewritten");
+    assert.ok(!inputs.some((f) => f.startsWith("basalt-imports:") && f.includes(`${path.sep}dep${path.sep}`)), "the dependency's import is not");
+  } finally {
+    nodeFs.rmSync(root, { recursive: true, force: true });
+  }
 });

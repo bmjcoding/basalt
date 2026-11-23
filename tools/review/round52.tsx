@@ -32,6 +32,7 @@ import {
   Textarea,
   TextButton,
 } from "../../packages/react/src/index";
+import { FormPlaces } from "./af-demos";
 import type { Round } from "./rounds";
 
 const SEVERITY = [
@@ -163,6 +164,21 @@ export const ROUND_52: Round = {
       ...SHOT,
       height: 900,
       demo: ({ state }) => <DeclareGaps state={state} />,
+    },
+    {
+      id: "account",
+      name: "A second domain: an account form and a delivery address, in a pane and in a wide dialog",
+      intro: "The same FormGrid at one desktop viewport in two places (cimip-gaps-2, AF): a 360 pane beside the page, where it is one column in the markup's order, and the wide form dialog, where it is its columns. The grid answers its own width, not the window's.",
+      decisions: [
+        "FormGrid is the columns where its own width is at least 640 (`size-breakpoint-container-lg`) and the window at least 720; anywhere else (a phone, the 480 dialog, a narrow pane) it is one column in the markup's order. Its frame is the container its width is read from.",
+        "The rest is the form grid above: four tracks a row, the same spaces, every control 32 tall.",
+        "A multi-select's chosen values count as entered: the scrim keeps the dialog open after a topic is ticked, and closes it again once the ticks are back as they were.",
+      ],
+      tryIt: ["Compare the pane (one column) with “Edit in a dialog” (two columns), at the same window.", "In the dialog, tick “Invites” and press the scrim: the dialog stays. Untick it: the scrim closes it."],
+      states: ["dialog", "dialog-forced-colours", "reduced-motion"],
+      ...SHOT,
+      height: 900,
+      demo: ({ state }) => <FormPlaces form="account" state={state} />,
     },
   ],
 };

@@ -8,6 +8,7 @@
 import * as React from "react";
 
 import { Button, CopyGlyph, Field, IconButton, Input, Text, Textarea, TextButton } from "../../packages/react/src/index";
+import { RewriteFields } from "./af-demos";
 import type { Round } from "./rounds";
 
 const kindOf = (state: string) => state.replace(/-(reduced-motion|forced-colours)$/, "");
@@ -138,6 +139,21 @@ export const ROUND_53: Round = {
       scales: [2],
       height: 520,
       demo: ({ state }) => <FieldDemo key={state} state={state} />,
+    },
+    {
+      id: "listing",
+      name: "A second domain: a product listing translated again, and a support reply drafted again",
+      intro: "Two asynchronous edits of unlike kinds (cimip-gaps-2, AF), each a Textarea with `writing`. By default an empty value keeps the last text while the new one is written; `writingEmpty=\"clear\"` is an app that clears the field on purpose, with the busy look kept.",
+      decisions: [
+        "`writingEmpty` is the app's: `keep` (the default, today's behaviour) or `clear`. Nothing else about the written field changes.",
+        "The looks are the field above: read-only and aria-busy at once, then after 300ms the dimmed words, the dashed boundary and the skeleton's calm fill.",
+      ],
+      tryIt: ["Press Translate again: the French description is written again into the field."],
+      states: ["rewriting", "cleared", "cleared-forced-colours", "rewriting-reduced-motion"],
+      widths: [1440, 390],
+      scales: [2],
+      height: 520,
+      demo: ({ state }) => <RewriteFields key={state} state={state} />,
     },
   ],
 };

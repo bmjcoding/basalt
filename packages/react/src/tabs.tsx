@@ -190,11 +190,11 @@ export interface SegmentedControlProps extends PartProps<"div", "defaultValue" |
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   /**
-   * Equal segments that fill the container, as `Button`'s `fullWidth` does for a button (DECISIONS 242: Declare's severity). The pill still slides.
+   * Equal segments that fill the container, as `Button`'s `fullWidth` does for a button (DECISIONS 242: a required choice of a few, such as a priority). The pill still slides.
    */
   fullWidth?: boolean;
   /**
-   * A choice is required. A group of pressed buttons cannot carry `aria-required`, so the group's name says it: "Severity, Required". In a `Field`, `Field`'s `required` is
+   * A choice is required. A group of pressed buttons cannot carry `aria-required`, so the group's name says it: "Priority, Required". In a `Field`, `Field`'s `required` is
    * read, and the word after the label is the field's. Without a `Field` the word is added to `aria-label`.
    */
   required?: boolean;

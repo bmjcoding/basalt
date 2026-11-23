@@ -13,6 +13,7 @@
   .notifications-count { flex: 1; min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
   .notifications-mark { flex: none; }
   .notifications-foot { display: flex; justify-content: flex-end; padding: var(--basalt-space-2-5); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .notifications-clear { margin-inline-end: auto; }
   .notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
   .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
@@ -64,6 +65,17 @@
   .notification-line { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
   .notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
   .notification:hover .notification-line, .notification:hover .notification-time { color: var(--basalt-text-secondary); }
+  /* Pending is the empty ring of the same marks, in secondary ink: waiting is not a warning. The current entry is its title at 600. */
+  .notification[data-status="pending"] .notification-mark { color: var(--basalt-text-secondary); }
+  .notification[data-current] .notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
+  /* A group: the title is cut first, then the toast's count and the core chevron; its entries open under it, indented by the dot's and the mark's seats. */
+  .notification-head { display: flex; align-items: center; min-width: 0; }
+  .notification-head > .notification-title { position: relative; flex: 0 1 auto; }
+  .notification-count { flex: none; margin-inline-start: var(--basalt-space-1-5); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
+  .notification-caret { flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); }
+  .notification[aria-expanded="true"] .notification-caret { transform: rotate(90deg); }
+  .notification[aria-expanded="false"] .notification-caret:dir(rtl) { transform: scaleX(-1); }
+  .notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
   /* The hover glide: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it and the resting hover, so only the
      ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced colours, where each entry paints its own. */
@@ -77,6 +89,7 @@
     .notification[data-status] .notification-mark { color: CanvasText; }
     .notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
     .notification:hover::before { background-color: transparent; }
-    .notification:hover :is(.notification-title, .notification-line, .notification-time, .notification-mark) { color: HighlightText; }
+    .notification-count, .notification-caret { color: CanvasText; }
+    .notification:hover :is(.notification-title, .notification-line, .notification-time, .notification-mark, .notification-count, .notification-caret) { color: HighlightText; }
   }
 }

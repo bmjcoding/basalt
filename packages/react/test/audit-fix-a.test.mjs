@@ -152,11 +152,12 @@ for (const theme of THEMES) {
 }
 
 describe("A2-08: CodeBlock with a prompt, preloaded on the server, cold on the client", () => {
-  for (const prompt of ["$", undefined]) {
-    test(`hydrates without a recoverable error${prompt ? " (prompted)" : " (plain)"}`, async () => {
+  // B6 (Astra's review): a block that wraps draws its words the same on a cold client as on the server, prompted or not.
+  for (const [prompt, wrap] of [["$", false], [undefined, false], ["$", true], [undefined, true]]) {
+    test(`hydrates without a recoverable error${prompt ? " (prompted)" : " (plain)"}${wrap ? ", wrapped" : ""}`, async () => {
       const B = await import(pathToFileURL(path.join(pkg, "dist/index.js")));
       await B.preloadCodeLanguages(["ts"]);
-      const props = { code: "const n: number = 42;\nlet m = n;", language: "ts", copyable: false, ...(prompt ? { prompt } : {}) };
+      const props = { code: "const n: number = 42;\nlet m = n;", language: "ts", copyable: false, ...(prompt ? { prompt } : {}), ...(wrap ? { wrap } : {}) };
       const html = renderToString(React.createElement(B.CodeBlock, props));
       assert.match(html, /<span style="color:/, "the server sent highlighted markup");
       const page = await browser.newPage();

@@ -50,8 +50,8 @@ const NAMES = ["--basalt-keyboard-inset", "--basalt-viewport-top", "--basalt-vie
 /** A field that raises the keyboard: a text area, something editable, or an input that takes typing (not a button, a box, a file or a range). */
 const TEXT_ENTRY = "textarea, [contenteditable]:not([contenteditable=false]), input";
 const NOT_TYPED = /button|checkbox|radio|submit|reset|file|image|range|color|hidden/;
-/** A scroll owner: an element that scrolls (marked, or measuring its own pinned parts), not the window. */
-const OWNERS = "[data-scroll-owner], [data-pinned-measured]:not(html)";
+/** A scroll owner: an element that scrolls (marked, a `PaneLayout` pane while it scrolls, or one measuring its own pinned parts), not the window. */
+const OWNERS = "[data-scroll-owner], .basalt-pane[data-scroller], [data-pinned-measured]:not(html)";
 const px = Math.round;
 const key = (s: ScreenKeyboardState) => `${s.inset} ${s.top} ${s.height}`;
 

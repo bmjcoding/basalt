@@ -251,6 +251,30 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.09)
     )
 
+    /// The lit row's plate on the page (level 0), as one opaque colour: state-selected (black at 7%) over surface-0. For a part that replaces its own fill (a pressed toggle, a chosen card) or an app's own list row; --basalt-plate follows the level.
+    public static let plate0 = ThemedColor(
+      light: RGBA(red: 0.911749, green: 0.911749, blue: 0.911749, alpha: 1),
+      dark: RGBA(red: 0.125736, green: 0.125736, blue: 0.125736, alpha: 1)
+    )
+
+    /// The plate on a level-1 surface: state-selected over surface-1. In light, levels 1 to 3 are one white, so their plates are one colour.
+    public static let plate1 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.150617, green: 0.150617, blue: 0.150617, alpha: 1)
+    )
+
+    /// The plate on a level-2 surface: state-selected over surface-2.
+    public static let plate2 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.172036, green: 0.172036, blue: 0.172036, alpha: 1)
+    )
+
+    /// The plate on a level-3 surface: state-selected over surface-3.
+    public static let plate3 = ThemedColor(
+      light: RGBA(red: 0.930055, green: 0.930055, blue: 0.930055, alpha: 1),
+      dark: RGBA(red: 0.172036, green: 0.172036, blue: 0.172036, alpha: 1)
+    )
+
     /// The one primary action per view: the inverse of the page.
     public static let actionPrimary = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
