@@ -34,8 +34,48 @@ test("the duration export is every duration token with a name, in milliseconds",
   for (const name of Object.keys(duration)) assert.equal(durations[`duration${name[0].toUpperCase()}${name.slice(1)}`], duration[name], `durations.duration${name} is not duration.${name}`);
 });
 
-// The widths a query may name: the breakpoint tokens, and the one sum the command list documents (its list column, a gap and the container breakpoint).
-const WIDTHS = new Set([...Object.values(breakpoint), px("size-list-width") + px("space-4") + breakpoint.container]);
+/**
+ * A diagram's least width (DECISIONS 281 and 282, 1.11 and 1.19): its track minimums and gaps summed from the tokens, never under the drawn layout's floor
+ * (size-breakpoint-container-lg). `reach` is how many sides an architecture's group reaches.
+ */
+function leastWidth(type, n, reach = 0) {
+  const sum = type === "data-flow" ? px("size-diagram-lane") + n * (px("size-diagram-node") + px("space-12"))
+    : type === "schema" ? n * px("size-diagram-table") + (n - 1) * px("space-12")
+    : type === "sequence" ? n * px("size-diagram-node") + (n - 1) * px("space-5")
+    : n * px("size-diagram-node") + (n - 1) * px("space-16") + reach * px("space-4");
+  return Math.max(breakpoint.containerLg, sum);
+}
+const DIAGRAM_WIDTHS = ["architecture", "flowchart", "data-flow", "schema", "sequence"].flatMap((type) => [1, 2, 3, 4, 5, 6].flatMap((n) => (type === "architecture" ? [0, 1, 2] : [0]).map((r) => leastWidth(type, n, r))));
+// The widths a query may name: the breakpoint tokens, the one sum the command list documents (its list column, a gap and the container breakpoint), and a diagram's least widths.
+const WIDTHS = new Set([...Object.values(breakpoint), px("size-list-width") + px("space-4") + breakpoint.container, ...DIAGRAM_WIDTHS]);
+
+test("each of the diagrams' least-width rules is the sum of tokens for every figure it names (DECISIONS 282, 1.19)", () => {
+  const css = read("packages", "react", "src", "styles", "components.css");
+  const rules = [...css.matchAll(/@container \(width >= (\d+)px\) \{([^@]*?--_drawn: ; \})/g)].filter((m) => m[2].includes("basalt-diagram"));
+  assert.ok(rules.length >= 15, `found ${rules.length} least-width rules`);
+  const covered = new Set();
+  for (const [, width, body] of rules) {
+    for (const selector of body.split(",")) {
+      const types = [...selector.matchAll(/data-type="([a-z-]+)"/g)].map((m) => m[1]);
+      const cols = [...selector.matchAll(/data-cols="(\d)"/g)].map((m) => Number(m[1]));
+      const reach = selector.match(/data-reach="(\d)"/)?.[1];
+      for (const type of types) for (const n of cols) {
+        // An architecture rule with no reach serves every reach, so each must sum to the rule's width.
+        for (const r of reach !== undefined ? [Number(reach)] : type === "architecture" ? [0, 1, 2] : [0]) {
+          const expected = leastWidth(type, n, r);
+          assert.equal(Number(width), expected, `${type} of ${n} columns, reach ${r}, is drawn before script from ${width}px, but its least width is ${expected}`);
+          covered.add(`${type}:${n}:${r}`);
+        }
+      }
+    }
+    // The lint exception above the rule names the sum.
+    const before = css.slice(0, css.indexOf(`@container (width >= ${width}px)`));
+    assert.match(before.slice(before.lastIndexOf("/*")), new RegExp(`${width}px|size-breakpoint-container-lg \\(${width}px\\)`), `the exception above the ${width}px rule does not name its sum`);
+  }
+  for (const type of ["architecture", "flowchart", "data-flow", "schema", "sequence"]) for (const n of [2, 3, 4, 5, 6]) for (const r of type === "architecture" ? [0, 1, 2] : [0]) {
+    assert.ok(covered.has(`${type}:${n}:${r}`), `no least-width rule for a ${type} of ${n} columns${type === "architecture" ? ` reaching ${r} sides` : ""}`);
+  }
+});
 const queryNumbers = (css) => [...css.matchAll(/@(?:media|container)\b[^{]*\{/g)].flatMap((query) => [...query[0].matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => ({ query: query[0].trim(), number: Number(match[1]) })));
 
 test("every pixel width in a media or container query of React's sheet is a breakpoint token (or the command list's sum of tokens)", () => {
