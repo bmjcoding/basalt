@@ -37,3 +37,4 @@ The page's one blurred (smoked) surface; it falls back to opaque on its own.
 
 - Groups are labelled `h2`s in sentence case; up to six links with no label and no `.site-footer-groups` is the line form (`data-form="line"` on the footer). The legal line and the theme choice are required. One `nav`.
 - The script makes each link a pill, and under 720 each group a disclosure (closed unless it holds `aria-current="page"`). Write none of it.
+- The version (`.version-link`, written by `skill-body.mjs`'s `versionLink`) follows the legal line: wrap both in `div.site-footer-legal-row`, the label the product ("Basalt 0.2.0 · Nov 23, 2026"). Nothing marks a release as new.

@@ -267,4 +267,45 @@
     .site-slot > .topbar[data-form] { position: absolute; transform: none; opacity: 1; transition: none; }
     .site-footer-toggle { display: none; }
   }
+
+  /* ---- The version with its date (React's VersionLink, DECISIONS 320): one link to the release notes at that version. 12/16, tabular, secondary
+     ink; hover lifts it to primary and underlines both parts. Two parts never break inside (the word with the number, joined by a no-break space,
+     and the date): when they do not fit one line the date goes under the number, and the dot, standing in the gap before the date, is then left of
+     the link's own box, which clips it. A version longer than its place wraps anywhere. In a site's footer it follows the legal line, on its row. ---- */
+  .version-link {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--basalt-space-3);
+    max-width: 100%;
+    overflow-x: clip;
+    padding-block: var(--basalt-space-1);
+    border-radius: var(--basalt-radius-xs);
+    color: var(--basalt-text-secondary);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-xs-tracking);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .version-link-words, .version-link-date { position: relative; min-width: 0; overflow-wrap: anywhere; }
+  .version-link-date::before { content: "·"; content: "·" / ""; position: absolute; inset-inline-end: 100%; width: var(--basalt-space-3); text-align: center; }
+  .version-link-pre { display: inline-block; max-width: 100%; }
+  /* The number reserves its 600 width, so being the current page moves nothing. */
+  .version-link-number { display: inline-flex; flex-direction: column; max-width: 100%; }
+  .version-link-number::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
+  .version-link:hover { color: var(--basalt-text-primary); }
+  .version-link:hover :is(.version-link-words, .version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .version-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .version-link[aria-current="page"] { color: var(--basalt-text-primary); }
+  .version-link[aria-current="page"] .version-link-number { font-weight: var(--basalt-font-weight-semibold); }
+  /* On touch a 44px hit box that moves nothing. */
+  @media (pointer: coarse) {
+    .version-link::after { content: ""; position: absolute; inset-inline: 0; top: 50%; height: max(100%, var(--basalt-size-tap-min)); transform: translateY(-50%); }
+  }
+  .site-footer-legal-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-1) var(--basalt-space-4); min-width: 0; }
+  .site-footer-legal-row .version-link { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
 }

@@ -22,7 +22,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 
 - **core** `.page`, `.stack`, `.panel`, `.card`, `.btn`: always in; print its usage with your modules.
 - **glyph** `data-glyph`: Basalt's own glyph by name, never drawn by hand; filled inside `aria-current`.
-- **topbar** `.topbar`, `.site-footer`: once per page; never restyle it; no danger button; no second blurred layer.
+- **topbar** `.topbar`, `.site-footer`, `.version-link`: once per page; never restyle it; no danger button or second blur.
 - **kbd** `data-kbd`, `.kbd`: only a real shortcut the page binds, never on the primary fill; `data-doc` for keys in prose.
 - **segment** `.segment`: `button[aria-pressed]`, one true; a click doesn't switch it, your script does.
 - **forms** `.field`, `.input`, `<input>`, `<select>`, `<textarea>`: wrap a select in `.select`; errors are `aria-invalid`.
@@ -87,6 +87,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **topbar-nav** `.topbar-links`: five links at most, one `.topbar-action`; the script builds the narrow menu, never write it.
 - **app-shell** `.app-shell`: the document scrolls; one smoked bar; every sidebar item has a glyph.
 - **pane** `.pane-layout`: page first, pane after.
+- **release** `.release`: written by `tools/changelog/skill-body.mjs` from the records; never `hidden` on a fold.
 - **tab-bar** `.tab-bar`: three to five links, glyph over label; with more, four and a More sheet.
 
 Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's), using `--basalt-*` tokens only. Element selectors (`a`, `button`, `table`, `h1`) go inside `@layer reset { }`, so they can never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.

@@ -7212,7 +7212,7 @@
     padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3));
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
-  .basalt-version-link:is([data-place="more"], [data-place="footer"]) { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
+  :is(.basalt-tabbar-version, .basalt-site-footer-legal-row) .basalt-version-link { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
   /* A site's footer: after the legal line, on its row, space-4 apart, wrapping under it. */
   .basalt-site-footer-legal-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-1) var(--basalt-space-4); min-width: 0; }
 
@@ -7283,6 +7283,8 @@
   .basalt-release-entry-words { grid-column: 1; display: grid; justify-items: start; gap: var(--basalt-space-1); min-width: 0; }
   .basalt-release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
   .basalt-release-area { font-weight: var(--basalt-font-weight-medium); }
+  /* Inline code keeps the entry's 20px line (its own line would grow a line by a pixel), so a one-line entry is the height the touch rule counts on. */
+  .basalt-release-entry-text .basalt-inline-code { line-height: 1; }
   .basalt-release-migrate { position: relative; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
   .basalt-release-source-cell { grid-column: 2; justify-self: start; min-width: 0; }
   .basalt-release-source-cell:empty { display: none; }
