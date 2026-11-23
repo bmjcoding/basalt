@@ -78,7 +78,7 @@ let elkMade: { layout: (graph: ElkNode) => Promise<ElkNode> } | undefined;
 /** Places a figure in one direction: each card's column and row. The same answer in Node and in a browser. */
 export async function placeDiagram(input: DiagramPlacementInput, direction: "right" | "down"): Promise<DiagramPlacement> {
   if (!elkMade) {
-    const mod = (await import("elkjs/lib/elk.bundled.js")) as unknown as { default: new () => { layout: (graph: ElkNode) => Promise<ElkNode> } };
+    const mod = (await import("./diagram-elk")) as unknown as { default: new () => { layout: (graph: ElkNode) => Promise<ElkNode> } };
     elkMade = new mod.default();
   }
   const laid = await elkMade.layout(elkGraph(input, direction));

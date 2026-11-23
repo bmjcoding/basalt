@@ -417,8 +417,9 @@ describe("the command line", () => {
 
   test("uses no network and no module outside node:, so it runs from the skill folder anywhere", () => {
     const source = read(skillDir, "compose.mjs");
-    // node:vm runs the diagram module's own script to write a figure's words into the page (DECISIONS 281, 1.19): still Node's own, no network.
-    assert.deepEqual([...source.matchAll(/^import .* from "([^"]+)"/gm)].map((m) => m[1]).sort(), ["node:fs", "node:path", "node:url", "node:vm"]);
+    // node:vm runs the diagram module's own script to write a figure's words into the page (DECISIONS 281, 1.19); node:worker_threads runs the placer
+    // for an automatic diagram (DECISIONS 306, 1.8), whose elkjs resolves from the repository only when a page asks for one: still Node's own, no network.
+    assert.deepEqual([...source.matchAll(/^import .* from "([^"]+)"/gm)].map((m) => m[1]).sort(), ["node:fs", "node:path", "node:url", "node:vm", "node:worker_threads"]);
     assert.doesNotMatch(source, /\bfetch\(|https?\.request|node:(net|http|https|dns|child_process)/);
   });
 });

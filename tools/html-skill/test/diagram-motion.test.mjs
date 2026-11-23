@@ -25,7 +25,8 @@ describe("compose.mjs", () => {
   test("a still diagram brings in no motion module, no loops and no mark; an animated one brings both modules", () => {
     const still = compose(page([figure(STILL.architecture)]));
     assert.ok(!still.modules.includes("diagram-motion") && !still.modules.includes("loops"));
-    assert.ok(!still.html.includes("data:image/svg+xml,%3Csvg"));
+    // No service mark's rule (a link card's cue is a core glyph's mask in the stylesheet, DECISIONS 306, 1.4, and is not a mark).
+    assert.ok(!/\.diagram-node\[data-mark=/.test(still.html));
     const moving = compose(page([figure(animated("dataFlow"))]));
     assert.ok(moving.modules.includes("diagram-motion") && moving.modules.includes("loops"));
     assert.match(moving.html, /<figure[^>]*data-motion="animated"/);

@@ -29,11 +29,11 @@
 // file; PREFIX (aws, azure, gcp) keeps the ids that start with it. It reads parts/marks.json only, so the diagram usage need not list them.
 //
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -609,6 +609,22 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
 }
 
+/**
+ * An automatic diagram's placement for both directions (DECISIONS 306, 1.8), from parts/diagram-place.mjs run in a worker, waited for here: elk answers with
+ * a promise and compose is synchronous, so this thread sleeps on a shared flag until the worker has posted its answer and woken it.
+ */
+function placeNow(parts, spec) {
+  const signal = new SharedArrayBuffer(4);
+  const { port1, port2 } = new MessageChannel();
+  const worker = new Worker(path.join(parts, "diagram-place.mjs"), { workerData: { spec, port: port2, signal }, transferList: [port2] });
+  Atomics.wait(new Int32Array(signal), 0, 0, 60_000);
+  const got = receiveMessageOnPort(port1)?.message;
+  worker.terminate();
+  port1.close();
+  if (!got || got.error) throw new Error(got?.error ?? "the placer did not answer");
+  return got.placement;
+}
+
 /** Whether any figure on the page keeps its viewer: a `data-diagram` JSON without `"zoom": false`, or a figure drawn from script. */
 function zoomWanted(held, code) {
   if (/Basalt\s*\.\s*diagram\b/.test(code)) return true;
@@ -651,7 +667,7 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     // An automatic figure (DECISIONS 306, 1.8) is placed here, at build time, for both directions; the page holds the placement and never elkjs.
     if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema"].includes(spec.type)) {
       try {
-        spec.placement = JSON.parse(execFileSync(process.execPath, [path.join(parts, "diagram-place.mjs")], { input: JSON.stringify(spec), encoding: "utf8" }));
+        spec.placement = placeNow(parts, spec);
         const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
         item.text = item.text.replace(item.inner, () => inner);
         item.inner = inner;

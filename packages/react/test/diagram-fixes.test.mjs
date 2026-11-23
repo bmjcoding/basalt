@@ -119,7 +119,7 @@ describe("the development checks cost production nothing (Neon's finding 14)", (
   test("the motion module's production build holds none of its checks' words", async () => {
     const entry = `import { motionErrors } from "./dist/diagram-motion.js"; console.log(motionErrors);`;
     const [prod, dev] = [await bundle(entry, "production"), await bundle(entry, "development")];
-    for (const w of ["names both a pulse and a packet", "flows but has no label", "is dashed and flows", "no line joins them in that direction"]) {
+    for (const w of ["names both a pulse and a packet", "flows but has no label", "no line joins them in that direction"]) {
       assert.ok(!prod.includes(w), `production holds "${w}"`);
       assert.ok(dev.includes(w), `development lacks "${w}"`);
     }

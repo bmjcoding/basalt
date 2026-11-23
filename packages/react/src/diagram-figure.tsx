@@ -135,7 +135,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const auto = spec.layout === "auto" && (spec.type === "architecture" || spec.type === "flowchart" || spec.type === "schema");
   const given = React.useMemo(() => (spec.placement ? (Array.isArray(spec.placement) ? spec.placement : [spec.placement]) : []), [spec.placement]);
   const [loaded, setLoaded] = React.useState<DiagramPlacement[] | null>(null);
-  const placements = given.length ? given : loaded ?? [];
+  const placements = React.useMemo(() => (given.length ? given : loaded ?? []), [given, loaded]);
   const order = React.useMemo<Array<"right" | "down">>(() => (spec.direction ? [spec.direction] : spec.type === "flowchart" ? ["down", "right"] : ["right", "down"]), [spec.direction, spec.type]);
   const [dirAt, setDirAt] = React.useState(0);
   const placementFor = React.useCallback((k: number) => placements.find((p) => p.direction === order[k]), [placements, order]);
