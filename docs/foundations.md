@@ -463,13 +463,15 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     ("Waiting on you: approve release 4.2"). In forced colours it is `CanvasText`, as the other marks are.
   - **Grouped repeats.** The app groups (an entry's `entries`, one level deep) and writes the group's title, naming who and what ("Sam, Priya
     and Marcus mentioned you"); the row draws the four seats, then after the title the toast's count ("×3", `aria-hidden`, spoken ", 3 times")
-    and the core chevron. The title is cut first; the count and the chevron always show, and the time keeps the column every time ends on.
-    `count` stands for more than the entries listed. A group's row is a button with `aria-expanded`; its entries open in place under it on
+    and the core chevron on the disclosure's convention (`DisclosureRow`'s: to the end while closed, mirrored right to left, and down while open).
+    The title is cut first; the count and the chevron always show, and the time keeps the column every time ends on. `count` stands for more
+    than the entries listed, and is the app's only as a whole number above 0 (else the entries are counted). A group's row is a button with `aria-expanded`; its entries open in place under it on
     the reveal's track (0fr to 1fr over `duration-slow` on `ease-out`, back at 0.75× on `ease-in`, at once under reduced motion; `inert`
-    while closed), indented by the dot's and the mark's seats and their gaps, so their seats sit under the group's words, and the chevron
-    turns. Focus stays on the row (the entries are the next tab stops) and choosing the row never leaves the center. A group left without
-    `unread` is unread while any of its entries is, and the unread count counts entries, not groups. Errors are never grouped, as the toast
-    never groups them.
+    while closed), indented by the dot's and the mark's seats and their gaps, so their seats sit under the group's words. Focus stays on the row (the entries are the next tab stops) and choosing the row never leaves the center. One unread rule serves
+    the row, the dot, the count and "Mark all as read": a group is unread while any of its entries is, and its own `unread` is ignored; the
+    unread count counts entries, not groups. Errors are never grouped, as the toast never groups them: a `danger` entry inside a group is
+    drawn at the top level right after it, and a group left with none is not drawn. A `current` group is `aria-current` too. In the HTML skill
+    the list drawn again (`setEntries`) keeps each group open or closed, by id, and gives focus back to the entry that held it.
   - **The page form** (`NotificationList`) is the same rows in the page: the app's own notifications page ("View all" opens it), and on a
     phone the tab bar's destination, because a bell does not fit a phone's header beside the page's buttons. A tab bar's cells are links to
     pages, so the phone form is a page, never a sheet: the app's `TabBarItem` with `NotificationsGlyph` links to it and carries the
@@ -1121,14 +1123,16 @@ implementation hasn't been reviewed.
   panel, never the site search dialog (whose results are a fixed-height area of picture rows). `SearchField` is an `Input` in a `role="search"` form
   with the core search glyph 10px inside its start in tertiary, and while there are words a 24px clear button (the core ×, "Clear search") 4px inside
   its end; both seats are padding, kept whether the button shows or not, so the words never move, and the browser's own × is hidden. The first Esc
-  empties the words and goes no further; the next is the app's (`onEscape`: it closes its search). The count line is the app's `FilterResult` (drawn at once in
+  empties the words and goes no further; the next is the app's (`onEscape`: it closes its search, and nothing round the field closes with it); an
+  Esc that cancels an input method's composition is the input method's. A `disabled` or `readOnly` field cannot be cleared: its × is disabled and
+  Esc leaves the words. The count line is the app's `FilterResult` (drawn at once in
   tertiary, spoken once it holds still). `SearchPassages` is an ordered list in the server's ranking that keeps `space-1-5` from its edges; a `SearchPassage`
   is a link (`href`) or a button with the notification entry's row geometry (a plate inset 2px, radius 8, 12px to the words, the control ring at +2):
   a head line of the source (who said it, or the section it is in) in primary at 400, cut, and the meta at its end (`text-sm`, tertiary, tabular,
   lifting to secondary on the plate), then the passage in secondary at `text-base`, wrapping (its length is the server's). A **match** is a `mark` in
   primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour; in forced colours it keeps its
-  weight in `CanvasText`. `markMatches(text, ranges)` draws a server's ranges (UTF-16 offsets, joined where they overlap or touch, clamped, in any
-  order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
+  weight in `CanvasText`. `markMatches(text, ranges)` draws a server's ranges (UTF-16 offsets, joined where they overlap or touch, clamped, a boundary
+  inside a code point widened to the whole of it, in any order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
   results are a `LoadingShape` of stand-in passages (bones in the list's own shape); a changed query keeps the last results on screen
   (`refreshing`) and shows `Refreshing` ("Searching") only after a second; no results is the app's sentence in the list's place. React's alone (the
   HTML skill has no search over a server).

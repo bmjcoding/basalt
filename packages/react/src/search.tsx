@@ -6,6 +6,7 @@ import { FilterResult } from "./filter-result";
 import { CloseGlyph } from "./glyphs/close";
 import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
+import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
 import { join } from "./utils";
 
@@ -162,6 +163,10 @@ export interface SearchFieldProps {
   clearLabel?: string;
   /** The field's height: 32px (`md`) by default, 44 on touch, as every control. */
   controlSize?: "sm" | "md" | "lg";
+  /** No typing and no clearing: the × is disabled and Esc leaves the words. */
+  disabled?: boolean;
+  /** The words can be read and selected, not changed: the × is disabled and Esc leaves the words. */
+  readOnly?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   /** Anything else for the input: `aria-keyshortcuts`, `aria-controls`, `onFocus`. */
   inputProps?: Omit<React.ComponentProps<"input">, "value" | "onChange" | "type" | "placeholder" | "aria-label">;
@@ -173,7 +178,9 @@ export interface SearchFieldProps {
  * is padding, kept, so the words never move). It is a `role="search"` form. Esc empties it first and only the next Esc leaves (`onEscape`). The browser's
  * own clear × is hidden: the field has one ×.
  */
-export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onEscape, clearLabel = "Clear search", controlSize = "md", inputRef, inputProps, className }: SearchFieldProps) {
+export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onEscape, clearLabel = "Clear search", controlSize = "md", disabled, readOnly, inputRef, inputProps, className }: SearchFieldProps) {
+  const off = Boolean(disabled ?? inputProps?.disabled);
+  const fixed = off || Boolean(readOnly ?? inputProps?.readOnly);
   const own = React.useRef<HTMLInputElement | null>(null);
   const setRef = (node: HTMLInputElement | null) => {
     own.current = node;
@@ -198,6 +205,8 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
         className="basalt-input basalt-search-box-input"
         data-size={controlSize}
         aria-label={label}
+        disabled={off}
+        readOnly={fixed && !off ? true : undefined}
         value={value}
         placeholder={placeholder}
         autoComplete="off"
@@ -205,14 +214,17 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={(event) => {
           inputProps?.onKeyDown?.(event);
-          if (event.defaultPrevented || event.key !== "Escape") return;
-          if (value) {
+          // An input method's own Esc (cancelling a composition) is the input method's.
+          if (event.defaultPrevented || event.key !== "Escape" || isComposingKey(event.nativeEvent)) return;
+          if (value && !fixed) {
             // The first Esc empties the words, and nothing round the field closes with it.
             event.preventDefault();
             event.stopPropagation();
             onValueChange("");
           } else if (onEscape) {
+            // The app takes the Esc: a dialog or sheet round the field does not close as well.
             event.preventDefault();
+            event.stopPropagation();
             onEscape();
           }
         }}
@@ -222,6 +234,7 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
           icon={CloseGlyph}
           label={clearLabel}
           size="xs"
+          disabled={fixed}
           className="basalt-search-box-clear"
           onClick={() => {
             onValueChange("");
@@ -245,11 +258,14 @@ export function SearchMatch({ className, ...props }: SearchMatchProps) {
 
 /**
  * A passage with its matches marked, from the ranges a server sends: overlapping and touching ranges are joined, ranges outside the text are cut
- * to it, and the order they come in does not matter. Plain text in, nodes out: nothing is parsed as HTML.
+ * to it, a boundary inside a code point widens to the whole of it, and the order they come in does not matter. Plain text in, nodes out: nothing is parsed as HTML.
  */
 export function markMatches(text: string, ranges: readonly MatchRange[]): React.ReactNode[] {
+  // A boundary inside a code point (between the two halves of a surrogate pair, an emoji) widens to take the whole code point.
+  const inside = (at: number) => at > 0 && at < text.length && /[\uDC00-\uDFFF]/.test(text[at]!) && /[\uD800-\uDBFF]/.test(text[at - 1]!);
   const sorted = ranges
     .map(([start, end]) => [Math.max(0, Math.min(start, end)), Math.min(text.length, Math.max(start, end))] as const)
+    .map(([start, end]) => [inside(start) ? start - 1 : start, inside(end) ? end + 1 : end] as const)
     .filter(([start, end]) => end > start)
     .sort((a, b) => a[0] - b[0]);
   const joined: Array<[number, number]> = [];

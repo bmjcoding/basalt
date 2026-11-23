@@ -333,6 +333,120 @@ for (const theme of ["dark", "light"]) {
   });
 }
 
+// ---- Astra's review of B7 (cimip-gaps-2): one unread rule, errors never group, the disclosure chevron, the field's Esc and its fixed states ----
+
+for (const theme of ["dark", "light"]) {
+  describe(`the center's groups after review (${theme})`, () => {
+    test("one unread rule: a group's own flag is ignored, so the row, the dot, the count and Mark all as read agree both ways", async () => {
+      const said = `[{ id: "g", title: "Two comments", time: "1m", unread: true, entries: [{ id: "a", title: "A", time: "1m" }, { id: "b", title: "B", time: "2m" }] }]`;
+      const { page } = await open(`<B.NotificationList entries={${said}} />`, { theme });
+      await settle(page);
+      assert.equal(await page.locator(".basalt-notification[data-group]").getAttribute("data-unread"), null, "read entries make a read group");
+      assert.equal(await page.locator(".basalt-notifications-count").innerText(), "0 unread");
+      assert.equal(await page.getByRole("button", { name: "Mark all as read" }).getAttribute("aria-disabled"), "true");
+      assert.equal(await page.getByRole("button", { name: /^Unread/ }).count(), 0);
+      await page.close();
+      const reverse = `[{ id: "g", title: "Two comments", time: "1m", unread: false, entries: [{ id: "a", title: "A", time: "1m", unread: true }, { id: "b", title: "B", time: "2m" }] }]`;
+      const { page: second } = await open(`<div style={{ padding: 40, display: "flex", justifyContent: "flex-end" }}><B.NotificationCenter defaultOpen entries={${reverse}} /></div>`, { theme, viewport: { width: 800, height: 600 } });
+      await settle(second);
+      assert.equal(await second.locator(".basalt-notification[data-group]").getAttribute("data-unread"), "");
+      assert.equal(await second.locator(".basalt-notifications-trigger").getAttribute("aria-label"), "Notifications, 1 unread");
+      assert.equal(await second.locator(".basalt-notifications-trigger").getAttribute("data-unread"), "");
+      await second.close();
+    });
+
+    test("a count that is not a whole number above 0 counts the group's entries", async () => {
+      for (const count of ["-3", "2.5", "Number.NaN", "Infinity", "0"]) {
+        const { page } = await open(`<B.NotificationList entries={[{ id: "g", title: "Two comments", time: "1m", count: ${count}, entries: [{ id: "a", title: "A", time: "1m" }, { id: "b", title: "B", time: "2m" }] }]} />`, { theme });
+        await settle(page);
+        assert.equal(await page.locator(".basalt-notification-count").innerText(), "×2", String(count));
+        await page.close();
+      }
+    });
+
+    test("errors never group: a danger entry is drawn at the top level right after its group, and a group of errors alone is no group", async () => {
+      const builds = `[{ id: "g", title: "Three builds", time: "1m", entries: [{ id: "a", title: "Build 1 passed", time: "1m", status: "success" }, { id: "b", title: "Build 2 failed", time: "2m", status: "danger" }, { id: "c", title: "Build 3 passed", time: "3m", status: "success" }] }, { id: "h", title: "One failure", time: "9m", entries: [{ id: "e1", title: "Lint failed", time: "9m", status: "danger" }] }]`;
+      const { page } = await open(`<B.NotificationList entries={${builds}} onSelect={(e) => { window.chosen = e.id; }} />`, { theme });
+      await settle(page);
+      const top = await page.locator(".basalt-notifications-list > li > .basalt-notification .basalt-notification-title").evaluateAll((els) => els.map((e) => e.textContent.replace(/, \d+ times$/, "")));
+      assert.deepEqual(top, ["Three builds", "Build 2 failed", "Lint failed"]);
+      assert.equal(await page.locator(".basalt-notification-count").innerText(), "×2");
+      await page.getByRole("button", { name: /Build 2 failed/ }).click();
+      assert.equal(await page.evaluate(() => window.chosen), "b");
+      await page.close();
+    });
+
+    for (const dir of ["ltr", "rtl"]) {
+      test(`the chevron is the disclosure's: chevron-right while closed (mirrored right to left), chevron-down while open, and a current group is aria-current (${dir})`, async () => {
+        const { page } = await open(`<div dir="${dir}"><B.NotificationList entries={[{ id: "g", title: "Two comments", time: "1m", current: true, entries: [{ id: "a", title: "A", time: "1m" }, { id: "b", title: "B", time: "2m" }] }]} /></div>`, { theme });
+        await settle(page);
+        const group = page.locator(".basalt-notification[data-group]");
+        assert.equal(await group.getAttribute("aria-current"), "true");
+        const caret = page.locator(".basalt-notification-caret");
+        assert.equal(await caret.locator("svg").getAttribute("data-glyph"), "chevron-right");
+        assert.equal(await caret.evaluate((el) => getComputedStyle(el).transform), dir === "rtl" ? "matrix(-1, 0, 0, 1, 0, 0)" : "none");
+        await group.click();
+        await settle(page);
+        assert.equal(await caret.locator("svg").last().getAttribute("data-glyph"), "chevron-down");
+        assert.equal(await caret.evaluate((el) => getComputedStyle(el).transform), "none", "down needs no mirror");
+        await page.close();
+      });
+    }
+  });
+
+  describe(`the search field after review (${theme})`, () => {
+    const IN_DIALOG = (props = "") => `(() => { function App() { const [q, set] = React.useState(""); const [esc, setEsc] = React.useState(0); return <B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Find in the handbook</B.DialogTitle>
+      <B.SearchField label="Search the handbook" value={q} onValueChange={set} onEscape={() => setEsc((n) => n + 1)} ${props} /><output id="esc">{esc}</output></B.DialogContent></B.Dialog>; } return <App />; })()`;
+
+    test("in a dialog, the first Esc empties the field and the second is onEscape's; the dialog closes on neither", async () => {
+      const { page } = await open(IN_DIALOG(), { theme });
+      await settle(page);
+      const input = page.locator(".basalt-search-box-input");
+      await input.fill("laptop");
+      await page.keyboard.press("Escape");
+      assert.equal(await input.inputValue(), "");
+      await page.keyboard.press("Escape");
+      await settle(page);
+      assert.equal(await page.locator("#esc").innerText(), "1");
+      assert.equal(await page.locator(".basalt-dialog").isVisible(), true, "onEscape took the Esc; the dialog stays");
+      await page.close();
+    });
+
+    test("an Esc that cancels an input method's composition is left alone", async () => {
+      const { page } = await open(IN_DIALOG(), { theme });
+      await settle(page);
+      const input = page.locator(".basalt-search-box-input");
+      await input.fill("かな");
+      await input.evaluate((el) => {
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, isComposing: true }));
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, keyCode: 229 }));
+      });
+      assert.equal(await input.inputValue(), "かな", "the words stay");
+      assert.equal(await page.locator("#esc").innerText(), "0");
+      await page.close();
+    });
+
+    for (const state of ["disabled", "readOnly"]) {
+      test(`${state}: the × is disabled and Esc leaves the words`, async () => {
+        const { page } = await open(`(() => { function App() { const [q, set] = React.useState("laptop"); return <B.SearchField label="Search the handbook" value={q} onValueChange={set} ${state} />; } return <App />; })()`, { theme });
+        await settle(page);
+        const input = page.locator(".basalt-search-box-input");
+        assert.equal(await page.getByRole("button", { name: "Clear search" }).isDisabled(), true);
+        if (state === "readOnly") {
+          assert.equal(await input.getAttribute("readonly"), "");
+          await input.focus();
+          await page.keyboard.press("Escape");
+        } else {
+          assert.equal(await input.isDisabled(), true);
+          await input.evaluate((el) => el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+        }
+        assert.equal(await input.inputValue(), "laptop");
+        await page.close();
+      });
+    }
+  });
+}
+
 describe("names and helpers", () => {
   test("NotificationCenter and NotificationCentre are one component", () => {
     assert.equal(typeof B.NotificationCenter, "function");
@@ -346,5 +460,10 @@ describe("names and helpers", () => {
     assert.equal(html(B.markMatches("abc", [[-4, 1], [2, 99], [2, 2]])), '<mark class="basalt-search-match">a</mark>b<mark class="basalt-search-match">c</mark>');
     assert.equal(html(B.markMatches("<b>x</b>", [[3, 4]])), '&lt;b&gt;<mark class="basalt-search-match">x</mark>&lt;/b&gt;');
     assert.equal(html(B.markMatches("plain", [])), "plain");
+    // A boundary inside a code point widens to the whole of it, at the start and at the end: "😀" is two UTF-16 units.
+    assert.equal(html(B.markMatches("A😀B", [[2, 4]])), 'A<mark class="basalt-search-match">😀B</mark>', "a start inside the emoji");
+    assert.equal(html(B.markMatches("A😀B", [[0, 2]])), '<mark class="basalt-search-match">A😀</mark>B', "an end inside the emoji");
+    assert.equal(html(B.markMatches("A😀B", [[1, 2]])), 'A<mark class="basalt-search-match">😀</mark>B', "both ends round half of it");
+    assert.equal(html(B.markMatches("A😀B", [[2, 3]])), 'A<mark class="basalt-search-match">😀</mark>B');
   });
 });

@@ -73,7 +73,8 @@
   .notification-head > .notification-title { position: relative; flex: 0 1 auto; }
   .notification-count { flex: none; margin-inline-start: var(--basalt-space-1-5); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
   .notification-caret { flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); }
-  .notification[aria-expanded="true"] .notification-caret { transform: rotate(180deg); }
+  .notification[aria-expanded="true"] .notification-caret { transform: rotate(90deg); }
+  .notification[aria-expanded="false"] .notification-caret:dir(rtl) { transform: scaleX(-1); }
   .notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
   /* The hover glide: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it and the resting hover, so only the

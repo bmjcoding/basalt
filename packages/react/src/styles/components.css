@@ -3189,7 +3189,7 @@
   /* The entry for the page on screen (a list in a sidebar): its title at 600 from 400. It is one cut line, so nothing moves. */
   .basalt-notification[data-current] .basalt-notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
 
-  /* A group of repeats: the title is cut first, then the count (the toast's "×3") and the core chevron, which turns as the group opens. Its entries
+  /* A group of repeats: the title is cut first, then the count (the toast's "×3") and the core chevron (to the end, then down). Its entries
      open in place under it (the reveal's track), indented by the dot's and the mark's seats, so their seats sit under the group's words. The clip
      keeps space-1 beside them, room enough for a ring at +2 inside the list's own space-1-5. */
   .basalt-notification-head { display: flex; align-items: center; min-width: 0; }
@@ -3197,8 +3197,9 @@
      widens the page. */
   .basalt-notification-head > .basalt-notification-title { position: relative; flex: 0 1 auto; }
   .basalt-notification-count { flex: none; margin-inline-start: var(--basalt-space-1-5); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
-  .basalt-notification-caret { flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out); }
-  .basalt-notification[aria-expanded="true"] .basalt-notification-caret { transform: rotate(180deg); }
+  /* The disclosure's chevron, as DisclosureRow's: to the end while closed (mirrored right to left), down while open, the change drawn by the control glyph. */
+  .basalt-notification-caret { display: flex; flex: none; margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-secondary); }
+  .basalt-notification[aria-expanded="false"] .basalt-notification-caret:dir(rtl) { transform: scaleX(-1); }
   .basalt-notification-group > .basalt-reveal-panel > .basalt-reveal-clip { margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); }
   .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
@@ -5986,7 +5987,7 @@
     .basalt-skeleton { animation: none; }
     /* A written field holds still, as a skeleton does; a busy TextButton's underline keeps breathing, as the ring keeps its fade: it is a colour step, not motion. */
     .basalt-input[data-writing] { animation: none; }
-    .basalt-accordion-panel, .basalt-accordion-caret, .basalt-notification-caret { transition: none; }
+    .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
     /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
     /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
     :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { transform: none; }

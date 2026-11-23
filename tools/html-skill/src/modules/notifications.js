@@ -7,20 +7,35 @@
   var _ = B._;
   var seq = 0;
   var MARK = { success: 'CheckCircle', warning: 'Warning', danger: 'XCircle', pending: 'Circle' };
-  var CARET = '<svg class="icon notification-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%glyph:chevron-down%"/></svg>';
+  var CARET = '<svg class="icon notification-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%glyph:chevron-right%"/></svg>';
   var BELL = '<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="%glyph:notifications%"/></svg>';
 
   /**
    *   Basalt.notifications(host, { entries: [{ id, title, description?, time, dateTime?, status?: 'success'|'warning'|'danger'|'pending', unread?, href?, current?,
-   *     entries?: [...] (a group: its row opens to these), count? }],
+   *     entries?: [...] (a group: its row opens to these; it is unread while any of them is, and a danger entry is lifted out of it), count? }],
    *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onClearAll?() (shows Clear all at the foot's start), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
    */
+  function isGroup(e) { return !!(e.entries && e.entries.length); }
+  // Errors never group: a danger entry in a group is drawn at the top level, right after it, and a group left with none is not drawn.
+  function drawn(list) {
+    var out = [];
+    list.forEach(function (e) {
+      if (!isGroup(e)) return out.push(e);
+      var kept = e.entries.filter(function (c) { return c.status !== 'danger'; });
+      if (kept.length) out.push(kept.length === e.entries.length ? e : Object.assign({}, e, { entries: kept }));
+      e.entries.forEach(function (c) { if (c.status === 'danger') out.push(c); });
+    });
+    return out;
+  }
+
   function notifications(host, options) {
     var o = options || {};
     if (typeof host === 'string') host = document.querySelector(host);
     var id = 'bh-notes-' + (++seq);
     var label = o.label || 'Notifications';
-    var entries = o.entries || [];
+    var entries = drawn(o.entries || []);
+    // Which groups are open, by entry id, so a new list from setEntries keeps them.
+    var opened = {};
     host.innerHTML =
       '<button type="button" class="btn" data-variant="ghost" data-icon-only popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
       '<div class="panel float popover notifications" popover id="' + id + '" data-side="' + (o.side || 'bottom') + '" data-align="' + (o.align || 'end') + '" aria-labelledby="' + id + '-title">' +
@@ -48,16 +63,17 @@
 
     function leave() { if (pop.matches(':popover-open')) pop.hidePopover(); }
 
-    function isGroup(e) { return !!(e.entries && e.entries.length); }
-    function isUnread(e) { return e.unread != null ? !!e.unread : isGroup(e) && e.entries.some(function (c) { return c.unread; }); }
+    // One rule for the row, the dot, the count and Mark all as read: a group is unread while any of its entries is (its own flag is ignored).
+    function isUnread(e) { return isGroup(e) ? e.entries.some(function (c) { return !!c.unread; }) : !!e.unread; }
     function row(e, index, group) {
       var st = e.status || 'neutral';
       var tag = group || !e.href ? 'button' : 'a';
       var unread = isUnread(e);
-      var n = group ? (e.count || e.entries.length) : 0;
+      // The count is the app's only as a whole number above 0, so nothing else reaches the markup.
+      var n = group ? (Number.isInteger(e.count) && e.count > 0 ? e.count : e.entries.length) : 0;
       var title = '<span class="notification-title">' + (unread ? '<span class="visually-hidden">Unread: </span>' : '') + _.esc(e.title) + (group ? '<span class="visually-hidden">, ' + n + ' times</span>' : '') + '</span>';
-      return '<' + tag + (tag === 'a' ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + index + '"' + (unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '"' +
-        (e.current ? ' data-current aria-current="' + (tag === 'a' ? 'page' : 'true') + '"' : '') + (group ? ' data-group aria-expanded="false" aria-controls="' + group + '"' : '') + '>' +
+      return '<' + tag + (tag === 'a' ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + index + '" data-id="' + _.esc(e.id) + '"' + (unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '"' +
+        (e.current ? ' data-current aria-current="' + (tag === 'a' ? 'page' : 'true') + '"' : '') + (group ? ' data-group aria-expanded="' + !!opened[e.id] + '" aria-controls="' + group + '"' : '') + '>' +
         '<span class="notification-dot" aria-hidden="true"></span><span class="notification-mark" aria-hidden="true">' + (MARK[st] ? _.icon(MARK[st]) : '') + '</span>' +
         '<span class="notification-text">' + (group ? '<span class="notification-head">' + title + '<span class="notification-count" aria-hidden="true">×' + n + '</span>' + CARET + '</span>' : title) +
         (e.description ? '<span class="notification-line">' + _.esc(e.description) + '</span>' : '') + '</span>' +
@@ -65,6 +81,8 @@
     }
 
     function render() {
+      // The entry that holds focus keeps it when it is still there after the list is drawn again.
+      var held = list.contains(document.activeElement) && document.activeElement.dataset.id;
       var unread = entries.reduce(function (n, e) { return n + (isGroup(e) ? e.entries.filter(function (c) { return c.unread; }).length : e.unread ? 1 : 0); }, 0);
       button.setAttribute('aria-label', unread > 0 ? label + ', ' + unread + ' unread' : label);
       dot.hidden = unread === 0;
@@ -78,9 +96,10 @@
       list.innerHTML = entries.map(function (e, i) {
         if (!isGroup(e)) return '<li>' + row(e, i) + '</li>';
         var gid = id + '-g' + i;
-        return '<li>' + row(e, i, gid) + '<ul class="notification-entries" id="' + gid + '" hidden>' +
+        return '<li>' + row(e, i, gid) + '<ul class="notification-entries" id="' + gid + '"' + (opened[e.id] ? '' : ' hidden') + '>' +
           e.entries.map(function (c, j) { return '<li>' + row(c, i + '.' + j) + '</li>'; }).join('') + '</ul></li>';
       }).join('');
+      if (held) [].some.call(list.querySelectorAll('.notification'), function (el) { return el.dataset.id === held && (el.focus(), true); });
     }
 
     list.addEventListener('click', function (ev) {
@@ -89,6 +108,7 @@
       var at = el.dataset.index.split('.');
       if (el.hasAttribute('data-group')) {
         var open = el.getAttribute('aria-expanded') !== 'true';
+        opened[entries[Number(at[0])].id] = open;
         el.setAttribute('aria-expanded', String(open));
         document.getElementById(el.getAttribute('aria-controls')).hidden = !open;
         return;
@@ -108,7 +128,7 @@
     return {
       element: pop,
       button: button,
-      setEntries: function (next) { entries = next || []; render(); },
+      setEntries: function (next) { entries = drawn(next || []); render(); },
       open: function () { pop.showPopover({ source: button }); },
       close: leave
     };
