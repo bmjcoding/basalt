@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -78,6 +78,11 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
     var ink = figure.querySelector('.diagram-ink');
     var toggle = figure.querySelector('.diagram-toggle');
+    // Motion (DECISIONS 292) is the diagram-motion module's: compose.mjs adds it to a page whose diagram says "motion": "animated". Without it the
+    // figure is as still. `drawn` is the ink last written, so a measure that draws the same lines writes nothing.
+    var animated = model.motion.animated && typeof _.diagramMotion === 'function';
+    var motion = null, drawn = null;
+    var settle = function () { if (animated) settleEntrance(figure); };
 
     function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || hoverTrace); }
     // The toggle's words and state follow the list's (a stack drawn with no lines opens it).
@@ -93,8 +98,11 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
       syncToggle();
       // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
       if (!hasStops(model, state)) hoverTrace = null;
-      if (ink) ink.innerHTML = measured.ink;
+      var fresh = ink && measured.ink !== drawn;
+      if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
       retrace();
+      // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
+      if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length)); if (fresh && motion) motion.redrawn(); }
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.
@@ -104,6 +112,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     function onKey(event) {
       var node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
+      settle();
       if (event.key === 'Escape') { if (focusTrace || hoverTrace) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
       var to = keyTarget(model, node.getAttribute('data-node'), event.key);
@@ -116,6 +125,7 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     function onFocusIn(event) {
       var node = nodeOf(event.target);
       if (!node) return;
+      settle();
       var id = node.getAttribute('data-node');
       // Tracing follows the keyboard's focus (:focus-visible), so a press that focuses a node traces nothing.
       focusTrace = node.matches(':focus-visible') ? id : null;
@@ -132,11 +142,13 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     function onOver(event) {
       if (event.pointerType !== 'mouse' || !matchMedia('(hover: hover)').matches) return;
       var node = nodeOf(event.target);
+      if (node) settle();
       var next = node && hasStops(model, state) ? node.getAttribute('data-node') : null;
       if (next !== hoverTrace) { hoverTrace = next; retrace(); }
     }
     function onLeave() { if (hoverTrace) { hoverTrace = null; retrace(); } }
     function onToggle() {
+      settle();
       setState(Object.assign({}, state, { open: !state.open, autoOpen: undefined }));
       syncToggle();
     }
@@ -157,9 +169,16 @@ import { applyTrace, buildModel, escapeHtml, figureTree, hasStops, hintEntries, 
     });
     observer.observe(figure);
     if (document.fonts) document.fonts.ready.then(function () { if (live) layout(); });
+    // A card's mark keeps its seat's padding out of forced colours, where none is drawn: the mode changing is a new measure (DECISIONS 292, 2.7).
+    var forced = matchMedia('(forced-colors: active)');
+    var marks = model.nodes.some(function (n) { return n.mark; });
+    if (marks) forced.addEventListener('change', layout);
+    if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
     figure.__diagram = {
       stop: function () {
         live = false; observer.disconnect(); cancelAnimationFrame(frame);
+        if (marks) forced.removeEventListener('change', layout);
+        if (motion) motion.destroy();
         figure.removeEventListener('keydown', onKey); figure.removeEventListener('focusin', onFocusIn); figure.removeEventListener('focusout', onFocusOut);
         figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave);
         if (toggle) toggle.removeEventListener('click', onToggle);

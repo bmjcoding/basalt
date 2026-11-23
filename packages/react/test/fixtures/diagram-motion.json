@@ -1,0 +1,45 @@
+{
+ "$comment": "DECISIONS 292: what the CIMIP examples add to be animated (the base is cimip-diagrams.json, which stays the still drawing), and the kit: the prototype's \"How a change reaches production\", carrying the six named brands' marks and three cards with none. A mark is a bundled id here; React reads the module of that id (@srasyndicate/basalt/marks/<id>), the skill the id itself. flow lists the lines that flow, by from and to.",
+ "cimip": {
+  "architecture": {
+   "motion": "animated",
+   "pulse": ["browser", "alb", "svc"],
+   "flow": [["svc", "agent"]],
+   "marks": { "alb": "aws-application-load-balancer", "svc": "aws-ecs-service", "ecs": "aws-ecs-service", "agent": "aws-ecs-task", "aurora": "aws-database", "s3": "aws-s3-bucket", "cw": "aws-cloudwatch-logs" }
+  },
+  "dataFlow": { "motion": "animated", "packet": { "path": ["send", "append", "row", "hear", "see"], "repeat": true } },
+  "sequence": { "motion": "animated", "run": true },
+  "flowchart": { "motion": "animated" },
+  "schema": { "motion": "animated" }
+ },
+ "kit": {
+  "type": "architecture",
+  "motion": "animated",
+  "title": "How a change reaches production",
+  "source": "A sample to show the service marks; not a real system",
+  "summary": "A pull request on GitHub is reviewed by CodeRabbit and Greptile and built on Blacksmith's runners. The build is scanned by SonarQube, and Jenkins takes the artifact, runs a BlazeMeter load test, files a ServiceNow change and starts the Temporal deploy workflow.",
+  "legend": { "main": "Release path", "plain": "Call", "dashed": "Async or one-way" },
+  "pulse": ["github", "blacksmith", "jenkins", "temporal"],
+  "nodes": [
+   { "id": "github", "kind": "repository", "name": "GitHub", "detail": "pull request", "col": 1, "row": 2, "mark": "github" },
+   { "id": "coderabbit", "kind": "AI review", "name": "CodeRabbit", "detail": "line comments", "col": 1, "row": 1, "mark": "coderabbit" },
+   { "id": "greptile", "kind": "AI review", "name": "Greptile", "detail": "codebase context", "col": 1, "row": 3, "mark": "greptile" },
+   { "id": "blacksmith", "kind": "CI runners", "name": "Blacksmith", "detail": "Actions jobs", "col": 2, "row": 2, "mark": "blacksmith" },
+   { "id": "sonar", "kind": "quality gate", "name": "SonarQube", "detail": "coverage · issues", "col": 2, "row": 3, "mark": "sonarqube" },
+   { "id": "jenkins", "kind": "release pipeline", "name": "Jenkins", "detail": "artifact → stages", "col": 3, "row": 2 },
+   { "id": "blazemeter", "kind": "load test", "name": "BlazeMeter", "detail": "500 users · 10 min", "col": 3, "row": 3 },
+   { "id": "temporal", "kind": "workflows", "name": "Temporal", "detail": "deploy workflow", "col": 4, "row": 2, "mark": "temporal" },
+   { "id": "servicenow", "kind": "change record", "name": "ServiceNow", "detail": "normal change", "col": 4, "row": 1 }
+  ],
+  "edges": [
+   { "from": "github", "to": "coderabbit", "label": "review" },
+   { "from": "github", "to": "blacksmith", "kind": "main", "label": "push" },
+   { "from": "github", "to": "greptile", "label": "review" },
+   { "from": "blacksmith", "to": "sonar", "label": "scan" },
+   { "from": "blacksmith", "to": "jenkins", "kind": "main", "label": "build" },
+   { "from": "jenkins", "to": "blazemeter", "label": "load" },
+   { "from": "jenkins", "to": "servicenow", "kind": "dashed", "label": "change", "fromSide": "top", "toSide": "left" },
+   { "from": "jenkins", "to": "temporal", "kind": "main", "label": "deploy" }
+  ]
+ }
+}
