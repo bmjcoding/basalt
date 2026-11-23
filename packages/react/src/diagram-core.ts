@@ -22,7 +22,7 @@ export type DiagramSide = "top" | "right" | "bottom" | "left";
 export type DiagramLineKind = "main" | "plain" | "dashed";
 
 /** The words for the marks. The key is built from what is drawn; `main`, `dashed` and the focal node must have words when drawn. */
-export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string }
+export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string; activation?: string }
 
 export interface DiagramNode {
   id: string;
@@ -85,7 +85,14 @@ export type FlowchartNode = DiagramNode & { shape?: "step" | "decision" | "termi
 export interface DataFlowLane { id: string; label: string }
 export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string };
 export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean }
-export type SequenceStep = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind } | { band: string };
+/** A message. `activate` starts its receiver working; `deactivate` stops its sender after it (DECISIONS 306, 1.2). */
+export type SequenceMessage = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind; activate?: boolean; deactivate?: boolean };
+/** A step: a message, a band, or a frame round a run of steps (`opt`, `loop`, or `alt` with two or more branches). Frames nest two deep. */
+export type SequenceStep = SequenceMessage | { band: string }
+  | { frame: "opt" | "loop"; label: string; steps: SequenceStep[] }
+  | { frame: "alt"; branches: Array<{ label: string; steps: SequenceStep[] }> };
+/** The words the key and the list say for each frame operator, and for an alt's later branches. */
+export interface DiagramFrameLabels { opt?: string; loop?: string; alt?: string; else?: string }
 export interface SchemaColumn { name: string; type?: string; key?: "PK" | "FK"; references?: string }
 export interface SchemaTable { name: string; col: number; row: number | [number, number]; focal?: boolean; more?: number; columns: SchemaColumn[]; href?: string; target?: "_blank" }
 export interface DiagramShapeLabels { terminal?: string; step?: string; decision?: string }
@@ -110,6 +117,8 @@ export interface DiagramSpec {
   pulse?: string[];
   packet?: DiagramPacket;
   run?: boolean;
+  /** A sequence's frame words (DECISIONS 306, 1.2): "Only if", "Repeats", "One of these", "Otherwise". */
+  frameLabels?: DiagramFrameLabels;
 }
 
 // ============================================================================================================================================
@@ -160,7 +169,13 @@ export interface MEdge {
   /** A live stream (DECISIONS 292, 1.6). */
   flow?: boolean;
 }
-export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind };
+export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind; activate?: boolean; deactivate?: boolean }
+  /** A frame opens (its operator, label and depth, and the participants' columns it spans), an alt's later branch starts, or a frame closes (1.2). */
+  | { open: "opt" | "loop" | "alt"; label: string; depth: number; a: number; b: number }
+  | { otherwise: string; depth: number }
+  | { close: number };
+/** A participant working: a bar from the message that starts it to the one that ends it, at a depth from 1 to 3 (1.2). */
+export interface MBar { who: string; from: number; to: number; depth: number }
 export interface Model {
   type: DiagramType;
   title: string;
@@ -173,6 +188,10 @@ export interface Model {
   groups: Array<DiagramGroup & { members: string[]; all: string[]; depth: number }>;
   lanes: DataFlowLane[];
   steps: MStep[];
+  /** A sequence's activation bars (1.2). */
+  bars: MBar[];
+  /** A sequence's frame words. */
+  frameWords: { opt: string; loop: string; alt: string; else: string };
   cols: number;
   rows: number;
   shapeLabels: Required<DiagramShapeLabels>;
@@ -213,7 +232,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const warn = (message: string) => { warnings.push(message); };
   const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
   const legend: DiagramLegend = {};
-  for (const k of ["main", "plain", "dashed", "focal", "group"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
+  for (const k of ["main", "plain", "dashed", "focal", "group", "activation"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
   const stepLabel = spec.stepLabel;
   const stepWord = typeof stepLabel === "function" ? (n: number) => String(stepLabel(n)) : typeof stepLabel === "string" ? ((n: number) => stepLabel.replace("{n}", String(n))) : (n: number) => `Step ${n}`;
   const shapeIn = (spec.shapeLabels ?? {}) as Record<string, unknown>;
@@ -289,16 +308,53 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   } else if (type === "sequence") {
     (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name }); });
     let n = 0;
-    for (const s of spec.steps ?? []) {
-      if ("band" in s) steps.push({ band: String(s.band ?? "") });
-      else {
+    const colOf = new Map(nodes.map((p) => [p.id, p.col]));
+    // Messages number straight through frames. A frame spans the columns of the participants that send or receive inside it, and the column a
+    // self-call's words run into (1.2).
+    const walk = (list: SequenceStep[], depth: number): [number, number] => {
+      let a = Infinity, b = -Infinity;
+      for (const s of list ?? []) {
+        if (!s || typeof s !== "object") continue;
+        if ("band" in s) {
+          if (depth > 0) dev && warn(`the band "${String(s.band)}" is inside a frame: a band is the whole figure's`);
+          steps.push({ band: String(s.band ?? "") });
+          continue;
+        }
+        if ("frame" in s) {
+          if (depth >= 2) { dev && warn("a frame is a third level: frames nest two deep"); continue; }
+          const op = s.frame === "alt" || s.frame === "loop" || s.frame === "opt" ? s.frame : "opt";
+          const branches = op === "alt" ? ((s as { branches?: Array<{ label: string; steps: SequenceStep[] }> }).branches ?? []) : [{ label: (s as { label: string }).label, steps: (s as { steps: SequenceStep[] }).steps }];
+          if (op === "alt" && branches.length < 2) dev && warn("an alt frame has one branch: it needs two or more");
+          const label = String(branches[0]?.label ?? "");
+          if (label.length > 40) dev && warn(`the frame label "${label}" is over 40 characters`);
+          const at = steps.length;
+          steps.push({ open: op, label, depth: depth + 1, a: 0, b: 0 });
+          branches.forEach((br, k) => {
+            if (k) { const l = String(br.label ?? ""); if (l.length > 40) dev && warn(`the frame label "${l}" is over 40 characters`); steps.push({ otherwise: l, depth: depth + 1 }); }
+            if (!br.steps?.length) dev && warn(`a frame or branch ("${String(br.label ?? "")}") is empty`);
+            const [x, y] = walk(br.steps ?? [], depth + 1);
+            a = Math.min(a, x); b = Math.max(b, y);
+            const open = steps[at] as { a: number; b: number };
+            open.a = Math.min(open.a || Infinity, x); open.b = Math.max(open.b, y);
+          });
+          steps.push({ close: depth + 1 });
+          continue;
+        }
         n++;
         const label = String(s.label ?? "");
         // A message's second line is its note (1.4): a break in its label is an error, and it is drawn on one line.
         if (label.includes("\n")) dev && warn(`message ${n}'s label has a break: a message's second line is its note`);
-        steps.push({ n, from: String(s.from ?? ""), to: String(s.to ?? ""), label: said(label), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`) });
+        const from = String(s.from ?? ""), to = String(s.to ?? "");
+        steps.push({ n, from, to, label: said(label), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`), activate: s.activate === true || undefined, deactivate: s.deactivate === true || undefined });
+        const ca = colOf.get(from) ?? 1, cb = colOf.get(to) ?? 1;
+        // A self-call's words run into the next column (the one before it on the last participant).
+        const run = ca === cb ? (ca === nodes.length ? ca - 1 : ca + 1) : ca;
+        a = Math.min(a, ca, cb, run); b = Math.max(b, ca, cb, run);
       }
-    }
+      return [a, b];
+    };
+    walk(spec.steps ?? [], 0);
+    for (const st of steps) if ("open" in st && !Number.isFinite(st.a)) { st.a = 1; st.b = Math.max(1, nodes.length); }
   } else if (type === "schema") {
     for (const t of spec.tables ?? []) {
       const name = String(t.name ?? "");
@@ -404,9 +460,34 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     const words = [n.name, n.kind, n.detail].filter(Boolean).join(" ").toLowerCase();
     if (!says.some((w) => words.includes(w.toLowerCase()))) warn(`${n.id}'s mark stands for ${says.join(" or ")}, and none of its words say so`);
   }
+  // Activation bars (1.2): a stack on each participant. `activate` opens one on the receiver, `deactivate` closes the sender's top one after its message;
+  // a bar left open closes at that participant's last message. Three deep at most.
+  const bars: MBar[] = [];
+  if (type === "sequence") {
+    const open = new Map<string, MBar[]>();
+    const last = new Map<string, number>();
+    for (const st of steps) if ("n" in st) { last.set(st.from, st.n); last.set(st.to, st.n); }
+    for (const st of steps) {
+      if (!("n" in st)) continue;
+      if (st.activate) {
+        const stack = open.get(st.to) ?? [];
+        if (stack.length >= 3) dev && warn(`message ${st.n} opens a fourth bar on ${st.to}: three deep at most`);
+        else { const bar = { who: st.to, from: st.n, to: st.n, depth: stack.length + 1 }; stack.push(bar); bars.push(bar); open.set(st.to, stack); }
+      }
+      if (st.deactivate) {
+        const stack = open.get(st.from);
+        const top = stack?.pop();
+        if (!top) dev && warn(`message ${st.n} closes a bar on ${st.from}, which has none open`);
+        else top.to = st.n;
+      }
+    }
+    for (const [who, stack] of open) for (const bar of stack) bar.to = Math.max(bar.from, last.get(who) ?? bar.from);
+  }
+  const fl = (spec.frameLabels ?? {}) as Record<string, unknown>;
+  const frameWords = { opt: txt(fl.opt) ?? "Only if", loop: txt(fl.loop) ?? "Repeats", alt: txt(fl.alt) ?? "One of these", else: txt(fl.else) ?? "Otherwise" };
   const cols = Math.max(1, ...nodes.map((n) => n.col));
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
   if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
 }
@@ -468,6 +549,8 @@ function writeSentence(m: Model, n: MNode): string {
     const gets = m.steps.filter((s) => "n" in s && s.to === n.id).length;
     parts.push(sentence(n.kind ? `${n.name}, ${n.kind}` : n.name));
     parts.push(`Sends ${sends} ${sends === 1 ? "message" : "messages"} and receives ${gets}.`);
+    const w = working(m, n);
+    if (w) parts.push(w.trim());
   } else {
     const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
@@ -481,6 +564,14 @@ function writeSentence(m: Model, n: MNode): string {
   }
   if (n.focal && m.legend.focal) parts.push(sentence(m.legend.focal));
   return parts.join(" ");
+}
+
+/** A participant's working stretches in words (1.2): " Working during messages 6 to 12." (and "message 3" for one). */
+function working(m: Model, n: MNode): string {
+  const bars = m.bars.filter((b) => b.who === n.id && b.depth === 1);
+  if (!bars.length) return "";
+  const word = m.legend.activation ?? "Working";
+  return ` ${word} during ${bars.map((b) => (b.from === b.to ? `message ${b.from}` : `messages ${b.from} to ${b.to}`)).join(" and ")}.`;
 }
 
 /** The noun the key hint and the keys sentence use for one stop. */
@@ -743,6 +834,12 @@ function buildKey(P: string, m: Model): VElement | null {
     entry(lineSwatch(P, "fk"), m.legend.plain ?? "A foreign key, to the key it references", { "data-line": "", "data-when": "drawn" });
     entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, "→"), h("span", null, "The table a foreign key references")));
   }
+  if (m.type === "sequence") {
+    // A bar on a dashed lifeline, where one is drawn (1.2); then each frame operator drawn, its letters set as the tab sets them, and its words.
+    if (m.bars.length) entry(h("svg", { class: `${P}-swatch`, "data-shape": "bar", ...svgA(16, 16) }, h("path", { class: `${P}-life`, d: "M8 0V16" }), h("rect", { class: `${P}-bar`, x: 4.5, y: 2.5, width: 7, height: 11, rx: 1.5 })), m.legend.activation ?? "Working", { "data-when": "drawn" });
+    const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
+    for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
+  }
   if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
   if (!entries.length) return null;
@@ -889,11 +986,32 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
 
 function sequenceSteps(ctx: TreeContext, m: Model): VElement {
   const { P } = ctx;
-  const blocks: VNode[] = [];
+  const root: VNode[] = [];
+  // Frames (DECISIONS 306, 1.2) are boxes round their rows: each one a block holding its header, its rows and the frames inside it.
+  const stack: Array<{ el: VElement; a: number; b: number }> = [];
+  const into = () => (stack.length ? stack[stack.length - 1]!.el.c : root);
   let list: VElement | null = null;
   for (const s of m.steps) {
-    if ("band" in s) { list = null; blocks.push(h("p", { class: `${P}-band` }, h("span", null, s.band))); continue; }
-    if (!list) { list = h("ol", { class: `${P}-msgs`, start: s.n }); blocks.push(list); }
+    if ("band" in s) { list = null; into().push(h("p", { class: `${P}-band` }, h("span", null, s.band))); continue; }
+    if ("open" in s) {
+      list = null;
+      const parent = stack[stack.length - 1];
+      // A frame inside a frame is space-2 inside it on every side they share.
+      const inset = parent ? `;--_fis:${s.a === parent.a ? 1 : 0};--_fie:${s.b === parent.b ? 1 : 0}` : "";
+      const el = h("div", { class: `${P}-frame`, "data-op": s.open, "data-depth": s.depth, style: `--_a:${s.a};--_b:${s.b + 1}${inset}` },
+        h("span", { class: `${P}-fbox`, "aria-hidden": "true" }),
+        h("p", { class: `${P}-fhead` }, h("span", { class: `${P}-ftab`, "aria-hidden": "true" }, s.open), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords[s.open]}: `), s.label)));
+      into().push(el);
+      stack.push({ el, a: s.a, b: s.b });
+      continue;
+    }
+    if ("otherwise" in s) {
+      list = null;
+      into().push(h("p", { class: `${P}-felse` }, h("span", { class: `${P}-fword`, "aria-hidden": "true" }, "else"), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords.else}: `), s.otherwise)));
+      continue;
+    }
+    if ("close" in s) { list = null; stack.pop(); continue; }
+    if (!list) { list = h("ol", { class: `${P}-msgs`, start: s.n }); into().push(list); }
     const a = m.byId.get(s.from), b = m.byId.get(s.to);
     const ca = a?.col ?? 1, cb = b?.col ?? 1;
     const self = ca === cb;
@@ -904,7 +1022,7 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
       h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : ""),
       s.note ? h("span", { class: `${P}-note` }, s.note) : null));
   }
-  return h("div", { class: `${P}-steps` }, blocks);
+  return h("div", { class: `${P}-steps` }, root);
 }
 
 // ---- The list ("View as list") ----
@@ -960,12 +1078,16 @@ function buildList(P: string, m: Model): VNode[] {
     }))];
   }
   if (m.type === "sequence") {
-    const out: VNode[] = [H("Participants"), h("ul", { class: `${P}-list-items` }, m.nodes.map((n) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", ".", focal(n))))];
+    const out: VNode[] = [H("Participants"), h("ul", { class: `${P}-list-items` }, m.nodes.map((n) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", ".", focal(n), working(m, n))))];
     out.push(H("Messages"));
     let list: VElement | null = null;
     for (const s of m.steps) {
       // A band names a phase: a sub-heading one level under "Messages" (never past h6), drawn as the list's group line.
       if ("band" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group` }, s.band)); continue; }
+      // A frame is a sub-heading as a band is (1.2): "Only if: First run on an incident only", "Otherwise: Rejected". Messages keep their numbers.
+      if ("open" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group`, "data-depth": s.depth > 1 ? s.depth : undefined }, `${m.frameWords[s.open]}: ${s.label}`)); continue; }
+      if ("otherwise" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group`, "data-depth": s.depth > 1 ? s.depth : undefined }, `${m.frameWords.else}: ${s.otherwise}`)); continue; }
+      if ("close" in s) { list = null; continue; }
       if (!list) { list = h("ol", { class: `${P}-list-items`, start: s.n }); out.push(list); }
       list.c.push(h("li", null, code(s.label), ": ", strong(name(s.from)), " to ", strong(name(s.to)), `${kw(s.kind)}.`, s.note ? ` ${sentence(s.note)}` : ""));
     }
@@ -1149,6 +1271,10 @@ export interface Geo {
   nodes: GNode[];
   lines: GLine[];
   lifelines: Array<{ x: number; y1: number; y2: number }>;
+  /** A sequence's activation bars (DECISIONS 306, 1.2): structure, drawn over the lifelines and under the lines. */
+  bars?: Array<{ l: number; r: number; t: number; b: number }>;
+  /** What does not fit and is not a line or a label (a frame's header wider than its frame): the drawn layout is refused. */
+  misfit?: string[];
   labels: GLabel[];
   crossings: GCross[];
   /** Lines that pass through a node (by edge index), labels that found no seat, words that do not fit their span. */
@@ -1168,6 +1294,8 @@ export interface Tokens {
   node: number; table: number; lane: number; step: number; head: number; guide: number;
   hair: number; line: number; cut: number; dot: number; dash: number; dashGap: number;
   wide: number; cap: number; radius: number; radiusXs: number;
+  /** An activation bar's width and a cardinality mark's room (DECISIONS 306, 1.0). */
+  activation: number; foot: number;
 }
 
 export function readTokens(el: Element): Tokens {
@@ -1180,6 +1308,7 @@ export function readTokens(el: Element): Tokens {
     head: px("size-diagram-head", 8), guide: px("size-diagram-guide-dash", 4), hair: px("size-hairline", 1), line: px("size-chart-line", 2),
     cut: px("size-cut", 2), dot: px("size-dot", 6), dash: px("size-chart-dash", 6), dashGap: px("size-chart-dash-gap", 4),
     wide: px("size-breakpoint-container-lg", 640), cap: px("size-breakpoint-container", 480), radius: px("radius-md", 8), radiusXs: px("radius-xs", 4),
+    activation: px("size-diagram-activation", 8), foot: px("size-diagram-foot", 14),
   };
 }
 
@@ -1842,6 +1971,29 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
   const xOf = (id: string) => { const r = heads.get(id); return r ? sn.x((r.l + r.r) / 2, tk.hair) : 0; };
   for (const n of m.nodes) { const r = heads.get(n.id); if (r) geo.lifelines.push({ x: xOf(n.id), y1: r.b, y2: bottom }); }
   const spanOf = (n: MNode) => { const r = heads.get(n.id)!; return r; };
+  // Each message's line height, by its number, for the bars.
+  const rowY = new Map<number, number>();
+  drawing.querySelectorAll<HTMLElement>(`.${P}-msg`).forEach((li) => {
+    const r = rectOf(li, origin);
+    rowY.set(Number(li.querySelector(`.${P}-num`)?.textContent ?? 0), (r.t + r.b) / 2);
+  });
+  // Activation bars (1.2): size-diagram-activation wide, centred on the lifeline, from the opening message's line to the closing one's; a nested bar
+  // space-1 toward the end side (the start side on the last participant). A one-row bar (a self-call that opens and closes it) spans its loop.
+  const W = tk.activation, half = W / 2;
+  const barRect = (bar: MBar) => {
+    const who = m.byId.get(bar.who);
+    if (!who) return null;
+    const lx = xOf(bar.who);
+    const dir = who.i === m.nodes.length - 1 && m.nodes.length > 1 ? -1 : 1;
+    const off = (bar.depth - 1) * s("1") * dir;
+    const y1 = rowY.get(bar.from) ?? 0, y2 = rowY.get(bar.to) ?? y1;
+    const one = bar.from === bar.to;
+    return { l: sn.x(lx - half + off, tk.hair), r: sn.x(lx + half + off, tk.hair), t: sn.y(one ? y1 - s("2") - s("1") : y1, tk.hair), b: sn.y(one ? y1 + s("2") + s("1") : y2, tk.hair) };
+  };
+  const placedBars = m.bars.map((bar) => ({ bar, rect: barRect(bar) })).filter((x) => x.rect) as Array<{ bar: MBar; rect: Rect }>;
+  geo.bars = placedBars.map((x) => x.rect);
+  /** The deepest bar a participant has at a message (the one a line ends on), and whether one it opens counts. */
+  const barAt = (who: string, n: number, opening: boolean) => placedBars.filter(({ bar }) => bar.who === who && bar.to >= n && (opening ? bar.from <= n : bar.from < n || (bar.from === n && bar.to === n))).sort((x, y) => y.bar.depth - x.bar.depth)[0]?.rect;
   drawing.querySelectorAll<HTMLElement>(`.${P}-msg`).forEach((li) => {
     const from = li.dataset.from!, to = li.dataset.to!;
     const kind = (li.dataset.kind ?? "plain") as DiagramLineKind;
@@ -1849,13 +2001,23 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const r = rectOf(li, origin);
     const y = sn.y((r.t + r.b) / 2, w);
     const num = Number(li.querySelector(`.${P}-num`)?.textContent ?? 0);
-    const x1 = xOf(from), x2 = xOf(to);
+    let x1 = xOf(from), x2 = xOf(to);
     let pts: Pt[];
     if (from === to) {
       const out = li.dataset.self === "start" ? -s("6") : s("6");
+      // A self-call's loop starts from the bar's end edge (its start edge on the last participant).
+      const bar = barAt(from, num, true);
+      const edge = bar ? (out > 0 ? bar.r : bar.l) : x1;
       const yt = sn.y(y - s("2"), w), yb = sn.y(y + s("2"), w);
-      pts = [{ x: x1, y: yt }, { x: sn.x(x1 + out, w), y: yt }, { x: sn.x(x1 + out, w), y: yb }, { x: x1, y: yb }];
-    } else pts = [{ x: x1, y }, { x: x2, y }];
+      pts = [{ x: edge, y: yt }, { x: sn.x(x1 + out, w), y: yt }, { x: sn.x(x1 + out, w), y: yb }, { x: edge, y: yb }];
+    } else {
+      // A line ends on a bar's edge, as a line ends on the shape drawn (1.2): the receiver's bar (one this message opens included), the sender's.
+      const toward = x2 > x1 ? 1 : -1;
+      const sb = barAt(from, num, false), rb = barAt(to, num, true);
+      if (sb) x1 = toward > 0 ? sb.r : sb.l;
+      if (rb) x2 = toward > 0 ? rb.l : rb.r;
+      pts = [{ x: x1, y }, { x: x2, y }];
+    }
     geo.lines.push({ i: num, from, to, kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), width: w });
     // Every label and note fits between the lifelines it spans, space-2 clear each side (1.11, rule 3).
     const said = li.querySelector(`.${P}-said`), note = li.querySelector(`.${P}-note`);
@@ -1867,6 +2029,13 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const need = Math.max(said ? said.getBoundingClientRect().width : 0, note ? note.getBoundingClientRect().width : 0);
     if (need > room + 0.5) geo.unseated.push(num);
     void spanOf;
+  });
+  // A frame's header (its tab, then its label) must fit inside its frame (1.2): a header that does not stacks the figure.
+  drawing.querySelectorAll<HTMLElement>(`.${P}-fhead`).forEach((head) => {
+    const box = head.parentElement?.querySelector(`:scope > .${P}-fbox`);
+    if (!box) return;
+    const need = [...head.children].reduce((sum, c) => sum + c.getBoundingClientRect().width, 0) + s("3");
+    if (need > box.getBoundingClientRect().width + 0.5) (geo.misfit ??= []).push(`the frame "${head.querySelector(`.${P}-flabel`)?.textContent ?? ""}" is wider than its participants`);
   });
   return geo;
 }
@@ -2062,7 +2231,8 @@ function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: str
 /** The drawing's ink: the SVG (lines, heads, dots, lifelines, cuts) and the labels, as one string. */
 export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const { defs, ids } = masksMarkup(P, geo, tk, base);
-  const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("");
+  const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("")
+    + (geo.bars ?? []).map((b) => `<rect class="${P}-bar" x="${b.l}" y="${b.t}" width="${Math.round((b.r - b.l) * 100) / 100}" height="${Math.round((b.b - b.t) * 100) / 100}"/>`).join("");
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
   const svg = `<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${lifelines}<g class="${P}-edges">${lines}</g></svg>`;
   const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
@@ -2155,7 +2325,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     let { dd: d, g: geo } = drawnTry(false);
     // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
     // A route the drawn layout refuses: through a node, off the drawing, or laid on another line.
-    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0 || tall;
+    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0 || (g.misfit?.length ?? 0) > 0 || tall;
     if (!refused(geo) && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
       const padded = drawnTry(true);
       if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
@@ -2166,6 +2336,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
     if (tall) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: a decision would be taller than it is wide`);
+    if (geo.misfit?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${geo.misfit.join("; ")}`);
     if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
     if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);

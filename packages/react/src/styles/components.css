@@ -4751,6 +4751,37 @@
   .basalt-diagram-msg[data-self="end"] :is(.basalt-diagram-said, .basalt-diagram-note) { --_d-sj: var(--_drawn) start; justify-self: var(--_d-sj, stretch); --_d-sm: var(--_drawn) calc(50% + var(--basalt-space-6) + var(--basalt-space-1)); margin-inline-start: var(--_d-sm, 0); }
   .basalt-diagram-msg[data-self="start"] :is(.basalt-diagram-said, .basalt-diagram-note) { --_d-sj: var(--_drawn) end; justify-self: var(--_d-sj, stretch); --_d-sm: var(--_drawn) calc(50% + var(--basalt-space-6) + var(--basalt-space-1)); margin-inline-end: var(--_d-sm, 0); }
   .basalt-diagram-arrow { flex: none; overflow: visible; }
+  /* An activation bar (DECISIONS 306, 1.2): size-diagram-activation wide, the head's fill inside a 1px structure edge, radius-2xs. Structure: whole from
+     an entrance's first frame, unchanged by a trace. */
+  .basalt-diagram-bar { fill: var(--_surface, var(--basalt-surface-1)); stroke: var(--basalt-diagram-structure); stroke-width: var(--basalt-size-hairline); rx: var(--basalt-radius-2xs); }
+  /* A frame (1.2): a step that holds steps, structure and never a panel: no fill, no rim, no level; 1px solid structure, radius 12 (a frame inside a
+     frame radius 4, space-2 inside it on every side they share). Drawn, it spans its participants' columns, from the first's start edge to the last's
+     end edge; stacked, it is the same box round its rows. Its header is a 36px row: the tab (the operator) in the top start corner, then the label;
+     an alt's later branch starts under a dashed rule (4 on 4, exact) in a 28px row. Every word of a frame sits on a ground plate. */
+  .basalt-diagram-frame {
+    --_d-fpi: var(--_drawn) 0;
+    --_cw: calc((100% - (var(--_cols, 1) - 1) * var(--basalt-space-5)) / var(--_cols, 1));
+    --_d-fl: var(--_drawn) calc((var(--_a) - 1) * (var(--_cw) + var(--basalt-space-5)) + var(--_fis, 0) * var(--basalt-space-2));
+    --_d-fw: var(--_drawn) calc((var(--_b) - var(--_a)) * (var(--_cw) + var(--basalt-space-5)) - var(--basalt-space-5) - (var(--_fis, 0) + var(--_fie, 0)) * var(--basalt-space-2));
+    --_fl: var(--_d-fl, 0%);
+    --_fw: var(--_d-fw, 100%);
+    position: relative;
+    padding-block: var(--basalt-size-control-lg) var(--basalt-space-2);
+    padding-inline: var(--_d-fpi, var(--basalt-space-4));
+  }
+  .basalt-diagram-frame + .basalt-diagram-frame { margin-block-start: var(--basalt-space-2); }
+  .basalt-diagram-frame[data-depth="2"] { --_d-fl: var(--_drawn) calc((var(--_a) - 1) * (var(--_cw) + var(--basalt-space-5)) + var(--_fis, 0) * var(--basalt-space-2)); }
+  .basalt-diagram-fbox { position: absolute; inset-block: 0; inset-inline-start: var(--_fl); z-index: 1; box-sizing: border-box; width: var(--_fw); border: var(--basalt-size-hairline) solid var(--basalt-diagram-structure); border-radius: var(--basalt-radius-lg); pointer-events: none; }
+  .basalt-diagram-frame[data-depth="2"] > .basalt-diagram-fbox { border-radius: var(--basalt-radius-xs); }
+  .basalt-diagram-fhead { position: absolute; top: var(--basalt-size-hairline); inset-inline-start: calc(var(--_fl) + var(--basalt-size-hairline)); display: flex; align-items: flex-start; gap: var(--basalt-space-3); margin: 0; white-space: nowrap; }
+  .basalt-diagram-ftab { padding: var(--basalt-space-1) var(--basalt-space-3); border-inline-end: var(--basalt-size-hairline) solid var(--basalt-diagram-structure); border-block-end: var(--basalt-size-hairline) solid var(--basalt-diagram-structure); border-end-end-radius: var(--basalt-radius-xs); background: var(--_ground); color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
+  .basalt-diagram-flabel { margin-block-start: var(--basalt-space-1); margin-inline-start: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); background: var(--_ground); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-diagram-felse { position: relative; display: flex; align-items: center; gap: var(--basalt-space-1-5); height: var(--basalt-size-control-sm); margin: 0; padding-inline-start: calc(var(--_fl) + var(--basalt-space-3)); white-space: nowrap; }
+  .basalt-diagram-felse::before { content: ""; position: absolute; top: 0; inset-inline-start: var(--_fl); width: var(--_fw); height: var(--basalt-size-hairline); background: var(--basalt-diagram-structure); mask: linear-gradient(to right, currentColor 50%, transparent 50%) 0 0 / calc(2 * var(--basalt-size-diagram-guide-dash)) var(--basalt-size-hairline) repeat-x; }
+  .basalt-diagram-felse .basalt-diagram-flabel { margin-block-start: 0; margin-inline-start: 0; }
+  .basalt-diagram-fword { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); background: var(--_ground); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
+  .basalt-diagram-fword + .basalt-diagram-flabel { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-diagram-key-letters[data-op] { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
   /* A band names a phase: drawn, a 36px row with a full-width divider rule and its words on a plate; stacked, a line of words. */
   .basalt-diagram-band {
     --_d-bh: var(--_drawn) var(--basalt-size-control-lg);
@@ -4919,6 +4950,12 @@
     .basalt-diagram .basalt-diagram-node[data-focal] .basalt-diagram-th { border-bottom-color: Canvas; }
     .basalt-diagram .basalt-diagram-node[data-focal]:focus-visible { outline: var(--basalt-size-focus-width) solid Highlight; }
     .basalt-diagram .basalt-diagram-node[data-focal][data-shape="decision"] .basalt-diagram-diamond path { fill: CanvasText; stroke: CanvasText; }
+    /* An activation bar's edge carries "working" (CanvasText), its fill Canvas; a frame's edges and its else rule are GrayText, its words CanvasText
+       on Canvas plates (DECISIONS 306, 1.10). */
+    .basalt-diagram .basalt-diagram-bar { fill: Canvas; stroke: CanvasText; }
+    .basalt-diagram .basalt-diagram-fbox, .basalt-diagram .basalt-diagram-ftab { border-color: GrayText; }
+    .basalt-diagram .basalt-diagram-felse::before { background: GrayText; }
+    .basalt-diagram :is(.basalt-diagram-ftab, .basalt-diagram-flabel, .basalt-diagram-fword) { color: CanvasText; background: Canvas; }
     /* No mark is drawn, and the first line keeps no padding for one (DECISIONS 292, 2.7): the card's words name the service. */
     .basalt-diagram .basalt-diagram-mark { display: none; }
     .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; }

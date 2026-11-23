@@ -481,7 +481,8 @@
       "main": "Request",
       "plain": "Setup",
       "dashed": "Stream or reply",
-      "focal": "The service"
+      "focal": "The service",
+      "activation": "Working"
     },
     "participants": [
       {
@@ -513,7 +514,8 @@
         "to": "svc",
         "kind": "main",
         "label": "@agent check the proxy",
-        "note": "a message in the room"
+        "note": "a message in the room",
+        "activate": true
       },
       {
         "from": "svc",
@@ -522,25 +524,34 @@
         "note": "run.started, one transaction"
       },
       {
-        "band": "First run on an incident only"
-      },
-      {
-        "from": "svc",
-        "to": "ecs",
-        "label": "RunTask",
-        "note": "idempotency token = sandbox id"
-      },
-      {
-        "from": "svc",
-        "to": "ecs",
-        "label": "DescribeTasks",
-        "note": "until it has a private IP"
-      },
-      {
-        "from": "svc",
-        "to": "agent",
-        "label": "GET /healthz",
-        "note": "up to a minute"
+        "frame": "opt",
+        "label": "First run on an incident only",
+        "steps": [
+          {
+            "from": "svc",
+            "to": "ecs",
+            "label": "RunTask",
+            "note": "idempotency token = sandbox id"
+          },
+          {
+            "frame": "loop",
+            "label": "Until private IP",
+            "steps": [
+              {
+                "from": "svc",
+                "to": "ecs",
+                "label": "DescribeTasks",
+                "note": "until it has a private IP"
+              }
+            ]
+          },
+          {
+            "from": "svc",
+            "to": "agent",
+            "label": "GET /healthz",
+            "note": "up to a minute"
+          }
+        ]
       },
       {
         "band": "Every run"
@@ -550,7 +561,8 @@
         "to": "agent",
         "kind": "main",
         "label": "POST /v1/runs",
-        "note": "facts, recent transcript, prompt"
+        "note": "facts, recent transcript, prompt",
+        "activate": true
       },
       {
         "from": "agent",
@@ -577,25 +589,48 @@
         "band": "The agent waits for a person"
       },
       {
-        "from": "marcus",
-        "to": "svc",
-        "kind": "main",
-        "label": "Approve",
-        "note": "first decision stands"
-      },
-      {
-        "from": "svc",
-        "to": "agent",
-        "kind": "main",
-        "label": "POST /v1/runs/{id}/input",
-        "note": "sent until acknowledged"
+        "frame": "alt",
+        "branches": [
+          {
+            "label": "Approved",
+            "steps": [
+              {
+                "from": "marcus",
+                "to": "svc",
+                "kind": "main",
+                "label": "Approve",
+                "note": "first decision stands"
+              },
+              {
+                "from": "svc",
+                "to": "agent",
+                "kind": "main",
+                "label": "POST /v1/runs/{id}/input",
+                "note": "sent until acknowledged"
+              }
+            ]
+          },
+          {
+            "label": "Rejected or timed out",
+            "steps": [
+              {
+                "from": "svc",
+                "to": "agent",
+                "kind": "main",
+                "label": "POST /v1/runs/{id}/input",
+                "note": "the run stops"
+              }
+            ]
+          }
+        ]
       },
       {
         "from": "agent",
         "to": "svc",
         "kind": "dashed",
         "label": "done",
-        "note": "outcome: completed"
+        "note": "outcome: completed",
+        "deactivate": true
       }
     ]
   },
