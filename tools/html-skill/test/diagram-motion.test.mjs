@@ -181,51 +181,58 @@ createRoot(document.getElementById("root")).render(<Host />);`;
   const FONTS = `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900}`;
   const frames = (p, n) => p.evaluate((n) => new Promise((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); }), n);
   /** The drawing's pixels, read from a screenshot of it, with its size. */
+  /** The drawing's screenshot and its place on the page (not in the window, which a tall figure scrolls). */
   const shot = async (p, prefix) => {
     const loc = p.locator(`#fig-x .${prefix}-drawing`);
     await loc.scrollIntoViewIfNeeded();
-    // Its place on the page (not in the window, which a tall figure scrolls).
-    const box = await loc.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY }; });
-    const png = (await loc.screenshot({ type: "png" })).toString("base64");
-    const data = await p.evaluate(async (b64) => { const img = new Image(); img.src = `data:image/png;base64,${b64}`; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0); return { w: img.width, h: img.height, px: Array.from(ctx.getImageData(0, 0, img.width, img.height).data) }; }, png);
-    return { box, ...data };
+    const box = await loc.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY, w: r.width, h: r.height }; });
+    return { box, png: await loc.screenshot({ type: "png" }) };
+  };
+  /** Two screenshots of one size, decoded in a page only when their files differ: how many pixels differ, and the first. */
+  const pixelDiff = (p, a, b) => p.evaluate(async ([a, b]) => {
+    const read = async (b64) => { const img = new Image(); img.src = `data:image/png;base64,${b64}`; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0); return { w: img.width, d: ctx.getImageData(0, 0, img.width, img.height).data }; };
+    const [x, y] = [await read(a), await read(b)];
+    let n = 0, first = null;
+    for (let k = 0; k < x.d.length; k += 4) if (x.d[k] !== y.d[k] || x.d[k + 1] !== y.d[k + 1] || x.d[k + 2] !== y.d[k + 2]) { n++; first ??= [(k / 4) % x.w, Math.floor(k / 4 / x.w)]; }
+    return { n, first };
+  }, [a.toString("base64"), b.toString("base64")]);
+  /** At rest: the hold settles the entrance and clears the loops to rest, every line whole; then nothing finite is left running. */
+  const atRest = async (p) => {
+    await p.waitForFunction(() => { const f = document.getElementById("fig-x"); return f && f.hasAttribute("data-measured") && (!f.querySelector("[class$='-svg']") || f.getAttribute("data-entrance") === "done"); }, null, { polling: "raf", timeout: 5000 });
+    await frames(p, 6);
+    await p.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))));
   };
 
   for (const theme of ["dark", "light"]) {
     test(`${theme}: React and the skill draw the same pixels for each animated example and the kit at rest (under the hold, settled)`, async () => {
       const diff = [];
+      // React: one app page for every example (bundling it is most of the cost), as the still parity test gives it: border-box, the body's ink and type,
+      // and the text rendering and language the skill's core sets, which a pixel comparison of words must share.
+      const react = await fixturePage(reactBrowser, REACT, { theme, viewport: { width: 1440, height: 1000 }, standards: true });
+      await react.page.addStyleTag({ content: `${FONTS} *, ::before, ::after { box-sizing: border-box; } html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; text-size-adjust: 100%; } body { margin: 0; background: var(--basalt-surface-0); color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); } #root{display:block}` });
+      await react.page.evaluate(() => { document.documentElement.lang = "en"; document.documentElement.setAttribute("data-loops", "held"); });
+      await react.page.evaluate(() => document.fonts.ready);
       for (const key of [...FIGURES, "kit"]) {
         const spec = key === "kit" ? kit() : animated(key);
-        // The skill: the page composed, one figure.
+        // The skill: the page composed, one figure, held.
         const skill = await openHtml(browser, compose(page([figure(spec, "fig-x")])).html, { scheme: theme, width: 1440 });
-        // React: an app's page, as the still parity test gives it (border-box, the body's ink and type, which the figure inherits as the skill's does).
-        const react = await fixturePage(reactBrowser, REACT, { theme, viewport: { width: 1440, height: 1000 }, standards: true });
-        // The skill's core also sets the page's text rendering (smoothing, optimizeLegibility) and its language, which a pixel comparison of words must share.
-        await react.page.addStyleTag({ content: `${FONTS} *, ::before, ::after { box-sizing: border-box; } html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; text-size-adjust: 100%; } body { margin: 0; background: var(--basalt-surface-0); color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); } #root{display:block}` });
-        await react.page.evaluate(() => { document.documentElement.lang = "en"; });
-        await react.page.evaluate(() => document.fonts.ready);
+        await skill.page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+        await atRest(skill.page);
+        // React: the figure drawn afresh on the one page.
+        await react.page.evaluate(() => window.__set(null));
         await react.page.evaluate((s) => window.__set(s), spec);
-        const shots = [];
-        for (const [p, prefix] of [[skill.page, "diagram"], [react.page, "basalt-diagram"]]) {
-          // At rest: the hold settles the entrance and clears the loops to rest, every line whole.
-          await p.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
-          await p.waitForFunction(() => { const f = document.getElementById("fig-x"); return f && f.hasAttribute("data-measured") && (!f.querySelector("[class$='-svg']") || f.getAttribute("data-entrance") === "done"); }, null, { polling: "raf", timeout: 5000 });
-          await frames(p, 6);
-          await p.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))));
-          shots.push(await shot(p, prefix));
-        }
-        const [a, b] = shots;
-        if (a.w !== b.w || a.h !== b.h || Math.abs(a.box.x - b.box.x) > 0.01 || Math.abs(a.box.y - b.box.y) > 0.01) diff.push(`${key}: the drawing is ${a.w}x${a.h} at ${a.box.x},${a.box.y} in the skill and ${b.w}x${b.h} at ${b.box.x},${b.box.y} in React`);
-        else {
-          let n = 0, first = null;
-          for (let k = 0; k < a.px.length; k += 4) if (a.px[k] !== b.px[k] || a.px[k + 1] !== b.px[k + 1] || a.px[k + 2] !== b.px[k + 2]) { n++; first ??= [(k / 4) % a.w, Math.floor(k / 4 / a.w)]; }
+        await atRest(react.page);
+        const [a, b] = [await shot(skill.page, "diagram"), await shot(react.page, "basalt-diagram")];
+        if (["x", "y", "w", "h"].some((k) => Math.abs(a.box[k] - b.box[k]) > 0.01)) diff.push(`${key}: the drawing is ${JSON.stringify(a.box)} in the skill and ${JSON.stringify(b.box)} in React`);
+        else if (!a.png.equals(b.png)) {
+          const { n, first } = await pixelDiff(skill.page, a.png, b.png);
           if (n) diff.push(`${key}: ${n} pixels differ, the first at ${first}`);
         }
         assert.deepEqual(skill.errors, []);
-        assert.deepEqual(react.errors, []);
         await skill.context.close();
-        await react.page.close();
       }
+      assert.deepEqual(react.errors, []);
+      await react.page.close();
       assert.deepEqual(diff, []);
     });
   }

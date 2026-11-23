@@ -68,7 +68,9 @@ const html = `<!doctype html><html lang="en" data-theme="dark"><head><meta chars
 const browser = await chromium.launch({ args: [OVERLAY_SCROLLBARS] });
 
 async function run(still) {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  // The window is its final height from the first frame, so which figures start their entrance never depends on a resize (a tall one is trimmed to
+  // the page below, which hides nothing).
+  const page = await browser.newPage({ viewport: { width: 1440, height: HEIGHT ? Number(HEIGHT) : 8000 } });
   await page.route("http://bench.test/**", (route) => {
     const name = new URL(route.request().url()).pathname;
     if (name === "/") return route.fulfill({ contentType: "text/html", body: html });
@@ -79,20 +81,18 @@ async function run(still) {
   await page.waitForFunction(() => document.querySelectorAll("figure[data-measured]").length === 6, null, { timeout: 10000 });
   await page.evaluate(() => document.fonts.ready);
   // Every figure in view at once (unless --height asks for a window), so every loop that may run runs.
-  const height = HEIGHT ? Number(HEIGHT) : Math.ceil(await page.evaluate(() => document.documentElement.scrollHeight));
+  const height = HEIGHT ? Number(HEIGHT) : Math.min(8000, Math.ceil(await page.evaluate(() => document.querySelector("main").getBoundingClientRect().bottom + scrollY)));
   await page.setViewportSize({ width: 1440, height });
-  // Every entrance to its end: the loops start when it settles.
-  // (A figure out of view stays pending: its entrance waits for the reader.)
-  if (!still) {
-    await page.waitForFunction(() => [...document.querySelectorAll("figure[data-entrance]")].some((f) => f.getAttribute("data-entrance") !== "pending"), null, { timeout: 15000, polling: 100 });
-    await page.waitForFunction(() => [...document.querySelectorAll("figure[data-entrance]")].every((f) => f.getAttribute("data-entrance") !== "running"), null, { timeout: 15000, polling: 100 });
-  }
+  // Every entrance in view to its end: the loops start when it settles. (A figure out of view stays pending: its entrance waits for the reader.)
+  if (!still) await page.waitForFunction(() => [...document.querySelectorAll("figure[data-entrance]")].every((f) => { const r = f.getBoundingClientRect(); return r.bottom <= 0 || r.top >= innerHeight || f.getAttribute("data-entrance") === "done"; }), null, { timeout: 15000, polling: 100 });
   await page.waitForTimeout(500);
   const state = await page.evaluate(() => ({
     figures: document.querySelectorAll("figure").length,
     inView: [...document.querySelectorAll("figure")].filter((f) => { const r = f.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }).length,
     pending: document.querySelectorAll("figure[data-entrance='pending']").length,
-    loops: document.getAnimations().filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations === Infinity).length,
+    // A figure is moving when anything of its loops is running or shown: flow cuts are endless animations, but a pulse's and a packet's legs are finite
+    // animations run one after another, so endless ones alone undercount.
+    moving: [...document.querySelectorAll("figure")].filter((f) => f.getAnimations({ subtree: true }).some((a) => a.playState === "running") || [...f.querySelectorAll(".basalt-diagram-flow, .basalt-diagram-bead, .basalt-diagram-packet")].some((x) => getComputedStyle(x).display !== "none")).length,
   }));
   await browser.startTracing(page, { categories: ["devtools.timeline", "disabled-by-default-devtools.timeline"] });
   const frames = await page.evaluate((ms) => new Promise((resolve) => {
@@ -106,7 +106,8 @@ async function run(still) {
   const gaps = frames.slice(1).map((t, k) => t - frames[k]).sort((a, b) => a - b);
   const q = (p) => gaps[Math.min(gaps.length - 1, Math.floor(p * gaps.length))];
   const events = (trace.traceEvents ?? trace).filter((e) => e.ph === "X" || e.ph === "B" || e.ph === "I" || e.ph === "i");
-  const count = (name) => events.filter((e) => e.name === name).length;
+  // Complete events only: an instant event of the same name (UpdateLayer has both) would count one piece of work twice.
+  const count = (name) => events.filter((e) => e.name === name && e.ph === "X").length;
   const busy = (name) => events.filter((e) => e.name === name && e.ph === "X").reduce((sum, e) => sum + (e.dur ?? 0), 0) / 1000;
   return {
     mode: still ? "still" : "animated",
@@ -121,7 +122,9 @@ async function run(still) {
     layoutMs: +busy("Layout").toFixed(1),
     styleRecalcs: count("UpdateLayoutTree"),
     styleMs: +busy("UpdateLayoutTree").toFixed(1),
-    layerUpdates: count("UpdateLayer") + count("PrePaint"),
+    layerUpdates: count("UpdateLayer"),
+    // PrePaint runs every frame that is drawn, the benchmark's own requestAnimationFrame loop included: the still page's count is that floor.
+    prePaints: count("PrePaint"),
     rasterTasks: count("RasterTask"),
     rasterMs: +busy("RasterTask").toFixed(1),
   };
@@ -134,8 +137,8 @@ if (JSON_OUT) console.log(JSON.stringify(results, null, 1));
 else {
   console.log(`Diagram paint benchmark: the five CIMIP examples animated and the kit, React production build, Chromium ${version}, ${SECONDS}s each.`);
   for (const r of results) {
-    console.log(`\n${r.mode} (${r.window}, ${r.inView} of ${r.figures} figures in view, ${r.pending} pending, ${r.loops} endless loop animations running)`);
+    console.log(`\n${r.mode} (${r.window}, ${r.inView} of ${r.figures} figures in view, ${r.pending} pending, ${r.moving} moving)`);
     console.log(`  frames: ${r.frames} in ${r.seconds}s; between frames p50 ${r.frameMs.p50}ms, p95 ${r.frameMs.p95}ms, p99 ${r.frameMs.p99}ms, max ${r.frameMs.max}ms; ${r.frameMs.over20} over 20ms`);
-    console.log(`  paints: ${r.paints} (${r.paintMs}ms); layouts: ${r.layouts} (${r.layoutMs}ms); style recalcs: ${r.styleRecalcs} (${r.styleMs}ms); raster tasks: ${r.rasterTasks} (${r.rasterMs}ms); layer updates: ${r.layerUpdates}`);
+    console.log(`  paints: ${r.paints} (${r.paintMs}ms); layouts: ${r.layouts} (${r.layoutMs}ms); style recalcs: ${r.styleRecalcs} (${r.styleMs}ms); raster tasks: ${r.rasterTasks} (${r.rasterMs}ms); layer updates: ${r.layerUpdates}; pre-paints: ${r.prePaints}`);
   }
 }
