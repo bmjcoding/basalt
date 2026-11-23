@@ -64,6 +64,7 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
     var memo = {};
     var view = {
       layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS,
+      room: function () { var pad = parseFloat(getComputedStyle(sizer).paddingTop) || 0; return { w: stage.clientWidth - 2 * pad, h: stage.clientHeight - 2 * pad }; },
       measure: function (f, m, p, base, current, apply, warn) { return measureViewerFigure(f, m, p, base, current, apply, warn, view); },
       onMeasured: function (measured, f) {
         stage.setAttribute('data-layout', measured.dyn.layout || '');

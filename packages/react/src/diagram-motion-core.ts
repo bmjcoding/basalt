@@ -792,9 +792,24 @@ class Figure implements MotionController {
     this.publish();
   };
 
+  /**
+   * A run's unreached messages are quiet (DECISIONS 306, 1.2): every message after the current one has its label in secondary ink and its line and head in
+   * diagram-edge-dim; its number and note are unchanged. -1 restores them all at once.
+   */
+  private quiet(current: number, lines: GLine[]) {
+    const P = this.host.P, fig = this.host.fig;
+    const msgs = fig.querySelectorAll(`.${P}-msg`);
+    lines.forEach((l, k) => {
+      const ahead = current >= 0 && k > current;
+      msgs[k]?.toggleAttribute("data-ahead", ahead);
+      fig.querySelector(`.${P}-edge[data-edge="${l.i}"]`)?.toggleAttribute("data-ahead", ahead);
+    });
+  }
+
   private stopRun() {
     this.runGen++;
     this.runAt = -1;
+    this.host.fig.querySelectorAll("[data-ahead]").forEach((el) => el.removeAttribute("data-ahead"));
     for (const a of this.runAnims) a.cancel();
     this.runAnims.clear();
     if (this.dot && this.dotOwner === "run") { this.dot.style.display = "none"; this.dotOwner = null; }
@@ -818,6 +833,7 @@ class Figure implements MotionController {
       for (let k = from; k < lines.length; k++) {
         if (!live()) return;
         this.runAt = k;
+        this.quiet(k, lines);
         const l = lines[k]!;
         const stops = [msgs[k] ?? null, this.node(l.to)];
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -831,7 +847,7 @@ class Figure implements MotionController {
           for (const s of stops) this.depart(s);
         } else await this.leg(l, this.runAnims, live, stops);
       }
-      if (live()) { this.runAt = -1; this.publish(); }
+      if (live()) { this.runAt = -1; this.quiet(-1, lines); this.publish(); }
     };
     go().catch((e) => { if (!aborted(e)) throw e; });
   }

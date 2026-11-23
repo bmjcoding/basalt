@@ -130,6 +130,9 @@ export interface DiagramSpec {
   placement?: DiagramPlacement | DiagramPlacement[];
 }
 
+/** A card of an automatic figure (1.8): its `col` and `row` may be left out (and are not read). */
+export type DiagramUnplaced<T> = Omit<T, "col" | "row"> & { col?: number; row?: number | [number, number] };
+
 /** Where an automatic figure's cards go in one direction (1.8): `placeDiagram`'s answer. */
 export interface DiagramPlacement { direction: "right" | "down"; cells: Record<string, { col: number; row: number }> }
 

@@ -112,6 +112,8 @@ export interface DiagramViewerMode {
   measure: (fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void) => Measured;
   /** The words the keys sentence ends with. */
   keys: string;
+  /** The stage's inner size: an automatic figure takes the direction with the larger Fit in it (9.3). */
+  room: () => { w: number; h: number };
   /** After every layout: what was measured, and the figure. */
   onMeasured: (measured: Measured, fig: HTMLElement) => void;
 }
@@ -203,6 +205,21 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
         const trial = buildModel(spec, { rtl, placement: place });
         const t = measureFigure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
         if (t.dyn.layout === "drawn") { pick = k; break; }
+      }
+      if (pick !== dirAt) { setDirAt(pick); return; }
+    }
+    // In the viewer, an automatic figure with no named direction takes the direction with the larger Fit in this stage; a tie keeps the type's own (9.3).
+    if (auto && placements.length > 1 && viewer && !spec.direction) {
+      const room = viewer.room();
+      let pick = 0, best = -1;
+      for (let k = 0; k < order.length; k++) {
+        const place = placementFor(k);
+        if (!place) continue;
+        const trial = buildModel(spec, { rtl, placement: place });
+        const t = viewer.measure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
+        if (t.dyn.layout !== "drawn") continue;
+        const fit = Math.min(room.w / fig.offsetWidth, room.h / fig.offsetHeight);
+        if (fit > best + 1e-6) { best = fit; pick = k; }
       }
       if (pick !== dirAt) { setDirAt(pick); return; }
     }

@@ -5029,6 +5029,20 @@
   /* While a figure is read for a file (diagram-export), nothing in it transitions, so a theme it is read in applies at once. */
   .basalt-exporting, .basalt-exporting * { transition: none !important; }
 
+  /* A run's unreached messages are quiet (DECISIONS 306, 1.2): label secondary, line and head diagram-edge-dim; number and note unchanged. Stopping,
+     finishing, printing or tracing restores them at once; the ink changes over duration-fast on ease-out. No opacity. */
+  .basalt-diagram-msg[data-ahead] .basalt-diagram-mlabel { color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-diagram-edge[data-ahead] .basalt-diagram-line { stroke: var(--basalt-diagram-edge-dim); }
+  .basalt-diagram-edge[data-ahead] .basalt-diagram-tip:not([data-open]) { fill: var(--basalt-diagram-edge-dim); }
+  .basalt-diagram-edge[data-ahead] .basalt-diagram-tip[data-open] { stroke: var(--basalt-diagram-edge-dim); }
+  @media (forced-colors: active) {
+    .basalt-diagram .basalt-diagram-msg[data-ahead] .basalt-diagram-mlabel { color: GrayText; }
+    .basalt-diagram .basalt-diagram-edge[data-ahead] .basalt-diagram-line { stroke: GrayText; }
+  }
+  @media print {
+    .basalt-diagram .basalt-diagram-msg[data-ahead] .basalt-diagram-mlabel { color: var(--basalt-text-primary) !important; }
+  }
+
   /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's two buttons ----
      Only on a figure that asks for it (data-motion="animated"); a still figure is the drawing above, unchanged. The motion code is a module of its
      own (diagram-motion), loaded on demand; the still engine marks a figure pending in the frame its lines are first drawn (data-entrance). Every

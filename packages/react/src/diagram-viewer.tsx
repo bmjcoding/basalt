@@ -115,6 +115,11 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
     if (!(avail > 0) || !layer) return undefined;
     return {
       keys: VIEWER_KEYS,
+      room: () => {
+        const stage = stageRef.current, sizer = sizerRef.current;
+        const pad = sizer ? Number.parseFloat(getComputedStyle(sizer).paddingTop) || 0 : 0;
+        return { w: (stage?.clientWidth ?? 0) - 2 * pad, h: (stage?.clientHeight ?? 0) - 2 * pad };
+      },
       onMeasured,
       measure: (fig, m, p, base, current, apply, warn) => measureViewerFigure(fig, m, p, base, current, apply, warn, { layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }),
     };

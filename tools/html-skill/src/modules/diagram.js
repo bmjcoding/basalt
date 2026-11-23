@@ -141,6 +141,20 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
         }
         model = chosen || buildModel(spec, { rtl: rtl, placement: placeOf(order[0]) });
       }
+      // In the viewer, the direction with the larger Fit in the stage; a tie keeps the type's own (DECISIONS 310, 9.3).
+      if (auto && placements.length > 1 && viewer && !spec.direction && viewer.room) {
+        var room = viewer.room(), best = -1, pickM = null;
+        for (var j = 0; j < order.length; j++) {
+          var pl = placeOf(order[j]);
+          if (!pl) continue;
+          var tm = buildModel(spec, { rtl: rtl, placement: pl });
+          var tr = viewer.measure(figure, tm, P, base, {}, function (d) { syncAttributes(figure, figureTree(tm, d, opts)); });
+          if (tr.dyn.layout !== 'drawn') continue;
+          var fit = Math.min(room.w / figure.offsetWidth, room.h / figure.offsetHeight);
+          if (fit > best + 1e-6) { best = fit; pickM = tm; }
+        }
+        if (pickM) model = pickM;
+      }
       // The viewer's figure (DECISIONS 310, the diagram-zoom module) is laid out at the stage's width and measured only at 100%.
       measured = (viewer ? viewer.measure : measureFigure)(figure, model, P, base, state, apply, warn);
       state = measured.dyn;
