@@ -1829,7 +1829,9 @@ behind it. The card's first line keeps `space-6` clear of it.
 - **A mark is in Basalt's set only if** it is the owner's own file, has both forms, reads at 16px on every ground, holds no lettering,
   and its ink is 3:1 on levels 1 to 3 in both themes. A service without one is its name alone, never a stand-in. On the dark theme's
   focal card AWS's orange, green and teal and CodeRabbit's orange are 2.57 to 2.71:1; that is recorded and accepted, and the test names
-  them.
+  them. **The exceptions** (the owner's word, DECISIONS 297): Jenkins, ServiceNow and BlazeMeter carry unofficial one-colour drawings
+  (Simple Icons' and Devicon's), black on light grounds and white on dark, and Bedrock carries AWS's service icon with its tile removed and
+  its glyph in the tile's teal. Each is marked unofficial in the manifest, with every edit made to the fetched file.
 - **Each mark is recorded** in `packages/react/marks/manifest.json`: its source, the date fetched, its terms, its forms and what was done
   to the file. Each is one module (`@srasyndicate/basalt/marks/<id>`), outside the package's index, and the HTML skill writes into a page
   only the marks it names. The owner decided to bundle them and may remove any (DECISIONS 291).

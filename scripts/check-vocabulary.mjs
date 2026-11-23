@@ -27,6 +27,12 @@ export const SURFACE = [
 
 /** One app's nouns, as whole words (lower case). */
 const NOUNS = new Set(["incident", "incidents", "commander", "commanders", "severity", "severities", "sev", "sev1", "sev2", "sev3", "sev4", "scribe", "scribes", "rolodex", "rolodexes", "servicenow", "warroom", "warrooms"]);
+/**
+ * A service mark's files (DECISIONS 297): a bundled mark is named for its owner's brand, and ServiceNow is a vendor's mark like GitHub's, not an
+ * app's noun, so its name may stand in the generated mark modules and the skill's marks part. Every other noun is still refused there.
+ */
+const BRANDS = [{ under: "packages/react/src/marks/", words: ["servicenow"] }, { under: "tools/html-skill/src/marks.json", words: ["servicenow"] }];
+const brandWords = (file) => BRANDS.filter((b) => file.split(path.sep).join("/").startsWith(b.under)).flatMap((b) => b.words);
 /** Two words that are a noun together. */
 const PAIRS = [["war", "room"], ["war", "rooms"]];
 /**
@@ -187,7 +193,8 @@ export function checkSource(file, source) {
   };
   code.split("\n").forEach((text, index) => {
     const line = index + 1;
-    const found = nounsIn(text);
+    const brands = brandWords(file);
+    const found = nounsIn(text).filter((noun) => !brands.includes(noun));
     if (!found.length) return;
     if (excuses(line)) return;
     problems.push({ line, message: `an app's noun in the public surface: ${[...new Set(found)].join(", ")} (name it for what it is, or take the word from the app as a prop)` });

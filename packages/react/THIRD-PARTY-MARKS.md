@@ -3,6 +3,8 @@
 
 `@srasyndicate/basalt/marks/*` holds service marks for a diagram's architecture cards (DECISIONS 292). Each is its owner's own file, as its owner
 publishes it, with only what does not draw stripped, its view box fitted to its artwork and, where noted, its one fill swapped for white for dark grounds.
+The exceptions are marked **unofficial** below (DECISIONS 297): a drawing that is not its owner's own file (from Simple Icons or Devicon), or an owner's
+file edited before the steps above; the manifest records each edit.
 
 **Each mark is a trademark of its owner.** None is under this package's licence, and showing one implies no endorsement by, or affiliation with, its
 owner. Use each as its owner's terms allow; the terms that matter are quoted in `marks/manifest.json` in the Basalt repository, with each file's
@@ -10,7 +12,7 @@ source, the date it was fetched and its hash. A mark is removed by deleting its 
 
 ## Amazon Web Services, Inc.
 
-Application Load Balancer (`aws-application-load-balancer`), Network Load Balancer (`aws-network-load-balancer`), Amazon CloudFront distribution (`aws-cloudfront-distribution`), Amazon Route 53 hosted zone (`aws-route-53-hosted-zone`), Amazon API Gateway endpoint (`aws-api-gateway-endpoint`), Amazon VPC internet gateway (`aws-internet-gateway`), Amazon VPC NAT gateway (`aws-nat-gateway`), Amazon ECS service (`aws-ecs-service`), Amazon ECS task (`aws-ecs-task`), Amazon ECR registry (`aws-ecr-registry`), Amazon EC2 instance (`aws-ec2-instance`), AWS Lambda function (`aws-lambda-function`), Amazon S3 bucket (`aws-s3-bucket`), Amazon DynamoDB table (`aws-dynamodb-table`), Amazon SQS queue (`aws-sqs-queue`), Amazon EventBridge event bus (`aws-eventbridge-event-bus`), Amazon CloudWatch Logs (`aws-cloudwatch-logs`), Amazon CloudWatch alarm (`aws-cloudwatch-alarm`), AWS Systems Manager Parameter Store (`aws-parameter-store`), AWS IAM role (`aws-iam-role`), Amazon SageMaker AI model (`aws-sagemaker-model`), Client (`aws-client`), Mobile client (`aws-mobile-client`), User (`aws-user`), Users (`aws-users`), Internet (`aws-internet`), Server (`aws-server`), Database (`aws-database`), Generic application (`aws-application`), Git repository (`aws-git-repository`), Email (`aws-email`).
+Application Load Balancer (`aws-application-load-balancer`), Network Load Balancer (`aws-network-load-balancer`), Amazon CloudFront distribution (`aws-cloudfront-distribution`), Amazon Route 53 hosted zone (`aws-route-53-hosted-zone`), Amazon API Gateway endpoint (`aws-api-gateway-endpoint`), Amazon VPC internet gateway (`aws-internet-gateway`), Amazon VPC NAT gateway (`aws-nat-gateway`), Amazon ECS service (`aws-ecs-service`), Amazon ECS task (`aws-ecs-task`), Amazon ECR registry (`aws-ecr-registry`), Amazon EC2 instance (`aws-ec2-instance`), AWS Lambda function (`aws-lambda-function`), Amazon S3 bucket (`aws-s3-bucket`), Amazon DynamoDB table (`aws-dynamodb-table`), Amazon SQS queue (`aws-sqs-queue`), Amazon EventBridge event bus (`aws-eventbridge-event-bus`), Amazon CloudWatch Logs (`aws-cloudwatch-logs`), Amazon CloudWatch alarm (`aws-cloudwatch-alarm`), AWS Systems Manager Parameter Store (`aws-parameter-store`), AWS IAM role (`aws-iam-role`), Amazon SageMaker AI model (`aws-sagemaker-model`), Amazon Bedrock (`aws-bedrock`, unofficial), Client (`aws-client`), Mobile client (`aws-mobile-client`), User (`aws-user`), Users (`aws-users`), Internet (`aws-internet`), Server (`aws-server`), Database (`aws-database`), Generic application (`aws-application`), Git repository (`aws-git-repository`), Email (`aws-email`).
 
 Source: https://aws.amazon.com/architecture/icons/. Terms: https://aws.amazon.com/architecture/icons/.
 
@@ -49,3 +51,23 @@ Source: https://www.greptile.com. Terms: https://www.greptile.com.
 Blacksmith (`blacksmith`).
 
 Source: https://www.blacksmith.sh. Terms: https://www.blacksmith.sh.
+
+## LF Charities, Inc.
+
+Jenkins (`jenkins`, unofficial).
+
+Source: https://simpleicons.org/?q=jenkins. Terms: https://www.jenkins.io/project/trademark/.
+
+The Jenkins head is Simple Icons' drawing of the Jenkins logo by jenkins.io (https://get.jenkins.io/art/), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), made one-colour.
+
+## ServiceNow, Inc.
+
+ServiceNow (`servicenow`, unofficial).
+
+Source: https://github.com/devicons/devicon/tree/develop/icons/servicenow. Terms: https://github.com/devicons/devicon/blob/develop/LICENSE.
+
+## Perforce Software, Inc.
+
+BlazeMeter (`blazemeter`, unofficial).
+
+Source: https://simpleicons.org/?q=blazemeter. Terms: https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/LICENSE.md.

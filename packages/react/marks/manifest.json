@@ -1,22 +1,6 @@
 {
- "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit.",
+ "$comment": "The source of truth for the service marks Basalt bundles for an architecture card (DECISIONS 292, 2.4 and 2.5). One entry a mark. forms names which file draws on light grounds and which on dark (\"swapped\": the light file with its one fill swapped, as swap says). ink is each form's ink that meets the ground (the contrast test reads it). changes are which of 2.3's three were applied: stripped (what does not draw), fitted (the view box set to the artwork's bounds), swapped. viewBox is the fitted box per form, worked out once by fit.mjs and recorded here, so generating is the same on every machine. A mark is removed by deleting its entry and its source file; nothing else names it. Run node packages/react/marks/generate.mjs after an edit. unofficial: true marks a drawing that is not the owner's own file (DECISIONS 297: the owner asked for a mark on these even where it is not an official logo); its edits list every change made to the fetched file before the pipeline's own, and both files are in source/ with their hashes.",
  "notShipped": [
-  {
-   "service": "Jenkins",
-   "why": "It publishes no line mark: its butler is a colour portrait on a red disc, and at 16px its detail is gone. Its licence is unsettled (the press page states none; Simple Icons records CC BY-SA 3.0)."
-  },
-  {
-   "service": "ServiceNow",
-   "why": "No file of its own could be fetched; the prototype's was Devicon's drawing. Its green is 1.83:1 on a light card."
-  },
-  {
-   "service": "BlazeMeter",
-   "why": "It has no brand page; the prototype's was Simple Icons' drawing, 6px tall at 16."
-  },
-  {
-   "service": "Amazon Bedrock",
-   "why": "The package has no Bedrock resource icon; the service tile with its tile removed and its glyph recoloured is forbidden by AWS's terms."
-  },
   {
    "service": "Amazon Aurora, RDS and ElastiCache",
    "why": "Every instance icon carries lettering that is dust at 16px. A database card takes aws-database."
@@ -1204,6 +1188,70 @@
    }
   },
   {
+   "id": "aws-bedrock",
+   "name": "Amazon Bedrock",
+   "says": [
+    "Bedrock"
+   ],
+   "unofficial": true,
+   "owner": "Amazon Web Services, Inc.",
+   "source": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+   "page": "https://aws.amazon.com/architecture/icons/",
+   "file": "Architecture-Service-Icons_07312026/Arch_Artificial-Intelligence/48/Arch_Amazon-Bedrock_48.svg",
+   "release": "Release 24-2026.07.31 (Icon-package_07312026)",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "aws/Arch_Amazon-Bedrock_48.svg": "01c39972d595d848ffc91d31aa6087b033c65279f8416c7c9a6659bc54406182",
+    "aws/Arch_Amazon-Bedrock_48_tile-removed.svg": "04291b88b423a0fb012a7bc5f7a032ada4fb010ab8fe2e907d4ab3dbfdb9359e"
+   },
+   "terms": {
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "quotes": [
+     "We allow customers and partners to use these toolkits and assets to create architecture diagrams.",
+     "You can also put icons in materials like whitepapers, presentations, data sheets, and posters.",
+     "The deck in the release's PowerPoint toolkit: use the icons in a diagram at their predefined size, color, and format; do not crop, flip, rotate, or change the shape."
+    ],
+    "also": "https://aws.amazon.com/trademark-guidelines/"
+   },
+   "edits": [
+    {
+     "from": "aws/Arch_Amazon-Bedrock_48.svg",
+     "to": "aws/Arch_Amazon-Bedrock_48_tile-removed.svg",
+     "edit": "Tile removed: the Machine-Learning background group (its #01A88D 64 by 64 rect) deleted, and the glyph's fill #FFFFFF set to #01A88D, the tile's own colour, as AWS's resource icons draw their glyphs. The paths are unchanged."
+    }
+   ],
+   "forms": {
+    "light": "aws/Arch_Amazon-Bedrock_48_tile-removed.svg",
+    "dark": "aws/Arch_Amazon-Bedrock_48_tile-removed.svg"
+   },
+   "ink": {
+    "light": "#01A88D",
+    "dark": "#01A88D"
+   },
+   "changes": [
+    "stripped",
+    "fitted"
+   ],
+   "viewBox": {
+    "light": [
+     10,
+     10,
+     44,
+     44
+    ],
+    "dark": [
+     10,
+     10,
+     44,
+     44
+    ]
+   },
+   "departures": [
+    "Unofficial (DECISIONS 297): the release has no Bedrock resource icon, so this is the service icon with its tile removed and its glyph in the tile's colour. AWS's deck forbids changing an icon's color and format; the owner decided to ship it.",
+    "AWS's deck says diagrams use the icons \"at their predefined size\", and its pages grant use in diagrams, not redistribution in a package. Basalt draws a 48px icon at 16 and ships the files (the owner's decision to bundle, DECISIONS 291)."
+   ]
+  },
+  {
    "id": "aws-client",
    "name": "Client",
    "says": [
@@ -2102,6 +2150,214 @@
      96.05
     ]
    }
+  },
+  {
+   "id": "jenkins",
+   "name": "Jenkins",
+   "says": [
+    "Jenkins"
+   ],
+   "unofficial": true,
+   "owner": "LF Charities, Inc.",
+   "source": "https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/icons/jenkins.svg",
+   "page": "https://simpleicons.org/?q=jenkins",
+   "file": "icons/jenkins.svg in simple-icons 16.38.1 (Simple Icons gives its source as https://get.jenkins.io/art/)",
+   "release": "simple-icons 16.38.1",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "jenkins/jenkins.svg": "95ab5d541710c116d939f44e4e72c8b1503e78d04a1c298ad257c4e26d3a1873",
+    "jenkins/jenkins-black.svg": "22c0102d1c24a4801c520ca7ee59139def6ded994a566b1b63d45e8a54f5de97"
+   },
+   "terms": {
+    "url": "https://www.jenkins.io/project/trademark/",
+    "quotes": [
+     "Simple Icons' LICENSE.md is CC0 1.0 Universal.",
+     "DISCLAIMER.md: \"Simple Icons is released under CC0 - though that doesn't mean to imply that all icons within the project are also CC0. Please see individual licenses where available.\"",
+     "DISCLAIMER.md: \"We ask that our users seek the correct permissions to use the icons relevant to their project.\"",
+     "Simple Icons' data for Jenkins (data/simple-icons.json): license CC-BY-SA-3.0, guidelines https://www.jenkins.io/press/.",
+     "https://www.jenkins.io/project/trademark/: the Jenkins name and logo are trademarks held by LF Charities, Inc. under the Linux Foundation's trademark policy."
+    ],
+    "also": "https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/DISCLAIMER.md"
+   },
+   "attribution": "The Jenkins head is Simple Icons' drawing of the Jenkins logo by jenkins.io (https://get.jenkins.io/art/), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), made one-colour.",
+   "edits": [
+    {
+     "from": "jenkins/jenkins.svg",
+     "to": "jenkins/jenkins-black.svg",
+     "edit": "fill=\"#000000\" set on the one path (the file draws in the default black and names no fill; the swap needs one). No pixel changes."
+    }
+   ],
+   "forms": {
+    "light": "jenkins/jenkins-black.svg",
+    "dark": "swapped"
+   },
+   "swap": {
+    "from": "#000000",
+    "to": "#ffffff"
+   },
+   "ink": {
+    "light": "#000000",
+    "dark": "#FFFFFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted",
+    "swapped"
+   ],
+   "viewBox": {
+    "light": [
+     1.11,
+     0,
+     21.78,
+     24
+    ],
+    "dark": [
+     1.11,
+     0,
+     21.78,
+     24
+    ]
+   },
+   "departures": [
+    "Unofficial (DECISIONS 297): Jenkins publishes the butler in colour; this is Simple Icons' one-colour drawing of the head, shown black on light grounds and white on dark.",
+    "Simple Icons records the Jenkins artwork as CC BY-SA 3.0, which asks for attribution to jenkins.io and share-alike; this entry and THIRD-PARTY-MARKS.md carry the attribution."
+   ]
+  },
+  {
+   "id": "servicenow",
+   "name": "ServiceNow",
+   "says": [
+    "ServiceNow"
+   ],
+   "unofficial": true,
+   "owner": "ServiceNow, Inc.",
+   "source": "https://raw.githubusercontent.com/devicons/devicon/381959631eef98bdc7c22b78fd186cb20f415f72/icons/servicenow/servicenow-original.svg",
+   "page": "https://github.com/devicons/devicon/tree/develop/icons/servicenow",
+   "file": "icons/servicenow/servicenow-original.svg in Devicon, develop at 38195963 (added in 80defb67, #2835). Simple Icons has no ServiceNow icon.",
+   "release": "Devicon develop, commit 381959631eef98bdc7c22b78fd186cb20f415f72",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "servicenow/servicenow-original.svg": "2a318ca13d4e65500ef7ec3b898f465a5a3b53c32bfbf021b9f89fe5f0041eb7",
+    "servicenow/servicenow-black.svg": "7c91bdd52a2937b55a4f5f9b327d43574e8fd4ad4507197b8338d910b7fd99cc"
+   },
+   "terms": {
+    "url": "https://github.com/devicons/devicon/blob/develop/LICENSE",
+    "quotes": [
+     "Devicon's LICENSE: \"The MIT License (MIT) Copyright (c) 2015 konpa\".",
+     "ServiceNow's brand pages (https://www.servicenow.com/brand.html, https://brand.servicenow.com/) could not be fetched; no ServiceNow guideline was read."
+    ]
+   },
+   "edits": [
+    {
+     "from": "servicenow/servicenow-original.svg",
+     "to": "servicenow/servicenow-black.svg",
+     "edit": "The one fill #62d84e set to #000000: the green is 1.83:1 on a light card, so the mark is one-colour, black on light grounds and white on dark (DECISIONS 297)."
+    }
+   ],
+   "forms": {
+    "light": "servicenow/servicenow-black.svg",
+    "dark": "swapped"
+   },
+   "swap": {
+    "from": "#000000",
+    "to": "#ffffff"
+   },
+   "ink": {
+    "light": "#000000",
+    "dark": "#FFFFFF"
+   },
+   "changes": [
+    "fitted",
+    "swapped"
+   ],
+   "viewBox": {
+    "light": [
+     0,
+     6.75,
+     128,
+     114.5
+    ],
+    "dark": [
+     0,
+     6.75,
+     128,
+     114.5
+    ]
+   },
+   "departures": [
+    "Unofficial (DECISIONS 297): Devicon's drawing of ServiceNow's ring, not a file from ServiceNow, and recoloured from its green to black and white."
+   ]
+  },
+  {
+   "id": "blazemeter",
+   "name": "BlazeMeter",
+   "says": [
+    "BlazeMeter"
+   ],
+   "unofficial": true,
+   "owner": "Perforce Software, Inc.",
+   "source": "https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/icons/blazemeter.svg",
+   "page": "https://simpleicons.org/?q=blazemeter",
+   "file": "icons/blazemeter.svg in simple-icons 16.38.1 (Simple Icons gives its source as https://www.blazemeter.com)",
+   "release": "simple-icons 16.38.1",
+   "fetched": "2026-11-23",
+   "sha256": {
+    "blazemeter/blazemeter.svg": "1d333e392bb9ffee9d0288c17cccc1690fba9115770ff6322ca2fd9ceba2689e",
+    "blazemeter/blazemeter-black.svg": "5c0160ec0cea5a31fceb35111c8718f7b6e5e657919c611dd4ada4ab09b22666"
+   },
+   "terms": {
+    "url": "https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/LICENSE.md",
+    "quotes": [
+     "Simple Icons' LICENSE.md is CC0 1.0 Universal.",
+     "DISCLAIMER.md: \"Simple Icons is released under CC0 - though that doesn't mean to imply that all icons within the project are also CC0. Please see individual licenses where available.\"",
+     "DISCLAIMER.md: \"We ask that our users seek the correct permissions to use the icons relevant to their project.\"",
+     "Simple Icons' data for Blazemeter records no licence and no guidelines.",
+     "BlazeMeter has no brand page (https://www.blazemeter.com/brand returned 404); its site's footer reads \"Perforce Software Inc. All Rights Reserved.\""
+    ],
+    "also": "https://cdn.jsdelivr.net/npm/simple-icons@16.38.1/DISCLAIMER.md"
+   },
+   "edits": [
+    {
+     "from": "blazemeter/blazemeter.svg",
+     "to": "blazemeter/blazemeter-black.svg",
+     "edit": "fill=\"#000000\" set on the one path (the file draws in the default black and names no fill; the swap needs one). No pixel changes."
+    }
+   ],
+   "forms": {
+    "light": "blazemeter/blazemeter-black.svg",
+    "dark": "swapped"
+   },
+   "swap": {
+    "from": "#000000",
+    "to": "#ffffff"
+   },
+   "ink": {
+    "light": "#000000",
+    "dark": "#FFFFFF"
+   },
+   "changes": [
+    "stripped",
+    "fitted",
+    "swapped"
+   ],
+   "viewBox": {
+    "light": [
+     0,
+     6.85,
+     24,
+     10.3
+    ],
+    "dark": [
+     0,
+     6.85,
+     24,
+     10.3
+    ]
+   },
+   "departures": [
+    "Unofficial (DECISIONS 297): BlazeMeter publishes no mark file; this is Simple Icons' drawing, shown black on light grounds and white on dark rather than its red.",
+    "The mark is wide: at 16px wide it is about 6px tall. It holds a letter B, which the set's no-lettering rule would exclude; the owner asked for it (DECISIONS 297)."
+   ]
   }
  ]
 }

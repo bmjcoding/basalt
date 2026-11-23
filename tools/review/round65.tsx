@@ -1,7 +1,7 @@
 // Round 65: motion and service marks for Basalt's diagrams (DECISIONS 292, the handoff 287 to 291, the answers 293). A heavy council round decided on the
 // owner's confirmed prototype and Neon's review (Fable decided, revised after Neon's final position). Built by Opus from the decision, then reviewed (Neon on the
 // code, Fable on the pixels) and fixed once; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). The content is CIMIP's five diagrams, animated, and the kit ("How a change
-// reaches production"), which carries the six named brands' marks and three cards with none, and a sheet of every bundled mark on every ground.
+// reaches production"), which carries nine brands' marks (Jenkins, BlazeMeter and ServiceNow unofficial, DECISIONS 297), and a sheet of every bundled mark on every ground.
 //
 // A still of motion is a pose: in a shot (?shot=1) the demo lets the motion run, then pauses the figure's own animations at a chosen point (the entrance part-way,
 // the bead on a line, the dot mid-leg, a card in its arrival step) and marks the figure posed, so the shot is the same each time. Opened as the owner opens it, the
@@ -36,6 +36,7 @@ import { awsCloudwatchAlarm } from "../../packages/react/src/marks/aws-cloudwatc
 import { awsParameterStore } from "../../packages/react/src/marks/aws-parameter-store";
 import { awsIamRole } from "../../packages/react/src/marks/aws-iam-role";
 import { awsSagemakerModel } from "../../packages/react/src/marks/aws-sagemaker-model";
+import { awsBedrock } from "../../packages/react/src/marks/aws-bedrock";
 import { awsClient } from "../../packages/react/src/marks/aws-client";
 import { awsMobileClient } from "../../packages/react/src/marks/aws-mobile-client";
 import { awsUser } from "../../packages/react/src/marks/aws-user";
@@ -52,7 +53,10 @@ import { github } from "../../packages/react/src/marks/github";
 import { coderabbit } from "../../packages/react/src/marks/coderabbit";
 import { greptile } from "../../packages/react/src/marks/greptile";
 import { blacksmith } from "../../packages/react/src/marks/blacksmith";
-const MARKS: Record<string, DiagramMark> = { "aws-application-load-balancer": awsApplicationLoadBalancer, "aws-network-load-balancer": awsNetworkLoadBalancer, "aws-cloudfront-distribution": awsCloudfrontDistribution, "aws-route-53-hosted-zone": awsRoute53HostedZone, "aws-api-gateway-endpoint": awsApiGatewayEndpoint, "aws-internet-gateway": awsInternetGateway, "aws-nat-gateway": awsNatGateway, "aws-ecs-service": awsEcsService, "aws-ecs-task": awsEcsTask, "aws-ecr-registry": awsEcrRegistry, "aws-ec2-instance": awsEc2Instance, "aws-lambda-function": awsLambdaFunction, "aws-s3-bucket": awsS3Bucket, "aws-dynamodb-table": awsDynamodbTable, "aws-sqs-queue": awsSqsQueue, "aws-eventbridge-event-bus": awsEventbridgeEventBus, "aws-cloudwatch-logs": awsCloudwatchLogs, "aws-cloudwatch-alarm": awsCloudwatchAlarm, "aws-parameter-store": awsParameterStore, "aws-iam-role": awsIamRole, "aws-sagemaker-model": awsSagemakerModel, "aws-client": awsClient, "aws-mobile-client": awsMobileClient, "aws-user": awsUser, "aws-users": awsUsers, "aws-internet": awsInternet, "aws-server": awsServer, "aws-database": awsDatabase, "aws-application": awsApplication, "aws-git-repository": awsGitRepository, "aws-email": awsEmail, "temporal": temporal, "sonarqube": sonarqube, "github": github, "coderabbit": coderabbit, "greptile": greptile, "blacksmith": blacksmith };
+import { jenkins } from "../../packages/react/src/marks/jenkins";
+import { servicenow } from "../../packages/react/src/marks/servicenow";
+import { blazemeter } from "../../packages/react/src/marks/blazemeter";
+const MARKS: Record<string, DiagramMark> = { "aws-application-load-balancer": awsApplicationLoadBalancer, "aws-network-load-balancer": awsNetworkLoadBalancer, "aws-cloudfront-distribution": awsCloudfrontDistribution, "aws-route-53-hosted-zone": awsRoute53HostedZone, "aws-api-gateway-endpoint": awsApiGatewayEndpoint, "aws-internet-gateway": awsInternetGateway, "aws-nat-gateway": awsNatGateway, "aws-ecs-service": awsEcsService, "aws-ecs-task": awsEcsTask, "aws-ecr-registry": awsEcrRegistry, "aws-ec2-instance": awsEc2Instance, "aws-lambda-function": awsLambdaFunction, "aws-s3-bucket": awsS3Bucket, "aws-dynamodb-table": awsDynamodbTable, "aws-sqs-queue": awsSqsQueue, "aws-eventbridge-event-bus": awsEventbridgeEventBus, "aws-cloudwatch-logs": awsCloudwatchLogs, "aws-cloudwatch-alarm": awsCloudwatchAlarm, "aws-parameter-store": awsParameterStore, "aws-iam-role": awsIamRole, "aws-sagemaker-model": awsSagemakerModel, "aws-bedrock": awsBedrock, "aws-client": awsClient, "aws-mobile-client": awsMobileClient, "aws-user": awsUser, "aws-users": awsUsers, "aws-internet": awsInternet, "aws-server": awsServer, "aws-database": awsDatabase, "aws-application": awsApplication, "aws-git-repository": awsGitRepository, "aws-email": awsEmail, "temporal": temporal, "sonarqube": sonarqube, "github": github, "coderabbit": coderabbit, "greptile": greptile, "blacksmith": blacksmith, "jenkins": jenkins, "servicenow": servicenow, "blazemeter": blazemeter };
 
 type Key = keyof typeof still;
 type Spec = Record<string, unknown> & { type: string; nodes?: Array<Record<string, unknown>>; edges?: Array<Record<string, unknown>> };
@@ -196,7 +200,7 @@ export const ROUND_65: Round = {
   title: "Diagram motion and service marks (DECISIONS 292)",
   reviewed: false,
   summary:
-    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (37 bundled, each its owner's file, recorded in a manifest). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293), reviewed once (Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). Still is unchanged. On this page every figure plays as it would in an app; each screenshot of motion is a pose held by the shot, at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
+    "An opt-in motion=\"animated\" on the five diagrams (an entrance on view; flow, a pulse or a packet where the data names them; a sequence's run; \"Pause animations\" in the foot) and a service's own mark on an architecture card (41 bundled, recorded in a manifest: 37 their owners' files, and Bedrock, Jenkins, ServiceNow and BlazeMeter unofficial, DECISIONS 297). Built by Opus from the council's decision (DECISIONS 292, after the handoff 287 to 291 and the answers 293), reviewed once (Neon on the code, Fable on the pixels) and fixed; the fixes have not been reviewed again, and the tests were written but not run (the owner skipped test work). Still is unchanged. On this page every figure plays as it would in an app; each screenshot of motion is a pose held by the shot, at 1440 and 390 in both themes, with reduced motion, forced colours, more contrast and print.",
   steps: [
     {
       id: "architecture",
@@ -206,7 +210,7 @@ export const ROUND_65: Round = {
         ...COMMON,
         "Flow: cuts of size-cut in the ground every size-diagram-flow (10 on, 2 off), marching toward the head at speed-diagram-flow, and only while they move: held, traced, still or printed the line is solid, so the key stays true. A line with under 48px showing does not flow.",
         "Pulse: a solid bead of size-diagram-bead (never more than two fifths of the line showing), a hairline proud of its line on each side, at speed-diagram-pulse; it leaves from under the source card's edge and is taken in at the line's end; each card takes its arrival step (its rim diagram-hit; the focal card's fill diagram-focal-hit) for duration-diagram-rest.",
-        "Marks: 16px in the card's top end corner, nothing behind them, the owner's file and colours. The first line keeps space-6 clear. Bedrock, Browser and Production carry none; Aurora's card takes AWS's general database mark (its own icons carry lettering).",
+        "Marks: 16px in the card's top end corner, nothing behind them, the owner's file and colours. The first line keeps space-6 clear. Bedrock carries its unofficial mark (the service icon with its tile removed, DECISIONS 297); Browser and Production carry none; Aurora's card takes AWS's general database mark (its own icons carry lettering).",
         "Departures from the confirmed prototype, for the owner: one-colour marks are their owner's black or white, not Basalt's grey; pausing is the page's hold; the kind line keeps 24px clear, not 20; under more contrast the arrival rim is primary ink.",
       ],
       tryIt: TRY,
@@ -281,12 +285,12 @@ export const ROUND_65: Round = {
     },
     {
       id: "kit",
-      name: "The kit: six brands and three cards with none",
-      intro: "How a change reaches production: GitHub, CodeRabbit, Greptile, Blacksmith, SonarQube and Temporal carry their own marks; Jenkins, BlazeMeter and ServiceNow are their names alone.",
+      name: "The kit: nine brands' marks",
+      intro: "How a change reaches production: GitHub, CodeRabbit, Greptile, Blacksmith, SonarQube and Temporal carry their own marks; Jenkins, BlazeMeter and ServiceNow carry unofficial ones.",
       decisions: [
         "A mark is its owner's file and Basalt never recolours it: a form for light grounds and one for dark, and the focal card takes the other theme's. Greptile's and Blacksmith's dark forms are the one swap of their one fill for white. CodeRabbit is its orange mark on both grounds, as its terms give.",
         "Every mark is fitted to its own artwork, so Temporal and SonarQube draw larger than in the prototype (departure 3).",
-        "Jenkins, ServiceNow and BlazeMeter ship no mark (no line mark of their own, no file of their own that could be fetched, no brand page); each comes back when its reason goes.",
+        "Jenkins, ServiceNow and BlazeMeter carry unofficial marks, at the owner's word (DECISIONS 297, overriding 292's drop): Simple Icons' Jenkins head and BlazeMeter mark and Devicon's ServiceNow ring, each one-colour, black on light grounds and white on dark. ServiceNow's green was 1.83:1 on a light card.",
       ],
       tryIt: ["Turn on forced colours: no mark is drawn, and the first line keeps no padding for one. Print: each mark prints, whatever the Background graphics setting."],
       states: ["settled", "settled-plain-forced-colours@1440", "print@1440"],
@@ -299,10 +303,10 @@ export const ROUND_65: Round = {
     {
       id: "marks",
       name: "Every mark, on a card and on the focal card",
-      intro: "The 37 bundled marks at 16px in the seat. In the dark and light shots together, each is on all four grounds: the card and the focal card of each theme.",
+      intro: "The 41 bundled marks at 16px in the seat. In the dark and light shots together, each is on all four grounds: the card and the focal card of each theme.",
       decisions: [
         "Every ink is 3:1 or more on levels 1 to 3 in both themes. On the dark theme's focal card four are under it and recorded by name: AWS's orange (2.58), green (2.59) and teal (2.57), and CodeRabbit's orange (2.71). Accepted: the mark is decoration beside a name at 17.9:1, and each alternative is worse.",
-        "Each is recorded in packages/react/marks/manifest.json: its source and terms, the date it was fetched, its hash, its forms and inks, and what was done to the file (stripped, fitted, swapped).",
+        "Each is recorded in packages/react/marks/manifest.json: its source and terms, the date it was fetched, its hash, its forms and inks, and what was done to the file (stripped, fitted, swapped); for the four unofficial marks (Bedrock, Jenkins, ServiceNow, BlazeMeter; DECISIONS 297), every edit made before those.",
       ],
       tryIt: ["Open THIRD-PARTY-MARKS.md in the package: each owner, and that each mark is its owner's trademark and not under the package's licence."],
       states: ["forced-colours@1440", "print@1440"],
