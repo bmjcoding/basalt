@@ -24,13 +24,14 @@
   .terminal-hint { grid-column: 1 / -1; margin-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); color: var(--basalt-text-tertiary); }
   .terminal-title { min-width: 0; }
   .terminal-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 var(--basalt-space-2); max-width: 100%; margin-inline-start: auto; }
-  .terminal-actions:has(.btn) { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   .terminal-state { display: inline-flex; font-weight: var(--basalt-font-weight-regular); }
   .terminal-state [data-error] { color: var(--basalt-status-danger); }
   /* A word that changes in place stands in one grid cell with all its forms, the others hidden, so the cell is as wide as the widest and nothing beside it moves. */
   .terminal-swap { display: inline-grid; }
   .terminal-swap > * { grid-area: 1 / 1; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
   .terminal-swap > :not([data-on]) { visibility: hidden; }
+  /* A button's words that change are centred in their cell (DECISIONS 336, S1); the state's face the buttons. */
+  .terminal-control .terminal-swap > * { justify-self: center; }
   /* Wide: the words. Narrow (the terminal's own width, under 480px): the icon alone, with the same name. */
   .terminal-actions .terminal-copy-compact { display: none; }
   /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */

@@ -8,7 +8,7 @@ A search dialog on the dialog's rules (`--usage dialog`): `<dialog class="panel 
   <form class="search-form" role="search">
     <label class="search-field"><span data-glyph="search"></span><span class="visually-hidden">Search products</span>
       <input class="search-input" type="search" placeholder="A brand, whey" autocomplete="off" enterkeyhint="search"></label>
-    <button type="button" class="btn search-close" data-variant="ghost" data-icon-only aria-label="Close search" data-dialog-close><span data-glyph="close"></span></button>
+    <button type="button" class="btn search-close" data-variant="ghost" data-icon-only data-edge="end" aria-label="Close search" data-dialog-close><span data-glyph="close"></span></button>
   </form>
   <p class="search-count" role="status">2 products</p>
   <ul class="search-results">

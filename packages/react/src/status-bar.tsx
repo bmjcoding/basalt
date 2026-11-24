@@ -2,6 +2,8 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { STATUS_MESSAGE_MS } from "./constants";
+import { Button, IconButton, type ButtonEdge } from "./button";
+import { DrawerTrigger } from "./drawer";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
 import { usePeekPlate } from "./use-peek";
@@ -31,7 +33,10 @@ export interface StatusMessage {
 export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "children"> {
   /** The bar's name. Default "Status". */
   label?: string;
-  /** The run: a button or a link with its mark, its id and its counts. */
+  /**
+   * The run: a button or a link with its mark, its id and its counts. A ghost `Button` first here (or first in `sources` when there is no `start`)
+   * is hung at the bar's start, and one last in `end` at its end: its words on the bar's line (DECISIONS 336).
+   */
   start?: React.ReactNode;
   /**
    * The sources and the session in one button that opens the `Drawer`: a `DrawerTrigger` (`variant="ghost" size="sm"`), which carries
@@ -44,6 +49,18 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   onMessageClear?: () => void;
   /** The theme control, or the like. */
   end?: React.ReactNode;
+}
+
+/** A slot's first (or last) control, when it is a ghost Basalt button with no edge of its own, hung at the bar's edge (DECISIONS 336). */
+function hang(slot: React.ReactNode, side: ButtonEdge): React.ReactNode {
+  const items = React.Children.toArray(slot);
+  const at = side === "start" ? 0 : items.length - 1;
+  const item = items[at];
+  if (!React.isValidElement<{ variant?: string; edge?: ButtonEdge }>(item) || item.props.edge !== undefined) return slot;
+  const fallback = item.type === IconButton ? "ghost" : item.type === Button || item.type === DrawerTrigger ? "secondary" : undefined;
+  if ((item.props.variant ?? fallback) !== "ghost") return slot;
+  items[at] = React.cloneElement(item, { edge: side });
+  return items;
 }
 
 /**
@@ -109,8 +126,8 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
   }, [key, error]);
   return (
     <footer {...props} aria-label={label} data-pinned-edge="bottom" className={join("basalt-status-bar", className)}>
-      {start ? <div className="basalt-status-bar-start">{start}</div> : null}
-      {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
+      {start ? <div className="basalt-status-bar-start">{hang(start, "start")}</div> : null}
+      {sources ? <div className="basalt-status-bar-sources">{start ? sources : hang(sources, "start")}</div> : null}
       <p
         ref={band}
         data-pinned-extent=""
@@ -126,7 +143,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
         {error ? <span className="basalt-status-bar-seat" aria-hidden={cut ? "true" : undefined}><Icon icon={XCircleIcon} size={16} /></span> : null}
         <span className="basalt-status-bar-text" aria-hidden={cut ? "true" : undefined}>{message?.text}</span>
       </p>
-      {end ? <div className="basalt-status-bar-end">{end}</div> : null}
+      {end ? <div className="basalt-status-bar-end">{hang(end, "end")}</div> : null}
       <StatusLine sendId={message?.id}>{message && !error && !held ? message.text : ""}</StatusLine>
       <span role="alert" aria-live="assertive" aria-atomic="true" className="basalt-visually-hidden">{held ? "" : alert}</span>
     </footer>

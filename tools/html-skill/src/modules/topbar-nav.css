@@ -77,7 +77,10 @@
   @media (width < %bp-md%) {
     .topbar-links, .topbar-action { display: none; }
     .topbar-menu-trigger { display: inline-flex; }
+    /* Menu is the last control shown here, so a tool hung at the end on a wide bar gives no room before it (DECISIONS 336). */
+    .topbar-inner:has(> .topbar-menu-trigger) > :not(.topbar-menu-trigger) { --basalt-edge-room-end: initial; }
   }
+  .topbar-menu-actions > :not(:last-child) { --basalt-edge-room-end: initial; }
 
   /* The narrow menu: a top sheet. Its band is the bar's own row, redrawn (sheet.css); its buttons are the bar's, 44 with radius 8. The list is Nav's rows with
      no glyph. The foot holds the action, full width. */

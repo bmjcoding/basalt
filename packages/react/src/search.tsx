@@ -87,7 +87,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
               onChange={(event) => onQueryChange(event.target.value)}
             />
           </label>
-          <DialogClose render={<IconButton icon={CloseGlyph} label={closeLabel} className="basalt-search-close" />} />
+          <DialogClose render={<IconButton icon={CloseGlyph} label={closeLabel} edge="end" className="basalt-search-close" />} />
         </form>
         <FilterResult className="basalt-search-count">{count}</FilterResult>
         {children}

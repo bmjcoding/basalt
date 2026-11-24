@@ -53,7 +53,7 @@
   @starting-style { dialog.sheet[data-side="top"][open] { opacity: 1; transform: none; clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-size-header) - var(--_safe-top)) var(--_reach)); } }
 
   /* The band is the bar's own row, redrawn: the header's height, its line inside, and the gutter or the side safe area, whichever is larger. */
-  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding-block: var(--basalt-size-hairline) 0; padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end)); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding-block: var(--basalt-size-hairline) 0; padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end)); --basalt-edge-room-end: calc(max(var(--basalt-gutter), var(--bh-inset-end)) - var(--bh-inset-end)); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
 
   /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. As React's (B5): the box reaches space-1-5 above the band it
      draws, and that strip is clipped away, so a focused field right before the actions shows its whole ring at the end of the scroll; the band itself

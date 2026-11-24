@@ -5,6 +5,7 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";
+import { CloseGlyph } from "./glyphs/close";
 import { CopyGlyph } from "./glyphs/copy";
 import { MinusGlyph } from "./glyphs/minus";
 import { Button, IconButton } from "./button";
@@ -166,12 +167,14 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
   // ---- copy: the commands, one per line. A replay knows every line, so it copies them all wherever its playhead is; a stream the
   // app drives passes the lines that have arrived. With no command there is nothing to copy, and the button is off.
   const commands = lines.filter((line) => line.kind === "command").map((line) => line.text).join("\n");
-  const [copied, setCopied] = React.useState(false);
+  // What the last copy did, held for CONFIRM_MS: the words stay and the glyph says it (the check, or the close for a refused write; DECISIONS 336, Q5).
+  const [copyResult, setCopyResult] = React.useState<"copied" | "failed" | null>(null);
+  const copied = copyResult === "copied";
   React.useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), CONFIRM_MS);
+    if (!copyResult) return;
+    const t = setTimeout(() => setCopyResult(null), CONFIRM_MS);
     return () => clearTimeout(t);
-  }, [copied]);
+  }, [copyResult]);
   // The compact copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
   React.useEffect(() => {
     if (copyable) loadFlight();
@@ -180,9 +183,10 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     if (!commands) return;
     try {
       await navigator.clipboard.writeText(commands);
-      setCopied(true);
+      setCopyResult("copied");
     } catch {
-      // clipboard refused (insecure context or permissions): leave the button as it was
+      // clipboard refused (insecure context or permissions): the words hold and the glyph is the close for a moment
+      setCopyResult("failed");
     }
   };
 
@@ -229,18 +233,18 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
           {words ? <span className="basalt-terminal-state" data-state={state}>{words}</span> : null}
           {stages && time ? <span className="basalt-terminal-time"><RunTimer start={time.start} end={time.end} carried={time.carried} since={time.since} /></span> : null}
           {control ? (
-            <Button variant="ghost" size="sm" onClick={control.onClick} disabled={control.disabled}>
+            <Button variant="ghost" size="sm" edge={copyable ? undefined : "end"} onClick={control.onClick} disabled={control.disabled}>
               {swap(control.show, Object.fromEntries(control.words.map((word) => [word, word])))}
             </Button>
           ) : null}
           {copyable ? (
             <>
               {/* Wide: the words. Narrow (the terminal's own width, under 30rem): the icon alone, with the same name. */}
-              <Button className="basalt-terminal-copy" variant="ghost" size="sm" icon={CopyGlyph} onClick={copy} disabled={!commands}>
-                {swap(copied ? "Copied" : "Copy commands", { "Copy commands": "Copy commands", Copied: "Copied" })}
+              <Button className="basalt-terminal-copy" variant="ghost" size="sm" edge="end" icon={CopyGlyph} done={copyResult !== null} doneIcon={copyResult === "failed" ? CloseGlyph : CheckGlyph} onClick={copy} disabled={!commands}>
+                Copy commands
               </Button>
-              <IconButton className="basalt-terminal-copy-compact" size="sm" icon={copied ? CheckGlyph : CopyGlyph} label="Copy commands" onClick={copy} disabled={!commands} />
-              <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
+              <IconButton className="basalt-terminal-copy-compact" size="sm" edge="end" icon={CopyGlyph} done={copied} label="Copy commands" onClick={copy} disabled={!commands} />
+              <span className="basalt-visually-hidden" role="status">{copyResult === "copied" ? "Copied" : copyResult === "failed" ? "Copy failed" : ""}</span>
             </>
           ) : null}
         </span>

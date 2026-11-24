@@ -8,7 +8,6 @@ import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
-import { CheckGlyph } from "./glyphs/check";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { CopyGlyph } from "./glyphs/copy";
 import { IconButton } from "./button";
@@ -367,7 +366,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
   };
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label="Copy code" onClick={copy} />
+      <IconButton size="sm" edge={title ? "end" : undefined} icon={CopyGlyph} done={copied} label="Copy code" onClick={copy} />
       <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
     </span>
   ) : null;

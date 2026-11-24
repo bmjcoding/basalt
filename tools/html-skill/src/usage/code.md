@@ -9,4 +9,6 @@
 
 `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; not on the `<code>`.
 
+The head's last ghost button (Copy) takes `data-edge="end"`: its glyph or words end on the line the title starts on.
+
 Tokens, only inside the `<code>`: `.tok-k` keyword, `.tok-s` string, `.tok-n` number or constant, `.tok-f` function, `.tok-c` comment.

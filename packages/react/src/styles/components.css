@@ -1530,6 +1530,10 @@
     padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-site-bar { max-width: var(--basalt-size-page-width); margin-inline: auto; }
+  /* The bars' room for a control hung at their end (DECISIONS 336): the end padding less the end inset, so a hung Menu, Close or last ghost
+     action never reaches under a notch. The menu's trigger and Close carry data-edge; an app hangs its own last ghost action with `edge="end"`. */
+  :is(.basalt-site-header, .basalt-app-header, .basalt-site-menu-band) { --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); }
+  .basalt-site-menu-band .basalt-bar-actions > :not(:last-child) { --basalt-edge-room-end: initial; }
   .basalt-app-bar { gap: var(--basalt-space-2); }
   .basalt-bar-spacer { flex: 1 1 auto; }
   .basalt-bar-actions { display: flex; align-items: center; flex: none; gap: var(--basalt-space-2); }
@@ -1708,6 +1712,8 @@
     .basalt-site-action { display: none; }
     .basalt-site-menu-trigger { display: inline-flex; }
     .basalt-bar-actions { gap: var(--basalt-space-1); }
+    /* Menu is the last control shown here, so an app's tool hung at the end on a wide bar gives no room before it (DECISIONS 336). */
+    .basalt-site-bar .basalt-bar-actions:has(> .basalt-site-menu-trigger) > :not(.basalt-site-menu-trigger) { --basalt-edge-room-end: initial; }
     :is(.basalt-site-header, .basalt-app-header, .basalt-site-menu-band) .basalt-button {
       --_h: var(--basalt-size-tap-min);
       --_radius: var(--basalt-radius-md);
@@ -2099,7 +2105,8 @@
   .basalt-tabbar[data-keys] .basalt-tabbar-item:is(:hover, :active) .basalt-tabbar-glyph { background-color: transparent; }
   .basalt-tabbar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* More's bottom sheet: a title and Close, then Nav rows. */
-  .basalt-tabbar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); }
+  /* Close is hung at the head's end, its glyph on the sheet's line; the room is the sheet's own end padding less the end inset (DECISIONS 336). */
+  .basalt-tabbar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--basalt-space-6), var(--_inset-end)) - var(--_inset-end)); }
 
   @media (forced-colors: active) {
     .basalt-site-link:hover .basalt-site-pill,
@@ -2921,7 +2928,8 @@
   .basalt-filter-row[data-highlighted] { color: var(--basalt-text-primary); }
   .basalt-filter-row[data-highlighted]::before { background-color: var(--_plate); }
   .basalt-filter-row[data-disabled] { color: var(--basalt-text-disabled); }
-  .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
+  /* The count at the foot's start and Clear at its end, on the popup's line: space-4 in, Clear hung by its padding (DECISIONS 336, S12). */
+  .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   .basalt-filter-foot .basalt-filter-clear { margin-inline-start: 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
   /* position: relative, so each row's hidden input (marked, so absolute at its place in the flow; DECISIONS 167, Q9j) is contained by the rows and scrolls with them: with the popup as its containing block the inputs made the popup itself scroll. */
@@ -3259,16 +3267,21 @@
     display: flex;
     align-items: center;
     gap: var(--basalt-space-2);
-    padding: var(--basalt-space-2-5) var(--basalt-space-2-5) var(--basalt-space-2-5) var(--basalt-space-4);
+    padding-block: var(--basalt-space-2-5);
+    padding-inline: var(--basalt-space-4);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
+  /* The popup's head and foot: space-4 on both sides, Mark all as read and View all hung at the end and Clear all at the start, their words on the
+     line the title and the entries are on (DECISIONS 336). The in-page list keeps its own padding, below, and declares no room. */
+  .basalt-notifications > :is(.basalt-notifications-head, .basalt-notifications-foot) { --basalt-edge-room: var(--basalt-space-4); }
   .basalt-notifications-title { margin: 0; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); font-weight: var(--basalt-font-weight-semibold); }
   .basalt-notifications-count { flex: 1; min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
   .basalt-notifications-mark { flex: none; }
   .basalt-notifications-foot {
     display: flex;
     justify-content: flex-end;
-    padding: var(--basalt-space-2-5);
+    padding-block: var(--basalt-space-2-5);
+    padding-inline: var(--basalt-space-4);
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   /* Clear all at the start, View all at the end (the owner, DECISIONS 269). */
@@ -4107,6 +4120,8 @@
 
   .basalt-code-title {
     padding: var(--basalt-space-1) var(--basalt-space-4);
+    /* Its copy control hangs into the end padding, its glyph on the line the title starts on (DECISIONS 336). */
+    --basalt-edge-room: var(--basalt-space-4);
     box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-secondary);
@@ -4134,9 +4149,9 @@
   .basalt-code-pre code { font: inherit; }
   .basalt-code-pre:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* Copy sits top right: in the title row when there is one, else over the code's corner. */
-  .basalt-code-copy { position: absolute; top: var(--basalt-space-1-5); right: var(--basalt-space-1-5); }
+  .basalt-code-copy { position: absolute; top: var(--basalt-space-1-5); inset-inline-end: var(--basalt-space-1-5); }
   .basalt-code-title { display: flex; align-items: center; justify-content: space-between; min-height: var(--basalt-size-control-sm); }
-  .basalt-code-title .basalt-code-copy { position: static; margin: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2-5)) calc(-1 * var(--basalt-space-1)) 0; }
+  .basalt-code-title .basalt-code-copy { position: static; margin-block: calc(-1 * var(--basalt-space-1)); margin-inline: 0; }
 
   /* Base UI's one inline style, drawn here so a page under `style-src 'self'` can turn Base UI's style elements off (`CSPProvider disableStyleElements`) and see
      the same thing: the element Base UI marks scrolls with no scrollbar. Base UI's own rule is these two declarations; with its style element on, both agree. */
@@ -4318,11 +4333,12 @@
   /* Before the first line of a replay: one sentence in the log's box, in the text column. */
   .basalt-terminal-hint { grid-column: 1 / -1; margin-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); color: var(--basalt-text-tertiary); }
   .basalt-terminal-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 var(--basalt-space-2); max-width: 100%; margin-inline-start: auto; }
-  .basalt-terminal-actions:has(.basalt-button) { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   .basalt-terminal-state { display: inline-flex; font-weight: var(--basalt-font-weight-regular); }
   .basalt-terminal-state [data-error] { color: var(--basalt-status-danger); }
-  /* A word that changes in place is a Reserve (every form in one grid cell, the others unseen), so the cell is as wide as the widest. */
+  /* A word that changes in place is a Reserve (every form in one grid cell, the others unseen), so the cell is as wide as the widest. The state's
+     words face the buttons, so their spare room is the head's open middle; a button's words are centred in it (DECISIONS 336, R-1). */
   .basalt-terminal-swap { justify-items: end; }
+  .basalt-terminal-actions .basalt-button .basalt-terminal-swap { justify-items: center; }
   .basalt-terminal-swap > * { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); white-space: nowrap; }
   /* A transcript whose lines arrive has a fixed height that scrolls inside, so arriving lines never move the page. */
   .basalt-terminal[data-live] .basalt-code-pre { box-sizing: border-box; block-size: calc(var(--basalt-size-code-line-height) * 9 + var(--basalt-space-3) * 2); overflow-y: auto; scrollbar-gutter: stable; }
@@ -4536,8 +4552,6 @@
   /* Under 480px of the Terminal's own width the figure is start-aligned, right after the state word, so the two read as one status and the seat's
      spare room falls at the line's open end (ruling 12). */
   .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
-  /* Under 480px a head with a run's time keeps its actions inside its padding (the compact copy button hangs by its own margin, below). */
-  .basalt-terminal-actions:has(> .basalt-terminal-time) { margin-inline-end: 0; }
   /* From 480px of its own width a head with a run's time reads title, state … time, Copy, as a card's head reads name, badge … time, controls
      (DECISIONS 326, 67-5): the state follows the title space-3 after it, start-aligned in its seat; the time keeps its place space-3 before Copy,
      end-aligned in its seat. Both seats' spare room is the head's own open middle. */
@@ -4549,8 +4563,6 @@
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { order: 2; margin-inline-start: auto; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: end; }
-    /* "Copy commands" ends on the line every duration under it ends on: the ghost button's glyph-side padding hangs past the head's (the re-check). */
-    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   }
   /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (its glyph on the end
      padding line), then the state and its time from the title's start edge; space-2 between the two lines, the words 15 from the head's edges. The button's row is its own height
@@ -4571,8 +4583,9 @@
     }
     .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-title { grid-area: 1 / 1 / 2 / 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    /* The copy glyph on the head's inline padding line, where the title starts and every duration ends: the target hangs into the padding (14 at 44). */
-    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; margin-inline-end: calc((var(--_head-button) - var(--basalt-size-icon-sm)) / -2); }
+    /* The copy glyph on the head's inline padding line, where the title starts and every duration ends: the target hangs into the padding by the
+       edge rule (6 at 28, 14 at 44). */
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; }
     .basalt-terminal-head:has(.basalt-terminal-time) :is(.basalt-terminal-state, .basalt-terminal-time) { grid-row: 2; margin-block-start: calc(var(--basalt-space-2) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2); }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { grid-column: 1; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
@@ -5916,7 +5929,10 @@
     align-items: center;
     gap: var(--basalt-space-1);
     margin: 0;
-    padding: var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-4);
+    /* space-4 on both sides (DECISIONS 336): Close is hung at the end, its glyph on the line the count and the results end on. */
+    padding-block: var(--basalt-space-2);
+    padding-inline: var(--basalt-space-4);
+    --basalt-edge-room: var(--basalt-space-4);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
     border-start-start-radius: var(--basalt-radius-lg);
     border-start-end-radius: var(--basalt-radius-lg);
@@ -7363,7 +7379,7 @@
   .basalt-date-age-seat { justify-items: start; }
 
   /* ---- Status bar (D14b; V7, R6): a 44px foot from 720, fixed (56 plus the safe area) under it ---- */
-  .basalt-status-bar { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--basalt-space-4); min-height: var(--basalt-size-tap-min); padding-inline: var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); white-space: nowrap; }
+  .basalt-status-bar { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--basalt-space-4); min-height: var(--basalt-size-tap-min); padding-inline: var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); white-space: nowrap; --basalt-edge-room: var(--basalt-gutter); }
   .basalt-status-bar-start, .basalt-status-bar-sources, .basalt-status-bar-end { display: flex; flex: none; align-items: center; gap: var(--basalt-space-2); }
   .basalt-status-bar-message { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: var(--basalt-space-2); min-width: 0; min-height: var(--basalt-text-sm-line-height); margin: 0; color: var(--basalt-text-primary); }
   .basalt-status-bar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -7372,8 +7388,11 @@
   /* The sources button is a ghost sm Button (28, radius 6) with no open look of its own (DECISIONS 167, Q9b): the open state is aria-expanded and the drawer it opens. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the bar is fixed at the foot */
   @media (width < 720px) {
-    .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-start)) max(var(--basalt-gutter), var(--_inset-end)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2); }
+    .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-start)) max(var(--basalt-gutter), var(--_inset-end)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2);
+      --basalt-edge-room-start: calc(max(var(--basalt-gutter), var(--_inset-start)) - var(--_inset-start)); --basalt-edge-room-end: calc(max(var(--basalt-gutter), var(--_inset-end)) - var(--_inset-end)); }
     .basalt-status-bar-sources { margin-inline-start: auto; }
+    /* With no sources, end follows start here and is not at the bar's end, so its last button does not hang (DECISIONS 336). */
+    .basalt-status-bar:not(:has(> .basalt-status-bar-sources)) > .basalt-status-bar-end { --basalt-edge-room: initial; --basalt-edge-room-end: initial; }
     /* The message is stacked above the bar, out of flow, so a message coming and going moves nothing. */
     .basalt-status-bar-message { position: absolute; inset-inline: 0; bottom: calc(100% + var(--basalt-size-hairline)); justify-content: flex-start; padding: var(--basalt-space-2) var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); white-space: normal; }
     .basalt-status-bar-message[data-empty] { display: none; }

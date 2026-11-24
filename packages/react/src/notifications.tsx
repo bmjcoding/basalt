@@ -5,6 +5,7 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { Button, IconButton } from "./button";
+import type { ButtonEdge } from "./button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
 import { ControlIcon, loadFlight } from "./control-icon";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
@@ -144,7 +145,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
           <span className="basalt-notifications-count">{unread} unread</span>
-          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} />
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} edge="end" />
         </div>
         {entries.length === 0 ? (
           <p className="basalt-notifications-empty">Nothing yet.</p>
@@ -156,13 +157,13 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           </div>
         )}
         <div className="basalt-notifications-foot">
-          <ClearAll count={entries.length} onClearAll={onClearAll} />
+          <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" />
           {viewAllHref ? (
-            <a className="basalt-button" data-variant="ghost" data-size="sm" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
+            <a className="basalt-button" data-variant="ghost" data-size="sm" data-edge="end" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
               <span className="basalt-button-label">View all</span>
             </a>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => { onViewAll?.(); leave(); }}>View all</Button>
+            <Button variant="ghost" size="sm" edge="end" onClick={() => { onViewAll?.(); leave(); }}>View all</Button>
           )}
         </div>
       </PopoverContent>
@@ -216,20 +217,20 @@ export function NotificationList({ entries: given, onSelect, onMarkAllRead, onCl
   );
 }
 
-function MarkAllRead({ unread, onMarkAllRead }: { unread: number; onMarkAllRead?: () => void }) {
+function MarkAllRead({ unread, onMarkAllRead, edge }: { unread: number; onMarkAllRead?: () => void; edge?: ButtonEdge }) {
   // Stays mounted and keeps focus when nothing is left to mark, as Clear does: disabled in place.
   return (
-    <Button variant="ghost" size="sm" className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
       Mark all as read
     </Button>
   );
 }
 
-function ClearAll({ count, onClearAll }: { count: number; onClearAll?: () => void }) {
+function ClearAll({ count, onClearAll, edge }: { count: number; onClearAll?: () => void; edge?: ButtonEdge }) {
   if (!onClearAll) return null;
   // At the foot's start, apart from View all; stays mounted and keeps focus when nothing is left, as Mark all as read does.
   return (
-    <Button variant="ghost" size="sm" className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
       Clear all
     </Button>
   );

@@ -82,6 +82,14 @@ export type ButtonProps = BaseProps &
     /** `icon` is a long-tail glyph that keeps its silhouette when filled, so a pressed toggle may fill it. A core glyph needs no mark. */
     fillSafe?: boolean;
     /**
+     * The "done" state of a button with `icon` and words: the words hold and the glyph is replaced by `doneIcon` (the core check), through the
+     * same seat as `IconButton`'s `done`, so Copy and Check morph and any other pair crossfades over 100ms. Say what happened in a polite line
+     * outside the button. Hold it for `CONFIRM_MS` (DECISIONS 336).
+     */
+    done?: boolean;
+    /** The glyph shown while `done`. Default: the core check. */
+    doneIcon?: IconComponent;
+    /**
      * A quieter amount after the label ("Add to cart $49"), in tabular figures. It sits in a seat that holds the widest amount
      * named in `amountReserve`, so the label never moves when the amount changes. Put the amount in the button's name too (a
      * screen reader reads the amount with the label, in order).
@@ -122,7 +130,7 @@ function edgeOf(edge: ButtonEdge | undefined, variant: ButtonVariant): ButtonEdg
 }
 
 /** A button. Its label says what happens: "Deploy", not "OK". */
-export function Button({ variant = "secondary", size = "md", fullWidth, edge, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", fullWidth, edge, icon, iconEnd, fillSafe, done, doneIcon = CheckGlyph, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
   // A handler on the rendered element is taken into the press, so the wait guards it too.
   const [rendered, handler] = takeClick(render, onClick);
@@ -153,11 +161,13 @@ export function Button({ variant = "secondary", size = "md", fullWidth, edge, ic
       data-size={size}
       data-full-width={fullWidth ? "" : undefined}
       data-edge={edgeOf(edge, variant)}
+      data-done={icon && done ? "" : undefined}
       data-lines={note ? "" : undefined}
       className={withClass("basalt-button", className)}
       onClick={wait.press}
     >
-      {icon && !(toggles && !own) ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
+      {icon && done !== undefined && !toggles ? <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={false} fillSafe={fillSafe} /> : null}
+      {icon && !(toggles && !own) && !(done !== undefined && !toggles) ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
       {/* A text toggle's seat holds its glyph at rest and, pressed, the check where the glyph has no selected form; the two crossfade, so both states are one width. */}
       {toggles && icon && !own ? (
         <span className="basalt-button-check" data-glyph="" aria-hidden="true">

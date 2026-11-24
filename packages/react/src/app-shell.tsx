@@ -124,7 +124,8 @@ export interface AppHeaderProps extends Omit<React.ComponentProps<"header">, "ti
   /**
    * The actions at the end of the bar: ghost icon buttons and at most one primary Button. Never a danger Button. Under 720 the
    * primary stays in the bar with its words, 44 tall like the bar's other buttons, and the title gives way to it (it is cut
-   * first), so keep its words short.
+   * first), so keep its words short. When the last one shown is a ghost button, give it `edge="end"`: its glyph goes on the bar's line and
+   * its box hangs into the bar's padding, as far as the bar's room allows (DECISIONS 336). A primary Button sits on the line with its edge.
    */
   actions?: React.ReactNode;
   /**

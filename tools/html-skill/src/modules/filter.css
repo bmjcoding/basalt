@@ -109,7 +109,7 @@
   .filter-row[data-highlighted]::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .filter-row:has(> input:disabled) { color: var(--basalt-text-disabled); }
   @media (pointer: coarse), (width < %bp-md%) { .filter-row { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); } }
-  .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding: var(--basalt-space-1-5) var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
+  .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
   .filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }
   /* The search band, from ten values: the palette band's recipe at a popup row's size. 40px, the next level's fill, a divider below, the -2 inset ring

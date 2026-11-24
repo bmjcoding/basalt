@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { SearchGlyph } from "./glyphs/search";
-import { Button, type ControlSize } from "./button";
+import { Button, type ButtonEdge, type ControlSize } from "./button";
 import { CheckGlyph } from "./glyphs/check";
 import { PlusGlyph } from "./glyphs/plus";
 import { Icon } from "./icon";
@@ -83,10 +83,12 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
   // in the DOM for the group's description to read.
   const wide = `${options.length} of ${options.length}`;
   const popup = toolbar || options.length > MAX_CHIPS;
-  const clear = (
+  // Clear, in the chips' head after the label, or at the checklist foot's end, hung there (DECISIONS 336).
+  const clearAt = (edge?: ButtonEdge) => (
     <Button
       variant="ghost"
       size="sm"
+      edge={edge}
       className="basalt-filter-clear"
       // Not `disabled`: a disabled button drops keyboard focus. At zero it is aria-disabled, activation is suppressed, and focus stays.
       // A disabled filter's Clear is aria-disabled the same way, so it cannot clear what the filter will not change.
@@ -101,15 +103,16 @@ export function MultiSelect({ label, options, value, defaultValue, onValueChange
       Clear
     </Button>
   );
-  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear, controlSize, toolbar }} />;
+  if (popup) return <ChecklistFilter {...{ label, options, ordered, set, disabled, className, count, clear: clearAt("end"), controlSize, toolbar }} />;
   return (
     <div className={join("basalt-filter", className)}>
       <div className="basalt-filter-head">
         <span id={ids.label} className="basalt-filter-label">{label}</span>
+        {/* Label, Clear, count (DECISIONS 336, Q1): Clear never moves as the count changes, and the count's spare room is the row's open end. */}
+        {clearAt()}
         <span id={ids.count} className="basalt-filter-count" data-reserved="" data-any="Any" data-widest={wide}>
           <span className="basalt-filter-count-value">{count}</span>
         </span>
-        {clear}
       </div>
       <BaseCheckboxGroup value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} className="basalt-filter-chips">
         {options.map((o) => (
