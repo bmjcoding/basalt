@@ -57,6 +57,13 @@ const DATA_FLOW_PARTS: Inline = (() => {
   // Still, so the shot shows every line (an animated figure's lines wait until it comes into view); its flow marches where motion is asked for.
   return { ...d, title: "How one message reaches everyone in the room (extended)", summary: `${String(d.summary)} Two more lines show several end lines entering one card when it is stacked.` };
 })();
+// The same data flow drawn, in lanes (the pixel re-check's N1): the step's mark and the dashed line, without the two lines that stack the extended one.
+const DATA_FLOW_DRAWN: Inline = (() => {
+  const d = structuredClone(data.dataFlow) as unknown as Inline & { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  for (const n of d.nodes) if (n.id === "seg") n.mark = awsS3Bucket;
+  d.edges = d.edges.map((e) => (e.kind === "dashed" ? { ...e, flow: true } : e));
+  return { ...d, title: "How one message reaches everyone in the room (a step's mark, a dashed flow)" };
+})();
 const schemaTable = (name: string, row: number, refs: string[] = []) => ({ name, col: 1, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
 const CALL_2: Inline = { type: "schema", title: "One column: turn-backs beside each other take lanes (section 4, call 2)", summary: "b references c and c references a; their turn-backs run beside each other down the column's end side, so each takes a lane.", legend: { plain: "A foreign key" }, tables: [schemaTable("a", 1), schemaTable("b", 2, ["c"]), schemaTable("c", 3, ["a"])] };
 const CALL_3: Inline = { type: "architecture", title: "A card grows to hold its ports (section 4, call 3)", summary: "The coordinator's end side holds a straight line and two others, so it is 48 tall at every width.", legend: { main: "Request", plain: "Call" },
@@ -80,7 +87,8 @@ function Diagram({ k, state }: { k: Key; state: string }) {
     (async () => {
       await frames(6);
       host.current?.querySelector<HTMLButtonElement>(".basalt-diagram-expand")?.click();
-      for (let t = 0; t < 60 && !document.querySelector("dialog.basalt-diagram-viewer .basalt-diagram[data-layout]"); t++) await frames(2);
+      // Drawn (an automatic figure places itself first), or a text figure's art: whichever the viewer holds when it has settled.
+      for (let t = 0; t < 120 && !document.querySelector("dialog.basalt-diagram-viewer .basalt-diagram[data-layout='drawn'], dialog.basalt-diagram-viewer .basalt-diagram-text[data-art]"); t++) await frames(2);
       await new Promise((r) => setTimeout(r, 400));
       if (state === "viewer-200") {
         const level = () => Number(document.querySelector(".basalt-diagram-level > span")?.textContent?.replace("%", "") ?? 0);
@@ -190,14 +198,16 @@ export const ROUND_66: Round = {
       scales: [2],
       height: 3000,
       touch: true,
-      demo: ({ state }) => <><Diagram k="autoArchitecture" state={state} /><Diagram k="autoFlowchart" state={state} /><Diagram k="autoSchema" state={state} /></>,
+      states: ["viewer"],
+      demo: ({ state }) => <><Diagram k="autoArchitecture" state={state} /><Diagram k="autoFlowchart" state="" /><Diagram k="autoSchema" state="" /></>,
     },
     {
       id: "text",
       name: "A sequence as text art",
       intro: "variant=\"text\": the same data as box-drawing characters, where its widest line fits; on a phone the transcript.",
       decisions: [...COMMON, "No line-by-line reveal and no caret (item 1 for the owner): under motion=\"animated\" it builds by ink, as the drawn sequence does."],
-      tryIt: ["Select the art and copy it: the clipboard holds the art exactly."],
+      tryIt: ["Select the art and copy it: the clipboard holds the art exactly.", "Expand: the viewer holds the art at its own width, never the transcript, on a phone too (the viewer shots)."],
+      states: ["viewer"],
       widths: W,
       scales: [2],
       height: 2000,
@@ -242,7 +252,7 @@ export const ROUND_66: Round = {
     {
       id: "data-flow",
       name: "Data flow: a step's mark, a dashed flow, and several end lines into one card",
-      intro: "The CIMIP data flow with two more lines. The sealed segment, in the S3 lane, carries S3's mark. The batch line is dashed and flows: its own dashes march. Stacked, two cards are each entered by two end lines, which nest.",
+      intro: "The CIMIP data flow drawn in its lanes: the sealed segment, in the S3 lane, carries S3's mark, and the batch line is dashed and flows. Below it, the same data flow with two more lines: stacked, two cards are each entered by two end lines, which nest.",
       decisions: [
         ...COMMON,
         "A step's mark (1.6) is 16px in its top end corner; the lane's label counts as the step's words, so \"S3\" says what the mark stands for.",
@@ -252,9 +262,9 @@ export const ROUND_66: Round = {
       tryIt: ["Narrow to 390: the two cards entered by two end lines show the nesting and the labels' seats."],
       widths: W,
       scales: [2],
-      height: 1700,
+      height: 2600,
       touch: true,
-      demo: () => <InlineFigure spec={DATA_FLOW_PARTS} />,
+      demo: () => <><InlineFigure spec={DATA_FLOW_DRAWN} /><InlineFigure spec={DATA_FLOW_PARTS} /></>,
     },
     {
       id: "calls",
