@@ -36,7 +36,7 @@ Every component takes `className`; Base UI parts also accept a function of their
 Every module that draws a component or holds state declares `"use client"` for React Server
 Component consumers, and the package entry itself does not: what is neither a component nor a hook
 (`formatStamp` and the other formatters, `CONFIRM_MS` and the other constants, `themeBootstrap`,
-`loopsBootstrap`, `preloadCodeLanguages`, `shareOf`, `trailingMean`, `ambient`, the entrance and travel
+`loopsBootstrap`, `preloadCodeLanguages`, `safeHref`, `shareOf`, `trailingMean`, `ambient`, the entrance and travel
 helpers) is plain code that a Server Component can call and read. Import the styles and font sheet
 once in your application's root layout.
 

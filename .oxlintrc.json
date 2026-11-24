@@ -34,6 +34,7 @@
     "react/set-state-in-effect": "off",
     "react/purity": "off",
     "react/globals": "off",
+    "react/static-components": "off",
     "react-hooks/exhaustive-deps": "off",
     "typescript/no-floating-promises": "off",
     "typescript/no-base-to-string": "off",

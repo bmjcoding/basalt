@@ -1,0 +1,308 @@
+{
+  "version": "0.2.0",
+  "date": "2026-11-16",
+  "previous": "0.1.0",
+  "repository": "https://github.com/example/slate",
+  "summary": "Slate 0.2.0 adds a composer with mentions and a plate token for highlighted rows. Check existing layout rules and stored data before upgrading.",
+  "entries": [
+    {
+      "id": "pr42-1",
+      "type": "changed",
+      "bump": "major",
+      "area": "fillForm",
+      "text": "Changed `fillForm` to keep null fields empty, so omit unknown fields or pass `undefined`",
+      "action": true,
+      "pr": {
+        "number": 42,
+        "href": "https://github.com/example/slate/pull/42"
+      },
+      "commit": {
+        "sha": "82fb3df79be2ac6451f4589e55eb79951b1f4086",
+        "href": "https://github.com/example/slate/commit/82fb3df79be2ac6451f4589e55eb79951b1f4086"
+      }
+    },
+    {
+      "id": "pr41-1",
+      "type": "changed",
+      "bump": "major",
+      "area": "Grid",
+      "text": "Changed the parent layout item for `Grid` to `.slate-grid-frame`, where existing sizing rules must move",
+      "action": true,
+      "link": {
+        "label": "How to migrate",
+        "href": "https://github.com/example/slate/blob/v0.2.0/docs/migrating.md#grid-frame"
+      },
+      "pr": {
+        "number": 41,
+        "href": "https://github.com/example/slate/pull/41"
+      },
+      "commit": {
+        "sha": "678c43d8a10a4ae7c62a1da937f08d4b42680f42",
+        "href": "https://github.com/example/slate/commit/678c43d8a10a4ae7c62a1da937f08d4b42680f42"
+      },
+      "tickets": [
+        {
+          "tracker": "Linear",
+          "id": "SL-112",
+          "label": "SL-112",
+          "show": "link",
+          "href": "https://linear.app/example/issue/SL-112"
+        },
+        {
+          "tracker": "Jira",
+          "id": "PRJ-88",
+          "label": "PRJ-88",
+          "show": "text"
+        }
+      ],
+      "authors": [
+        "Sam Rivera"
+      ]
+    },
+    {
+      "id": "pr41-2",
+      "type": "changed",
+      "bump": "major",
+      "area": "storedCount",
+      "text": "Changed stored counts to require an explicit store, so pass `() => localStorage` when reading, writing or clearing old counts",
+      "action": true,
+      "link": {
+        "label": "How to migrate",
+        "href": "https://github.com/example/slate/blob/v0.2.0/docs/migrating.md#stored-counts"
+      },
+      "pr": {
+        "number": 41,
+        "href": "https://github.com/example/slate/pull/41"
+      },
+      "commit": {
+        "sha": "69d07142a7bb472c3ddb4dd2b4030ce29823a57f",
+        "href": "https://github.com/example/slate/commit/69d07142a7bb472c3ddb4dd2b4030ce29823a57f"
+      }
+    },
+    {
+      "id": "pr43-1",
+      "type": "changed",
+      "bump": "major",
+      "area": "TableHeader",
+      "text": "Changed fixed `TableHeader` cells to show a supplied `hint`, so remove that prop where a header should stay plain",
+      "action": true,
+      "pr": {
+        "number": 43,
+        "href": "https://github.com/example/slate/pull/43"
+      },
+      "commit": {
+        "sha": "897fa5905a841db8f081670aa625c18ce6f6b1aa",
+        "href": "https://github.com/example/slate/commit/897fa5905a841db8f081670aa625c18ce6f6b1aa"
+      }
+    },
+    {
+      "id": "pr44-1",
+      "type": "deprecated",
+      "bump": "minor",
+      "area": "Banner",
+      "text": "Deprecated `Banner` in favor of `Notice`, which takes the same props, removed in 1.0.0 no earlier than Mar 1, 2027",
+      "pr": {
+        "number": 44,
+        "href": "https://github.com/example/slate/pull/44"
+      },
+      "commit": {
+        "sha": "5e5902046b8892bbe63216e16af0647c10a744ee",
+        "href": "https://github.com/example/slate/commit/5e5902046b8892bbe63216e16af0647c10a744ee"
+      }
+    },
+    {
+      "id": "pr45-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Composer",
+      "text": "Added `Composer`, a message field that grows from 2 to 8 rows, with Send last and a status line under it",
+      "pr": {
+        "number": 45,
+        "href": "https://github.com/example/slate/pull/45"
+      },
+      "commit": {
+        "sha": "5e84c6544e6bfee98d639cbe6b81091279cf846e",
+        "href": "https://github.com/example/slate/commit/5e84c6544e6bfee98d639cbe6b81091279cf846e"
+      },
+      "tickets": [
+        {
+          "tracker": "Linear",
+          "id": "SL-120",
+          "label": "SL-120",
+          "show": "link",
+          "href": "https://linear.app/example/issue/SL-120"
+        }
+      ],
+      "authors": [
+        "Sam Rivera"
+      ]
+    },
+    {
+      "id": "pr45-2",
+      "type": "added",
+      "bump": "minor",
+      "area": "Mention",
+      "text": "Added `Mention` to show a name after @ and mark a mention of the reader when `you` is set",
+      "pr": {
+        "number": 45,
+        "href": "https://github.com/example/slate/pull/45"
+      },
+      "commit": {
+        "sha": "bf14c30afcb2e3321134233c7d6cc5a7069e6997",
+        "href": "https://github.com/example/slate/commit/bf14c30afcb2e3321134233c7d6cc5a7069e6997"
+      }
+    },
+    {
+      "id": "pr47-1",
+      "type": "changed",
+      "bump": "minor",
+      "area": "Toast",
+      "text": "Changed toasts on phones to sit 8px below the top bar instead of above the bottom tabs",
+      "pr": {
+        "number": 47,
+        "href": "https://github.com/example/slate/pull/47"
+      },
+      "commit": {
+        "sha": "6305bea62d1eeffb606f12efb6d568f8c2704144",
+        "href": "https://github.com/example/slate/commit/6305bea62d1eeffb606f12efb6d568f8c2704144"
+      }
+    },
+    {
+      "id": "pr46-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Tokens",
+      "text": "Added `--slate-plate` for a highlighted row's solid fill on its current surface level",
+      "pr": {
+        "number": 46,
+        "href": "https://github.com/example/slate/pull/46"
+      },
+      "commit": {
+        "sha": "01bba6343c13e202aebb88cac07e25063f90eac4",
+        "href": "https://github.com/example/slate/commit/01bba6343c13e202aebb88cac07e25063f90eac4"
+      },
+      "tickets": [
+        {
+          "tracker": "Linear",
+          "id": "DS-27",
+          "label": "DS-27",
+          "show": "link",
+          "href": "https://linear.app/example/issue/DS-27"
+        },
+        {
+          "tracker": "Linear",
+          "id": "DS-31",
+          "label": "DS-31",
+          "show": "link",
+          "href": "https://linear.app/example/issue/DS-31"
+        },
+        {
+          "tracker": "Jira",
+          "id": "PRJ-90",
+          "label": "PRJ-90",
+          "show": "text"
+        },
+        {
+          "tracker": "GitHub",
+          "id": "slate#45",
+          "label": "issue #45",
+          "show": "link",
+          "href": "https://github.com/example/slate/issues/45"
+        },
+        {
+          "tracker": "Linear",
+          "id": "SL-131",
+          "label": "SL-131",
+          "show": "link",
+          "href": "https://linear.app/example/issue/SL-131"
+        },
+        {
+          "tracker": "Support",
+          "id": "SUP-7",
+          "label": "SUP-7",
+          "show": "none"
+        }
+      ]
+    },
+    {
+      "id": "pr48-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Checkbox",
+      "text": "Fixed scrolling checkbox lists adding empty space below the page inside a sticky container",
+      "pr": {
+        "number": 48,
+        "href": "https://github.com/example/slate/pull/48"
+      },
+      "commit": {
+        "sha": "3f842bfcee12cbbfc899975588325fc12cdc7772",
+        "href": "https://github.com/example/slate/commit/3f842bfcee12cbbfc899975588325fc12cdc7772"
+      },
+      "tickets": [
+        {
+          "tracker": "GitHub",
+          "id": "slate#45",
+          "label": "issue #45",
+          "show": "link",
+          "href": "https://github.com/example/slate/issues/45"
+        }
+      ]
+    },
+    {
+      "id": "docs-contrast-note",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Docs",
+      "text": "Fixed the contrast table listing secondary ink on the sunken band at 4.1:1, where it measures 4.6:1",
+      "commit": {
+        "sha": "b703be2fcc41217ae7ab767e7987389c3e954f30",
+        "href": "https://github.com/example/slate/commit/b703be2fcc41217ae7ab767e7987389c3e954f30"
+      }
+    },
+    {
+      "id": "pr49-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "SelectList",
+      "text": "Fixed keyboard focus leaving `SelectList` when the focused row was removed",
+      "pr": {
+        "number": 49,
+        "href": "https://github.com/example/slate/pull/49"
+      },
+      "commit": {
+        "sha": "71c54b0a5104dca190cad0815a4a72304b3c259a",
+        "href": "https://github.com/example/slate/commit/71c54b0a5104dca190cad0815a4a72304b3c259a"
+      }
+    },
+    {
+      "id": "pr49-2",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Sheet",
+      "text": "Fixed clipped focus rings at the top and bottom of a sheet's scrolling body",
+      "pr": {
+        "number": 49,
+        "href": "https://github.com/example/slate/pull/49"
+      },
+      "commit": {
+        "sha": "f8eb7a17a49c2cbd289f8a6c323787918d5d8c01",
+        "href": "https://github.com/example/slate/commit/f8eb7a17a49c2cbd289f8a6c323787918d5d8c01"
+      }
+    },
+    {
+      "id": "pr50-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Sidebar",
+      "text": "Fixed the brand mark sitting off center when the sidebar collapsed to its rail",
+      "pr": {
+        "number": 50,
+        "href": "https://github.com/example/slate/pull/50"
+      },
+      "commit": {
+        "sha": "fc8a00590e637a58f13d8b87c6927f6afd34c439",
+        "href": "https://github.com/example/slate/commit/fc8a00590e637a58f13d8b87c6927f6afd34c439"
+      }
+    }
+  ]
+}

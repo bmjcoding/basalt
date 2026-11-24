@@ -17,3 +17,4 @@ The phone tab bar (React's `TabBar`): an app's destinations under 720, glyph ove
 - Every item has a glyph and a label, one word where it can be, both primary ink; the label is 12/16. The current page: `aria-current="page"`, its glyph selected and its label 600, no pill or bar. If it is under More, put `data-current` on the More button and say so in its `aria-label` ("More, Settings, current page").
 - `.tab-bar-dot` says something is new; its words follow, visually hidden. Counts are spoken, never drawn.
 - Inside `.app-shell` give the shell `data-tabbar`: its content pads past the bar. On its own, pad your content's bottom by `calc(var(--basalt-bottom-offset) + var(--basalt-space-6))`, as the shell does. compose adds `viewport-fit=cover` for the safe area.
+- In an app with a version, More's last row is the same `.version-link` in `div.tab-bar-version`, after the sheet's `.nav`.

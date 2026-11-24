@@ -1,0 +1,242 @@
+/* The release module (React's ReleaseNotes and ReleaseIndex, DECISIONS 320): a package's changelog or a product's release notes, from the records
+   (tools/changelog writes the markup). A module: compose.mjs adds it when the markup has a .release. Every value is a token; the folds are the
+   disclosure module's buttons, written open and closed by this module's script, so without script and in print everything shows.
+   Source: tools/html-skill/src/modules/release.css (do not edit the copy in the skill folder). */
+
+@layer basalt {
+  .release-notes { --basalt-plate: var(--basalt-plate-0); }
+  .release-action { --basalt-plate: var(--basalt-plate-1); }
+  /* The fold's button: the disclosure's, at the section heading's size, its chevron in secondary ink as React's accordion caret. */
+  .release-fold { justify-content: space-between; gap: var(--basalt-space-3); }
+  .release-fold::after { background: var(--basalt-text-secondary); }
+  /* The word on the target: the stream's, kept in place once shown so its going moves nothing. */
+  .release-word { display: none; margin-bottom: var(--basalt-space-1); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-xs); letter-spacing: var(--basalt-text-xs-tracking); white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-slow) * 0.75); }
+  :is(.release-entry[data-arrival] > .release-word, .release[data-arrival] > .release-head .release-word) { display: block; }
+  :is(.release-entry[data-arrived] > .release-word, .release[data-arrived] > .release-head .release-word) { opacity: 1; visibility: visible; transition-duration: var(--basalt-duration-instant); transition-delay: var(--basalt-duration-instant); }
+  @media (forced-colors: active) { .release-word { color: CanvasText; } }
+  @media (prefers-reduced-motion: reduce) { .release-word, .release-entry::before, .release-head::before { transition-property: none; } }
+
+  /* A release. One column, at most the words' measure, space-6 and room for a source line; space-10 apart with a divider between. Its own
+     container, so the source line goes under the words below 640 of the release's own width. */
+  .release-notes { min-width: 0; font-family: var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  .release {
+    container-type: inline-size;
+    max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width));
+    padding-block: var(--basalt-space-10);
+    border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
+    scroll-margin-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-4));
+  }
+  .release:first-of-type { padding-top: 0; border-top: 0; }
+  /* The last release carries no padding under it: what follows is the page's gap alone (sweep 68-4). */
+  .release:last-of-type { padding-bottom: 0; }
+  .release-notes > .release-build:first-child { max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width)); margin: 0 0 var(--basalt-space-6); }
+  .release:focus, .release-entry:focus { outline: none; }
+  /* The header is a grid: Copy link stands at the end of the first line, centred on it, and only that line makes room for it. */
+  .release-head { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--basalt-space-4); align-items: center; }
+  .release-head-text { display: contents; }
+  .release-head-text > * { grid-column: 1 / -1; min-width: 0; }
+  .release-head-text > .release-word { grid-row: 1; }
+  .release-head-text > :is(.release-number-line, .release-heading:not([data-headline])) { grid-column: 1; grid-row: 2; }
+  .release-head-text > .release-heading[data-headline] { grid-row: 3; }
+  .release-head-text > .release-heading[data-headline] ~ .release-meta { grid-row: 4; }
+  .release-head-text > .release-heading:not([data-headline]) ~ .release-meta { grid-row: 3; }
+  .release-head-text > :not(.release-word) ~ * { margin-top: var(--basalt-space-1); }
+  /* A ghost button at the column's edge puts its words on the edge: its plate hangs space-2-5 past it (sweep 68-1). */
+  .release-head > .release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
+  .release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
+  /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
+  .release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .release-version[data-words] { font-family: var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); }
+  .release-meta { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); font-variant-numeric: tabular-nums; }
+  .release-badges { display: inline-flex; gap: var(--basalt-space-2); margin-inline-start: var(--basalt-space-2); vertical-align: middle; }
+  .release-action-link { position: relative; z-index: 1; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
+  .release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  .release-action-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .release-copy { flex: none; }
+  .release-summary, .release-paragraph { margin: 0; max-width: var(--basalt-size-prose-width); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-wrap: pretty; }
+  .release-summary { margin-top: var(--basalt-space-4); }
+  .release-audience { display: grid; gap: var(--basalt-space-1); margin-top: var(--basalt-space-4); }
+  .release-audience-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .release-action { margin-top: var(--basalt-space-6); }
+  .release-action > div { flex: 1; min-width: 0; }
+  /* One reference column down the page: inside the callout the words' column is shorter by the callout's inset (its hairline, space-4, the 16px
+     mark and space-3), so its references start where the open lists' do (sweep 68-3). Under 640 of the release's width the list is one column. */
+  .release-action .release-list { grid-template-columns: minmax(0, calc(var(--basalt-size-prose-width) - var(--basalt-size-hairline) - var(--basalt-space-4) - var(--basalt-size-icon-sm) - var(--basalt-space-3))) minmax(0, max-content); }
+  .release-callout-title { margin: 0; font: inherit; letter-spacing: inherit; }
+  .release-action .callout-body { color: var(--basalt-text-primary); }
+  .release-upgrade { margin: 0 0 var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  .release-section, .release-all { margin-top: var(--basalt-space-6); }
+  .release-section-title { margin: 0 0 var(--basalt-space-2); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .release-count { margin-inline-start: var(--basalt-space-1); color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; }
+  .release-action .release-count { color: var(--basalt-text-secondary); }
+  /* Inside a product's fold: the summary first, space-2 under the fold's heading; the sections' headings a step smaller. Nothing folds again. */
+  .release-all .release-summary { margin-top: var(--basalt-space-2); }
+  .release-all .release-section:first-child { margin-top: var(--basalt-space-2); }
+  .release-all .release-summary + .release-section { margin-top: var(--basalt-space-4); }
+  .release-all .release-section-title { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); }
+  /* A fold: its heading holds the button, at the section heading's size, the chevron at the release's end. */
+  .release-fold { min-height: var(--basalt-text-md-line-height); padding: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .release-fold-title { margin: 0; }
+  /* A closed fold is hidden until found, so the browser's find opens it: the core's [hidden] would take it out of the page, which find cannot reach. */
+  .release-fold-panel[hidden="until-found"] { display: block !important; content-visibility: hidden; }
+  /* Only an open panel takes its room: a closed one is hidden until found, which skips its content but would keep its padding. */
+  .release-section[data-folded] .release-fold-panel:not([hidden]) { padding-top: var(--basalt-space-2); }
+  /* Build details: at the release's foot, quieter than the fold above it (14/20, 400). */
+  .release-build { margin-top: var(--basalt-space-2); }
+  .release-build .release-fold { min-height: var(--basalt-size-control-xs); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
+  .release-build-list { margin-block: var(--basalt-space-3); }
+  /* An open fold's panel holds its first child's margin (space-2 under a product's fold, space-3 in Build details), so the panel's height is all
+     that an opening moves. Nothing moves at rest. */
+  .release-fold-panel { display: flow-root; }
+  /* A fold that ends a release hangs the lower spare half of its button, (its row − its line) / 2, into the release's padding, open and closed: the
+     open panel gives it back. So the release's last line is space-10 above its divider (DECISIONS 331). On a fine pointer only Build details' button
+     (24) is taller than its line (20); on touch see the rows below. */
+  .release > .release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); }
+  .release > .release-build:last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); }
+
+  /* The list is a grid and each entry a subgrid of it: column one the words, at most the measure; column two the source lines, as wide as the
+     list's widest, space-6 away, starting on one edge. So the words keep one measure down a list. A source line is one line (decision 2.8): where
+     the release is too narrow for the measure and the widest line, the words give way, the two columns sharing what is left until the line fits,
+     and only an id longer than its column's share breaks inside itself (recheck-pixels 2). */
+  .release-list { display: grid; grid-template-columns: minmax(0, var(--basalt-size-prose-width)) minmax(0, max-content); justify-content: start; column-gap: var(--basalt-space-6); margin: 0; padding: 0; list-style: none; }
+  .release-entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    --_release-entry-pad: var(--basalt-space-1-5);
+    padding-block: var(--_release-entry-pad);
+    scroll-margin-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-8));
+  }
+  /* Where nothing follows a change inside its box, the change has no padding under it (DECISIONS 326 and 331): the last change in Action needed, and
+     the last change before a release's end, in an open list or inside a fold that ends the release. Its tap box reaches into that box's padding. */
+  :where(.release-action .release-list,
+    .release > .release-section:not([data-folded]):last-child > .release-list,
+    .release > .release-all:last-child > .release-fold-panel > .release-section:last-child > .release-list,
+    .release > .release-section[data-folded]:last-child > .release-fold-panel > .release-list) > .release-entry:last-child { padding-bottom: 0; }
+  .release-word { grid-column: 1 / -1; }
+  .release-entry-words { grid-column: 1; display: grid; justify-items: start; gap: var(--basalt-space-1); min-width: 0; }
+  .release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
+  /* A code chip moves to the next line whole, and breaks inside only when it is wider than the line (sweep 68-6). */
+  .release-entry-text code { display: inline-block; max-inline-size: 100%; }
+  .release-area { font-weight: var(--basalt-font-weight-medium); }
+  .release-migrate { position: relative; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
+  .release-source-cell { grid-column: 2; justify-self: start; min-width: 0; }
+  .release-source-cell:empty { display: none; }
+  /* The source line: a quiet TextButton in Geist Mono at 13 on the entry's 20px line, its hit 24 tall on a fine pointer. Ids never break inside
+     (an id longer than the line breaks anywhere); beside the words the line does not wrap. */
+  .release-source { position: relative; margin: 0; padding-inline: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); text-align: start; cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .release-source:hover { color: var(--basalt-text-primary); }
+  .release-source:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .release-source { display: inline; baseline-source: first; padding-block: var(--basalt-space-0-5); margin-block: calc(-1 * var(--basalt-space-0-5)); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); letter-spacing: 0; }
+  /* Each id carries the underline (an id never breaks inside, so it is a box of its own, which a label's underline would not reach). It stands at
+     its line's top, so an id long enough to break inside itself puts its first line, not its last, beside the words' first line; a one-line id is
+     drawn where it was. A button laid out inline is an inline block, whose baseline would be its last line: the source line takes its first
+     (baseline-source), so a source line of two lines stands beside the words' first line (recheck-pixels 2). */
+  .release-id { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .release-source:hover .release-id { text-decoration-color: currentColor; }
+  .release-action-link { white-space: nowrap; }
+  .release-sources { width: var(--basalt-size-popover-max); }
+  .release-sources-list { margin-block: var(--basalt-space-2) var(--basalt-space-4); }
+  .release-mono { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
+  /* Narrow (under 640 of the release's own width): the source line is its own line under the words, space-0-5 below, wrapping between ids. */
+  /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
+  @container (width < %bp-container-lg%) {
+    .release-list, .release-action .release-list { grid-template-columns: minmax(0, 1fr); }
+    .release-entry { row-gap: var(--basalt-space-0-5); --_release-entry-pad: var(--basalt-space-2); }
+    .release-source-cell { grid-column: 1; }
+    .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-sm-line-height)) / 2); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-sm-line-height); white-space: normal; }
+  }
+  /* On touch no 44px box reaches another target's box or crosses a rim, a divider or a clipping edge: an entry is space-3 above and below (a
+     one-line entry is 44 tall), the source line keeps the entry's 20px line, and "4 need action" and the migration link take the box too, with no
+     change to layout. The last change in Action needed or in a release has no padding under it, and its box reaches into the callout's or the
+     release's own padding. A release's last line is space-10 above its divider, whatever ends it. A change that has arrived keeps its padding. */
+  @media (pointer: coarse) {
+    .release-entry { --_release-entry-pad: var(--basalt-space-3); }
+    .release-source { line-height: var(--basalt-text-base-line-height); }
+    .release-source::before,
+    .release-action-link::after,
+    .release-migrate::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+    .release-fold, .release-build .release-fold { min-height: var(--basalt-size-tap-min); }
+    /* A fold's 44px row on a 24px line hangs 10; Build details' on its 20px line, 12. */
+    .release > :is(.release-all, .release-section[data-folded]):last-child { margin-bottom: calc((var(--basalt-text-md-line-height) - var(--basalt-size-tap-min)) / 2); }
+    .release > :is(.release-all, .release-section[data-folded]):last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-md-line-height)) / 2); }
+    .release > .release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-tap-min)) / 2); }
+    .release > .release-build:last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-base-line-height)) / 2); }
+    /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
+    @container (width < %bp-container-lg%) {
+      .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
+      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap); the change ends as
+         every other change does, space-3 under it, which still holds the source line's box (sweep 68-5). */
+      .release-entry[data-link]:has(.release-source) { row-gap: var(--basalt-space-6); }
+    }
+  }
+
+  /* The Sources panel on touch, and in any window under 720 (DECISIONS 331, recheck-pixels 4): a linked value keeps its 20px line and its place after
+     the tracker's name, and its 44px box is hit area that takes no room. The rows are space-3 above and below, so a link's box ends on its row's
+     divider; two linked values in one row stand space-6 apart, so their boxes meet and do not overlap. */
+  @media (pointer: coarse), (width < %bp-md%) {
+    .release-sources .dlist > div { padding-block: var(--basalt-space-3); }
+    .release-sources .dlist > div:first-child { padding-top: 0; }
+    .release-sources .dlist > div:last-child { padding-bottom: 0; }
+    .release-sources dd a { position: relative; display: inline; min-width: 0; min-height: 0; margin-block: 0; }
+    .release-sources dd a::after { content: ""; position: absolute; inset-block: auto; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+    .release-sources dd:has(a) + dd:has(a) { margin-top: var(--basalt-space-6); }
+    /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
+    @container (width < %bp-container%) {
+      .release-sources dd:has(a) + dd:has(a) { margin-top: calc(var(--basalt-space-6) - var(--basalt-space-0-5)); }
+    }
+  }
+
+  /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
+     on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
+  .release-entry[data-arrival] { isolation: isolate; }
+  /* A change that has arrived keeps its padding in every place, for as long as its "Linked" line is held: the plate is a drawn box, equal above its
+     first line and under its last (DECISIONS 331). */
+  .release .release-entry[data-arrival] { padding-bottom: var(--_release-entry-pad); }
+  /* The header's plate is placed by no grid line, so it is the whole header's padding box (number, date, headline and counts), not the first row:
+     an absolutely placed item with no lines takes the grid's padding edges, and the head's rows are implicit (recheck-pixels 3). */
+  :is(.release-entry[data-arrival], .release[data-arrival] > .release-head)::before {
+    content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
+    background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
+  }
+  :is(.release-entry[data-arrived], .release[data-arrived] > .release-head)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
+  :is(.release-entry[data-arrived], .release[data-arrived] > .release-head) .release-count { color: var(--basalt-text-secondary); }
+  @media (forced-colors: active) {
+  :is(.release-entry[data-arrival], .release[data-arrival] > .release-head)::before { display: none; }
+  }
+
+  /* The versions: a nav of links, the number in mono and primary, the date at the row's end in tertiary, 13/18, 30 tall and 44 on touch.
+     The pane form beside the page; the fold form above the first release where the pane would follow the page instead. */
+  .release-index-title { margin: 0 0 var(--basalt-space-2); font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  .release-index-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .release-index-link { display: flex; align-items: baseline; justify-content: space-between; gap: var(--basalt-space-4); padding-block: var(--basalt-space-1-5); border-radius: var(--basalt-radius-xs); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; text-decoration: none; }
+  .release-index-number { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-mono); letter-spacing: 0; overflow-wrap: anywhere; }
+  .release-index-number[data-words] { font-family: var(--basalt-font-family-sans); }
+  .release-index-link time { flex: none; color: var(--basalt-text-tertiary); }
+  .release-index-link:hover .release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .release-index-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .release-index[data-release-form="fold"] { margin-bottom: var(--basalt-space-8); }
+  .release-index[data-release-form="fold"] .release-fold { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  @media (pointer: coarse) {
+    .release-index-link { align-items: center; min-height: var(--basalt-size-tap-min); padding-block: 0; }
+  }
+  /* Where PaneLayout puts its pane beside the page the pane form shows; where the pane follows the page, the fold does, and the pane is not drawn. */
+  .release-index[data-release-form="fold"] { display: none; }
+  /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), PaneLayout's own threshold; a container query cannot read a custom property */
+  @container (width < 920px) {
+    .pane-layout .release-index[data-release-form="fold"] { display: block; }
+    .pane:has(> .release-index[data-release-form="pane"]) { display: none; }
+  }
+
+  /* Print and no script: every fold is open (the parts draw them open until script runs); Copy buttons are not printed, and a source line prints as text. */
+  @media print {
+    :is(.release-notes, .release-index) .release-fold-panel { content-visibility: visible; }
+    :is(.release-notes, .release-index) .release-fold-panel[hidden] { display: flow-root !important; content-visibility: visible; }
+    .release-section[data-folded] .release-fold-panel[hidden] { padding-top: var(--basalt-space-2); }
+    .release-copy, .release-notes [data-copy-text], .release-sources, .release-build .btn { display: none; }
+    .release-id { text-decoration: none; }
+  }
+
+}

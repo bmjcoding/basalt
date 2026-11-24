@@ -1,0 +1,122 @@
+{
+  "version": "1.4.0",
+  "date": "2026-11-23",
+  "previous": "1.3.1",
+  "repository": "https://github.com/example/harbor",
+  "title": "A monitor can open an incident room",
+  "summary": "Monitors can open incident rooms through a webhook, and Home marks the incidents they open. The open incident list keeps its place, and two fixes cover the lobby and search.",
+  "audiences": [
+    {
+      "text": "A monitor that can send a webhook can now open an incident room when its alarm fires.",
+      "covers": [
+        "pr131-1"
+      ]
+    },
+    {
+      "text": "On Home, open an incident marked \"Opened by a monitor\".",
+      "covers": [
+        "pr131-2"
+      ],
+      "for": "For responders"
+    },
+    {
+      "text": "In Settings, open Integrations and add a webhook. Paste its address into your monitor.",
+      "covers": [
+        "pr131-1"
+      ],
+      "for": "For admins"
+    }
+  ],
+  "entries": [
+    {
+      "id": "pr131-2",
+      "type": "added",
+      "bump": "minor",
+      "area": "Home",
+      "text": "Added an \"Opened by a monitor\" mark to incidents that a webhook declared",
+      "pr": {
+        "number": 131,
+        "href": "https://github.com/example/harbor/pull/131"
+      },
+      "commit": {
+        "sha": "2c1f382d8af35dbf349b6054d80009be806a25e8",
+        "href": "https://github.com/example/harbor/commit/2c1f382d8af35dbf349b6054d80009be806a25e8"
+      },
+      "authors": [
+        "Ada Okoye"
+      ]
+    },
+    {
+      "id": "pr131-1",
+      "type": "added",
+      "bump": "minor",
+      "area": "Integrations",
+      "text": "Added webhook declarations so a monitor can open an incident room when its alarm fires",
+      "pr": {
+        "number": 131,
+        "href": "https://github.com/example/harbor/pull/131"
+      },
+      "commit": {
+        "sha": "f972daff12326b42cdc2f6cbc77f0c3544476b35",
+        "href": "https://github.com/example/harbor/commit/f972daff12326b42cdc2f6cbc77f0c3544476b35"
+      },
+      "tickets": [
+        {
+          "tracker": "Linear",
+          "id": "OPS-204",
+          "label": "OPS-204",
+          "show": "link",
+          "href": "https://linear.app/example/issue/OPS-204"
+        }
+      ],
+      "authors": [
+        "Ada Okoye"
+      ]
+    },
+    {
+      "id": "pr132-1",
+      "type": "changed",
+      "bump": "patch",
+      "area": "Home",
+      "text": "Improved the open incident list so your scroll position stays fixed when an incident arrives above it",
+      "pr": {
+        "number": 132,
+        "href": "https://github.com/example/harbor/pull/132"
+      },
+      "commit": {
+        "sha": "ac34519ba05096cf79627037004d77b7b7a53c62",
+        "href": "https://github.com/example/harbor/commit/ac34519ba05096cf79627037004d77b7b7a53c62"
+      }
+    },
+    {
+      "id": "pr133-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Lobby",
+      "text": "Fixed \"Waiting to be admitted\" staying on screen after the commander had admitted you, until you reloaded the page",
+      "pr": {
+        "number": 133,
+        "href": "https://github.com/example/harbor/pull/133"
+      },
+      "commit": {
+        "sha": "8b6460d2486ee68f4ec5cd340b5632b53ab6fc8c",
+        "href": "https://github.com/example/harbor/commit/8b6460d2486ee68f4ec5cd340b5632b53ab6fc8c"
+      }
+    },
+    {
+      "id": "pr134-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Past incidents",
+      "text": "Fixed search missing an update the commander had published in the last minute",
+      "pr": {
+        "number": 134,
+        "href": "https://github.com/example/harbor/pull/134"
+      },
+      "commit": {
+        "sha": "5fc5342c90440fe75be4511bf9874f3f48fb3b13",
+        "href": "https://github.com/example/harbor/commit/5fc5342c90440fe75be4511bf9874f3f48fb3b13"
+      }
+    }
+  ]
+}

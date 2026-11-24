@@ -1,0 +1,48 @@
+{
+  "version": "1.3.0",
+  "date": "2026-11-20",
+  "repository": "https://github.com/example/harbor",
+  "title": "Updates need a second approval",
+  "audiences": [
+    {
+      "text": "An update to people outside the room now needs a second commander's approval before it is published.",
+      "covers": [
+        "pr126-1",
+        "pr126-2"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "id": "pr126-1",
+      "type": "changed",
+      "bump": "minor",
+      "area": "Updates",
+      "text": "Changed published updates to require approval from a second commander, so name a second commander for each room before Dec 1, 2026",
+      "action": true,
+      "pr": {
+        "number": 126,
+        "href": "https://github.com/example/harbor/pull/126"
+      },
+      "commit": {
+        "sha": "2c4871d3254c112ba29d82602cc94275572ce257",
+        "href": "https://github.com/example/harbor/commit/2c4871d3254c112ba29d82602cc94275572ce257"
+      }
+    },
+    {
+      "id": "pr126-2",
+      "type": "added",
+      "bump": "minor",
+      "area": "Updates",
+      "text": "Added an approval request that a second commander can grant or return with a note",
+      "pr": {
+        "number": 126,
+        "href": "https://github.com/example/harbor/pull/126"
+      },
+      "commit": {
+        "sha": "393ee05942dff95b0943289abdc6ddc0a51ca987",
+        "href": "https://github.com/example/harbor/commit/393ee05942dff95b0943289abdc6ddc0a51ca987"
+      }
+    }
+  ]
+}

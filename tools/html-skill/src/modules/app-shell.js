@@ -25,6 +25,19 @@
             }
           });
         });
+        // The version at the foot: in the rail the number alone, so the tooltip says the whole line (DECISIONS 320).
+        shell.querySelectorAll('.app-sidebar .version-link').forEach(function (link) {
+          var word = link.querySelector('.version-link-word');
+          var number = link.querySelector('.version-link-number');
+          var date = link.querySelector('.version-link-date time');
+          if (rail.matches) {
+            link.setAttribute('data-tooltip', (word ? word.textContent.trim() + ' ' : '') + (number ? number.textContent.trim() : '') + (date ? ' · ' + date.textContent.trim() : ''));
+            link.setAttribute('data-tooltip-side', 'right');
+          } else {
+            link.removeAttribute('data-tooltip');
+            link.removeAttribute('data-tooltip-side');
+          }
+        });
       });
     }
     rail.addEventListener('change', sync);
