@@ -5,8 +5,8 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";
-import { CloseGlyph } from "./glyphs/close";
 import { CopyGlyph } from "./glyphs/copy";
+import { useCopyResult } from "./copy-result";
 import { MinusGlyph } from "./glyphs/minus";
 import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
@@ -21,7 +21,6 @@ import { RunTimer } from "./run-timer";
 import { warnRun } from "./run-warn";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
-import { CONFIRM_MS } from "./constants";
 
 declare const process: { env: { NODE_ENV?: string } };
 
@@ -167,28 +166,13 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
   // ---- copy: the commands, one per line. A replay knows every line, so it copies them all wherever its playhead is; a stream the
   // app drives passes the lines that have arrived. With no command there is nothing to copy, and the button is off.
   const commands = lines.filter((line) => line.kind === "command").map((line) => line.text).join("\n");
-  // What the last copy did, held for CONFIRM_MS: the words stay and the glyph says it (the check, or the close for a refused write; DECISIONS 336, Q5).
-  const [copyResult, setCopyResult] = React.useState<"copied" | "failed" | null>(null);
-  const copied = copyResult === "copied";
-  React.useEffect(() => {
-    if (!copyResult) return;
-    const t = setTimeout(() => setCopyResult(null), CONFIRM_MS);
-    return () => clearTimeout(t);
-  }, [copyResult]);
+  // What the last copy did, held for CONFIRM_MS: the words stay and the glyph says it, the check or the close (copy-result.ts; DECISIONS 336).
+  const copyResult = useCopyResult();
   // The compact copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
   React.useEffect(() => {
     if (copyable) loadFlight();
   }, [copyable]);
-  const copy = async () => {
-    if (!commands) return;
-    try {
-      await navigator.clipboard.writeText(commands);
-      setCopyResult("copied");
-    } catch {
-      // clipboard refused (insecure context or permissions): the words hold and the glyph is the close for a moment
-      setCopyResult("failed");
-    }
-  };
+  const copy = () => (commands ? copyResult.copy(commands) : undefined);
 
   // ---- the replay's control
   const press = () => {
@@ -240,11 +224,11 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
           {copyable ? (
             <>
               {/* Wide: the words. Narrow (the terminal's own width, under 30rem): the icon alone, with the same name. */}
-              <Button className="basalt-terminal-copy" variant="ghost" size="sm" edge="end" icon={CopyGlyph} done={copyResult !== null} doneIcon={copyResult === "failed" ? CloseGlyph : CheckGlyph} onClick={copy} disabled={!commands}>
+              <Button className="basalt-terminal-copy" variant="ghost" size="sm" edge="end" icon={CopyGlyph} done={copyResult.done} doneIcon={copyResult.doneIcon} onClick={copy} disabled={!commands}>
                 Copy commands
               </Button>
-              <IconButton className="basalt-terminal-copy-compact" size="sm" edge="end" icon={CopyGlyph} done={copied} label="Copy commands" onClick={copy} disabled={!commands} />
-              <span className="basalt-visually-hidden" role="status">{copyResult === "copied" ? "Copied" : copyResult === "failed" ? "Copy failed" : ""}</span>
+              <IconButton className="basalt-terminal-copy-compact" size="sm" edge="end" icon={CopyGlyph} done={copyResult.done} doneIcon={copyResult.doneIcon} label="Copy commands" onClick={copy} disabled={!commands} />
+              <span className="basalt-visually-hidden" role="status">{copyResult.status}</span>
             </>
           ) : null}
         </span>

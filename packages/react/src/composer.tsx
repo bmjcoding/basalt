@@ -37,7 +37,11 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
   rows?: number;
   /** Lines it grows to with its text before it scrolls. Default 8. */
   maxRows?: number;
-  /** The app's other actions, at the start of the row under the field: an attach button, a format toggle. Send is always the row's last. */
+  /**
+   * The app's other actions, at the start of the row under the field: an attach button, a format toggle. Send is always the row's last. The first,
+   * when it is a ghost control, takes `edge="start"`: its glyph goes on the field's line, hung into the room the box holding the composer says it
+   * has (`AppShell`'s foot, a card's content); the composer itself says none (DECISIONS 336).
+   */
   actions?: React.ReactNode;
   /**
    * Who is typing (`typingStatus`), a draft saved: in the actions row after the app's actions, on a row of its own under them when its words do not fit

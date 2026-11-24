@@ -376,6 +376,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   it is on touch), and the head's padding is the same on both sides. It hangs only into room the head says it has: the head's padding
   on that side less any safe-area inset there (`--basalt-edge-room`, or `-start` and `-end`), and never by more than that room, so the
   whole target stays inside the padding and clear of a notch or a corner. A head that says nothing gives no room, and nothing hangs.
+  A part with no padding of its own (a drawer, a release, a composer) is not a head: its edge control hangs into the room of the box the part
+  sits in, where that box says so (`AppShell`'s main and foot for a drawer, release notes and a composer directly inside them; a card's content
+  for a composer; the skill's page for release notes), and stands on the line with its edge anywhere else.
   `edge="start"` or `"end"` does it (`data-edge` in the skill); no component writes a margin for it. The hang is plate and hit area,
   never layout, and stops inside the box's rim. Its focus ring follows the rule every control has: at +2 where the hung box keeps 4
   from the edge of its room, inside at −2 only where it does not (a 44px control on a 16px line). On touch a hung control with words is
@@ -620,7 +623,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     too: the prompt's width plus 1ch, at least 24px, measured by the browser and never counted in characters, so `$` is exactly
     24px and a longer prompt ("PS>") or a wide glyph widens the column for every line and the text of every line starts on one
     edge. The terminal is the container for its own head: under 30rem of its own width (not the viewport's) the copy button is
-    the icon alone (Copy, morphing to Check as drawn, announcing "Copied") and keeps its name "Copy commands", so a live head is two rows
+    the icon alone (Copy, morphing to Check as drawn, announcing "Copied", or the close and "Copy failed" after a refused write) and keeps its name "Copy commands", so a live head is two rows
     at 390. A finished run's head keeps the callout's marks in the 16px seat (CheckCircle in the success colour; XCircle with
     "Failed, exit 1" in danger ink) and "Done" in the head's secondary ink. A replay that hasn't started shows one sentence in the
     log's box, "Press Play to start", in tertiary ink, which leaves when the first line arrives; Play and Replay make the region a
@@ -1298,7 +1301,8 @@ voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved 
 - **The copy button** (`CopyButton`): a `Button` of any variant and size that copies a string. Of words alone it says its words, then
   "Copied" for 1500ms, both centred in one `Reserve` cell so its width never changes. A copy control with a glyph (`CodeBlock`,
   `Terminal`, the skill's `[data-copy]` with a glyph) keeps its words: its glyph is the check for 1500ms after a write that succeeded,
-  and the close after one that was refused. Copy and check are the drawn pair and change as the icon-only copy does (the morph at
+  and the close after one that was refused. An icon-only copy does the same: the check, or the close, for
+  1500ms. Copy and check are the drawn pair and change as the icon-only copy does (the morph at
   `slow` on `ease-out`, at once under reduced motion; the skill swaps at once); copy and close are not a pair and crossfade over
   `duration-fast`. Each has a visually hidden `role="status"`. It says
   Copied only after the write succeeded; a refused or missing clipboard leaves the button as it was.
@@ -3120,7 +3124,7 @@ the lead; the owner sees the pictures before merge). Every part serves any app w
   the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. The status is in that row, after the app's actions: `text-xs` in tertiary ink, one line, cut with an ellipsis (the live region holds
   the whole text), a polite live region that is always mounted: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
   are typing") or anything the app says there. When its words do not fit beside the actions it takes a row of its own under them, and Send stays on the first row. With no status no line
-  is held. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
+  is held. The first of the app's actions, when ghost, takes `edge="start"`: its glyph is on the field's line. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
   to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within
   the same bounds.
 - **Sending.** Enter sends and Shift+Enter is a new line (the soft keyboard's key says Send), or with `sendKey="Mod+Enter"` Enter is a new line and the platform's modifier with Enter sends,

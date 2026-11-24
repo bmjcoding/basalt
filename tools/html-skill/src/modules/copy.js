@@ -91,7 +91,7 @@
           // One write of the button's own markup, its first glyph (an svg, or a span the glyph module has not drawn yet) swapped for a constant.
           button.innerHTML = rest[0].replace(/<svg[\s\S]*?<\/svg>|<span data-glyph[^>]*><\/span>/, ok ? '%glyph-svg:check%' : '%glyph-svg:close%');
           if (iconOnly) button.setAttribute('aria-label', ok ? 'Copied' : 'Copy failed');
-          announce(iconOnly ? (ok ? 'Copied to clipboard' : 'Could not copy') : (ok ? 'Copied' : 'Copy failed'));
+          announce(iconOnly ? (ok ? 'Copied to clipboard' : 'Copy failed') : (ok ? 'Copied' : 'Copy failed'));
           clearTimeout(button.__bhTimer);
           button.__bhTimer = setTimeout(function () {
             button.innerHTML = rest[0];

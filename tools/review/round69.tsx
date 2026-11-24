@@ -53,6 +53,8 @@ import {
   TableRowHead,
   Terminal,
   TimeChart,
+  Drawer,
+  ReleaseNotes,
   useToast,
   HomeGlyph,
   NavItem,
@@ -60,7 +62,8 @@ import {
   PlusGlyph,
   TrashGlyph,
 } from "../../packages/react/src/index";
-import type { CommandGroup } from "../../packages/react/src/index";
+import type { CommandGroup, ReleaseRecord } from "../../packages/react/src/index";
+import harborData from "../changelog/fixtures/harbor/releases.json";
 import { lb, weightData } from "../../packages/react/test/fixtures/figure-data";
 import { BEFORE } from "./assets/round-69/index";
 import type { Round, Step } from "./rounds";
@@ -182,10 +185,20 @@ function ComposerPart({ state }: { state: string }) {
   const typing = state === "typing" || state === "narrow";
   return (
     <div style={{ width: state === "narrow" ? 290 : 520, maxWidth: "100%" }}>
-      <Composer label="Message" defaultValue="" onSend={() => {}} actions={<><IconButton icon={PlusGlyph} label="Attach" size="sm" /><IconButton icon={SearchGlyph} label="Find" size="sm" /></>} status={typing ? (state === "narrow" ? "Ana, Ben, and Cy are typing" : "Ana is typing") : undefined} />
+      <Composer label="Message" defaultValue="" onSend={() => {}} actions={<><IconButton icon={PlusGlyph} label="Attach" size="sm" edge="start" /><IconButton icon={SearchGlyph} label="Find" size="sm" /></>} status={typing ? (state === "narrow" ? "Ana, Ben, and Cy are typing" : "Ana is typing") : undefined} />
       <p style={{ ...note, marginTop: 8 }}>What follows the composer.</p>
     </div>
   );
+}
+
+/** The open items' ruling: a drawer, release notes and a composer have no padding of their own and hang into the room of the box they sit in. */
+function OpenItemsPart({ state }: { state: string }) {
+  const actions = <><IconButton icon={PlusGlyph} label="Attach" size="sm" edge="start" /><IconButton icon={SearchGlyph} label="Find" size="sm" /></>;
+  if (state === "drawer") return <div className="basalt-app-main" style={{ maxWidth: "none" }}><Drawer label="Run 4f2a" onBack={() => {}}><div><p style={note}>The record's first half.</p></div><div><p style={note}>Its second half.</p></div></Drawer></div>;
+  if (state === "drawer-bare") return <div style={{ marginInline: "calc(-1 * var(--basalt-space-6))" }}><Drawer label="Run 4f2a" onBack={() => {}}><div><p style={note}>A page with no padding: Back stands on the line.</p></div><div /></Drawer></div>;
+  if (state === "release") return <div className="basalt-app-main" style={{ maxWidth: "none" }}><ReleaseNotes releases={(harborData as unknown as ReleaseRecord[]).slice(0, 1)} form="notes" product="Harbor" baseHref="https://harbor.example/release-notes" /></div>;
+  if (state === "composer-foot") return <div className="basalt-app-foot" style={{ position: "static" }}><Composer label="Message" onSend={() => {}} actions={actions} /></div>;
+  return <div style={{ maxWidth: 520 }}><Card><CardContent><Composer label="Message" onSend={() => {}} actions={actions} /></CardContent></Card></div>;
 }
 
 function CopyPart({ state }: { state: string }) {
@@ -437,6 +450,7 @@ const FIXES: Spec[] = [
   { id: "menu", name: "The menu's column (M-2)", intro: "Every row keeps the check's and glyph's column when any row has one.", decisions: ["Words start at one x on every row."], states: ["open"], part: MenuPart },
   { id: "pager", name: "The pager's count (R-9)", intro: "Centred between its arrows.", decisions: ["11.9 / 11.9."], states: ["default"], part: PagerPart },
   { id: "rtl", name: "Right to left mirrors (R-11)", intro: "Ten rules named left and right; each is now start and end. The untitled block's copy is at inline-end.", decisions: ["Pixels change only right to left."], states: ["default"], part: RtlPart },
+  { id: "open-items", name: "The open items: a drawer, a release and a composer hang into their box's room; a refused icon-only copy shows the close", intro: "Fable's ruling on the four open items: a part with no padding of its own is not a head; its edge control hangs into the room of the box it sits in, where that box says so.", decisions: ["Back takes edge=\"start\" and the Copy link edge=\"end\"; their hand-written margins are gone. The composer says no room; AppShell's foot and a card's content say theirs, and the app hangs its first ghost action. The refused icon-only copy is in eye-05's refused state."], states: ["drawer@390", "drawer-bare@390", "release", "composer-foot", "composer-card"], part: OpenItemsPart },
   { id: "skill", name: "The HTML skill: every part the decision touches", intro: "One page composed by the skill: the sheet, search, code head and terminal, the site bar, a panel head and a page's section head, the notification centre, the checklist, icon links in a card, the toast, the selection table, chips and the menu.", decisions: ["Main's page is main's own skill, composed on main."], states: ["heads", "sheet", "search-none", "search-two", "checklist", "topbar@390", "notifications", "toast@390"], height: 1100, part: ({ state }) => <SkillFrame page={`69-${state}`} /> },
 ];
 

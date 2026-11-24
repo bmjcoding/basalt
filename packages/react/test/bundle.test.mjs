@@ -464,8 +464,8 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // Stages and runs (DECISIONS 316): stage lines, RunTimer and the Prohibit mark took it from about 32,300 to 40,670 (40,000 to 40,700); reported on the PR.
   // The review round of 316: the failed outcome and the command that never steps back, and RunTimer's print and redraw guards: 41,435 (to 41,450).
   // DECISIONS 326: the head's copy button and the glyph seat every Button carries: 41,627 (to 41,650).
-  // 41,750 (main's) to 42,200 in DECISIONS 336: its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
-  assert.ok(bytes < 42_200, `Terminal bundle is ${bytes} bytes`);
+  // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
+  assert.ok(bytes < 42_550, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });

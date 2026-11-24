@@ -346,3 +346,61 @@ describe("Kept", () => {
     await page.close();
   });
 });
+
+// ---- The open items' ruling (DECISIONS 336): parts with no padding of their own hang into the room of the box they sit in, and the refused icon-only copy.
+describe("A drawer, a release and a composer hang into the room of the box they sit in", () => {
+  const SHELL_ROOM = (child) => `<div className="basalt-app-main" style={{ "--_pad-start": "16px", "--_pad-end": "16px", paddingInline: 16 }}>${child}</div>`;
+  const PARTS = [
+    ["the drawer's Back", (room) => (room ? SHELL_ROOM : (c) => c)(`<B.Drawer label="Record" onBack={() => {}}><div>Half</div><div>Half</div></B.Drawer>`), ".basalt-drawer-back", "start"],
+    ["a release's Copy link", (room) => (room ? SHELL_ROOM : (c) => c)(`<B.ReleaseNotes releases={RELEASES} form="notes" product="Harbor" />`), ".basalt-release-copy", "end"],
+    ["the composer's first ghost action", (room) => `<B.Card><B.CardContent>${room ? "" : "<div>"}<B.Composer label="Message" onSend={() => {}} actions={<B.IconButton icon={B.PlusGlyph} label="Attach" edge="start" />} />${room ? "" : "</div>"}</B.CardContent></B.Card>`, ".basalt-composer-extra .basalt-button", "start"],
+  ];
+  for (const [name, fixture, control, side] of PARTS) {
+    for (const [width, options] of WIDTHS) {
+      for (const dir of DIRS) {
+        for (const room of [true, false]) {
+          test(`${name}, ${width}, ${dir}, ${room ? "the box says its room" : "nothing said"}: it hangs only where room is said, and its ring is whole`, async () => {
+            const page = await open(fixture(room).replace("RELEASES", "window.RELEASES ?? []"), options, "dark", dir);
+            const c = page.locator(control).first();
+            const margin = await c.evaluate((el, s) => parseFloat(getComputedStyle(el)[s === "start" ? "marginInlineStart" : "marginInlineEnd"]), side);
+            if (room) assert.ok(margin < 0, "it hangs"); else assert.equal(margin, 0, "it stands on the line");
+            const box = await c.boundingBox();
+            assert.ok(box.x >= 0 && box.x + box.width <= (width === "1440" ? 1440 : 390), "wholly on screen");
+            await page.close();
+          });
+        }
+      }
+    }
+  }
+  test("a drawer in a page with no padding is wholly on screen", async () => {
+    const page = await open(`<B.Drawer label="Record" onBack={() => {}}><div>Half</div><div>Half</div></B.Drawer>`, PHONE, "light");
+    assert.ok((await page.locator(".basalt-drawer-back").boundingBox()).x >= 0);
+    await page.close();
+  });
+});
+
+describe("An icon-only copy that is refused shows the close for 1500ms, then the close leaves", () => {
+  for (const [name, fixture, button] of [
+    ["Terminal's compact copy", `<div style={{ width: 360 }}><B.Terminal title="Deploy" lines={[{ kind: "command", text: "ls" }]} /></div>`, ".basalt-terminal-copy-compact"],
+    ["CodeBlock's copy", `<B.CodeBlock title="config" code="x" />`, ".basalt-code-copy .basalt-button"],
+  ]) {
+    test(`${name}: the close through the done seat, "Copy failed", and no check on the way out`, async () => {
+      const page = await open(fixture, DESKTOP, "dark");
+      await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { value: { writeText: () => Promise.reject(new Error("refused")) }, configurable: true }));
+      await page.locator(button).click();
+      await page.waitForSelector(`${button}[data-done]`);
+      assert.equal(await page.locator(button).locator('[data-glyph="close"]').count() > 0, true, "the close is drawn");
+      assert.match(await page.locator('[role="status"]').first().textContent(), /Copy failed/);
+      // Sample every frame until the done state has gone and the fade has ended: the done glyph is never the check.
+      const sawCheck = await page.evaluate(async (sel) => {
+        const b = document.querySelector(sel);
+        let check = false;
+        const t0 = performance.now();
+        await new Promise((done) => { const tick = () => { const swap = b.querySelector(".basalt-button-swap"); const visible = [...swap.children].filter((g) => getComputedStyle(g).opacity !== "0" && getComputedStyle(g).visibility !== "hidden"); if (visible.some((g) => g.getAttribute("data-glyph") === "check")) check = true; if (performance.now() - t0 > 2000) done(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+        return check;
+      }, button);
+      assert.equal(sawCheck, false);
+      await page.close();
+    });
+  }
+});

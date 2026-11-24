@@ -1951,6 +1951,11 @@
     padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-app-shell[data-capped] .basalt-app-main { max-width: none; }
+  /* A part with no padding of its own (a drawer, release notes, a composer) is not a head: its edge control hangs into the room of the box it sits in
+     (DECISIONS 336, the open items' ruling). The main and the foot say theirs, their padding less the side insets, to their direct children only, so a
+     control deeper in never hangs into room that is not its own. */
+  .basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer { --basalt-edge-room-start: calc(var(--_pad-start) - var(--_inset-start)); --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); }
+  .basalt-card-content > .basalt-composer { --basalt-edge-room: var(--basalt-space-4); }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
   @media (width >= 720px) and (width < 1024px) {
@@ -6304,7 +6309,7 @@
     font-family: var(--basalt-font-family-sans);
   }
   .basalt-drawer[hidden] { display: none; }
-  .basalt-drawer-back { display: none; justify-self: start; margin-inline-start: calc(-1 * var(--basalt-space-2-5)); }
+  .basalt-drawer-back { display: none; justify-self: start; }
   .basalt-drawer-section { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding-top: var(--basalt-space-3); }
   .basalt-drawer-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
   .basalt-drawer-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
@@ -8167,7 +8172,7 @@
   .basalt-release-head-text > .basalt-release-heading:not([data-headline]) ~ .basalt-release-meta { grid-row: 3; }
   .basalt-release-head-text > :not(.basalt-release-word) ~ * { margin-top: var(--basalt-space-1); }
   /* A ghost button at the column's edge puts its words on the edge: its plate hangs space-2-5 past it (DECISIONS 326, sweep 68-1). */
-  .basalt-release-head > .basalt-release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
+  .basalt-release-head > .basalt-release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); }
   .basalt-release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
   /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
   .basalt-release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

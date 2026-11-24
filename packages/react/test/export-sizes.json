@@ -58,7 +58,7 @@
   "ChoiceCardGroup": 294,
   "Clock": 2921,
   "CloseGlyph": 2836,
-  "CodeBlock": 23345,
+  "CodeBlock": 23914,
   "Columns": 265,
   "ColumnsItem": 257,
   "Combobox": 164914,
@@ -88,7 +88,7 @@
   "DotLine": 584,
   "DotSep": 337,
   "DownloadGlyph": 2853,
-  "Drawer": 18967,
+  "Drawer": 18980,
   "DrawerSection": 2043,
   "DrawerTrigger": 18588,
   "ENTRANCE_LATE_MS": 26,
@@ -219,7 +219,7 @@
   "ReflowItem": 470,
   "Refreshing": 1911,
   "ReleaseIndex": 30827,
-  "ReleaseNotes": 67895,
+  "ReleaseNotes": 67906,
   "Reserve": 441,
   "Reveal": 20397,
   "RoutesGlyph": 3009,
@@ -333,7 +333,7 @@
   "TabsList": 38792,
   "TabsPanel": 36621,
   "TabsPanels": 331,
-  "Terminal": 42049,
+  "Terminal": 42441,
   "Text": 922,
   "TextButton": 11393,
   "TextMorph": 4681,
@@ -427,11 +427,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 947733,
-  "gzip": 315795
+  "bytes": 948025,
+  "gzip": 315929
  },
  "styles": {
-  "bytes": 466640,
-  "gzip": 60242
+  "bytes": 466843,
+  "gzip": 60287
  }
 }

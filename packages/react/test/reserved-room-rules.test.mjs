@@ -13,6 +13,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import * as B from "../dist/index.js";
 import { legendForms } from "../dist/chart.js";
+import { COPY_REST, copyDoneIcon, copyStatus, nextCopyState } from "../dist/copy-result.js";
+import { CheckGlyph } from "../dist/glyphs/check.js";
+import { CloseGlyph } from "../dist/glyphs/close.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
@@ -189,7 +192,8 @@ describe("The edge rule is one rule", () => {
     const found = [];
     for (const r of rules(REACT)) {
       const named = r.selector.replace(/:not\([^)]*\)/g, "");
-      if (!/basalt-button|basalt-terminal-copy|basalt-code-copy|basalt-sheet-close|basalt-search-close/.test(named) || /\[data-edge/.test(r.selector)) continue;
+      // The classes a component puts on a Button count too (the open items' ruling: the drawer's Back and a release's Copy link were written on their own classes).
+      if (!/basalt-button|basalt-terminal-copy|basalt-code-copy|basalt-sheet-close|basalt-search-close|basalt-drawer-back|basalt-release-copy/.test(named) || /\[data-edge/.test(r.selector)) continue;
       if (NOT_RULED.has(r.selector)) continue;
       for (const p of ["margin-inline", "margin-inline-end", "margin-inline-start", "margin"]) {
         const v = decl(r.body, p);
@@ -326,5 +330,53 @@ describe("The copy", () => {
     const terminal = read(`${SKILL_DIR}/terminal.js`);
     assert.ok(!terminal.includes("swap('Copy commands'"), "the terminal's copy words are not a swap cell");
     assert.match(terminal, /'Copy failed'/);
+  });
+});
+
+describe("The open items' ruling (DECISIONS 336): parts with no padding of their own, and the refused icon-only copy", () => {
+  test("Drawer's Back and a release's Copy link take edge, and neither writes a margin of its own", () => {
+    assert.match(renderToStaticMarkup(h(B.Drawer, { label: "Record", onBack() {} }, "Body")), /data-edge="start"[^>]*class="basalt-button basalt-drawer-back"/);
+    assert.match(read("packages/react/src/release-notes.tsx"), /<CopyButton variant="ghost" size="sm" edge="end"/);
+    assert.match(read("tools/changelog/skill-body.mjs"), /class="btn release-copy" data-variant="ghost" data-size="sm" data-edge="end"/);
+    assert.equal(decl(ruleFor(REACT, ".basalt-drawer-back")[0].body, "margin-inline-start"), null);
+    assert.equal(decl(ruleFor(REACT, ".basalt-release-head > .basalt-release-copy")[0].body, "margin-inline-end"), null);
+    assert.ok(decl(ruleFor(REACT, ".basalt-release-head > .basalt-release-copy")[0].body, "margin-block"), "the head's height stays");
+    assert.equal(decl(ruleFor(SKILL_ALL, ".release-head > .release-copy")[0].body, "margin-inline-end"), null);
+  });
+  test("the boxes say their room to their direct children only, and the composer says none", () => {
+    const shell = ruleFor(REACT, ".basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer")[0];
+    assert.equal(decl(shell.body, "--basalt-edge-room-start"), "calc(var(--_pad-start) - var(--_inset-start))");
+    assert.equal(decl(shell.body, "--basalt-edge-room-end"), "calc(var(--_pad-end) - var(--_inset-end))");
+    assert.equal(decl(ruleFor(REACT, ".basalt-card-content > .basalt-composer")[0].body, "--basalt-edge-room"), "var(--basalt-space-4)");
+    assert.equal(decl(ruleFor(SKILL_ALL, ":is(.page, .page > .section) > .release-notes")[0].body, "--basalt-edge-room"), "var(--basalt-gutter)");
+    assert.ok(!rules(REACT).some((r) => /^\.basalt-composer\b/.test(r.selector) && /--basalt-edge-room/.test(r.body)), "the composer says no room of its own");
+    assert.match(read("packages/react/src/composer.tsx"), /takes `edge="start"`/, "actions' doc says the first ghost action is hung");
+  });
+  test("a refused copy shows the close and says Copy failed; as its time ends the close is still the done glyph; a copy that worked shows the check", () => {
+    const refused = nextCopyState(COPY_REST, "failed");
+    assert.equal(refused.shown, "failed");
+    assert.equal(copyDoneIcon(refused), CloseGlyph);
+    assert.equal(copyStatus(refused), "Copy failed");
+    const after = nextCopyState(refused, "reset");
+    assert.equal(after.shown, null, "the done state ends");
+    assert.equal(copyDoneIcon(after), CloseGlyph, "the close is what leaves, never a check");
+    assert.equal(copyStatus(after), "");
+    const worked = nextCopyState(after, "copied");
+    assert.equal(copyDoneIcon(worked), CheckGlyph);
+    assert.equal(copyStatus(worked), "Copied");
+  });
+  test("Terminal's two copies and CodeBlock's copy go through the one copy state and the done seat", () => {
+    for (const file of ["terminal.tsx", "feedback.tsx"]) assert.match(read(`packages/react/src/${file}`), /useCopyResult\(\)/);
+    const terminal = read("packages/react/src/terminal.tsx");
+    assert.equal((terminal.match(/done=\{copyResult\.done\} doneIcon=\{copyResult\.doneIcon\}/g) ?? []).length, 2, "both of Terminal's copies");
+    assert.match(read("packages/react/src/feedback.tsx"), /done=\{copyResult\.done\} doneIcon=\{copyResult\.doneIcon\} label="Copy code"/);
+    assert.match(renderToStaticMarkup(h(B.CodeBlock, { code: "x", title: "t" })), /class="basalt-button-swap"/);
+  });
+  test("the skill: the compact copy shows the close after a refused write and every copy says Copy failed", () => {
+    const terminal = read(`${SKILL_DIR}/terminal.js`);
+    assert.match(terminal, /glyphTo\(ok \? 1 : 2\)/);
+    assert.match(terminal, /compact\.setAttribute\('aria-label', ok \? 'Copied' : 'Copy failed'\)/);
+    const copy = read(`${SKILL_DIR}/copy.js`);
+    assert.ok(!copy.includes("Could not copy"));
   });
 });
