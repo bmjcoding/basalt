@@ -1813,7 +1813,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   A line that leaves or passes a spine card runs in an end gutter outside the cards (lanes `space-3-5` apart, four at most; the gutter is
   its lanes and `space-3`), down into a card's top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target. A stacked
-  group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`.
+  group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`. Stacked, a group's label gives
+  way to the lines at its top edge: it slides along the edge, on the start side, and is never set over a line that has room to pass.
 - **Several end lines into one card nest:** the line from the outermost lane turns lowest and enters nearest the end edge; each
   line from a lane further in turns `space-5` higher and enters `space-3` further in. Their labels are seated `space-2-5` clear of
   the innermost entry, each on its own turn's height, taken before the half-pixel snap.
@@ -2005,9 +2006,9 @@ over its lifeline; a stacked chip draws the mark before the name.
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
 - Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
-- Right to left: drawn, the figure mirrors and its words do not; stacked, not yet (the rail, the trunk and the end gutter stay on their
-  left-to-right sides: a named gap, on the backlog). Identifiers are isolated left to right as runs; named sides swap; the arrow keys
-  stay physical; the text art stays left to right.
+- Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
+  branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
+  runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
 - Export: a linked card's arrow is not drawn in a file.
 
 ### Diagram tokens
