@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
 import stylelint from "stylelint";
 
+import { withGlyphMasks } from "../glyph-mask.mjs";
 import { minifyCss } from "../minify-css.mjs";
 import { bundleFixture, bundleFixtureFromScratch, pkg, sourceStyles } from "./support.mjs";
 
@@ -18,12 +19,17 @@ const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 
 // ---- A1-12: the shipped style sheets are the sources without their comments and whitespace ----
 
-test("styles.css and components.css are the sources with their comments and whitespace taken out, and nothing else", () => {
+test("styles.css and components.css are the sources with their glyph masks written in and their comments and whitespace taken out, and nothing else", () => {
   const tokens = read(repo, "packages", "tokens", "dist", "css", "tokens.css");
-  const components = `${read(pkg, "src", "styles", "components.css")}\n${read(repo, "packages", "tokens", "dist", "css", "accents.css")}`;
+  const accents = read(repo, "packages", "tokens", "dist", "css", "accents.css");
+  const written = read(pkg, "src", "styles", "components.css");
+  // `%glyph-mask:name%` is a core glyph's drawing as a data URI (glyph-mask.mjs), written in by the build before the sheet is minified (build.mjs).
+  const components = `${withGlyphMasks(written)}\n${accents}`;
+  assert.ok(/%glyph-mask:[\w-]+%/.test(written), "the source names a glyph mask (else this test no longer needs withGlyphMasks)");
   assert.equal(read(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
   assert.equal(read(dist, "components.css"), minifyCss(components));
-  assert.equal(sourceStyles(), `${tokens}\n${components}`, "the helper the text tests read is the sheet as it was written");
+  for (const name of ["styles.css", "components.css"]) assert.ok(!read(dist, name).includes("%glyph-mask:"), `${name} holds a glyph-mask placeholder`);
+  assert.equal(sourceStyles(), `${tokens}\n${written}\n${accents}`, "the helper the text tests read is the sheet as it was written");
   for (const name of ["styles.css", "components.css"]) {
     const css = read(dist, name);
     assert.ok(!/\/\*(?!!)/.test(css), `${name} holds a comment`);

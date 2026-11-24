@@ -545,6 +545,32 @@ import { ActivityList, ActivityStep, DisclosureRow, EventLogRule, Presence, Stre
 | `ActivityList`, `ActivityStep` | A sentence a step: `status` (`running`, `done`, `failed`, `waiting`), `word`, `meta`, `detail` (then the step is a disclosure row). |
 | `Presence`, `Elapsed`, `formatElapsed` | "Away 6 min": `status` (`active`, `away`, `offline`), `label`, `since`, `now`, `format`, `variant` (`plain` or `outline`). `Elapsed` is the length alone after any word; `formatElapsed` writes it (plain, safe on a server). |
 
+## Stages and runs
+
+A run's stages, its steps and its one voice (DECISIONS 316; `docs/foundations.md`, "Stages and runs"). Seven states: `queued`, `running`, `success`,
+`failed`, `skipped`, `canceled`, `retrying`. The state's word always carries the state; the mark never does alone. Basalt draws; the app owns the run.
+
+| Part | Notes |
+|---|---|
+| `StageMark` | One mark a state at 16, 20 or 24, `aria-hidden`, in a seat that never changes size: queued a circle that breathes by opacity, running and retrying the ring, passed `CheckCircle`, failed `XCircle` in danger, skipped `MinusCircle`, canceled `Prohibit`. A change of state crossfades in the one seat. |
+| `STAGE_WORDS`, `formatRunTime(ms)` | The default word for each state, US English ("Queued", "Running", "Passed", "Failed", "Skipped", "Canceled", "Retrying"); the app may change any. `formatRunTime` returns `{ text, dateTime }`: "12.3 s" (tenths, cut and never rounded up), "12 min 34 s", "12 hr 34 min", with its ISO 8601 duration. Plain values a Server Component can read. |
+| `RunTimer` | A run's time: tabular Geist Mono at `text-xs`, tertiary, a `time` element, never a live region. `start`, `end` (frozen at `end - start`), `carried` (earlier attempts, so a retry counts on), `since`, and `scale` (`seconds`, `minutes`, `hours`: the longest form its seat holds, so the column never moves). |
+| `StageBadge` | A `Badge` bound to the seven states: `state`, `words`, `variant` (`outline` in a run's head, `plain` in a list or table), `size`. Its seat is as wide as its widest face, so a change in place moves nothing. |
+| `StageList`, `StageRail`, `RunStage` | The same `RunStage` data drawn as a list (`label`, `timeScale`, `reserveDetail` to hold a failure's room from the first frame) or as a rail of two to six nodes on one line (five or six from 480 of its own width, drawn as the list under it). A `RunStage` is `name`, `state`, `word`, `meta`, its times, and a `detail` with an action (a failure's reason and Retry) that opens under a list's stage; focus is never dropped when it closes. |
+| `RunTimeline`, `RunStep` | A run's own view: an append-only list of steps, a sentence each (`state` or `mark`, `word`, `meta`, times, `detail`, `action`). The newest `keep` steps stay in full; older finished steps roll into a tail that recedes a step a row, with a toggle above it that opens the whole record at full ink (`open`, `defaultOpen`, `onOpenChange`, `toggleLabel`). It follows new steps only while the reader is at its end. Nothing in it speaks. |
+| `RunAnnouncer` | A run's one voice: a visually hidden polite `role="log"`, additions only: `label` and `events` (append-only, each `{ id, text }`). Each event is said once, in order; an `id` already said is quiet, and events present at mount are not said. Never `role="alert"`; it draws nothing. |
+
+## Versions and release notes
+
+A version is SemVer with its ship date, one link to the release notes (DECISIONS 320; `docs/foundations.md`, "Versions and release notes"). Nothing
+marks a release as new, and there is no "What's new" item.
+
+| Part | Notes |
+|---|---|
+| `VersionLink` | "Version 1.4.0 · Nov 23, 2026" as one link: `version`, `date` (an ISO calendar date, never moved by a time zone), `href` ("/release-notes#v1.4.0"), `label` (default "Version"; a site's footer gives the product), `destinationLabel`, `current` (on the release notes: the number at 600, its width reserved), `locale`. Its place sets its form: the sidebar's foot, the number alone in the rail, the last row of More's sheet, after the legal line in a footer. |
+| `ReleaseNotes` | A page of releases from their records: `releases`, `form` (`reference`, a package's changelog with its list open; `notes`, a product's, audience paragraphs first and the list in one fold), `product`, `running` and `runningBuild` (the release this session runs carries "Your version" and Build details), `baseHref`, `headingLevel`, `arrived` and `onArrivedEnd`, `words` (the page's fixed words, for another language), `locale`. Counts, order, folds and the "Action needed" callout come from the record. |
+| `ReleaseIndex` | The versions as a `nav` ("Versions"): `releases`, `form` (`pane` for `PaneLayout`'s pane, `fold` for a closed fold above the first release where the pane is not beside the page), `label`, `unreleasedLabel`, `locale`. A page draws both forms; each shows only where it belongs. |
+
 ## Writing to someone
 
 The composer, the mention and the mention picker (cimip-gaps-2, B3; decided and built by Opus on the no-council path, not yet reviewed). See foundations, "Writing to
