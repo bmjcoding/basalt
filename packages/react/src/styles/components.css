@@ -324,7 +324,9 @@
   /* The amount (DECISIONS 154, A8): after the label, in tabular figures and the label's own weight, in a seat as wide as the widest amount the app
      names, so the label never moves as the amount changes. Its ink is the label's at opacity-amount (0.72) on the variants where that holds 4.5:1
      on every surface they sit on (primary, secondary, outline); on ghost and danger, where it would not, it is the label's ink. Never in forced colours. */
-  .basalt-button-amount { font-variant-numeric: tabular-nums; }
+  /* The amount ends its seat (DECISIONS 326): the label anchors to the button's start and the amount to its end, so a shorter amount leaves its
+     spare room between the two, where the button is open, and the padding after it is the padding before the label. */
+  .basalt-button-amount { justify-items: end; font-variant-numeric: tabular-nums; }
   .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }
 
   /* The count (DECISIONS 154, D11d): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. It holds two tabular
@@ -386,13 +388,20 @@
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
      level (--basalt-plate: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
      surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
-     hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
-     label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
-     does not morph. An icon toggle has no check: the plate, the ink step and the glyph's selected form say it. The doubled class lifts
-     these over hover and the momentary press, which keep their own steps on an unpressed button; the .98 scale stays Button's. */
+     hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle carries its glyph (`icon`)
+     in a 16px seat before the label. Pressed, the seat shows the glyph's selected form, or the core check where the glyph has none; the two
+     crossfade over `duration-fast`. The seat is never empty, and both states are one width. (DECISIONS 326. A glyph with a selected form
+     of its own is the button's icon; any other shares the seat with the check, [data-glyph]. A seat without data-glyph is an untyped toggle
+     with no icon: the check while pressed and empty while not, as before.) An IconButton toggle has no check: the plate, the ink step and the
+     glyph's selected form say it. The doubled class lifts these over hover and the momentary press, which keep their own steps on an
+     unpressed button; the .98 scale stays Button's. */
   .basalt-button-check { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
   .basalt-button-check > .basalt-icon { opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
+  .basalt-button-check[data-glyph] { display: grid; width: auto; height: auto; }
+  .basalt-button-check[data-glyph] > .basalt-icon { grid-area: 1 / 1; }
+  .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 1; }
+  .basalt-button[aria-pressed="true"] > .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 0; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
     background: var(--basalt-plate);
@@ -4283,6 +4292,390 @@
     .basalt-code-title { box-shadow: none; border-bottom: var(--basalt-size-hairline) solid CanvasText; padding-bottom: calc(var(--basalt-space-1) - var(--basalt-size-hairline)); }
     /* Marks are icons, which keep their shapes; they take the system foreground as the callout's do. */
     .basalt-terminal .basalt-code-line[data-kind] .basalt-terminal-mark, .basalt-terminal .basalt-terminal-done, .basalt-terminal .basalt-terminal-failed, .basalt-terminal .basalt-code-line[data-kind="error"] .basalt-code-text, .basalt-terminal-state [data-error] { color: CanvasText; }
+  }
+
+  /* ---- Stages and runs (DECISIONS 316) ----
+     The run parts: StageMark, RunTimer, StageBadge and RunAnnouncer here; StageList, StageRail, RunTimeline and Terminal's stage lines below. Every
+     class begins basalt-run-: basalt-stage is the full-bleed art's. */
+
+  /* StageMark: one seat of 16, 20 or 24 that never changes size, every face stacked in it. Ink by state. */
+  .basalt-run-mark { display: inline-grid; flex: none; place-items: center; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); vertical-align: middle; }
+  .basalt-run-mark[data-size="20"] { inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); }
+  .basalt-run-mark[data-size="24"] { inline-size: var(--basalt-size-icon-lg); block-size: var(--basalt-size-icon-lg); }
+  .basalt-run-mark-face { display: grid; grid-area: 1 / 1; place-items: center; }
+  .basalt-run-mark-face > * { display: grid; place-items: center; }
+  .basalt-run-mark-face .basalt-spinner { color: inherit; }
+  .basalt-run-mark-face[data-state="queued"], .basalt-run-mark-face[data-state="success"] { color: var(--basalt-text-secondary); }
+  .basalt-run-mark-face:is([data-state="running"], [data-state="retrying"]) { color: var(--basalt-text-primary); }
+  .basalt-run-mark-face[data-state="failed"] { color: var(--basalt-status-danger); }
+  .basalt-run-mark-face:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  /* A change of state crossfades in the one seat: both marks stand, the old fading out as the new fades in, over duration-fast on ease-out. It is
+     opacity alone, so reduced motion keeps it; the hold lands it at once (the component draws one face), and print draws the new face alone. */
+  .basalt-run-mark-face[data-entering] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out) both; }
+  .basalt-run-mark-face[data-leaving] { animation: basalt-run-fade-out var(--basalt-duration-fast) var(--basalt-ease-out) both; }
+  /* The queued breath: secondary ink from opacity-queued (0.65) to 1 and back on duration-loop-fade, on the shared clock; 3:1 at its lowest on
+     every surface. A loop, so the hold stops it, and it is still, at full, under reduced motion, in forced colours and in print. */
+  .basalt-run-mark-breath { animation: basalt-run-breath var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
+  @keyframes basalt-run-breath { from { opacity: var(--basalt-opacity-queued); } to { opacity: 1; } }
+  @keyframes basalt-run-fade-out { to { opacity: 0; } }
+  :root[data-loops="held"] .basalt-run-mark-breath { animation: none; }
+  :root[data-loops="held"] .basalt-run-mark-face { animation: none; }
+  :root[data-loops="held"] .basalt-run-mark-face[data-leaving] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-mark-breath { animation: none; } }
+  @media (forced-colors: active) {
+    /* currentColor, and no system colour named: the mark follows the row it sits in. */
+    .basalt-run-mark-face[data-state] { color: inherit; }
+    .basalt-run-mark-breath { animation: none; }
+  }
+  @media print {
+    .basalt-run-mark-breath, .basalt-run-mark-face { animation: none; }
+    .basalt-run-mark-face[data-leaving] { display: none; }
+  }
+
+  /* RunTimer: Geist Mono at text-xs, tertiary, tabular, in one Reserve cell as wide as its scale's widest form, end-aligned. A stage's own running
+     time hides under the hold with its box kept, and is written again on release. */
+  .basalt-run-timer { display: inline-grid; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  .basalt-run-timer > .basalt-reserve { justify-items: end; }
+  .basalt-run-timer[data-held] { visibility: hidden; }
+
+  /* StageBadge: one seat as wide as the widest face (the words in a hidden cell beside the dot's seat, which is braille's width), every face
+     stacked in it at its start. Each face is a pill as wide as its own words (DECISIONS 326): the seat is unseen, and its spare room falls
+     after the pill, where the head is open, so what follows the seat never moves. */
+  /* Its figures are tabular, and its seat's least width is its widest face: it never gives way under width pressure (ruling 10). */
+  .basalt-run-badge { display: inline-grid; flex: none; min-inline-size: max-content; vertical-align: middle; font-variant-numeric: tabular-nums; }
+  .basalt-run-badge > * { display: grid; grid-area: 1 / 1; }
+  .basalt-run-badge .basalt-badge { font-variant-numeric: tabular-nums; }
+  .basalt-run-badge-measure { visibility: hidden; }
+  .basalt-run-badge-face { justify-self: start; }
+  /* Sequential: out (0.75 of duration-base, ease-in, rising space-1), then in (duration-base, ease-out, from space-1 below), the new face held at
+     opacity 0 for the old one's time whether or not the old one is still there. */
+  .basalt-run-badge-face[data-leaving] { animation: basalt-run-face-out calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in) both; }
+  .basalt-run-badge-face[data-entering] { animation: basalt-run-face-in var(--basalt-duration-base) var(--basalt-ease-out) calc(var(--basalt-duration-base) * 0.75) both; }
+  @keyframes basalt-run-face-out { to { opacity: 0; transform: translateY(calc(-1 * var(--basalt-space-1))); } }
+  @keyframes basalt-run-face-in { from { opacity: 0; transform: translateY(var(--basalt-space-1)); } }
+  @keyframes basalt-run-face-out-still { to { opacity: 0; } }
+  @keyframes basalt-run-face-in-still { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-run-badge-face[data-leaving] { animation-name: basalt-run-face-out-still; }
+    .basalt-run-badge-face[data-entering] { animation-name: basalt-run-face-in-still; }
+  }
+  :root[data-loops="held"] .basalt-run-badge-face { animation: none; }
+  :root[data-loops="held"] .basalt-run-badge-face[data-leaving] { display: none; }
+  @media print {
+    .basalt-run-badge-face { animation: none; }
+    .basalt-run-badge-face[data-leaving] { display: none; }
+  }
+
+  /* StageList (1.4): a row is the mark (16), space-3, the name and its word (space-2 apart, one line), the meta and the time, at text-sm with space-2
+     above and below: 34px. The list is the container its meta answers (480px, size-breakpoint-container). */
+  .basalt-run-stages-box, .basalt-run-rail-box { container-type: inline-size; min-width: 0; }
+  .basalt-run-stages, .basalt-run-rail { display: grid; align-content: start; margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
+  /* The room for one detail of the standard form (a reason line, a fact line, space-2, the action, space-3), held from the first frame: a calc of
+     tokens, never a measure. 82px, and 98 where the action is the touch target's 44. */
+  .basalt-run-stages[data-reserve] {
+    --_row: calc(var(--basalt-text-sm-line-height) + var(--basalt-space-2) * 2);
+    --_action: var(--basalt-size-control-sm);
+    min-block-size: calc(var(--_rows) * var(--_row) + var(--_reason-lines) * var(--basalt-text-sm-line-height) + var(--basalt-text-xs-line-height) + var(--basalt-space-2) + var(--_action) + var(--basalt-space-3));
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-run-stages[data-reserve] { --_action: var(--basalt-size-tap-min); } }
+  .basalt-run-stage { position: relative; min-width: 0; margin: 0; }
+  .basalt-run-stage-line { display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .basalt-run-stage-name { display: flex; align-items: baseline; gap: var(--basalt-space-2); min-width: 0; white-space: nowrap; border-radius: var(--basalt-radius-xs); outline: none; }
+  .basalt-run-stage-name:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-run-stage-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-stage-word { flex: none; color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-name { color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="running"], [data-state="retrying"]) .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-word { color: var(--basalt-text-tertiary); }
+  .basalt-run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
+  .basalt-run-stage-meta:empty { display: none; }
+  .basalt-run-stage-line:has(> .basalt-run-stage-meta:empty) { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-run-stages .basalt-run-stage-meta { display: none; }
+    .basalt-run-stages .basalt-run-stage-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
+  }
+  /* The connector: 1px of border-input on the marks' centre line, from space-1 under one mark to space-1 above the next, beside an open detail too. It
+     never fills, breaks, moves or changes with a state: the mark and its word carry the state. A real border, so forced colours keep it. */
+  .basalt-run-stages > .basalt-run-stage:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+    inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+    border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    pointer-events: none;
+  }
+  /* The detail: opens by height and opacity over duration-slow on ease-out, closes at 0.75 on ease-in; inert while closed. Indented to the name. */
+  .basalt-run-stage-detail { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in), opacity calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in); }
+  .basalt-run-stage-detail[data-open] { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows var(--basalt-duration-slow) var(--basalt-ease-out), opacity var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-run-stage-detail-clip { min-height: 0; overflow: hidden; }
+  .basalt-run-stage-detail-body { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-3)); padding-block-end: var(--basalt-space-3); }
+  .basalt-run-stage-detail-body :is(p, small) { display: block; margin: 0; }
+  .basalt-run-stage-detail-body p { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-run-stage-detail-body strong { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage[data-state="failed"] .basalt-run-stage-detail-body strong { color: var(--basalt-status-danger); }
+  .basalt-run-stage-detail-body small { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  /* code is Geist Mono at the row's own size (1em, never a ratio). Its own inline box is no taller than its glyphs, so a second face on the line never
+     makes the line taller than the row's. */
+  .basalt-run-stage-detail-body code, .basalt-run-step code { font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: 1; }
+  .basalt-run-stage-action { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2); margin-block-start: var(--basalt-space-2); }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-stage-detail, .basalt-run-stage-detail[data-open] { transition: none; } }
+  :root[data-loops="held"] :is(.basalt-run-stage-detail, .basalt-run-stage-detail[data-open]) { transition: none; }
+
+  /* StageRail (1.5): the same stages on one line. A node is the mark in a space-6 row, the name (text-sm, centred, space-1 under the mark row) and one
+     status seat (text-xs, space-1 under the name): its time, or its word. */
+  .basalt-run-rail { grid-template-columns: repeat(var(--_count), minmax(0, 1fr)); }
+  .basalt-run-rail > .basalt-run-stage { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; justify-items: center; text-align: center; }
+  .basalt-run-stage-markrow { position: relative; display: grid; place-items: center; inline-size: 100%; block-size: var(--basalt-space-6); }
+  .basalt-run-rail .basalt-run-stage-name { display: block; margin-block-start: var(--basalt-space-1); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-stage-status { display: grid; max-inline-size: 100%; margin-block-start: var(--basalt-space-1); overflow: hidden; font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  .basalt-run-stage-status > .basalt-reserve { max-inline-size: 100%; grid-template-columns: minmax(0, auto); justify-items: center; }
+  /* A node's figure is centred in its seat, under its mark and name (ruling 5); the seat keeps its one width. */
+  .basalt-run-stage-status .basalt-run-timer > .basalt-reserve { justify-items: center; }
+  .basalt-run-stage-status .basalt-run-stage-word { display: block; min-width: 0; max-inline-size: 100%; color: var(--basalt-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .basalt-run-rail .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-rail .basalt-run-stage[data-state="retrying"] .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  /* A link: a horizontal 1px border-input track from space-2 past one mark to space-2 before the next, and a text-secondary fill that grows from the
+     inline start over duration-slower on ease-out when its stage passes, and empties at once if it runs again. It repeats the check before it. */
+  .basalt-run-stage-link { position: absolute; inset-block-start: 50%; inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  .basalt-run-stage:last-child .basalt-run-stage-link { display: none; }
+  .basalt-run-stage-fill { position: absolute; inset-inline: 0; inset-block-start: calc(-1 * var(--basalt-size-hairline)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
+  .basalt-run-stage-fill:dir(rtl) { transform-origin: right; }
+  .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transform: scaleX(1); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  @media (prefers-reduced-motion: reduce) { .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transition: none; } }
+  :root[data-loops="held"] .basalt-run-stage-link[data-filled] .basalt-run-stage-fill { transition: none; }
+  /* Five or six stages need 480px of the rail's own width: under it the rail is drawn as the list, the same ol laid out as rows with the connector. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) { grid-template-columns: minmax(0, 1fr); }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: center; justify-items: stretch; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); text-align: start; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-markrow { inline-size: auto; block-size: auto; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-link { display: none; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) :is(.basalt-run-stage-name, .basalt-run-stage-status) { margin: 0; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-status > .basalt-reserve,
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-status .basalt-run-timer > .basalt-reserve { justify-items: end; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+      inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+      inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+      border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    }
+  }
+  @media (forced-colors: active) {
+    .basalt-run-stage-link { border-color: GrayText; }
+    .basalt-run-stage-fill { border-color: CanvasText; }
+  }
+
+  /* Progress's value takes tabular figures and the room of "100%", end-aligned, so a run's bar never moves its value as it counts (DECISIONS 316, 1.5). */
+  .basalt-progress > .basalt-progress-head > .basalt-progress-value { display: inline-grid; justify-items: end; }
+  .basalt-progress > .basalt-progress-head > .basalt-progress-value::before { content: "100%"; block-size: 0; overflow: hidden; visibility: hidden; }
+
+  /* Terminal's stage lines (1.7). The gutter: braille while running (in the 16px seat, centred), the core check in secondary when done, XCircle in
+     danger when failed (the error line: its text in danger too), the core minus and Prohibit in tertiary when skipped or canceled. Running text is
+     primary, done secondary, skipped and canceled tertiary with their word first. The duration stands at the line's end in tertiary, tabular: lines
+     are as wide as the log, so the durations are one column and a long line arriving moves none of them. */
+  .basalt-terminal .basalt-code-line[data-kind="stage"] .basalt-code-gutter { display: flex; align-items: center; }
+  .basalt-terminal-braille { display: inline-flex; inline-size: var(--basalt-size-icon-sm); justify-content: center; }
+  .basalt-terminal .basalt-code-line[data-kind="stage"] { color: var(--basalt-text-primary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="done"] { color: var(--basalt-text-secondary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="done"] .basalt-terminal-mark { color: var(--basalt-text-secondary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) .basalt-terminal-mark { color: var(--basalt-text-tertiary); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="failed"] :is(.basalt-terminal-mark, .basalt-code-text) { color: var(--basalt-status-danger); }
+  .basalt-terminal-stage { display: flex; justify-content: space-between; gap: var(--basalt-space-4); }
+  .basalt-code-pre[data-stages] > .basalt-code-lines { width: 100%; }
+  .basalt-terminal-duration { flex: none; }
+  .basalt-terminal-duration .basalt-run-timer { font: inherit; color: var(--basalt-text-tertiary); }
+  .basalt-terminal-time { display: inline-flex; }
+  .basalt-terminal-time .basalt-run-timer { color: var(--basalt-text-secondary); font-size: inherit; line-height: inherit; }
+  /* Under 480px of the Terminal's own width the figure is start-aligned, right after the state word, so the two read as one status and the seat's
+     spare room falls at the line's open end (ruling 12). */
+  .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
+  /* Under 480px a head with a run's time keeps its actions inside its padding (the compact copy button hangs by its own margin, below). */
+  .basalt-terminal-actions:has(> .basalt-terminal-time) { margin-inline-end: 0; }
+  /* From 480px of its own width a head with a run's time reads title, state … time, Copy, as a card's head reads name, badge … time, controls
+     (DECISIONS 326, 67-5): the state follows the title space-3 after it, start-aligned in its seat; the time keeps its place space-3 before Copy,
+     end-aligned in its seat. Both seats' spare room is the head's own open middle. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width >= 480px) {
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions > * { order: 3; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { order: 1; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { order: 2; margin-inline-start: auto; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: end; }
+    /* "Copy commands" ends on the line every duration under it ends on: the ghost button's glyph-side padding hangs past the head's (the re-check). */
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
+  }
+  /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (its glyph on the end
+     padding line), then the state and its time from the title's start edge; space-2 between the two lines, the words 15 from the head's edges. The button's row is its own height
+     (the control, 44 where touch sizes apply), the title centred on it, and the status line starts space-2 under the title's line. */
+  .basalt-terminal-head { --_head-button: var(--basalt-size-control-sm); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-terminal-head { --_head-button: var(--basalt-size-tap-min); } }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-terminal-head:has(.basalt-terminal-time) {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0 var(--basalt-space-2);
+      /* The words 15 from the head's top and bottom edges (DECISIONS 326, 67-6): the title's line centred on the button's row, the status line's end
+         15 above the bottom; at 44 that is 1 and 15. */
+      padding-block: calc(var(--basalt-space-4) - var(--basalt-size-hairline) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2) calc(var(--basalt-space-4) - var(--basalt-size-hairline));
+    }
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-title { grid-area: 1 / 1 / 2 / 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* The copy glyph on the head's inline padding line, where the title starts and every duration ends: the target hangs into the padding (14 at 44). */
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; margin-inline-end: calc((var(--_head-button) - var(--basalt-size-icon-sm)) / -2); }
+    .basalt-terminal-head:has(.basalt-terminal-time) :is(.basalt-terminal-state, .basalt-terminal-time) { grid-row: 2; margin-block-start: calc(var(--basalt-space-2) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2); }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { grid-column: 1; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { grid-column: 2; justify-self: start; }
+  }
+  /* keep: a line older than the newest keep stage lines, and its output, steps back once to tertiary, its mark and duration too; a failed one is
+     danger at opacity-recede-danger. A colour step over duration-fast; nothing moves. Never under more contrast or in forced colours. */
+  .basalt-terminal .basalt-code-line { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media not ((prefers-contrast: more) or (forced-colors: active)) {
+    .basalt-terminal .basalt-code-line[data-receded],
+    .basalt-terminal .basalt-code-line[data-receded] :is(.basalt-code-gutter, .basalt-terminal-mark, .basalt-code-text, .basalt-log-field, .basalt-terminal-duration .basalt-run-timer) { color: var(--basalt-text-tertiary); }
+    .basalt-terminal .basalt-code-line[data-receded][data-state="failed"] :is(.basalt-terminal-mark, .basalt-code-text) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+  }
+  :root[data-loops="held"] .basalt-terminal .basalt-code-line { transition: none; }
+  /* No scrollbar on a live transcript's window, on either axis, from its first frame (the owner, DECISIONS 312): it stays a named tab stop the keys,
+     the wheel and a finger scroll. A static Terminal and CodeBlock keep the system's. */
+  .basalt-terminal[data-live] .basalt-code-pre { scrollbar-width: none; scrollbar-gutter: auto; }
+  .basalt-terminal[data-live] .basalt-code-pre::-webkit-scrollbar { display: none; }
+
+  /* RunTimeline (1.8): a step is the mark, space-3, the sentence and the meta, at text-sm with space-2 above and below (34px; 52 under 640px of its
+     own width, where the meta goes under the sentence). */
+  .basalt-run-steps-box { container-type: inline-size; display: flex; flex-direction: column; min-width: 0; }
+  .basalt-run-steps { display: grid; align-content: start; margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
+  .basalt-run-step { position: relative; min-width: 0; margin: 0; }
+  .basalt-run-step-line { display: grid; grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: start; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
+  .basalt-run-step-mark { display: grid; place-items: center; block-size: var(--basalt-size-icon-sm); margin-block-start: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); color: var(--basalt-text-secondary); }
+  .basalt-run-step-sentence { min-width: 0; overflow-wrap: anywhere; border-radius: var(--basalt-radius-xs); outline: none; }
+  .basalt-run-step-sentence:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-run-step:is([data-state="running"], [data-state="queued"]) .basalt-run-step-sentence { color: var(--basalt-text-primary); }
+  .basalt-run-step-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-step[data-state="failed"] .basalt-run-step-word { color: var(--basalt-status-danger); }
+  .basalt-run-step:is([data-state="skipped"], [data-state="canceled"]) .basalt-run-step-word { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
+  /* The meta (a result, a middle dot, the time) is tertiary at text-xs on the row's 18px line, and ends on the row's end edge: the figure is
+     end-aligned in its seat, and a step with no time ends its result on the same edge and holds no seat. */
+  .basalt-run-step-meta { display: block; justify-self: end; text-align: end; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-sm-line-height); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .basalt-run-step-meta .basalt-run-timer { line-height: inherit; }
+  /* The connector, as the list's: between two full steps, beside a detail too, never a state. */
+  .basalt-run-steps > .basalt-run-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
+    inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
+    border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
+    pointer-events: none;
+  }
+  /* A detail and an action are always drawn under a full step, indented to the sentence. */
+  .basalt-run-step-detail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2) var(--basalt-space-3); padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-3)); padding-block-end: var(--basalt-space-2); color: var(--basalt-text-secondary); }
+  /* A detail's code is a well one level deeper than the panel it is in, as every well is (ruling 4): surface-sunken on the page, surface-well-2
+     on a level-1 panel, surface-well-3 deeper. In light every well is the one sunken grey. */
+  .basalt-run-step-detail code { padding: var(--basalt-space-1) var(--basalt-space-2); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); overflow-wrap: anywhere; line-height: var(--basalt-text-sm-line-height); }
+  [data-level="1"] .basalt-run-step-detail code { background: var(--basalt-surface-well-2); }
+  :is([data-level="2"], [data-level="3"]) .basalt-run-step-detail code { background: var(--basalt-surface-well-3); }
+  .basalt-run-step-action { display: inline-flex; gap: var(--basalt-space-2); }
+  .basalt-run-step-detail[hidden] { display: none; }
+  /* A step is primary while running, retrying or waiting (ruling 9). */
+  .basalt-run-step[data-state="retrying"] .basalt-run-step-sentence { color: var(--basalt-text-primary); }
+  /* Under the hold a step's own running time hides, and the dot before it goes with it. */
+  .basalt-run-step-meta:has(> .basalt-run-timer[data-held]) > .basalt-run-step-dot { visibility: hidden; }
+  /* Where the meta is at the row's end, no dot is drawn before the time (DECISIONS 326, 67-7): the time's seat starts space-3 after the result, as a
+     StageList row's meta and time are set, so its end-aligned spare room never pushes a dot off-centre. The dot's spoken comma stays. Where the meta
+     is under the step's words the dot stays: the time is start-aligned there and its spare room is at the line's open end. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width >= 640px) {
+    .basalt-run-step-meta > .basalt-run-step-dot[data-spaced]::before { content: none; }
+    .basalt-run-step-meta > .basalt-run-step-dot + .basalt-run-timer { margin-inline-start: var(--basalt-space-3); }
+  }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) {
+    .basalt-run-step .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr); }
+    .basalt-run-step .basalt-run-step-meta { grid-column: 2; justify-self: start; white-space: normal; }
+    .basalt-run-step .basalt-run-step-meta .basalt-run-timer > .basalt-reserve { justify-items: start; }
+  }
+
+  /* The toggle's line: size-control-sm and space-2, held from the first frame and empty until a step has rolled. It stacks above the window, so a
+     touch target's 44px is never covered by it. */
+  .basalt-run-steps-toggle-line { position: relative; z-index: 1; display: flex; align-items: center; min-block-size: var(--basalt-size-control-sm); margin-block-end: var(--basalt-space-2); }
+  .basalt-run-steps-toggle { font-size: var(--basalt-text-xs-size); }
+  /* The toggle is on its own line wherever the timeline sits (in a list item or prose too), so it keeps the 44px hit box on touch with no change to
+     layout: TextButton's own box, which a TextButton inside a sentence gives up. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-run-steps-toggle-line > .basalt-run-steps-toggle::before { content: ""; position: absolute; top: 50%; left: 50%; width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+  }
+  /* The window: the list's scrolling box. Its floor is `keep` rows of a row's least height and two and a half tail rows, from the first frame; it
+     only grows (a taller step grows it once). No scrollbar; a named tab stop while it overflows. */
+  .basalt-run-steps-window {
+    --_row: calc(var(--basalt-text-sm-line-height) + var(--basalt-space-2) * 2);
+    --_tail-row: calc(var(--basalt-text-xs-line-height) + var(--basalt-space-0-5) * 2);
+    block-size: max(calc(var(--_floor-rows) * var(--_row) + 2.5 * var(--_tail-row)), var(--_grown, var(--basalt-space-0)));
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    border-radius: var(--basalt-radius-xs);
+    outline: none;
+  }
+  .basalt-run-steps-window::-webkit-scrollbar { display: none; }
+  /* While a roll is in flight its rows are clipped to the list, so their transforms never stretch the window's scrollable box (and so never
+     read as the reader leaving the end). */
+  .basalt-run-steps-window[data-rolling] > .basalt-run-steps { overflow: clip; }
+  .basalt-run-steps-window:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width < 640px) { .basalt-run-steps-window { --_row: calc(var(--basalt-text-sm-line-height) * 2 + var(--basalt-space-2) * 2); } }
+  /* Open is the whole record in full form: no floor, no window, no tail. */
+  .basalt-run-steps-box[data-open] .basalt-run-steps-window { block-size: auto; overflow: visible; }
+
+  /* The tail is a screen's: printed, a timeline is the whole record in full form, as the hold shows it with the tail open (1.11). */
+  @media not print {
+    /* A tail row: text-xs at 400, space-0-5 above and below (20px), one line cut with an ellipsis, its mark still 16, no connector and no detail. Its ink
+       is its depth's step; under more contrast and in forced colours every tail row is at the first step, and a failed one full danger. */
+    .basalt-run-step[data-tail] .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: center; padding-block: var(--basalt-space-0-5); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-slow) var(--basalt-ease-out), opacity var(--basalt-duration-slow) var(--basalt-ease-out); }
+    .basalt-run-step[data-tail] .basalt-run-step-mark { margin-block-start: 0; }
+    .basalt-run-step[data-tail] :is(.basalt-run-step-sentence, .basalt-run-step-word, .basalt-run-step-meta, .basalt-run-timer, .basalt-run-step-mark, .basalt-run-mark-face) { color: inherit; font-weight: var(--basalt-font-weight-regular); }
+    .basalt-run-step[data-tail] .basalt-run-step-sentence { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .basalt-run-step[data-tail] .basalt-run-step-meta { line-height: var(--basalt-text-xs-line-height); }
+    .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: var(--basalt-status-danger); }
+    @media not ((prefers-contrast: more) or (forced-colors: active)) {
+      .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+      .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"]) > .basalt-run-step-line { color: var(--basalt-text-secondary); }
+      .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"])[data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: var(--basalt-status-danger); }
+      .basalt-run-steps > .basalt-run-step[data-depth="2"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-2); }
+      .basalt-run-steps > .basalt-run-step[data-depth="3"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-3); }
+      .basalt-run-steps > .basalt-run-step[data-depth="4"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-4); }
+      .basalt-run-steps > .basalt-run-step[data-depth="5"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-5); }
+      /* Hover and focus lift every tail row to the first step, over duration-fast: a convenience; the toggle is the way back that counts. */
+      .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail] > .basalt-run-step-line { opacity: 1; color: var(--basalt-text-tertiary); transition-duration: var(--basalt-duration-fast); }
+      .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+    }
+    /* Past REFLOW_BOUND counted rows, under reduced motion and under the hold, a roll lands at once: no colour transition either. */
+    .basalt-run-steps-window[data-landing] .basalt-run-step-line, :root[data-loops="held"] .basalt-run-step-line { transition: none; }
+    @media (prefers-reduced-motion: reduce) { .basalt-run-step[data-tail] .basalt-run-step-line { transition: none; } }
+    .basalt-run-steps > .basalt-run-step[data-tail]::after { content: none; }
+    .basalt-run-step[data-tail] .basalt-run-step-meta { grid-column: auto; justify-self: end; white-space: nowrap; }
+    /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+    @container (width < 640px) {
+      .basalt-run-step[data-tail] .basalt-run-step-meta .basalt-run-timer > .basalt-reserve { justify-items: end; }
+      .basalt-run-step[data-tail] .basalt-run-step-result, .basalt-run-step[data-tail] .basalt-run-step-dot { position: absolute; inline-size: var(--basalt-size-hairline); block-size: var(--basalt-size-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
+  }
+  @media print {
+    .basalt-run-steps-toggle-line { display: none; }
+    .basalt-run-steps-window { block-size: auto; overflow: visible; }
+    .basalt-run-step-detail[hidden] { display: flex; }
   }
 
   /* A prose page's column is size-prose-width on the row's start edge, never centred. */

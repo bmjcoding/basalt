@@ -259,10 +259,10 @@ function TogglesDemo({ state }: { state: string }) {
     <div style={{ ...col, maxWidth: 760 }} ref={stage}>
       <Caption>Text toggles: a 16px seat at the label's start holds the check while pressed, so pressed and unpressed are one width. Secondary, then ghost. Primary and danger do not toggle.</Caption>
       <div style={row}>
-        <Button pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
-        <Button pressed={!on.mute} onClick={flip("mute")}>Mute thread</Button>
-        <Button variant="ghost" pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
-        <Button variant="ghost" pressed={!on.pin} onClick={flip("pin")}>Pin to top</Button>
+        <Button aria-pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
+        <Button aria-pressed={!on.mute} onClick={flip("mute")}>Mute thread</Button>
+        <Button variant="ghost" aria-pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
+        <Button variant="ghost" aria-pressed={!on.pin} onClick={flip("pin")}>Pin to top</Button>
       </div>
       <Caption>Icon toggles carry no check: the plate, the ink step and the glyph's selected form (a core glyph closes and fills; a fillSafe Phosphor glyph fills)</Caption>
       <div style={row}>
@@ -278,8 +278,8 @@ function TogglesDemo({ state }: { state: string }) {
       <Card style={{ width: "100%" }}>
         <CardContent>
           <div style={row}>
-            <Button pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
-            <Button variant="ghost" pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
+            <Button aria-pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
+            <Button variant="ghost" aria-pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
             <IconButton variant="secondary" icon={HomeGlyph} label="Home" pressed={on.home} onClick={flip("home")} />
             <Button variant="primary">Not a toggle</Button>
             <Button variant="danger">Not a toggle</Button>
