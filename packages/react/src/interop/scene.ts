@@ -487,7 +487,13 @@ function headBox(tip: Pt, dir: "up" | "down" | "left" | "right"): Rect {
 
 // ---- Automatic layout placement helper (DECISIONS 306, 327) ----
 
-function pickPlacement(spec: DiagramSpec, override?: DiagramPlacement | DiagramPlacement[]): DiagramPlacement | undefined {
+function pickPlacement(
+  spec: DiagramSpec,
+  override?: DiagramPlacement | DiagramPlacement[],
+  targetW?: number,
+  marksMode: "omit" | "embed" = "omit",
+  resolveMark?: InteropMarkResolver,
+): DiagramPlacement | undefined {
   if (spec.layout !== "auto") return undefined;
   const raw = override ?? (spec as { placement?: DiagramPlacement | DiagramPlacement[] }).placement;
   if (!raw) return undefined;
@@ -495,11 +501,23 @@ function pickPlacement(spec: DiagramSpec, override?: DiagramPlacement | DiagramP
   if (!raw.length) return undefined;
   const pref = (spec as { direction?: "right" | "down" }).direction;
   const order: Array<"right" | "down"> = pref ? [pref] : spec.type === "flowchart" ? ["down", "right"] : ["right", "down"];
+  const ordered: DiagramPlacement[] = [];
   for (const dir of order) {
     const cand = raw.find((p) => p.direction === dir);
-    if (cand && !buildModel(spec, { checks: false, placement: cand }).unplaced) return cand;
+    if (cand && !ordered.includes(cand)) ordered.push(cand);
   }
-  return raw.find((p) => !buildModel(spec, { checks: false, placement: p }).unplaced) ?? raw[0];
+  for (const cand of raw) if (!ordered.includes(cand)) ordered.push(cand);
+
+  // Match the browser's direction rule: try candidates in order and pick the first whose minimum width fits targetW.
+  if (targetW !== undefined) {
+    for (const cand of ordered) {
+      const m = buildModel(spec, { checks: false, placement: cand });
+      if (m.unplaced) continue;
+      const hasMarks = marksMode === "embed" && m.nodes.some((n) => Boolean(resolveNodeMark(n, marksMode, resolveMark)));
+      if (computeMinimums(m, hasMarks).least <= targetW) return cand;
+    }
+  }
+  return ordered.find((p) => !buildModel(spec, { checks: false, placement: p }).unplaced) ?? ordered[0];
 }
 
 function pickPlacementForMeasured(
@@ -782,16 +800,17 @@ function groupLevelsOf(m: Model, g: Model["groups"][number], side: 0 | 1 | 2 | 3
 
 /** Computes a complete deterministic InteropScene from Basalt's DiagramSpec headlessly (no DOM or browser). */
 export function layoutHeadless(spec: DiagramSpec, options: InteropOptions = {}): InteropScene {
-  const placement = pickPlacement(spec, options.placement);
+  const marksMode = options.marks ?? "omit";
+  const reqW = options.width ?? 1104;
+  const placement = pickPlacement(spec, options.placement, reqW, marksMode, options.resolveMark);
   const m = buildModel(spec, { checks: false, placement });
   if (m.unplaced) {
     throw new Error('layout="auto" diagram requires a placement: call placeAutoDiagram(spec) or pass options.placement before exporting');
   }
   const pad = options.pad ?? 32;
-  const marksMode = options.marks ?? "omit";
   const hasMarks = marksMode === "embed" && m.nodes.some((n) => Boolean(resolveNodeMark(n, marksMode, options.resolveMark)));
   const mins = computeMinimums(m, hasMarks);
-  const targetW = Math.max(options.width ?? 1104, mins.least);
+  const targetW = Math.max(reqW, mins.least);
   const id = options.diagramId ?? slugId(m.title || m.type);
 
   if (m.type === "sequence") {
@@ -1438,6 +1457,25 @@ function findActiveBar(bars: SceneBar[], who: string, msgNum: number, opening: b
     .sort((a, b) => b.depth - a.depth)[0];
 }
 
+function frameHeaderLabelBox(box: SceneBox, tabBox: SceneBox, label: string): SceneBox {
+  // Matches `.basalt-diagram-fhead` (gap: 12px) + `.basalt-diagram-flabel` (margin-inline-start: -6px, padding-inline: 6px).
+  const x = round2(tabBox.x + tabBox.w + 6);
+  const maxW = Math.max(16, box.x + box.w - x - 6);
+  const w = round2(Math.min(maxW, measureText(label, "label") + 12));
+  return { x, y: round2(tabBox.y + 4), w, h: 16 };
+}
+
+function frameElseLabelBox(box: SceneBox, divY: number, divH: number, isAlt: boolean, label: string): SceneBox {
+  // Matches `.basalt-diagram-felse` (padding-inline-start: 12px, gap: 6px) + `.basalt-diagram-fword` (-6px, pad 6px) + `.basalt-diagram-flabel`.
+  const x = round2(box.x + 6);
+  const elseW = isAlt ? measureText("else", "mono") : 0;
+  const lblW = label ? measureText(label, "label") : 0;
+  const rawW = elseW + (isAlt && label ? 6 : 0) + lblW + 12;
+  const maxW = Math.max(16, box.w - 12);
+  const w = round2(Math.min(maxW, rawW));
+  return { x, y: round2(divY + Math.max(0, (divH - 16) / 2)), w, h: 16 };
+}
+
 function layoutSequenceHeadless(
   m: Model,
   targetW: number,
@@ -1497,14 +1535,17 @@ function layoutSequenceHeadless(
       const fx = round2((s.a - 1) * (colW + gap) + fis * 8);
       const fw = round2((s.b - s.a + 1) * (colW + gap) - gap - (fis + fie) * 8);
       const tabW = round2(measureText(s.open, "mono") + 24);
+      const box: SceneBox = { x: fx, y: round2(y), w: fw, h: 44 };
+      const tabBox: SceneBox = { x: round2(fx + 1), y: round2(y + 1), w: tabW, h: 24 };
       const frame: SceneFrame = {
         id: `f${frames.length}`,
         operator: s.open,
         label: s.label,
         depth: s.depth,
         ...(parent ? { parentId: parent.frame.id } : {}),
-        box: { x: fx, y: round2(y), w: fw, h: 44 },
-        tabBox: { x: round2(fx + 1), y: round2(y + 1), w: tabW, h: 24 },
+        box,
+        tabBox,
+        ...(s.label ? { labelBox: frameHeaderLabelBox(box, tabBox, s.label) } : {}),
         dividers: [],
       };
       frames.push(frame);
@@ -1513,7 +1554,13 @@ function layoutSequenceHeadless(
       y += 36; // frame header row (size-control-lg)
     } else if ("otherwise" in s) {
       const cur = frameStack[frameStack.length - 1];
-      if (cur) cur.frame.dividers.push({ y: round2(y), h: 28, label: s.otherwise });
+      if (cur) {
+        const divY = round2(y);
+        const labelBox = (s.otherwise || cur.frame.operator === "alt")
+          ? frameElseLabelBox(cur.frame.box, divY, 28, cur.frame.operator === "alt", s.otherwise)
+          : undefined;
+        cur.frame.dividers.push({ y: divY, h: 28, label: s.otherwise, ...(labelBox ? { labelBox } : {}) });
+      }
       prevWasFrame.set(frameStack.length, false);
       y += 28; // else branch header (size-control-sm)
     } else if ("close" in s) {
@@ -1852,6 +1899,11 @@ export function sceneFromMeasured(
         const tabBox: SceneBox = ef.tabRect
           ? rectToBox(ef.tabRect)
           : { x: round2(box.x + 1), y: round2(box.y + 1), w: tabW, h: 24 };
+        const labelBox = ef.labelRect
+          ? rectToBox(ef.labelRect)
+          : ef.label
+            ? frameHeaderLabelBox(box, tabBox, ef.label)
+            : undefined;
         frames.push({
           id: `f${idx}`,
           operator: ef.operator,
@@ -1860,7 +1912,17 @@ export function sceneFromMeasured(
           ...(ef.parentIndex !== undefined ? { parentId: `f${ef.parentIndex}` } : {}),
           box,
           tabBox,
-          dividers: ef.dividers.map((d) => ({ y: round2(d.y), h: round2(d.h), label: d.label })),
+          ...(labelBox ? { labelBox } : {}),
+          dividers: ef.dividers.map((d) => {
+            const divY = round2(d.y);
+            const divH = round2(d.h);
+            const dLabelBox = d.labelRect
+              ? rectToBox(d.labelRect)
+              : (d.label || ef.operator === "alt")
+                ? frameElseLabelBox(box, divY, divH, ef.operator === "alt", d.label)
+                : undefined;
+            return { y: divY, h: divH, label: d.label, ...(dLabelBox ? { labelBox: dLabelBox } : {}) };
+          }),
         });
       });
     } else if (m.steps.some((s) => "open" in s)) {
@@ -1875,14 +1937,17 @@ export function sceneFromMeasured(
           const fx = round2((leftNode ? leftNode.box.x : 0) + fis * 8);
           const fr = round2((rightNode ? rightNode.box.x + rightNode.box.w : geo.w) - fie * 8);
           const tabW = round2(measureText(s.open, "mono") + 24);
+          const box: SceneBox = { x: fx, y: 0, w: round2(Math.max(40, fr - fx)), h: 44 };
+          const tabBox: SceneBox = { x: round2(fx + 1), y: 1, w: tabW, h: 24 };
           const frame: SceneFrame = {
             id: `f${frames.length}`,
             operator: s.open,
             label: s.label,
             depth: s.depth,
             ...(parent ? { parentId: parent.frame.id } : {}),
-            box: { x: fx, y: 0, w: round2(Math.max(40, fr - fx)), h: 44 },
-            tabBox: { x: round2(fx + 1), y: 1, w: tabW, h: 24 },
+            box,
+            tabBox,
+            ...(s.label ? { labelBox: frameHeaderLabelBox(box, tabBox, s.label) } : {}),
             dividers: [],
           };
           frames.push(frame);
@@ -1891,7 +1956,10 @@ export function sceneFromMeasured(
           const cur = stack[stack.length - 1];
           if (cur) {
             const divY = round2((cur.lastMsgY ?? 0) + 28);
-            cur.frame.dividers.push({ y: divY, h: 28, label: s.otherwise });
+            const labelBox = (s.otherwise || cur.frame.operator === "alt")
+              ? frameElseLabelBox(cur.frame.box, divY, 28, cur.frame.operator === "alt", s.otherwise)
+              : undefined;
+            cur.frame.dividers.push({ y: divY, h: 28, label: s.otherwise, ...(labelBox ? { labelBox } : {}) });
           }
         } else if ("close" in s) {
           const popped = stack.pop();
@@ -1901,6 +1969,9 @@ export function sceneFromMeasured(
             popped.frame.box.y = topY;
             popped.frame.box.h = round2(Math.max(44, botY - topY));
             popped.frame.tabBox.y = round2(topY + 1);
+            if (popped.frame.label) {
+              popped.frame.labelBox = frameHeaderLabelBox(popped.frame.box, popped.frame.tabBox, popped.frame.label);
+            }
           }
         } else if ("n" in s) {
           const gl = lineByNum.get(s.n);
@@ -2214,29 +2285,44 @@ export function readMeasuredExtras(fig: Element, prefix = "basalt-diagram"): Mea
     if (!fbox || !fbox.getClientRects().length) return;
     const opRaw = el.getAttribute("data-op");
     const operator: MeasuredFrame["operator"] =
-      opRaw === "loop" || opRaw === "alt" || opRaw === "par" ? opRaw : "opt";
+      opRaw === "loop" || opRaw === "alt" ? opRaw : "opt";
     const depth = Number(el.getAttribute("data-depth")) || 1;
     const parentEl = el.parentElement?.closest(`.${prefix}-frame`) ?? null;
     const parentIndex = parentEl ? frameIndexByEl.get(parentEl) : undefined;
     const fhead = el.querySelector(`:scope > .${prefix}-fhead`);
     const ftab = fhead?.querySelector(`.${prefix}-ftab`) ?? null;
     const flabel = fhead?.querySelector(`.${prefix}-flabel`) ?? null;
+    const headLabelText = visibleTextOf(flabel);
     const dividers: MeasuredFrameDivider[] = [];
     el.querySelectorAll(`:scope > .${prefix}-felse`).forEach((elseEl) => {
       if (!elseEl.getClientRects().length) return;
       const r = rectOf(elseEl);
-      const label = visibleTextOf(elseEl.querySelector(`.${prefix}-flabel`));
-      dividers.push({ y: r.t, h: r.b - r.t, label });
+      const fword = elseEl.querySelector(`.${prefix}-fword`);
+      const elabel = elseEl.querySelector(`.${prefix}-flabel`);
+      const label = visibleTextOf(elabel);
+      const parts: Rect[] = [];
+      if (fword && fword.getClientRects().length) parts.push(rectOf(fword));
+      if (elabel && label && elabel.getClientRects().length) parts.push(rectOf(elabel));
+      const labelRect = parts.length
+        ? {
+            l: Math.min(...parts.map((p) => p.l)),
+            t: Math.min(...parts.map((p) => p.t)),
+            r: Math.max(...parts.map((p) => p.r)),
+            b: Math.max(...parts.map((p) => p.b)),
+          }
+        : undefined;
+      dividers.push({ y: r.t, h: r.b - r.t, label, ...(labelRect ? { labelRect } : {}) });
     });
     const idx = frames.length;
     frameIndexByEl.set(el, idx);
     frames.push({
       operator,
-      label: visibleTextOf(flabel),
+      label: headLabelText,
       depth,
       ...(parentIndex !== undefined ? { parentIndex } : {}),
       rect: rectOf(fbox),
       ...(ftab && ftab.getClientRects().length ? { tabRect: rectOf(ftab) } : {}),
+      ...(flabel && headLabelText && flabel.getClientRects().length ? { labelRect: rectOf(flabel) } : {}),
       dividers,
     });
   });

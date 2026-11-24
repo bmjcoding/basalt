@@ -154,7 +154,7 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       { key: "basalt_id", value: n.id },
       { key: "basalt_col", value: String(n.col) },
       { key: "basalt_row", value: String(n.row) },
-      ...(nodeIdx === 0 && scene.measuredBy ? [{ key: "basalt_measured_by", value: scene.measuredBy }] : []),
+      ...(scene.measuredBy ? [{ key: "basalt_measured_by", value: scene.measuredBy }] : []),
     ];
 
     if (n.shape === "table") {
@@ -326,7 +326,7 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
     });
   }
 
-  // 5b. Sequence frames (opt/loop/alt/par containers, corner tab, header label, and dashed branch dividers)
+  // 5b. Sequence frames (opt/loop/alt containers, corner tab, header label, and dashed branch dividers)
   for (const f of scene.frames) {
     const box: SceneBox = { x: round2(f.box.x + pad), y: round2(f.box.y + pad), w: round2(f.box.w), h: round2(f.box.h) };
     const tabBox: SceneBox = { x: round2(f.tabBox.x + pad), y: round2(f.tabBox.y + pad), w: round2(f.tabBox.w), h: round2(f.tabBox.h) };
@@ -359,22 +359,26 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
         rounding: 0,
         textColor: P.textPrimary,
       },
-      text: `<p style="text-align: center; font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; font-weight: bold; color: ${P.textPrimary};">${escHtml(f.operator)}</p>`,
+      text: `<p style="text-align: center; font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; font-weight: 600; color: ${P.textPrimary};">${escHtml(f.operator)}</p>`,
       zIndex: 7 + f.depth,
     });
     if (f.label) {
-      const lblX = round2(tabBox.x + tabBox.w + 8);
-      const lblW = round2(Math.max(40, box.x + box.w - lblX - 8));
+      const lb = f.labelBox ?? {
+        x: round2(f.tabBox.x + f.tabBox.w + 6),
+        y: round2(f.tabBox.y + 4),
+        w: round2(Math.min(Math.max(16, f.box.w - (f.tabBox.w + 12)), f.label.length * 7 + 12)),
+        h: 16,
+      };
       shapes.push({
         id: lucidId("frame_label", f.id),
         type: "rectangle",
-        boundingBox: { x: lblX, y: round2(tabBox.y + 2), w: lblW, h: 20 },
+        boundingBox: { x: round2(lb.x + pad), y: round2(lb.y + pad - 1), w: round2(lb.w), h: round2(Math.max(18, lb.h + 2)) },
         style: {
           fill: { type: "color", color: P.page },
           stroke: { color: transparentFill, width: 0 },
           textColor: P.textSecondary,
         },
-        text: `<p style="text-align: left; font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(f.label)}</p>`,
+        text: `<p style="text-align: left; font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; font-weight: 500; color: ${P.textSecondary};">${escHtml(f.label)}</p>`,
         zIndex: 7 + f.depth,
       });
     }
@@ -389,14 +393,20 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
         zIndex: 7 + f.depth,
       });
       if (div.label || f.operator === "alt") {
+        const eb = div.labelBox ?? {
+          x: round2(f.box.x + 6),
+          y: round2(div.y + Math.max(0, (div.h - 16) / 2)),
+          w: round2(Math.min(Math.max(16, f.box.w - 12), ((f.operator === "alt" ? 4 : 0) + div.label.length) * 7 + 16)),
+          h: 16,
+        };
         const txt = f.operator === "alt"
-          ? `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; color: ${P.textTertiary};">else</span>` +
-            (div.label ? ` <span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(div.label)}</span>` : "")
-          : `<span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(div.label)}</span>`;
+          ? `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; font-weight: 400; color: ${P.textTertiary};">else</span>` +
+            (div.label ? ` <span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; font-weight: 500; color: ${P.textSecondary};">${escHtml(div.label)}</span>` : "")
+          : `<span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; font-weight: 500; color: ${P.textSecondary};">${escHtml(div.label)}</span>`;
         shapes.push({
           id: lucidId("frame_else", `${f.id}_${k}`),
           type: "rectangle",
-          boundingBox: { x: round2(box.x + 12), y: round2(divY + 4), w: round2(Math.max(40, box.w - 24)), h: 20 },
+          boundingBox: { x: round2(eb.x + pad), y: round2(eb.y + pad - 1), w: round2(eb.w), h: round2(Math.max(18, eb.h + 2)) },
           style: {
             fill: { type: "color", color: P.page },
             stroke: { color: transparentFill, width: 0 },

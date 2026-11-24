@@ -63,15 +63,17 @@ export interface MeasuredFrameDivider {
   y: number;
   h: number;
   label: string;
+  labelRect?: Rect;
 }
 
 export interface MeasuredFrame {
-  operator: "opt" | "loop" | "alt" | "par";
+  operator: "opt" | "loop" | "alt";
   label: string;
   depth: number;
   parentIndex?: number;
   rect: Rect;
   tabRect?: Rect;
+  labelRect?: Rect;
   dividers: MeasuredFrameDivider[];
 }
 
@@ -188,16 +190,18 @@ export interface SceneFrameDivider {
   y: number;
   h: number;
   label: string;
+  labelBox?: SceneBox;
 }
 
 export interface SceneFrame {
   id: string;
-  operator: "opt" | "loop" | "alt" | "par";
+  operator: "opt" | "loop" | "alt";
   label: string;
   depth: number;
   parentId?: string;
   box: SceneBox;
   tabBox: SceneBox;
+  labelBox?: SceneBox;
   dividers: SceneFrameDivider[];
 }
 

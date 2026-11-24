@@ -407,7 +407,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     );
   }
 
-  // 3b. Sequence frames (opt/loop/alt/par containers with corner operator tab and dashed branch dividers)
+  // 3b. Sequence frames (opt/loop/alt containers with corner operator tab and dashed branch dividers)
   for (const f of scene.frames) {
     const id = frameSheetId.get(f.id)!;
     const wIn = n6(f.box.w / DPI);
@@ -500,14 +500,18 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
 
     if (f.label) {
       const lblId = nextId++;
-      const lblX = f.tabBox.x + f.tabBox.w + 8;
-      const lblW = Math.max(40, f.box.x + f.box.w - lblX - 8);
-      const lwIn = n6(lblW / DPI);
-      const lhIn = n6(20 / DPI);
+      const lb = f.labelBox ?? {
+        x: f.tabBox.x + f.tabBox.w + 6,
+        y: f.tabBox.y + 4,
+        w: Math.min(Math.max(16, f.box.w - (f.tabBox.w + 12)), f.label.length * 7 + 12),
+        h: 16,
+      };
+      const lwIn = n6(lb.w / DPI);
+      const lhIn = n6(Math.max(18, lb.h + 2) / DPI);
       shapeXml.push(
         `    <Shape ID="${lblId}" NameU="FrameLabel_${escXml(f.id)}" Name="${escXml(f.label)}" Type="Shape">\n` +
-        `      <Cell N="PinX" V="${f6(toVisioX(lblX + lblW / 2))}"/>\n` +
-        `      <Cell N="PinY" V="${f6(toVisioY(f.tabBox.y + 12))}"/>\n` +
+        `      <Cell N="PinX" V="${f6(toVisioX(lb.x + lb.w / 2))}"/>\n` +
+        `      <Cell N="PinY" V="${f6(toVisioY(lb.y + lb.h / 2))}"/>\n` +
         `      <Cell N="Width" V="${f6(lwIn)}"/>\n` +
         `      <Cell N="Height" V="${f6(lhIn)}"/>\n` +
         `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
@@ -516,6 +520,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         `      <Cell N="FillPattern" V="0"/>\n` +
         `      <Cell N="LinePattern" V="0"/>\n` +
         `      <Cell N="VerticalAlign" V="1"/>\n` +
+        `      <Cell N="LeftMargin" V="${pxToIn(4)}"/>\n` +
+        `      <Cell N="RightMargin" V="${pxToIn(4)}"/>\n` +
+        `      <Cell N="TopMargin" V="0"/>\n` +
+        `      <Cell N="BottomMargin" V="0"/>\n` +
         `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
         `      <Cell N="ObjType" V="4"/>\n` +
         `      <Section N="Character">\n` +
@@ -557,9 +565,14 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       );
       if (div.label || f.operator === "alt") {
         const elseId = nextId++;
-        const elseW = Math.max(40, f.box.w - 24);
-        const ewIn = n6(elseW / DPI);
-        const ehIn = n6(20 / DPI);
+        const eb = div.labelBox ?? {
+          x: f.box.x + 6,
+          y: div.y + Math.max(0, (div.h - 16) / 2),
+          w: Math.min(Math.max(16, f.box.w - 12), ((f.operator === "alt" ? 4 : 0) + div.label.length) * 7 + 16),
+          h: 16,
+        };
+        const ewIn = n6(eb.w / DPI);
+        const ehIn = n6(Math.max(18, eb.h + 2) / DPI);
         const isAlt = f.operator === "alt";
         const charXml = isAlt
           ? `        <Row IX="0"><Cell N="Font" V="1"/><Cell N="Color" V="${P.textTertiary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
@@ -570,8 +583,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
           : `<cp IX="0"/><pp IX="0"/>${escXml(div.label)}`;
         shapeXml.push(
           `    <Shape ID="${elseId}" NameU="FrameElse_${escXml(f.id)}_${k}" Name="${escXml(div.label || "else")}" Type="Shape">\n` +
-          `      <Cell N="PinX" V="${f6(toVisioX(f.box.x + 12 + elseW / 2))}"/>\n` +
-          `      <Cell N="PinY" V="${f6(toVisioY(div.y + 14))}"/>\n` +
+          `      <Cell N="PinX" V="${f6(toVisioX(eb.x + eb.w / 2))}"/>\n` +
+          `      <Cell N="PinY" V="${f6(toVisioY(eb.y + eb.h / 2))}"/>\n` +
           `      <Cell N="Width" V="${f6(ewIn)}"/>\n` +
           `      <Cell N="Height" V="${f6(ehIn)}"/>\n` +
           `      <Cell N="LocPinX" V="${f6(n6(ewIn / 2))}" F="Width*0.5"/>\n` +
@@ -580,6 +593,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
           `      <Cell N="FillPattern" V="0"/>\n` +
           `      <Cell N="LinePattern" V="0"/>\n` +
           `      <Cell N="VerticalAlign" V="1"/>\n` +
+          `      <Cell N="LeftMargin" V="${pxToIn(4)}"/>\n` +
+          `      <Cell N="RightMargin" V="${pxToIn(4)}"/>\n` +
+          `      <Cell N="TopMargin" V="0"/>\n` +
+          `      <Cell N="BottomMargin" V="0"/>\n` +
           `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
           `      <Cell N="ObjType" V="4"/>\n` +
           `      <Section N="Character">\n` +

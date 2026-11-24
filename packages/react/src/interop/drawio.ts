@@ -222,7 +222,7 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     );
   }
 
-  // 3b. Sequence frames (opt/loop/alt/par containers with corner operator tab and dashed branch dividers)
+  // 3b. Sequence frames (opt/loop/alt containers with corner operator tab and dashed branch dividers)
   const frameBoxes = new Map<string, SceneBox>();
   for (const f of scene.frames) {
     const worldBox: SceneBox = { x: round2(f.box.x + pad), y: round2(f.box.y + pad), w: round2(f.box.w), h: round2(f.box.h) };
@@ -281,8 +281,16 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     );
 
     if (f.label) {
-      const lblX = round2(tabRelX + tabW + 8);
-      const lblW = round2(Math.max(40, worldBox.w - lblX - 8));
+      const lb = f.labelBox ?? {
+        x: round2(f.tabBox.x + f.tabBox.w + 6),
+        y: round2(f.tabBox.y + 4),
+        w: round2(Math.min(Math.max(16, f.box.w - (f.tabBox.w + 12)), f.label.length * 7 + 12)),
+        h: 16,
+      };
+      const lblX = round2(lb.x + pad - worldBox.x);
+      const lblY = round2(lb.y + pad - worldBox.y - 1);
+      const lblW = round2(lb.w);
+      const lblH = round2(Math.max(18, lb.h + 2));
       const lblStyle = cellStyle([
         "text",
         "html=1",
@@ -290,15 +298,17 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
         `fillColor=${col("page")}`,
         "align=left",
         "verticalAlign=middle",
+        "spacing=0",
         "spacingLeft=4",
         "spacingRight=4",
         `fontColor=${col("textSecondary")}`,
         "fontFamily=Geist, Inter, Helvetica, Arial",
         "fontSize=12",
       ]);
+      const lblVal = `<span style="font-weight:500;">${escXml(f.label)}</span>`;
       cells.push(
-        `        <mxCell id="frame-label-${escXml(f.id)}" value="${escXml(f.label)}" style="${escXml(lblStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
-        `          <mxGeometry x="${lblX}" y="${round2(tabRelY + 2)}" width="${lblW}" height="20" as="geometry"/>\n` +
+        `        <mxCell id="frame-label-${escXml(f.id)}" value="${escXml(lblVal)}" style="${escXml(lblStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
+        `          <mxGeometry x="${lblX}" y="${lblY}" width="${lblW}" height="${lblH}" as="geometry"/>\n` +
         `        </mxCell>`,
       );
     }
@@ -320,10 +330,20 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
         `        </mxCell>`,
       );
       if (div.label || f.operator === "alt") {
+        const eb = div.labelBox ?? {
+          x: round2(f.box.x + 6),
+          y: round2(div.y + Math.max(0, (div.h - 16) / 2)),
+          w: round2(Math.min(Math.max(16, f.box.w - 12), ((f.operator === "alt" ? 4 : 0) + div.label.length) * 7 + 16)),
+          h: 16,
+        };
+        const elseX = round2(eb.x + pad - worldBox.x);
+        const elseY = round2(eb.y + pad - worldBox.y - 1);
+        const elseW = round2(eb.w);
+        const elseH = round2(Math.max(18, eb.h + 2));
         const elseVal = f.operator === "alt"
-          ? `<span style="font-family:Geist Mono,Consolas,monospace;${adaptive ? "opacity:0.65;" : `color:${P.textTertiary};`}">else</span>` +
-            (div.label ? ` <span style="font-family:Geist,Inter,Helvetica,Arial,sans-serif;${adaptive ? "opacity:0.8;" : `color:${P.textSecondary};`}">${escXml(div.label)}</span>` : "")
-          : escXml(div.label);
+          ? `<span style="font-family:Geist Mono,Consolas,monospace;font-weight:400;${adaptive ? "opacity:0.65;" : `color:${P.textTertiary};`}">else</span>` +
+            (div.label ? ` <span style="font-family:Geist,Inter,Helvetica,Arial,sans-serif;font-weight:500;${adaptive ? "opacity:0.8;" : `color:${P.textSecondary};`}">${escXml(div.label)}</span>` : "")
+          : `<span style="font-weight:500;">${escXml(div.label)}</span>`;
         const elseStyle = cellStyle([
           "text",
           "html=1",
@@ -331,6 +351,7 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
           `fillColor=${col("page")}`,
           "align=left",
           "verticalAlign=middle",
+          "spacing=0",
           "spacingLeft=4",
           "spacingRight=4",
           `fontColor=${col("textSecondary")}`,
@@ -339,7 +360,7 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
         ]);
         cells.push(
           `        <mxCell id="frame-else-${escXml(f.id)}-${k}" value="${escXml(elseVal)}" style="${escXml(elseStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
-          `          <mxGeometry x="8" y="${round2(divRelY + 4)}" width="${round2(Math.max(40, worldBox.w - 16))}" height="20" as="geometry"/>\n` +
+          `          <mxGeometry x="${elseX}" y="${elseY}" width="${elseW}" height="${elseH}" as="geometry"/>\n` +
           `        </mxCell>`,
         );
       }
