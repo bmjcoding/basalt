@@ -112,7 +112,7 @@ export function resolveTicket(id, config, where) {
   if (hits.length === 0) throw new Error(`${where}: ticket "${id}" matches no tracker (${names})`);
   if (hits.length > 1) throw new Error(`${where}: ticket "${id}" matches ${hits.length} trackers (${hits.map((hit) => hit.tracker.name).join(", ")})`);
   const [{ tracker, match }] = hits;
-  const values = { id, ...(match.groups ?? {}) };
+  const values = { id, ...match.groups };
   // A pattern with alternatives may leave a named group unset for this id: a link or label that uses it would say "undefined".
   for (const template of [ticketTemplate(tracker)].flat()) {
     for (const [, name] of template.matchAll(VARIABLE)) if (values[name] === undefined) throw new Error(`${where}: ticket "${id}" leaves {${name}} unset, which ${tracker.name}'s ${tracker.show === "link" ? "url or label" : "label"} uses`);

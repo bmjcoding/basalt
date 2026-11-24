@@ -22,8 +22,16 @@
   var onTheme = [];
 
   function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+    return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
   }
+
+  /** A link from data, or null: relative, http, https, mailto or tel, read the way a browser reads it (against a fixed base, so a file page's own
+      relative links pass). javascript:, data: and the rest are refused. It says the scheme is safe, not that the link stays on the site. */
+  function safeHref(h) {
+    try { return typeof h === 'string' && h.trim() && /^(https?|mailto|tel):$/.test(new URL(h, 'https://basalt.invalid/').protocol) ? h : null; } catch (e) { return null; }
+  }
+  /** An option written into markup: one of `list`, else `fallback`. */
+  function pick(v, list, fallback) { return list.indexOf(v) < 0 ? fallback : v; }
 
   /* ------------------------------------------------------------------ icons */
 
@@ -182,9 +190,9 @@
   }
 
   window.Basalt = {
-    init: init, icon: icon, hydrateIcons: hydrateIcons, announce: announce,
+    init: init, icon: icon, hydrateIcons: hydrateIcons, announce: announce, safeHref: safeHref,
     getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
     // For the modules and compose.mjs; not part of the page API.
-    _: { esc: esc, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
+    _: { esc: esc, safeHref: safeHref, pick: pick, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
   };
 })();

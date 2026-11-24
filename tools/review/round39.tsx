@@ -117,6 +117,8 @@ function BeforeScript() {
   }, []);
   return (
     <div style={col}>
+      {/* sink: renderToStaticMarkup of Basalt's own ThemeChoiceControl, no data; the markup is React's, escaped */}
+      {/* oxlint-disable-next-line react/no-danger -- renderToStaticMarkup of Basalt's own control (the sink: comment above) */}
       <div ref={host} dangerouslySetInnerHTML={{ __html: html }} />
       <pre style={readout}>{`The markup above is server-rendered, with no script attached. The word drawn at 600 is the one the root's attribute names:\n${text}`}</pre>
     </div>
@@ -161,6 +163,8 @@ function ThemeDemo({ state }: { state: string }) {
   }
   return (
     <div style={col}>
+      {/* sink: renderToStaticMarkup of Basalt's own ThemeChoiceControl, no data; the markup is React's, escaped */}
+      {/* oxlint-disable-next-line react/no-danger -- renderToStaticMarkup of Basalt's own control (the sink: comment above) */}
       <div dangerouslySetInnerHTML={{ __html: html }} />
       {caption(`The chosen state is ${state === "default" ? "System (nothing stored)" : state}: the word is 600 in primary on the raised pill, its 600 width reserved so nothing moves. One tab stop; the arrow keys move and choose.`)}
     </div>
@@ -190,6 +194,8 @@ function PhaseFrame({ page }: { page: string }) {
   return (
     <div style={{ ...col, maxWidth: 900 }}>
       {caption("A page composed by the HTML skill's own compose.mjs (its topbar module carries the same behaviour as React's useSitePhase), in an iframe. It scrolls itself to the phase and prints what it measured below.")}
+      {/* sink: a page compose.mjs built at review-build time from this round's synthetic body; the frame runs the page's own script, which posts only when its still is ready */}
+      {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script */}
       <iframe title="The bar's phase" srcDoc={source} style={{ width: "100%", height: 560, border: "1px solid var(--basalt-border-input)", borderRadius: 8, background: "transparent" }} />
     </div>
   );

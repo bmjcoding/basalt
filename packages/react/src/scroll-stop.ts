@@ -6,9 +6,14 @@ import * as React from "react";
 
 const FOCUSABLE = 'a[href], area[href], button, input:not([type="hidden"]), select, textarea, summary, iframe, [tabindex], [contenteditable]:not([contenteditable="false"])';
 
+/** Drawn, so Tab can reach it: not under `display: none` or `hidden`, and not `visibility: hidden`. */
+function rendered(element: HTMLElement): boolean {
+  return typeof element.checkVisibility === "function" ? element.checkVisibility({ visibilityProperty: true }) : element.getClientRects().length > 0;
+}
+
 function holdsFocusable(box: HTMLElement): boolean {
   for (const element of box.querySelectorAll<HTMLElement>(FOCUSABLE)) {
-    if (element.matches(":disabled") || element.closest("[inert]") || element.tabIndex < 0) continue;
+    if (element.matches(":disabled") || element.closest("[inert]") || element.tabIndex < 0 || !rendered(element)) continue;
     return true;
   }
   return false;
@@ -45,7 +50,7 @@ export function useScrollStop<T extends HTMLElement>(options: ScrollStopOptions,
     measure();
     // A name that lives elsewhere (a sheet's title registers with its dialog after this effect) is read once more when the frame is drawn.
     const frame = requestAnimationFrame(measure);
-    mutation.observe(box, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["tabindex", "disabled", "href", "inert", "hidden"] });
+    mutation.observe(box, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["tabindex", "disabled", "href", "inert", "hidden", "class", "style", "open"] });
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
   }, []);
   const ref = React.useCallback((element: T | null) => {

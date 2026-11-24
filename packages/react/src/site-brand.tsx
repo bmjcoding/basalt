@@ -22,7 +22,7 @@ export interface SiteLockup {
 
 interface Ids { x1: string; x2: string }
 /** The symbols a landmark has already defined, so its brand links (the bar's, the menu's) draw them and define nothing. */
-const SpriteContext = React.createContext<Ids | null>(null);
+const SpriteContext = /* @__PURE__ */ React.createContext<Ids | null>(null);
 
 function ids(base: string): Ids {
   return { x1: `${base}-1x`, x2: `${base}-2x` };

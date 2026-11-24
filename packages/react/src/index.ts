@@ -27,6 +27,7 @@ export type { NoticeBarProps } from "./notice-bar";
 export { Segment, SegmentedControl, Tab, Tabs, TabsList, TabsPanel, TabsPanels } from "./tabs";
 export type { SegmentProps, SegmentedControlProps, TabProps, TabsListProps, TabsPanelProps, TabsPanelsProps, TabsProps } from "./tabs";
 export { LinkTab, LinkTabs } from "./link-tabs";
+export { safeHref } from "./safe-href";
 export type { LinkTabProps, LinkTabsProps } from "./link-tabs";
 export { TextButton } from "./text-button";
 export type { TextButtonProps } from "./text-button";

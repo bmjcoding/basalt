@@ -65,6 +65,7 @@ function Frame({ height, label, children, onReady }: { height: number; label: st
   }, [body, onReady]);
   return (
     <div style={{ border: "1px solid var(--basalt-border-input)", borderRadius: 12, overflow: "hidden" }}>
+      {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a frame the round writes itself with doc.write of its own markup, to measure it */}
       <iframe ref={ref} title={label} style={{ display: "block", width: "100%", height, border: 0 }} />
       {body ? createPortal(children, body) : null}
     </div>

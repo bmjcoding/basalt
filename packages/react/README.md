@@ -22,14 +22,31 @@ import { CopyIcon, PlayIcon } from "@phosphor-icons/react";
 </Menu>
 ```
 
-Styles sit in `@layer basalt`, so an app's own CSS overrides them without `!important`.
+Styles sit in `@layer basalt`, so an app's own unlayered CSS overrides them without `!important`.
+An app whose own CSS is layered (Tailwind v4's `theme`, `base`, `components` and `utilities`, for one)
+names Basalt's layer first, before any sheet is imported, so the app's layers come after it and win:
+
+```css
+@layer basalt, theme, base, components, utilities;
+```
+
+Without that line the order is the order the sheets arrive in, and Basalt imported after Tailwind
+would beat its utilities on Basalt's components.
 Every component takes `className`; Base UI parts also accept a function of their state.
 Every module that draws a component or holds state declares `"use client"` for React Server
 Component consumers, and the package entry itself does not: what is neither a component nor a hook
 (`formatStamp` and the other formatters, `CONFIRM_MS` and the other constants, `themeBootstrap`,
-`loopsBootstrap`, `preloadCodeLanguages`, `shareOf`, `trailingMean`, `ambient`, the entrance and travel
+`loopsBootstrap`, `preloadCodeLanguages`, `safeHref`, `shareOf`, `trailingMean`, `ambient`, the entrance and travel
 helpers) is plain code that a Server Component can call and read. Import the styles and font sheet
 once in your application's root layout.
+
+**Data and links.** Pass labels and code as children: Basalt draws children and string props as text, and no component takes HTML. Two props take
+markup and are for files in your own repository, never for data: `BrandSvg`'s `source` and a diagram mark's file (a relative path, `https` or a
+`data:image/` URI; anything else is not drawn). A destination from data goes through `safeHref(href)`, which returns it when it is relative, `http`,
+`https`, `mailto` or `tel`, and `null` otherwise; leave a refused link out. React refuses `javascript:` in an `href` but not in a navigation you make
+yourself, so check before `router.push` or `location.assign`, in `onNavigate` and `onSelect` too (`LinkTabs` checks before it calls `onNavigate`). The
+check is about the scheme only: a route that must stay on your site also needs its origin checked. Basalt's link components add
+`rel="noopener noreferrer"` to a link that opens a new tab; your own `<a target="_blank">` needs it written.
 
 Set `data-density="compact"` on `<html>` to move controls down one size (24px minimum).
 Portalled menus inherit it too; a nested `data-density="default"` restores regular sizing.

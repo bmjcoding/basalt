@@ -105,7 +105,7 @@ function modalityOf(event: Event | undefined): FormState["opened"] {
 }
 
 /** Whether the dialog above is modal (the default): its content makes what is outside inert only then. */
-export const DialogModal = React.createContext(true);
+export const DialogModal = /* @__PURE__ */ React.createContext(true);
 
 export interface DialogTriggerProps extends PartProps<"button"> {
   nativeButton?: boolean;

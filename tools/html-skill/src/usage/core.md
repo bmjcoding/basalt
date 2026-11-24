@@ -13,5 +13,5 @@
 - **A dot between words:** `In design<span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Pilot planned` reads "In design, Pilot planned" and draws the dot; `data-spaced` draws a space each side. Never an `aria-hidden` dot beside a hidden comma.
 - **A brand SVG file** (from `brand/`): `data-brand` on its `<svg>`; compose hides it, drops its `<title>` and the CSS gives it no pointer. The link round it has `aria-label`.
 - **A value and its unit** in separate elements: a space between them in the markup, or `<span class="visually-hidden"> </span>`.
-- **Script:** `Basalt.announce(text)` speaks to screen readers.
+- **Script:** `Basalt.announce(text)` speaks to screen readers. `Basalt.safeHref(h)` returns `h` when it is relative, http, https, mailto or tel, else `null`: leave a refused link out. The modules escape the words a page passes them (entries, groups, items, chart JSON) and draw a refused `href` as a button.
 - **Icons:** `svg.icon` is what the script makes of an `<i data-icon>`; never write it yourself.
