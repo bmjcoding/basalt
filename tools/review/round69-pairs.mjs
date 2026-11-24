@@ -35,7 +35,7 @@ function pngSize(file) {
   }
 }
 /** The steps whose main pictures are drawn into the walkthrough: the owner's eye. */
-const OWNERS = ["eye-01-search", "eye-02-filter", "eye-03-legend", "eye-04-composer", "eye-05-copy", "eye-06-command", "eye-07-chips", "eye-08-count", "eye-09-toast", "eye-13-select", "eye-14-go", "eye-11-headline"];
+const OWNERS = ["x-round68-changelog", "eye-01-search", "eye-02-filter", "eye-03-legend", "eye-04-composer", "eye-05-copy", "eye-06-command", "eye-07-chips", "eye-08-count", "eye-09-toast", "eye-13-select", "eye-14-go", "eye-11-headline"];
 /** Widest a picture is written (2x of the walkthrough's widest column), as round 68's. */
 const WIDEST = 2000;
 

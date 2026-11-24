@@ -100,7 +100,7 @@ function Harbor({ state, page = "notes" }: { state: string; page?: "home" | "not
 
 // ---- a package: Slate's changelog on a site page, the versions beside it, the version in the footer ----
 
-function Slate({ state }: { state: string }) {
+export function Slate({ state }: { state: string }) {
   const kind = kindOf(state);
   const press: string[] = [];
   if (kind === "sources") press.push('[id="pr41-1"] .basalt-release-source');
