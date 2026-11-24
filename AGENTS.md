@@ -53,7 +53,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   exception).
 - **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on every surface the pair can appear on, in both
   themes. One exception, by name: a `RunTimeline`'s tail recedes below 4.5:1 from its second row (`opacity-recede-2` to `-5`), because
-  the control above it opens the whole record at full contrast (WCAG G174); it never recedes under more contrast or in forced colours. Contrast tests prove it; add a
+  the control above it opens the whole record at full contrast (WCAG G174); its window's top edge fades only the tail row it cuts, from the second step; it never recedes under more contrast or in forced colours. Contrast tests prove it; add a
   pair to them when you add a token.
 - **Borders build structure; shadows are only for things that float.** No gradient
   borders, glow or bounce, and no press scale beyond Button and IconButton's .98. Hover

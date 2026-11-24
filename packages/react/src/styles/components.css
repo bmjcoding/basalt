@@ -4660,6 +4660,15 @@
       /* Hover and focus lift every tail row to the first step, over duration-fast: a convenience; the toggle is the way back that counts. */
       .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail] > .basalt-run-step-line { opacity: 1; color: var(--basalt-text-tertiary); transition-duration: var(--basalt-duration-fast); }
       .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
+      /* The top edge (DECISIONS 337): the window's top edge fades the one tail row it cuts, over the part that shows (--_cut, measured), from
+         transparent at the edge to opaque at the row's bottom. The mask is in that row's own box, so it moves with the row and never reaches
+         another row or the window's focus ring. The selector is the guard: only a finished tail row at depth 2 to 5, with the tail closed and
+         no roll in flight, whatever the attribute says. A still mask, kept under reduced motion and the hold; under more contrast, in forced
+         colours and in print the edge is a plain cut. The black only supplies the opaque alpha; no colour paints. */
+      .basalt-run-steps-box:not([data-open]) .basalt-run-steps-window:not([data-rolling]) > .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"])[data-cut] {
+        mask-image: linear-gradient(to top, var(--basalt-neutral-0), transparent var(--_cut));
+        mask-repeat: no-repeat;
+      }
     }
     /* Past REFLOW_BOUND counted rows, under reduced motion and under the hold, a roll lands at once: no colour transition either. */
     .basalt-run-steps-window[data-landing] .basalt-run-step-line, :root[data-loops="held"] .basalt-run-step-line { transition: none; }

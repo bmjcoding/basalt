@@ -7,9 +7,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 
-import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, pixels, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -531,4 +531,282 @@ describe("the toggle's chevron", () => {
     const seen = await page.evaluate(() => new Promise((resolve) => { const frames = []; const step = (n) => { const svg = document.querySelector(".basalt-run-steps-toggle svg"); frames.push(svg.innerHTML); if (n < 12) requestAnimationFrame(() => step(n + 1)); else resolve(new Set(frames).size); }; step(0); }));
     assert.ok(seen > 2, `${seen} drawings over 12 frames: a morph passes through between`);
   });
+});
+
+// ---- The top edge (DECISIONS 337): the window's top edge fades the one finished tail row at depth 2 or deeper that it cuts through its words, over
+// the part that shows (`data-cut` and `--_cut` on that row, a mask in its own box). Tests 1 to 9 of the revised decision.
+describe("the top edge", () => {
+  // The shipped agent run (INC-0042): at its end the failed step is the cut row at depth 3; `passed` swaps it with the deploys step, so a passed
+  // step is cut and the failure is whole at depth 2 under it.
+  const SHIPPED = (cut = "failed") => {
+    const logs = { id: "logs", state: "failed", text: 'Searched logs for "pool timeout"', meta: "Timed out after 10 s" };
+    const deploys = { id: "deploys", state: "success", text: "Listed deploys of payments-api", meta: "4f2a1c0 at 14:02", ms: 800 };
+    return [
+      { id: "read", state: "success", text: "Read deploy/payments-api.yaml", meta: "84 lines", ms: 700 },
+      { id: "p99", state: "success", text: "Queried p99 latency · payments-api · 2 h", meta: "p99 1.8 s since 14:05", ms: 1400 },
+      ...(cut === "failed" ? [logs, deploys] : [deploys, logs]),
+      { id: "finding", word: "Finding", text: "Connection pool exhausted after deploy 4f2a1c0", meta: "High confidence" },
+      { id: "approve", state: "success", word: "Approved by Priya Shah", text: "Roll back payments-api to 4f29e0b", meta: "Medium risk", ms: 2600, detail: "kubectl rollout undo deployment/payments-api -n payments" },
+      { id: "rollback", state: "success", text: "Ran kubectl rollout undo deployment/payments-api", meta: "Rolled back to 4f29e0b", ms: 2200 },
+      { id: "check", state: "success", text: "Queried p99 latency · last 10 min", meta: "p99 240 ms", ms: 1100 },
+    ];
+  };
+  const POST = { id: "post", state: "running", text: "Posting the summary to #inc-0042" };
+  // Five tail rows (depths 5 to 1, 100px), then a running step and four full rows after it, so the window can be scrolled anywhere in the tail
+  // and onto the running row: [5 tail rows][running][4 full rows], the window's floor three rows and two and a half tail rows.
+  const DEEP = [1, 2, 3, 4, 5].map((i) => done(i)).concat([{ id: "r", state: "running", text: "Querying latency" }], [7, 8, 9, 10].map((i) => done(i)));
+  const SIZES = [[1440, 1000], [390, 390]];
+
+  // What the edge has written and what paints: every row with data-cut (its --_cut and its visible height under the window's top edge), and every
+  // element on the page whose computed mask is not none.
+  const edgeState = (page) => page.evaluate(() => {
+    const win = document.querySelector(".basalt-run-steps-window");
+    const top = win?.getBoundingClientRect().top ?? 0;
+    const rows = [...document.querySelectorAll(".basalt-run-step")];
+    return {
+      cut: rows.filter((li) => li.hasAttribute("data-cut")).map((li) => ({ i: rows.indexOf(li), cut: li.style.getPropertyValue("--_cut"), visible: Math.round((li.getBoundingClientRect().bottom - top) * 100) / 100, depth: li.dataset.depth ?? null, state: li.dataset.state ?? null })),
+      masked: [...document.querySelectorAll("*")].filter((el) => { const m = getComputedStyle(el).maskImage; return m && m !== "none"; }).map((el) => (el.classList.contains("basalt-run-step") ? rows.indexOf(el) : el.className || el.tagName)),
+    };
+  });
+  // The window scrolled by the reader, then the frame after it (the edge runs in the scroll callback).
+  const scrollTo = async (page, y) => { await page.evaluate((y) => { document.querySelector(".basalt-run-steps-window").scrollTop = y; }, y); await frames(page); };
+  // Today's edge on the same page: no mask anywhere. A picture taken with this on is today's, pixel for pixel.
+  const TODAY = ".basalt-run-step { mask-image: none !important; }";
+  const shot = (page, clip) => pixels(page, clip);
+  const winClip = (page) => page.evaluate(() => { const r = document.querySelector(".basalt-run-steps-window").getBoundingClientRect(); const x = Math.floor(r.left); const y = Math.floor(r.top); return { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y }; });
+  // The hold stills the running ring and hides its running time, so two pictures of the same frame can be compared.
+  const hold = async (page) => { await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held")); await frames(page); };
+  const withToday = async (page, fn) => { const tag = await page.addStyleTag({ content: TODAY }); try { return await fn(); } finally { await tag.evaluate((el) => el.remove()); await frames(page); } };
+
+  // 1.
+  for (const [vw, w] of SIZES) {
+    for (const theme of ["dark", "light"]) {
+      for (const cut of ["failed", "passed"]) {
+        test(`1. at the shipped run's end the cut row has data-cut and --_cut is its visible height, 10px, and nothing else is masked (${vw}, ${theme}, ${cut} cut)`, async () => {
+          const page = await open(APP({ width: w }), { initial: SHIPPED(cut), width: vw, theme });
+          const s = await edgeState(page);
+          assert.equal(s.cut.length, 1, JSON.stringify(s));
+          assert.deepEqual(s.cut[0], { i: 2, cut: "10px", visible: 10, depth: "3", state: cut === "failed" ? "failed" : "success" });
+          assert.deepEqual(s.masked, [2], "only the cut row is masked");
+          const mask = await page.evaluate(() => getComputedStyle(document.querySelector(".basalt-run-step[data-cut]")).maskImage);
+          assert.match(mask, /linear-gradient\(to top, .+, (transparent|rgba\(0, 0, 0, 0\)) 10px\)/);
+        });
+      }
+    }
+  }
+
+  for (const [mode, options] of [["more contrast", { contrast: "more" }], ["forced colours", { forcedColors: "active" }], ["print", { print: true }]]) {
+    test(`1. no mask ${mode === "print" ? "in print" : `under ${mode}`}: the top edge is a plain cut`, async () => {
+      const { print, ...media } = options;
+      const page = await open(APP({ width: 1000 }), { initial: SHIPPED(), width: 1440, ...media });
+      if (print) { await page.emulateMedia({ media: "print" }); await frames(page); }
+      assert.deepEqual((await edgeState(page)).masked, []);
+    });
+  }
+
+  test("1. no mask with the tail open, and no data-cut left behind", async () => {
+    const page = await open(APP({ width: 1000 }), { initial: SHIPPED(), width: 1440 });
+    assert.equal((await edgeState(page)).cut.length, 1);
+    await page.locator(".basalt-run-steps-toggle").click();
+    await settle(page);
+    assert.deepEqual(await edgeState(page), { cut: [], masked: [] });
+    await page.locator(".basalt-run-steps-toggle").click();
+    await settle(page);
+    assert.equal((await edgeState(page)).cut.length, 1, "closed again, the cut row has its fade");
+  });
+
+  // 2.
+  for (const theme of ["dark", "light"]) {
+    test(`2. a running step scrolled 13px above the edge: no data-cut, and its ink is today's (${theme})`, async () => {
+      const page = await open(APP(), { initial: DEEP, theme });
+      await hold(page);
+      const runningTop = await page.evaluate(() => document.querySelector(".basalt-run-step[data-state=running]").offsetTop - document.querySelector(".basalt-run-steps").offsetTop);
+      await scrollTo(page, runningTop + 13);
+      assert.deepEqual(await edgeState(page), { cut: [], masked: [] });
+      const ink = () => page.evaluate(() => { const li = document.querySelector(".basalt-run-step[data-state=running]"); const s = getComputedStyle(li.querySelector(".basalt-run-step-sentence")); return [s.color, getComputedStyle(li).maskImage, getComputedStyle(li.querySelector(".basalt-run-step-line")).opacity]; });
+      const clip = await winClip(page);
+      const now = await shot(page, clip);
+      const today = await withToday(page, () => shot(page, clip));
+      assert.deepEqual(now, today, "the window paints today's pixels");
+      const [color, mask, opacity] = await ink();
+      assert.equal(mask, "none");
+      assert.equal(opacity, "1");
+      assert.equal(color, await page.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--basalt-text-primary)"; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; }));
+    });
+  }
+
+  // 3.
+  test("3. a depth-1 tail row at the edge, or an edge that crosses only a row's padding, has no data-cut", async () => {
+    const page = await open(APP(), { initial: DEEP });
+    // Rows: depth 5 at 0, 4 at 20, 3 at 40, 2 at 60, 1 at 80 (20px each; space-0-5 is 2px).
+    await scrollTo(page, 90);
+    assert.deepEqual((await edgeState(page)).cut, [], "depth 1 cut through its words");
+    for (const y of [41, 42, 58, 59]) { await scrollTo(page, y); assert.deepEqual((await edgeState(page)).cut, [], `${y}: the edge crosses only the padding`); }
+    for (const [y, cut] of [[43, "17px"], [50, "10px"], [57, "3px"]]) { await scrollTo(page, y); assert.deepEqual((await edgeState(page)).cut.map((c) => [c.i, c.cut]), [[2, cut]], `${y}`); }
+  });
+
+  test("3. a data-cut written by hand on a running row, a full row or a depth-1 row computes to mask none: the selector is the guard", async () => {
+    const page = await open(APP(), { initial: DEEP });
+    const masks = await page.evaluate(() => {
+      const pick = { running: document.querySelector(".basalt-run-step[data-state=running]"), full: document.querySelector(".basalt-run-step:not([data-tail]):not([data-state=running])"), "depth 1": document.querySelector(".basalt-run-step[data-depth='1']") };
+      return Object.fromEntries(Object.entries(pick).map(([k, li]) => { li.setAttribute("data-cut", ""); li.style.setProperty("--_cut", "10px"); return [k, getComputedStyle(li).maskImage]; }));
+    });
+    assert.deepEqual(masks, { running: "none", full: "none", "depth 1": "none" });
+  });
+
+  // 4.
+  for (const engine of ["chromium", "webkit"]) {
+    for (const theme of ["dark", "light"]) {
+      test(`4. the window's +2 ring is its own outline, today's top and side pixels, with the cut row masked; there is no frame (${engine}, ${theme})`, async (t) => {
+        let b = browser;
+        if (engine === "webkit") { try { b = await webkit.launch(); } catch { t.skip("WebKit is not installed"); return; } }
+        try {
+          const page = await open(APP({ width: 1000 }), { initial: SHIPPED(), width: 1440, theme, b });
+          assert.equal(await page.locator(".basalt-run-steps-frame").count(), 0);
+          await page.locator(".basalt-run-steps-toggle").focus();
+          await page.keyboard.press("Tab");
+          await settle(page);
+          const r = await page.evaluate(() => { const w = document.querySelector(".basalt-run-steps-window"); const s = getComputedStyle(w); return { fv: w.matches(":focus-visible"), outline: s.outlineStyle, width: s.outlineWidth, offset: s.outlineOffset, mask: s.maskImage, cut: !!document.querySelector(".basalt-run-step[data-cut]") }; });
+          assert.deepEqual(r, { fv: true, outline: "solid", width: "2px", offset: "2px", mask: "none", cut: true });
+          // The ring's band: 4px outside the window on the top and the start side.
+          const box = await winClip(page);
+          const top = { x: box.x + 8, y: box.y - 4, width: box.width - 16, height: 4 };
+          const side = { x: box.x - 4, y: box.y + 8, width: 4, height: box.height - 16 };
+          const now = [await shot(page, top), await shot(page, side)];
+          const today = await withToday(page, async () => [await shot(page, top), await shot(page, side)]);
+          assert.deepEqual(now, today);
+        } finally { if (b !== browser) await b.close(); }
+      });
+    }
+  }
+
+  // 5.
+  for (const [name, initial, vw, w] of [["the finding rolls", SHIPPED().slice(0, 7), 390, 390], ["the approval with its detail rolls", SHIPPED(), 1440, 1000]]) {
+    test(`5. ${name}: the card's bottom moves 0px, no row is masked while it rolls, and on the landing frame the new cut row has its --_cut`, async () => {
+      const page = await open(APP({ width: w }), { initial, width: vw });
+      const bottom = () => page.evaluate(() => document.querySelector("#after").getBoundingClientRect().top);
+      const was = await bottom();
+      const clock = await freezeAnimations(page);
+      await page.evaluate((s) => window.add(s), POST);
+      let rolled = false;
+      for (let t = 0; t < 400; t += 25) {
+        await clock.advance(25);
+        const rolling = await page.evaluate(() => document.querySelector(".basalt-run-steps-window").hasAttribute("data-rolling"));
+        if (rolling) { rolled = true; assert.deepEqual((await edgeState(page)).masked, [], `${t}ms: nothing is masked mid-roll`); }
+        assert.equal(await bottom(), was, `${t}ms: the card's bottom`);
+      }
+      assert.ok(rolled, "the change rolled");
+      await clock.thaw();
+      await settle(page);
+      await frames(page);
+      const s = await edgeState(page);
+      assert.equal(await bottom(), was);
+      for (const c of s.cut) assert.ok(Math.abs(Number.parseFloat(c.cut) - c.visible) < 0.5, JSON.stringify(s));
+      assert.deepEqual(s.masked, s.cut.map((c) => c.i));
+    });
+  }
+
+  test("5. under reduced motion the roll lands at once and the band is set on the same frame", async () => {
+    const page = await open(APP({ width: 1000 }), { initial: SHIPPED().slice(0, 7), width: 1440, reducedMotion: "reduce" });
+    // Read in the commit itself (a MutationObserver's callback runs after React's layout effects and before any frame is painted).
+    const s = await page.evaluate((s) => new Promise((r) => {
+      const observer = new MutationObserver(() => { observer.disconnect(); r([...document.querySelectorAll(".basalt-run-step")].filter((li) => li.hasAttribute("data-cut")).map((li) => li.style.getPropertyValue("--_cut"))); });
+      observer.observe(document.querySelector(".basalt-run-steps"), { childList: true });
+      window.add(s);
+    }), POST);
+    assert.equal(s.length, 1, "a cut row on the landing commit");
+    const settled = await edgeState(page);
+    assert.deepEqual(s, settled.cut.map((c) => c.cut));
+  });
+
+  // 6.
+  test("6. focus inside the cut row clears its data-cut; leaving brings it back", async () => {
+    const page = await open(APP({ width: 1000 }), { initial: SHIPPED(), width: 1440 });
+    assert.equal((await edgeState(page)).cut.length, 1);
+    await page.evaluate(() => document.querySelector(".basalt-run-step[data-cut] .basalt-run-step-sentence").focus({ preventScroll: true }));
+    await frames(page);
+    assert.deepEqual(await edgeState(page), { cut: [], masked: [] });
+    await page.evaluate(() => document.activeElement.blur());
+    await frames(page);
+    assert.equal((await edgeState(page)).cut.length, 1);
+  });
+
+  // 7.
+  test("7. the window is the same node when the counter first rolls, when keep changes and when the tail opens and closes; its scrollTop and the focus inside it survive", async () => {
+    const page = await open(APP({ props: "keep={window.KEEP ?? 3}" }), { initial: [1, 2, 3].map((i) => done(i)) });
+    await page.evaluate(() => { window.__win = document.querySelector(".basalt-run-steps-window"); document.querySelector(".basalt-run-step-sentence").focus(); window.__focus = document.activeElement; });
+    const same = () => page.evaluate(() => ({ node: document.querySelector(".basalt-run-steps-window") === window.__win, focus: document.activeElement === window.__focus, atEnd: (() => { const w = window.__win; return w.scrollHeight - w.scrollTop - w.clientHeight <= 2; })() }));
+    // The counter first rolls: two steps arrive and the oldest goes into the tail (the toggle's words appear).
+    await page.evaluate(() => { window.add({ id: "s4", state: "success", text: "Read file 4", meta: "4 lines" }); window.add({ id: "s5", state: "success", text: "Read file 5", meta: "5 lines" }); });
+    await settle(page);
+    assert.equal(await page.locator(".basalt-run-steps-toggle").count(), 1);
+    assert.deepEqual(await same(), { node: true, focus: true, atEnd: true }, "the counter rolled");
+    for (const i of [6, 7, 8]) await page.evaluate((i) => window.add({ id: `s${i}`, state: "success", text: `Read file ${i}`, meta: `${i} lines` }), i);
+    await settle(page);
+    await page.evaluate(() => { window.__win.scrollTop = 7; });
+    await frames(page);
+    const top = await page.evaluate(() => window.__win.scrollTop);
+    await page.evaluate(() => { window.KEEP = 2; window.set((all) => [...all]); });
+    await settle(page);
+    assert.deepEqual({ ...(await same()), atEnd: undefined }, { node: true, focus: true, atEnd: undefined }, "keep changed");
+    await page.evaluate(() => { window.KEEP = 3; window.set((all) => [...all]); });
+    await settle(page);
+    assert.equal(await page.evaluate(() => window.__win.scrollTop), top, "its scrollTop is kept");
+    for (const click of [1, 2]) { await page.locator(".basalt-run-steps-toggle").click(); await settle(page); assert.equal((await same()).node, true, `toggle ${click}`); }
+    assert.deepEqual(page.errors, []);
+  });
+
+  // 8.
+  test("8. with 17px of a 20px tail row showing, --_cut is 17px and the row below is pixel-identical to today's", async () => {
+    const page = await open(APP(), { initial: DEEP });
+    await hold(page);
+    await scrollTo(page, 43);
+    const s = await edgeState(page);
+    assert.deepEqual(s.cut.map((c) => [c.i, c.cut, c.visible]), [[2, "17px", 17]]);
+    const clip = await page.evaluate(() => { const r = document.querySelectorAll(".basalt-run-step")[3].getBoundingClientRect(); return { x: r.left, y: r.top, width: r.width, height: r.height }; });
+    const now = await shot(page, clip);
+    const today = await withToday(page, () => shot(page, clip));
+    assert.deepEqual(now, today);
+  });
+
+  // 9.
+  for (const [vw, w] of SIZES) {
+    for (const theme of ["dark", "light"]) {
+      test(`9. a frame painted mid-scroll before the edge runs matches today's outside the marked row: the running row, then a whole failure, arriving at the edge (${vw}, ${theme})`, async () => {
+        // R: the running row arrives 3px past the edge. F: the jump lands at the end, a passed row cut and the failure whole under it.
+        for (const [name, initial, to] of [["the running row", DEEP, "running"], ["a whole failure", SHIPPED("passed"), "end"]]) {
+          const page = await open(APP({ width: w }), { initial, width: vw, theme });
+          await hold(page);
+          await scrollTo(page, 3);
+          assert.deepEqual((await edgeState(page)).cut.map((c) => [c.i, c.cut]), [[0, "17px"]], `${name}: the first row is marked at 3px`);
+          // Stop the edge (no scroll callback reaches the window), jump by a Page Down's length or to the end, and paint.
+          const box = await page.evaluate((to) => {
+            window.__stop = (e) => e.stopImmediatePropagation();
+            document.addEventListener("scroll", window.__stop, true);
+            const win = document.querySelector(".basalt-run-steps-window");
+            const list = win.firstElementChild;
+            win.scrollTop = to === "running" ? document.querySelector(".basalt-run-step[data-state=running]").offsetTop - list.offsetTop + 3 : win.scrollHeight;
+            const r = document.querySelector(".basalt-run-step[data-cut]").getBoundingClientRect();
+            return { top: r.top, bottom: r.bottom };
+          }, to);
+          await frames(page);
+          const clip = await winClip(page);
+          const stale = await shot(page, clip);
+          const today = await withToday(page, () => shot(page, clip));
+          const dpr = await page.evaluate(() => devicePixelRatio);
+          const width = Math.round(clip.width * dpr);
+          assert.equal(stale.length % width, 0);
+          const rowOf = (n) => clip.y + Math.floor(n / width) / dpr;
+          const differs = stale.map((p, n) => (p.join() === today[n].join() ? null : rowOf(n))).filter((y) => y !== null && !(y >= box.top && y < box.bottom));
+          assert.deepEqual(differs, [], `${name}: no pixel differs outside the marked row`);
+          await page.evaluate(() => { document.removeEventListener("scroll", window.__stop, true); document.querySelector(".basalt-run-steps-window").dispatchEvent(new Event("scroll")); });
+          await frames(page);
+          const settled = await edgeState(page);
+          assert.ok(settled.cut.every((c) => c.depth !== "1" && c.state !== "running"), JSON.stringify(settled));
+          if (to === "end") assert.deepEqual(settled.cut.map((c) => [c.i, c.cut]), [[2, "10px"]], "settled, the new cut row");
+          await page.close();
+        }
+      });
+    }
+  }
 });
