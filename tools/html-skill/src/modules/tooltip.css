@@ -20,8 +20,9 @@
     overflow: visible;
   }
   .tooltip:popover-open { display: flex; }
-  /* The 6px between the opener and the tooltip is the tooltip's own, unseen: a pointer moving slowly onto it never crosses the page on the way (WCAG 1.4.13). */
-  .tooltip::before { content: ""; position: absolute; inset: calc(-1 * var(--basalt-space-1-5)); z-index: -1; }
+  /* The 6px between the opener and the tooltip is the tooltip's own, unseen: a pointer moving slowly onto it never crosses the page on the way (WCAG 1.4.13).
+     8px from the padding box: the gap, the 1px rim and the entrance's .98 scale. */
+  .tooltip::before { content: ""; position: absolute; inset: calc(-1 * var(--basalt-space-2)); z-index: -1; }
   /* stylelint-disable-next-line unit-disallowed-list -- a zero duration that duration-instant would write: the token takes this module 16 bytes over its own cap (3,200, modules.json), and raising a cap is the owner's */
   .tooltip[data-instant] { transition-duration: 0ms; }
   .tooltip .kbd-group { margin-inline-start: var(--basalt-space-2); }

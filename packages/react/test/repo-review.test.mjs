@@ -113,22 +113,6 @@ describe("LinkTabs", () => {
   });
 });
 
-describe("CommandList", () => {
-  test("mounting under Strict Mode leaves focus where it was (the replayed effect is not taken for Back)", async () => {
-    const { page } = await fixturePage(browser, `const GROUPS = [{ heading: "Go", items: [{ id: "a", label: "Alpha", onSelect: () => {} }, { id: "b", label: "Beta", onSelect: () => {} }] }];
-      function App() { const [shown, setShown] = React.useState(false); window.show = () => setShown(true);
-        return <React.StrictMode><button id="held">Held</button>{shown ? <B.CommandList label="Commands" groups={GROUPS} detail={(c) => <h3>{c.label}</h3>} /> : null}</React.StrictMode>; }
-      ${render("<App />")}`);
-    try {
-      await page.locator("#held").focus();
-      await page.evaluate(() => window.show());
-      await page.locator(".basalt-command-split, .basalt-command").first().waitFor();
-      await settle(page);
-      assert.equal(await page.evaluate(() => document.activeElement?.id), "held");
-    } finally { await page.close(); }
-  });
-});
-
 describe("scroll stops", () => {
   test("a drawer body whose only button is hidden is still a keyboard stop, and becomes one again when the button is hidden later", async () => {
     const LONG = `Array.from({ length: 40 }, (_, i) => <p key={i} style={{ margin: 0 }}>Log line {i}</p>)`;

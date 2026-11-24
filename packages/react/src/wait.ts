@@ -104,10 +104,9 @@ export function takeClick<R, E>(render: R, onClick: Press<E> | undefined): [R, P
     const second = onClick?.(event);
     if (!isThenable(first)) return second;
     if (!isThenable(second)) return first;
-    return Promise.allSettled([first, second]).then((settled) => {
-      const failed = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
-      if (failed) throw failed.reason;
-      return settled.map((result) => (result as PromiseFulfilledResult<unknown>).value);
+    return Promise.allSettled([first, second]).then(([a, b]) => {
+      if (a.status === "rejected") throw a.reason;
+      if (b.status === "rejected") throw b.reason;
     });
   }];
 }
