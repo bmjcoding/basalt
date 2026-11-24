@@ -356,7 +356,7 @@ describe("the icon helper", () => {
 });
 
 describe("the palette", () => {
-  test("a link may be relative, http, https or mailto; javascript:, data: and obfuscated schemes are refused, and the palette still closes", async () => {
+  test("a link may be relative, http, https, mailto or tel (the safe-sinks rule); javascript:, data: and obfuscated schemes are refused, and the palette still closes", async () => {
     const { page, context, errors } = await open("template-static.html", { all: true });
     const hrefs = ["javascript:window.__executed=1;void 0", "  JavaScript:window.__executed=1", "java\tscript:window.__executed=1", "data:text/html,<script>parent.__executed=1</script>", "vbscript:x", "file:///etc/hosts"];
     for (const href of hrefs) {
@@ -368,7 +368,7 @@ describe("the palette", () => {
       assert.equal(page.url(), "https://basalt.test/", href);
     }
     assert.equal(errors.length, hrefs.length);
-    assert.ok(errors.every((e) => /palette link must be relative, http, https or mailto/.test(e)), errors.join("\n"));
+    assert.ok(errors.every((e) => /palette link must be relative, http, https, mailto or tel/.test(e)), errors.join("\n"));
     await context.close();
     // Each allowed link gets its own page, and the test waits for the navigation that link starts. One shared page went
     // back with goto while a relative link's navigation could still be in flight, which a slow runner turned into an

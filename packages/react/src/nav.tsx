@@ -11,9 +11,9 @@ import { join } from "./utils";
 // between hovered items (plate.tsx), over each item painting its own pill, which is the whole story with no script.
 
 /** Whether the list is the collapsed rail. Set by `Nav`, read by its items. */
-const NavContext = React.createContext(false);
+const NavContext = /* @__PURE__ */ React.createContext(false);
 /** The list's size. Set by `Nav`, read by its items for their glyph's size. */
-const NavSizeContext = React.createContext<NavSize>("md");
+const NavSizeContext = /* @__PURE__ */ React.createContext<NavSize>("md");
 
 /**
  * `md`: the app's navigation, a 48px pill at 20/28 with a 24 glyph. `sm`: a second, quieter list under it (recent items,
@@ -25,7 +25,7 @@ export type NavSize = "md" | "sm";
  * Whether the app shell is showing the rail. `AppShell` sets it, so the `Nav`s it holds collapse by the width of the page
  * without the app measuring anything; a `collapsed` prop on a `Nav` still wins.
  */
-export const NavRailContext = React.createContext(false);
+export const NavRailContext = /* @__PURE__ */ React.createContext(false);
 
 export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label" | "aria-labelledby"> {
   /** The landmark's name, e.g. "Primary" or the product's. Required: an app may have several navigations. */

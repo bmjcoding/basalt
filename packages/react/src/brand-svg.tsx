@@ -32,6 +32,8 @@ export function BrandSvg({ source, className, ...props }: BrandSvgProps) {
       width={props.width ?? drawing.width}
       height={props.height ?? drawing.height}
       className={join("basalt-brand-svg", className)}
+      // sink: `source`, a brand file from the app's own repository (never user input, as the prop says); its title and script are dropped by readBrandSvg; test/words-fix-c12.test.mjs
+      // oxlint-disable-next-line react/no-danger -- the brand file's inner markup, from the app's own repository (the sink: comment above)
       dangerouslySetInnerHTML={{ __html: drawing.inner }}
     />
   );

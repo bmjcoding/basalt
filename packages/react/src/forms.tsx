@@ -10,6 +10,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { MinusGlyph } from "./glyphs/minus";
 import { PlusGlyph } from "./glyphs/plus";
 import { IconButton, type ControlSize } from "./button";
+import { useInRequiredField } from "./field-group";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
@@ -149,7 +150,7 @@ export interface ComboboxProps {
   inputProps?: Omit<React.ComponentProps<"input">, "className" | "value" | "defaultValue" | "children">;
 }
 
-/** A searchable Select. The chosen value must come from the supplied options. Label it with Field. */
+/** A searchable Select. The chosen value must come from the supplied options. Label it with Field; in a required field it carries `required`. */
 export function Combobox({ options, placeholder = "Search…", emptyMessage = "No options match.", controlSize = "md", className, inputProps, modal = false, inputRef, "aria-label": label, ...props }: ComboboxProps) {
   const mirror = useMirrorRef(inputRef);
   const layer = useFloatingLayer();
@@ -157,6 +158,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
   const byValue = new Map(options.map((option) => [option.value, option]));
   // A description is a search keyword: with none given, a typed query also finds the words under a label.
   const described = options.some((option) => option.description);
+  const inRequiredField = useInRequiredField();
   const describedFilter = (value: string, query: string) => {
     const needle = query.trim().toLowerCase();
     if (!needle) return true;
@@ -164,7 +166,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
     return `${option?.label ?? value}`.toLowerCase().includes(needle) || (option?.description?.toLowerCase().includes(needle) ?? false);
   };
   return (
-    <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} inputRef={mirror} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
+    <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} required={props.required ?? (inRequiredField || undefined)} inputRef={mirror} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
       <BaseCombobox.InputGroup className={join("basalt-combobox", className)}>
         <BaseCombobox.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} placeholder={placeholder} data-size={controlSize} className="basalt-input basalt-combobox-input" />
         <BaseCombobox.Trigger render={<IconButton icon={CaretUpDownIcon} label="Show options" size={controlSize} />} className="basalt-combobox-trigger" />

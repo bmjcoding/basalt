@@ -79,7 +79,9 @@ describe("A5-24: a reference that leaves the file is warned of, after the page",
     assert.deepEqual(external('<h1>x</h1><style>.a { background: url(https://cdn.test/a.png); } @import "https://cdn.test/b.css"; .b { background: url("data:image/png;base64,AA=="); }</style>'), ["<style> url(https://cdn.test/a.png)", "<style> url(https://cdn.test/b.css)"]);
     assert.deepEqual(external('<h1>x</h1><p style="background: url(\'https://cdn.test/c.png\')">y</p>'), ["<p style> url(https://cdn.test/c.png)"]);
     assert.deepEqual(external('<h1>x</h1><img alt="" srcset="https://cdn.test/a.png 1x, https://cdn.test/b.png 2x">'), ['<img srcset="https://cdn.test/a.png">', '<img srcset="https://cdn.test/b.png">']);
-    assert.deepEqual(external('<h1>x</h1><svg viewBox="0 0 1 1"><image href="https://cdn.test/x.png"/></svg>'), ['<image href="https://cdn.test/x.png">']);
+    assert.deepEqual(external('<h1>x</h1><svg viewBox="0 0 1 1"><image href="https://cdn.test/x.png"/></svg>'), ['<image href="https://cdn.test/x.png">']);    // A data: URL in a srcset holds its own comma; it stays in the file, and only the candidate after it is listed.
+    assert.deepEqual(external('<h1>x</h1><img alt="" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x, https://cdn.test/b.png 2x">'), ['<img srcset="https://cdn.test/b.png">']);
+    assert.deepEqual(external('<h1>x</h1><img alt="" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw=,https://cdn.test/c.png">'), [], "a URL runs to whitespace, so this is one data: URL");
   });
   test("a link is listed as a link, and what stays in the file is not listed", () => {
     assert.deepEqual(external('<h1>x</h1><a href="https://example.test/">out</a>'), ['<a href="https://example.test/"> (a link)']);

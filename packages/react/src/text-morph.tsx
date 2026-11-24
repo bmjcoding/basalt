@@ -26,9 +26,18 @@ export interface TextMorphPlan {
  * identity. Leaving letters have no slot in the next width, so they can fade
  * without holding space. Entering letters occupy only the next width.
  */
+let segmenter: Intl.Segmenter | null | undefined;
+/** What a reader sees as one character (a letter with its accents, an emoji with its modifiers), so a morph never splits one into parts. */
+export function graphemes(text: string): string[] {
+  // Made on first use, so loading the module does nothing; a browser without Intl.Segmenter splits by code point, as before.
+  if (segmenter === undefined) segmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  // oxlint-disable-next-line typescript/no-misused-spread -- the fallback without Intl.Segmenter: code points, as the morph split before
+  return segmenter ? Array.from(segmenter.segment(text), (part) => part.segment) : [...text];
+}
+
 export function planTextMorph(previous: string, next: string, widths: { previous: number[]; next: number[] }): TextMorphPlan {
-  const from = [...previous];
-  const to = [...next];
+  const from = graphemes(previous);
+  const to = graphemes(next);
   if (widths.previous.length !== from.length || widths.next.length !== to.length) {
     throw new Error("planTextMorph widths must match the strings");
   }
@@ -155,7 +164,7 @@ function measureAll(host: HTMLElement, values: string[]) {
   probe.style.letterSpacing = style.letterSpacing;
   probe.style.fontFeatureSettings = style.fontFeatureSettings;
   const cells = values.map((value) =>
-    [...value].map((character) => {
+    graphemes(value).map((character) => {
       const cell = document.createElement("span");
       cell.style.display = "inline-block";
       cell.textContent = character;

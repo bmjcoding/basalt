@@ -146,7 +146,7 @@ interface Controller {
   early: Array<[string, boolean]>;
 }
 
-const ControllerContext = React.createContext<Controller | null>(null);
+const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>(null);
 
 const defaultActionWords = (label: string) => `${label} is available. Press F6 to reach it.`;
 
@@ -374,7 +374,7 @@ function ToastAnnouncer({ controller }: { controller: Controller }) {
 }
 
 /** Whether the stack is hovered or focused (Base UI's `expanded`), which holds every clock. */
-const ExpandedContext = React.createContext(false);
+const ExpandedContext = /* @__PURE__ */ React.createContext(false);
 
 function ToastStack() {
   const away = useAway();
@@ -399,7 +399,7 @@ function ToastStack() {
   );
 }
 
-const AwayContext = React.createContext(false);
+const AwayContext = /* @__PURE__ */ React.createContext(false);
 
 /**
  * Whether nobody can be looking: the window is not focused, or the tab is hidden. Base UI holds its own clocks for a blurred

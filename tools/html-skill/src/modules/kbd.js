@@ -70,7 +70,7 @@
   B.kbdGroup = kbdGroup;
   B.hardwareKeyboard = hardwareKeyboard;
   // The palette draws its chips and binds its keys with these.
-  _.kbd = { MOD_ICON: MOD_ICON, KEY_NAME: KEY_NAME, kbdGroup: kbdGroup, keyshortcuts: keyshortcuts, keywords: keywords };
+  _.kbd = { MOD_ICON: MOD_ICON, KEY_NAME: KEY_NAME, mod: mod, kbdGroup: kbdGroup, keyshortcuts: keyshortcuts, keywords: keywords };
   _.step(20, 'initKeyboard', initKeyboard);
   _.step(50, 'hydrateKbd', hydrateKbd);
 })(window.Basalt);

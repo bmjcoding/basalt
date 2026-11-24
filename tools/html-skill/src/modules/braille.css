@@ -26,4 +26,7 @@
   @media (prefers-reduced-motion: reduce) {
     .braille-dot[data-dot] { animation: none; }
   }
+
+  /* The hold (data-loops="held"): braille holds its first frame, the dots lit at rest. */
+  :root[data-loops="held"] .braille-dot[data-dot] { animation: none; }
 }

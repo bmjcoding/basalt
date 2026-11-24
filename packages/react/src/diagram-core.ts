@@ -55,8 +55,8 @@ export interface DiagramEdge {
 export interface DiagramGroup { id: string; label: string }
 /**
  * A service's own mark for an architecture card (DECISIONS 292, 2.7): its owner's file for light grounds and, if it has one, for dark grounds, each
- * a URL the app has the right to show (a file path or a data URI). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner
- * and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
+ * a URL the app has the right to show: a relative path, an `https` URL or a `data:image/` URI, from files the app ships, never from user input (anything else
+ * is not drawn, with a development warning). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
  */
 export interface DiagramMark {
   onLight: string;
@@ -243,7 +243,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
         focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? txt(raw.group) : undefined,
-        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark) : undefined,
+        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark, dev ? warn : undefined) : undefined,
       });
     }
     if (type === "architecture") for (const g of spec.groups ?? []) { const gid = String(g.id ?? ""); groups.push({ id: gid, label: String(g.label ?? ""), members: nodes.filter((n) => n.group === gid).map((n) => n.id) }); }
@@ -367,16 +367,26 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
 }
 
 /** A card's mark from the author's data: a bundled id (a string), or `{ onLight, onDark }` (with the words a bundled one stands for, `says`). */
-function markOf(v: unknown): MNode["mark"] {
+function markOf(v: unknown, warn?: (message: string) => void): MNode["mark"] {
   if (typeof v === "string") return v ? { id: v } : undefined;
   if (!v || typeof v !== "object") return undefined;
   const o = v as { onLight?: unknown; onDark?: unknown; says?: unknown };
-  const onLight = txt(o.onLight);
+  const onLight = markUrl(txt(o.onLight), warn);
   if (!onLight) return undefined;
-  return { onLight, onDark: txt(o.onDark) ?? onLight, says: Array.isArray(o.says) ? o.says.map(String) : undefined };
+  return { onLight, onDark: markUrl(txt(o.onDark), warn) ?? onLight, says: Array.isArray(o.says) ? o.says.map(String) : undefined };
 }
-/** A URL as a CSS string: what would end it or the declaration is escaped, so a URL can only ever be read as one. */
-const cssUrl = (u: string) => `url("${u.replace(/[\\"\n;]/g, (c) => (c === "\n" ? "\\a " : c === ";" ? "\\3b " : `\\${c}`))}")`;
+/** A mark is an image the app ships: a relative path, https, or a data: image. Anything else (a script scheme, another document) is no mark. */
+function markUrl(u: string | undefined, warn?: (message: string) => void): string | undefined {
+  if (!u) return undefined;
+  if (/^data:image\//i.test(u.trim())) return u;
+  try {
+    if (/^https?:$/.test(new URL(u, "https://basalt.invalid/").protocol) && !/^http:/i.test(u.trim())) return u;
+  } catch { /* not a URL: no mark */ }
+  warn?.(`a card's mark ${JSON.stringify(u.slice(0, 60))} is not a relative path, https or a data: image, so it is not drawn`);
+  return undefined;
+}
+/** A URL as a CSS string: what would end it or the declaration is escaped (a line break, a return, a form feed, a quote, a backslash, a semicolon), so a URL can only ever be read as one. */
+const cssUrl = (u: string) => `url("${u.replace(/[\\"\n\r\f;]/g, (c) => (c === "\n" ? "\\a " : c === "\r" ? "\\d " : c === "\f" ? "\\c " : c === ";" ? "\\3b " : `\\${c}`))}")`;
 
 /** A value worked out once a model (the stack's plan, the sentences, the key and the list), kept on the model so a state change does not redo it. */
 function memo<T>(m: Model, key: string, make: () => T): T {
@@ -2078,6 +2088,7 @@ export function applyTrace(fig: HTMLElement, P: string, geo: Geo | null, tokens:
   if (!svg) return;
   let defsEl = svg.querySelector("defs");
   if (!defsEl && defs) { defsEl = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defsEl, svg.firstChild); }
+  // sink: masksMarkup's mask defs, built from measured numbers and Basalt's own ids; nothing from the spec reaches it; test/repo-review.test.mjs (a diagram's hostile labels)
   if (defsEl) defsEl.innerHTML = defs;
   geo.lines.forEach((l, k) => {
     const path = groupEls.get(String(l.i))?.querySelector(`.${P}-line`);
