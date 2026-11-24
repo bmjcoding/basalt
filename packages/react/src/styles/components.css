@@ -6099,9 +6099,14 @@
        press's .98 keeps it at 45.08), toward the edge as far as the room allows and the rest toward the inside. ::before, as a pressed
        Button's ::after is taken. */
     .basalt-button[data-variant="ghost"][data-edge]:not([data-icon-only]) {
-      min-width: 0;
       --_miss: max(var(--basalt-space-0), calc(var(--basalt-size-tap-min) + 2 * var(--basalt-size-hairline) - 100%));
+      /* What it lacks is split half toward the edge and half toward the inside, as decided. Where the edge has less room than its half (a side
+         inset has taken it), the box itself grows by the shortfall instead, so the inward half never outgrows the outward one and never reaches
+         into a neighbour's target (the code review's finding 1). With the room said, a short word is as wide as its word; with none it is the ordinary 44. */
+      min-width: max(var(--basalt-space-0), min(var(--basalt-size-tap-min), calc(var(--basalt-size-tap-min) + 2 * var(--basalt-size-hairline) - 2 * var(--_reach))));
     }
+    .basalt-button[data-variant="ghost"][data-edge="end"]:not([data-icon-only]) { --_reach: calc(var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)); }
+    .basalt-button[data-variant="ghost"][data-edge="start"]:not([data-icon-only]) { --_reach: calc(var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)); }
     .basalt-button[data-variant="ghost"][data-edge]:not([data-icon-only])::before {
       content: "";
       position: absolute;
