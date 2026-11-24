@@ -39,7 +39,10 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
   maxRows?: number;
   /** The app's other actions, at the start of the row under the field: an attach button, a format toggle. Send is always the row's last. */
   actions?: React.ReactNode;
-  /** The line under the composer: who is typing (`typingStatus`), a draft saved. A polite live region, one line tall even when empty. */
+  /**
+   * Who is typing (`typingStatus`), a draft saved: in the actions row after the app's actions, on a row of its own under them when its words do not fit
+   * beside them. A polite live region, always mounted; with no status no line is held.
+   */
   status?: React.ReactNode;
   /**
    * Names in the field: render the picker for the composer's field, `(field) => <MentionPicker field={field} options={people} />`. The app imports
@@ -55,8 +58,7 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
 
 /**
  * A message field with its send action. The field has an accessible name and no visible label; it grows with its text up to `maxRows` and
- * then scrolls. The row under it holds the app's `actions` and Send (primary, the row's last); the `status` line under that is a polite live
- * region that keeps its height when empty. A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
+ * then scrolls. The row under it holds the app's `actions`, the `status` (a polite live region) and Send (primary, the row's last). A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
  * trigger opens a picker of names while focus stays in the field.
  */
 export function Composer({ label, value, defaultValue = "", onValueChange, onSend, sendKey = "Enter", sendLabel = "Send", waitForAnswer = true, placeholder, rows = 2, maxRows = 8, actions, status, mentions, disabled = false, inputRef, textareaProps, className, style, ...props }: ComposerProps) {
@@ -156,10 +158,14 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
       />
       {mentions ? mentions(own) : null}
       <div className="basalt-composer-actions">
-        {actions ? <div className="basalt-composer-extra">{actions}</div> : null}
+        {/* The app's actions, then the status, beside them while its words fit and on a row of its own under them when they do not; Send stays on the
+            first row. No line is held when there is no status, and the polite region is always mounted (DECISIONS 336, Q4). */}
+        <div className="basalt-composer-start">
+          {actions ? <div className="basalt-composer-extra">{actions}</div> : null}
+          <p className="basalt-composer-status" aria-live="polite">{status}</p>
+        </div>
         {sendKey === "Mod+Enter" ? <ActionShortcut shortcut="Mod+Enter" className="basalt-composer-send-group">{button}</ActionShortcut> : button}
       </div>
-      <p className="basalt-composer-status" aria-live="polite">{status}</p>
     </div>
   );
 }

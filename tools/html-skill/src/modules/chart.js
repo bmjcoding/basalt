@@ -256,7 +256,8 @@
     /* ---- The legend, which is the readout: each value reserves the widest of its forms ---- */
     function valueOf(s, i) {
       var v = s.values[i];
-      return v == null ? (s.reasons && s.reasons[i] ? NOT_OBSERVED + ' · ' + s.reasons[i] : NOT_OBSERVED) : format(v) + (i === partial ? ' ' + partialSuffix : '');
+      // A gap's reason is in the lane, the summary, the table's note and the day's description, never in the legend (DECISIONS 336).
+      return v == null ? NOT_OBSERVED : format(v) + (i === partial ? ' ' + partialSuffix : '');
     }
     function planValue(i) {
       var p = plan.values[i];
@@ -267,7 +268,7 @@
     var legend = '';
     series.forEach(function (s, k) {
       var forms = [];
-      for (var i = 0; i < n; i++) forms.push(shapeOf(valueOf(s, i)));
+      for (var i = 0; i < n; i++) if (s.values[i] != null) forms.push(shapeOf(valueOf(s, i)));
       if (s.values.some(function (v) { return v == null; })) forms.push(NOT_OBSERVED);
       legend += '<li class="chart-entry">' + swatch(bar ? 'bar' : 'series', k, id) + '<span class="chart-name">' + esc(s.name) + '</span><span class="visually-hidden"> </span><span class="chart-value" data-series="' + esc(s.id) + '">' + reserves(forms) + '<span data-part="value"></span></span></li>';
     });

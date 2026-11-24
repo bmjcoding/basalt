@@ -218,8 +218,9 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  // The list holds its unfiltered height, up to the popup cap, and scrolls inside: filtering never changes it, so what is
-  // below it never moves. Measured whenever the list is unfiltered, from the sizer cmdk wraps the rows in.
+  // The panel hugs its rows, up to the popup cap, and scrolls inside past it. Its unfiltered height is measured whenever the list is unfiltered: as
+  // page under the panel on the open page (the host's data-reserve, DECISIONS 336), and, beside a preview, as the list's own height, which the list
+  // and the pane share. Measured from the sizer cmdk wraps the rows in.
   React.useLayoutEffect(() => {
     const host = list.current;
     const box = body.current;
@@ -230,6 +231,8 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
       const style = getComputedStyle(host);
       const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
       box.style.setProperty("--_held", `${sizer.getBoundingClientRect().height + padding}px`);
+      const page = root.current;
+      if (page) wrap.current?.style.setProperty("--_held-page", `${page.getBoundingClientRect().height}px`);
     };
     measure();
     const resizes = new ResizeObserver(measure);

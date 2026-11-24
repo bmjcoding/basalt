@@ -911,9 +911,9 @@
      downward; the height is at most the window less space-4 above and below (the dialog's own max-height), and less its top once the top is held. */
   .basalt-dialog[data-form] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-  .basalt-dialog[data-form][data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
-  .basalt-dialog[data-form][data-held][data-starting-style],
-  .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%) scale(0.98); }
+  .basalt-dialog:is([data-form], .basalt-search)[data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
+  .basalt-dialog:is([data-form], .basalt-search)[data-held][data-starting-style],
+  .basalt-dialog:is([data-form], .basalt-search)[data-held][data-ending-style] { transform: translateX(-50%) scale(0.98); }
   .basalt-dialog[data-form] .basalt-sheet-body { padding-block: var(--basalt-space-5); }
   /* The description opens the body, so the held head stays one line. */
   .basalt-dialog[data-form] .basalt-sheet-body > .basalt-dialog-description:first-child { margin: 0 0 var(--basalt-space-5); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
@@ -3538,13 +3538,17 @@
     outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
     outline-offset: calc(-1 * var(--basalt-size-focus-width));
   }
-  /* The list holds its unfiltered height (written by script as --_held), up to the popup cap, and scrolls inside. */
-  .basalt-command-page .basalt-command-body { position: relative; flex: none; height: var(--_held, auto); max-height: var(--basalt-size-popup-max-height); }
-  .basalt-command-page .basalt-command-list { box-sizing: border-box; height: 100%; max-height: var(--basalt-size-popup-max-height); overscroll-behavior: contain; }
-  /* No match: one centred sentence and a ghost button, in the held area and outside the listbox. */
+  /* The panel is as tall as its rows, up to the popup cap, and scrolls inside past it (DECISIONS 336, Q6). On the open page the list's unfiltered
+     height (written by script as --_held-page) is kept as page under the panel, never paint, so what follows never moves; inside a card or any other
+     surface, or with reserve={false}, it holds no room. Beside a preview the list holds its unfiltered height (--_held), which it and the pane share. */
+  .basalt-command-page .basalt-command-body { position: relative; flex: none; max-height: var(--basalt-size-popup-max-height); }
+  .basalt-command-split[data-mode] .basalt-command-page .basalt-command-body { height: var(--_held, auto); }
+  .basalt-command-page .basalt-command-list { box-sizing: border-box; max-height: var(--basalt-size-popup-max-height); overscroll-behavior: contain; }
+  .basalt-command-split[data-mode] .basalt-command-page .basalt-command-list { height: 100%; }
+  .basalt-command-host[data-reserve] > .basalt-command-split:not([data-mode]) { min-block-size: var(--_held-page, auto); align-content: start; }
+  /* No match: one centred sentence and a ghost button, in the panel's flow with its own padding, outside the listbox. */
+  .basalt-command-split[data-mode] .basalt-command-none { position: absolute; inset: 0; }
   .basalt-command-none {
-    position: absolute;
-    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3653,8 +3657,7 @@
   /* ---- Composer, Mention and MentionPicker (cimip-gaps-2, B3) ----
      A composer is the textarea, a row of actions under it with Send last, and a status line under that. The field has no visible label
      (its name is the aria-label) and grows with its text, a line at a time, from --_rows to --_max-rows (set by the component), then
-     scrolls; it never takes a resize handle, since its height is the text's. The status line is text-xs in tertiary ink, one line tall
-     even when empty, so nothing above or below moves when someone starts typing. */
+     scrolls; it never takes a resize handle, since its height is the text's. The status is text-xs in tertiary ink, in the actions row. */
   .basalt-composer { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-2); min-width: 0; }
   .basalt-input.basalt-textarea.basalt-composer-field {
     --_line: var(--basalt-text-base-line-height);
@@ -3664,15 +3667,20 @@
     max-height: calc(var(--_line) * var(--_max-rows, 8) + var(--basalt-space-4));
     overflow-y: auto;
   }
-  .basalt-composer-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); flex-wrap: wrap; }
+  /* The row: a start group (the app's actions, then the status) and Send, which stays on the first row at the row's end (DECISIONS 336, Q4). The start
+     group is at least Send's height and wraps: the status sits beside the actions while its words fit and takes a row of its own under them when they
+     do not. No line is held when there is no status. */
+  .basalt-composer-actions { display: flex; align-items: flex-start; gap: var(--basalt-space-2); }
+  .basalt-composer-start { flex: 1 1 0; align-self: stretch; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); }
   .basalt-composer-extra { display: flex; align-items: center; gap: var(--basalt-space-1); flex-wrap: wrap; min-width: 0; }
   /* Send is the row's last, at its end, whether or not the app gave other actions. */
-  .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { margin-inline-start: auto; }
-  /* One line, always: a long list of names is cut with an ellipsis rather than wrapped, so nothing under it moves. The cut is a look only:
-     the live region holds the whole text, and that is what is read. */
+  .basalt-composer-actions > :is(.basalt-composer-send, .basalt-composer-send-group) { flex: none; margin-inline-start: auto; }
+  /* One line: a long list of names is cut with an ellipsis rather than wrapped. The cut is a look only: the live region holds the whole text, and that
+     is what is read. */
   .basalt-composer-status {
+    flex: 0 1 auto;
+    min-width: 0;
     margin: 0;
-    min-height: var(--basalt-text-xs-line-height);
     font-size: var(--basalt-text-xs-size);
     line-height: var(--basalt-text-xs-line-height);
     color: var(--basalt-text-tertiary);
@@ -5433,8 +5441,10 @@
   .basalt-chart-seat, .basalt-chart-context { display: inline-grid; }
   .basalt-chart-seat > *, .basalt-chart-context > * { grid-area: 1 / 1; }
   .basalt-chart-seat > .basalt-chart-reserve { font-kerning: none; }
-  /* The seat is as wide as its widest reserved form and nothing else: the digits drawn over it overflow it, so a form that is a sixty-fourth of a pixel wider than its text cannot move the unit. */
-  .basalt-chart-seat > :not(.basalt-chart-reserve) { inline-size: 0; }
+  /* The seat is as wide as its widest reserved form and nothing else: the digits drawn over it overflow it, so a form that is a sixty-fourth of a pixel wider than its text cannot move the unit.
+     What it shows ends the seat (DECISIONS 336, R-10): the zero-width box sits at the seat's end and its digits are drawn from there toward the start, so a
+     shorter number or the dash of a day with no reading is space-2 from the unit, and the unit never moves. */
+  .basalt-chart-seat > :not(.basalt-chart-reserve) { inline-size: 0; justify-self: end; display: flex; justify-content: flex-end; align-items: baseline; }
   .basalt-chart-seat [data-missing] { color: var(--basalt-text-tertiary); }
   .basalt-chart-unit { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-medium) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-chart-context { justify-self: start; margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
@@ -5946,7 +5956,8 @@
     @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
   }
 
-  /* The search dialog (D13a, V3): centred, with a results area of a fixed height, so the field and the count never move. */
+  /* The search dialog (D13a, V3; DECISIONS 336, Q3): its top is held where the full box has it (DialogContent writes --_dialog-top), and its results area is
+     as tall as its rows up to a full result's height, so the field and the count never move and the box ends under what it shows. */
   .basalt-dialog.basalt-search {
     display: flex;
     flex-direction: column;
@@ -6004,7 +6015,7 @@
     line-height: var(--basalt-text-sm-line-height);
     color: var(--basalt-text-tertiary);
   }
-  /* The results area is as tall as a full result: its logo rows, its picture rows and a "See all" row, plus its padding. */
+  /* The results area is as tall as its rows, up to a full result: its logo rows, its picture rows and a "See all" row, plus its padding. */
   .basalt-search-results {
     --_floor: var(--basalt-space-12);
     --_logo-row: max(var(--_floor), calc(var(--basalt-size-search-logo-height) + 2 * var(--basalt-space-1-5)));
@@ -6012,7 +6023,7 @@
     box-sizing: border-box;
     flex: 0 1 auto;
     min-height: 0;
-    height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
+    max-height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
     margin: 0;
     padding: var(--basalt-space-1) var(--basalt-space-2) var(--basalt-space-2-5);
     list-style: none;
@@ -6561,6 +6572,8 @@
   .basalt-pagination[data-compact] .basalt-pagination-pages { display: none; }
   .basalt-pagination[data-compact] .basalt-pagination-summary { display: inline-block; }
   .basalt-pagination-summary { margin-inline: var(--basalt-space-1); }
+  /* The count's seat is centred between the arrows, as the row is (DECISIONS 336, R-9). */
+  .basalt-pagination-summary > .basalt-reserve { justify-items: center; }
   /* size-breakpoint-container-lg (640px): a container query cannot read a token. Under it the numbers go: Previous, the summary and Next, in the nearest container. */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
@@ -7244,8 +7257,8 @@
     .basalt-tooltip[data-ending-style] { transform: none; }
     .basalt-dialog[data-starting-style],
     .basalt-dialog[data-ending-style] { transform: translate(-50%, -50%); }
-    .basalt-dialog[data-form][data-held][data-starting-style],
-    .basalt-dialog[data-form][data-held][data-ending-style] { transform: translateX(-50%); }
+    .basalt-dialog:is([data-form], .basalt-search)[data-held][data-starting-style],
+    .basalt-dialog:is([data-form], .basalt-search)[data-held][data-ending-style] { transform: translateX(-50%); }
     /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
     @media (width < 720px) {
       .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 0; transform: none; }
@@ -8193,7 +8206,7 @@
     top: calc(var(--basalt-viewport-top) + var(--basalt-viewport-height) / 2);
     max-height: calc(var(--basalt-viewport-height) - 2 * var(--basalt-space-4));
   }
-  :root[data-screen-keyboard] .basalt-dialog[data-form][data-held] {
+  :root[data-screen-keyboard] .basalt-dialog:is([data-form], .basalt-search)[data-held] {
     top: max(var(--_dialog-top), calc(var(--basalt-viewport-top) + var(--basalt-space-4)));
     max-height: calc(var(--basalt-viewport-top) + var(--basalt-viewport-height) - max(var(--_dialog-top), calc(var(--basalt-viewport-top) + var(--basalt-space-4))) - var(--basalt-space-4));
   }

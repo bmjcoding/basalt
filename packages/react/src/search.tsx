@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { IconButton } from "./button";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "./dialog";
+import { Dialog, DialogClose, DialogContent, DialogHoldsTop, DialogTitle } from "./dialog";
 import { FilterResult } from "./filter-result";
 import { CloseGlyph } from "./glyphs/close";
 import { SearchGlyph } from "./glyphs/search";
@@ -64,6 +64,8 @@ export interface SearchDialogProps {
 export function SearchDialog({ open, onOpenChange, title, label, placeholder, query, onQueryChange, onSubmit, count, closeLabel = "Close search", finalFocus, children }: SearchDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Its top is held where the full box has it and the box ends under what it shows (DECISIONS 336, Q3). */}
+      <DialogHoldsTop.Provider value>
       <DialogContent className="basalt-search" finalFocus={finalFocus}>
         <DialogTitle className="basalt-visually-hidden">{title}</DialogTitle>
         <form
@@ -92,6 +94,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
         <FilterResult className="basalt-search-count">{count}</FilterResult>
         {children}
       </DialogContent>
+      </DialogHoldsTop.Provider>
     </Dialog>
   );
 }
@@ -106,11 +109,12 @@ export interface SearchResultsProps extends React.ComponentProps<"ul"> {
 }
 
 /**
- * The results area. Its height is that of a full result: `logoRows` logo rows, `rows` picture rows and a "See all" row. It holds that
- * height with fewer results, with none, and with the app's lead links, and scrolls inside; on a short window it is the room the dialog has.
+ * The results area. It is as tall as its rows, up to a full result's height (`logoRows` logo rows, `rows` picture rows and a "See all" row), and
+ * scrolls inside past it; on a short window it is the room the dialog has. The dialog's top is held where the full box has it, so the field and
+ * the count never move and the box ends under what it shows (DECISIONS 336).
  */
 export function SearchResults({ logoRows = 3, rows = 5, all = true, className, style, ...props }: SearchResultsProps) {
-  return <ul {...props} className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
+  return <ul {...props} data-grows="" className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
 }
 
 export interface SearchResultProps extends Omit<React.ComponentProps<"a">, "children" | "media"> {

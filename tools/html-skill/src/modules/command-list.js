@@ -101,11 +101,13 @@
     /** Not in use (the field has no focus, the pointer is off the list, and there is no split) the list shows no plate and no lit row. */
     function syncIdle() { results.toggleAttribute('data-idle', !(detail && mode === 'split') && !focused && !hovered); }
 
-    /** The list holds its unfiltered height, up to the popup cap, and scrolls inside: filtering never changes it, so what is below it never moves. */
+    /** Measured while the list is unfiltered: its height (the list's, beside a preview) and the panel's, kept as page under the panel on the open page
+        so what follows never moves while the panel hugs its matches (DECISIONS 336). */
     function hold() {
       if (query) return;
       var cs = getComputedStyle(results);
       body.style.setProperty('--held', sizer.getBoundingClientRect().height + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 'px');
+      if (!detail) host.style.setProperty('--held-page', page.getBoundingClientRect().height + 'px');
     }
 
     /** The pane is a region named by its first heading, which also takes focus when it is pushed. */
