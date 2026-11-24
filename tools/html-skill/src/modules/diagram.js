@@ -27,7 +27,14 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
 
   /** The figure's markup before script runs: its attributes and its inside, as compose.mjs writes it (and as this script writes it for a figure that has none). */
   function markup(spec, base, viewer) {
-    var model = buildModel(spec);
+    // An automatic figure's words are written on the placement compose.mjs made, in the type's own direction, so before script its cards are in their
+    // cells and not piled into one (Neon's B8 of the code review).
+    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var list = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
+    var first = spec.direction || (spec.type === 'flowchart' ? 'down' : 'right');
+    var placed = null;
+    for (var i = 0; i < list.length; i++) if (list[i].direction === first) placed = list[i];
+    var model = buildModel(spec, { placement: placed || list[0] });
     var tree = figureTree(model, {}, options(base, spec, viewer));
     var html = toHtml(tree, slots(model, spec, base, false));
     var open = html.indexOf('>');
@@ -77,6 +84,7 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       figure.insertAdjacentHTML('beforeend', made.inner);
     }
     model.warnings.forEach(function (w) { console.warn('Basalt diagram: ' + w); });
+    if (model.motion.animated && model.motion.firstVisit && !figure.id) console.warn('Basalt diagram: "entrance": "first-visit" needs an id on the figure: without one the entrance plays on every visit');
     var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
@@ -111,6 +119,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
         clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
         foot.appendChild(clearBtn);
       } else if (!want && clearBtn) { clearBtn.remove(); clearBtn = null; }
+      // "Clear highlight" is last in the foot, after the motion module's buttons, which may be added after it (Neon's P7); never moved while it has focus.
+      if (clearBtn && clearBtn !== clearBtn.parentNode.lastElementChild && document.activeElement !== clearBtn) clearBtn.parentNode.appendChild(clearBtn);
       if (clearBtn) { if (touchTrace) clearBtn.removeAttribute('aria-disabled'); else clearBtn.setAttribute('aria-disabled', 'true'); }
     }
     function onTap(event) {
@@ -131,13 +141,22 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
     function layout() {
       // An automatic figure: the first direction, in order, whose drawn layout fits at this width; none fits, the first, stacked.
       if (auto && placements.length > 1 && !viewer) {
-        var chosen = null;
+        var chosen = null, why = [], fitsByWidth = false;
         for (var k = 0; k < order.length && !chosen; k++) {
           var place = placeOf(order[k]);
           if (!place) continue;
           var trial = buildModel(spec, { rtl: rtl, placement: place });
-          var t = measureFigure(figure, trial, P, base, {}, function (d) { syncAttributes(figure, figureTree(trial, d, opts)); });
-          if (t.dyn.layout === 'drawn') chosen = trial;
+          var said = [];
+          var t = measureFigure(figure, trial, P, base, {}, function (d) { syncAttributes(figure, figureTree(trial, d, opts)); }, function (w) { said.push(w); });
+          if (t.dyn.layout === 'drawn') { chosen = trial; break; }
+          var reasons = said.filter(function (w) { return w.indexOf('the drawn layout does not fit') === 0; }).map(function (w) { return w.replace(/^the drawn layout does not fit at \d+px: /, ''); });
+          if (reasons.length) fitsByWidth = true;
+          why.push('laid ' + order[k] + ' ' + (reasons.length ? reasons.join('; ') : 'it needs ' + Math.ceil(t.least || 0) + 'px'));
+        }
+        // When no direction draws and one had the width, one warning for the figure and its reasons (DECISIONS 322, rule 5), as React's.
+        if (!chosen && fitsByWidth) {
+          var key = why.join('; ').replace(/\d+px/g, '');
+          if (figure.__autoWarned !== key) { figure.__autoWarned = key; console.warn('Basalt diagram: layout="auto" draws in neither direction at ' + Math.round(figure.clientWidth) + 'px, so the figure is stacked: ' + why.join('; ') + '. Name a side on a line named here (fromSide, toSide), shorten a label named here, or write the figure authored: placeDiagram returns every cell to start from'); }
         }
         model = chosen || buildModel(spec, { rtl: rtl, placement: placeOf(order[0]) });
       }
@@ -150,7 +169,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
           var tm = buildModel(spec, { rtl: rtl, placement: pl });
           var tr = viewer.measure(figure, tm, P, base, {}, function (d) { syncAttributes(figure, figureTree(tm, d, opts)); });
           if (tr.dyn.layout !== 'drawn') continue;
-          var fit = Math.min(room.w / figure.offsetWidth, room.h / figure.offsetHeight);
+          // Fit as the viewer takes it (whole per cents, 200% at most), so a tie at 200% keeps the type's own direction.
+          var fit = Math.min(2, Math.floor(Math.min(room.w / figure.offsetWidth, room.h / figure.offsetHeight) * 100 + 1e-6) / 100);
           if (fit > best + 1e-6) { best = fit; pickM = tm; }
         }
         if (pickM) model = pickM;
@@ -169,10 +189,13 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
       retrace();
       // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
-      if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length)); if (fresh && motion) motion.redrawn(); }
+      // The text variant (DECISIONS 306, 1.2): the art where its widest line fits the block (the diagram-text module's), the transcript otherwise; in the
+      // viewer, the art at its own width (9.3). Written before the entrance reads it (its art is its lines) and before the viewer reads the figure's size.
+      var hadArt = model.text ? figure.querySelector('.diagram-text[data-art]') : null;
+      if (model.text && typeof _.diagramText === 'function') _.diagramText(figure, model, spec, viewer);
+      var art = model.text ? figure.querySelector('.diagram-text[data-art]') : null;
+      if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length) || Boolean(art)); if ((fresh || art !== hadArt) && motion) motion.redrawn(); }
       if (viewer && viewer.onMeasured && measured.tokens) viewer.onMeasured(measured, figure);
-      // The text variant (DECISIONS 306, 1.2): the art where its widest line fits the block (the diagram-text module's), the transcript otherwise.
-      if (model.text && typeof _.diagramText === 'function') _.diagramText(figure, model, spec);
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.

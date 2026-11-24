@@ -679,7 +679,9 @@ function writeDiagrams(markup, held, parts, notes, marks) {
       let rewrote = false;
       for (const n of cards) {
         if (!n || n.mark === undefined || n.mark === null) continue;
-        if (typeof n.mark === "string") useMark(marks, n.mark, n, notes);
+        // A data flow's step counts its lane's label as its words, as React's check does (DECISIONS 306, 1.6; Neon's B10 of the code review).
+        const lane = spec.type === "data-flow" && Array.isArray(spec.lanes) ? spec.lanes.find((l) => l && l.id === n.lane) : null;
+        if (typeof n.mark === "string") useMark(marks, n.mark, lane ? { ...n, laneLabel: lane.label } : n, notes);
         else { n.mark = ownMark(marks, n.mark); rewrote = true; }
       }
       if (rewrote) {
@@ -729,7 +731,7 @@ function useMark(marks, id, node, notes) {
 }
 function checkSays(file, id, node, notes) {
   const says = (Object.hasOwn(file.says, id) ? file.says[id] : undefined) ?? [];
-  const words = [node.name, node.kind, node.detail].filter(Boolean).join(" ").toLowerCase();
+  const words = [node.name, node.kind, node.detail, node.laneLabel].filter(Boolean).join(" ").toLowerCase();
   if (says.length && !says.some((w) => words.includes(w.toLowerCase()))) notes.push(`${node.id}'s mark (${id}) stands for ${says.join(" or ")}, and none of its words say so: a mark never carries a fact alone`);
 }
 

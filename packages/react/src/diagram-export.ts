@@ -36,7 +36,10 @@ async function faceData(family: string): Promise<string | null> {
       if (!url) continue;
       if (url.startsWith("data:")) return url;
       try {
-        const blob = await (await fetch(new URL(url, sheet.href ?? location.href))).blob();
+        const res = await fetch(new URL(url, sheet.href ?? location.href));
+        // A face that is not there (a 404's page) is not embedded: the file names the face instead.
+        if (!res.ok) return null;
+        const blob = await res.blob();
         return await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(blob); });
       } catch { return null; }
     }
@@ -68,29 +71,67 @@ function textOf(root: Element, origin: DOMRect, out: string[]) {
   }
 }
 
-/** Every box with a fill or an edge as a rect, the drawing's SVG as it is, and the marks as images. */
+/** A rule drawn by a ::before or ::after (a lane's rule, a band's, a frame's else rule): its box from its own computed place, as a line or a rect. */
+function pseudoOf(el: Element, origin: DOMRect, out: string[]) {
+  // The structural rules only: a linked card's arrow (its name's ::after) is not drawn in a file (1.7, the decider's text edit).
+  if (!/-(lane|band|felse)(\s|$)/.test(` ${el.getAttribute("class") ?? ""}`)) return;
+  for (const which of ["::before", "::after"] as const) {
+    const cs = getComputedStyle(el, which);
+    if (!cs.content || cs.content === "none" || cs.content === "normal" || cs.display === "none") continue;
+    if (cs.position !== "absolute") continue;
+    const host = el.getBoundingClientRect(), hs = getComputedStyle(el);
+    const x = host.left + (Number.parseFloat(hs.borderLeftWidth) || 0) + (Number.parseFloat(cs.left) || 0) - origin.left;
+    const y = host.top + (Number.parseFloat(hs.borderTopWidth) || 0) + (Number.parseFloat(cs.top) || 0) - origin.top;
+    const w = Number.parseFloat(cs.width) || 0, h = Number.parseFloat(cs.height) || 0;
+    const bt = Number.parseFloat(cs.borderTopWidth) || 0;
+    // A dashed rule is drawn as its mask draws it: on and off at the rule's own height times its dash.
+    const dashed = cs.maskImage && cs.maskImage !== "none" ? ` stroke-dasharray="${Number.parseFloat(cs.maskSize) / 2 || 4} ${Number.parseFloat(cs.maskSize) / 2 || 4}"` : "";
+    if (visible(cs.backgroundColor) && w && h) out.push(`<line x1="${r2(x)}" y1="${r2(y + h / 2)}" x2="${r2(x + w)}" y2="${r2(y + h / 2)}" stroke="${cs.backgroundColor}" stroke-width="${r2(h)}"${dashed}/>`);
+    else if (bt && visible(cs.borderTopColor)) out.push(`<line x1="${r2(x)}" y1="${r2(y + bt / 2)}" x2="${r2(x + w + (Number.parseFloat(cs.borderLeftWidth) || 0) + (Number.parseFloat(cs.borderRightWidth) || 0))}" y2="${r2(y + bt / 2)}" stroke="${cs.borderTopColor}" stroke-width="${bt}"${cs.borderTopStyle === "dashed" ? ' stroke-dasharray="4 4"' : ""}/>`);
+  }
+}
+
+/** An SVG of the figure as it is drawn: every painted part with its computed paint, sized and placed, and no motion's mask left on it. */
+function svgOf(el: SVGSVGElement, origin: DOMRect, out: string[]) {
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  if (el.getAttribute("class")?.endsWith("-motion-defs")) return;
+  const clone = el.cloneNode(true) as SVGSVGElement;
+  const src = [el, ...Array.from(el.querySelectorAll("*"))];
+  const dst = [clone, ...Array.from(clone.querySelectorAll("*"))];
+  // A viewBox drawn at another size (the flowchart's diamond): its strokes keep their width.
+  const vb = el.viewBox?.baseVal;
+  const stretched = Boolean(vb && vb.width && (Math.abs(vb.width - r.width) > 0.5 || Math.abs(vb.height - r.height) > 0.5));
+  src.forEach((s, k) => {
+    const cs = getComputedStyle(s);
+    const d = dst[k] as Element;
+    for (const p of ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity"]) d.setAttribute(p, cs.getPropertyValue(p));
+    d.removeAttribute("class");
+    // An entrance's reveal is its own mask: a file is at rest, every line whole.
+    if (/-reveal-/.test(d.getAttribute("mask") ?? "")) d.removeAttribute("mask");
+    if (stretched && k > 0) d.setAttribute("vector-effect", "non-scaling-stroke");
+    if (cs.display === "none") d.setAttribute("display", "none");
+  });
+  clone.setAttribute("x", String(r2(r.left - origin.left)));
+  clone.setAttribute("y", String(r2(r.top - origin.top)));
+  clone.setAttribute("width", String(r2(r.width)));
+  clone.setAttribute("height", String(r2(r.height)));
+  clone.removeAttribute("style");
+  out.push(clone.outerHTML);
+}
+
+/**
+ * Every box with a fill or an edge as a rect, the drawing's SVG as it is, the rules drawn by pseudo-elements, and the marks as images. The drawing's
+ * lines go first, under its cards and plates, as the page paints them (the ink is behind the nodes).
+ */
 function boxesOf(root: Element, origin: DOMRect, out: string[]) {
   const all = [root, ...Array.from(root.querySelectorAll("*"))];
+  const inks = all.filter((el): el is SVGSVGElement => el instanceof SVGSVGElement && el.closest("svg") === el && Boolean(el.closest("[class$='-ink']")));
+  for (const svg of inks) svgOf(svg, origin, out);
   for (const el of all) {
     if (el instanceof SVGElement) {
-      if (el.tagName.toLowerCase() !== "svg" || el.closest("svg") !== el) continue;
-      const r = el.getBoundingClientRect();
-      if (!r.width || !r.height) continue;
-      const clone = el.cloneNode(true) as SVGSVGElement;
-      // Every painted part takes its computed paint, so the file needs no stylesheet.
-      const src = [el, ...Array.from(el.querySelectorAll("*"))];
-      const dst = [clone, ...Array.from(clone.querySelectorAll("*"))];
-      src.forEach((s, k) => {
-        const cs = getComputedStyle(s);
-        const d = dst[k] as Element;
-        for (const p of ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity"]) d.setAttribute(p, cs.getPropertyValue(p));
-        d.removeAttribute("class");
-        if (cs.display === "none") d.setAttribute("display", "none");
-      });
-      clone.setAttribute("x", String(r2(r.left - origin.left)));
-      clone.setAttribute("y", String(r2(r.top - origin.top)));
-      clone.removeAttribute("style");
-      out.push(clone.outerHTML);
+      if (el.tagName.toLowerCase() !== "svg" || el.closest("svg") !== el || inks.includes(el as SVGSVGElement)) continue;
+      svgOf(el as SVGSVGElement, origin, out);
       continue;
     }
     const cs = getComputedStyle(el);
@@ -112,11 +153,15 @@ function boxesOf(root: Element, origin: DOMRect, out: string[]) {
       edge(r!, cs.borderRightColor, x + w - r! / 2, y, x + w - r! / 2, y + h);
     }
     const bw = uniform ? sidesW[0]! : 0;
-    const stroke = bw && cs.borderTopStyle !== "none" && visible(cs.borderTopColor) ? cs.borderTopColor : "none";
+    // A panel's rim is the sides' colour with its top lit (Neon's P8 of the code review): the box in the sides' colour, then the top edge in its own.
+    const sideColor = cs.borderLeftColor;
+    const stroke = bw && cs.borderTopStyle !== "none" && visible(sideColor) ? sideColor : "none";
     if (fill !== "none" || stroke !== "none") {
       const dash = cs.borderTopStyle === "dashed" ? ` stroke-dasharray="4 2"` : "";
       out.push(`<rect x="${x + bw / 2}" y="${y + bw / 2}" width="${Math.max(0, w - bw)}" height="${Math.max(0, h - bw)}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${bw || 0}"${dash}/>`);
+      if (stroke !== "none" && !dash && cs.borderTopColor !== sideColor && visible(cs.borderTopColor)) out.push(`<line x1="${r2(x + radius)}" y1="${r2(y + bw / 2)}" x2="${r2(x + w - radius)}" y2="${r2(y + bw / 2)}" stroke="${cs.borderTopColor}" stroke-width="${bw}"/>`);
     }
+    pseudoOf(el, origin, out);
     // A mark is its owner's file in the export theme's form.
     const image = /url\(["']?([^"')]+)["']?\)/.exec(cs.backgroundImage)?.[1];
     if (image && /-mark$/.test(String(el.getAttribute("class")))) out.push(`<image href="${esc(image)}" x="${x}" y="${y}" width="${w}" height="${h}"/>`);
@@ -132,17 +177,31 @@ export const exportName = (fig: HTMLElement, ext: string) => `${(titleOf(fig).to
 async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: boolean): Promise<{ svg: string; w: number; h: number }> {
   const theme = options.theme ?? "page";
   const had = fig.getAttribute("data-theme");
-  // A file is at rest: no trace, no pending entrance, no mover. The figure is shown so for the read and put back after.
-  const traced = Array.from(fig.querySelectorAll("[data-lit], [data-dim], [data-near]"));
-  const marks = traced.map((el) => [el, el.getAttribute("data-lit"), el.getAttribute("data-dim"), el.getAttribute("data-near")] as const);
-  traced.forEach((el) => { el.removeAttribute("data-lit"); el.removeAttribute("data-dim"); el.removeAttribute("data-near"); });
+  // A file is at rest: no trace, no pending or running entrance, no mover, no quiet run (Neon's B5 of the code review). The figure is shown so for the read
+  // and put back at once, before anything waits.
+  const states = ["data-lit", "data-dim", "data-near", "data-ahead", "data-arrival", "data-arrival-out"];
+  const marked = Array.from(fig.querySelectorAll(states.map((a) => `[${a}]`).join(", ")));
+  const marks = marked.map((el) => [el, states.map((a) => el.getAttribute(a))] as const);
+  marked.forEach((el) => { for (const a of states) el.removeAttribute(a); });
   const hidden = Array.from(fig.querySelectorAll<HTMLElement>("[class*='-flow'], [class*='-bead'], [class*='-packet']"));
   hidden.forEach((el) => { el.dataset.exportHidden = el.style.display; el.style.display = "none"; });
   const entrance = fig.getAttribute("data-entrance");
   if (entrance && entrance !== "done") fig.setAttribute("data-entrance", "done");
+  // An entrance's or a run's colour animations are read at their end, and put back where they were.
+  const anims = fig.getAnimations({ subtree: true }).map((a) => ({ a, at: a.currentTime, running: a.playState === "running" }));
+  for (const { a } of anims) { const end = a.effect?.getComputedTiming().endTime; a.pause(); if (typeof end === "number" && Number.isFinite(end)) a.currentTime = end; }
+  // The viewer's figure (the skill's 9.11): its head and key, which the stage hides, are in the file, and it is read at 100% whatever the zoom.
+  const viewer = fig.getAttribute("data-viewer");
+  if (viewer !== null) fig.removeAttribute("data-viewer");
+  const scaled: Array<[HTMLElement, string]> = [];
+  for (let el = fig.parentElement; el; el = el.parentElement) {
+    const t = getComputedStyle(el).transform;
+    const m = /^matrix\(([^,]+),[^,]+,[^,]+,([^,]+),/.exec(t);
+    if (m && (Math.abs(Number(m[1]) - 1) > 1e-6 || Math.abs(Number(m[2]) - 1) > 1e-6)) { scaled.push([el, el.style.transform]); el.style.transform = "none"; }
+  }
   if (theme !== "page") fig.setAttribute("data-theme", theme);
-  const transitions = fig.style.getPropertyValue("--basalt-export");
   fig.classList.add("basalt-exporting");
+  let read: { body: string[]; w: number; h: number; ground: string };
   try {
     void fig.offsetWidth;
     const pad = Number.parseFloat(getComputedStyle(fig).getPropertyValue("--basalt-space-4")) || 16;
@@ -156,26 +215,30 @@ async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: b
     const body: string[] = [];
     for (const p of parts) boxesOf(p, origin, body);
     for (const p of parts) textOf(p, origin, body);
-    let style = "";
-    if (embed) {
-      const faces: string[] = [];
-      for (const family of ["Geist", "Geist Mono"]) {
-        const data = await faceData(family);
-        if (data) faces.push(`@font-face{font-family:"${family}";src:url(${data});font-weight:100 900}`);
-        else if (process.env.NODE_ENV !== "production") console.warn(`Basalt diagramToSvg: the face "${family}" could not be read, so the file names it`);
-      }
-      if (faces.length) style = `<style>${faces.join("")}</style>`;
-    }
-    const svg = `<svg xmlns="${NS}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><title>${esc(titleOf(fig))}</title><desc>${esc(summaryOf(fig))}</desc>${style}<rect width="${w}" height="${h}" fill="${ground}"/>${body.join("")}</svg>`;
-    return { svg, w, h };
+    read = { body, w, h, ground };
   } finally {
     fig.classList.remove("basalt-exporting");
-    if (transitions) fig.style.setProperty("--basalt-export", transitions);
     if (theme !== "page") { if (had === null) fig.removeAttribute("data-theme"); else fig.setAttribute("data-theme", had); }
+    for (const [el, t] of scaled) el.style.transform = t;
+    if (viewer !== null) fig.setAttribute("data-viewer", viewer);
+    for (const { a, at, running } of anims) { a.currentTime = at; if (running) a.play(); }
     if (entrance && entrance !== "done") fig.setAttribute("data-entrance", entrance);
     hidden.forEach((el) => { el.style.display = el.dataset.exportHidden ?? ""; delete el.dataset.exportHidden; });
-    for (const [el, lit, dim, near] of marks) { if (lit !== null) el.setAttribute("data-lit", lit); if (dim !== null) el.setAttribute("data-dim", dim); if (near !== null) el.setAttribute("data-near", near); }
+    for (const [el, values] of marks) states.forEach((a, k) => { const v = values[k]; if (v !== null && v !== undefined) el.setAttribute(a, v); });
   }
+  const { body, w, h, ground } = read;
+  let style = "";
+  if (embed) {
+    const faces: string[] = [];
+    for (const family of ["Geist", "Geist Mono"]) {
+      const data = await faceData(family);
+      if (data) faces.push(`@font-face{font-family:"${family}";src:url(${data});font-weight:100 900}`);
+      else if (process.env.NODE_ENV !== "production") console.warn(`Basalt diagramToSvg: the face "${family}" could not be read, so the file names it`);
+    }
+    if (faces.length) style = `<style>${faces.join("")}</style>`;
+  }
+  const svg = `<svg xmlns="${NS}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><title>${esc(titleOf(fig))}</title><desc>${esc(summaryOf(fig))}</desc>${style}<rect width="${w}" height="${h}" fill="${ground}"/>${body.join("")}</svg>`;
+  return { svg, w, h };
 }
 
 declare const process: { env: { NODE_ENV?: string } };

@@ -19,18 +19,19 @@ __export(diagram_elk_exports, {
   default: () => diagram_elk_default
 });
 import ELK from "elkjs/lib/elk.bundled.js";
-var diagram_elk_default;
+var Elk, diagram_elk_default;
 var init_diagram_elk = __esm({
   "packages/react/src/diagram-elk.ts"() {
     "use strict";
-    diagram_elk_default = ELK;
+    Elk = ELK;
+    diagram_elk_default = Elk;
   }
 });
 
 // tools/html-skill/src/diagram-place.mjs
 import { workerData } from "node:worker_threads";
 
-// packages/react/src/diagram-layout.ts
+// packages/react/src/diagram-layout-graph.ts
 var W = 200;
 var H = 80;
 var STRAIGHT = "10";
@@ -82,6 +83,8 @@ function graphOf(cards, lines, groups, direction) {
   }
   return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {} })) };
 }
+
+// packages/react/src/diagram-layout.ts
 function absolute(node, ox = 0, oy = 0, out = /* @__PURE__ */ new Map()) {
   for (const c of node.children ?? []) {
     const x = ox + (c.x ?? 0), y = oy + (c.y ?? 0);
@@ -128,7 +131,7 @@ function unusable(cards, groups, cells) {
   }
   const chain = (id) => {
     const out = [];
-    for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g);
+    for (let g = id; g && !out.includes(g); g = groups.find((x) => x.id === g)?.parent) out.push(g);
     return out;
   };
   for (const g of groups) {
@@ -147,7 +150,7 @@ async function placeDiagram(input, direction) {
   const layer = (id) => direction === "down" ? first[id].row : first[id].col;
   const chain = (id) => {
     const out = [];
-    for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g);
+    for (let g = id; g && !out.includes(g); g = groups.find((x) => x.id === g)?.parent) out.push(g);
     return out;
   };
   const groupOf = new Map(cards.map((c) => [c.id, c.group]));
@@ -176,12 +179,12 @@ async function placeDiagram(input, direction) {
     all.splice(all.findIndex((c) => c.id === e.to), 0, ...boxes);
     ways++;
   }
-  const span = (c) => ({ cols: Math.max(...Object.values(c).map((x) => x.col)), rows: Math.max(...Object.values(c).map((x) => x.row)) });
+  const span = (c) => ({ cols: Math.max(1, ...Object.values(c).map((x) => x.col)), rows: Math.max(1, ...Object.values(c).map((x) => x.row)) });
   if (!ways) return { direction, ...span(first), cells: first };
   const second = await cellsOf(graphOf(all, chained, groups, direction));
   const cells = {};
   for (const c of cards) cells[c.id] = second[c.id];
-  const layers = (c) => Math.max(...cards.map((x) => direction === "down" ? c[x.id].row : c[x.id].col));
+  const layers = (c) => Math.max(1, ...cards.map((x) => direction === "down" ? c[x.id].row : c[x.id].col));
   return unusable(cards, groups, cells) || layers(cells) > layers(first) ? { direction, ...span(first), cells: first } : { direction, ...span(second), cells };
 }
 

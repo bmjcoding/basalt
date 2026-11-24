@@ -101,7 +101,7 @@ export type { DataFlowDiagramProps, DataFlowLane, DataFlowNode } from "./data-fl
 export { SequenceDiagram } from "./sequence-diagram";
 export type { DiagramFrameLabels, SequenceDiagramProps, SequenceMessage, SequenceParticipant, SequenceStep } from "./sequence-diagram";
 export { SchemaDiagram } from "./schema-diagram";
-export type { SchemaColumn, SchemaDiagramProps, SchemaTable } from "./schema-diagram";
+export type { DiagramCardinality, DiagramCardinalityPair, SchemaColumn, SchemaDiagramProps, SchemaTable } from "./schema-diagram";
 export { PhaseChart } from "./phase-chart";
 export type { PhaseCall, PhaseChartProps } from "./phase-chart";
 export { ShareBar } from "./share-bar";

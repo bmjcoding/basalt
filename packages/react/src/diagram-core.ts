@@ -422,6 +422,25 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     const cells = options.placement?.cells;
     if (!cells) unplaced = true;
     for (const n of nodes) { const c = cells?.[n.id]; n.col = c?.col ?? 1; n.row = n.row2 = c?.row ?? 1; }
+    // A placement that puts two cards in one cell, or leaves a card out, is not used (8.5; Neon's B8 of the code review): the figure tries its other
+    // direction, then stacks, and a development build names the cards. (A card inside a group's box it is not in is checked below, with the groups.)
+    if (cells) {
+      const seen = new Map<string, string>();
+      for (const n of nodes) {
+        const c = own(cells, n.id);
+        if (!c) { unplaced = true; dev && warn(`the placement has no cell for ${n.id}, so it is not used`); continue; }
+        const key = `${c.col},${c.row}`;
+        if (seen.has(key)) { unplaced = true; dev && warn(`the placement puts ${seen.get(key)} and ${n.id} in one cell, so it is not used`); }
+        seen.set(key, n.id);
+      }
+    }
+    if (cells && !unplaced) for (const g of groups) {
+      const mem = g.all.map((id) => nodes.find((n) => n.id === id)!).filter(Boolean);
+      if (!mem.length) continue;
+      const c1 = Math.min(...mem.map((n) => n.col)), c2 = Math.max(...mem.map((n) => n.col)), r1 = Math.min(...mem.map((n) => n.row)), r2 = Math.max(...mem.map((n) => n.row));
+      const inside = nodes.filter((n) => !g.all.includes(n.id) && n.col >= c1 && n.col <= c2 && n.row >= r1 && n.row <= r2);
+      if (inside.length) { unplaced = true; dev && warn(`the placement puts ${inside.map((n) => n.id).join(", ")} inside the box of the group "${g.label}", so it is not used`); }
+    }
   } else if (spec.layout === "auto") dev && warn(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
   // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
   const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
@@ -429,7 +448,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     if (!raw || raw.href === undefined || raw.href === null) return;
     const href = String(raw.href);
     if (type === "sequence") { dev && warn(`${nodes[k]?.id}: a participant cannot be a link (href)`); return; }
-    if (!href) { dev && warn(`${nodes[k]?.id}'s href is empty`); return; }
+    if (!href.trim()) { dev && warn(`${nodes[k]?.id}'s href is empty`); return; }
     const n = nodes[k];
     if (n) { n.href = href; n.blank = raw.target === "_blank"; }
   });
@@ -567,13 +586,16 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     const swap = (side?: DiagramSide) => (side === "left" ? "right" : side === "right" ? "left" : side);
     for (const e of edges) { e.fromSide = swap(e.fromSide); e.toSide = swap(e.toSide); }
     for (const st of steps) if ("open" in st) { const [a, b] = [cols - st.b + 1, cols - st.a + 1]; st.a = a; st.b = b; }
-    cols = Math.max(1, ...nodes.map((n) => n.col));
+    // A way-only track (DECISIONS 322) is a track right to left too (Neon's P3 of the code review).
+    cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
   }
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
   const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
-  if (checks && nodes.length > 1 && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
+  // A figure with no cells yet (an automatic one before its placement) has no spatial keys to check.
+  if (checks && nodes.length > 100) warn(`the figure has ${nodes.length} cards: more than 100, which automatic layout places on the main thread`);
+  if (checks && nodes.length > 1 && !unplaced && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
 }
 
@@ -736,7 +758,8 @@ export function tapTrace(fig: HTMLElement, P: string, event: MouseEvent, current
   if (!drawing || !target || !drawing.contains(target) || !fig.querySelector(`.${P}-edge`)) return undefined;
   const node = target.closest<HTMLElement>(`.${P}-node`);
   if (node?.hasAttribute("href")) return undefined;
-  if (!node) return null;
+  // A tap on the ground clears a trace; with none up it is nothing, so it never makes a figure "on touch" (Neon's P7 of the code review).
+  if (!node) return current === null ? undefined : null;
   return node.dataset.node === current ? null : node.dataset.node ?? null;
 }
 
@@ -1047,7 +1070,8 @@ function buildKey(P: string, m: Model): VElement | null {
     const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
     for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
   }
-  if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
+  // The text art draws the focal participant in a double-line box: its key shows that glyph (P4 of the pixel review).
+  if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(m.text ? glyph("╔═╗", "focal") : boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
   if (!entries.length) return null;
   return h("div", { class: `${P}-key` }, h("ul", { class: `${P}-legend`, "aria-label": "Key" }, entries));
@@ -1079,7 +1103,8 @@ function nodeText(P: string, m: Model, n: MNode): VChild[] {
   else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
   kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
-  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)]) : n.detail));
+  // The runs are held in one span, a single left-to-right run right to left (1.7).
+  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : n.detail));
   return kids;
 }
 
@@ -1178,7 +1203,11 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
   const wrap = (g: Model["groups"][number], run: MNode[], kids: VNode[]) => {
     // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
     const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
-    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+    // A group whose first card is entered by a turn (a trunk or an end line) has space-12 above it, so the turn runs under its label, not behind it
+    // (DECISIONS 306, 1.3, the decider's answer 1 to the pixel review). The label keeps its place in the first space-8.
+    const first = run[0]!;
+    const turn = Boolean(ctx.plan) && first.group === g.id && m.edges.some((e, k) => e.to === first.id && (ctx.plan!.routes[k] === "trunk" || ctx.plan!.routes[k] === "end-down"));
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turn ? "" : undefined, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
   };
   let k = 0;
   while (k < m.nodes.length) {
@@ -1201,23 +1230,30 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
 }
 
 /**
- * The text variant's transcript (1.2), where the art does not fit: the participants on a line, then each message as number, sender, arrow, receiver,
- * label and note; frames as indented brackets. A line breaks between participants and between words, never inside a name (each name is held whole).
+ * The text variant's transcript (1.2), where the art does not fit, as Draft B's reference (B6 of the pixel review): the participants on a line; then each
+ * message as its number, sender, arrow and receiver, its label on a line of its own and its note on another, every line of it hanging under the sender
+ * inside its frame's indent; frames as indented brackets. A line breaks between participants and between words, never inside a name (each name is held
+ * whole). Each line is a block: `--_in` is its indent in characters, `--_hang` how far its first line starts before it.
  */
 export function transcript(P: string, m: Model): VNode[] {
   const out: VNode[] = [];
   const held = (s: string) => h("span", { class: `${P}-tx-name` }, s);
   const arrow = (k: DiagramLineKind) => (k === "main" ? "━▶" : k === "dashed" ? "┄▷" : "─▶");
-  out.push(h("span", { class: `${P}-tx-line`, "data-ink": "names" }, m.nodes.flatMap((n, k) => [k ? " · " : "", held(n.name)])), "\n");
+  const line = (attrs: VAttrs, indent: number, hang: number, ...kids: VChild[]) => h("span", { class: `${P}-tx-line`, ...attrs, style: hang ? `--_in:${indent + hang};--_hang:${hang}` : `--_in:${indent}` }, ...kids);
+  out.push(line({ "data-ink": "names" }, 0, 0, m.nodes.flatMap((n, k) => [k ? " · " : "", held(n.name)])));
+  const digits = String(Math.max(1, ...m.steps.map((s) => ("n" in s ? s.n : 0)))).length;
   let indent = 0;
   for (const s of m.steps) {
-    const pad = "  ".repeat(indent);
-    if ("band" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "band" }, `${pad}── ${s.band} ──`), "\n"); continue; }
-    if ("open" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, pad, h("span", { "data-ink": "op" }, `[${s.open}]`), ` ${s.label}`), "\n"); indent++; continue; }
-    if ("otherwise" in s) { out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, "  ".repeat(indent - 1), h("span", { "data-ink": "op" }, "[else]"), ` ${s.otherwise}`), "\n"); continue; }
-    if ("close" in s) { indent = Math.max(0, indent - 1); out.push(h("span", { class: `${P}-tx-line`, "data-ink": "frame" }, `${"  ".repeat(indent)}[end]`), "\n"); continue; }
+    const pad = 2 * indent;
+    if ("band" in s) { out.push(line({ "data-ink": "band" }, pad, 0, `── ${s.band} ──`)); continue; }
+    if ("open" in s) { out.push(line({ "data-ink": "frame" }, pad, 0, h("span", { "data-ink": "op" }, `[${s.open}]`), ` ${s.label}`)); indent++; continue; }
+    if ("otherwise" in s) { out.push(line({ "data-ink": "frame" }, 2 * Math.max(0, indent - 1), 0, h("span", { "data-ink": "op" }, "[else]"), ` ${s.otherwise}`)); continue; }
+    if ("close" in s) { indent = Math.max(0, indent - 1); out.push(line({ "data-ink": "frame" }, 2 * indent, 0, "[end]")); continue; }
     const a = m.byId.get(s.from)?.name ?? s.from, b = m.byId.get(s.to)?.name ?? s.to;
-    out.push(h("span", { class: `${P}-tx-line`, "data-n": s.n }, pad, h("span", { "data-ink": "num" }, `${s.n} `), held(a), " ", h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", held(b), " ", h("span", { "data-ink": "label" }, s.label), s.note ? [" ", h("span", { "data-ink": "note" }, `(${s.note})`)] : null), "\n");
+    const hang = digits + 2;
+    out.push(line({ "data-n": s.n }, pad, hang, h("span", { "data-ink": "num" }, String(s.n).padStart(digits, "0")), "  ", held(a), " ", h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", held(b)));
+    out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "label" }, s.label)));
+    if (s.note) out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "note" }, s.note)));
   }
   return out;
 }
@@ -1258,7 +1294,7 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
     const word = kindWord(m, s.kind);
     list.c.push(h("li", { class: `${P}-msg`, "data-kind": s.kind, "data-from": s.from, "data-to": s.to, "data-self": self ? (last ? "start" : "end") : undefined, style: `--_a:${Math.min(ca, cb)};--_b:${Math.max(ca, cb) + 1}` },
       h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, s.label)),
-      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : ""),
+      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : "")),
       s.note ? h("span", { class: `${P}-note` }, s.note) : null));
   }
   return h("div", { class: `${P}-steps` }, root);
@@ -1428,7 +1464,8 @@ export function turnBackLanes(m: Model): { lane: Map<number, number>; dropped: S
     // One group a key; its run from its highest to its lowest end.
     const groups = new Map<string, { members: number[]; lo: number; hi: number }>();
     m.edges.forEach((e, k) => {
-      const key = `${e.to}.${e.toRow}`;
+      // Lines to one key share a lane only when they state the same thing there (1.1; Neon's B9 of the code review).
+      const key = `${e.to}.${e.toRow}.${e.card?.to ?? ""}`;
       const a = at(e.from, e.fromRow ?? 0), b = at(e.to, e.toRow ?? 0);
       const g = groups.get(key) ?? { members: [], lo: Infinity, hi: -Infinity };
       g.members.push(k); g.lo = Math.min(g.lo, a, b); g.hi = Math.max(g.hi, a, b);
@@ -1492,7 +1529,8 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-reach": m.type === "architecture" ? groupReach(m) : undefined,
     "data-gutter": plan?.gutter ? "" : undefined,
     "data-marks": m.marks ? "" : undefined,
-    "data-layout": dyn.layout,
+    // An automatic figure with no placement is stacked before script too: its cards have no cells yet.
+    "data-layout": dyn.layout ?? (m.unplaced ? "stacked" : undefined),
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
     "data-motion": m.motion.animated ? "animated" : undefined,
@@ -1881,7 +1919,8 @@ export function portFloors(m: Model, radius = 8, head = 8): Record<string, numbe
     }
     for (const [key, fs] of bySide) {
       if (fs.length < 2) continue;
-      const f = [...new Set(fs.map((x) => Math.round(x * 1e6) / 1e6))].sort((a, b) => a - b);
+      // Slots that share a point are one (a bus); the fractions are kept unrounded, so 48 is 48 and not 49 (Neon's P1 of the code review).
+      const f = fs.slice().sort((a, b) => a - b).filter((x, j, all) => j === 0 || x - all[j - 1]! > 1e-9);
       let need = Math.max(radius / f[0]!, radius / (1 - f[f.length - 1]!));
       for (let j = 1; j < f.length; j++) need = Math.max(need, head / (f[j]! - f[j - 1]!));
       const id = key.slice(0, key.lastIndexOf("."));
@@ -2399,6 +2438,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const need = segs.length === 1 ? 2 * tk.foot : tk.foot + tk.radiusXs - 0.5;
     if (len(segs[0]!) >= need && len(segs[segs.length - 1]!) >= need) return true;
     drop(l.i, dev ? "has no room for its marks at an end" : "");
+    far.delete(l.i);
     return false;
   });
   // The rows a far line's corridor needs (1.1): a row gap that carries one is space-10 (space-8 otherwise); a margin corridor adds space-8.
@@ -2541,7 +2581,8 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const a = m.byId.get(from), b = m.byId.get(to);
     if (!a || !b) return;
     const room = from === to
-      ? (() => { const next = m.nodes[a.i + (li.dataset.self === "start" ? -1 : 1)]; const limit = next ? xOf(next.id) : li.dataset.self === "start" ? 0 : geo.w; return Math.abs(limit - x1) - s("6") - s("2-5") - s("2"); })()
+      // The neighbour on the loop's side, by column (right to left the author's order runs the other way).
+      ? (() => { const next = m.nodes.find((n) => n.col === a.col + (li.dataset.self === "start" ? -1 : 1)); const limit = next ? xOf(next.id) : li.dataset.self === "start" ? 0 : geo.w; return Math.abs(limit - x1) - s("6") - s("2-5") - s("2"); })()
       : Math.abs(x2 - x1) - 2 * s("2");
     const need = Math.max(said ? said.getBoundingClientRect().width : 0, note ? note.getBoundingClientRect().width : 0);
     if (need > room + 0.5) geo.unseated.push(num);
@@ -2554,6 +2595,15 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const need = [...head.children].reduce((sum, c) => sum + c.getBoundingClientRect().width, 0) + s("3");
     if (need > box.getBoundingClientRect().width + 0.5) (geo.misfit ??= []).push(`the frame "${head.querySelector(`.${P}-flabel`)?.textContent ?? ""}" is wider than its participants`);
   });
+  // Any text box, grown space-1, that would lie on a frame's side fails the fit rule too (1.2; Neon's B7 of the code review): the figure stacks.
+  {
+    const sides = [...drawing.querySelectorAll<HTMLElement>(`.${P}-fbox`)].flatMap((el) => { const r = rectOf(el, origin); return [{ x: r.l + 0.5, t: r.t, b: r.b }, { x: r.r - 0.5, t: r.t, b: r.b }]; });
+    if (sides.length) drawing.querySelectorAll<HTMLElement>(`.${P}-said, .${P}-note, .${P}-band > span`).forEach((el) => {
+      if (!el.getClientRects().length) return;
+      const r = grow(rectOf(el, origin), s("1"));
+      if (sides.some((f) => r.l < f.x && r.r > f.x && r.t < f.b && r.b > f.t)) (geo.misfit ??= []).push(`"${el.textContent?.trim() ?? ""}" would lie on a frame's side`);
+    });
+  }
   return geo;
 }
 
@@ -2768,10 +2818,13 @@ function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: str
 /** The drawing's ink: the SVG (lines, heads, dots, lifelines, cuts) and the labels, as one string. */
 export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const { defs, ids } = masksMarkup(P, geo, tk, base);
-  const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("")
-    + (geo.bars ?? []).map((b) => `<rect class="${P}-bar" x="${b.l}" y="${b.t}" width="${Math.round((b.r - b.l) * 100) / 100}" height="${Math.round((b.b - b.t) * 100) / 100}"/>`).join("");
+  // A sequence's lifelines are their own layer, under its frames; the bars, lines and heads are over them (1.2's order: lifelines, frames, bars, lines,
+  // plates and labels; Neon's P8 of the code review).
+  const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("");
+  const bars = (geo.bars ?? []).map((b) => `<rect class="${P}-bar" x="${b.l}" y="${b.t}" width="${Math.round((b.r - b.l) * 100) / 100}" height="${Math.round((b.b - b.t) * 100) / 100}"/>`).join("");
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
-  const svg = `<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${lifelines}<g class="${P}-edges">${lines}</g></svg>`;
+  const under = lifelines ? `<svg class="${P}-lifes" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${lifelines}</svg>` : "";
+  const svg = `${under}<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${bars}<g class="${P}-edges">${lines}</g></svg>`;
   const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
   return svg + labels;
 }
@@ -3037,7 +3090,8 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl"];
+// The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
 const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {

@@ -4,7 +4,7 @@ import { DiagramFigure } from "./diagram-figure";
 import type { DiagramFigureProps } from "./diagram-figure";
 import type { SchemaTable, DiagramPlacement, DiagramUnplaced } from "./diagram-core";
 
-export type { DiagramLegend, SchemaColumn, SchemaTable } from "./diagram-core";
+export type { DiagramCardinality, DiagramCardinalityPair, DiagramLegend, SchemaColumn, SchemaTable } from "./diagram-core";
 
 interface SchemaDiagramBase extends DiagramFigureProps {
   /**
