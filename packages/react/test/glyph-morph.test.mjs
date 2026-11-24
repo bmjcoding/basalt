@@ -68,7 +68,7 @@ describe("the shipped morph against the drawn set's engine", () => {
     cut: !!(GLYPHS[GLYPHS[name].of]?.cutKnock ?? GLYPHS[name].cutKnock),
     eo: !!(GLYPHS[GLYPHS[name].of]?.evenodd ?? GLYPHS[name].evenodd),
   }]));
-  const PAIRS = { "menu>close": { map: [0, 2, 1, 3, 4, 5, 6, 7] }, "play>pause": {}, "copy>check": {}, "chevron-down>download": {} };
+  const PAIRS = { "menu>close": { map: [0, 2, 1, 3, 4, 5, 6, 7] }, "play>pause": { map: [0, 4, 1, 2, 3, 5, 6, 7] }, "copy>check": {}, "chevron-down>download": {} };
 
   test("every morph that ships passes through the same drawings, frame for frame", async () => {
     const { between, endpointOf, prepare } = await import(pathToFileURL(path.join(here, "..", "dist", "glyph-motion.js")).href);
@@ -212,5 +212,75 @@ describe("the morph controller, driven directly on a virtual clock", () => {
     c = make();
     c.go(B.ArrowDownGlyph.glyph, false, { ...options, reduced: true });
     assert.deepEqual([c.status().moving, c.status().key], [false, "arrow-down"], "reduced motion swaps at once");
+  });
+});
+
+// The pause toggle's held look (DECISIONS 361): pause has a selected form, its two bars filled. Written while tests are paused (the owner: no
+// tests until all open work is finished); run when they resume.
+describe("pause's held form and the play–pause pair (DECISIONS 361)", () => {
+  const load = async () => ({
+    motion: await import(pathToFileURL(path.join(here, "..", "dist", "glyph-motion.js")).href),
+    glyph: await import(pathToFileURL(path.join(here, "..", "dist", "glyph.js")).href),
+    B: await import(pathToFileURL(path.join(here, "..", "dist", "index.js")).href),
+  });
+  // The drawing pause had before it gained a selected form: two bars, and an unused third slot.
+  const BEFORE = [[8.5, 5, 8.5, 19], [15.5, 5, 15.5, 19]];
+  const line = ([x0, y0, x3, y3]) => [x0, y0, x0 + (x3 - x0) / 3, y0 + (y3 - y0) / 3, x0 + (2 * (x3 - x0)) / 3, y0 + (2 * (y3 - y0)) / 3, x3, y3, 1];
+  const drawnSlots = (drawing) => drawing.slots.filter((s) => s[8] > 0).map((s) => s.map((v) => Math.round(v * 1000) / 1000));
+
+  test("at rest pause is the drawing it was, to the number; held, each bar is a closed loop 1.5 wide on its centreline, and fills", async () => {
+    const { glyph, B } = await load();
+    const rest = glyph.settle(B.PauseGlyph.glyph, false);
+    const held = glyph.settle(B.PauseGlyph.glyph, true);
+    assert.deepEqual(drawnSlots(rest), BEFORE.map(line).map((s) => s.map((v) => Math.round(v * 1000) / 1000)));
+    assert.equal(rest.f, 0);
+    assert.equal(held.f, 1);
+    assert.deepEqual(held.loops, [[0, 1, 2, 3], [4, 5, 6, 7]]);
+    const xs = (loop) => loop.flatMap((i) => [held.slots[i][0], held.slots[i][6]]);
+    assert.deepEqual([Math.min(...xs([0, 1, 2, 3])), Math.max(...xs([0, 1, 2, 3]))], [7.75, 9.25], "the left bar about x 8.5");
+    assert.deepEqual([Math.min(...xs([4, 5, 6, 7])), Math.max(...xs([4, 5, 6, 7]))], [14.75, 16.25], "the right bar about x 15.5");
+  });
+
+  test("pause is the one action with a selected form: every other action keeps its drawing", () => {
+    const actions = set.filter((name) => !GLYPHS[name].nav && !GLYPHS[name].board);
+    const changing = actions.filter((name) => loopsOf(name).length || GLYPHS[name].seam || GLYPHS[GLYPHS[name].of]?.seam);
+    assert.deepEqual(changing, ["pause"]);
+    assert.equal(GLYPHS.pause.family, "rich", "pause is drawn with eight slots, a named exception beside copy, edit, trash and download");
+  });
+
+  test("play and pause at rest run today's path both ways, frame for frame", async () => {
+    const { motion, B } = await load();
+    // Today's pause, as an endpoint: the same three-slot drawing the pair ran on, with no map.
+    const old = { slots: [...BEFORE.map(line), [15.5, 12, 15.5, 12, 15.5, 12, 15.5, 12, 0], ...Array.from({ length: 5 }, () => [12, 12, 12, 12, 12, 12, 12, 12, 0])], angle: 0, f: 0, loops: [], knock: [], name: "pause", group: null };
+    const play = motion.endpointOf(B.PlayGlyph.glyph, false);
+    const pause = motion.endpointOf(B.PauseGlyph.glyph, false);
+    let worst = 0;
+    for (const [a, b, oldA, oldB] of [[play, pause, play, old], [pause, play, old, play]]) {
+      const now = motion.prepare(a, b);
+      assert.equal(now.kind, "pair");
+      // the old pair had no map: slot to slot
+      const was = oldA.name === "play" ? { from: oldA, pair: {} } : { from: oldA, pair: null };
+      for (const e of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
+        const got = drawnSlots(motion.between(now.from, b, e, now.pair)).sort();
+        const want = drawnSlots(motion.between(was.from, oldB, e, was.pair)).sort();
+        assert.equal(got.length, want.length, `${a.name} → ${b.name} at ${e}: slots drawn`);
+        got.forEach((s, i) => s.forEach((v, k) => { worst = Math.max(worst, Math.abs(v - want[i][k])); }));
+      }
+    }
+    assert.ok(worst < 0.002, `the path differs from today's by ${worst}`);
+  });
+
+  test("a pair with a filled end is no morph: held pause and play swap in the engine (a toggle's seat crossfades them)", async () => {
+    const { motion, B } = await load();
+    const held = motion.endpointOf(B.PauseGlyph.glyph, true);
+    const play = motion.endpointOf(B.PlayGlyph.glyph, false);
+    assert.equal(motion.prepare(held, play).kind, null);
+    assert.equal(motion.prepare(play, held).kind, null);
+    assert.equal(motion.prepare(motion.endpointOf(B.PauseGlyph.glyph, false), held).kind, "same", "rest to held is the glyph's own morph");
+    const clock = { t: 0, now: () => clock.t, raf: () => 1, caf: () => {} };
+    const drawn = [];
+    const c = motion.createMorph(held, "pause:selected", (d) => drawn.push(d), clock);
+    c.go(B.PlayGlyph.glyph, false, { duration: 300, ease: (t) => t, reduced: false });
+    assert.deepEqual([c.status().moving, c.status().key, drawn.length], [false, "play", 1], "arrives at once, with no frame in flight");
   });
 });

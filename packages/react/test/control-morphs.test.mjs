@@ -131,12 +131,12 @@ describe("a pressed toggle morphs a core glyph with an opening", () => {
     });
   }
 
-  test("an action glyph keeps its drawing when selected: the pressed pause shows no morph, and its plate and ink step are the state", async () => {
+  test("an action glyph keeps its drawing when selected: the pressed copy shows no morph, and its plate and ink step are the state", async () => {
     const { page } = await open();
-    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: false, label: "Pause animations" });
+    await mount(page, "IconButton", { icon: "CopyGlyph", pressed: false, label: "Copy on save" });
     await idle(page);
     const rest = await outer(page, ".basalt-button svg");
-    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: true, label: "Pause animations" });
+    await mount(page, "IconButton", { icon: "CopyGlyph", pressed: true, label: "Copy on save" });
     for (const t of [0, 60, 100, 200]) {
       await run(page, t === 0 ? 0 : 20);
       assert.equal(await outer(page, ".basalt-button svg"), rest, `at ${t}: the same drawing`);
@@ -447,24 +447,21 @@ describe("CodeBlock and Terminal's compact copy", () => {
   });
 });
 
-describe("reduced motion: an allowed change swaps at once (DECISIONS 221), as MorphIcon does", () => {
-  test("there is no second form: no switch, no fade layer, no keyframes", async () => {
+describe("reduced motion: an allowed change swaps at once (DECISIONS 221), as MorphIcon does; a pressed toggle's seat crossfades (DECISIONS 361)", () => {
+  test("there is no second form but the toggle seat's crossfade: no switch, no reduced form, and the one fade is two opacity rules", async () => {
     const fs = await import("node:fs");
     const sources = ["glyph-flight.tsx", "control-icon.tsx", "control-seat.tsx", "button.tsx", "styles/components.css"].map((file) => fs.readFileSync(path.join(pkg, "src", file), "utf8")).join("\n");
-    assert.doesNotMatch(sources, /REDUCED_GLYPH_CHANGE|reducedForm|glyph-fade/);
+    assert.doesNotMatch(sources, /REDUCED_GLYPH_CHANGE|reducedForm/);
+    const css = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8");
+    assert.equal((css.match(/\[data-fade="(?:in|out)"\]/g) ?? []).length, 2, "one rule for each group");
+    const button = fs.readFileSync(path.join(pkg, "src", "button.tsx"), "utf8");
+    assert.equal((button.match(/crossfade=\{toggles\}/g) ?? []).length, 2, "Button and IconButton pass it on every pressed toggle's seat, and nowhere else");
   });
 
-  test("a pressed toggle, a changed icon that is an allowed pair and a current item are each at once, with no fade and no frame", async () => {
+  test("a changed icon that is an allowed pair and a current item are each at once, with no fade and no frame", async () => {
     const { page } = await open();
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.evaluate(() => window.loadFlight());
-    const selected = await ssr(page, "Icon", { icon: "HomeGlyph", selected: true });
-    await mount(page, "Button", { icon: "HomeGlyph", pressed: false }, "Home");
-    await idle(page);
-    await mount(page, "Button", { icon: "HomeGlyph", pressed: true }, "Home");
-    assert.equal(await outer(page, ".basalt-button svg"), selected, "selected at once");
-    await run(page, 60);
-    assert.equal(await outer(page, ".basalt-button svg"), selected, "and nothing runs");
     await mount(page, "Button", { icon: "CopyGlyph" }, "Copy");
     await idle(page);
     await mount(page, "Button", { icon: "CheckGlyph" }, "Copy");
@@ -472,6 +469,87 @@ describe("reduced motion: an allowed change swaps at once (DECISIONS 221), as Mo
     await run(page, 60);
     assert.equal(await outer(page, ".basalt-button svg"), await ssr(page, "Icon", { icon: "CheckGlyph" }));
     assert.equal(await page.locator(".basalt-button svg").count(), 1, "one glyph, never two");
+    assert.equal(await page.locator("[data-fade]").count(), 0, "no fade");
+    await page.close();
+  });
+
+  // The crossfade's groups, with their animations held at ms: [out, in] opacity. Opacity only, so it runs under reduced motion.
+  const fadeAt = (page, ms) => page.evaluate((t) => {
+    for (const a of document.getAnimations()) if (a.animationName) { a.pause(); a.currentTime = t; }
+    return ["out", "in"].map((k) => Number(getComputedStyle(document.querySelector(`.basalt-button svg > [data-fade="${k}"]`)).opacity));
+  }, ms);
+  // The fade's end: the animations finished, and the arriving group's animationend seen (the page's own frames dispatch it; the virtual clock does not).
+  const finishFade = (page) => page.evaluate(() => new Promise((resolve) => {
+    document.querySelector('.basalt-button svg > [data-fade="in"]').addEventListener("animationend", () => resolve(), { once: true });
+    for (const a of document.getAnimations()) if (a.animationName) a.finish();
+  }));
+
+  for (const [kind, icon] of [["Button", "HomeGlyph"], ["IconButton", "HomeGlyph"], ["IconButton", "PauseGlyph"], ["Button", "PauseGlyph"]]) {
+    test(`${kind} ${icon}: a pressed toggle under reduced motion is the 100ms crossfade both ways, one tile in the seat's box, then Icon again`, async () => {
+      const { page, errors } = await open();
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.evaluate(() => window.loadFlight());
+      const props = (pressed) => (kind === "Button" ? { icon, pressed } : { icon, pressed, label: "Pause animations" });
+      const child = kind === "Button" ? "Pause animations" : undefined;
+      await mount(page, kind, props(false), child);
+      await idle(page);
+      const box = () => page.locator(".basalt-button svg").first().evaluate((n) => { const r = n.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
+      const rest = await box();
+      for (const [pressed, from, to] of [[true, false, true], [false, true, false]]) {
+        await mount(page, kind, props(pressed), child);
+        await idle(page);
+        assert.equal(await page.locator(".basalt-button svg").count(), 1, "one tile");
+        assert.deepEqual(await box(), rest, "the seat's box does not change (0px)");
+        const out = await page.evaluate((s) => window.norm(window.ssr("Icon", { icon: s.icon, selected: s.from }).replace(/^<svg[^>]*>|<\/svg>$/g, "")), { icon, from });
+        const arriving = await page.evaluate((s) => window.norm(window.ssr("Icon", { icon: s.icon, selected: s.to }).replace(/^<svg[^>]*>|<\/svg>$/g, "")), { icon, to });
+        assert.equal(await html(page, '.basalt-button svg > [data-fade="out"]'), out, "the leaving drawing, whole");
+        assert.equal(await html(page, '.basalt-button svg > [data-fade="in"]'), arriving, "the arriving drawing, whole");
+        const [a, b, c] = [await fadeAt(page, 0), await fadeAt(page, 50), await fadeAt(page, 100)];
+        assert.deepEqual(a, [1, 0], "0ms");
+        assert.ok(b[0] > 0 && b[0] < 1 && b[1] > 0 && b[1] < 1, `50ms: both part-way, ${b}`);
+        assert.deepEqual(c, [0, 1], "100ms");
+        const timing = await page.locator('.basalt-button svg > [data-fade="in"]').evaluate((g) => [getComputedStyle(g).animationDuration, getComputedStyle(g).animationTimingFunction]);
+        assert.equal(timing[0], "0.1s", "duration-fast");
+        await finishFade(page);
+        await idle(page);
+        assert.equal(await outer(page, ".basalt-button svg"), await ssr(page, "Icon", { icon, selected: to }), "the seat is Icon again, byte for byte");
+        assert.equal(await page.locator("[data-fade]").count(), 0);
+      }
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+  }
+
+  test("a change during a fade starts a new fade from the drawing that was arriving", async () => {
+    const { page } = await open();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => window.loadFlight());
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: false, label: "Pause animations" });
+    await idle(page);
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: true, label: "Pause animations" });
+    await idle(page);
+    await fadeAt(page, 50);
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: false, label: "Pause animations" });
+    await idle(page);
+    const held = await page.evaluate(() => window.norm(window.ssr("Icon", { icon: "PauseGlyph", selected: true }).replace(/^<svg[^>]*>|<\/svg>$/g, "")));
+    assert.equal(await html(page, '.basalt-button svg > [data-fade="out"]'), held, "it leaves from the held drawing");
+    assert.deepEqual(await fadeAt(page, 0), [1, 0], "and starts from its first frame");
+    await page.close();
+  });
+
+  test("forced colours: the crossfade is currentColor, HighlightText while pressed", async () => {
+    const { page } = await open();
+    await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
+    await page.evaluate(() => window.loadFlight());
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: false, label: "Pause animations" });
+    await idle(page);
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: true, label: "Pause animations" });
+    await idle(page);
+    const fill = await page.locator('.basalt-button svg > [data-fade="in"] path[fill]').first().getAttribute("fill");
+    assert.equal(fill, "currentColor");
+    const ink = await page.locator(".basalt-button svg").first().evaluate((n) => getComputedStyle(n).color);
+    const highlight = await page.evaluate(() => { const s = document.createElement("span"); s.style.color = "HighlightText"; document.body.append(s); const c = getComputedStyle(s).color; s.remove(); return c; });
+    assert.equal(ink, highlight);
     await page.close();
   });
 
@@ -537,6 +615,56 @@ describe("reduced motion: an allowed change swaps at once (DECISIONS 221), as Mo
   });
 });
 
+describe("the pause toggle's held look (DECISIONS 361)", () => {
+  for (const kind of ["Button", "IconButton"]) {
+    test(`${kind}: rest to held morphs the bars wider about their centrelines and fills them, at slow on ease-out, and back`, async () => {
+      const { page, errors } = await open();
+      const props = (pressed) => (kind === "Button" ? { icon: "PauseGlyph", pressed } : { icon: "PauseGlyph", pressed, label: "Pause animations" });
+      const child = kind === "Button" ? "Pause animations" : undefined;
+      await mount(page, kind, props(false), child);
+      await idle(page);
+      const restHtml = await html(page, ".basalt-button svg");
+      const heldHtml = await page.evaluate(() => window.norm(window.ssr("Icon", { icon: "PauseGlyph", selected: true }).replace(/^<svg[^>]*>|<\/svg>$/g, "")));
+      assert.equal(await page.locator(".basalt-button-check").count(), 0, "no check: pause has a selected form");
+      await mount(page, kind, props(true), child);
+      assertBetween(await frames(page, ".basalt-button svg"), restHtml, heldHtml, `${kind} held`);
+      await run(page, 200);
+      assert.equal(await outer(page, ".basalt-button svg"), await ssr(page, "Icon", { icon: "PauseGlyph", selected: true }), "settled on Icon's held markup");
+      assert.match(await html(page, ".basalt-button svg"), /fill="currentColor"/, "the bars fill");
+      await mount(page, kind, props(false), child);
+      assertBetween(await frames(page, ".basalt-button svg"), heldHtml, restHtml, `${kind} released`);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+  }
+
+  test("held pause to play in a toggle's seat is the 100ms crossfade, the leaving bars filled to the end; outside a toggle it swaps", async () => {
+    const { page } = await open();
+    await page.evaluate(() => window.loadFlight());
+    await mount(page, "IconButton", { icon: "PauseGlyph", pressed: true, label: "Pause animations" });
+    await idle(page);
+    await mount(page, "IconButton", { icon: "PlayGlyph", pressed: false, label: "Pause animations" });
+    await idle(page);
+    const out = '.basalt-button svg > [data-fade="out"]';
+    assert.match(await html(page, out), /fill="currentColor"/, "the leaving drawing keeps its fill");
+    const at = (ms) => page.evaluate(([t, o]) => {
+      for (const a of document.getAnimations()) if (a.animationName) { a.pause(); a.currentTime = t; }
+      return [Number(getComputedStyle(document.querySelector(o)).opacity), Number(getComputedStyle(document.querySelector(o.replace("out", "in"))).opacity)];
+    }, [ms, out]);
+    assert.deepEqual(await at(0), [1, 0]);
+    const mid = await at(50);
+    assert.ok(mid.every((v) => v > 0 && v < 1), `50ms: ${mid}`);
+    assert.deepEqual(await at(100), [0, 1]);
+    // Outside a toggle (no crossfade seat), the same change is the engine's swap.
+    await mount(page, "ControlIcon", { icon: "PauseGlyph", selected: true, eager: true });
+    await idle(page);
+    await mount(page, "ControlIcon", { icon: "PlayGlyph", selected: false, eager: true });
+    await idle(page);
+    assert.equal(await outer(page, ".basalt-icon"), await ssr(page, "Icon", { icon: "PlayGlyph" }), "a swap at once");
+    await page.close();
+  });
+});
+
 describe("the engine loads on demand, once, for the controls that need it", () => {
   /** Serve a split bundle (esbuild's code splitting, as an app's bundler would) and count the requests for the engine. */
   async function splitPage(body) {
@@ -566,8 +694,8 @@ window.render = (el) => flushSync(() => root.render(el));
 window.B = B; window.React = React;
 `;
 
-  test("a control whose glyph never changes does not load it: a plain Button, a Phosphor icon, a pressed pause", async () => {
-    const { page, engine } = await splitPage(`window.render(<><B.Button icon={B.HomeGlyph}>A</B.Button><B.Button icon={B.SearchGlyph} variant="ghost">B</B.Button><B.IconButton icon={B.PauseGlyph} pressed label="Pause" /></>);`);
+  test("a control whose glyph never changes does not load it: a plain Button, a Phosphor icon, a pressed copy", async () => {
+    const { page, engine } = await splitPage(`window.render(<><B.Button icon={B.HomeGlyph}>A</B.Button><B.Button icon={B.SearchGlyph} variant="ghost">B</B.Button><B.IconButton icon={B.CopyGlyph} pressed label="Copy" /></>);`);
     await page.locator(".basalt-button").first().waitFor();
     await page.waitForTimeout(300);
     assert.equal(engine(), 0);
@@ -598,10 +726,10 @@ window.B = B; window.React = React;
     await page.close();
   });
 
-  test("a pressed Pause (an identical drawing) loads nothing, however often it is pressed", async () => {
+  test("a pressed Copy (an identical drawing) loads nothing, however often it is pressed", async () => {
     const { page, engine } = await splitPage(`
-      const pause = (pressed) => <><B.IconButton icon={B.PauseGlyph} pressed={pressed} label="Pause" /><B.Button icon={B.PauseGlyph} pressed={pressed} variant="ghost">Pause</B.Button></>;
-      window.show = (pressed) => window.render(pause(pressed));
+      const copy = (pressed) => <><B.IconButton icon={B.CopyGlyph} pressed={pressed} label="Copy" /><B.Button icon={B.CopyGlyph} pressed={pressed} variant="ghost">Copy</B.Button></>;
+      window.show = (pressed) => window.render(copy(pressed));
       window.show(false);`);
     await page.locator(".basalt-button").first().waitFor();
     await page.evaluate(() => { window.show(true); window.show(false); window.show(true); });

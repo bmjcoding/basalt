@@ -63,10 +63,12 @@
 
     <section class="stack" aria-label="Estimate" style="--gap: var(--basalt-space-4)">
       <div data-tabs>
-        <div class="tabs" role="tablist" aria-label="Views">
-          <button class="tab" role="tab" id="tab-summary" aria-controls="view-summary" aria-selected="true">Summary</button>
-          <button class="tab" role="tab" id="tab-breakdown" aria-controls="view-breakdown" aria-selected="false">Breakdown</button>
-          <button class="tab" role="tab" id="tab-json" aria-controls="view-json" aria-selected="false">JSON</button>
+        <div class="tabs-scroll">
+          <div class="tabs" role="tablist" aria-label="Views">
+            <button class="tab" role="tab" id="tab-summary" aria-controls="view-summary" aria-selected="true">Summary</button>
+            <button class="tab" role="tab" id="tab-breakdown" aria-controls="view-breakdown" aria-selected="false">Breakdown</button>
+            <button class="tab" role="tab" id="tab-json" aria-controls="view-json" aria-selected="false">JSON</button>
+          </div>
         </div>
 
         <div class="tabpanel" style="padding-top: var(--basalt-space-4)" id="view-summary" role="tabpanel" aria-labelledby="tab-summary">

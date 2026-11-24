@@ -591,10 +591,12 @@ describe("code and focus", () => {
       const tab = await page.evaluate(() => {
         const el = document.activeElement;
         const box = el.getBoundingClientRect();
-        const clip = el.closest(".tabs").getBoundingClientRect();
-        return { role: el.getAttribute("role"), offset: getComputedStyle(el).outlineOffset, inside: box.top >= clip.top && box.bottom <= clip.bottom && box.left >= clip.left && box.right <= clip.right };
+        // The ring is +2 outside the tab (DECISIONS 358); the row's scrollport keeps its 4 clear on every side, so all four sides show.
+        const clip = el.closest(".tabs-scroll").getBoundingClientRect();
+        const room = 4;
+        return { role: el.getAttribute("role"), offset: getComputedStyle(el).outlineOffset, inside: box.top - room >= clip.top && box.bottom + room <= clip.bottom && box.left - room >= clip.left && box.right + room <= clip.right };
       });
-      assert.deepEqual([tab.role, tab.offset, tab.inside], ["tab", "-2px", true]);
+      assert.deepEqual([tab.role, tab.offset, tab.inside], ["tab", "2px", true]);
       await page.keyboard.press("End"); // the JSON tab, where the code is
       await page.locator(".code-body").focus();
       const code = await page.evaluate(() => {
@@ -1092,7 +1094,7 @@ describe("touch and anchors", () => {
 describe("the SKILL's rules", () => {
   test("the new rules are written down: the ones every page needs in SKILL.md, a module's own in its usage text", () => {
     for (const rule of [
-      /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
+      /`--no-fonts` skips Geist \(for a file only a tool reads\)/,
       /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
       /\*\*Selected\*\* is a shape or weight, never a wash alone: a segment or tab label at 600 \(400 at rest\) on its pill or underline, a row's filled background, a checked box\. No vertical bar; an outline never marks a state\./,

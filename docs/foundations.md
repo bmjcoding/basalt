@@ -152,7 +152,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
   selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
   only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge (the search dialog's
-  band, a flush listbox, an inline-label row), a row of tabs that scrolls, a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, and a cut cell of a
+  band, a flush listbox, an inline-label row), a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, and a cut cell of a
   still table (a focus stop, which shows its own ring after Esc has closed its plate).
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
@@ -219,7 +219,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   a real `CanvasText` border. With a fine pointer the plate is one shared element that glides between rows (see
   [Motion](#motion)); each row's own plate is the fallback.
 - **Tabs and segments.** Horizontal tabs keep a 2px underline that slides under the active tab: it is horizontal, not the
-  vertical line the owner ruled out. A horizontal tab (and a link tab) is radius 8 on its top corners from 36px, as a 36px control is; compact (32) keeps 6 (DECISIONS 167). Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
+  vertical line the owner ruled out. The chosen underline is as wide as the tab's content (label, icon, count), never
+  its padding, and still slides. The row hangs as the edge rule says, and a row that scrolls keeps the ring's 4 clear on every side,
+  bringing a focused tab fully into view, so the ring is always at +2 (DECISIONS 358). A horizontal tab (and a link tab) is radius 8 on its top corners from 36px, as a 36px control is; compact (32) keeps 6 (DECISIONS 167). Vertical tabs are a column of 36px pills (radius 8) in a track (padding 4, radius
   12, `surface-sunken-strong`), the chosen one raised as the segmented control's pill is; there is no divider. The
   chosen tab's pill slides as the segmented control's does (see [Motion](#motion)). The segmented control keeps its
   horizontal size (28px segments in a track of padding 2 and radius 8) and takes the dark pill fill above. In all four
@@ -384,7 +386,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   never layout, and stops inside the box's rim. Its focus ring follows the rule every control has: at +2 where the hung box keeps 4
   from the edge of its room, inside at −2 only where it does not (a 44px control on a 16px line). On touch a hung control with words is
   as wide as its words and takes what it lacks of 44 as hit area. A drawn control sits on the line with its edge. A control centred in
-  its row (a period's arrows, pagination) and a tab are not at an edge.
+  its row (a period's arrows, pagination) is not at an edge. A row of horizontal tabs or link tabs is: its first label is on the
+  line and every tab's box hangs by its padding, narrowed only where a box declares less room (DECISIONS 358).
 - **The last thing in a box** carries no padding of its own toward the box's edge: the box's padding is the only room under it. A
   44px tap box there is hit area and reaches into that padding, never across the rim (DECISIONS 331).
 - **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
@@ -411,7 +414,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   radius does not change. A text toggle carries its glyph (`icon`) in a 16px seat before the label. Pressed, the seat shows the
   glyph's selected form, or the core check where the glyph has none; the two crossfade over `duration-fast`. The seat is never
   empty, and both states are one width. An IconButton toggle carries no check: the plate, the ink step and the glyph's
-  selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
+  selected form (a core glyph closes and fills (pause fills its bars); a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
   Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the seat, at rest,
   hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
   `Switch`; exactly one of many is a segmented control, never toggle buttons.
@@ -664,7 +667,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
   reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
-  pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
+  pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, its bars filled while held, in both forms, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
   secondary or ghost, labelled "Pause animations", `size` `md` or `sm`) or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
@@ -2401,20 +2404,20 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
   marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
-  agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
+  agreed exceptions, drawn richer, and pause is two closed bars; DECISIONS 361). Every other glyph is eight cubic slots on the 24 grid, and an
   unused slot is an invisible point. The stroke is a constant 2.25 units on 24 (1.5px at 16,
   1.875 at 20, 2.25 at 24), with round caps and joins, and a point is drawn 1.5 times the stroke.
   Colour is `currentColor`.
 - **Rest and selected come from one drawing.** Most navigation and product glyphs have one
   intentional opening at the object's own joint, 2 units of air between the caps. Selected closes
   it, fills every closed loop and turns the strokes inside a loop into holes. Actions keep their
-  drawing.
+  drawing, except pause: its two bars fill when selected, because it is the glyph of a held toggle (DECISIONS 361).
 - **Morphs.** Only rest and selected, a rotation group (the four arrows, the four chevrons, plus
   and close), and the drawn pairs menu and close, play and pause, copy and check, chevron-down and
   download, both ways. Every other change swaps at once. A morph in flight keeps its identity: a
   request for where it is going does nothing, a request for where it came from runs it back, and a
   request for another member of its group turns on; anything else swaps at once. They run at
-  `slow` on `ease-out`, and reduced motion swaps at once. Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
+  `slow` on `ease-out`. Under reduced motion a change swaps at once, except in a pressed toggle's seat, where it crossfades over `duration-fast` on `ease-out` (DECISIONS 361). Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
 - **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
@@ -2494,7 +2497,7 @@ broke a rule, and each change is named.
   landing on it.
 - **Link tabs (D12, A13, A14, A15).** `LinkTabs` and `LinkTab`: a `nav` of links on a hairline, the current one `aria-current="page"` with a real 2px
   underline element (`Highlight` in forced colours) that does not slide, the control ring at +2 outside (never an inset outline), 36, 48 or 56 tall
-  (56 steps to 48 in a container under 640), 24px between two labels, the first with no start padding. **Under 720 wide the row is replaced by a `Select` of the
+  (56 steps to 48 in a container under 640), 24px between two labels, every link keeping its padding on both sides and the row hung so each line's first label is on the content line, the underline as wide as the label (DECISIONS 358). **Under 720 wide the row is replaced by a `Select` of the
   same links** (A15, 3 to 1, Castle's form; Grok's write-in, the row at every width with the `Select` left to the app, lost): both are in the server's markup and CSS alone
   chooses at `size-breakpoint-md`, so nothing moves or flashes on load, and the one not shown is `display: none`, out of the accessibility tree and the Tab order. The
   `Select` is Basalt's own, drawn at Castle's 44 for Castle's 48 row (36 for the 36 row in a container under 640 on a wide window, 48 for the 56 row, the bar's narrow height; a 36 Select is 44 on a coarse pointer and in any window under 720, as Basalt's is (B5); what is below moves across 720 by the row's height less the Select's: −8, 4 and 8px), and its value is the current link's `href`, always the row's `aria-current`. **It navigates at once and says so first** (DECISIONS 158, Q2, 3 to 1: WCAG 3.2.2's own exception for a change of context the user has been advised of): a "Go to" label (`goToLabel`; in the skill, the text of `.link-tabs-select-label`) is drawn before the current page's name inside the trigger, in secondary ink on the Select's one line (the multi-select trigger's form, a label then its value, so the height does not change and nothing moves at 390), and its words start the Select's accessible name ("Go to Everything"; WCAG 2.5.3, Label in Name), so the nav's name alone is not enough. **Only a real choice navigates:** a choice from the open list (a click, or Enter on the highlighted option). No key on the closed `Select` does: a typed letter changes the value and fires `change` on a native select and calls Base UI's `onValueChange` (reason `none`) on the closed trigger, and both are held, so the value stays the current page's; the arrow keys open the list in React and navigate nowhere. Navigating is `onNavigate(href)` for an app's router, else `window.location.assign`. With `onNavigate` (or the skill's cancelled `linktabsnavigate`) routing in place, focus stays on the `Select`; on the default a new page loads and focus starts over there. The prototype's route effect that moved focus to the page's heading is X10 and is not ported. `Tabs` takes the same `size`. A link tab takes the selected state a `Tab` takes (DECISIONS 138

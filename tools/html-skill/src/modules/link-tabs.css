@@ -1,11 +1,20 @@
 @layer basalt {
 
   /* ---- Link tabs (React's LinkTabs, DECISIONS 154, D12): a nav of links on a hairline ----
-     The current link is its label at 600 in primary ink (400 in secondary at rest, each label reserving its 600 width) with a 2px underline that does not slide, a real element (Highlight in forced colours); focus is the control ring at +2
+     The current link is its label at 600 in primary ink (400 in secondary at rest, each label reserving its 600 width) with a 2px underline as wide as its content that does not slide, a real element (Highlight in forced colours); focus is the control ring at +2
      outside the link, never an inset outline. 36, 48 or 56 tall (data-size on the nav; 56 steps to 48 in a container under 640), 16px text from 48, 24px
-     between two labels, and the first link has no padding at its start. The row wraps and does not scroll. Not a tablist: every link is a tab stop. Under 720 the row is a select (below). */
+     between two labels, and every link keeps its padding on both sides. The row hangs as the tabs' does (DECISIONS 358): each line's first label sits on the content line and every link's box
+     hangs into the padding by its own padding (--_px), narrowed only where a box declares less room than that and the ring's 4; the divider starts on the content line.
+     The row wraps and does not scroll. Not a tablist: every link is a tab stop. Under 720 the row is a select (below). */
   .link-tabs { margin: 0; padding: 0; }
-  .link-tabs > ul { display: flex; flex-wrap: wrap; gap: 0 var(--basalt-space-1); margin: 0; padding: 0; list-style: none; box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider); }
+  .link-tabs > ul {
+    --_px: var(--basalt-space-2);
+    --_room: calc(var(--basalt-size-focus-width) + var(--basalt-size-focus-offset));
+    --_hang: min(var(--_px), calc(var(--basalt-edge-room-start, calc(var(--_px) + var(--_room))) - var(--_room)));
+    position: relative; display: flex; flex-wrap: wrap; gap: 0 var(--basalt-space-1); margin: 0; margin-inline-start: calc(-1 * var(--_hang)); padding: 0; list-style: none;
+  }
+  .link-tabs > ul::before { content: ""; position: absolute; inset-inline: var(--_hang) 0; bottom: 0; height: var(--basalt-size-hairline); background: var(--basalt-border-divider); pointer-events: none; }
+  .link-tabs:is([data-size="3xl"], [data-size="5xl"]) > ul { --_px: var(--basalt-space-2-5); }
   .link-tab {
     --_h: var(--basalt-size-control-lg);
     position: relative;
@@ -28,8 +37,7 @@
   @container (width < %bp-container-lg%) {
     .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   }
-  .link-tabs > ul > li:first-child > .link-tab { padding-inline-start: 0; }
-  .link-tab-line { position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
   .link-tab[aria-current] { color: var(--basalt-text-primary); }
   /* The current link's label is 600 against 400 at rest and every label reserves its 600 width, as a tab's does (decisions 138 and 149): the script draws the label (the span before
      the underline) through reserve(), so the 600 is on the label and no link's box moves. With the script off, or on a label it left alone, the current link is 600 itself unless data-bare. */

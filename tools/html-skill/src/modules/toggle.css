@@ -5,9 +5,11 @@
      page has its own: the wash over surface-page in light), never a layered wash, so forced colours can replace it. The label steps to
      primary, with no weight change. A secondary's hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's
      own. A text toggle carries its glyph in a 16px seat before the label (.btn-check with data-glyph, DECISIONS 326). Pressed, the seat shows the
-     core check (no glyph a seat holds here has a selected form); the two crossfade over duration-fast. The seat is never empty, and both states
+     glyph's selected form, or the core check where it has none (React's rule): a glyph with a selected form (pause, whose bars fill, DECISIONS 361)
+     is drawn as both forms in one box ([data-pair], glyph.js), and any other shares the seat with the check; the two crossfade over duration-fast. The seat is never empty, and both states
      are one width. An empty .btn-check, on a page written before, draws as it did: the check while pressed and nothing while not. An
-     icon-only toggle has no seat: the plate and the ink step say it.
+     icon-only toggle has no seat: the plate, the ink step and, where its glyph has one, the selected form say it (the hold's pause draws both
+     forms in one box, loops.js, and crossfades between them).
      The doubled class lifts these over hover and the momentary press, which keep their own steps on an unpressed button; the .98 scale
      stays the button's. A primary or danger button never toggles. */
 
@@ -16,6 +18,12 @@
   .btn-check::before { content: ""; background: currentColor; mask: url("%glyph-mask:check%") center / contain no-repeat; opacity: 0; }
   .btn[aria-pressed="true"] > .btn-check::before { opacity: 1; }
   .btn[aria-pressed="true"] > .btn-check > svg { opacity: 0; }
+  /* A glyph with a selected form: the pair, rest then selected, and no check. In the seat, or the icon-only toggle's own glyph. */
+  .btn-check:has(> [data-pair])::before { content: none; }
+  :is(.btn-check, .btn[data-icon-only]) > [data-pair] { display: grid; }
+  :is(.btn-check, .btn[data-icon-only]) > [data-pair] > svg { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  :is(.btn-check, .btn[data-icon-only]) > [data-pair] > :last-child, .btn[aria-pressed="true"] [data-pair] > :first-child { opacity: 0; }
+  .btn[aria-pressed="true"] [data-pair] > :last-child { opacity: 1; }
   .btn.btn[aria-pressed="true"]:is(:not([data-variant]), [data-variant="secondary"], [data-variant="ghost"]) {
     background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--panel-bg, var(--basalt-surface-page))), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--panel-next, var(--basalt-surface-1))));
   }
@@ -26,7 +34,7 @@
   .btn.btn[aria-pressed="true"][data-variant="ghost"] { box-shadow: none; }
 
   /* The first frame: a toggle a script presses on load (the hold's stored state) paints at once (see choice.css). */
-  :root[data-still] .btn, :root[data-still] .btn-check::before, :root[data-still] .btn-check > svg { transition: none; }
+  :root[data-still] .btn, :root[data-still] .btn-check::before, :root[data-still] .btn-check > svg, :root[data-still] .btn [data-pair] > svg { transition: none; }
 
   @media (forced-colors: active) {
     /* A pressed toggle is Highlight with HighlightText for the fill, the label and the check, at rest, hovered, pressed and focused. */
