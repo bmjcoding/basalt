@@ -1105,8 +1105,12 @@ function inlineArrow(P: string, kind: DiagramLineKind): VElement {
 // ---- Nodes ----
 
 /** A card's name; a link card's last word is held with its cue (the stylesheet's arrow after it), so the arrow never leaves the name's last word (1.4). */
+/** An author's string as a first-strong isolate (`<bdi>`, the diagrams-rtl ruling): it keeps its own order in a figure set right to left, so a closing quote,
+ *  bracket or full stop stays at its end. Nothing changes left to right. */
+const iso = (text: string): VElement => h("bdi", null, text);
 function linkName(P: string, n: MNode): VChild {
-  if (!n.href) return n.name;
+  // A linked name is not isolated: its cue is drawn after its last word and must stay at the line's end in the figure's direction.
+  if (!n.href) return iso(n.name);
   const at = n.name.trimEnd().lastIndexOf(" ");
   return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
 }
@@ -1114,12 +1118,12 @@ function linkName(P: string, n: MNode): VChild {
 function nodeText(P: string, m: Model, n: MNode): VChild[] {
   if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
-  if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, n.kind!, h("span", { class: `${P}-lane-word` }, ` · ${n.laneLabel}`)));
-  else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
+  if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, iso(n.kind!), h("span", { class: `${P}-lane-word` }, " · ", iso(n.laneLabel ?? ""))));
+  else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, iso(n.kind)));
   kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
   // The runs are held in one span, a single left-to-right run right to left (1.7).
-  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : n.detail));
+  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : iso(n.detail)));
   return kids;
 }
 
@@ -1129,7 +1133,7 @@ function tableText(P: string, n: MNode, m: Model): VChild[] {
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
       h("span", { class: `${P}-cname` }, c.name),
-      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
+      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} `, iso(c.ref.table)) : c.type ? h("span", { class: `${P}-ctype` }, iso(c.type)) : null))),
     n.more ? h("span", { class: `${P}-more` }, `+ ${n.more} more`) : null,
   ];
 }
@@ -1200,7 +1204,7 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
       if (!c) continue;
       // A box grown past its cells by one level on each side, and by two where a child group reaches that side of it (1.3).
       const lv = [0, 1, 2, 3].map((k) => groupLevels(m, g, k));
-      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
+      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, iso(g.label))));
     }
   }
   // The text variant (1.2): one code block, aria-hidden (the title, the summary and the list carry the figure). Before script it holds the transcript;
@@ -1226,7 +1230,7 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     // line of the longest such label, so nothing grows above the group for it.
     const lines = Math.max(0, ...turns.map((e) => (e.label ? labelLines(e.label) : 0)));
     const style = [grow ? `--_ggrow:${grow}` : "", lines ? `--_tl:${lines}` : ""].filter(Boolean).join(";");
-    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, iso(g.label)), kids);
   };
   let k = 0;
   while (k < m.nodes.length) {
@@ -1562,7 +1566,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
-  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
+  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, iso(m.title)), o.hasSource ? h("p", { class: `${P}-source` }, h("bdi", null, { slot: "source" })) : null),
   h("div", {
     class: `${P}-drawing`,
     // A schema's far keys run in corridors (1.1): its rows are spacer tracks round the author's, and the grid's own row gap is none.
