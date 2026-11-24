@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -189,6 +189,9 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       if (!hasStops(model, state)) hoverTrace = touchTrace = null;
       var fresh = ink && measured.ink !== drawn;
       if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
+      // The labels' places are not in the ink's string (a content policy refuses a style attribute in it): set through the CSSOM after every measure, since
+      // a label can move while the string stays the same.
+      placeLabels(figure, P, measured.geo);
       retrace();
       // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
       // The text variant (DECISIONS 306, 1.2): the art where its widest line fits the block (the diagram-text module's), the transcript otherwise; in the

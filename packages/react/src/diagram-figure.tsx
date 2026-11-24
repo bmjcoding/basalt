@@ -4,9 +4,9 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
 
 type MotionModule = typeof import("./diagram-motion");
@@ -57,6 +57,24 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
   zoom?: boolean;
   /** `"first-visit"` (DECISIONS 306, 1.5): an animated figure's entrance plays until it has played once on this page; later visits are at rest. Needs an `id`. */
   entrance?: "always" | "first-visit";
+  /**
+   * Called with the figure's layout each time it is laid out anew (a new width, the faces arriving, new data), and not again for the same layout. What it
+   * gives is what `exportMeasuredDiagram` from `@srasyndicate/basalt/diagram-interop` takes, so a draw.io, Visio or Lucid file is the layout on screen:
+   * `exportMeasuredDiagram(laid.spec, laid.geo, "drawio", { extras: readMeasuredExtras(laid.figure) })`. It draws nothing.
+   */
+  onLayout?: (laid: DiagramLayoutInfo) => void;
+}
+
+/** A figure's layout as it is on screen (`onLayout`). */
+export interface DiagramLayoutInfo {
+  /** The figure's data; under `layout: "auto"`, with the placement it is drawn on. */
+  spec: DiagramSpec;
+  /** The measured geometry: every card's box, every line's route and every label's seat, in CSS pixels from the drawing's corner. */
+  geo: Geo;
+  /** Whether the figure is drawn or stacked at this width. */
+  layout: "drawn" | "stacked";
+  /** The figure element: `readMeasuredExtras` reads its groups, lanes, bands, frames and table rows when the file is made. */
+  figure: HTMLElement;
 }
 
 const P = "basalt-diagram";
@@ -78,9 +96,10 @@ function styleObject(style: string): Record<string, string> {
 /**
  * The engine's tree as React elements; slots are React's own, the ink is set as HTML (it is the same string the skill writes). `ink` is one object for one
  * string: React writes the HTML again whenever the object changes, and the motion module's overlays and masks live inside it, so a render that draws the
- * same lines must hand React the same object.
+ * same lines must hand React the same object. `null` is a text sequence's transcript, which is the tree's own and is drawn as elements: its lines' indents
+ * are styles, which a content policy refuses in markup set as HTML (the art has none). Keyed apart, so React makes a new element when one becomes the other.
  */
-function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html: string }, root?: Record<string, unknown>): React.ReactNode {
+function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html: string } | null, root?: Record<string, unknown>): React.ReactNode {
   if (typeof v === "string") return v;
   if ("slot" in v) return slots[v.slot] ?? null;
   const props: Record<string, unknown> = {};
@@ -90,9 +109,12 @@ function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html
     else props[CAMEL[k] ?? k] = value === true ? (k === "hidden" ? true : "") : value;
   }
   if (typeof v.a.class === "string" && v.a.class.endsWith("-ink")) {
-    // sink: the figure's ink, serialised by diagram-core's h() from the model; every text and attribute is escaped there; test/repo-review.test.mjs (a diagram's hostile labels)
-    props.dangerouslySetInnerHTML = ink;
-    return React.createElement(v.t, props);
+    if (ink) {
+      // sink: the figure's ink, serialised by diagram-core's h() from the model; every text and attribute is escaped there; test/repo-review.test.mjs (a diagram's hostile labels)
+      props.dangerouslySetInnerHTML = ink;
+      return React.createElement(v.t, { ...props, key: "html" });
+    }
+    props.key = "nodes";
   }
   if (root) Object.assign(props, root, { className: [props.className, root.className].filter(Boolean).join(" "), style: { ...(props.style as object), ...(root.style as object) } });
   return React.createElement(v.t, props, ...v.c.map((c) => toReact(c, slots, ink)));
@@ -128,7 +150,7 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   viewer?: DiagramViewerMode;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
@@ -180,6 +202,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const [textModule, setTextModule] = React.useState<TextModule | null>(null);
   const inkHtml = React.useMemo(() => ({ __html: ink }), [ink]);
   const measured = React.useRef<Measured | null>(null);
+  const onLayoutRef = React.useRef(onLayout);
+  onLayoutRef.current = onLayout;
+  const laidOut = React.useRef<{ key: string; spec: DiagramSpec } | null>(null);
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
   const [motionModule, setMotionModule] = React.useState<MotionModule | null>(null);
@@ -305,10 +330,22 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       result.ink = html;
     }
     measured.current = result;
+    // The app's own record of the layout (onLayout): once for each layout, so a callback that sets state never lays the figure out again.
+    const told = onLayoutRef.current;
+    if (told && result.geo && !viewer) {
+      const key = `${result.dyn.layout ?? "stacked"}|${JSON.stringify(result.geo)}`;
+      if (laidOut.current?.key !== key || laidOut.current.spec !== spec) {
+        laidOut.current = { key, spec };
+        const placed = auto ? placementFor(dirAt) : undefined;
+        told({ spec: placed ? { ...spec, placement: placed } : spec, geo: result.geo, layout: result.dyn.layout === "drawn" ? "drawn" : "stacked", figure: fig });
+      }
+    }
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
     if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }
     setInk(result.ink);
+    // A label can move while the ink's string stays the same (its place is not in it): placed now, and again below once React writes a new ink.
+    placeLabels(fig, P, result.geo);
     // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
     if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had. A text figure's art is in the DOM
@@ -345,6 +382,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     return () => { live = false; observer.disconnect(); cancelAnimationFrame(frame); if (marks) forced.removeEventListener("change", measure); };
   }, [measure, model]);
 
+  // The labels of an ink React has just written, placed before the trace and the motion read them.
+  React.useLayoutEffect(() => {
+    const fig = figRef.current;
+    if (fig) placeLabels(fig, P, measured.current?.geo ?? null);
+  }, [ink]);
   // An animated text figure builds by ink (1.2) as a drawn figure's entrance plays: the motion module plays it when it comes into view, settles it as it
   // settles any entrance, and keeps the first visit's mark (below, its art counts as its lines).
   const trace = focusTrace ?? touchTrace ?? hoverTrace;
@@ -510,8 +552,10 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     <span key={entry.words}>{entry.keys.map((k, i) => <React.Fragment key={k}>{i ? " " : null}<Kbd>{k}</Kbd></React.Fragment>)} {entry.words}</span>
   ));
   const tree = figureTree(model, dyn, options);
+  // A text sequence's transcript is drawn as the tree's elements; its art, and any drawing's ink, as HTML.
+  const inkProp = model.text && !dyn.art ? null : inkHtml;
   // The viewer's figure shows its drawing alone: its head, key, hint and foot are the dialog's.
-  if (viewer) return toReact(tree, { source, summary, hint: null, toggle: null }, inkHtml, root) as React.ReactElement;
+  if (viewer) return toReact(tree, { source, summary, hint: null, toggle: null }, inkProp, root) as React.ReactElement;
   // The foot (1.9, and DECISIONS 310, 9.1): "View as list", "Expand", then the run button and "Pause animations", which the motion module draws when it has loaded.
   const Foot = motionModule?.MotionFoot;
   const expand = zoom && scripted ? (
@@ -548,5 +592,5 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     </button>
   ) : null;
   const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{clear}</>;
-  return toReact(tree, { source, summary, hint, toggle: foot }, inkHtml, root) as React.ReactElement;
+  return toReact(tree, { source, summary, hint, toggle: foot }, inkProp, root) as React.ReactElement;
 }

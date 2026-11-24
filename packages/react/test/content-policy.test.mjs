@@ -24,7 +24,7 @@ window.show = (provider) => {
 };`;
 
 /** A page served under `policy`, with the head files, the shipped sheet and the fixture as files of its own origin. `inline` is an inline script in the head. */
-async function policyPage(policy, { inline = "", storage = {}, viewport = { width: 1440, height: 900 } } = {}) {
+async function policyPage(policy, { inline = "", storage = {}, viewport = { width: 1440, height: 900 }, fixture = FIXTURE } = {}) {
   const context = await browser.newContext({ viewport });
   // Before any page script, and outside the policy: what a returning visitor has stored, and a log of every refusal.
   await context.addInitScript((stored) => {
@@ -32,13 +32,13 @@ async function policyPage(policy, { inline = "", storage = {}, viewport = { widt
     window.__refused = [];
     document.addEventListener("securitypolicyviolation", (event) => window.__refused.push(`${event.effectiveDirective} ${event.blockedURI}`));
   }, storage);
-  const fixture = await bundleFixture(FIXTURE);
+  const bundled = await bundleFixture(fixture);
   const files = {
     "/": ["text/html", `<!doctype html><html lang="en"><head><link rel="stylesheet" href="/styles.css"><script src="/head/theme.js"></script><script src="/head/loops.js"></script>${inline ? `<script>${inline}</script>` : ""}<script src="/fixture.js" defer></script></head><body><div id="root"></div></body></html>`],
     "/styles.css": ["text/css", fs.readFileSync(path.join(dist, "styles.css"), "utf8")],
     "/head/theme.js": ["text/javascript", fs.readFileSync(path.join(dist, "head", "theme.js"), "utf8")],
     "/head/loops.js": ["text/javascript", fs.readFileSync(path.join(dist, "head", "loops.js"), "utf8")],
-    "/fixture.js": ["text/javascript", fixture],
+    "/fixture.js": ["text/javascript", bundled],
   };
   await context.route(`${ORIGIN}/**`, (route) => {
     const file = files[new URL(route.request().url()).pathname];
@@ -158,4 +158,96 @@ describe("Base UI's inline style under style-src 'self'", () => {
     }
     assert.deepEqual(boxes[1], boxes[0]);
   });
+});
+
+// A diagram under a strict style-src (CIMIP's adoption, DECISIONS 365, item 1): the line labels were placed by a style attribute in the ink's HTML, which the
+// policy refuses, so each landed in the drawing's corner, on the page and in the viewer. They are placed through the CSSOM now; a text sequence's transcript
+// (its lines' indents are styles) is drawn as elements in React and put back as its own nodes in the skill.
+const DIAGRAMS = `
+const arch = { title: "Arch", summary: "Three parts.", legend: { main: "Request" },
+  nodes: [{ id: "a", kind: "client", name: "Browser", col: 1, row: 1 }, { id: "b", kind: "service", name: "API", col: 2, row: 1 }, { id: "c", kind: "store", name: "Database", col: 3, row: 1 }],
+  edges: [{ from: "a", to: "b", kind: "main", label: "HTTPS" }, { from: "b", to: "c", label: "SQL" }] };
+const seq = { title: "Seq", summary: "A run.", variant: "text", participants: [{ id: "u", name: "User" }, { id: "s", name: "Service" }],
+  steps: [{ from: "u", to: "s", label: "asks" }, { frame: "opt", label: "when cached", steps: [{ from: "s", to: "u", kind: "dashed", label: "answers" }] }] };
+window.showDiagrams = () => createRoot(document.getElementById("root")).render(<>
+  <div style={{ width: 1104 }}><B.ArchitectureDiagram id="arch" {...arch} /></div>
+  <div style={{ width: 240 }}><B.SequenceDiagram id="seq" {...seq} /></div>
+</>);`;
+const DP = "basalt-diagram";
+const frames = (page, n = 3) => page.evaluate((n) => new Promise((resolve) => { let k = 0; const step = () => (++k >= n ? resolve() : requestAnimationFrame(step)); requestAnimationFrame(step); }), n);
+/** Each label's box in its drawing, and each transcript line's indent: what the policy refused before. */
+const placed = (page, root) => page.evaluate(({ P, root }) => {
+  const fig = document.querySelector(root);
+  const drawing = fig.querySelector(`.${P}-drawing`).getBoundingClientRect();
+  return [...fig.querySelectorAll(`.${P}-ink > .${P}-label`)].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { text: el.textContent, x: Math.round(r.left - drawing.left), y: Math.round(r.top - drawing.top), w: Math.round(r.width) };
+  });
+}, { P: DP, root });
+const indents = (page) => page.evaluate((P) => [...document.querySelectorAll(`#seq .${P}-tx-line`)].map((el) => getComputedStyle(el).paddingInlineStart), DP);
+
+describe("a diagram under style-src 'self'", () => {
+  test("its line labels sit where an unrestricted page puts them, on the page and in the viewer, and the policy refuses nothing", async () => {
+    const read = async (policy) => {
+      const { page, context, errors } = await policyPage(policy, { fixture: DIAGRAMS });
+      try {
+        await page.evaluate(() => window.showDiagrams());
+        await page.waitForSelector(`#arch[data-layout="drawn"] .${DP}-ink > .${DP}-label`);
+        await frames(page);
+        const onPage = await placed(page, "#arch");
+        await page.locator(`#arch .${DP}-expand`).click();
+        await page.waitForSelector(`dialog.${DP}-viewer[open] .${DP}[data-layout="drawn"] .${DP}-ink > .${DP}-label`);
+        await frames(page);
+        const inViewer = await placed(page, `dialog.${DP}-viewer .${DP}`);
+        return { onPage, inViewer, refused: await refused(page), errors, indents: await indents(page) };
+      } finally {
+        await context.close();
+      }
+    };
+    const strict = await read(SELF);
+    const open = await read("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
+    assert.deepEqual(strict.refused, []);
+    assert.deepEqual(strict.errors, []);
+    assert.equal(strict.onPage.length, 2);
+    // Off the corner: each label is on its line, past the first card.
+    for (const label of [...strict.onPage, ...strict.inViewer]) assert.ok(label.x > 100 && label.w > 0, `${label.text} is placed (${JSON.stringify(label)})`);
+    assert.deepEqual(strict.onPage, open.onPage);
+    assert.deepEqual(strict.inViewer, open.inViewer);
+    // The transcript's lines keep their indents: a message's label hangs under its sender, as it does with the policy open.
+    assert.ok(strict.indents.some((v) => Number.parseFloat(v) > 0), `indents ${strict.indents}`);
+    assert.deepEqual(strict.indents, open.indents);
+  });
+});
+
+// The PNG under a content policy (DECISIONS 365, item 2): a canvas draws the SVG through an image, which `img-src 'self'` refuses as a data: URL and as a
+// blob: URL. Where the policy allows neither, diagramToPng rejects with an error that names the fix, and makes no file; with `blob:` allowed it draws.
+const EXPORT = `${DIAGRAMS}
+import { diagramToPng } from "./dist/diagram-export.js";
+window.png = () => diagramToPng(document.getElementById("arch")).then(
+  (blob) => createImageBitmap(blob).then((image) => ({ type: blob.type, width: image.width, height: image.height })),
+  (error) => ({ error: error.message }));`;
+
+describe("a diagram's PNG under img-src", () => {
+  for (const [name, images, drawn] of [["'self'", "'self'", false], ["'self' blob:", "'self' blob:", true], ["'self' data:", "'self' data:", true]]) {
+    test(`img-src ${name}: ${drawn ? "the PNG is drawn at 2x" : "it rejects with an error that names img-src, and makes no file"}`, async () => {
+      const { page, context, errors } = await policyPage(`default-src 'self'; script-src 'self'; style-src 'self'; img-src ${images}`, { fixture: EXPORT });
+      try {
+        await page.evaluate(() => window.showDiagrams());
+        await page.waitForSelector(`#arch[data-layout="drawn"] .${DP}-ink > .${DP}-label`);
+        await frames(page);
+        const got = await page.evaluate(() => window.png());
+        const width = await page.evaluate(() => document.getElementById("arch").getBoundingClientRect().width);
+        if (drawn) {
+          assert.equal(got.type, "image/png");
+          assert.ok(got.width >= 2 * width, `${got.width} is at 2x of ${width}`);
+        } else {
+          assert.match(got.error, /img-src 'self' blob:/);
+          assert.equal(got.width, undefined);
+        }
+        assert.deepEqual(errors, []);
+      } finally {
+        await context.close();
+      }
+    });
+  }
 });
