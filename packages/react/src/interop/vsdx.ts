@@ -1,16 +1,23 @@
-// Deterministic Microsoft Visio (.vsdx) OPC exporter (DECISIONS 311, 314).
+// Deterministic Microsoft Visio (.vsdx) OPC exporter (DECISIONS 311, 314, 324, 327).
 // Conforms to [MS-VSDX] (http://schemas.microsoft.com/office/visio/2012/main).
 // 96 CSS px = 1 inch; Visio page Y increases UPWARD from bottom-left.
 // Every connector's BeginX/BeginY/EndX/EndY and Geometry MoveTo/LineTo coordinates are computed directly
 // from each shape's exact rounded PinX/PinY/Width/Height and Connection row in Visio inches, guaranteeing
 // zero port-to-waypoint drift (no joining jog in Visio, Lucidchart, or draw.io).
-import type { Pt } from "../diagram-core";
+import type { DiagramCardinality, Pt } from "../diagram-core";
 import { paletteFor, round6, snapRouteToPorts } from "./scene";
 import type { InteropScene, InteropTheme, SceneNode } from "./types";
 import { makeDeterministicZip } from "./zip";
 import type { ZipEntry } from "./zip";
 
 const DPI = 96;
+
+const VSDX_CARD: Record<DiagramCardinality, number> = {
+  one: 25,
+  "zero-or-one": 30,
+  "one-or-many": 28,
+  "zero-or-many": 29,
+};
 
 function escXml(s: string): string {
   return String(s)
@@ -61,8 +68,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   const toVisioX = (px: number): number => n6((px + pad) / DPI);
   const toVisioY = (py: number): number => n6((canvasH - (py + pad)) / DPI);
 
-  // Precompute exact Visio box geometry for every connectable shape/lifeline so straight-line Connection rows
-  // align to 0.000000 in across boxes of different heights/widths (e.g. schema tables and sequence lifelines).
+  // Precompute exact Visio box geometry for every connectable shape, lifeline, and activation bar
+  // so straight-line Connection rows align to 0.000000 in across boxes of different heights/widths.
   const geomByKey = new Map<string, { pinX: number; pinY: number; wIn: number; hIn: number }>();
   for (const lf of scene.lifelines) {
     geomByKey.set(`life:${lf.participantId}`, {
@@ -70,6 +77,14 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       pinY: toVisioY((lf.y1 + lf.y2) / 2),
       wIn: n6(2 / DPI),
       hIn: n6(Math.max(1, lf.y2 - lf.y1) / DPI),
+    });
+  }
+  for (const bar of scene.bars) {
+    geomByKey.set(`bar:${bar.id}`, {
+      pinX: toVisioX(bar.box.x + bar.box.w / 2),
+      pinY: toVisioY(bar.box.y + bar.box.h / 2),
+      wIn: n6(bar.box.w / DPI),
+      hIn: n6(bar.box.h / DPI),
     });
   }
   for (const n of scene.nodes) {
@@ -81,7 +96,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     });
   }
 
-  // Collect deduplicated Connection rows required on each target shape/lifeline
+  // Collect deduplicated Connection rows required on each target shape/lifeline/bar
   const connsByKey = new Map<string, ConnEntry[]>();
   const getConnIndex = (key: string, fx: number, fy: number, exactCx?: number, exactCy?: number): number => {
     const g = geomByKey.get(key);
@@ -99,12 +114,16 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   };
 
   const edgeConns = scene.edges.map((e) => {
-    const fromKey = e.sequence ? `life:${e.from}` : `node:${e.from}`;
-    const toKey = e.sequence ? `life:${e.to}` : `node:${e.to}`;
+    const fromKey = e.sequence
+      ? (e.fromBarId && geomByKey.has(`bar:${e.fromBarId}`) ? `bar:${e.fromBarId}` : `life:${e.from}`)
+      : `node:${e.from}`;
+    const toKey = e.sequence
+      ? (e.toBarId && geomByKey.has(`bar:${e.toBarId}`) ? `bar:${e.toBarId}` : `life:${e.to}`)
+      : `node:${e.to}`;
     const fromG = geomByKey.get(fromKey);
     const toG = geomByKey.get(toKey);
-    const fromFx = e.sequence ? 0.5 : e.fromPort.x;
-    const toFx = e.sequence ? 0.5 : e.toPort.x;
+    const fromFx = e.sequence && !fromKey.startsWith("bar:") ? 0.5 : e.fromPort.x;
+    const toFx = e.sequence && !toKey.startsWith("bar:") ? 0.5 : e.toPort.x;
     const fromIx = getConnIndex(fromKey, fromFx, e.fromPort.y);
     let toIx: number;
     if (e.pts.length === 2 && fromG && toG) {
@@ -136,6 +155,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   const laneSheetIds = scene.lanes.map(() => nextId++);
   const lifeSheetIds = scene.lifelines.map(() => nextId++);
   const bandSheetIds = scene.bands.map(() => nextId++);
+  const frameSheetId = new Map<string, number>();
+  for (const f of scene.frames) frameSheetId.set(f.id, nextId++);
+  const barSheetId = new Map<string, number>();
+  for (const bar of scene.bars) barSheetId.set(bar.id, nextId++);
   const nodeSheetId = new Map<string, number>();
   for (const n of scene.nodes) nodeSheetId.set(n.id, nextId++);
 
@@ -193,17 +216,24 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     );
   }
 
-  // 1. Architecture groups as real Visio Containers (User.msvStructureType="Container" + Relationships)
+  // 1. Architecture groups as real Visio Containers (supporting nested depth-2 containers via DEPENDSON)
   for (const g of scene.groups) {
     const id = groupSheetId.get(g.id)!;
     const wIn = n6(g.box.w / DPI);
     const hIn = n6(g.box.h / DPI);
     const pinX = toVisioX(g.box.x + g.box.w / 2);
     const pinY = toVisioY(g.box.y + g.box.h / 2);
-    const radIn = n6(12 / DPI);
-    const memberIds = g.members.map((mid) => nodeSheetId.get(mid)).filter((x): x is number => x !== undefined);
-    const relCell = memberIds.length
-      ? `      <Cell N="Relationships" V="0" F="SUM(DEPENDSON(1,${memberIds.map((mid) => `Sheet.${mid}!SheetRef()`).join(",")}))"/>\n`
+    const radIn = n6((g.depth > 1 ? 8 : 12) / DPI);
+    const memberIds = [
+      ...g.members.map((mid) => nodeSheetId.get(mid)).filter((x): x is number => x !== undefined),
+      ...(g.childGroups ?? []).map((cid) => groupSheetId.get(cid)).filter((x): x is number => x !== undefined),
+    ];
+    const parentGid = g.parent ? groupSheetId.get(g.parent) : undefined;
+    const deps: string[] = [];
+    if (parentGid !== undefined) deps.push(`DEPENDSON(4,Sheet.${parentGid}!SheetRef())`);
+    if (memberIds.length) deps.push(`DEPENDSON(1,${memberIds.map((mid) => `Sheet.${mid}!SheetRef()`).join(",")})`);
+    const relCell = deps.length
+      ? `      <Cell N="Relationships" V="0" F="SUM(${deps.join(",")})"/>\n`
       : "";
     shapeXml.push(
       `    <Shape ID="${id}" NameU="Group_${escXml(g.id)}" Name="${escXml(g.label)}" Type="Shape">\n` +
@@ -297,7 +327,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     );
   }
 
-  // 3. Sequence lifelines & phase bands
+  // 3. Sequence lifelines, phase bands, combined frames, and activation bars
   for (let lfIdx = 0; lfIdx < scene.lifelines.length; lfIdx++) {
     const lf = scene.lifelines[lfIdx]!;
     const id = lifeSheetIds[lfIdx]!;
@@ -373,6 +403,233 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="${f6(n6(hIn / 2))}" F="Height*0.5"/></Row>\n` +
       `      </Section>\n` +
       `      <Text><cp IX="0"/><pp IX="0"/>${escXml(band.text)}</Text>\n` +
+      `    </Shape>`,
+    );
+  }
+
+  // 3b. Sequence frames (opt/loop/alt/par containers with corner operator tab and dashed branch dividers)
+  for (const f of scene.frames) {
+    const id = frameSheetId.get(f.id)!;
+    const wIn = n6(f.box.w / DPI);
+    const hIn = n6(f.box.h / DPI);
+    const pinX = toVisioX(f.box.x + f.box.w / 2);
+    const pinY = toVisioY(f.box.y + f.box.h / 2);
+    const radIn = n6((f.depth > 1 ? 4 : 12) / DPI);
+    const childFids = scene.frames.filter((c) => c.parentId === f.id).map((c) => frameSheetId.get(c.id)!);
+    const parentFid = f.parentId ? frameSheetId.get(f.parentId) : undefined;
+    const deps: string[] = [];
+    if (parentFid !== undefined) deps.push(`DEPENDSON(4,Sheet.${parentFid}!SheetRef())`);
+    if (childFids.length) deps.push(`DEPENDSON(1,${childFids.map((cid) => `Sheet.${cid}!SheetRef()`).join(",")})`);
+    const relCell = deps.length
+      ? `      <Cell N="Relationships" V="0" F="SUM(${deps.join(",")})"/>\n`
+      : "";
+    shapeXml.push(
+      `    <Shape ID="${id}" NameU="Frame_${escXml(f.id)}" Name="${escXml(`${f.operator} ${f.label}`.trim())}" Type="Shape">\n` +
+      `      <Cell N="PinX" V="${f6(pinX)}"/>\n` +
+      `      <Cell N="PinY" V="${f6(pinY)}"/>\n` +
+      `      <Cell N="Width" V="${f6(wIn)}"/>\n` +
+      `      <Cell N="Height" V="${f6(hIn)}"/>\n` +
+      `      <Cell N="LocPinX" V="${f6(n6(wIn / 2))}" F="Width*0.5"/>\n` +
+      `      <Cell N="LocPinY" V="${f6(n6(hIn / 2))}" F="Height*0.5"/>\n` +
+      `      <Cell N="Angle" V="0"/>\n` +
+      `      <Cell N="FillPattern" V="0"/>\n` +
+      `      <Cell N="LineColor" V="${P.structure}"/>\n` +
+      `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
+      `      <Cell N="LinePattern" V="1"/>\n` +
+      `      <Cell N="Rounding" V="${f6(radIn)}"/>\n` +
+      `      <Cell N="ObjType" V="4"/>\n` +
+      relCell +
+      `      <Section N="User">\n` +
+      `        <Row N="msvStructureType"><Cell N="Value" V="Container" U="STR"/></Row>\n` +
+      `        <Row N="msvSDContainerResize"><Cell N="Value" V="0"/></Row>\n` +
+      `        <Row N="msvSDContainerLocked"><Cell N="Value" V="0"/></Row>\n` +
+      `      </Section>\n` +
+      `      <Section N="Geometry" IX="0">\n` +
+      `        <Cell N="NoFill" V="1"/>\n` +
+      `        <Cell N="NoLine" V="0"/>\n` +
+      `        <Cell N="NoShow" V="0"/>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="${f6(hIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(hIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `      </Section>\n` +
+      `    </Shape>`,
+    );
+
+    const tabId = nextId++;
+    const twIn = n6(f.tabBox.w / DPI);
+    const thIn = n6(f.tabBox.h / DPI);
+    const tPinX = toVisioX(f.tabBox.x + f.tabBox.w / 2);
+    const tPinY = toVisioY(f.tabBox.y + f.tabBox.h / 2);
+    shapeXml.push(
+      `    <Shape ID="${tabId}" NameU="FrameTab_${escXml(f.id)}" Name="${escXml(f.operator)}" Type="Shape">\n` +
+      `      <Cell N="PinX" V="${f6(tPinX)}"/>\n` +
+      `      <Cell N="PinY" V="${f6(tPinY)}"/>\n` +
+      `      <Cell N="Width" V="${f6(twIn)}"/>\n` +
+      `      <Cell N="Height" V="${f6(thIn)}"/>\n` +
+      `      <Cell N="LocPinX" V="${f6(n6(twIn / 2))}" F="Width*0.5"/>\n` +
+      `      <Cell N="LocPinY" V="${f6(n6(thIn / 2))}" F="Height*0.5"/>\n` +
+      `      <Cell N="Angle" V="0"/>\n` +
+      `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+      `      <Cell N="FillPattern" V="1"/>\n` +
+      `      <Cell N="LineColor" V="${P.structure}"/>\n` +
+      `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
+      `      <Cell N="LinePattern" V="1"/>\n` +
+      `      <Cell N="VerticalAlign" V="1"/>\n` +
+      `      <Cell N="ObjType" V="4"/>\n` +
+      `      <Section N="Character">\n` +
+      `        <Row IX="0"><Cell N="Font" V="1"/><Cell N="Color" V="${P.textPrimary}"/><Cell N="Style" V="1"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
+      `      </Section>\n` +
+      `      <Section N="Paragraph">\n` +
+      `        <Row IX="0"><Cell N="HorzAlign" V="1"/></Row>\n` +
+      `      </Section>\n` +
+      `      <Section N="Geometry" IX="0">\n` +
+      `        <Cell N="NoFill" V="0"/>\n` +
+      `        <Cell N="NoLine" V="0"/>\n` +
+      `        <Cell N="NoShow" V="0"/>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(twIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(twIn)}" F="Width*1"/><Cell N="Y" V="${f6(thIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(thIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `      </Section>\n` +
+      `      <Text><cp IX="0"/><pp IX="0"/>${escXml(f.operator)}</Text>\n` +
+      `    </Shape>`,
+    );
+
+    if (f.label) {
+      const lblId = nextId++;
+      const lblX = f.tabBox.x + f.tabBox.w + 8;
+      const lblW = Math.max(40, f.box.x + f.box.w - lblX - 8);
+      const lwIn = n6(lblW / DPI);
+      const lhIn = n6(20 / DPI);
+      shapeXml.push(
+        `    <Shape ID="${lblId}" NameU="FrameLabel_${escXml(f.id)}" Name="${escXml(f.label)}" Type="Shape">\n` +
+        `      <Cell N="PinX" V="${f6(toVisioX(lblX + lblW / 2))}"/>\n` +
+        `      <Cell N="PinY" V="${f6(toVisioY(f.tabBox.y + 12))}"/>\n` +
+        `      <Cell N="Width" V="${f6(lwIn)}"/>\n` +
+        `      <Cell N="Height" V="${f6(lhIn)}"/>\n` +
+        `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
+        `      <Cell N="LocPinY" V="${f6(n6(lhIn / 2))}" F="Height*0.5"/>\n` +
+        `      <Cell N="Angle" V="0"/>\n` +
+        `      <Cell N="FillPattern" V="0"/>\n` +
+        `      <Cell N="LinePattern" V="0"/>\n` +
+        `      <Cell N="VerticalAlign" V="1"/>\n` +
+        `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
+        `      <Cell N="ObjType" V="4"/>\n` +
+        `      <Section N="Character">\n` +
+        `        <Row IX="0"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
+        `      </Section>\n` +
+        `      <Section N="Paragraph">\n` +
+        `        <Row IX="0"><Cell N="HorzAlign" V="0"/></Row>\n` +
+        `      </Section>\n` +
+        `      <Text><cp IX="0"/><pp IX="0"/>${escXml(f.label)}</Text>\n` +
+        `    </Shape>`,
+      );
+    }
+
+    f.dividers.forEach((div, k) => {
+      const divId = nextId++;
+      const divHIn = n6(2 / DPI);
+      shapeXml.push(
+        `    <Shape ID="${divId}" NameU="FrameDiv_${escXml(f.id)}_${k}" Name="Divider" Type="Shape">\n` +
+        `      <Cell N="PinX" V="${f6(pinX)}"/>\n` +
+        `      <Cell N="PinY" V="${f6(toVisioY(div.y))}"/>\n` +
+        `      <Cell N="Width" V="${f6(wIn)}"/>\n` +
+        `      <Cell N="Height" V="${f6(divHIn)}"/>\n` +
+        `      <Cell N="LocPinX" V="${f6(n6(wIn / 2))}" F="Width*0.5"/>\n` +
+        `      <Cell N="LocPinY" V="${f6(n6(divHIn / 2))}" F="Height*0.5"/>\n` +
+        `      <Cell N="Angle" V="0"/>\n` +
+        `      <Cell N="FillPattern" V="0"/>\n` +
+        `      <Cell N="LineColor" V="${P.structure}"/>\n` +
+        `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
+        `      <Cell N="LinePattern" V="2"/>\n` +
+        `      <Cell N="ObjType" V="4"/>\n` +
+        `      <Section N="Geometry" IX="0">\n` +
+        `        <Cell N="NoFill" V="1"/>\n` +
+        `        <Cell N="NoLine" V="0"/>\n` +
+        `        <Cell N="NoShow" V="0"/>\n` +
+        `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="${f6(n6(divHIn / 2))}" F="Height*0.5"/></Row>\n` +
+        `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="${f6(n6(divHIn / 2))}" F="Height*0.5"/></Row>\n` +
+        `      </Section>\n` +
+        `    </Shape>`,
+      );
+      if (div.label || f.operator === "alt") {
+        const elseId = nextId++;
+        const elseW = Math.max(40, f.box.w - 24);
+        const ewIn = n6(elseW / DPI);
+        const ehIn = n6(20 / DPI);
+        const isAlt = f.operator === "alt";
+        const charXml = isAlt
+          ? `        <Row IX="0"><Cell N="Font" V="1"/><Cell N="Color" V="${P.textTertiary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
+            `        <Row IX="1"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>`
+          : `        <Row IX="0"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>`;
+        const txtXml = isAlt
+          ? `<cp IX="0"/><pp IX="0"/>else${div.label ? `<cp IX="1"/> ${escXml(div.label)}` : ""}`
+          : `<cp IX="0"/><pp IX="0"/>${escXml(div.label)}`;
+        shapeXml.push(
+          `    <Shape ID="${elseId}" NameU="FrameElse_${escXml(f.id)}_${k}" Name="${escXml(div.label || "else")}" Type="Shape">\n` +
+          `      <Cell N="PinX" V="${f6(toVisioX(f.box.x + 12 + elseW / 2))}"/>\n` +
+          `      <Cell N="PinY" V="${f6(toVisioY(div.y + 14))}"/>\n` +
+          `      <Cell N="Width" V="${f6(ewIn)}"/>\n` +
+          `      <Cell N="Height" V="${f6(ehIn)}"/>\n` +
+          `      <Cell N="LocPinX" V="${f6(n6(ewIn / 2))}" F="Width*0.5"/>\n` +
+          `      <Cell N="LocPinY" V="${f6(n6(ehIn / 2))}" F="Height*0.5"/>\n` +
+          `      <Cell N="Angle" V="0"/>\n` +
+          `      <Cell N="FillPattern" V="0"/>\n` +
+          `      <Cell N="LinePattern" V="0"/>\n` +
+          `      <Cell N="VerticalAlign" V="1"/>\n` +
+          `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
+          `      <Cell N="ObjType" V="4"/>\n` +
+          `      <Section N="Character">\n` +
+          `${charXml}\n` +
+          `      </Section>\n` +
+          `      <Section N="Paragraph">\n` +
+          `        <Row IX="0"><Cell N="HorzAlign" V="0"/></Row>\n` +
+          `      </Section>\n` +
+          `      <Text>${txtXml}</Text>\n` +
+          `    </Shape>`,
+        );
+      }
+    });
+  }
+
+  // 3c. Sequence activation bars (connectable shapes over lifelines/frames, glued to message connectors)
+  for (const bar of scene.bars) {
+    const id = barSheetId.get(bar.id)!;
+    const key = `bar:${bar.id}`;
+    const g = geomByKey.get(key)!;
+    const conns = connsByKey.get(key) ?? [];
+    placed.set(key, { sheetId: id, pinX: g.pinX, pinY: g.pinY, wIn: g.wIn, hIn: g.hIn, conns });
+    const connRowsXml = renderConnectionRows(conns, g.wIn, g.hIn);
+    shapeXml.push(
+      `    <Shape ID="${id}" NameU="Bar_${escXml(bar.id)}" Name="Activation ${escXml(bar.participantId)}" Type="Shape">\n` +
+      `      <Cell N="PinX" V="${f6(g.pinX)}"/>\n` +
+      `      <Cell N="PinY" V="${f6(g.pinY)}"/>\n` +
+      `      <Cell N="Width" V="${f6(g.wIn)}"/>\n` +
+      `      <Cell N="Height" V="${f6(g.hIn)}"/>\n` +
+      `      <Cell N="LocPinX" V="${f6(n6(g.wIn / 2))}" F="Width*0.5"/>\n` +
+      `      <Cell N="LocPinY" V="${f6(n6(g.hIn / 2))}" F="Height*0.5"/>\n` +
+      `      <Cell N="Angle" V="0"/>\n` +
+      `      <Cell N="FillForegnd" V="${P.cardFill}"/>\n` +
+      `      <Cell N="FillPattern" V="1"/>\n` +
+      `      <Cell N="LineColor" V="${P.structure}"/>\n` +
+      `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
+      `      <Cell N="LinePattern" V="1"/>\n` +
+      `      <Cell N="Rounding" V="${f6(n6(2 / DPI))}"/>\n` +
+      `      <Cell N="ObjType" V="1"/>\n` +
+      connRowsXml +
+      `      <Section N="Geometry" IX="0">\n` +
+      `        <Cell N="NoFill" V="0"/>\n` +
+      `        <Cell N="NoLine" V="0"/>\n` +
+      `        <Cell N="NoShow" V="0"/>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(g.wIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(g.wIn)}" F="Width*1"/><Cell N="Y" V="${f6(g.hIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(g.hIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `      </Section>\n` +
       `    </Shape>`,
     );
   }
@@ -598,8 +855,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="LinePattern" V="1"/>\n` +
       `      <Cell N="Rounding" V="${f6(radIn)}"${n.shape === "terminal" ? ' F="Height*0.5"' : ""}/>\n` +
       `      <Cell N="VerticalAlign" V="${vertAlign}"/>\n` +
-      `      <Cell N="LeftMargin" V="${pxToIn(n.shape === "terminal" ? 16 : 12)}"/>\n` +
-      `      <Cell N="RightMargin" V="${pxToIn(n.shape === "terminal" ? 16 : 12)}"/>\n` +
+      `      <Cell N="LeftMargin" V="${pxToIn(n.shape === "terminal" ? 16 : n.shape === "participant" && n.mark ? 24 : 12)}"/>\n` +
+      `      <Cell N="RightMargin" V="${pxToIn(n.shape === "terminal" ? 16 : n.mark ? 24 : 12)}"/>\n` +
       `      <Cell N="TopMargin" V="${pxToIn(8)}"/>\n` +
       `      <Cell N="BottomMargin" V="${pxToIn(8)}"/>\n` +
       `      <Cell N="ObjType" V="1"/>\n` +
@@ -678,8 +935,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const lineColor = isMain ? P.edgeMain : P.edgePlain;
     const lineWeight = isMain ? ptToIn(1.5) : ptToIn(0.75);
     const linePattern = isDashed ? 2 : 1;
-    const beginArrow = e.fk ? 10 : 0; // 10 = filled circle dot for FK origin
-    const endArrow = e.openTip ? 1 : 4; // 1 = open V, 4 = filled block triangle
+    const beginArrow = e.card ? VSDX_CARD[e.card.from] : e.fk ? 10 : 0; // crow's-foot codes 25/28/29/30, or 10 = filled circle dot for FK origin
+    const endArrow = e.card ? VSDX_CARD[e.card.to] : e.openTip ? 1 : 4; // crow's-foot codes, or 1 = open V, 4 = filled block triangle
     const radIn = n6((e.sequence && e.from === e.to ? 4 : 8) / DPI);
 
     const geomRows = vPts.map((pt, k) => {
@@ -786,6 +1043,9 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     `  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/document" Target="visio/document.xml"/>\n` +
     `</Relationships>\n`;
 
+  const creator = scene.measuredBy
+    ? `Basalt Diagram Exporter (${scene.measuredBy})`
+    : "Basalt Diagram Exporter";
   const descLine = attributions.length
     ? `    <Description>${escXml(attributions.join(" "))}</Description>\n`
     : "";
@@ -794,7 +1054,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     `<VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">\n` +
     `  <DocumentProperties>\n` +
     `    <Title>${escXml(scene.title || scene.id)}</Title>\n` +
-    `    <Creator>Basalt Diagram Exporter</Creator>\n` +
+    `    <Creator>${escXml(creator)}</Creator>\n` +
     descLine +
     `  </DocumentProperties>\n` +
     `  <FaceNames>\n` +

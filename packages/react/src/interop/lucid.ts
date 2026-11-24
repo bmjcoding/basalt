@@ -1,15 +1,18 @@
-// Deterministic Lucid Standard Import (.lucid ZIP + document.json) exporter (DECISIONS 311, 314).
+// Deterministic Lucid Standard Import (.lucid ZIP + document.json) exporter (DECISIONS 311, 314, 324, 327).
 // Conforms to https://developer.lucid.co/docs/standard-import:
 //   - documentSettings.units = "px", rounding = 2 * px radius, explicit pt font-size on every text run
-//   - roundedRectangleContainer (assistedLayout: false, magnetize: true), swimLanes, table, decision, terminator
+//   - nested roundedRectangleContainer (assistedLayout: false, magnetize: true), swimLanes, table, decision, terminator
+//   - sequence frames, dashed branch dividers, activation bars, and crow's-foot cardinality endpoints
 //   - single glued lines (shapeEndpoint / lineEndpoint) with elbowControlPoints snapped in Lucid units
-import type { Pt } from "../diagram-core";
+import type { DiagramCardinality, Pt } from "../diagram-core";
 import { paletteFor, round2, round6, snapRouteToPorts } from "./scene";
 import type {
   InteropScene,
   InteropTheme,
+  LucidCustomData,
   LucidDocument,
   LucidEndpoint,
+  LucidEndpointStyle,
   LucidLine,
   LucidLineText,
   LucidShape,
@@ -18,6 +21,13 @@ import type {
 } from "./types";
 import { makeDeterministicZip } from "./zip";
 import type { ZipEntry } from "./zip";
+
+const LUCID_CARD: Record<DiagramCardinality, LucidEndpointStyle> = {
+  one: "exactlyOne",
+  "zero-or-one": "zeroOrOne",
+  "one-or-many": "oneOrMore",
+  "zero-or-many": "zeroOrMore",
+};
 
 function escHtml(s: string): string {
   return String(s)
@@ -50,9 +60,11 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
   const shapeBoxById = new Map<string, SceneBox>();
   const lifeByParticipant = new Map<string, { lineId: string; x: number; y1: number; y2: number }>();
 
-  // 1. Architecture group containers (lowest zIndex, assistedLayout: false keeps Basalt's grid)
+  // 1. Architecture group containers (outer-first zIndex 0/1, assistedLayout: false keeps Basalt's grid)
   for (const g of scene.groups) {
     const box: SceneBox = { x: round2(g.box.x + pad), y: round2(g.box.y + pad), w: round2(g.box.w), h: round2(g.box.h) };
+    const groupData: LucidCustomData[] = [{ key: "basalt_group", value: g.id }];
+    if (g.parent) groupData.push({ key: "basalt_parent_group", value: g.parent });
     shapes.push({
       id: lucidId("group", g.id),
       type: "roundedRectangleContainer",
@@ -60,14 +72,15 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       style: {
         fill: { type: "color", color: transparentFill },
         stroke: { color: P.structure, width: 1, style: "dashed" },
-        rounding: 24, // 12px radius * 2
+        rounding: g.depth > 1 ? 16 : 24, // 8px radius-md for nested, 12px radius-lg for outer
       },
       magnetize: true,
       assistedLayout: false,
       containerTitle: {
         text: `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; color: ${P.textSecondary}; text-align: left;">${escHtml(g.label)}</span>`,
       },
-      zIndex: 0,
+      customData: groupData,
+      zIndex: g.depth - 1,
     });
   }
 
@@ -121,7 +134,8 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
   }
 
   // 4. Nodes (cards, flowchart shapes, participants, schema tables)
-  for (const n of scene.nodes) {
+  for (let nodeIdx = 0; nodeIdx < scene.nodes.length; nodeIdx++) {
+    const n = scene.nodes[nodeIdx]!;
     const id = lucidId("node", n.id);
     const box: SceneBox = { x: round2(n.box.x + pad), y: round2(n.box.y + pad), w: round2(n.box.w), h: round2(n.box.h) };
     shapeBoxById.set(n.id, box);
@@ -136,6 +150,12 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
     const nameColor = isFocal ? P.focalInk : P.textPrimary;
     const kindColor = isFocal ? P.focalQuiet : P.textTertiary;
     const detailColor = isFocal ? P.focalQuiet : P.textSecondary;
+    const nodeCustomData: LucidCustomData[] = [
+      { key: "basalt_id", value: n.id },
+      { key: "basalt_col", value: String(n.col) },
+      { key: "basalt_row", value: String(n.row) },
+      ...(nodeIdx === 0 && scene.measuredBy ? [{ key: "basalt_measured_by", value: scene.measuredBy }] : []),
+    ];
 
     if (n.shape === "table") {
       const rows = n.rows ?? [];
@@ -232,11 +252,7 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
         ],
         verticalBorder: false,
         horizontalBorder: true,
-        customData: [
-          { key: "basalt_id", value: n.id },
-          { key: "basalt_col", value: String(n.col) },
-          { key: "basalt_row", value: String(n.row) },
-        ],
+        customData: nodeCustomData,
         zIndex: 10,
       });
       continue;
@@ -267,11 +283,7 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       boundingBox: box,
       style: shapeStyle,
       text: linesHtml.join(""),
-      customData: [
-        { key: "basalt_id", value: n.id },
-        { key: "basalt_col", value: String(n.col) },
-        { key: "basalt_row", value: String(n.row) },
-      ],
+      customData: nodeCustomData,
       zIndex: 10,
     });
 
@@ -297,19 +309,125 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
   for (const lf of scene.lifelines) {
     const lineId = lucidId("life", lf.participantId);
     const pBox = shapeBoxById.get(lf.participantId);
-    const lx = pBox ? round2(pBox.x + pBox.w / 2) : round2(lf.x + pad);
+    const lx = round2(lf.x + pad);
     const y1 = pBox ? round2(pBox.y + pBox.h) : round2(lf.y1 + pad);
     const y2 = round2(lf.y2 + pad);
     lifeByParticipant.set(lf.participantId, { lineId, x: lx, y1, y2 });
+    const pFx = pBox && pBox.w > 0 ? round6(Math.max(0, Math.min(1, (lx - pBox.x) / pBox.w))) : 0.5;
     lines.push({
       id: lineId,
       lineType: "straight",
       endpoint1: pBox
-        ? { type: "shapeEndpoint", style: "none", shapeId: lucidId("node", lf.participantId), position: { x: 0.5, y: 1 } }
+        ? { type: "shapeEndpoint", style: "none", shapeId: lucidId("node", lf.participantId), position: { x: pFx, y: 1 } }
         : { type: "positionEndpoint", style: "none", position: { x: lx, y: y1 } },
       endpoint2: { type: "positionEndpoint", style: "none", position: { x: lx, y: y2 } },
       stroke: { color: P.structure, width: 1, style: "dashed" },
       zIndex: 5,
+    });
+  }
+
+  // 5b. Sequence frames (opt/loop/alt/par containers, corner tab, header label, and dashed branch dividers)
+  for (const f of scene.frames) {
+    const box: SceneBox = { x: round2(f.box.x + pad), y: round2(f.box.y + pad), w: round2(f.box.w), h: round2(f.box.h) };
+    const tabBox: SceneBox = { x: round2(f.tabBox.x + pad), y: round2(f.tabBox.y + pad), w: round2(f.tabBox.w), h: round2(f.tabBox.h) };
+    const frameData: LucidCustomData[] = [
+      { key: "basalt_frame", value: f.id },
+      { key: "basalt_frame_op", value: f.operator },
+    ];
+    if (f.parentId) frameData.push({ key: "basalt_parent_frame", value: f.parentId });
+    shapes.push({
+      id: lucidId("frame", f.id),
+      type: "roundedRectangleContainer",
+      boundingBox: box,
+      style: {
+        fill: { type: "color", color: transparentFill },
+        stroke: { color: P.structure, width: 1, style: "solid" },
+        rounding: f.depth > 1 ? 8 : 24, // 4px radius-xs nested, 12px radius-lg outer
+      },
+      magnetize: false,
+      assistedLayout: false,
+      customData: frameData,
+      zIndex: 5 + f.depth,
+    });
+    shapes.push({
+      id: lucidId("frame_tab", f.id),
+      type: "rectangle",
+      boundingBox: tabBox,
+      style: {
+        fill: { type: "color", color: P.page },
+        stroke: { color: P.structure, width: 1, style: "solid" },
+        rounding: 0,
+        textColor: P.textPrimary,
+      },
+      text: `<p style="text-align: center; font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; font-weight: bold; color: ${P.textPrimary};">${escHtml(f.operator)}</p>`,
+      zIndex: 7 + f.depth,
+    });
+    if (f.label) {
+      const lblX = round2(tabBox.x + tabBox.w + 8);
+      const lblW = round2(Math.max(40, box.x + box.w - lblX - 8));
+      shapes.push({
+        id: lucidId("frame_label", f.id),
+        type: "rectangle",
+        boundingBox: { x: lblX, y: round2(tabBox.y + 2), w: lblW, h: 20 },
+        style: {
+          fill: { type: "color", color: P.page },
+          stroke: { color: transparentFill, width: 0 },
+          textColor: P.textSecondary,
+        },
+        text: `<p style="text-align: left; font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(f.label)}</p>`,
+        zIndex: 7 + f.depth,
+      });
+    }
+    f.dividers.forEach((div, k) => {
+      const divY = round2(div.y + pad);
+      lines.push({
+        id: lucidId("frame_div", `${f.id}_${k}`),
+        lineType: "straight",
+        endpoint1: { type: "positionEndpoint", style: "none", position: { x: box.x, y: divY } },
+        endpoint2: { type: "positionEndpoint", style: "none", position: { x: round2(box.x + box.w), y: divY } },
+        stroke: { color: P.structure, width: 1, style: "dashed" },
+        zIndex: 7 + f.depth,
+      });
+      if (div.label || f.operator === "alt") {
+        const txt = f.operator === "alt"
+          ? `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; color: ${P.textTertiary};">else</span>` +
+            (div.label ? ` <span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(div.label)}</span>` : "")
+          : `<span style="font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 9pt; color: ${P.textSecondary};">${escHtml(div.label)}</span>`;
+        shapes.push({
+          id: lucidId("frame_else", `${f.id}_${k}`),
+          type: "rectangle",
+          boundingBox: { x: round2(box.x + 12), y: round2(divY + 4), w: round2(Math.max(40, box.w - 24)), h: 20 },
+          style: {
+            fill: { type: "color", color: P.page },
+            stroke: { color: transparentFill, width: 0 },
+            textColor: P.textSecondary,
+          },
+          text: `<p style="text-align: left;">${txt}</p>`,
+          zIndex: 8 + f.depth,
+        });
+      }
+    });
+  }
+
+  // 5c. Sequence activation bars (rectangles above lifelines/frames, glued to message endpoints)
+  const barBoxById = new Map<string, SceneBox>();
+  for (const bar of scene.bars) {
+    const box: SceneBox = { x: round2(bar.box.x + pad), y: round2(bar.box.y + pad), w: round2(bar.box.w), h: round2(bar.box.h) };
+    barBoxById.set(bar.id, box);
+    shapes.push({
+      id: lucidId("bar", bar.id),
+      type: "rectangle",
+      boundingBox: box,
+      style: {
+        fill: { type: "color", color: P.cardFill },
+        stroke: { color: P.structure, width: 1, style: "solid" },
+        rounding: 4, // 2px radius-2xs * 2
+      },
+      customData: [
+        { key: "basalt_bar", value: bar.id },
+        { key: "basalt_participant", value: bar.participantId },
+      ],
+      zIndex: 9,
     });
   }
 
@@ -324,12 +442,29 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       const lf1 = lifeByParticipant.get(e.from);
       const lf2 = lifeByParticipant.get(e.to);
       if (!lf1 || !lf2) continue;
-      const pos1 = round6(e.fromPort.y);
-      const pos2 = round6(e.toPort.y);
-      startPt = { x: lf1.x, y: round2(lf1.y1 + pos1 * (lf1.y2 - lf1.y1)) };
-      endPt = { x: lf2.x, y: round2(lf2.y1 + pos2 * (lf2.y2 - lf2.y1)) };
-      endpoint1 = { type: "lineEndpoint", style: "none", lineId: lf1.lineId, position: pos1 };
-      endpoint2 = { type: "lineEndpoint", style: e.openTip ? "openArrow" : "arrow", lineId: lf2.lineId, position: pos2 };
+      const b1 = e.fromBarId ? barBoxById.get(e.fromBarId) : undefined;
+      const b2 = e.toBarId ? barBoxById.get(e.toBarId) : undefined;
+      if (b1) {
+        const fx = round6(e.fromPort.x);
+        const fy = round6(e.fromPort.y);
+        startPt = { x: round2(b1.x + fx * b1.w), y: round2(b1.y + fy * b1.h) };
+        endpoint1 = { type: "shapeEndpoint", style: "none", shapeId: lucidId("bar", e.fromBarId!), position: { x: fx, y: fy } };
+      } else {
+        const pos1 = round6(e.fromPort.y);
+        startPt = { x: lf1.x, y: round2(lf1.y1 + pos1 * (lf1.y2 - lf1.y1)) };
+        endpoint1 = { type: "lineEndpoint", style: "none", lineId: lf1.lineId, position: pos1 };
+      }
+      const endStyle: LucidEndpointStyle = e.openTip ? "openArrow" : "arrow";
+      if (b2) {
+        const tx = round6(e.toPort.x);
+        const ty = round6(e.toPort.y);
+        endPt = { x: round2(b2.x + tx * b2.w), y: round2(b2.y + ty * b2.h) };
+        endpoint2 = { type: "shapeEndpoint", style: endStyle, shapeId: lucidId("bar", e.toBarId!), position: { x: tx, y: ty } };
+      } else {
+        const pos2 = round6(e.toPort.y);
+        endPt = { x: lf2.x, y: round2(lf2.y1 + pos2 * (lf2.y2 - lf2.y1)) };
+        endpoint2 = { type: "lineEndpoint", style: endStyle, lineId: lf2.lineId, position: pos2 };
+      }
     } else {
       const srcBox = shapeBoxById.get(e.from);
       const dstBox = shapeBoxById.get(e.to);
@@ -340,8 +475,10 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       const ty = round6(e.toPort.y);
       startPt = { x: round2(srcBox.x + fx * srcBox.w), y: round2(srcBox.y + fy * srcBox.h) };
       endPt = { x: round2(dstBox.x + tx * dstBox.w), y: round2(dstBox.y + ty * dstBox.h) };
-      endpoint1 = { type: "shapeEndpoint", style: e.fk ? "closedCircle" : "none", shapeId: lucidId("node", e.from), position: { x: fx, y: fy } };
-      endpoint2 = { type: "shapeEndpoint", style: e.openTip ? "openArrow" : "arrow", shapeId: lucidId("node", e.to), position: { x: tx, y: ty } };
+      const startStyle: LucidEndpointStyle = e.card ? LUCID_CARD[e.card.from] : (e.fk ? "closedCircle" : "none");
+      const endStyle: LucidEndpointStyle = e.card ? LUCID_CARD[e.card.to] : (e.openTip ? "openArrow" : "arrow");
+      endpoint1 = { type: "shapeEndpoint", style: startStyle, shapeId: lucidId("node", e.from), position: { x: fx, y: fy } };
+      endpoint2 = { type: "shapeEndpoint", style: endStyle, shapeId: lucidId("node", e.to), position: { x: tx, y: ty } };
     }
 
     const rawPts: Pt[] = e.pts.map((p) => ({ x: round2(p.x + pad), y: round2(p.y + pad) }));
@@ -368,9 +505,10 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
     }
 
     if (e.label) {
+      const labelHtml = escHtml(e.label.text).replace(/\n/g, "<br>");
       const texts: LucidLineText[] = [
         {
-          text: `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; color: ${e.sequence ? P.textPrimary : P.edgePlain};">${escHtml(e.label.text)}</span>`,
+          text: `<span style="font-family: 'Geist Mono', 'Liberation Mono', monospace; font-size: 9pt; color: ${e.sequence ? P.textPrimary : P.edgePlain};">${labelHtml}</span>`,
           position: e.label.t,
           side: e.label.on ? "middle" : "top",
         },

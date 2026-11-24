@@ -1,11 +1,24 @@
-// Deterministic draw.io (.drawio / mxGraphModel XML) exporter (DECISIONS 311, 314).
+// Deterministic draw.io (.drawio / mxGraphModel XML) exporter (DECISIONS 311, 314, 324, 327).
 // Conforms strictly to mxfile-1.0.xsd: uncompressed XML, no XML comments, positive integer page sizes,
-// real parent-child containers, one glued orthogonal edge per Basalt edge, attached edgeLabel children,
+// real parent-child containers (including nested groups and sequence frames), activation bars,
+// crow's-foot cardinality arrows, one glued orthogonal edge per Basalt edge, attached edgeLabel children,
 // and exact port-snapped inner waypoints so first and last segments are strictly axis-aligned.
-import type { Pt } from "../diagram-core";
+import type { DiagramCardinality, Pt } from "../diagram-core";
 import { encodeSvgDataUri, paletteFor, round2, round4, round6, snapRouteToPorts } from "./scene";
 import type { ThemePalette } from "./scene";
 import type { InteropScene, InteropTheme, SceneBox, SceneNode } from "./types";
+
+const DRAWIO_CARD: Record<DiagramCardinality, string> = {
+  one: "ERmandOne",
+  "zero-or-one": "ERzeroToOne",
+  "one-or-many": "ERoneToMany",
+  "zero-or-many": "ERzeroToMany",
+};
+
+function rowPortY(ptY: number, rowBox: SceneBox): number {
+  const raw = rowBox.h > 0 ? Math.max(0, Math.min(1, (ptY - rowBox.y) / rowBox.h)) : 0.5;
+  return Math.abs(raw - 0.5) < 0.05 ? 0.5 : round6(raw);
+}
 
 function escXml(s: string): string {
   return String(s)
@@ -76,15 +89,20 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
   // Exact emitted world boxes for every connectable vertex (used to snap waypoints in draw.io's own coordinates)
   const worldBoxByCell = new Map<string, SceneBox>();
 
-  // 1. Groups (architecture containers, lowest z-order)
+  // 1. Groups (architecture containers, outer-first so nested depth-2 groups parent inside depth-1)
   const groupBoxes = new Map<string, SceneBox>();
   for (const g of scene.groups) {
-    const box: SceneBox = { x: round2(g.box.x + pad), y: round2(g.box.y + pad), w: round2(g.box.w), h: round2(g.box.h) };
-    groupBoxes.set(g.id, box);
+    const worldBox: SceneBox = { x: round2(g.box.x + pad), y: round2(g.box.y + pad), w: round2(g.box.w), h: round2(g.box.h) };
+    groupBoxes.set(g.id, worldBox);
+    const parentBox = g.parent ? groupBoxes.get(g.parent) : undefined;
+    const parentId = parentBox ? `group-${g.parent}` : "1";
+    const relX = round2(worldBox.x - (parentBox ? parentBox.x : 0));
+    const relY = round2(worldBox.y - (parentBox ? parentBox.y : 0));
+    const arcSize = g.depth > 1 ? 16 : 24;
     const style = cellStyle([
       "rounded=1",
       "absoluteArcSize=1",
-      "arcSize=24",
+      `arcSize=${arcSize}`,
       "whiteSpace=wrap",
       "html=1",
       "container=1",
@@ -106,8 +124,8 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
       "fontStyle=0",
     ]);
     cells.push(
-      `        <mxCell id="group-${escXml(g.id)}" value="${escXml(g.label)}" style="${escXml(style)}" vertex="1" connectable="0" parent="1">\n` +
-      `          <mxGeometry x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" as="geometry"/>\n` +
+      `        <mxCell id="group-${escXml(g.id)}" value="${escXml(g.label)}" style="${escXml(style)}" vertex="1" connectable="0" parent="${escXml(parentId)}">\n` +
+      `          <mxGeometry x="${relX}" y="${relY}" width="${worldBox.w}" height="${worldBox.h}" as="geometry"/>\n` +
       `        </mxCell>`,
     );
   }
@@ -146,7 +164,7 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     );
   }
 
-  // 3. Sequence lifelines & phase bands (drawn behind participant headers and messages)
+  // 3. Sequence lifelines, phase bands, combined frames, and activation bars
   for (const lf of scene.lifelines) {
     const lx = round2(lf.x + pad);
     const y1 = round2(lf.y1 + pad);
@@ -204,13 +222,159 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     );
   }
 
+  // 3b. Sequence frames (opt/loop/alt/par containers with corner operator tab and dashed branch dividers)
+  const frameBoxes = new Map<string, SceneBox>();
+  for (const f of scene.frames) {
+    const worldBox: SceneBox = { x: round2(f.box.x + pad), y: round2(f.box.y + pad), w: round2(f.box.w), h: round2(f.box.h) };
+    frameBoxes.set(f.id, worldBox);
+    const parentBox = f.parentId ? frameBoxes.get(f.parentId) : undefined;
+    const parentId = parentBox ? `frame-${f.parentId}` : "1";
+    const relX = round2(worldBox.x - (parentBox ? parentBox.x : 0));
+    const relY = round2(worldBox.y - (parentBox ? parentBox.y : 0));
+    const frameId = `frame-${f.id}`;
+    const frameStyle = cellStyle([
+      "rounded=1",
+      "absoluteArcSize=1",
+      `arcSize=${f.depth > 1 ? 8 : 24}`,
+      "whiteSpace=wrap",
+      "html=1",
+      "container=1",
+      "collapsible=0",
+      "recursiveResize=0",
+      "pointerEvents=0",
+      "fillColor=none",
+      `strokeColor=${col("structure")}`,
+      "strokeWidth=1",
+    ]);
+    cells.push(
+      `        <mxCell id="${escXml(frameId)}" value="" style="${escXml(frameStyle)}" vertex="1" connectable="0" parent="${escXml(parentId)}">\n` +
+      `          <mxGeometry x="${relX}" y="${relY}" width="${worldBox.w}" height="${worldBox.h}" as="geometry"/>\n` +
+      `        </mxCell>`,
+    );
+
+    const tabRelX = round2(f.tabBox.x + pad - worldBox.x);
+    const tabRelY = round2(f.tabBox.y + pad - worldBox.y);
+    const tabW = round2(f.tabBox.w);
+    const tabH = round2(f.tabBox.h);
+    const tabStyle = cellStyle([
+      "shape=partialRectangle",
+      "top=0",
+      "left=0",
+      "right=1",
+      "bottom=1",
+      "rounded=0",
+      "html=1",
+      `fillColor=${col("page")}`,
+      `strokeColor=${col("structure")}`,
+      "strokeWidth=1",
+      "align=center",
+      "verticalAlign=middle",
+      `fontColor=${col("textPrimary")}`,
+      "fontFamily=Geist Mono, Consolas, monospace",
+      "fontSize=12",
+      "fontStyle=1",
+    ]);
+    cells.push(
+      `        <mxCell id="frame-tab-${escXml(f.id)}" value="${escXml(f.operator)}" style="${escXml(tabStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
+      `          <mxGeometry x="${tabRelX}" y="${tabRelY}" width="${tabW}" height="${tabH}" as="geometry"/>\n` +
+      `        </mxCell>`,
+    );
+
+    if (f.label) {
+      const lblX = round2(tabRelX + tabW + 8);
+      const lblW = round2(Math.max(40, worldBox.w - lblX - 8));
+      const lblStyle = cellStyle([
+        "text",
+        "html=1",
+        "strokeColor=none",
+        `fillColor=${col("page")}`,
+        "align=left",
+        "verticalAlign=middle",
+        "spacingLeft=4",
+        "spacingRight=4",
+        `fontColor=${col("textSecondary")}`,
+        "fontFamily=Geist, Inter, Helvetica, Arial",
+        "fontSize=12",
+      ]);
+      cells.push(
+        `        <mxCell id="frame-label-${escXml(f.id)}" value="${escXml(f.label)}" style="${escXml(lblStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
+        `          <mxGeometry x="${lblX}" y="${round2(tabRelY + 2)}" width="${lblW}" height="20" as="geometry"/>\n` +
+        `        </mxCell>`,
+      );
+    }
+
+    f.dividers.forEach((div, k) => {
+      const divRelY = round2(div.y + pad - worldBox.y);
+      const divStyle = cellStyle([
+        "shape=line",
+        "html=1",
+        "fillColor=none",
+        `strokeColor=${col("structure")}`,
+        "strokeWidth=1",
+        "dashed=1",
+        "dashPattern=4 4",
+      ]);
+      cells.push(
+        `        <mxCell id="frame-div-${escXml(f.id)}-${k}" value="" style="${escXml(divStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
+        `          <mxGeometry x="0" y="${round2(divRelY - 1)}" width="${worldBox.w}" height="2" as="geometry"/>\n` +
+        `        </mxCell>`,
+      );
+      if (div.label || f.operator === "alt") {
+        const elseVal = f.operator === "alt"
+          ? `<span style="font-family:Geist Mono,Consolas,monospace;${adaptive ? "opacity:0.65;" : `color:${P.textTertiary};`}">else</span>` +
+            (div.label ? ` <span style="font-family:Geist,Inter,Helvetica,Arial,sans-serif;${adaptive ? "opacity:0.8;" : `color:${P.textSecondary};`}">${escXml(div.label)}</span>` : "")
+          : escXml(div.label);
+        const elseStyle = cellStyle([
+          "text",
+          "html=1",
+          "strokeColor=none",
+          `fillColor=${col("page")}`,
+          "align=left",
+          "verticalAlign=middle",
+          "spacingLeft=4",
+          "spacingRight=4",
+          `fontColor=${col("textSecondary")}`,
+          "fontFamily=Geist, Inter, Helvetica, Arial",
+          "fontSize=12",
+        ]);
+        cells.push(
+          `        <mxCell id="frame-else-${escXml(f.id)}-${k}" value="${escXml(elseVal)}" style="${escXml(elseStyle)}" vertex="1" connectable="0" parent="${escXml(frameId)}">\n` +
+          `          <mxGeometry x="8" y="${round2(divRelY + 4)}" width="${round2(Math.max(40, worldBox.w - 16))}" height="20" as="geometry"/>\n` +
+          `        </mxCell>`,
+        );
+      }
+    });
+  }
+
+  // 3c. Sequence activation bars (drawn over lifelines and frames, under message connectors)
+  for (const bar of scene.bars) {
+    const box: SceneBox = { x: round2(bar.box.x + pad), y: round2(bar.box.y + pad), w: round2(bar.box.w), h: round2(bar.box.h) };
+    worldBoxByCell.set(bar.id, box);
+    const barStyle = cellStyle([
+      "rounded=1",
+      "absoluteArcSize=1",
+      "arcSize=4",
+      "html=1",
+      `fillColor=${col("cardFill")}`,
+      `strokeColor=${col("structure")}`,
+      "strokeWidth=1",
+    ]);
+    cells.push(
+      `        <mxCell id="${escXml(bar.id)}" value="" style="${escXml(barStyle)}" vertex="1" parent="1">\n` +
+      `          <mxGeometry x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" as="geometry"/>\n` +
+      `        </mxCell>`,
+    );
+  }
+
   // 4. Nodes (cards, flowchart shapes, participants, schema tables with row cells)
   const formatCardHtml = (n: SceneNode): string => {
     const isFocal = n.focal;
     const nameColor = isFocal ? P.focalInk : P.textPrimary;
     const kindColor = isFocal ? P.focalQuiet : P.textTertiary;
     const detailColor = isFocal ? P.focalQuiet : P.textSecondary;
-    const padMark = n.mark ? "padding-right:24px;" : "";
+    const padMark = n.mark
+      ? (n.shape === "participant" ? "padding-left:24px;padding-right:24px;" : "padding-right:24px;")
+      : "";
 
     if (n.shape === "decision") {
       return adaptive
@@ -420,12 +584,12 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
   // 5. Edges: ONE glued orthogonal mxCell per Basalt edge, parent="1" so waypoints live in page coordinates
   for (const e of scene.edges) {
     const srcCellId = e.sequence
-      ? `life-${e.from}`
+      ? (e.fromBarId && worldBoxByCell.has(e.fromBarId) ? e.fromBarId : `life-${e.from}`)
       : e.fk && e.fromRow !== undefined && worldBoxByCell.has(`row-${e.from}-${e.fromRow}`)
         ? `row-${e.from}-${e.fromRow}`
         : `node-${e.from}`;
     const dstCellId = e.sequence
-      ? `life-${e.to}`
+      ? (e.toBarId && worldBoxByCell.has(e.toBarId) ? e.toBarId : `life-${e.to}`)
       : e.fk && e.toRow !== undefined && worldBoxByCell.has(`row-${e.to}-${e.toRow}`)
         ? `row-${e.to}-${e.toRow}`
         : `node-${e.to}`;
@@ -435,10 +599,14 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     if (!srcBox || !dstBox) continue;
 
     // Exact exit/entry fractional ports on the referenced cell
-    const exitX = e.sequence ? 0 : round6(e.fromPort.x);
-    const exitY = e.fk && srcCellId.startsWith("row-") ? 0.5 : round6(e.fromPort.y);
-    const entryX = e.sequence ? 0 : round6(e.toPort.x);
-    const entryY = e.fk && dstCellId.startsWith("row-") ? 0.5 : round6(e.toPort.y);
+    const exitX = e.sequence && srcCellId.startsWith("life-") ? 0 : round6(e.fromPort.x);
+    const exitY = e.fk && srcCellId.startsWith("row-")
+      ? rowPortY((e.pts[0]?.y ?? 0) + pad, srcBox)
+      : round6(e.fromPort.y);
+    const entryX = e.sequence && dstCellId.startsWith("life-") ? 0 : round6(e.toPort.x);
+    const entryY = e.fk && dstCellId.startsWith("row-")
+      ? rowPortY((e.pts[e.pts.length - 1]?.y ?? 0) + pad, dstBox)
+      : round6(e.toPort.y);
 
     // Compute exact port coordinates in draw.io's page coordinates and snap waypoints to them
     const startPt: Pt = { x: round2(srcBox.x + exitX * srcBox.w), y: round2(srcBox.y + exitY * srcBox.h) };
@@ -450,8 +618,21 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     const isDashed = e.kind === "dashed";
     const strokeColor = isMain ? col("edgeMain") : col("edgePlain");
     const strokeWidth = isMain ? 2 : 1;
-    const endArrow = e.openTip ? "open" : "block";
-    const endFill = e.openTip ? 0 : 1;
+    const arrowParts = e.card
+      ? [
+          `startArrow=${DRAWIO_CARD[e.card.from]}`,
+          "startFill=0",
+          "startSize=10",
+          `endArrow=${DRAWIO_CARD[e.card.to]}`,
+          "endFill=0",
+          "endSize=10",
+        ]
+      : [
+          `endArrow=${e.openTip ? "open" : "block"}`,
+          `endFill=${e.openTip ? 0 : 1}`,
+          "endSize=6",
+          ...(e.fk ? ["startArrow=oval", "startFill=1", "startSize=6"] : ["startArrow=none", "startFill=0"]),
+        ];
 
     const styleParts = [
       e.sequence ? "edgeStyle=none" : "edgeStyle=orthogonalEdgeStyle",
@@ -462,10 +643,7 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
       "html=1",
       `strokeColor=${strokeColor}`,
       `strokeWidth=${strokeWidth}`,
-      `endArrow=${endArrow}`,
-      `endFill=${endFill}`,
-      "endSize=6",
-      ...(e.fk ? ["startArrow=oval", "startFill=1", "startSize=6"] : ["startArrow=none", "startFill=0"]),
+      ...arrowParts,
       `exitX=${exitX}`,
       `exitY=${exitY}`,
       "exitDx=0",
@@ -516,10 +694,11 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
       const lblBg = e.label.on || e.sequence
         ? "labelBackgroundColor=default;defaultLabelBackgroundColor=page"
         : "labelBackgroundColor=none";
+      const mainTextHtml = escXml(e.label.text).replace(/\n/g, "<br/>");
       const lblValue = e.label.note
-        ? `<div style="font-family:Geist Mono,Consolas,monospace;font-size:12px;line-height:1.35;text-align:center;">${escXml(e.label.text)}</div>` +
+        ? `<div style="font-family:Geist Mono,Consolas,monospace;font-size:12px;line-height:1.35;text-align:center;">${mainTextHtml}</div>` +
           `<div style="font-family:Geist,Inter,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.3;text-align:center;${adaptive ? "opacity:0.65;" : `color:${P.textTertiary};`}">${escXml(e.label.note)}</div>`
-        : escXml(e.label.text);
+        : mainTextHtml;
       const lblStyle = cellStyle([
         "edgeLabel",
         "html=1",
@@ -542,11 +721,22 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     }
   }
 
+  const attributions: string[] = [];
+  for (const n of scene.nodes) {
+    if (n.mark?.attribution && !attributions.includes(n.mark.attribution)) {
+      attributions.push(n.mark.attribution);
+    }
+  }
+  const agentParts: string[] = [];
+  if (scene.measuredBy) agentParts.push(`Basalt Diagram Exporter (${scene.measuredBy})`);
+  if (attributions.length) agentParts.push(attributions.join(" "));
+  const agentAttr = agentParts.length ? ` agent="${escXml(agentParts.join(" — "))}"` : "";
+
   const bgAttr = adaptive ? "" : ` background="${P.page}"`;
   const adaptiveAttr = adaptive ? ` adaptiveColors="auto"` : ` adaptiveColors="none"`;
 
   return (
-    `<mxfile compressed="false">\n` +
+    `<mxfile compressed="false"${agentAttr}>\n` +
     `  <diagram id="${escXml(scene.id)}" name="${escXml(scene.title || scene.id)}">\n` +
     `    <mxGraphModel dx="0" dy="0" grid="1" gridSize="8" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${pageW}" pageHeight="${pageH}" math="0" shadow="0"${bgAttr}${adaptiveAttr}>\n` +
     `      <root>\n` +
