@@ -384,15 +384,18 @@ function SkillFrame({ page }: { page: string }) {
   const theme = useTheme();
   const source = React.useMemo(() => (__SKILL_PAGES__[page] ?? "").replace("__THEME__", theme), [page, theme]);
   const [height, setHeight] = React.useState(900);
-  React.useEffect(() => {
-    const on = (event: MessageEvent) => { if (event.data?.basaltSkill === "ready" && event.data.page === page) setHeight(event.data.height); };
-    addEventListener("message", on);
-    return () => removeEventListener("message", on);
-  }, [page]);
+  // The frame is this page's own (a srcdoc frame shares its origin), so its height is read from it directly, bounded, and no message is listened for
+  // (the code review's finding 8).
+  const measure = (frame: HTMLIFrameElement) => {
+    window.setTimeout(() => {
+      const tall = frame.contentDocument?.documentElement.scrollHeight ?? 0;
+      setHeight(Math.min(Math.max(Number.isFinite(tall) ? tall : 0, 640), 4000));
+    }, 500);
+  };
   return (
-    // sink: a page compose.mjs built at review-build time from this round's synthetic body (round69-skill.mjs); the frame runs the page's own script, which posts only its height when its still is ready
+    // sink: a page compose.mjs built at review-build time from this round's synthetic body (round69-skill.mjs); the frame runs the page's own script, and only its height is read back
     // oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script
-    <iframe title={`The HTML skill: ${page}`} srcDoc={source} style={{ width: "100%", height, border: 0, display: "block" }} />
+    <iframe title={`The HTML skill: ${page}`} srcDoc={source} onLoad={(event) => measure(event.currentTarget)} style={{ width: "100%", height, border: 0, display: "block" }} />
   );
 }
 

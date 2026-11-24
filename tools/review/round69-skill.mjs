@@ -1,12 +1,11 @@
 // Round 69's HTML-skill pages (DECISIONS 336): every part the decision touches, composed by the skill this tree carries (on main, main's own skill).
-// A page sets its own theme from the review page's and tells the review page its height once it has laid out. Synthetic content only.
+// A page sets its own theme from the review page's; the review page reads its height from the frame itself (same origin), so nothing is posted. Synthetic content only.
 import { compose } from "../../.agent/skills/basalt-html/compose.mjs";
 
-const READY = (key, open = "") => `<script>
+const READY = (_key, open = "") => `<script>
 addEventListener("load", function () {
   document.documentElement.setAttribute("data-theme", "__THEME__");
   ${open}
-  setTimeout(function () { requestAnimationFrame(function () { requestAnimationFrame(function () { parent.postMessage({ basaltSkill: "ready", page: "${key}", height: Math.max(document.documentElement.scrollHeight, 640) }, "*"); }); }); }, 400);
 });
 </script>`;
 

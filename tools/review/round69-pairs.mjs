@@ -17,16 +17,44 @@ if (!SHOTS) {
   process.exit(2);
 }
 const OUT = path.join(HERE, "assets", "round-69");
+// What is read is bounded (the code review's finding 9): the input folder's own regular files, a count, a size and a picture's pixels, each checked
+// before anything is decoded; the new set is written beside the old one and replaces it only when every picture was written.
+const MAX_FILES = 2000;
+const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_PIXELS = 4000 * 12000;
+const ROOT = fs.realpathSync(SHOTS);
+/** A PNG's width and height from its header, or null when the file is not one. */
+function pngSize(file) {
+  const fd = fs.openSync(file, "r");
+  try {
+    const head = Buffer.alloc(24);
+    if (fs.readSync(fd, head, 0, 24, 0) < 24 || head.readUInt32BE(0) !== 0x89504e47 || head.toString("ascii", 12, 16) !== "IHDR") return null;
+    return { width: head.readUInt32BE(16), height: head.readUInt32BE(20) };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
 /** The steps whose main pictures are drawn into the walkthrough: the owner's eye. */
 const OWNERS = ["eye-01-search", "eye-02-filter", "eye-03-legend", "eye-04-composer", "eye-05-copy", "eye-06-command", "eye-07-chips", "eye-08-count", "eye-09-toast", "eye-13-select", "eye-14-go", "eye-11-headline"];
 /** Widest a picture is written (2x of the walkthrough's widest column), as round 68's. */
 const WIDEST = 2000;
 
-const files = fs.readdirSync(SHOTS).filter((f) => f.endsWith(".png") && !f.startsWith("00-"));
+const files = fs.readdirSync(ROOT).filter((f) => f.endsWith(".png") && !f.startsWith("00-"));
+if (files.length > MAX_FILES) throw new Error(`${files.length} pictures is more than ${MAX_FILES}`);
+for (const file of files) {
+  const full = path.join(ROOT, file);
+  const stat = fs.lstatSync(full);
+  if (!stat.isFile()) throw new Error(`${file} is not a regular file`);
+  if (path.dirname(fs.realpathSync(full)) !== ROOT) throw new Error(`${file} is outside ${ROOT}`);
+  if (stat.size > MAX_BYTES) throw new Error(`${file} is ${stat.size} bytes, more than ${MAX_BYTES}`);
+  const size = pngSize(full);
+  if (!size || size.width * size.height > MAX_PIXELS) throw new Error(`${file} is not a PNG of at most ${MAX_PIXELS} pixels`);
+}
+const NEXT = `${OUT}.next`;
 const browser = await chromium.launch();
 const page = await browser.newPage();
-fs.rmSync(OUT, { recursive: true, force: true });
-fs.mkdirSync(OUT, { recursive: true });
+fs.rmSync(NEXT, { recursive: true, force: true });
+fs.mkdirSync(NEXT, { recursive: true });
 const entries = [];
 for (const file of files) {
   const m = /^\d\d-(.+)-(\d+)-(dark|light)\.png$/.exec(file);
@@ -35,7 +63,7 @@ for (const file of files) {
   const step = OWNERS.find((id) => rest === id || rest.startsWith(`${id}-`));
   if (!step) continue;
   const state = rest === step ? "default" : rest.slice(step.length + 1);
-  const data = `data:image/png;base64,${fs.readFileSync(path.join(SHOTS, file)).toString("base64")}`;
+  const data = `data:image/png;base64,${fs.readFileSync(path.join(ROOT, file)).toString("base64")}`;
   // Cropped to what differs from the page's own ground (its top-left pixel), with 32px of it kept round, so a picture is the part and not the page.
   const out = await page.evaluate(async ({ data, widest }) => {
     const image = new Image();
@@ -64,7 +92,7 @@ for (const file of files) {
     return { jpeg: o.toDataURL("image/jpeg", 0.8), width: o.width };
   }, { data, widest: WIDEST });
   const name = `${step}-${state}-${width}-${theme}.jpg`;
-  fs.writeFileSync(path.join(OUT, name), Buffer.from(out.jpeg.split(",")[1], "base64"));
+  fs.writeFileSync(path.join(NEXT, name), Buffer.from(out.jpeg.split(",")[1], "base64"));
   entries.push({ key: `${step}-${state}-${width}-${theme}`, name, width: Math.round(out.width / 2) });
 }
 await browser.close();
@@ -78,5 +106,7 @@ const index = [
   "};",
   "",
 ].join("\n");
-fs.writeFileSync(path.join(OUT, "index.ts"), index);
+fs.writeFileSync(path.join(NEXT, "index.ts"), index);
+fs.rmSync(OUT, { recursive: true, force: true });
+fs.renameSync(NEXT, OUT);
 process.stdout.write(`${entries.length} pictures of main in ${path.relative(process.cwd(), OUT)}\n`);
