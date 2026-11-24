@@ -151,6 +151,7 @@ function useTheme() {
   return React.useSyncExternalStore((change) => { const watch = new MutationObserver(change); watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] }); return () => watch.disconnect(); }, read, () => "dark");
 }
 
+/** The pictures of one side of an item, each at its own size (never scaled to a column), or null. */
 function Pictures({ id, side, theme, label }: { id: string; side: string; theme: string; label: string }) {
   const list = Object.keys(PICTURES).filter((key) => key.startsWith(`${id}-${side}-`) && key.endsWith(`-${theme}`)).sort();
   if (!list.length) return null;
@@ -161,22 +162,38 @@ function Pictures({ id, side, theme, label }: { id: string; side: string; theme:
   );
 }
 
-function OwnersEye({ state }: { state: string }) {
-  const id = state.startsWith("item-") ? state.slice(5) : "1";
-  const item = ITEMS.find((candidate) => candidate.id === id) ?? ITEMS[0]!;
-  const theme = useTheme();
+/** The widest picture of one side of an item, in CSS pixels. */
+const widest = (id: string, side: string, theme: string) => Math.max(0, ...Object.keys(PICTURES).filter((key) => key.startsWith(`${id}-${side}-`) && key.endsWith(`-${theme}`)).map((key) => PICTURES[key]!.width));
+
+/**
+ * One item: its words, then this build's pictures beside the prototype's. Each picture is drawn at its own size, so a pair is at one scale; the two
+ * sides stand side by side where both fit the stage, and one above the other where they do not (a side is as wide as its widest picture).
+ */
+function Item({ item, theme }: { item: (typeof ITEMS)[number]; theme: string }) {
   const label = { margin: "0 0 8px", fontSize: 13, lineHeight: "18px", fontWeight: 500, color: "var(--basalt-text-secondary)" } as const;
+  const side = (name: string) => ({ flex: "0 1 auto", width: Math.max(widest(item.id, name, theme), 240), maxWidth: "100%", minWidth: 0 });
   return (
-    <div style={{ padding: 24, display: "grid", gap: 16, color: "var(--basalt-text-primary)" }}>
+    <section aria-labelledby={`item-${item.id}`} style={{ display: "grid", gap: 16 }}>
       <div>
-        <h2 style={{ margin: "0 0 4px", fontSize: 18, lineHeight: "26px", fontWeight: 600 }}>{item.title}</h2>
+        <h2 id={`item-${item.id}`} style={{ margin: "0 0 4px", fontSize: 18, lineHeight: "26px", fontWeight: 600 }}>{item.title}</h2>
         <p style={{ margin: 0, maxWidth: 720, fontSize: 14, lineHeight: "20px", color: "var(--basalt-text-secondary)" }}>{item.words}</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 24, alignItems: "start" }}>
-        <div><p style={label}>This build</p>{id === "9" ? <p style={{ margin: 0, fontSize: 14 }}>Words are enough.</p> : <Pictures id={id} side="build" theme={theme} label="This build" />}</div>
-        <div><p style={label}>The prototype</p>{item.noProto ? <p style={{ margin: 0, fontSize: 14 }}>{item.noProto}</p> : <Pictures id={id} side="proto" theme={theme} label="The prototype" />}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start" }}>
+        <div style={side("build")}><p style={label}>This build</p>{item.id === "9" ? <p style={{ margin: 0, fontSize: 14 }}>Words are enough.</p> : <Pictures id={item.id} side="build" theme={theme} label="This build" />}</div>
+        <div style={side("proto")}><p style={label}>The prototype</p>{item.noProto ? <p style={{ margin: 0, fontSize: 14 }}>{item.noProto}</p> : <Pictures id={item.id} side="proto" theme={theme} label="The prototype" />}</div>
       </div>
-      {item.extra ? <div><p style={label}>{item.extra}</p><Pictures id={id} side="extra" theme={theme} label={item.extra} /></div> : null}
+      {item.extra ? <div><p style={label}>{item.extra}</p><Pictures id={item.id} side="extra" theme={theme} label={item.extra} /></div> : null}
+    </section>
+  );
+}
+
+/** The step's default view draws all thirteen items down the page; a state "item-N" draws item N alone (the shot tool's view of it). */
+function OwnersEye({ state }: { state: string }) {
+  const theme = useTheme();
+  const items = state.startsWith("item-") ? ITEMS.filter((candidate) => candidate.id === state.slice(5)) : ITEMS;
+  return (
+    <div style={{ padding: 24, display: "grid", gap: 48, color: "var(--basalt-text-primary)" }}>
+      {items.map((item) => <Item key={item.id} item={item} theme={theme} />)}
     </div>
   );
 }
@@ -225,7 +242,7 @@ export const ROUND_68: Round = {
       intro: "Harbor's release notes: a headline, Action needed when a release asks something of its people, a paragraph for each audience, then one fold holding the summary and a line per change.",
       decisions: [
         ...COMMON,
-        "The header: the number and the date first, in Geist (the foot's case), then the headline, then the counts computed from the list and the plain badges \"Pre-release\" and \"Your version\". One heading holds them, so a reader moving by headings hears \"1.4.0, Nov 23, 2026: A monitor can open an incident room\".",
+        "The header: the number and the date first, in Geist (the foot's case), then the headline, then the counts computed from the list and the outline badges \"Pre-release\" and \"Your version\". One heading holds them, so a reader moving by headings hears \"1.4.0, Nov 23, 2026: A monitor can open an incident room\".",
         "The fold is named for what it opens: \"All changes 5\" when every entry is inside it, \"Other changes 1\" under Action needed (Harbor 1.3.0, the \"other\" shots). The header keeps the release's totals.",
         "For the owner's eye 6: a product's list uses the package's section names (Added, Changed, Fixed), not \"Improvements\" and \"Fixes\"; the paragraphs above carry the product's voice.",
         "For the owner's eye 13: Build details is on \"Your version\" alone and shows the running build (1.4.0+9f3c1e2, its commit, the Basalt it was built on), never a row frozen with a release: two builds can share a version. A build between two releases puts it above the first release (the \"between\" shot).",
@@ -295,13 +312,13 @@ export const ROUND_68: Round = {
     {
       id: "owners-eye",
       name: "For the owner's eye",
-      intro: "The thirteen items the decision puts in front of the owner, each as this build's pictures beside the prototype's he answered, in the walkthrough's theme. One state an item.",
+      intro: "The thirteen items the decision puts in front of the owner, each as this build's pictures beside the prototype's he answered, in the walkthrough's theme, all thirteen down the page. Each picture is at its own size; a pair too wide to stand side by side stands one above the other.",
       decisions: [
         ...COMMON,
         "The pictures are cropped from this round's own shots and from the prototype's (tools/review/round68-pairs.mjs). Each pair is at one scale.",
       ],
       tryIt: ["Switch the theme: every picture has its pair in the other."],
-      states: ITEMS.slice(1).map((item) => `item-${item.id}`),
+      states: ITEMS.map((item) => `item-${item.id}`),
       widths: [1440],
       scales: [2],
       bleed: true,
