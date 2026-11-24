@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
+    "oxlint": "1.95.0",
+    "oxlint-tsgolint": "7.0.2008",
     "stylelint": "17.16.0"
   }
 }
