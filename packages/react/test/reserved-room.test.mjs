@@ -331,7 +331,12 @@ describe("The toast's targets", () => {
 describe("The selection column", () => {
   const TABLE = (width) => `<B.TableContainer label="Runs"><B.Table columns={[{ width: "${width}" }, {}]} minWidth={320} pinned={2}><B.TableHeader><B.TableRow><B.TableHead><B.Checkbox aria-label="Select all" /></B.TableHead><B.TableHead onSortChange={() => {}}>Run</B.TableHead></B.TableRow></B.TableHeader><B.TableBody><B.TableRow><B.TableCell><B.Checkbox aria-label="Select run-1" /></B.TableCell><B.TableCell><a href="#r">run-1</a></B.TableCell></B.TableRow></B.TableBody></B.Table></B.TableContainer>`;
   // Who answers at every pixel across a row, from the column's start to 12 past its end: c the checkbox, s the name's sort button, n the name cell.
-  const owners = (page, x0, y) => page.evaluate(([x0, y]) => { let out = ""; for (let x = 0; x < 56; x += 1) { const el = document.elementFromPoint(x0 + x + 0.5, y); out += el?.closest("[role=checkbox]") ? "c" : el?.closest("th button, .basalt-table-sort, th[aria-sort]") ? "s" : el?.closest("td, th") ? "n" : "-"; } return out; }, [x0, y]);
+  // Sampled at whole pixels (the polish ruling, item 3): Chromium answers a point for the pixel that starts at it, so a sample half a pixel in lies
+  // across two cells at the column's last pixel. The column's start is asserted whole, so x0 + x is the start of each of its pixels.
+  const owners = (page, x0, y) => {
+    assert.equal(x0, Math.round(x0), `the column starts on a whole pixel: ${x0}`);
+    return page.evaluate(([x0, y]) => { let out = ""; for (let x = 0; x < 56; x += 1) { const el = document.elementFromPoint(x0 + x, y); out += el?.closest("[role=checkbox]") ? "c" : el?.closest("th button, .basalt-table-sort, th[aria-sort]") ? "s" : el?.closest("td, th") ? "n" : "-"; } return out; }, [x0, y]);
+  };
   test("on touch the column is 44, given 32 or 40: the checkbox answers across exactly its 44 and the name from the next pixel, in the header and down a body row", async () => {
     for (const width of ["var(--basalt-select-column)", "max(40px, var(--basalt-select-column))"]) {
       const page = await open(TABLE(width), PHONE, "dark");
@@ -355,6 +360,63 @@ describe("The selection column", () => {
       assert.ok(Math.abs(cell.width - px) <= 0.5, `the column is ${cell.width}`);
       assert.ok(Math.abs((box.x - cell.x) - (cell.x + cell.width - box.x - box.width)) <= 0.5, "centred");
       assert.ok(Math.abs(heads[1] - heads[0] - px) <= 0.5, `the next header starts ${heads[1] - heads[0]} in`);
+      await page.close();
+    }
+  });
+});
+
+// The polish ruling, item 1: the box is centred in its column only as far as the cell's own line, never more than space-4 from the column's start; a
+// column a word heads is sized for its word, and its boxes start on the cell's line, under the word.
+describe("The selection box keeps to the cell's line", () => {
+  const PICK = (width) => `<B.TableContainer label="Runs"><B.Table columns={[{ width: ${width} }, { width: 120 }, {}]} minWidth={360}><B.TableHeader><B.TableRow><B.TableHead>Pick</B.TableHead><B.TableHead>Run</B.TableHead><B.TableHead>Name</B.TableHead></B.TableRow></B.TableHeader><B.TableBody><B.TableRow><B.TableCell><B.Checkbox aria-label="Select run-1" /></B.TableCell><B.TableRowHead>run-1</B.TableRowHead><B.TableCell>Alpha</B.TableCell></B.TableRow></B.TableBody></B.Table></B.TableContainer>`;
+  const sides = (page) => page.evaluate(() => {
+    const cell = document.querySelector("tbody td").getBoundingClientRect();
+    const box = document.querySelector("tbody td [role=checkbox]").getBoundingClientRect();
+    const rtl = getComputedStyle(document.querySelector("tbody td")).direction === "rtl";
+    const start = rtl ? cell.right - box.right : box.left - cell.left;
+    const end = rtl ? box.left - cell.left : cell.right - box.right;
+    return [start, end].map((v) => Math.round(v * 10) / 10);
+  });
+  for (const dir of DIRS) {
+    test(`${dir}, on a fine pointer: the box's two sides are 8 / 8 in 32, 12 / 12 in 40, 14 / 14 in 44, 16 / 16 in 48, 16 / 28 in 60 and 16 / 48 in 80`, async () => {
+      for (const [width, want] of [[32, [8, 8]], [40, [12, 12]], [44, [14, 14]], [48, [16, 16]], [60, [16, 28]], [80, [16, 48]]]) {
+        const page = await open(PICK(width), DESKTOP, "dark", dir);
+        assert.deepEqual(await sides(page), want, `${width}`);
+        await page.close();
+      }
+    });
+  }
+  for (const [width, options] of WIDTHS) {
+    for (const dir of DIRS) {
+      test(`${width}, ${dir}: in a 60 column "Pick" is whole, and the word and the box start on one x`, async () => {
+        const page = await open(PICK(60), options, "light", dir);
+        const m = await page.evaluate(() => {
+          const th = document.querySelector("thead th");
+          const label = [...th.querySelectorAll("*")].find((el) => el.children.length === 0 && el.textContent === "Pick") ?? th;
+          const range = document.createRange(); range.selectNodeContents(label); const word = range.getBoundingClientRect();
+          const box = document.querySelector("tbody td [role=checkbox]").getBoundingClientRect();
+          const rtl = getComputedStyle(th).direction === "rtl";
+          return { whole: [label.scrollWidth, label.clientWidth], word: rtl ? word.right : word.left, box: rtl ? box.right : box.left };
+        });
+        assert.equal(m.whole[0], m.whole[1], `the word is not cut: ${m.whole}`);
+        assert.ok(Math.abs(m.word - m.box) <= 0.5, `the word starts at ${m.word}, the box at ${m.box}`);
+        await page.close();
+      });
+    }
+  }
+  test("390 on touch: in a 60 column the box's 44px hit area is inside its own column, and the next column's header starts at 60", async () => {
+    for (const dir of DIRS) {
+      const page = await open(PICK(60), PHONE, "dark", dir);
+      const m = await page.evaluate(() => {
+        const cell = document.querySelector("tbody td").getBoundingClientRect();
+        const hit = window.__hit(document.querySelector("tbody td [role=checkbox]"));
+        const heads = [...document.querySelectorAll("thead th")].map((th) => th.getBoundingClientRect());
+        return { cell: cell.toJSON(), hit, next: heads[1].toJSON() };
+      });
+      assert.ok(m.hit.width >= 44 - 0.5 && m.hit.height >= 44 - 0.5, `${dir}: the hit area is ${m.hit.width} by ${m.hit.height}`);
+      assert.ok(m.hit.left >= m.cell.left - 0.5 && m.hit.right <= m.cell.right + 0.5, `${dir}: inside its column: ${m.hit.left} to ${m.hit.right} in ${m.cell.left} to ${m.cell.right}`);
+      assert.ok(Math.abs(m.cell.width - 60) <= 0.5, `${dir}: the column is ${m.cell.width}`);
+      assert.ok(dir === "ltr" ? Math.abs(m.next.left - m.cell.right) <= 0.5 : Math.abs(m.next.right - m.cell.left) <= 0.5, `${dir}: the next header starts where the column ends`);
       await page.close();
     }
   });

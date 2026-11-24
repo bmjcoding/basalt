@@ -2399,10 +2399,11 @@
      a text baseline, which left it 1 to 2.5px off the centre by the font's metrics. It still does not move when ticked: a block has no baseline to move. */
   .basalt-table :is(td, th) .basalt-checkbox { display: flex; }
   /* The selection column (DECISIONS 336, S10): give its <col> `var(--basalt-select-column)`, 32 on a pointer and 44 on touch and under 720, where the
-     column holds the checkbox's whole hit area and nothing reaches the next column. Its cell has no inline padding and the box is centred in it. */
+     column holds the checkbox's whole hit area and nothing reaches the next column. Its cell has no inline padding and the box is centred in it, never more
+     than space-4 from the column's start (the polish ruling): 8 / 8 in 32, 12 / 12 in 40, 14 / 14 in 44, 16 / 16 in 48; in a wider column a word heads, the box starts on the cell's line, under the word. */
   :root { --basalt-select-column: var(--basalt-size-control-md); }
   .basalt-table :is(td, th):first-child:has(> .basalt-checkbox) { padding-inline: 0; }
-  .basalt-table :is(td, th):first-child > .basalt-checkbox { margin-inline: auto; }
+  .basalt-table :is(td, th):first-child > .basalt-checkbox { margin-inline: min(var(--basalt-space-4), calc((100% - var(--basalt-size-choice)) / 2)) auto; }
 
   /* The flat form (DECISIONS 162, D18b): a table in a Card has the card's one box, so its own frame draws nothing (no border, radius, fill or shadow) and sets no level. The
      header band keeps its fill. Its cells are padded space-2 above and below, so a two-line cell (TableCall) has air. */

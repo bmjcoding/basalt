@@ -153,6 +153,16 @@ describe("The selection column", () => {
   const TABLE = (col, style = "") => `<style>${style}</style><main class="page"><div class="panel table-wrap" role="region" aria-label="Runs" tabindex="0" style="max-width: 420px"><table data-fixed><colgroup>${col}<col style="width: 140px"><col></colgroup>
 <thead><tr><th class="select-col"><input type="checkbox" data-select-all aria-label="Select all runs"></th><th data-sortable>Run</th><th>Status</th></tr></thead>
 <tbody><tr><td class="select-col"><input type="checkbox" aria-label="Select run-0142"></td><td>run-0142</td><td>Ready</td></tr></tbody></table></div></main>`;
+  test("the box's two sides on a fine pointer: 8 / 8 in 32, 12 / 12 in 40, 14 / 14 in 44, 16 / 16 in 48, 16 / 28 in 60, 16 / 48 in 80 (never more than space-4 from the start)", async () => {
+    for (const dir of DIRS) {
+      for (const [w, want] of [[32, [8, 8]], [40, [12, 12]], [44, [14, 14]], [48, [16, 16]], [60, [16, 28]], [80, [16, 48]]]) {
+        const p = await page(TABLE(`<col style="width: ${w}px">`), { width: 1440, dir });
+        const sides = await p.evaluate(() => { const td = document.querySelector("tbody td.select-col"); const cell = td.getBoundingClientRect(); const box = td.querySelector("input").getBoundingClientRect(); const rtl = getComputedStyle(td).direction === "rtl"; return (rtl ? [cell.right - box.right, box.left - cell.left] : [box.left - cell.left, cell.right - box.right]).map((v) => Math.round(v * 10) / 10); });
+        assert.deepEqual(sides, want, `${dir}, ${w}`);
+        await p.close();
+      }
+    }
+  });
   for (const [given, col, style] of [["a width attribute", `<col width="40">`, ""], ["a stylesheet", `<col class="pick">`, ".pick { width: 40px; }"]]) {
     test(`the select column given 40 by ${given}: 40 on a fine pointer with the box centred, 44 on touch`, async () => {
       for (const [width, touch, want] of [[1440, false, 40], [390, true, 44]]) {

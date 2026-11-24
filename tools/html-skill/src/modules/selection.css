@@ -9,8 +9,9 @@
   @media (pointer: coarse), (width < %bp-md%) { :root { --basalt-select-column: var(--basalt-size-tap-min); } }
 
   .select-col { box-sizing: border-box; width: var(--basalt-select-column); padding-inline: 0; }
-  /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. */
-  .select-col input[type="checkbox"] { display: flex; margin-inline: auto; }
+  /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. Centred, never more than space-4 from the column's start:
+     in a wider column a word heads, the box starts on the cell's line, under the word (the polish ruling). */
+  .select-col input[type="checkbox"] { display: flex; margin-inline: min(var(--basalt-space-4), calc((100% - var(--basalt-size-choice)) / 2)) auto; }
   /* A tap lands on the box over the cell's 44px, as React's checkbox does: a box around the 16px glyph that draws nothing (a percentage on an offset reads the glyph's own
      size, so it grows only the missing amount). */
   @media (pointer: coarse), (width < %bp-md%) {

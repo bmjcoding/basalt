@@ -248,7 +248,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   region by the app. Basalt ships no helper for the column or the count: the column is the app's own markup on
   `Table`, `TableCell` and `Checkbox`, given a first column
   `var(--basalt-select-column)` wide (`size-control-md`, 32, on a pointer; `size-tap-min`, 44, on touch and under 720, where the column
-  holds the checkbox's whole hit area and nothing reaches the next column), the box centred in it, and the row takes `selected`.
+  holds the checkbox's whole hit area and nothing reaches the next column), the box centred in it, and never more than `space-4` from the column's start: a column a word heads is sized
+  for its word, and its boxes start on the cell's line, under the word. The row takes `selected`.
   Outside a table the same selection is `SelectableList` (see [Lists and facts](#lists-and-facts)), which draws the boxes, the all box and the count.
   Do not mark selection with a vertical line.
 - **The still table** (the owner's rule, decision 71: header positions, column widths and alignment never move, through
