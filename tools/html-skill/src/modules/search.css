@@ -76,6 +76,7 @@
     overscroll-behavior: contain;
     scroll-padding-block: var(--basalt-space-1-5);
   }
+  .search-results:not(:has(> li)) { padding-block: 0; }
   .search-results > li { margin: 0; padding: 0; list-style: none; }
   .search-result {
     position: relative;

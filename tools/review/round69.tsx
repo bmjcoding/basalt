@@ -175,7 +175,16 @@ function FilterPart({ state }: { state: string }) {
 function ChartPart({ state }: { state: string }) {
   const w = React.useMemo(() => weightData(28), []);
   return (
-    <div data-wt-chart="" style={{ maxWidth: 720 }}>
+    <div data-wt-chart="" style={{ maxWidth: 720, display: "grid", gap: 32 }}>
+      {/* Owner's eye 3: four series and the hatch's key, so a gap day shows that no key moves (the pixel review's polish); hovered first, as the build hovers the first gap. */}
+      {state === "legend" ? (
+        <TimeChart title="Four readings" kind="line" days={w.days} unit="lb" format={lb} summary="Four readings over twenty-eight days, with the scale's gaps." now={Date.UTC(2026, 10, 10, 12)} series={[
+          { id: "w", name: "Weight", values: w.values, reasons: w.reasons },
+          { id: "a", name: "Morning", values: w.values.map((v) => (v == null ? null : v + 0.6)), reasons: w.reasons },
+          { id: "b", name: "Evening", values: w.values.map((v) => (v == null ? null : v + 1.1)), reasons: w.reasons },
+          { id: "c", name: "Week average", values: w.values.map((v) => (v == null ? null : v - 0.4)), reasons: w.reasons },
+        ]} />
+      ) : null}
       <TimeChart title="Weight" kind="line" headline={state === "headline"} days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} unit="lb" format={lb} summary="Weight trended down over twenty-eight days, with a gap while the scale was away." now={Date.UTC(2026, 10, 10, 12)} />
     </div>
   );
@@ -185,7 +194,10 @@ function ComposerPart({ state }: { state: string }) {
   const typing = state === "typing" || state === "narrow";
   return (
     <div style={{ width: state === "narrow" ? 290 : 520, maxWidth: "100%" }}>
-      <Composer label="Message" defaultValue="" onSend={() => {}} actions={<><IconButton icon={PlusGlyph} label="Attach" size="sm" edge="start" /><IconButton icon={SearchGlyph} label="Find" size="sm" /></>} status={typing ? (state === "narrow" ? "Ana, Ben, and Cy are typing" : "Ana is typing") : undefined} />
+      {/* In a card, which says its room, so the first action hangs as the open items' ruling has it (the pixel review's polish). */}
+      <Card><CardContent>
+        <Composer label="Message" defaultValue="" onSend={() => {}} actions={<><IconButton icon={PlusGlyph} label="Attach" size="sm" edge="start" /><IconButton icon={SearchGlyph} label="Find" size="sm" /></>} status={typing ? (state === "narrow" ? "Ana, Ben, and Cy are typing" : "Ana is typing") : undefined} />
+      </CardContent></Card>
       <p style={{ ...note, marginTop: 8 }}>What follows the composer.</p>
     </div>
   );
@@ -266,13 +278,14 @@ function SelectColumnPart() {
 }
 
 function StatusBarPart({ state }: { state: string }) {
-  const go = state === "go" || state === "touch";
+  const go = state === "go" || state.startsWith("touch");
+  const focus = state === "focus" || state === "touch-focus";
   return (
     <div style={{ marginInline: "calc(-1 * var(--basalt-space-6))" }}>
       <StatusBar
-        start={<Button variant="ghost" size={go ? "xs" : "sm"} data-wt-force={state === "focus" ? "focus" : undefined}>{go ? "Go" : "run 4f2a"}</Button>}
+        start={<Button variant="ghost" size={go ? "xs" : "sm"} data-wt-force={focus ? "focus" : undefined}>{go ? "Go" : "run 4f2a"}</Button>}
         sources={<Button variant="ghost" size="sm">2 sources</Button>}
-        end={<Button variant="ghost" size="sm" data-wt-force={state === "focus" ? "focus" : undefined}>Theme</Button>}
+        end={<Button variant="ghost" size="sm" data-wt-force={focus ? "focus" : undefined}>Theme</Button>}
       />
     </div>
   );
@@ -428,7 +441,7 @@ const step = (s: Spec, before = false): Step => ({
 const OWNERS: Spec[] = [
   { id: "eye-01-search", name: "Owner's eye 1: the search dialog ends under its results", intro: "Its top is held where a full result has it; the box ends under what it shows. Was 155, V3: a fixed height.", decisions: ["The field and the count keep their y with nothing found, two results and a full result."], states: ["none", "two", "full"], part: SearchPart },
   { id: "eye-02-filter", name: "Owner's eye 2: the filter's head reads label, Clear, count", intro: "Was 103, T1: label, count, Clear.", decisions: ["Clear keeps its x at zero, some and all chosen; the count's spare room is the row's open end."], states: ["default"], part: FilterPart },
-  { id: "eye-03-legend", name: "Owner's eye 3: the legend no longer carries a gap's reason", intro: "Was 101: the reason in the readout. The reason stays in the lane, the summary, the table and the day's description.", decisions: ["Each value reserves every form it can show, \"Not observed\" included, so no key moves on a gap day."], states: ["chart-gap"], part: ChartPart },
+  { id: "eye-03-legend", name: "Owner's eye 3: the legend no longer carries a gap's reason", intro: "Was 101: the reason in the readout. The reason stays in the lane, the summary, the table and the day's description.", decisions: ["Each value reserves every form it can show, \"Not observed\" included, so no key moves on a gap day."], states: ["chart-gap"], part: ({ state }) => <ChartPart state={state === "chart-gap" ? "legend" : state} /> },
   { id: "eye-04-composer", name: "Owner's eye 4: the composer holds no status line", intro: "Was 272 (B3): one line tall even when empty. The status is in the actions row, and on a row of its own when it does not fit.", decisions: ["Send stays on the first row; the live region is always mounted."], states: ["empty", "typing", "narrow@390"], part: ComposerPart },
   { id: "eye-05-copy", name: "Owner's eye 5: a copy with a glyph keeps its words", intro: "Was 152, item 6: the words change to \"Copied\". The glyph is the check for 1500ms (the close for a refused write).", decisions: ["Copy and check morph as the icon-only copy does; copy and close crossfade."], states: ["rest", "copied", "refused"], part: CopyPart },
   { id: "eye-06-command", name: "Owner's eye 6: the command list's panel shrinks to its matches", intro: "Was 103: the panel holds its unfiltered height. On the open page what follows does not move; inside a card the card shrinks with it.", decisions: ["Nothing matching: the panel hugs; the room under it is page, and only on the page."], states: ["rest", "empty", "card"], part: CommandPart },
@@ -436,7 +449,7 @@ const OWNERS: Spec[] = [
   { id: "eye-08-count", name: "Owner's eye 8: a one-figure count is a 24px circle", intro: "Was 154, A12: the pill holds two figures.", decisions: ["The button holds a two-figure seat round the pill, so 0 to 99 never moves it."], states: ["default"], widths: [1440], part: CountPart },
   { id: "eye-09-toast", name: "Owner's eye 9: on touch a toast's Dismiss is drawn at 24, with a 44px hit area", intro: "Was the touch rule: a control drawn at 44. A toast is one height on every pointer.", decisions: ["Hit areas are 46 (45.08 pressed); a short action's missing width is on its start side."], states: ["undo@390", "go@390"], part: ToastPart },
   { id: "eye-13-select", name: "Owner's eye 13: on touch a still table's selection column is 44 wide", intro: "Was foundations' selection pattern: a first column size-control-md wide. The checkbox's whole target is in its own column.", decisions: ["The app gives the column var(--basalt-select-column); this table does."], states: ["default"], part: SelectColumnPart },
-  { id: "eye-14-go", name: "Owner's eye 14: on touch a hung control with a short word is as wide as its word", intro: "Was the touch rule: a control is drawn at 44. \"Go\" is drawn 33 wide on the bar's line, with a 46px hit area.", decisions: ["At 800 on touch (a coarse pointer, emulated) the status bar's gutter is 24."], states: ["touch@800"], widths: [800], part: StatusBarPart },
+  { id: "eye-14-go", name: "Owner's eye 14: on touch a hung control with a short word is as wide as its word", intro: "Was the touch rule: a control is drawn at 44. \"Go\" is drawn 33 wide on the bar's line, with a 46px hit area.", decisions: ["At 800 on touch (a coarse pointer, emulated) the status bar's gutter is 24."], states: ["touch@800", "touch-focus@800"], widths: [800], part: StatusBarPart },
   { id: "eye-11-headline", name: "Not a reversal, for the owner: the chart headline on a day with no reading", intro: "The unit holds still and the dash sits by it, space-2 from the unit; the other way put the dash on the line and moved the unit.", decisions: ["DECISIONS 153's \"the unit never moves\" stands."], states: ["chart-gap"], part: ({ state }) => <ChartPart state={state === "chart-gap" ? "headline" : state} /> },
 ];
 
