@@ -11,6 +11,7 @@ import type { Round } from "./rounds";
 import { diagramToSvg } from "../../packages/react/src/diagram-export";
 import { awsEcsService } from "../../packages/react/src/marks/aws-ecs-service";
 import { awsEcsTask } from "../../packages/react/src/marks/aws-ecs-task";
+import { awsS3Bucket } from "../../packages/react/src/marks/aws-s3-bucket";
 
 // Marks on a sequence's participants (DECISIONS 306, 1.6): the service and the sandbox, and none on Marcus, who is a person.
 const PARTICIPANT_MARKS: Record<string, unknown> = { svc: awsEcsService, agent: awsEcsTask };
@@ -43,6 +44,29 @@ function Exported({ k }: { k: Key }) {
       {url ? <img src={url} alt="" style={{ maxWidth: "100%", border: "1px dashed var(--basalt-border-divider)" }} /> : null}
     </div>
   );
+}
+
+/** Figures the fixture does not hold, for the parts that had no picture (the pixel review's P5). */
+type Inline = { type: "architecture" | "data-flow" | "schema" } & Record<string, unknown>;
+const DATA_FLOW_PARTS: Inline = (() => {
+  const d = structuredClone(data.dataFlow) as unknown as Inline & { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  // A mark on a step (1.6): the sealed segment, in the S3 lane, carries S3's own mark; the lane's label says S3.
+  for (const n of d.nodes) if (n.id === "seg") n.mark = awsS3Bucket;
+  // A dashed flow (1.5): the batch line's own dashes march. Two more lines make two cards entered by several end lines (1.3), seen stacked.
+  d.edges = [...d.edges.map((e) => (e.kind === "dashed" ? { ...e, flow: true } : e)), { from: "append", to: "seal", label: "window check" }, { from: "hear", to: "seg", label: "cursor sync" }];
+  return { ...d, title: "How one message reaches everyone in the room (extended)", motion: "animated", summary: `${String(d.summary)} Two more lines show several end lines entering one card when it is stacked.` };
+})();
+const schemaTable = (name: string, row: number, refs: string[] = []) => ({ name, col: 1, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
+const CALL_2: Inline = { type: "schema", title: "One column: turn-backs beside each other take lanes (section 4, call 2)", summary: "b references c and c references a; their turn-backs run beside each other down the column's end side, so each takes a lane.", legend: { plain: "A foreign key" }, tables: [schemaTable("a", 1), schemaTable("b", 2, ["c"]), schemaTable("c", 3, ["a"])] };
+const CALL_3: Inline = { type: "architecture", title: "A card grows to hold its ports (section 4, call 3)", summary: "The coordinator's end side holds a straight line and two others, so it is 48 tall at every width.", legend: { main: "Request", plain: "Call" },
+  nodes: [{ id: "a", name: "Incident response coordinator", col: 1, row: 2 }, { id: "b", name: "Queue", col: 2, row: 2 }, { id: "c", name: "Store", col: 2, row: 3 }, { id: "d", name: "Audit", col: 2, row: 4 }, { id: "e", name: "Search", col: 3, row: 2 }, { id: "f", name: "Mail", col: 4, row: 2 }],
+  edges: [{ from: "a", to: "b", kind: "main" }, { from: "a", to: "c", toSide: "left" }, { from: "a", to: "d", toSide: "left" }, { from: "b", to: "e" }, { from: "e", to: "f" }] };
+function InlineFigure({ spec }: { spec: Inline }) {
+  const { type, ...props } = spec;
+  const figure = type === "architecture" ? <ArchitectureDiagram {...(props as unknown as React.ComponentProps<typeof ArchitectureDiagram>)} />
+    : type === "data-flow" ? <DataFlowDiagram {...(props as unknown as React.ComponentProps<typeof DataFlowDiagram>)} />
+    : <SchemaDiagram {...(props as unknown as React.ComponentProps<typeof SchemaDiagram>)} />;
+  return <div style={{ padding: "var(--basalt-space-6) var(--basalt-gutter)", maxWidth: 1104 + 48, boxSizing: "border-box" }}>{figure}</div>;
 }
 
 /** A figure from the extended fixture. A "viewer" state opens its viewer (and "viewer-200" zooms to 200%) once it is drawn, for the shot. */
@@ -88,7 +112,7 @@ const W = [1440, 390];
 export const ROUND_66: Round = {
   id: "66",
   title: "Diagrams, batch B: the viewer, frames and activations, nested groups, link cards, two-line labels, spatial keys, text art, automatic layout, right to left and export (DECISIONS 306 and 310)",
-  summary: "The first half of batch B. The viewer (part 9, the owner's addition) opens any figure's drawn layout in a dialog to zoom and pan; the sequence gains activation bars and opt, loop and alt frames; groups nest two deep; a card may be a link; an edge label may hold its author's break; the arrow keys move by the cards' columns and rows. Also: a trace on touch, an entrance on a first visit, flow on a dashed line, marks on steps and participants, and print. Not built: cardinality and far keys, and section 4's calls 2 and 3.",
+  summary: "Batch B, whole. The viewer (part 9, the owner's addition) opens any figure's drawn layout in a dialog to zoom and pan; the sequence gains activation bars and opt, loop and alt frames, and a text-art form; groups nest two deep; a card may be a link; an edge label may hold its author's break; the arrow keys move by the cards' columns and rows; a schema states how many and draws keys two columns away; automatic layout places a figure for you. Also: a trace on touch, an entrance on a first visit, flow on a dashed line, marks on steps and participants, right to left, export and print, and section 4's three calls. Fixed after both reviews and the spacing sweep (DECISIONS 326).",
   reviewed: false,
   steps: [
     {
@@ -101,7 +125,7 @@ export const ROUND_66: Round = {
         "Two deviations, for the owner: \"Expand\" is words only (Phosphor's ArrowsOutSimple cost every still figure 2.2 KB in six weights, and the core set draws no expand glyph), and the dialog is the form dialog's box on a native modal <dialog>, as the HTML skill's is (Base UI's dialog in the viewer's chunk widened the Base UI chunk every component shares).",
         "Under 100% the words are under 12px: an overview, with no size or contrast claim. Nothing moves in the viewer but a trace.",
       ],
-      tryIt: ["Press Expand, then + and - (or Ctrl and the wheel, or pinch): the point under the pointer holds still. Drag to pan. 0 is Fit. Esc closes and focus returns to Expand.", "On a phone: two fingers zoom about their midpoint, one finger pans."],
+      tryIt: ["Press Expand, then + and - (or Ctrl and the wheel, or pinch): the point under the pointer holds still. Drag to pan. 0 is Fit. Esc closes and focus returns to Expand.", "On a phone: two fingers zoom about their midpoint, one finger pans.", "These shots open the viewer by script, so the stage shows its keyboard focus ring (2px, drawn inside at −2). A mouse click or a tap opens it with no ring; the keyboard shows the ring, as decided."],
       states: ["viewer", "viewer-200"],
       widths: W,
       scales: [2],
@@ -213,6 +237,34 @@ export const ROUND_66: Round = {
       scales: [2],
       height: 1200,
       demo: ({ state }) => <Diagram k="sequence" state={state} />,
+    },
+    {
+      id: "data-flow",
+      name: "Data flow: a step's mark, a dashed flow, and several end lines into one card",
+      intro: "The CIMIP data flow with two more lines. The sealed segment, in the S3 lane, carries S3's mark. The batch line is dashed and flows: its own dashes march. Stacked, two cards are each entered by two end lines, which nest.",
+      decisions: [
+        ...COMMON,
+        "A step's mark (1.6) is 16px in its top end corner; the lane's label counts as the step's words, so \"S3\" says what the mark stands for.",
+        "A dashed flow (1.5): one period every 625ms, the dashes where the key draws them whenever they rest.",
+        "Several end lines into one card (1.3): the outermost lane's line turns lowest and enters nearest the end edge; each further in turns space-5 higher and enters space-3 further in; their labels sit space-2-5 clear of the innermost entry, each on its own turn's height.",
+      ],
+      tryIt: ["Narrow to 390: the two cards entered by two end lines show the nesting and the labels' seats."],
+      widths: W,
+      scales: [2],
+      height: 1700,
+      touch: true,
+      demo: () => <InlineFigure spec={DATA_FLOW_PARTS} />,
+    },
+    {
+      id: "calls",
+      name: "Section 4's calls 2 and 3: a one-column schema's lanes, and a card grown to hold its ports",
+      intro: "A one-column schema whose two turn-backs run beside each other takes two lanes in its end padding. A card whose side holds a straight line and two others grows to 48, so each port is on the flat part and 8 from the next, at every width.",
+      decisions: [...COMMON, "Call 2: lanes space-3 apart, nested, the padding space-5 then space-5 plus space-3. Call 3: the card is never shorter than its ports need, so a side never stacks the figure."],
+      tryIt: ["Narrow the window from 1440: the coordinator keeps its 48 while its name wraps and unwraps."],
+      widths: W,
+      scales: [2],
+      height: 900,
+      demo: () => <><InlineFigure spec={CALL_2} /><InlineFigure spec={CALL_3} /></>,
     },
   ],
 };
