@@ -74,25 +74,127 @@ export function checkVersion(version, records, entries) {
   return base;
 }
 
+/** Whether a process is running (one we may not signal is running). */
+function alive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+}
+
+/**
+ * One freeze at a time in a repository: two freezes of different versions would otherwise read the same pending files and both record them.
+ * The lock is a file in the git directory holding the freezing process's id, made only if it is not there. One left by a freeze that was stopped (its process is
+ * gone) is taken over. Returns the function that lets it go.
+ */
+export function lockFreeze(root) {
+  // In the checkout's git directory: out of the tree, and nothing is made in it before every check passes.
+  const file = path.join(git(root, ["rev-parse", "--absolute-git-dir"]), "changelog-freeze.lock");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      fs.writeFileSync(file, `${process.pid}\n`, { flag: "wx" });
+      return () => fs.rmSync(file, { force: true });
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      const pid = Number.parseInt(fs.readFileSync(file, "utf8"), 10);
+      if (alive(pid)) throw new Error(`another freeze is running (process ${pid}); run this one again when it has ended`);
+      fs.rmSync(file, { force: true });
+    }
+  }
+  throw new Error("another freeze took the lock first; run this one again when it has ended");
+}
+
 /**
  * Freeze `version`, shipped on `date`. `root` is the repository. Returns what it wrote.
  *
  * It is one step that either happens or does not: every check runs and every output is built in memory first; the record and CHANGELOG.md are
  * written beside their places and then moved in (the record with a hard link, which fails if another freeze wrote it first), and only then are
- * the pending files consumed. A freeze that stops before that leaves the inputs as they were. One that was interrupted after its record was
- * written (the record is there, and is exactly what this freeze would write) is finished by running it again.
+ * the pending files consumed. A freeze that stops before that leaves the inputs as they were. One that stopped after its record was written,
+ * before or while it consumed the pending files, is finished by running it again: the files its record holds are checked against it, removed,
+ * and CHANGELOG.md is written again. Only one freeze runs at a time in a repository (lockFreeze).
  */
 export function freeze({ root, version, date }) {
   if (!isDate(date)) throw new Error(`--date "${date}" is a calendar date, YYYY-MM-DD`);
-  const file = path.join(root, RECORDS_DIR, `${version}.json`);
-  if (!fs.existsSync(file)) return commit({ root, version, date });
-  // The record is there: this freeze finishes an interrupted one, or the version is published. Anything that stops it says the second.
+  const unlock = lockFreeze(root);
   try {
-    return commit({ root, version, date });
-  } catch (error) {
-    if (error.finishing) throw error;
-    throw new Error(`${version} is published, and a published version is never edited`);
+    const file = path.join(root, RECORDS_DIR, `${version}.json`);
+    if (!fs.existsSync(file)) return commit({ root, version, date });
+    // The record is there: this freeze finishes an interrupted one, or the version is published. Anything that stops it says the second.
+    try {
+      return must(version, "the version").pre.length ? commit({ root, version, date }) : finish({ root, version, date });
+    } catch (error) {
+      if (error.finishing) throw error;
+      throw new Error(`${version} is published, and a published version is never edited`);
+    }
+  } finally {
+    unlock();
   }
+}
+
+/**
+ * Finish a stable freeze that stopped after writing its record: every pending file the record holds must say what the record says, and the
+ * date must be the record's. Those files and release.md are removed and CHANGELOG.md is written from the records and what is left. A record
+ * that holds no pending file and has no release.md left is simply published.
+ */
+function finish({ root, version, date }) {
+  const config = loadConfig(root);
+  const file = path.join(root, RECORDS_DIR, `${version}.json`);
+  const records = readRecords(root);
+  const record = records.find((item) => item.version === version);
+  if (!record || record.date !== date) throw new Error("published");
+  const held = new Map(record.entries.map((entry) => [entry.id, entry]));
+  const pending = readPending(root, config);
+  const mine = pending.filter((entry) => held.has(entry.id));
+  const notesFile = path.join(root, CHANGES_DIR, NOTES_FILE);
+  const notes = fs.existsSync(notesFile) ? readPendingNotes(root, new Set([...pending.map((entry) => entry.id), ...held.keys()])) : null;
+  const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  const notesMine = Boolean(notes) && same(notes.summary, record.summary) && same(notes.title, record.title) && same(notes.audiences, record.audiences);
+  if (!mine.length && !notesMine) throw new Error("published");
+  for (const entry of mine) {
+    const kept = held.get(entry.id);
+    const now = recordEntry(entry, config, { version, commit: kept.commit?.sha });
+    if (JSON.stringify(now) !== JSON.stringify(kept)) throw new Error("published");
+  }
+  const left = pending.filter((entry) => !held.has(entry.id));
+  const changelog = changelogMarkdown(pageReleases(root, { config, records, pending: left }), { product: config.product, form: config.form });
+  writeChangelog(root, changelog);
+  const removed = consume(root, version, mine, notesMine);
+  return { record, file, removed, finished: true };
+}
+
+/** Write CHANGELOG.md beside its place, then move it in. */
+function writeChangelog(root, text) {
+  const changelogFile = path.join(root, "CHANGELOG.md");
+  const temp = `${changelogFile}.freeze-${process.pid}-${Date.now()}`;
+  try {
+    fs.writeFileSync(temp, text);
+    fs.renameSync(temp, changelogFile);
+  } catch (error) {
+    error.finishing = true;
+    throw error;
+  } finally {
+    fs.rmSync(temp, { force: true });
+  }
+}
+
+/** Remove the pending files a frozen record holds, then release.md. One that cannot be removed stops the freeze, which running it again finishes. */
+function consume(root, version, entries, notes) {
+  const removed = [];
+  const files = [...entries.map((entry) => `${CHANGES_DIR}/${entry.id}.md`), ...(notes ? [`${CHANGES_DIR}/${NOTES_FILE}`] : [])];
+  for (const name of files) {
+    try {
+      fs.rmSync(path.join(root, name), { force: true });
+    } catch (error) {
+      const stopped = new Error(`${version} is frozen, and removing ${name} failed (${error.code ?? error.message}); fix that, then run the same freeze again to finish it`);
+      stopped.finishing = true;
+      throw stopped;
+    }
+    removed.push(name);
+  }
+  return removed;
 }
 
 function commit({ root, version, date }) {
@@ -181,15 +283,7 @@ function commit({ root, version, date }) {
     fs.rmSync(changelogTemp, { force: true });
   }
 
-  const removed = [];
-  for (const entry of consumed) {
-    fs.rmSync(path.join(root, CHANGES_DIR, `${entry.id}.md`), { force: true });
-    removed.push(`${CHANGES_DIR}/${entry.id}.md`);
-  }
-  if (!pre && notes) {
-    fs.rmSync(path.join(root, CHANGES_DIR, NOTES_FILE), { force: true });
-    removed.push(`${CHANGES_DIR}/${NOTES_FILE}`);
-  }
+  const removed = consume(root, version, consumed, !pre && Boolean(notes));
   return { record, file, removed, finished: existing !== null };
 }
 

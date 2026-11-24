@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { pageReleases, readRecords } from "../records.mjs";
 import { freeze } from "../release.mjs";
@@ -281,4 +283,84 @@ test("pre-release numbers compare as integers of any size", async () => {
   const { compare } = await import("../semver.mjs");
   assert.ok(compare("1.0.0-rc.9007199254740993", "1.0.0-rc.9007199254740992") > 0);
   assert.ok(compare("1.0.0-rc.10", "1.0.0-rc.9") > 0);
+});
+
+const RELEASE_CLI = fileURLToPath(new URL("../release.mjs", import.meta.url));
+const BUILD_CLI = fileURLToPath(new URL("../build.mjs", import.meta.url));
+const check = (dir) => spawnSync(process.execPath, [BUILD_CLI, "--check", "--root", dir], { encoding: "utf8" });
+
+test("a freeze that stops while removing its pending files is finished by running it again (recheck 1)", () => {
+  const repo = repository();
+  repo.entry("editor", { type: "fixed", area: "Editor" }, "Fixed the editor losing its draft when the page reloaded");
+  repo.entry("list", { type: "fixed", area: "List" }, "Fixed the list losing its place when a row was removed");
+  repo.notes("---\nsummary: Drafts survive a reload.\n---\n");
+  // The second pending file cannot be removed (as a locked file on macOS): the first is gone by then.
+  const rm = fs.rmSync;
+  fs.rmSync = function (target, ...rest) {
+    if (String(target).endsWith(path.join(".changes", "list.md"))) throw Object.assign(new Error("operation not permitted"), { code: "EPERM" });
+    return rm.call(this, target, ...rest);
+  };
+  try {
+    assert.equal(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" })), "1.0.0 is frozen, and removing .changes/list.md failed (EPERM); fix that, then run the same freeze again to finish it");
+  } finally {
+    fs.rmSync = rm;
+  }
+  assert.deepEqual(repo.pending(), ["list.md", "release.md"], "the first file went, the rest stayed");
+  const again = freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" });
+  assert.equal(again.finished, true);
+  assert.deepEqual(again.removed, [".changes/list.md", ".changes/release.md"]);
+  assert.deepEqual(repo.pending(), []);
+  assert.deepEqual(repo.record("1.0.0").entries.map((entry) => entry.id).sort(), ["editor", "list"]);
+  assert.equal(check(repo.dir).status, 0, check(repo.dir).stderr);
+  // Finished, it is published: a third run, or one with another date, is refused.
+  assert.equal(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" })), "1.0.0 is published, and a published version is never edited");
+});
+
+test("a pending file that says something other than the record does not finish a stopped freeze: the version is published", () => {
+  const repo = repository();
+  repo.entry("editor", { type: "fixed", area: "Editor" }, "Fixed the editor losing its draft when the page reloaded");
+  freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" });
+  repo.write("editor", { type: "fixed", area: "Editor" }, "Fixed the editor dropping its draft on a reload");
+  assert.equal(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" })), "1.0.0 is published, and a published version is never edited");
+  assert.deepEqual(repo.pending(), ["editor.md"], "nothing is removed");
+});
+
+test("two freezes never run at once: a second one, started while the first installs its record, is refused and records nothing (recheck 2)", () => {
+  const repo = repository();
+  repo.entry("editor", { type: "fixed", area: "Editor" }, "Fixed the editor losing its draft when the page reloaded");
+  repo.entry("list", { type: "fixed", area: "List" }, "Fixed the list losing its place when a row was removed");
+  // The first CLI runs a second, unmodified CLI for another version at the moment it installs its record.
+  const dir = tempDir();
+  const hook = path.join(dir, "interleave.mjs");
+  const second = path.join(dir, "second.json");
+  fs.writeFileSync(hook, `import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+const link = fs.linkSync;
+fs.linkSync = function (...args) {
+  const run = spawnSync(process.execPath, [process.argv[1], "--root", process.env.FREEZE_ROOT, "1.0.1", "--date", "2026-11-23"], { encoding: "utf8" });
+  fs.writeFileSync(process.env.FREEZE_SECOND, JSON.stringify({ status: run.status, message: (run.stderr || run.stdout).trim() }));
+  return link.apply(this, args);
+};
+`);
+  const first = spawnSync(process.execPath, ["--import", hook, RELEASE_CLI, "--root", repo.dir, "1.0.0", "--date", "2026-11-23"], { encoding: "utf8", env: { ...process.env, FREEZE_ROOT: repo.dir, FREEZE_SECOND: second }, timeout: 60_000 });
+  assert.equal(first.status, 0, first.stderr);
+  const other = JSON.parse(fs.readFileSync(second, "utf8"));
+  assert.equal(other.status, 1);
+  assert.match(other.message, /^another freeze is running \(process [0-9]+\); run this one again when it has ended$/);
+  assert.deepEqual(fs.readdirSync(path.join(repo.dir, "changelog", "releases")), ["1.0.0.json"]);
+  assert.deepEqual(repo.pending(), []);
+  assert.equal(check(repo.dir).status, 0);
+});
+
+test("the freeze's lock: held by a running process it refuses; left by a stopped one it is taken over", () => {
+  const repo = repository();
+  repo.entry("editor", { type: "fixed", area: "Editor" }, "Fixed the editor losing its draft when the page reloaded");
+  const lock = path.join(repo.git("rev-parse", "--absolute-git-dir"), "changelog-freeze.lock");
+  fs.writeFileSync(lock, `${process.pid}\n`);
+  assert.equal(stops(() => freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" })), `another freeze is running (process ${process.pid}); run this one again when it has ended`);
+  assert.deepEqual(repo.pending(), ["editor.md"]);
+  const gone = spawnSync(process.execPath, ["-e", ""]).pid;
+  fs.writeFileSync(lock, `${gone}\n`);
+  assert.equal(freeze({ root: repo.dir, version: "1.0.0", date: "2026-11-23" }).record.entries[0].id, "editor");
+  assert.equal(fs.existsSync(lock), false, "the lock is let go");
 });
