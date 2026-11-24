@@ -94,7 +94,7 @@ export { ChartGroup, TimeChart } from "./chart";
 export { trailingMean } from "./trailing-mean";
 export type { ChartGroupProps, ChartKind, ChartLaneGeometry, ChartPlan, ChartSeries, TimeChartProps } from "./chart";
 export { ArchitectureDiagram } from "./architecture-diagram";
-export type { ArchitectureDiagramProps, ArchitectureNode, DiagramEdge, DiagramFigureProps, DiagramFlowEdge, DiagramGroup, DiagramLegend, DiagramLineKind, DiagramMark, DiagramMotion, DiagramNode, DiagramPacket, DiagramPlacement, DiagramSide, DiagramUnplaced } from "./architecture-diagram";
+export type { ArchitectureDiagramProps, ArchitectureNode, DiagramEdge, DiagramFigureProps, DiagramFlowEdge, DiagramGroup, DiagramLayoutInfo, DiagramLegend, DiagramLineKind, DiagramMark, DiagramMotion, DiagramNode, DiagramPacket, DiagramPlacement, DiagramSide, DiagramUnplaced } from "./architecture-diagram";
 export { FlowchartDiagram } from "./flowchart-diagram";
 export type { DiagramShapeLabels, FlowchartDiagramProps, FlowchartNode } from "./flowchart-diagram";
 export { DataFlowDiagram } from "./data-flow-diagram";

@@ -6,7 +6,7 @@ import { inLevel, usePanelLevel } from "./layers";
 import {
   applyTrace, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
-import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Measured, Model, VNode } from "./diagram-core";
+import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
 
 type MotionModule = typeof import("./diagram-motion");
@@ -57,6 +57,24 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
   zoom?: boolean;
   /** `"first-visit"` (DECISIONS 306, 1.5): an animated figure's entrance plays until it has played once on this page; later visits are at rest. Needs an `id`. */
   entrance?: "always" | "first-visit";
+  /**
+   * Called with the figure's layout each time it is laid out anew (a new width, the faces arriving, new data), and not again for the same layout. What it
+   * gives is what `exportMeasuredDiagram` from `@srasyndicate/basalt/diagram-interop` takes, so a draw.io, Visio or Lucid file is the layout on screen:
+   * `exportMeasuredDiagram(laid.spec, laid.geo, "drawio", { extras: readMeasuredExtras(laid.figure) })`. It draws nothing.
+   */
+  onLayout?: (laid: DiagramLayoutInfo) => void;
+}
+
+/** A figure's layout as it is on screen (`onLayout`). */
+export interface DiagramLayoutInfo {
+  /** The figure's data; under `layout: "auto"`, with the placement it is drawn on. */
+  spec: DiagramSpec;
+  /** The measured geometry: every card's box, every line's route and every label's seat, in CSS pixels from the drawing's corner. */
+  geo: Geo;
+  /** Whether the figure is drawn or stacked at this width. */
+  layout: "drawn" | "stacked";
+  /** The figure element: `readMeasuredExtras` reads its groups, lanes, bands, frames and table rows when the file is made. */
+  figure: HTMLElement;
 }
 
 const P = "basalt-diagram";
@@ -132,7 +150,7 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   viewer?: DiagramViewerMode;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
@@ -184,6 +202,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const [textModule, setTextModule] = React.useState<TextModule | null>(null);
   const inkHtml = React.useMemo(() => ({ __html: ink }), [ink]);
   const measured = React.useRef<Measured | null>(null);
+  const onLayoutRef = React.useRef(onLayout);
+  onLayoutRef.current = onLayout;
+  const laidOut = React.useRef<{ key: string; spec: DiagramSpec } | null>(null);
   const dynRef = React.useRef(dyn);
   dynRef.current = dyn;
   const [motionModule, setMotionModule] = React.useState<MotionModule | null>(null);
@@ -309,6 +330,16 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       result.ink = html;
     }
     measured.current = result;
+    // The app's own record of the layout (onLayout): once for each layout, so a callback that sets state never lays the figure out again.
+    const told = onLayoutRef.current;
+    if (told && result.geo && !viewer) {
+      const key = `${result.dyn.layout ?? "stacked"}|${JSON.stringify(result.geo)}`;
+      if (laidOut.current?.key !== key || laidOut.current.spec !== spec) {
+        laidOut.current = { key, spec };
+        const placed = auto ? placementFor(dirAt) : undefined;
+        told({ spec: placed ? { ...spec, placement: placed } : spec, geo: result.geo, layout: result.dyn.layout === "drawn" ? "drawn" : "stacked", figure: fig });
+      }
+    }
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
     if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }

@@ -340,3 +340,57 @@ describe("live DOM measured Geo entry and B2 exact geometry (Chromium)", () => {
     }
   });
 });
+
+// `onLayout` (DECISIONS 365, item 3): a figure hands the app its layout as it is on screen, which exportMeasuredDiagram takes, so an app's draw.io, Visio or
+// Lucid file is the layout the reader sees and not the headless approximation. Once for each layout: a callback that sets state never lays it out again.
+describe("onLayout", () => {
+  test("gives the on-screen layout, once for each, and exportMeasuredDiagram writes it; an automatic figure's spec carries its placement", async () => {
+    const autoArchPlaced = await interop.placeAutoDiagram(CIMIP_B.autoArchitecture);
+    const HOST = `
+      import data from "./test/fixtures/cimip-diagrams.json";
+      import { exportMeasuredDiagram, readMeasuredExtras } from "./dist/diagram-interop.js";
+      window.__laid = { arch: [], auto: [] };
+      window.__files = {};
+      function Host() {
+        // A new callback every render, and one that sets state: the figure is not laid out again for it.
+        const [count, setCount] = React.useState(0);
+        const { type: _a, ...arch } = data.architecture;
+        const { type: _b, ...auto } = ${JSON.stringify(autoArchPlaced)};
+        const on = (key) => (laid) => {
+          window.__laid[key].push({ layout: laid.layout, nodes: laid.geo.nodes.length, placement: Boolean(laid.spec.placement), figure: laid.figure.id });
+          window.__files[key] = exportMeasuredDiagram(laid.spec, laid.geo, "drawio", { extras: readMeasuredExtras(laid.figure) });
+          setCount((n) => n + 1);
+        };
+        return <main data-count={count} style={{ width: 1104, display: "grid", gap: 64 }}>
+          <B.ArchitectureDiagram id="fig-arch" {...arch} onLayout={on("arch")} />
+          <B.ArchitectureDiagram id="fig-auto" {...auto} onLayout={on("auto")} />
+        </main>;
+      }
+      createRoot(document.getElementById("root")).render(<Host />);
+    `;
+    const browser = await launch();
+    try {
+      const { page, errors } = await fixturePage(browser, HOST, { theme: "light", viewport: { width: 1280, height: 1200 }, standards: true });
+      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+      const got = await page.evaluate(() => ({ laid: window.__laid, files: window.__files, names: [...document.querySelectorAll("#fig-arch .basalt-diagram-node")].length }));
+      assert.deepEqual(errors, []);
+      for (const key of ["arch", "auto"]) {
+        const list = got.laid[key];
+        assert.ok(list.length >= 1 && list.length <= 3, `${key}: laid out ${list.length} times, not in a loop`);
+        assert.equal(list.at(-1).layout, "drawn");
+        assert.equal(list.at(-1).figure, `fig-${key}`);
+        assertValidDrawio(got.files[key], key === "arch" ? CIMIP.architecture : autoArchPlaced, `onLayout/${key}`);
+      }
+      assert.equal(got.laid.arch.at(-1).nodes, got.names);
+      assert.equal(got.laid.auto.at(-1).placement, true);
+      // A resize lays it out anew, and onLayout says so.
+      const before = await page.evaluate(() => window.__laid.arch.length);
+      await page.evaluate(() => { document.querySelector("main").style.width = "1000px"; });
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+      assert.ok(await page.evaluate(() => window.__laid.arch.length) > before);
+    } finally {
+      await browser.close();
+    }
+  });
+});
