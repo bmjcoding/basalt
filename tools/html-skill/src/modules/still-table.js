@@ -253,7 +253,12 @@
     var cells = head ? Array.prototype.slice.call(head.cells) : [];
     var at = cells.findIndex(function (c) { return c.classList.contains('select-col'); });
     var col = at < 0 ? null : table.querySelectorAll(':scope > colgroup > col')[at];
-    if (col && col.style.width && col.style.width.indexOf('--basalt-select-column') < 0) col.style.width = 'max(' + col.style.width + ', var(--basalt-select-column))';
+    if (!col || col.style.width.indexOf('--basalt-select-column') >= 0) return;
+    // The width the author gave, however it was given (inline, the width attribute, or a class), kept for a fine pointer (the code review's finding 7).
+    var attr = col.getAttribute('width');
+    var given = col.style.width || (attr && /^\d+(\.\d+)?$/.test(attr) ? attr + 'px' : attr) || getComputedStyle(col).width;
+    if (!given || given === 'auto' || !/^\d+(\.\d+)?(px)?$/.test(given)) given = '0px';
+    col.style.width = 'max(' + given + ', var(--basalt-select-column))';
   }
 
   _.step(65, 'stillTable', function () {
