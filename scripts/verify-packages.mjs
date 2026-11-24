@@ -34,7 +34,8 @@ try {
   packages[""] = { name: manifest.name, version: manifest.version, dependencies: manifest.dependencies };
   for (let index = 0; index < packedPackages.length; index++) {
     const { packed, manifest: pkg } = packedPackages[index];
-    packages[`node_modules/${pkg.name}`] = { version: pkg.version, resolved: `file:${archives[index]}`, integrity: packed.integrity, dependencies: pkg.dependencies, peerDependencies: pkg.peerDependencies };
+    // `bin` is in the lock entry as npm writes it, so `npm ci` links node_modules/.bin as a real install does (B1: the CLI run through that link).
+    packages[`node_modules/${pkg.name}`] = { version: pkg.version, resolved: `file:${archives[index]}`, integrity: packed.integrity, dependencies: pkg.dependencies, peerDependencies: pkg.peerDependencies, ...(pkg.bin ? { bin: pkg.bin } : {}) };
   }
   fs.writeFileSync(path.join(consumer, "package-lock.json"), JSON.stringify({ name: manifest.name, version: manifest.version, lockfileVersion: 3, requires: true, packages }));
   run("npm", ["ci", "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], consumer);
@@ -96,6 +97,37 @@ const phosphor = await import('@srasyndicate/basalt/phosphor'); assert.deepEqual
 const interop = await import('@srasyndicate/basalt/diagram-interop'); assert.equal('diagramToDrawio' in await import('@srasyndicate/basalt'), false, 'diagram-interop stays outside the root export'); assert.match(interop.diagramToDrawio({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }), /<mxfile compressed="false">/); assert.ok(interop.diagramToVsdx({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }).length > 0);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
+  // Run the installed CLI through its node_modules/.bin symlink (guards B1: symlinked bin must execute and write files).
+  const binPath = path.join(consumer, "node_modules", ".bin", "basalt-diagram-export");
+  assert.ok(fs.existsSync(binPath), "packed install is missing node_modules/.bin/basalt-diagram-export");
+  const sampleSpec = {
+    type: "architecture",
+    title: "Packed CLI check",
+    summary: "Verifies the installed bin.",
+    nodes: [
+      { id: "a", name: "ECS service", col: 1, row: 1, mark: "aws-ecs-service" },
+      { id: "b", name: "Kubernetes", col: 2, row: 1, mark: "kubernetes" },
+    ],
+    edges: [{ from: "a", to: "b", kind: "main", label: "HTTP" }],
+  };
+  const cliIn = path.join(consumer, "sample.json");
+  const cliOut = path.join(consumer, "cli-out");
+  fs.writeFileSync(cliIn, JSON.stringify(sampleSpec));
+  run(process.execPath, [binPath, cliIn, "--to", "drawio,vsdx,lucid", "--theme", "dark", "--marks", "embed", "--out", cliOut], consumer);
+  for (const ext of [".drawio", ".vsdx", ".lucid"]) {
+    const f = path.join(cliOut, `sample${ext}`);
+    assert.ok(fs.existsSync(f) && fs.statSync(f).size > 0, `installed bin did not write ${f}`);
+  }
+  assert.match(fs.readFileSync(path.join(cliOut, "sample.drawio"), "utf8"), /background="#000000"/, "dark drawio background");
+  assert.match(fs.readFileSync(path.join(cliOut, "sample.vsdx")).toString("latin1"), /PageBackground/, "dark vsdx PageBackground");
+  // Without Playwright installed in the consumer, --browser fails cleanly with an actionable install message.
+  let browserErr = "";
+  try {
+    run(process.execPath, [binPath, cliIn, "--browser", "--to", "drawio", "--out", cliOut], consumer);
+  } catch (err) {
+    browserErr = `${err.stdout || ""}${err.stderr || ""}`;
+  }
+  assert.match(browserErr, /playwright/i, "packed --browser without Playwright must name playwright in its error");
   // A React Server Component, built by Next.js (A5-18): what the package holds that is neither a component nor a hook must be callable on the server. Each
   // page is static, so a call that throws ("Attempted to call formatStamp() from the server but formatStamp is on the client") fails the build, and a constant
   // that arrives as a client reference (CONFIRM_MS / 1000 is NaN, with no error) shows in the page's HTML. The components still come through as components.
@@ -135,6 +167,7 @@ export default async function Page() {
 } catch (error) {
   if (error.stdout) process.stderr.write(error.stdout);
   if (error.stderr) process.stderr.write(error.stderr);
+  if (!error.stdout && !error.stderr) process.stderr.write(`${error.message}\n`);
   throw new Error("Packed consumer verification failed; see the compiler or installer output above.");
 } finally {
   fs.rmSync(consumer, { recursive: true, force: true });

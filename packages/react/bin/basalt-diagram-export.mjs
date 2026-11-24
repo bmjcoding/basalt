@@ -24,12 +24,6 @@ const repoRoot = path.resolve(pkgRoot, "..", "..");
 const VALID_FORMATS = ["drawio", "vsdx", "lucid", "lucid-json"];
 const VALID_THEMES = ["light", "dark", "adaptive"];
 const VALID_MARKS = ["omit", "embed"];
-const ALLOW_OWNERS = new Set([
-  "Amazon Web Services, Inc.",
-  "Microsoft Corporation",
-  "Google LLC",
-  "The Linux Foundation",
-]);
 
 function usage() {
   return [
@@ -41,7 +35,7 @@ function usage() {
     "  --marks <mode>   omit or embed (default: omit; embed includes only marks whose manifest terms allow diagram use)",
     "  --out <path>     Output directory (or exact file path for one diagram and one format)",
     "  --width <px>     Target drawing width in CSS pixels (default: 1104)",
-    "  --browser        Measure boxes through headless Chromium + Basalt's engine instead of pure headless JS",
+    "  --browser        Measure boxes through headless Chromium + Basalt's engine (requires playwright)",
     "  -h, --help       Show this help",
     "",
   ].join("\n");
@@ -64,7 +58,6 @@ function extFor(format) {
 
 /** Extracts `<script ... data-diagram ...>JSON</script>` blocks from HTML, ignoring comments, textarea, code, pre, and template blocks. */
 export function extractDiagramsFromHtml(html) {
-  // Blank comments and non-live containers so examples inside comments/textarea/pre/code/template are ignored.
   const masked = html
     .replace(/<!--[\s\S]*?-->/g, (m) => " ".repeat(m.length))
     .replace(/<(textarea|pre|code|template)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => " ".repeat(m.length));
@@ -86,7 +79,6 @@ export function extractDiagramsFromHtml(html) {
     if (!spec || typeof spec !== "object" || typeof spec.type !== "string") {
       throw new Error("basalt-diagram-export: <script data-diagram> must hold a Basalt diagram object with a `type`");
     }
-    // Check if an enclosing <figure ... id="..."> gives this diagram a stable name
     const before = masked.slice(Math.max(0, match.index - 240), match.index);
     const figId = before.match(/<figure\b[^>]*\bid=["']([^"']+)["'][^>]*>\s*$/i)?.[1];
     out.push({
@@ -138,148 +130,195 @@ function deduplicateNames(items) {
   });
 }
 
-/** Builds a manifest-checked mark resolver when `--marks embed` is requested. */
-async function createMarkResolver() {
-  const manifestPath = path.join(pkgRoot, "marks", "manifest.json");
-  const skillMarksPath = path.join(repoRoot, "tools", "html-skill", "src", "marks.json");
-  let allowedIds = null;
-  if (fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    allowedIds = new Set(
-      manifest.marks
-        .filter((m) => !m.unofficial && ALLOW_OWNERS.has(m.owner))
-        .map((m) => m.id),
-    );
-  }
-  let skillMarks = null;
-  if (fs.existsSync(skillMarksPath)) {
-    skillMarks = JSON.parse(fs.readFileSync(skillMarksPath, "utf8")).marks ?? {};
-  }
+/**
+ * Builds a mark resolver when `--marks embed` is requested.
+ * Bundled mark ids are gated by `isBundledMarkEmbeddable` (derived from marks/manifest.json terms at build time)
+ * and read from the packaged `dist/marks/<id>.js` modules. Custom mark file paths (e.g. `{ onLight: "logo.svg" }`)
+ * are resolved relative to the input file's directory; missing or non-SVG paths warn on stderr rather than vanishing silently.
+ */
+function createMarkResolver(inputDir) {
   const distMarksCache = new Map();
-  // Preload any dist/marks/*.js module needed only on demand? Keep resolver sync by reading dist/marks synchronously if skillMarks is absent.
-  return (id, theme) => {
-    if (allowedIds ? !allowedIds.has(id) : !isBundledMarkEmbeddable(id)) return undefined;
-    if (skillMarks && Object.hasOwn(skillMarks, id)) {
-      const entry = skillMarks[id];
+  const fileCache = new Map();
+  const warned = new Set();
+
+  const warnOnce = (msg) => {
+    if (warned.has(msg)) return;
+    warned.add(msg);
+    process.stderr.write(`basalt-diagram-export: warning: ${msg}\n`);
+  };
+
+  return (idOrPath, theme) => {
+    if (!idOrPath) return undefined;
+    // Bundled mark id (lowercase slug like "aws-ecs-service" or "kubernetes")
+    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(idOrPath)) {
+      if (!isBundledMarkEmbeddable(idOrPath)) return undefined;
+      if (!distMarksCache.has(idOrPath)) {
+        const file = path.join(pkgRoot, "dist", "marks", `${idOrPath}.js`);
+        if (!fs.existsSync(file)) {
+          distMarksCache.set(idOrPath, null);
+          return undefined;
+        }
+        const src = fs.readFileSync(file, "utf8");
+        const onLight = src.match(/onLight:\s*"([^"]+)"/)?.[1];
+        const onDark = src.match(/onDark:\s*"([^"]+)"/)?.[1];
+        distMarksCache.set(idOrPath, onLight ? { onLight, onDark } : null);
+      }
+      const entry = distMarksCache.get(idOrPath);
+      if (!entry) return undefined;
       return theme === "dark" ? (entry.onDark ?? entry.onLight) : entry.onLight;
     }
-    if (!distMarksCache.has(id)) {
-      const file = path.join(pkgRoot, "dist", "marks", `${id}.js`);
-      if (!fs.existsSync(file)) { distMarksCache.set(id, null); return undefined; }
-      const src = fs.readFileSync(file, "utf8");
-      const onLight = src.match(/onLight:\s*"([^"]+)"/)?.[1];
-      const onDark = src.match(/onDark:\s*"([^"]+)"/)?.[1];
-      distMarksCache.set(id, onLight ? { onLight, onDark } : null);
+
+    // Custom mark file path relative to the input file (e.g. "logo.svg" or "./marks/logo.svg")
+    const trimmed = String(idOrPath).trim();
+    if (trimmed.startsWith("<svg") || trimmed.startsWith("data:image/svg+xml")) return trimmed;
+    if (/^https?:\/\//i.test(trimmed)) {
+      warnOnce(`skipping remote custom mark URL "${trimmed}" (only local SVG files and data URIs can be embedded offline)`);
+      return undefined;
     }
-    const entry = distMarksCache.get(id);
-    if (!entry) return undefined;
-    return theme === "dark" ? (entry.onDark ?? entry.onLight) : entry.onLight;
+    const resolved = path.resolve(inputDir, trimmed);
+    if (!fileCache.has(resolved)) {
+      if (!fs.existsSync(resolved)) {
+        warnOnce(`custom mark file "${trimmed}" not found (looked at ${resolved})`);
+        fileCache.set(resolved, null);
+      } else {
+        const content = fs.readFileSync(resolved, "utf8").trim();
+        if (!content.startsWith("<svg")) {
+          warnOnce(`custom mark file "${trimmed}" is not SVG markup (expected <svg ...>)`);
+          fileCache.set(resolved, null);
+        } else {
+          fileCache.set(resolved, content);
+        }
+      }
+    }
+    return fileCache.get(resolved) ?? undefined;
   };
 }
 
-/** Optional headless Chromium measurement via Playwright + Basalt's compiled HTML skill. */
-async function measureInBrowser(items, width) {
-  const composePath = path.join(repoRoot, ".agent", "skills", "basalt-html", "compose.mjs");
-  const launchPath = path.join(repoRoot, "scripts", "chromium-launch.mjs");
-  if (!fs.existsSync(composePath)) {
-    throw new Error("basalt-diagram-export: --browser requires the built HTML skill (.agent/skills/basalt-html/compose.mjs)");
+/** Loads Playwright from the caller's project, this package's ancestors, or Node's global/ESM resolution. */
+async function loadPlaywright() {
+  const roots = [path.join(process.cwd(), "package.json"), path.join(pkgRoot, "package.json")];
+  for (const anchor of roots) {
+    try {
+      const req = createRequire(anchor);
+      const pw = req("playwright");
+      if (pw?.chromium) return pw;
+    } catch {
+      // try next resolution anchor
+    }
   }
-  const req = createRequire(path.join(pkgRoot, "package.json"));
-  let chromium;
   try {
-    ({ chromium } = req("playwright"));
+    const pw = await import("playwright");
+    if (pw?.chromium) return pw;
   } catch {
-    throw new Error("basalt-diagram-export: --browser requires playwright to be installed");
+    // not installed
   }
-  const { compose } = await import(pathToFileURL(composePath).href);
-  const body = `<title>Export</title><main style="max-width:${width}px;margin:0 auto;padding:16px;display:grid;gap:64px">` +
-    items.map((it, idx) => `<figure class="diagram" id="exp-${idx}"><script type="application/json" data-diagram>${JSON.stringify(it.spec).replace(/</g, "\\u003c")}</script></figure>`).join("") +
-    `</main>`;
-  const { html } = compose(body);
-  const launchOpts = fs.existsSync(launchPath) ? (await import(pathToFileURL(launchPath).href)).chromiumLaunchOptions() : {};
-  const browser = await chromium.launch(launchOpts);
-  try {
-    const context = await browser.newContext({ viewport: { width: Math.max(width + 64, 1280), height: 1200 }, deviceScaleFactor: 2 });
-    const page = await context.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    await page.evaluate(() => document.fonts.ready);
-    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+  throw new Error(
+    "basalt-diagram-export: --browser requires Playwright. Install it with: npm install -D playwright && npx playwright install chromium",
+  );
+}
 
-    // Inspect each figure's exact rendered DOM boxes + paths
-    const measured = await page.evaluate((count) => {
-      const results = [];
-      for (let idx = 0; idx < count; idx++) {
-        const fig = document.getElementById(`exp-${idx}`);
-        const drawing = fig.querySelector(".diagram-drawing");
-        const o = drawing.getBoundingClientRect();
-        const rectOf = (el) => {
-          const r = el.getBoundingClientRect();
-          return { l: r.left - o.left, t: r.top - o.top, r: r.right - o.left, b: r.bottom - o.top };
-        };
-        const nodes = [...drawing.querySelectorAll(".diagram-node")].map((el, i) => ({
-          id: el.dataset.node,
-          shape: el.dataset.shape,
-          i,
-          rect: rectOf(el),
-        }));
-        const lifelines = [...drawing.querySelectorAll(".diagram-life")].map((p) => {
-          const m = (p.getAttribute("d") || "").match(/M(-?[\d.]+)\s+(-?[\d.]+)V(-?[\d.]+)/);
-          return m ? { x: Number(m[1]), y1: Number(m[2]), y2: Number(m[3]) } : { x: 0, y1: 0, y2: 0 };
-        });
-        const lines = [...drawing.querySelectorAll(".diagram-edge")].map((g) => {
-          const lineEl = g.querySelector(".diagram-line");
-          const tipEl = g.querySelector(".diagram-tip");
-          const d = lineEl.getAttribute("d") || "";
-          const pts = [];
-          for (const m of d.matchAll(/([MLQ])([^MLQ]*)/g)) {
-            const nums = m[2].trim().split(/[ ,]+/).map(Number);
-            if (m[1] === "Q") { pts.pop(); pts.push({ x: nums[0], y: nums[1] }); }
-            else pts.push({ x: nums[0], y: nums[1] });
-          }
-          const tn = (tipEl.getAttribute("d") || "").match(/-?[\d.]+/g).map(Number);
-          const open = tipEl.hasAttribute("data-open");
-          const tip = open ? { x: tn[2], y: tn[3] } : { x: tn[0], y: tn[1] };
-          pts[pts.length - 1] = tip;
-          const a = pts[pts.length - 2] || pts[0], b = pts[pts.length - 1];
-          const dir = Math.abs(a.x - b.x) < 0.01 ? (b.y > a.y ? "down" : "up") : (b.x > a.x ? "right" : "left");
-          const kind = lineEl.getAttribute("data-kind") || "plain";
-          return { i: Number(g.dataset.edge), from: g.dataset.from, to: g.dataset.to, kind, pts, tip, dir, width: kind === "main" ? 2 : 1 };
-        });
-        const labels = [...drawing.querySelectorAll(".diagram-label")].map((el) => ({
-          i: Number(el.dataset.edge),
-          text: el.textContent,
-          box: rectOf(el),
-          on: el.hasAttribute("data-on"),
-        }));
-        const groups = [...drawing.querySelectorAll(".diagram-gbox")].map((el) => ({
-          id: el.getAttribute("data-group"),
-          label: el.querySelector(".diagram-glabel")?.textContent || "",
-          rect: rectOf(el),
-        }));
-        const lanes = [...drawing.querySelectorAll(".diagram-lane")].map((el, k) => ({
-          id: `lane-${k}`,
-          label: el.querySelector(".diagram-lane-name")?.textContent || "",
-          rect: rectOf(el),
-        }));
-        const bands = [...drawing.querySelectorAll(".diagram-band")].map((el) => ({
-          text: el.textContent || "",
-          rect: rectOf(el),
-        }));
-        const tableRows = {};
-        drawing.querySelectorAll('.diagram-node[data-shape="table"]').forEach((nodeEl) => {
-          const ys = [...nodeEl.querySelectorAll(".diagram-row")].map((r) => {
-            const rr = rectOf(r);
-            return (rr.t + rr.b) / 2;
-          });
-          if (ys.length) tableRows[nodeEl.dataset.node] = ys;
-        });
-        results.push({
-          geo: { w: drawing.clientWidth, h: drawing.clientHeight, nodes, lines, lifelines, labels, crossings: [], through: [], unseated: [], outside: [], ox: 0, oy: 0 },
-          extras: { groups, lanes, bands, tableRows },
-        });
+/**
+ * Packaged, self-contained headless Chromium measurement harness.
+ * Uses only files shipped inside `@srasyndicate/basalt/dist` (styles.css, Geist WOFF2 fonts,
+ * diagram-core.js, and diagram-interop.js) so `--browser` works identically from a packed install
+ * outside the monorepo as well as inside the repo.
+ */
+async function measureInBrowser(items, width) {
+  const distDir = path.join(pkgRoot, "dist");
+  const stylesPath = path.join(distDir, "styles.css");
+  const sansFontPath = path.join(distDir, "fonts", "Geist-Variable.woff2");
+  const monoFontPath = path.join(distDir, "fonts", "GeistMono-Variable.woff2");
+  const corePath = path.join(distDir, "diagram-core.js");
+  if (!fs.existsSync(stylesPath) || !fs.existsSync(corePath)) {
+    throw new Error("basalt-diagram-export: --browser requires built dist assets (styles.css and diagram-core.js)");
+  }
+
+  const { chromium } = await loadPlaywright();
+  const launchPath = path.join(repoRoot, "scripts", "chromium-launch.mjs");
+  const launchOpts = fs.existsSync(launchPath)
+    ? (await import(pathToFileURL(launchPath).href)).chromiumLaunchOptions()
+    : { headless: true };
+
+  let browser;
+  try {
+    browser = await chromium.launch(launchOpts);
+  } catch (err) {
+    throw new Error(
+      `basalt-diagram-export: --browser could not launch Chromium (${err.message}). If browsers are not installed, run: npx playwright install chromium`,
+    );
+  }
+
+  try {
+    const stylesCss = fs.readFileSync(stylesPath, "utf8");
+    const fontCss = fs.existsSync(sansFontPath) && fs.existsSync(monoFontPath)
+      ? `@font-face{font-family:"Geist";src:url("data:font/woff2;base64,${fs.readFileSync(sansFontPath).toString("base64")}") format("woff2");font-weight:100 900;font-style:normal}` +
+        `@font-face{font-family:"Geist Mono";src:url("data:font/woff2;base64,${fs.readFileSync(monoFontPath).toString("base64")}") format("woff2");font-weight:100 900;font-style:normal}`
+      : "";
+
+    const specsJson = JSON.stringify(items.map((it) => it.spec)).replace(/</g, "\\u003c");
+    const harnessHtml =
+      `<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">` +
+      `<style>${fontCss}\n${stylesCss}\nbody{margin:0;background:var(--basalt-surface-page);color:var(--basalt-text-primary);font-family:var(--basalt-font-family-sans)}</style>` +
+      `<script>window.process={env:{NODE_ENV:"production"}};</script>` +
+      `</head><body><main id="host" style="width:${width}px;margin:0 auto;display:grid;gap:64px"></main>` +
+      `<script type="module">\n` +
+      `import { buildModel, figureTree, measureFigure, syncAttributes, toHtml } from "https://basalt.local/diagram-core.js";\n` +
+      `import { readMeasuredExtras } from "https://basalt.local/diagram-interop.js";\n` +
+      `const specs = ${specsJson};\n` +
+      `const host = document.getElementById("host");\n` +
+      `const entries = specs.map((spec, idx) => {\n` +
+      `  const model = buildModel(spec, { checks: false });\n` +
+      `  const base = "exp-" + idx;\n` +
+      `  const opts = { prefix: "basalt-diagram", base, hasSource: Boolean(spec.source), hiddenClass: "basalt-visually-hidden" };\n` +
+      `  const wrap = document.createElement("div");\n` +
+      `  wrap.innerHTML = toHtml(figureTree(model, {}, opts), { summary: spec.summary || "", source: spec.source || "" });\n` +
+      `  const fig = wrap.firstElementChild;\n` +
+      `  fig.id = base;\n` +
+      `  host.appendChild(fig);\n` +
+      `  return { fig, model, base, opts };\n` +
+      `});\n` +
+      `window.__measureAll = async () => {\n` +
+      `  await document.fonts.ready;\n` +
+      `  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));\n` +
+      `  return entries.map(({ fig, model, base, opts }) => {\n` +
+      `    const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)));\n` +
+      `    return { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram") };\n` +
+      `  });\n` +
+      `};\n` +
+      `window.__ready = true;\n` +
+      `</script></body></html>`;
+
+    const context = await browser.newContext({ viewport: { width: Math.max(width + 128, 1280), height: 1200 }, deviceScaleFactor: 2 });
+    const page = await context.newPage();
+    await page.route("https://basalt.local/**", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/" || url.pathname === "/index.html") {
+        await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: harnessHtml });
+        return;
       }
-      return results;
-    }, items.length);
+      const rel = url.pathname.replace(/^\/+/, "");
+      const candidate = path.resolve(distDir, rel);
+      if (!candidate.startsWith(distDir + path.sep) || !fs.existsSync(candidate)) {
+        await route.fulfill({ status: 404, body: "not found" });
+        return;
+      }
+      const body = fs.readFileSync(candidate);
+      const ct = candidate.endsWith(".js")
+        ? "application/javascript; charset=utf-8"
+        : candidate.endsWith(".css")
+          ? "text/css; charset=utf-8"
+          : "application/octet-stream";
+      await route.fulfill({ status: 200, contentType: ct, body });
+    });
+
+    const pageErrors = [];
+    page.on("pageerror", (e) => pageErrors.push(e.message));
+    await page.goto("https://basalt.local/index.html", { waitUntil: "load" });
+    await page.waitForFunction(() => window.__ready === true, null, { timeout: 30000 });
+    const measured = await page.evaluate(() => window.__measureAll());
+    if (pageErrors.length) {
+      throw new Error(`basalt-diagram-export: --browser page error: ${pageErrors.join("; ")}`);
+    }
     return measured;
   } finally {
     await browser.close();
@@ -361,14 +400,26 @@ async function main() {
     process.exit(1);
   }
 
-  const resolveMark = opts.marks === "embed" ? await createMarkResolver() : undefined;
-  const measuredList = opts.browser ? await measureInBrowser(items, opts.width) : null;
+  const looksLikeFileOut = Boolean(opts.out && /\.(drawio|vsdx|lucid|json)$/i.test(opts.out));
+  if (looksLikeFileOut) {
+    if (items.length !== 1 || opts.to.length !== 1) {
+      process.stderr.write(
+        `basalt-diagram-export: --out "${opts.out}" looks like a file path, which requires one diagram and one format (pass a directory for multiple outputs)\n`,
+      );
+      process.exit(1);
+    }
+    const expectedExt = extFor(opts.to[0]);
+    if (!opts.out.toLowerCase().endsWith(expectedExt)) {
+      process.stderr.write(
+        `basalt-diagram-export: --out "${opts.out}" extension does not match format "${opts.to[0]}" (expected "${expectedExt}")\n`,
+      );
+      process.exit(1);
+    }
+  }
+  const singleFileOut = looksLikeFileOut;
 
-  const singleFileOut =
-    opts.out &&
-    items.length === 1 &&
-    opts.to.length === 1 &&
-    /\.(drawio|vsdx|lucid|json)$/i.test(opts.out);
+  const resolveMark = opts.marks === "embed" ? createMarkResolver(path.dirname(inputPath)) : undefined;
+  const measuredList = opts.browser ? await measureInBrowser(items, opts.width) : null;
 
   const outDir = singleFileOut
     ? path.dirname(path.resolve(opts.out))
@@ -383,7 +434,7 @@ async function main() {
 
     for (const format of opts.to) {
       let data;
-      if (measured) {
+      if (measured?.geo) {
         const res = exportMeasuredDiagram(spec, measured.geo, format, { ...baseOpts, extras: measured.extras });
         data = format === "lucid-json" ? `${JSON.stringify(res, null, 2)}\n` : res;
       } else if (format === "drawio") {
@@ -406,7 +457,16 @@ async function main() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) {
   main().catch((err) => {
     process.stderr.write(`${err.message}\n`);
     process.exit(1);
