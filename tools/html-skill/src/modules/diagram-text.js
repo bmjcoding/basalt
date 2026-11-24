@@ -10,7 +10,6 @@ import { textArt } from "../../../../packages/react/src/diagram-text.ts";
     var pre = figure.querySelector('.diagram-text');
     var code = pre && pre.querySelector('.diagram-text-ink');
     if (!code) return;
-    if (!figure.__transcript) figure.__transcript = code.innerHTML;
     var made = textArt(model);
     // A glyph's width at 100%: offsetWidth, which no transform scales (the viewer's layer is zoomed when this runs), on one unbreakable run.
     var probe = document.createElement('span');
@@ -27,8 +26,16 @@ import { textArt } from "../../../../packages/react/src/diagram-text.ts";
       room = pre.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     }
     var art = made.width * cw <= room + 0.5;
-    var html = art ? made.html : figure.__transcript;
-    if (code.innerHTML !== html) code.innerHTML = html;
+    // The transcript is kept as its own nodes while the art is shown, and put back as they are: written again as HTML, its lines' indents (styles) would
+    // be refused under a strict style-src. The art has no style. What is shown is the module's own note: a redraw's attributes take data-art off.
+    var showing = Boolean(pre.__art);
+    if (art) {
+      if (!showing) pre.__transcript = Array.prototype.slice.call(code.childNodes);
+      if (!showing || code.innerHTML !== made.html) code.innerHTML = made.html;
+    } else if (showing && pre.__transcript) {
+      code.replaceChildren.apply(code, pre.__transcript);
+    }
+    pre.__art = art;
     pre.toggleAttribute('data-art', art);
     // Under "motion": "animated" the art builds by ink when it comes into view: the diagram-motion module's, as a drawn figure's entrance is.
   };

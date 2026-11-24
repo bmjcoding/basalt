@@ -2943,8 +2943,28 @@ export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
   const under = lifelines ? `<svg class="${P}-lifes" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${lifelines}</svg>` : "";
   const svg = `${under}<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${bars}<g class="${P}-edges">${lines}</g></svg>`;
-  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
+  // A label's place is not in the string: a style attribute in markup written as HTML is refused under a strict `style-src` (no 'unsafe-inline'), so
+  // placeLabels sets it through the CSSOM once the ink is in the page.
+  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""}>${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
   return svg + labels;
+}
+
+/**
+ * Places the ink's labels (inkHtml writes them with no place): each one's box from the layout, set through the CSSOM, which a content policy allows where
+ * it refuses a style attribute. Called after the ink is written, and after every measure, since a label can move while the ink's string stays the same.
+ * The labels are paired with the layout's in order, and a label whose line is not the layout's is left alone.
+ */
+export function placeLabels(fig: Element, P: string, geo: Geo | null): void {
+  const ink = fig.querySelector(`.${P}-ink`);
+  if (!ink || !geo) return;
+  const r2 = (n: number) => `${Math.round(n * 100) / 100}px`;
+  const els = ink.querySelectorAll<HTMLElement>(`:scope > .${P}-label`);
+  els.forEach((el, k) => {
+    const l = geo.labels[k];
+    if (!l || el.dataset.edge !== String(l.i)) return;
+    const at: Array<[string, string]> = [["left", r2(l.box.l)], ["top", r2(l.box.t)], ["width", r2(l.box.r - l.box.l)]];
+    for (const [name, value] of at) if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
+  });
 }
 
 // ---- Laying a figure out ----
@@ -3242,7 +3262,9 @@ export function syncAttributes(el: Element, v: VNode, root = true): void {
     const s = value === true ? "" : String(value);
     if (el.getAttribute(k) !== s) el.setAttribute(k, s);
   }
-  if (v.t === "svg" || (typeof v.a.class === "string" && /-(ink|ruler)$/.test(v.a.class))) return;
+  // The ink and the ruler are written apart from the tree, except a text sequence's transcript (its `-text-ink`): that is the tree's own, and its lines'
+  // indents are styles, which a content policy refuses in markup written as HTML (the page's or a script's), so they are set here through the CSSOM.
+  if (v.t === "svg" || (typeof v.a.class === "string" && (/-ruler$/.test(v.a.class) || (/-ink$/.test(v.a.class) && !v.a.class.endsWith("-text-ink"))))) return;
   if (v.c.some((c) => typeof c !== "string" && "slot" in c)) return;
   const els = [...el.children];
   let at = 0;
