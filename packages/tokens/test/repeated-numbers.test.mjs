@@ -36,18 +36,26 @@ test("the duration export is every duration token with a name, in milliseconds",
 
 /**
  * A diagram's least width (DECISIONS 281 and 282, 1.11 and 1.19): its track minimums and gaps summed from the tokens, never under the drawn layout's floor
- * (size-breakpoint-container-lg). `reach` is how many sides an architecture's group reaches.
+ * (size-breakpoint-container-lg). `reach` is how many group levels an architecture's groups draw at its start and end columns (diagram-core's groupReach):
+ * groups nest two deep (DECISIONS 306, 1.3), so each of the two columns carries up to two levels, space-4 each, and reach runs from 0 to 4. `marks` is a
+ * schema that draws cardinality (1.1): its column gap is space-12 plus space-3 (the sheet's --_col-gap, and diagram-core's least width).
  */
-function leastWidth(type, n, reach = 0) {
+function leastWidth(type, n, reach = 0, marks = false) {
   const sum = type === "data-flow" ? px("size-diagram-lane") + n * (px("size-diagram-node") + px("space-12"))
-    : type === "schema" ? n * px("size-diagram-table") + (n - 1) * px("space-12")
+    : type === "schema" ? n * px("size-diagram-table") + (n - 1) * (px("space-12") + (marks ? px("space-3") : 0))
     : type === "sequence" ? n * px("size-diagram-node") + (n - 1) * px("space-5")
     : n * px("size-diagram-node") + (n - 1) * px("space-16") + reach * px("space-4");
   return Math.max(breakpoint.containerLg, sum);
 }
-const DIAGRAM_WIDTHS = ["architecture", "flowchart", "data-flow", "schema", "sequence"].flatMap((type) => [1, 2, 3, 4, 5, 6].flatMap((n) => (type === "architecture" ? [0, 1, 2] : [0]).map((r) => leastWidth(type, n, r))));
+const REACHES = [0, 1, 2, 3, 4];
+const DIAGRAM_WIDTHS = ["architecture", "flowchart", "data-flow", "schema", "sequence"].flatMap((type) => [1, 2, 3, 4, 5, 6].flatMap((n) => [
+  ...(type === "architecture" ? REACHES : [0]).map((r) => leastWidth(type, n, r)),
+  ...(type === "schema" ? [leastWidth(type, n, 0, true)] : []),
+]));
 // The widths a query may name: the breakpoint tokens, the two sums the components document (the command list's: its list column, a gap and the container
-// breakpoint; PaneLayout's, B4: the pane sits beside the page from size-sidebar-width + size-gutter + the large container breakpoint), and a diagram's least widths.
+// breakpoint; PaneLayout's, B4: the pane sits beside the page from size-sidebar-width + size-gutter + the large container breakpoint), and a diagram's least widths
+// (an architecture's at every reach from 0 to 4: 832 is 4 columns with two group levels at each side, 4 × 144 + 3 × 64 + 4 × 16; and a marked schema's: 792 is
+// 3 tables with the marks' gap, 3 × 224 + 2 × (48 + 12)).
 const WIDTHS = new Set([
   ...Object.values(breakpoint),
   px("size-list-width") + px("space-4") + breakpoint.container,
@@ -82,28 +90,34 @@ test("each of the diagrams' least-width rules is the sum of tokens for every fig
   const rules = [...css.matchAll(/@container \(width >= (\d+)px\) \{([^@]*?--_drawn: ; \})/g)].filter((m) => m[2].includes("basalt-diagram"));
   assert.ok(rules.length >= 15, `found ${rules.length} least-width rules`);
   const covered = new Set();
-  for (const [, width, body] of rules) {
+  for (const { 0: whole, 1: width, 2: body, index } of rules) {
     // Each figure the rule names: its selector list at its own commas, and every `:is()` in it written out, so one compound is one type and one count.
     for (const selector of topLevel(body.slice(0, body.indexOf("{"))).flatMap(expandIs)) {
       const types = [...selector.matchAll(/data-type="([a-z-]+)"/g)].map((m) => m[1]);
       const cols = [...selector.matchAll(/data-cols="(\d)"/g)].map((m) => Number(m[1]));
       const reach = selector.match(/data-reach="(\d)"/)?.[1];
-      for (const type of types) for (const n of cols) {
+      // A rule for a marked schema names [data-marks]; one for an unmarked schema, :not([data-marks]); a schema rule that names neither serves both.
+      const unmarked = /:not\(\[data-marks\]\)/.test(selector);
+      const marked = !unmarked && /\[data-marks\]/.test(selector);
+      for (const type of types) for (const n of cols) for (const marks of type !== "schema" ? [false] : marked ? [true] : unmarked ? [false] : [false, true]) {
         // An architecture rule with no reach serves every reach, so each must sum to the rule's width.
-        for (const r of reach !== undefined ? [Number(reach)] : type === "architecture" ? [0, 1, 2] : [0]) {
-          const expected = leastWidth(type, n, r);
-          assert.equal(Number(width), expected, `${type} of ${n} columns, reach ${r}, is drawn before script from ${width}px, but its least width is ${expected}`);
-          covered.add(`${type}:${n}:${r}`);
+        for (const r of reach !== undefined ? [Number(reach)] : type === "architecture" ? REACHES : [0]) {
+          const expected = leastWidth(type, n, r, marks);
+          assert.equal(Number(width), expected, `${marks ? "a marked " : ""}${type} of ${n} columns, reach ${r}, is drawn before script from ${width}px, but its least width is ${expected}`);
+          covered.add(`${type}:${n}:${r}${marks ? ":marks" : ""}`);
         }
       }
     }
-    // The lint exception above the rule names the sum.
-    const before = css.slice(0, css.indexOf(`@container (width >= ${width}px)`));
+    // The lint exception above the rule names the sum: the comment above this rule itself, since another component's query may share its width (the
+    // command list's 816px is its own sum).
+    assert.ok(whole.startsWith(`@container (width >= ${width}px)`));
+    const before = css.slice(0, index);
     assert.match(before.slice(before.lastIndexOf("/*")), new RegExp(`${width}px|size-breakpoint-container-lg \\(${width}px\\)`), `the exception above the ${width}px rule does not name its sum`);
   }
-  for (const type of ["architecture", "flowchart", "data-flow", "schema", "sequence"]) for (const n of [2, 3, 4, 5, 6]) for (const r of type === "architecture" ? [0, 1, 2] : [0]) {
+  for (const type of ["architecture", "flowchart", "data-flow", "schema", "sequence"]) for (const n of [2, 3, 4, 5, 6]) for (const r of type === "architecture" ? REACHES : [0]) {
     assert.ok(covered.has(`${type}:${n}:${r}`), `no least-width rule for a ${type} of ${n} columns${type === "architecture" ? ` reaching ${r} sides` : ""}`);
   }
+  for (const n of [2, 3, 4, 5, 6]) assert.ok(covered.has(`schema:${n}:0:marks`), `no least-width rule for a marked schema of ${n} columns`);
 });
 const queryNumbers = (css) => [...css.matchAll(/@(?:media|container)\b[^{]*\{/g)].flatMap((query) => [...query[0].matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => ({ query: query[0].trim(), number: Number(match[1]) })));
 
