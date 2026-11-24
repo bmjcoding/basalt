@@ -114,7 +114,7 @@ function Slate({ state }: { state: string }) {
   const arrived = kind === "arrived" ? "pr49-1" : kind === "release-arrived" ? "v0.2.0" : null;
   return (
     <SitePage>
-      <main style={{ boxSizing: "border-box", width: "100%", maxWidth: "var(--basalt-size-page-width)", margin: "0 auto", padding: "48px var(--basalt-gutter) calc(var(--basalt-section-gap) / 2)" }}>
+      <main style={{ boxSizing: "border-box", width: "100%", maxWidth: "var(--basalt-size-page-width)", margin: "0 auto", padding: "48px var(--basalt-gutter) calc(var(--basalt-section-gap) / 2)", "--basalt-edge-room": "var(--basalt-gutter)" } as React.CSSProperties}>
         <h1 style={{ margin: "0 0 12px", fontSize: 36, lineHeight: "40px", fontWeight: 600 }}>Changelog</h1>
         <p style={{ margin: "0 0 8px", maxWidth: "var(--basalt-size-prose-width)", fontSize: 18, lineHeight: "28px", color: "var(--basalt-text-secondary)" }}>Every version of <code className="basalt-inline-code">@example/slate</code> and <code className="basalt-inline-code">@example/slate-tokens</code>. The two packages share one version number.</p>
         <p style={{ margin: "0 0 40px", fontSize: 13, lineHeight: "18px", color: "var(--basalt-text-secondary)" }}>To see the version you have installed, run <code className="basalt-inline-code">npm ls @example/slate</code>.</p>

@@ -1954,7 +1954,7 @@
   /* A part with no padding of its own (a drawer, release notes, a composer) is not a head: its edge control hangs into the room of the box it sits in
      (DECISIONS 336, the open items' ruling). The main and the foot say theirs, their padding less the side insets, to their direct children only, so a
      control deeper in never hangs into room that is not its own. */
-  .basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer { --basalt-edge-room-start: calc(var(--_pad-start) - var(--_inset-start)); --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); --basalt-edge-room: initial; }
+  .basalt-app-main > :is(.basalt-drawer, .basalt-release-notes, .basalt-pane-layout), .basalt-app-foot > .basalt-composer { --basalt-edge-room-start: calc(var(--_pad-start) - var(--_inset-start)); --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); --basalt-edge-room: initial; }
   .basalt-card-content > .basalt-composer { --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
@@ -1992,11 +1992,15 @@
   .basalt-nav + .basalt-nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
   .basalt-pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
   .basalt-pane-page { min-width: 0; }
+  /* The page column says its room to release notes and a drawer directly inside it (the open items' ruling, the pixel review's finding 2): stacked, the
+     page's own, said by the page and passed on; beside the pane, the gap to it at the end. */
+  .basalt-pane-page > :is(.basalt-release-notes, .basalt-drawer) { --basalt-edge-room: inherit; --basalt-edge-room-start: inherit; --basalt-edge-room-end: inherit; }
   .basalt-pane { min-width: 0; }
   .basalt-pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
   @container (width >= 920px) {
     .basalt-pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
+    .basalt-pane-page > :is(.basalt-release-notes, .basalt-drawer) { --basalt-edge-room: inherit; --basalt-edge-room-start: inherit; --basalt-edge-room-end: var(--basalt-size-gutter); }
     .basalt-pane {
       position: sticky;
       /* The content's edge, not the box's, is space-6 under the bar and above the window's foot: the box reaches space-1-5 past it. */

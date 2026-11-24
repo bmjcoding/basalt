@@ -9,10 +9,13 @@
   .pane-layout { container-type: inline-size; min-width: 0; }
   .pane-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-8); }
   :is(.pane-page, .pane) { min-width: 0; }
+  /* The page column says its room to release notes directly inside it (the pixel review's finding 2): the page's gutter, and beside the pane the gap to it. */
+  .page .pane-page > .release-notes { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   .pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
   @container (width >= 920px) {
     .pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
+    .page .pane-page > .release-notes { --basalt-edge-room: initial; --basalt-edge-room-start: var(--basalt-gutter); --basalt-edge-room-end: var(--basalt-size-gutter); }
     .pane {
       position: sticky;
       top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-6) - var(--basalt-space-1-5));

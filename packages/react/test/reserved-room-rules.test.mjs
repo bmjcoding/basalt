@@ -369,11 +369,14 @@ describe("The open items' ruling (DECISIONS 336): parts with no padding of their
     assert.equal(decl(ruleFor(SKILL_ALL, ".release-head > .release-copy")[0].body, "margin-inline-end"), null);
   });
   test("the boxes say their room to their direct children only, and the composer says none", () => {
-    const shell = ruleFor(REACT, ".basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer")[0];
+    const shell = ruleFor(REACT, ".basalt-app-main > :is(.basalt-drawer, .basalt-release-notes, .basalt-pane-layout), .basalt-app-foot > .basalt-composer")[0];
     assert.equal(decl(shell.body, "--basalt-edge-room-start"), "calc(var(--_pad-start) - var(--_inset-start))");
     assert.equal(decl(shell.body, "--basalt-edge-room-end"), "calc(var(--_pad-end) - var(--_inset-end))");
     assert.equal(decl(ruleFor(REACT, ".basalt-card-content > .basalt-composer")[0].body, "--basalt-edge-room"), "var(--basalt-space-4)");
     assert.equal(decl(ruleFor(SKILL_ALL, ":is(.page, .page > .section) > .release-notes")[0].body, "--basalt-edge-room"), "var(--basalt-gutter)");
+    // PaneLayout's page column passes the page's room on, and beside the pane says the gap to it at the end (the pixel review's finding 2).
+    assert.ok(ruleFor(REACT, ".basalt-pane-page > :is(.basalt-release-notes, .basalt-drawer)").some((r) => decl(r.body, "--basalt-edge-room-end") === "var(--basalt-size-gutter)"));
+    assert.ok(ruleFor(SKILL_ALL, ".page .pane-page > .release-notes").some((r) => decl(r.body, "--basalt-edge-room-end") === "var(--basalt-size-gutter)"));
     assert.ok(!rules(REACT).some((r) => /^\.basalt-composer\b/.test(r.selector) && /--basalt-edge-room/.test(r.body)), "the composer says no room of its own");
     assert.match(read("packages/react/src/composer.tsx"), /takes `edge="start"`/, "actions' doc says the first ghost action is hung");
   });
