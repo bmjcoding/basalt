@@ -2006,7 +2006,8 @@ over its lifeline; a stacked chip draws the mark before the name.
 - Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
   branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
   runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
-- Export: a linked card's arrow is not drawn in a file.
+- Export: a linked card's arrow is not drawn in a file. A PNG is drawn through an image, so under a content policy `img-src` must allow
+  `blob:` or `data:`; where it allows neither, `diagramToPng` rejects with an error that says so and no file is made (the SVG needs neither).
 
 ### Diagram tokens
 

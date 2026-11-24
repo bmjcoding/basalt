@@ -249,18 +249,52 @@ export async function diagramToSvg(figure: HTMLElement, options: DiagramExportOp
   return new Blob([svg], { type: "image/svg+xml" });
 }
 
-/** The figure as a PNG file, at `scale` (2 by default), always drawn with the faces embedded. */
+/**
+ * The SVG as something a canvas draws. First `createImageBitmap` from the SVG as a Blob, which needs no URL and so no `img-src`, where the browser decodes
+ * SVG that way; then an image from a `blob:` URL, then from a `data:` URL. Under a content policy that allows neither in `img-src` there is no way left,
+ * and the error says so: never a broken or empty file.
+ */
+async function drawable(svg: string): Promise<{ source: CanvasImageSource; done: () => void }> {
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(blob);
+      return { source: bitmap, done: () => bitmap.close() };
+    } catch { /* this browser decodes no SVG Blob: an image next */ }
+  }
+  const urls: Array<() => string> = [() => URL.createObjectURL(blob), () => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`];
+  for (const make of urls) {
+    const url = make();
+    const done = () => { if (url.startsWith("blob:")) URL.revokeObjectURL(url); };
+    const img = new Image();
+    img.src = url;
+    try {
+      await img.decode();
+      return { source: img, done };
+    } catch { done(); }
+  }
+  throw new Error("Basalt diagramToPng: the PNG could not be drawn. A canvas draws the figure's SVG through an image, and this page refused it both as a blob: URL and as a data: URL: a content policy allows them with `img-src 'self' blob:` (or `data:`). diagramToSvg needs neither");
+}
+
+/**
+ * The figure as a PNG file, at `scale` (2 by default), always drawn with the faces embedded.
+ *
+ * A canvas draws SVG only through an image: under a `Content-Security-Policy`, `img-src` must allow `blob:` or `data:` (where the browser decodes an SVG
+ * Blob with `createImageBitmap`, neither is needed). Where the page allows neither, the promise rejects with an error that says so, and no file is made.
+ */
 export async function diagramToPng(figure: HTMLElement, options: DiagramExportOptions = {}): Promise<Blob> {
   const { svg, w, h } = await svgText(figure, options, true);
   const scale = options.scale ?? 2;
-  const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await img.decode();
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(scale, scale);
-  ctx.drawImage(img, 0, 0, w, h);
-  return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("the PNG could not be made"))), "image/png"));
+  const { source, done } = await drawable(svg);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(scale, scale);
+    ctx.drawImage(source, 0, 0, w, h);
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Basalt diagramToPng: the PNG could not be made"))), "image/png"));
+  } finally {
+    done();
+  }
 }

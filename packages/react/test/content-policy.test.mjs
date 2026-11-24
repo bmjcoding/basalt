@@ -218,3 +218,36 @@ describe("a diagram under style-src 'self'", () => {
     assert.deepEqual(strict.indents, open.indents);
   });
 });
+
+// The PNG under a content policy (DECISIONS 365, item 2): a canvas draws the SVG through an image, which `img-src 'self'` refuses as a data: URL and as a
+// blob: URL. Where the policy allows neither, diagramToPng rejects with an error that names the fix, and makes no file; with `blob:` allowed it draws.
+const EXPORT = `${DIAGRAMS}
+import { diagramToPng } from "./dist/diagram-export.js";
+window.png = () => diagramToPng(document.getElementById("arch")).then(
+  (blob) => createImageBitmap(blob).then((image) => ({ type: blob.type, width: image.width, height: image.height })),
+  (error) => ({ error: error.message }));`;
+
+describe("a diagram's PNG under img-src", () => {
+  for (const [name, images, drawn] of [["'self'", "'self'", false], ["'self' blob:", "'self' blob:", true], ["'self' data:", "'self' data:", true]]) {
+    test(`img-src ${name}: ${drawn ? "the PNG is drawn at 2x" : "it rejects with an error that names img-src, and makes no file"}`, async () => {
+      const { page, context, errors } = await policyPage(`default-src 'self'; script-src 'self'; style-src 'self'; img-src ${images}`, { fixture: EXPORT });
+      try {
+        await page.evaluate(() => window.showDiagrams());
+        await page.waitForSelector(`#arch[data-layout="drawn"] .${DP}-ink > .${DP}-label`);
+        await frames(page);
+        const got = await page.evaluate(() => window.png());
+        const width = await page.evaluate(() => document.getElementById("arch").getBoundingClientRect().width);
+        if (drawn) {
+          assert.equal(got.type, "image/png");
+          assert.ok(got.width >= 2 * width, `${got.width} is at 2x of ${width}`);
+        } else {
+          assert.match(got.error, /img-src 'self' blob:/);
+          assert.equal(got.width, undefined);
+        }
+        assert.deepEqual(errors, []);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
