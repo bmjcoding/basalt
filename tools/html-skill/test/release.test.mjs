@@ -157,7 +157,21 @@ describe("copied addresses and the version link", () => {
 });
 
 describe("the Sources panel: Safari's keyboard and touch", () => {
-  test("in WebKit at 390, with Tab skipping links: Enter focuses the panel, Tab reaches Copy link to this change, Escape returns to the source line", async () => {
+  test("in Chromium, where Tab takes links, Tab walks the panel's links and then its button, and past it the panel closes on the source line", async () => {
+    const { page, context } = await open(SLATE_BODY, { width: 390 });
+    await page.locator('[id="pr41-1"] .release-source').focus();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.activeElement?.classList.contains("release-sources"));
+    const walked = [];
+    for (let step = 0; step < 5; step++) {
+      await page.keyboard.press("Tab");
+      walked.push(await page.evaluate(() => (document.activeElement?.closest(".release-sources") ? document.activeElement.textContent.trim().replace(/Copied$/, "") : `outside: ${document.activeElement?.className}`)));
+    }
+    assert.deepEqual(walked, ["#41", "SL-112", "678c43d8", "Copy link to this change", "outside: release-source"]);
+    await context.close();
+  });
+
+  test("in WebKit at 390, with Tab skipping links: Enter focuses the panel, one Tab reaches Copy link to this change, Escape returns to the source line", async () => {
     const { webkit } = await import("playwright");
     const safari = await webkit.launch();
     try {
@@ -171,14 +185,23 @@ describe("the Sources panel: Safari's keyboard and touch", () => {
       await line.focus();
       await page.keyboard.press("Enter");
       await page.waitForFunction(() => document.activeElement?.classList.contains("release-sources"));
-      // Tab walks the panel's own controls, links included, and reaches its button; focus never leaves the panel for the page.
-      const walked = [];
-      for (let step = 0; step < 8 && walked.at(-1) !== "Copy link to this change"; step++) {
-        await page.keyboard.press("Tab");
-        walked.push(await page.evaluate(() => (document.activeElement?.closest(".release-sources") ? document.activeElement.textContent.trim().replace(/Copied$/, "") : `outside: ${document.activeElement?.tagName}`)));
-      }
-      assert.deepEqual(walked, ["#41", "SL-112", "678c43d8", "Copy link to this change"].slice(0, walked.length));
-      assert.equal(walked.at(-1), "Copy link to this change");
+      // Safari's own rule, as React's panel follows it (decision 2.9, recheck 5): Tab skips links, so the first Tab reaches the panel's button;
+      // Option-Tab reaches the links; past the button the panel closes and focus goes back to the source line.
+      const at = () => page.evaluate(() => (document.activeElement?.closest(".release-sources") ? document.activeElement.textContent.trim().replace(/Copied$/, "") : `outside: ${document.activeElement?.className}`));
+      await page.keyboard.press("Tab");
+      assert.equal(await at(), "Copy link to this change");
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("release-sources")), true, "back to the panel");
+      await page.keyboard.press("Alt+Tab");
+      assert.equal(await at(), "#41");
+      await page.keyboard.press("Tab");
+      assert.equal(await at(), "Copy link to this change");
+      await page.keyboard.press("Tab");
+      assert.equal(await at(), "outside: release-source");
+      assert.equal(await page.evaluate(() => Boolean(document.querySelector(".release-sources:popover-open"))), false, "the panel closed");
+      await line.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => document.activeElement?.classList.contains("release-sources"));
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => document.activeElement?.classList.contains("release-source"));
       assert.equal(await page.evaluate(() => document.activeElement?.closest(".release-entry")?.id), "pr41-1");
