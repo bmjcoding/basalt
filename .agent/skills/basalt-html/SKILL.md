@@ -9,10 +9,10 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 
 ## Use it
 
-1. Pick modules from the index below and print their usage in one call, always with core: `node .agent/skills/basalt-html/compose.mjs --usage core table status callout`. Each usage names the modules it needs and the markup that adds it. `--usage` alone prints the index.
-2. Write the **body** to a file: the HTML inside `<body>`, with the classes the usage names. It may carry `<title>` (else the first `<h1>`), your own `<style>`, and head tags: `<meta name="description">`, `og:`/`twitter:` meta, `<link rel="icon" href="data:…">` or `canonical` (no other meta or link); the script adds `Basalt.init()` unless your `<script>` calls it.
-3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It adds the doctype, meta and theme bootstrap, Geist inlined, the core, only the modules your markup uses, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (for a file only a tool reads), `--lang fr` sets the language, `--all` adds every module.
-4. Open the page in both themes at 1440 and 390 wide before you hand it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
+1. Pick modules below and print their usage in one call, always with core: `node .agent/skills/basalt-html/compose.mjs --usage core table status callout`. Each usage names the modules it needs and the markup that adds it. `--usage` alone prints the index.
+2. Write the **body** to a file: HTML inside `<body>`, using those classes. It may carry `<title>` (else first `<h1>`), `<style>`, and head tags: `<meta name="description">`, `og:`/`twitter:` meta, `<link rel="icon" href="data:…">` or `canonical` (others refused); the script adds `Basalt.init()` unless your `<script>` calls it.
+3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). Adds doctype, meta, theme bootstrap, Geist inlined, core, used modules and quoted icons; prints what it added, one warning line for each module added. `--no-fonts` skips Geist (for a file only a tool reads), `--lang fr` sets language, `--all` adds all modules.
+4. Open the page in both themes at 1440 and 390 wide before handing it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
 
 **Data you did not write** (a file, an API, a user) goes in as `textContent`; a link from it passes `Basalt.safeHref` (relative, http, https, mailto, tel); an option comes from a fixed list. Never into markup, a `<script>`, `style` or an `on…` attribute.
 
@@ -96,20 +96,21 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **release** `.release`: only from `tools/changelog/skill-body.mjs`; never `hidden` on a fold.
 - **tab-bar** `.tab-bar`: three to five links, glyph over label; with more, four and a More sheet.
 
-Your CSS goes in a body `<style>` (moved after Basalt's), with `--basalt-*` tokens only. Element selectors (`a`, `button`, `h1`) go in `@layer reset { }`, so they never beat a Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`, so any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
+Your CSS goes in a body `<style>` (moved after Basalt's), with `--basalt-*` tokens only. Element selectors (`a`, `button`, `h1`) go in `@layer reset { }`, under any Basalt class; class rules can sit unlayered. Basalt's classes are in `@layer basalt`: any unlayered rule of yours wins without `!important`. Never restyle a Basalt class from an element rule.
 
 ## Rules
 
-- **Monochrome.** Colour only in named roles: status (a dot or icon beside its word), a product's accent, syntax in code. Never decorative, never the only carrier of meaning.
+- **Monochrome.** Colour only in named roles: status (a dot or icon beside its word), a product's accent, syntax in code. Never decorative or the only carrier of meaning.
 - **Type:** Geist and Geist Mono, weights 400, 500 and 600 only. Mono for identifiers, code, numbers in logs.
-- **Levels, rim, nesting.** A panel (`.panel`, `.card`, `.callout`, `.code`, `.table-wrap`) is one level above what holds it, capped at 3, with a 1px rim and no shadow. Level is position, not importance: a hero is level 1. Group with space and dividers first; a panel is for a distinct object; at most one panel deep. Only things that leave the flow (menu, popover, dialog) take `.float` and a shadow.
+- **Levels, rim, nesting.** A panel (`.panel`, `.card`, `.callout`, `.code`, `.table-wrap`) is its holder's level plus one (cap 3), with a 1px rim and no shadow. Level is position, not importance: a hero is level 1. Group by space and dividers first; a panel is for a distinct object; at most one panel deep. Only what leaves the flow (menu, popover, dialog) takes `.float` and a shadow.
 - **Keys.** No single-character shortcuts on the page (WCAG 2.1.4): a shortcut needs ⌘, ⌃ or ⌥.
-- **Edges.** A ghost `.btn` that starts or ends a head takes `data-edge="start"` or `"end"`, never a hand margin.
+- **Edges.** A ghost `.btn` starting or ending a head takes `data-edge="start"` or `"end"`, never a hand margin.
 - **Selected** is a shape or weight, never a wash alone: a segment or tab label at 600 (400 at rest) on its pill or underline, a row's filled background, a checked box. No vertical bar; an outline never marks a state.
-- **Both themes, always.** WCAG 2.2 AA: 4.5:1 text, 3:1 boundaries, focus and icons (the tokens pass; add no colours).
+- **Both themes, always.** WCAG 2.2 AA: 4.5:1 text, 3:1 boundaries, focus, icons (the tokens pass; add no colours).
 - **Motion** from the tokens only; entries ease out, nothing overshoots; under reduced motion, opacity only. A press is a colour step; only `.btn` scales (`--usage core`).
-- **390px wide** must work: no sideways scroll, touch targets at least 44px (standalone links too: `--usage core`), inputs 16px on touch (the CSS does it). Never hide a column to make a table fit.
+- **390px wide** must work: no sideways scroll, touch targets 44px or more (standalone links too: `--usage core`), inputs 16px on touch (the CSS does it). Never hide a column to make a table fit.
 - **No** CDN, framework, web font request, glow, gradient, dot grid, page frame, bounce, press scale beyond `.btn`'s .98, red fill, or decorative colour. Danger is red text with a red hairline.
 - **Brand SVG file** (from `brand/`): paste it with `data-brand` on its `<svg>`; compose hides it and drops its title; its link needs `aria-label`.
 - **A dot between words** is `.dot-sep`, never an `aria-hidden` dot with a hidden comma; a value and its unit need a space (`--usage core`).
-- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, Sun, Moon, Info, Warning, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretUpDown, Trash, Download, ArrowClockwise, CheckCircle, XCircle, MinusCircle, Prohibit, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. Check, close, chevrons, copy, plus, minus, search: core glyphs (`data-glyph`), not icons. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.
+- **Diagram files** (`.drawio`, `.vsdx`, `.lucid`): never by hand; run diagram JSON through `basalt-diagram-export` (here `node packages/react/bin/basalt-diagram-export.mjs`).
+- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, Sun, Moon, Info, Warning, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretUpDown, Trash, Download, ArrowClockwise, CheckCircle, XCircle, MinusCircle, Prohibit, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. Check, close, chevrons, copy, plus, minus, search are core glyphs (`data-glyph`), not icons. A script naming one writes it quoted (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.

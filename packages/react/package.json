@@ -33,6 +33,10 @@
       "types": "./dist/diagram-layout.d.ts",
       "default": "./dist/diagram-layout.js"
     },
+    "./diagram-interop": {
+      "types": "./dist/diagram-interop.d.ts",
+      "default": "./dist/diagram-interop.js"
+    },
     "./marks/*": {
       "types": "./dist/marks/*.d.ts",
       "default": "./dist/marks/*.js"
@@ -43,8 +47,12 @@
     "./components.css": "./dist/components.css",
     "./fonts.css": "./dist/fonts.css"
   },
+  "bin": {
+    "basalt-diagram-export": "./bin/basalt-diagram-export.mjs"
+  },
   "files": [
     "dist",
+    "bin",
     "THIRD-PARTY-MARKS.md",
     "THIRD-PARTY-NOTICES.md"
   ],
@@ -55,8 +63,14 @@
     "test": "node ../../scripts/test-react.mjs"
   },
   "peerDependencies": {
+    "playwright": ">=1.40.0 <2",
     "react": ">=19",
     "react-dom": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

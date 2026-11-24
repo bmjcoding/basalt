@@ -78,12 +78,28 @@ async function pool(items, width, work) {
   return out;
 }
 
+/** Subpath entries measured separately from the root index (dynamic imports stay on demand). */
+export async function measureSubpaths() {
+  const entries = [["diagram-interop", "./dist/diagram-interop.js"]];
+  const out = {};
+  for (const [name, entry] of entries) {
+    const result = await esbuild.build({
+      stdin: { contents: `import * as S from "${entry}"; console.log(S);`, resolveDir: pkg, loader: "js" },
+      bundle: true, minify: true, format: "esm", write: false, external, plugins: [onDemand], logLevel: "silent",
+    });
+    const bytes = result.outputFiles[0].contents;
+    out[name] = { bytes: bytes.length, gzip: gzip(bytes) };
+  }
+  return out;
+}
+
 /** The whole table, measured now. */
 export async function measureAll({ width = 4 } = {}) {
   const names = await runtimeExports();
   const sizes = await pool(names, width, measureExport);
   return {
     exports: Object.fromEntries(names.map((name, i) => [name, sizes[i].bytes])),
+    subpaths: await measureSubpaths(),
     package: await measurePackage(),
     styles: measureStyles(),
   };
@@ -96,6 +112,11 @@ export function diff(before, after) {
   const lines = [];
   const row = (label, a, b) => { if (a !== b) lines.push(`  ${label.padEnd(34)} ${a === undefined ? "new" : a.toLocaleString("en")} -> ${b === undefined ? "gone" : b.toLocaleString("en")} bytes${a && b ? ` (${b > a ? "+" : ""}${(((b - a) / a) * 100).toFixed(1)}%)` : ""}`); };
   for (const name of new Set([...Object.keys(before.exports ?? {}), ...Object.keys(after.exports)])) row(name, before.exports?.[name], after.exports[name]);
+  for (const name of new Set([...Object.keys(before.subpaths ?? {}), ...Object.keys(after.subpaths ?? {})])) {
+    for (const key of ["bytes", "gzip"]) {
+      row(`subpath ${name}, ${key === "gzip" ? "gzipped" : "minified"}`, before.subpaths?.[name]?.[key], after.subpaths?.[name]?.[key]);
+    }
+  }
   for (const key of ["bytes", "gzip"]) {
     row(`whole package, up front, ${key === "gzip" ? "gzipped" : "minified"}`, before.package?.[key], after.package[key]);
     row(`styles.css, ${key === "gzip" ? "gzipped" : "minified as shipped"}`, before.styles?.[key], after.styles[key]);

@@ -1,7 +1,7 @@
 // Build first. Test the packed artifacts in a fresh consumer outside the monorepo, so missing
 // exports, declarations, assets and accidental reliance on workspace resolution are caught.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,7 +21,7 @@ try {
     archives.push(path.join(out, packed.filename));
     packedPackages.push({ packed, manifest: JSON.parse(fs.readFileSync(path.join(repo, workspace, "package.json"), "utf8")) });
     const files = new Set(packed.files.map((file) => file.path));
-    for (const required of workspace.endsWith("react") ? ["dist/index.js", "dist/index.d.ts", "dist/testing/headroom.js", "dist/testing/headroom.d.ts", "dist/tooling/phosphor.js", "dist/tooling/phosphor.d.ts", "dist/tooling/imports.js", "dist/tooling/imports.d.ts", "dist/head/theme.js", "dist/head/loops.js", "dist/styles.css", "dist/fonts.css", "dist/fonts/OFL.txt", "dist/fonts/Geist-Variable.woff2", "dist/fonts/GeistMono-Variable.woff2", "dist/marks/aws-ecs-service.js", "dist/marks/aws-ecs-service.d.ts", "THIRD-PARTY-MARKS.md"] : ["dist/css/tokens.css", "dist/css/accents.css", "dist/css/shadcn.css", "dist/js/tokens.js", "dist/js/tokens.d.ts", "dist/js/breakpoints.js", "dist/js/durations.js", "dist/js/durations.d.ts", "dist/json/tokens.json"]) assert.ok(files.has(required), `${packed.name} is missing ${required}`);
+    for (const required of workspace.endsWith("react") ? ["dist/index.js", "dist/index.d.ts", "dist/testing/headroom.js", "dist/testing/headroom.d.ts", "dist/tooling/phosphor.js", "dist/tooling/phosphor.d.ts", "dist/tooling/imports.js", "dist/tooling/imports.d.ts", "dist/diagram-interop.js", "dist/diagram-interop.d.ts", "bin/basalt-diagram-export.mjs", "dist/head/theme.js", "dist/head/loops.js", "dist/styles.css", "dist/fonts.css", "dist/fonts/OFL.txt", "dist/fonts/Geist-Variable.woff2", "dist/fonts/GeistMono-Variable.woff2", "dist/marks/aws-ecs-service.js", "dist/marks/aws-ecs-service.d.ts", "THIRD-PARTY-MARKS.md"] : ["dist/css/tokens.css", "dist/css/accents.css", "dist/css/shadcn.css", "dist/js/tokens.js", "dist/js/tokens.d.ts", "dist/js/breakpoints.js", "dist/js/durations.js", "dist/js/durations.d.ts", "dist/json/tokens.json"]) assert.ok(files.has(required), `${packed.name} is missing ${required}`);
   }
   // Next.js is in the lockfile (geist's peer), so the server-component check below installs the version the repository already resolves, offline.
   const nextVersion = JSON.parse(fs.readFileSync(path.join(repo, "package-lock.json"), "utf8")).packages["node_modules/next"].version;
@@ -34,12 +34,22 @@ try {
   packages[""] = { name: manifest.name, version: manifest.version, dependencies: manifest.dependencies };
   for (let index = 0; index < packedPackages.length; index++) {
     const { packed, manifest: pkg } = packedPackages[index];
-    packages[`node_modules/${pkg.name}`] = { version: pkg.version, resolved: `file:${archives[index]}`, integrity: packed.integrity, dependencies: pkg.dependencies, peerDependencies: pkg.peerDependencies };
+    // `bin` and `peerDependenciesMeta` are copied as npm writes them, so `npm ci` links node_modules/.bin and keeps optional peers optional.
+    packages[`node_modules/${pkg.name}`] = {
+      version: pkg.version,
+      resolved: `file:${archives[index]}`,
+      integrity: packed.integrity,
+      dependencies: pkg.dependencies,
+      peerDependencies: pkg.peerDependencies,
+      ...(pkg.peerDependenciesMeta ? { peerDependenciesMeta: pkg.peerDependenciesMeta } : {}),
+      ...(pkg.bin ? { bin: pkg.bin } : {}),
+    };
   }
   fs.writeFileSync(path.join(consumer, "package-lock.json"), JSON.stringify({ name: manifest.name, version: manifest.version, lockfileVersion: 3, requires: true, packages }));
   run("npm", ["ci", "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], consumer);
   fs.writeFileSync(path.join(consumer, "index.tsx"), `import { Form, Field, Input, Combobox, Slider, Button, Sheet, Text, MorphIcon, CloseGlyph, Stage, PairedArt, FramedArt, type TableDensity } from '@srasyndicate/basalt';
 import { checkHeadroom, type HeadroomResult } from '@srasyndicate/basalt/testing';
+import { diagramToDrawio, diagramToVsdx, diagramToLucid, diagramToLucidJson, exportMeasuredDiagram, type InteropOptions } from '@srasyndicate/basalt/diagram-interop';
 import { BASALT_PHOSPHOR_WEIGHTS, phosphorWeightsEsbuild, phosphorWeightsRollup, type PhosphorWeight } from '@srasyndicate/basalt/phosphor';
 import { PlayIcon } from '@phosphor-icons/react';
 import { tokens } from '@srasyndicate/basalt-tokens';
@@ -59,6 +69,9 @@ const check: Promise<HeadroomResult> = checkHeadroom({ newContext: async () => {
 // The opt-in Phosphor weights plugin is build tooling with its own types; the weight list is required.
 const weights: readonly PhosphorWeight[] = [...BASALT_PHOSPHOR_WEIGHTS, 'regular'];
 const plugins = [phosphorWeightsEsbuild({ weights }), phosphorWeightsRollup({ weights })];
+const interopOpts: InteropOptions = { theme: 'adaptive', marks: 'omit' };
+const sampleArch = { type: 'architecture' as const, title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] };
+const interopChecks: [string, Uint8Array, Uint8Array, number, typeof exportMeasuredDiagram] = [diagramToDrawio(sampleArch, interopOpts), diagramToVsdx(sampleArch), diagramToLucid(sampleArch), diagramToLucidJson(sampleArch).version, exportMeasuredDiagram];
 // @ts-expect-error the weights are required
 phosphorWeightsEsbuild({});
 // @ts-expect-error a weight is one of Phosphor's six
@@ -89,11 +102,71 @@ const app = <Form<{name: string}> onFormSubmit={value => value.name.toUpperCase(
   fs.writeFileSync(path.join(consumer, "smoke.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs'; import { createElement } from 'react'; import { renderToStaticMarkup } from 'react-dom/server'; import { Button, CodeBlock, Pagination, Avatar, MorphIcon, CloseGlyph, preloadCodeLanguages } from '@srasyndicate/basalt'; import { tokens, accents } from '@srasyndicate/basalt-tokens';
 assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex, '#77a2fc'); assert.equal(accents.cobalt.light.oklch, 'oklch(0.47 0.17 264)'); assert.match(renderToStaticMarkup(createElement(Button, null, 'Deploy')), /Deploy/); assert.doesNotMatch(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); await preloadCodeLanguages(['ts']); assert.match(renderToStaticMarkup(createElement(CodeBlock, {code:'const answer = 42;',language:'ts'})), /syntax-keyword/); for (const f of fs.readdirSync(new URL('.', import.meta.resolve('@srasyndicate/basalt')))) if (f.endsWith('.js')) assert.doesNotMatch(fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'), /^import[^;]*from\s*"shiki/m, f + ' imports Shiki statically'); const pages = renderToStaticMarkup(createElement(Pagination, {page:500000,pageCount:1000000})); assert.ok(pages.length < 10000); assert.match(renderToStaticMarkup(createElement(Avatar,{name:'Bailey Jones'})), /BJ/); assert.match(renderToStaticMarkup(createElement(MorphIcon,{glyph:CloseGlyph})), /data-icon="close"/); for (const name of ['styles.css','components.css','fonts.css']) assert.ok(fs.statSync(import.meta.resolve('@srasyndicate/basalt/'+name).replace('file://','')).size > 0); const read = (f) => fs.readFileSync(new URL(f, import.meta.resolve('@srasyndicate/basalt')), 'utf8'); assert.doesNotMatch(read('index.js'), /^"use client"/, 'the entry is a barrel: a Server Component imports plain values from it'); assert.match(read('button.js'), /^"use client"/); assert.match(read('menu.js'), /^"use client"/); assert.doesNotMatch(read('time-format.js'), /^"use client"/); const testing = await import('@srasyndicate/basalt/testing'); assert.equal(typeof testing.checkHeadroom, 'function'); assert.equal(typeof testing.measureHeadroom, 'function'); assert.equal('checkHeadroom' in await import('@srasyndicate/basalt'), false, 'the headroom helper is not in the root export');
 const phosphor = await import('@srasyndicate/basalt/phosphor'); assert.deepEqual(phosphor.BASALT_PHOSPHOR_WEIGHTS, ['bold', 'fill']); assert.throws(() => phosphor.phosphorWeightsEsbuild({}), /weights/); assert.equal(phosphor.phosphorWeightsRollup({ weights: ['bold'] }).transform('x', '/a/b.js'), null);
+const interop = await import('@srasyndicate/basalt/diagram-interop'); assert.equal('diagramToDrawio' in await import('@srasyndicate/basalt'), false, 'diagram-interop stays outside the root export'); assert.match(interop.diagramToDrawio({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }), /<mxfile compressed="false">/); assert.ok(interop.diagramToVsdx({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }).length > 0);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
+  // Remove Playwright and elkjs from the consumer so we test the packed CLI's no-Playwright fallback,
+  // strict --browser error, and bundled dist/diagram-elk.js auto-layout without launching Chromium.
+  fs.rmSync(path.join(consumer, "node_modules", "playwright"), { recursive: true, force: true });
+  fs.rmSync(path.join(consumer, "node_modules", "playwright-core"), { recursive: true, force: true });
+  fs.rmSync(path.join(consumer, "node_modules", "elkjs"), { recursive: true, force: true });
+
+  // Run the installed CLI through its node_modules/.bin symlink (guards B1: symlinked bin must execute and write files).
+  const binPath = path.join(consumer, "node_modules", ".bin", "basalt-diagram-export");
+  assert.ok(fs.existsSync(binPath), "packed install is missing node_modules/.bin/basalt-diagram-export");
+  const sampleSpec = {
+    type: "architecture",
+    title: "Packed CLI check",
+    summary: "Verifies the installed bin.",
+    nodes: [
+      { id: "a", name: "ECS service", col: 1, row: 1, mark: "aws-ecs-service" },
+      { id: "b", name: "Kubernetes", col: 2, row: 1, mark: "kubernetes" },
+    ],
+    edges: [{ from: "a", to: "b", kind: "main", label: "HTTP" }],
+  };
+  const cliIn = path.join(consumer, "sample.json");
+  const cliOut = path.join(consumer, "cli-out");
+  fs.writeFileSync(cliIn, JSON.stringify(sampleSpec));
+  // Default mode without Playwright installed falls back to headless layout and warns on stderr that geometry is approximate.
+  const fallbackRun = spawnSync(
+    process.execPath,
+    [binPath, cliIn, "--to", "drawio,vsdx,lucid", "--theme", "dark", "--marks", "embed", "--out", cliOut],
+    { cwd: consumer, encoding: "utf8" },
+  );
+  assert.equal(fallbackRun.status, 0, `packed default fallback failed: ${fallbackRun.stderr}`);
+  assert.match(fallbackRun.stderr, /approximate/i, "default CLI fallback without Playwright must warn that geometry is approximate");
+  assert.doesNotMatch(fallbackRun.stderr, /warning:\s*basalt-diagram-export:/i, "fallback warning must not duplicate basalt-diagram-export prefix");
+  for (const ext of [".drawio", ".vsdx", ".lucid"]) {
+    const f = path.join(cliOut, `sample${ext}`);
+    assert.ok(fs.existsSync(f) && fs.statSync(f).size > 0, `installed bin did not write ${f}`);
+  }
+  const drawioOut = fs.readFileSync(path.join(cliOut, "sample.drawio"), "utf8");
+  assert.match(drawioOut, /background="#000000"/, "dark drawio background");
+  assert.match(drawioOut, /Basalt \d+\.\d+\.\d+ headless \(approximate\)/, "drawio records approximate engine metadata with Basalt version");
+  assert.match(fs.readFileSync(path.join(cliOut, "sample.vsdx")).toString("latin1"), /PageBackground/, "dark vsdx PageBackground");
+  // Without Playwright installed in the consumer, strict --browser fails cleanly with an actionable install message.
+  let browserErr = "";
+  try {
+    run(process.execPath, [binPath, cliIn, "--browser", "--to", "drawio", "--out", cliOut], consumer);
+  } catch (err) {
+    browserErr = `${err.stdout || ""}${err.stderr || ""}`;
+  }
+  assert.match(browserErr, /playwright/i, "packed --browser without Playwright must name playwright in its error");
+  // Automatic layout via the packed CLI with no elkjs installed (uses packaged dist/diagram-elk.js).
+  const autoSpec = {
+    type: "architecture",
+    layout: "auto",
+    title: "Packed auto CLI check",
+    summary: "Verifies automatic layout through the installed bin.",
+    nodes: [{ id: "a", name: "Alpha" }, { id: "b", name: "Beta" }, { id: "c", name: "Gamma" }],
+    edges: [{ from: "a", to: "b", kind: "main" }, { from: "b", to: "c" }],
+  };
+  const autoIn = path.join(consumer, "auto.json");
+  fs.writeFileSync(autoIn, JSON.stringify(autoSpec));
+  run(process.execPath, [binPath, autoIn, "--headless", "--to", "drawio", "--out", cliOut], consumer);
+  assert.ok(fs.existsSync(path.join(cliOut, "auto.drawio")) && fs.statSync(path.join(cliOut, "auto.drawio")).size > 0, "packed CLI exported auto layout without elkjs");
   // elkjs is a build input of the package, not a dependency (the decider's ruling 2 on the batch B re-check): the package ships its one copy,
   // dist/diagram-elk.js, so a consumer with no elkjs installed places an automatic figure.
-  fs.rmSync(path.join(consumer, "node_modules", "elkjs"), { recursive: true, force: true });
   fs.writeFileSync(path.join(consumer, "place.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs';
 assert.ok(!fs.existsSync(new URL('./node_modules/elkjs', import.meta.url)), 'no elkjs in the consumer');
 const { placeDiagram } = await import('@srasyndicate/basalt/diagram-layout');
