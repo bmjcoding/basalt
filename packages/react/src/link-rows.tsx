@@ -14,7 +14,7 @@ const safeRel = (target: string | undefined, rel: string | undefined) =>
   opensNewTab(target) ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
 
 /** Set by `DirectoryList` around the rows that open in place, so a row knows to draw its own clip, and whether the rest is open. */
-const RestContext = React.createContext<{ open: boolean } | null>(null);
+const RestContext = /* @__PURE__ */ React.createContext<{ open: boolean } | null>(null);
 
 export interface DirectoryRowProps extends Omit<React.ComponentProps<"a">, "children" | "title"> {
   /** The name, in the first column, in 600. The arrow follows it. */

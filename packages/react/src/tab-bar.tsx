@@ -10,6 +10,7 @@ import type { IconComponent } from "./types";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { useKeysMark } from "./use-media";
 import { join } from "./utils";
+import { VersionContext, VersionPlaceContext } from "./version-place";
 
 // The phone tab bar (decisions 96): the destinations of an app under 720, always glyph over label. It is navigation, so a
 // `nav` of links with `aria-current="page"`, never a tablist. Solid `surface-page` with a hairline on top: the header is the
@@ -96,9 +97,14 @@ export interface TabBarMoreProps {
   children: React.ReactNode;
 }
 
-/** The last cell when there are more than five destinations: a button that opens the rest in a bottom `Sheet`. */
+/**
+ * The last cell when there are more than five destinations: a button that opens the rest in a bottom `Sheet`. Inside `AppShell` with a `version`,
+ * the sheet's last row is that version, under a divider (DECISIONS 320, 1.2).
+ */
 export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, children }: TabBarMoreProps) {
   const [open, setOpen] = React.useState(false);
+  const version = React.useContext(VersionContext);
+  const closeOnLink = (event: React.MouseEvent) => { if ((event.target as Element).closest("a")) setOpen(false); };
   const name = current ? `${label}, ${current}, current page` : label;
   return (
     <li className="basalt-tabbar-entry">
@@ -112,7 +118,8 @@ export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, 
             <SheetTitle>{label}</SheetTitle>
             <SheetClose render={<IconButton icon={CloseGlyph} label={`Close ${label.toLowerCase()}`} />} />
           </div>
-          <Nav aria-label={label} onClick={(event) => { if ((event.target as Element).closest("a")) setOpen(false); }}>{children}</Nav>
+          <Nav aria-label={label} onClick={closeOnLink}>{children}</Nav>
+          {version ? <div className="basalt-tabbar-version" onClick={closeOnLink}><VersionPlaceContext.Provider value="more">{version}</VersionPlaceContext.Provider></div> : null}
         </SheetContent>
       </Sheet>
     </li>

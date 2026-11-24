@@ -42,7 +42,9 @@
     var t = document.createElement('template');
     t.innerHTML = !selected && el.closest(PAIRED) ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
     var node = t.content.firstChild;
-    el.replaceWith(node);
+    // A toggle's seat (.btn-check) is drawn into, so it keeps its place and the check it crossfades with.
+    if (el.matches('.btn-check')) el.replaceChildren(node);
+    else el.replaceWith(node);
     return node;
   }
 

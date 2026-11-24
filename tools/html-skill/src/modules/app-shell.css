@@ -115,4 +115,14 @@
   @media (forced-colors: active) {
     .app-sidebar { border-inline-end-color: CanvasText; }
   }
+
+  /* ---- The version at the sidebar's foot (DECISIONS 320): under the account items, space-2 below them, on the nav glyphs' start edge. In the rail the
+     number alone, centred, breaking before a pre-release's hyphen; the label and the date are in its name and its tooltip (the script). ---- */
+  .app-version { margin: var(--basalt-space-2) calc(var(--basalt-space-1-5) + var(--basalt-space-3)) 0; }
+  @media (width >= %bp-md%) and (width < %bp-lg%) {
+    .app-version { margin-inline: var(--basalt-space-1-5); }
+    .app-version .version-link { display: flex; justify-content: center; text-align: center; }
+    /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
+    .app-version :is(.version-link-words > :first-child, .version-link-date) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  }
 }

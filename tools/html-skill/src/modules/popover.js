@@ -76,7 +76,10 @@
     if (anchor) {
       anchor.setAttribute('aria-expanded', 'true');
       if (!anchor.hasAttribute('aria-haspopup')) anchor.setAttribute('aria-haspopup', pop.getAttribute('role') === 'menu' ? 'menu' : 'dialog');
-      var again = function () { _.place(pop, anchor, { side: pop.dataset.side, align: pop.dataset.align }); };
+      // Start and end are the opener's own: in a right-to-left page "end" is the left edge.
+      var rtl = getComputedStyle(anchor).direction === 'rtl';
+      var align = rtl && pop.dataset.align === 'end' ? 'start' : rtl && (!pop.dataset.align || pop.dataset.align === 'start') ? 'end' : pop.dataset.align;
+      var again = function () { _.place(pop, anchor, { side: pop.dataset.side, align: align }); };
       again();
       pop.__again = again;
       window.addEventListener('resize', again);
@@ -89,7 +92,35 @@
         if (to && !pop.contains(to) && to !== pop.__anchor && !(to.closest && to.closest('[popover]:popover-open')) && pop.matches(':popover-open')) pop.hidePopover();
       });
     }
-    if (!pop.matches('[role="menu"], .combobox-popup')) {
+    // A popup marked data-focus-self takes focus itself, as React's Sources panel does. Tab then walks the popup's own controls by the browser's own
+    // rule, which React's portal gets from the page: Safari's Tab skips links by default and Option-Tab reaches them, so on Apple's WebKit the first
+    // Tab from the panel reaches its button, and elsewhere its links come first. The walk is ours because WebKit's own Tab, from a popup in the top
+    // layer, leaves it for the page's start. Back from the first control is the panel; past the last the popup closes and focus goes to the opener.
+    if (pop.hasAttribute('data-focus-self')) {
+      pop.setAttribute('tabindex', '-1');
+      pop.focus({ preventScroll: true });
+      if (!pop.__bhTab) {
+        pop.__bhTab = true;
+        var appleTab = /^Apple/.test(navigator.vendor || '');
+        pop.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Tab' || ev.defaultPrevented) return;
+          var links = !appleTab || ev.altKey;
+          var list = _.tabbables(pop).filter(function (el) { return links || !el.matches('a[href], area[href]'); });
+          var cur = document.activeElement;
+          var at = cur === pop ? -1 : list.indexOf(cur);
+          if (at < 0 && cur !== pop) {
+            // A control the walk skips (a link a click focused): go on from its place in the popup.
+            var after = list.length;
+            for (var i = 0; i < list.length; i++) if (cur.compareDocumentPosition(list[i]) & 4) { after = i; break; }
+            at = ev.shiftKey ? after : after - 1;
+          }
+          var next = at + (ev.shiftKey ? -1 : 1);
+          ev.preventDefault();
+          if (next >= list.length) { pop.hidePopover(); if (pop.__anchor) pop.__anchor.focus({ preventScroll: true }); return; }
+          (next < 0 ? pop : list[next]).focus({ preventScroll: true });
+        });
+      }
+    } else if (!pop.matches('[role="menu"], .combobox-popup')) {
       var first = _.tabbables(pop)[0];
       if (!first) pop.setAttribute('tabindex', '-1');
       (first || pop).focus({ preventScroll: true });

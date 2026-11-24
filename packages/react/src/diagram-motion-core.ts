@@ -7,7 +7,7 @@
 // This module plays that entrance when the figure comes into view, carries it across a re-measure on its one clock, settles it at once when the reader
 // acts or a mode turns on, and then runs the loops the data names while they may run. Every value is a token, read from the page.
 
-import { entranceBlocked, pathD, settleEntrance } from "./diagram-core";
+import { entranceBlocked, pathD, settleEntrance, visitKey } from "./diagram-core";
 import type { Geo, GLine, Model, Pt, Tokens } from "./diagram-core";
 
 declare const process: { env: { NODE_ENV?: string } };
@@ -75,7 +75,7 @@ function join(fig: Figure): Page {
   }
   page.figs.add(fig);
   if (fig.drawing) page.io.observe(fig.drawing);
-  page.mo.observe(fig.host.fig, { attributes: true, attributeFilter: ["data-tracing"] });
+  page.mo.observe(fig.host.fig, { attributes: true, attributeFilter: ["data-tracing", "data-viewing"] });
   return page;
 }
 
@@ -246,8 +246,20 @@ class Figure implements MotionController {
     };
   }
   private entrance() { return this.host.fig.getAttribute("data-entrance"); }
-  private hasLines() { return Boolean(this.host.geo()?.lines.length); }
-  private traced() { return this.host.fig.hasAttribute("data-tracing"); }
+  /** The entrance ran on this visit (so a settle by the reader writes the first visit's mark). */
+  private played = false;
+  private byMode() { const m = this.modes(); return m.held || m.print || m.reduce || m.forced; }
+  /** Writes the first visit's mark, where the figure asks for it (1.5). Storage that throws writes nothing: the entrance plays again next time. */
+  private markVisit() {
+    const fig = this.host.fig;
+    if (!fig.hasAttribute("data-first-visit") || !fig.id) return;
+    try { localStorage.setItem(visitKey(fig), "1"); } catch { /* it plays again */ }
+  }
+  /** A text sequence's art, where it is shown (DECISIONS 306, 1.2): its build by ink and its run are this module's, as the drawn sequence's are. */
+  private textCode(): HTMLElement | null { return this.host.model().text ? this.host.fig.querySelector<HTMLElement>(`.${this.host.P}-text[data-art] .${this.host.P}-text-ink`) : null; }
+  private hasLines() { return Boolean(this.host.geo()?.lines.length) || Boolean(this.textCode()); }
+  // A figure whose viewer is open holds its loops as a traced one does (DECISIONS 310, 9.7), and they start again when it closes.
+  private traced() { return this.host.fig.hasAttribute("data-tracing") || this.host.fig.hasAttribute("data-viewing"); }
 
   seen(entry: IntersectionObserverEntry) {
     this.inView = entry.isIntersecting;
@@ -298,7 +310,9 @@ class Figure implements MotionController {
   // ---- The entrance (1.3 to 1.5) ----
 
   private onSettle = () => {
-    // settleEntrance has already set data-entrance="done": every line whole, every label at rest, and then the loops may start.
+    // settleEntrance has already set data-entrance="done": every line whole, every label at rest, and then the loops may start. An entrance that played
+    // and gave way to the reader marks the first visit (1.5); one settled by a mode (the hold, print, reduced motion) does not.
+    if (this.played && !this.byMode()) this.markVisit();
     this.clearIntro();
     this.sync();
   };
@@ -327,7 +341,8 @@ class Figure implements MotionController {
       return { lead, dur, tail: lead + Math.max(dur, 0.85 * dur + t.slow, sequence ? t.slower : 0) };
     });
     let f = 1;
-    for (let k = 1; k < own.length; k++) f = Math.min(f, Math.max(0, (t.limit - own[k]!.tail) / (k * step)));
+    // A step of 0 (the tokens unread: no stylesheet) staggers nothing, and 0 / 0 would hand animate() a NaN delay, which throws.
+    if (step > 0) for (let k = 1; k < own.length; k++) f = Math.min(f, Math.max(0, (t.limit - own[k]!.tail) / (k * step)));
     if (factor !== undefined) f = Math.min(f, factor);
     const plans = new Map<number, Plan>();
     lines.forEach((l, k) => { const at = k * step * f; plans.set(l.i, { start: at + own[k]!.lead, dur: own[k]!.dur, end: at + own[k]!.tail }); });
@@ -337,9 +352,11 @@ class Figure implements MotionController {
   private lineEl(l: GLine) { return this.host.fig.querySelector<SVGGElement>(`.${this.host.P}-edge[data-edge="${l.i}"]`); }
 
   private play() {
+    if (this.textCode()) { this.playText(); return; }
     const geo = this.host.geo();
     if (!geo?.lines.length) return;
     this.host.fig.setAttribute("data-entrance", "running");
+    this.played = true;
     this.t0 = now();
     const { plans, factor } = this.plan(this.ordered(geo));
     this.factor = factor;
@@ -399,6 +416,15 @@ class Figure implements MotionController {
         const copy = svgEl("circle", { cx: dot.getAttribute("cx") ?? 0, cy: dot.getAttribute("cy") ?? 0, r: Number(dot.getAttribute("r") ?? 3) + 1, fill: "#fff" }, mask);
         clocked(copy.animate([{ opacity: 0 }, { opacity: 1 }], { duration: t.fast, delay: plan.start, easing: t.out, fill: "both" }));
       }
+      // Cardinality marks (DECISIONS 306, 1.1): the foreign-key end's fade in as the dot does, the referenced end's as a head does.
+      g.querySelectorAll(`.${P}-crow, .${P}-ring`).forEach((mark) => {
+        const ring = mark.tagName.toLowerCase() === "circle";
+        const copy = ring
+          ? svgEl("circle", { cx: mark.getAttribute("cx") ?? 0, cy: mark.getAttribute("cy") ?? 0, r: Number(mark.getAttribute("r") ?? 3) + 1, fill: "#fff" }, mask)
+          : svgEl("path", { d: mark.getAttribute("d") ?? "", fill: "none", stroke: "#fff", "stroke-width": 3 }, mask);
+        const from = mark.getAttribute("data-end") === "from";
+        clocked(copy.animate([{ opacity: 0 }, { opacity: 1 }], from ? { duration: t.fast, delay: plan.start, easing: t.out, fill: "both" } : { duration: t.slow, delay: plan.start + 0.85 * plan.dur, easing: t.out, fill: "both" }));
+      });
       g.setAttribute("mask", `url(#${id})`);
     }
     // A sequence's labels are drawn in secondary ink before their turn and lift to primary over duration-slower (1.4). Built once, on the clock.
@@ -420,9 +446,42 @@ class Figure implements MotionController {
 
   private finishIntro() {
     if (this.entrance() !== "running") return;
+    this.markVisit();
     this.host.fig.setAttribute("data-entrance", "done");
     this.clearIntro();
     this.sync();
+  }
+
+  /**
+   * A text sequence builds by ink (1.2), when it comes into view as a drawn figure's entrance does, on the same clock and with the same settling, first visit
+   * and limit: before its turn a message's label is secondary and its arrow tertiary, and at its turn both lift to their resting ink over duration-slower,
+   * messages duration-diagram-step apart inside duration-diagram-limit. No line is hidden and there is no caret.
+   */
+  private playText() {
+    const code = this.textCode();
+    if (!code) return;
+    const fig = this.host.fig, t = this.t;
+    fig.setAttribute("data-entrance", "running");
+    this.played = true;
+    this.t0 = now();
+    const lines = [...code.querySelectorAll<HTMLElement>("[data-n]")];
+    const count = Math.max(0, ...lines.map((l) => Number(l.dataset.n)));
+    const gap = count > 1 ? Math.min(t.step, (t.limit - t.slower) / (count - 1)) : 0;
+    const cs = getComputedStyle(fig);
+    const secondary = cs.getPropertyValue("--basalt-text-secondary").trim(), tertiary = cs.getPropertyValue("--basalt-text-tertiary").trim();
+    for (const line of lines) {
+      const n = Number(line.dataset.n);
+      line.querySelectorAll<HTMLElement>('[data-ink="label"], [data-ink="main"], [data-ink="plain"]').forEach((el) => {
+        const before = el.dataset.ink === "label" ? secondary : tertiary;
+        const a = el.animate([{ color: before }, { color: before, offset: 0.001 }, { color: getComputedStyle(el).color }], { duration: t.slower, delay: (n - 1) * gap, easing: "ease-out", fill: "backwards" });
+        a.startTime = this.t0;
+        this.intro.add(a);
+      });
+    }
+    this.introEnd?.cancel();
+    this.introEnd = fig.animate([], { duration: Math.max(1, (count - 1) * gap + t.slower) });
+    this.introEnd.startTime = this.t0;
+    this.introEnd.finished.then(() => this.finishIntro(), () => {});
   }
 
   private clearIntro() {
@@ -441,7 +500,9 @@ class Figure implements MotionController {
     const state = this.entrance();
     if (state === "running") {
       const geo = this.host.geo();
-      if (!geo?.lines.length) {
+      if (this.textCode()) {
+        // A text sequence's build carries on: its art is the same rows, written again.
+      } else if (!geo?.lines.length) {
         // Narrowed to a layout with no lines: at rest, with no control (1.5).
         this.clearIntro();
         this.host.fig.setAttribute("data-entrance", "done");
@@ -572,6 +633,16 @@ class Figure implements MotionController {
     const l = geo.lines.find((x) => x.i === i);
     if (!l) return;
     const tk = this.host.tokens();
+    // A dashed line's own dashes march toward the head (DECISIONS 306, 1.5): one period (its 6 on 4 off, 10px) at speed-diagram-flow on ease-linear.
+    // Its open head does not move, and still it is the line the key draws. The 48px rule holds as for cuts.
+    if (l.kind === "dashed") {
+      if (this.visible(l, trimmed(l, tk?.head ?? 8)) < 48) return;
+      const line = this.host.fig.querySelector<SVGGeometryElement>(`.${this.host.P}-edge[data-edge="${i}"] .${this.host.P}-line`);
+      if (!line) return;
+      const period = (tk?.dash ?? 6) + (tk?.dashGap ?? 4);
+      this.track(line.animate([{ strokeDashoffset: "0px" }, { strokeDashoffset: `${-period}px` }], { duration: (period / this.t.flow) * 1000, iterations: Infinity, easing: "linear" }), this.loops);
+      return;
+    }
     let made = this.flowEls.get(i);
     // An overlay lives in the ink: one the host wrote over is made again.
     if (made && !made.isConnected) { this.flowEls.delete(i); made = undefined; }
@@ -768,9 +839,24 @@ class Figure implements MotionController {
     this.publish();
   };
 
+  /**
+   * A run's unreached messages are quiet (DECISIONS 306, 1.2): every message after the current one has its label in secondary ink and its line and head in
+   * diagram-edge-dim; its number and note are unchanged. -1 restores them all at once.
+   */
+  private quiet(current: number, lines: GLine[]) {
+    const P = this.host.P, fig = this.host.fig;
+    const msgs = fig.querySelectorAll(`.${P}-msg`);
+    lines.forEach((l, k) => {
+      const ahead = current >= 0 && k > current;
+      msgs[k]?.toggleAttribute("data-ahead", ahead);
+      fig.querySelector(`.${P}-edge[data-edge="${l.i}"]`)?.toggleAttribute("data-ahead", ahead);
+    });
+  }
+
   private stopRun() {
     this.runGen++;
     this.runAt = -1;
+    this.host.fig.querySelectorAll("[data-ahead]").forEach((el) => el.removeAttribute("data-ahead"));
     for (const a of this.runAnims) a.cancel();
     this.runAnims.clear();
     if (this.dot && this.dotOwner === "run") { this.dot.style.display = "none"; this.dotOwner = null; }
@@ -781,6 +867,7 @@ class Figure implements MotionController {
 
   /** The run: a packet through every message in order, each arrow a leg; at each arrival the number lifts and the receiver's head steps (1.10). */
   private playRun(from: number) {
+    if (this.textCode()) { this.playTextRun(from); return; }
     const geo = this.host.geo();
     if (!geo?.lines.length) return;
     for (const a of this.runAnims) a.cancel();
@@ -794,6 +881,7 @@ class Figure implements MotionController {
       for (let k = from; k < lines.length; k++) {
         if (!live()) return;
         this.runAt = k;
+        this.quiet(k, lines);
         const l = lines[k]!;
         const stops = [msgs[k] ?? null, this.node(l.to)];
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -807,7 +895,39 @@ class Figure implements MotionController {
           for (const s of stops) this.depart(s);
         } else await this.leg(l, this.runAnims, live, stops);
       }
-      if (live()) { this.runAt = -1; this.publish(); }
+      if (live()) { this.runAt = -1; this.quiet(-1, lines); this.publish(); }
+    };
+    go().catch((e) => { if (!aborted(e)) throw e; });
+  }
+
+  /**
+   * A text sequence's run (Neon's B6 of the code review): the colour-only run reduced motion already has, with the quiet. Each message in turn is current:
+   * its number lifts to primary, and every message after it is quiet (its label secondary, its arrow tertiary) until the run reaches it.
+   */
+  private playTextRun(from: number) {
+    const code = this.textCode();
+    if (!code) return;
+    for (const a of this.runAnims) a.cancel();
+    this.runAnims.clear();
+    const gen = ++this.runGen;
+    const live = () => gen === this.runGen;
+    const lines = [...code.querySelectorAll<HTMLElement>("[data-n]")];
+    const count = Math.max(0, ...lines.map((l) => Number(l.dataset.n)));
+    const quiet = (current: number) => { for (const l of lines) l.toggleAttribute("data-ahead", current >= 0 && Number(l.dataset.n) > current); };
+    this.runAt = from;
+    const go = async () => {
+      for (let k = from; k < count; k++) {
+        if (!live()) return;
+        this.runAt = k;
+        quiet(k + 1);
+        const these = lines.filter((l) => Number(l.dataset.n) === k + 1);
+        await this.wait(this.t.legMin + this.t.base, this.runAnims);
+        if (!live()) return;
+        for (const l of these) l.setAttribute("data-arrival", "");
+        await this.wait(this.t.rest, this.runAnims);
+        for (const l of these) l.removeAttribute("data-arrival");
+      }
+      if (live()) { this.runAt = -1; quiet(-1); this.publish(); }
     };
     go().catch((e) => { if (!aborted(e)) throw e; });
   }
@@ -815,7 +935,7 @@ class Figure implements MotionController {
 
 /**
  * What a development build throws on (DECISIONS 292, 4.1): an id in the pulse or the packet's path that no node has, two neighbouring ids no line joins in
- * that direction, both a pulse and a packet, flow on a dashed line, and flow on a line of the mover's route. And what it warns on: a flow line with no
+ * that direction, both a pulse and a packet, and flow on a line of the mover's route (flow on a dashed line marches its own dashes, DECISIONS 306, 1.5). And what it warns on: a flow line with no
  * label. Here, and not in the still engine, because only an animated figure reads them.
  */
 export function motionErrors(m: Model): { errors: string[]; warnings: string[] } {
@@ -838,7 +958,6 @@ export function motionErrors(m: Model): { errors: string[]; warnings: string[] }
   }
   for (const e of m.edges) {
     if (!e.flow) continue;
-    if (e.kind === "dashed") errors.push(`the line from ${e.from} to ${e.to} is dashed and flows: flow is on a main or plain line only`);
     if (onPath.has(e.i)) errors.push(`the line from ${e.from} to ${e.to} flows and is on the ${what}'s route: flow never runs on a line the mover travels`);
     if (!e.label) warnings.push(`the line from ${e.from} to ${e.to} flows but has no label: motion never carries a fact alone, so its label says it is a stream`);
   }

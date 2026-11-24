@@ -56,7 +56,9 @@
       select.addEventListener('change', function () {
         if (keyed) { agree(); return; }
         name();
-        var href = select.value;
+        // Checked before anything hears of it: a refused link dispatches no event and goes nowhere, and the select shows the page you are on.
+        var href = _.safeHref(select.value);
+        if (href === null) { console.warn('Basalt: a link tab must be relative, http, https, mailto or tel'); agree(); return; }
         var event = new CustomEvent('linktabsnavigate', { bubbles: true, cancelable: true, detail: { href: href } });
         if (nav.dispatchEvent(event)) window.location.assign(href);
         // The page stays (a router took over): the select shows the page you are on now, which the router may already have moved.

@@ -1,0 +1,23 @@
+{
+  "version": "0.2.1",
+  "date": "2026-11-16",
+  "previous": "0.2.0",
+  "repository": "https://github.com/example/slate",
+  "entries": [
+    {
+      "id": "pr52-1",
+      "type": "fixed",
+      "bump": "patch",
+      "area": "Composer",
+      "text": "Fixed `Composer` losing its draft when the window lost focus",
+      "pr": {
+        "number": 52,
+        "href": "https://github.com/example/slate/pull/52"
+      },
+      "commit": {
+        "sha": "eb8028ba88c28077a2106030c2692135bb638d6f",
+        "href": "https://github.com/example/slate/commit/eb8028ba88c28077a2106030c2692135bb638d6f"
+      }
+    }
+  ]
+}

@@ -131,6 +131,10 @@ import { ROUND_62 } from "./round62";
 import { ROUND_63 } from "./round63";
 import { ROUND_64 } from "./round64";
 import { ROUND_65 } from "./round65";
+import { ROUND_66 } from "./round66";
+import { ROUND_67 } from "./round67";
+import { ROUND_68 } from "./round68";
+import { ROUND_70 } from "./round70";
 
 export interface Step {
   id: string;
@@ -149,6 +153,8 @@ export interface Step {
   scales?: number[];
   /** The viewport height. Default 400, or 640 for an open state. */
   height?: number;
+  /** The viewport's height for one state at one width, keyed "state@width" (a dialog shot at a phone's own height): it wins over `height`. */
+  heights?: Record<string, number>;
   /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
   bleed?: boolean;
   /** Shoot widths under 720 as a phone: touch and mobile emulation (a coarse pointer, the 44px targets, focus by touch). */
@@ -701,3 +707,7 @@ ROUNDS.push(ROUND_62);
 ROUNDS.push(ROUND_63);
 ROUNDS.push(ROUND_64);
 ROUNDS.push(ROUND_65);
+ROUNDS.push(ROUND_66);
+ROUNDS.push(ROUND_67);
+ROUNDS.push(ROUND_68);
+ROUNDS.push(ROUND_70);

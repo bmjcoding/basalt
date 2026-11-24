@@ -335,7 +335,7 @@ function FillsDemo({ state }: { state: string }) {
       {caption(state === "legacy" ? "The page's own stylesheet with the function name light-dark() made unknown. The four fills still paint." : "As shipped: the lit row's plate, the segment pill, the selected choice card and the pressed toggle.")}
       <SegmentedControl aria-label="Range" defaultValue="week"><Segment value="day">Day</Segment><Segment value="week">Week</Segment></SegmentedControl>
       <ChoiceCardGroup><ChoiceCard title="Pro" description="For teams that deploy daily." defaultChecked /></ChoiceCardGroup>
-      <div style={row}><Button variant="secondary" pressed>Pause animations</Button><Button variant="ghost" pressed>Pinned</Button></div>
+      <div style={row}><Button variant="secondary" aria-pressed>Pause animations</Button><Button variant="ghost" aria-pressed>Pinned</Button></div>
       <CommandList label="Commands" groups={COMMANDS} />
     </div>
   );

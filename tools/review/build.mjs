@@ -12,6 +12,8 @@
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+
+import { withGlyphMasks } from "../../packages/react/glyph-mask.mjs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -32,6 +34,9 @@ const out = path.resolve(outAt >= 0 ? args[outAt + 1] : path.join(repo, ".review
 // --still: shoot with every transition and animation at zero length and every loop held, so two builds of the same code give the same pixels
 // (tools/review/pixel-proof.mjs compares them). It changes only the tooling's own clock: a shot of a mid-motion state is the end of that motion.
 const still = args.includes("--still");
+// --only a,b: shoot those steps alone (by id), into --out, keeping each step's number, so a re-shot picture has its round's name.
+const onlyAt = args.indexOf("--only");
+const only = onlyAt >= 0 ? new Set(args[onlyAt + 1].split(",")) : null;
 // What a still takes out of a shot: the CSS transitions and animations (zero length); the JS glides, which read the duration tokens off the root (a number that rolls, a
 // line that travels to its new value: 1ms, not zero, because a glide divides by it); a text caret, which blinks; and then, just before the shot, whatever finite animation
 // is still running is finished, so a transition that began after the page loaded (a focus ring, a plate) is at its end and not near it.
@@ -85,7 +90,7 @@ const untilQuiet = async (page, label) => {
   if (!done) { gateWarnings.push(label); console.warn(`${label}: the page still had timers pending after 10s; shot anyway`); }
   if (audit && before !== (await text())) console.log(`GATE CHANGED ${label}`);
 };
-const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1));
+const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1) && (onlyAt < 0 || i !== onlyAt + 1));
 fs.mkdirSync(out, { recursive: true });
 
 // ---- the page, once per round
@@ -108,7 +113,7 @@ const bundle = await esbuild.build({
   // Round 34 shows the HTML skill's pinned table beside React's: the skill page is composed here and drawn in a frame.
   define: { "process.env.NODE_ENV": '"production"', __SKILL_PAGES__: JSON.stringify(skillPages), __ROUND34_SKILL_SEGMENT__: JSON.stringify(compose('<title>Skill segment</title><div style="margin: 16px; display: flex; flex-direction: column; gap: 12px"><div class="segment" role="group" aria-label="Range"><button type="button" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button><button type="button" aria-pressed="false">Month</button></div><div data-tabs><div class="tabs" role="tablist" aria-label="Views"><button class="tab" role="tab" id="t0" aria-controls="p0" aria-selected="false">Inbox</button><button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true">Drafts</button></div><div class="tabpanel" id="p0" role="tabpanel" aria-labelledby="t0" hidden></div><div class="tabpanel" id="p1" role="tabpanel" aria-labelledby="t1"></div></div></div>', { fonts: true }).html), __ROUND34_SKILL_TABLE__: JSON.stringify(compose(`<title>Skill table</title><div style="width: 358px; margin: 16px"><div class="panel table-wrap" id="frame"><table data-fixed data-pinned="1" style="min-width: 560px"><colgroup><col style="width: 130px"><col style="width: 120px"><col style="width: 120px"><col></colgroup><thead><tr><th scope="col">Run</th><th scope="col">Status</th><th scope="col">Region</th><th scope="col">Duration</th></tr></thead><tbody><tr><th scope="row">run-0142</th><td>Ready</td><td>Frankfurt</td><td>4m 12s</td></tr><tr id="hovered-row" data-wt-force="hover"><th scope="row">run-0141</th><td>Building</td><td>Ashburn</td><td>2m 50s</td></tr><tr aria-selected="true"><th scope="row">run-0140</th><td>Error</td><td>Sydney</td><td>11m 03s</td></tr></tbody></table></div></div>`, { fonts: true }).html) },
   nodePaths: [path.join(repo, "node_modules")],
-  loader: { ".png": "dataurl" },
+  loader: { ".png": "dataurl", ".jpg": "dataurl" },
   logLevel: "warning",
 });
 const js = inlineScript(bundle.outputFiles[0].text);
@@ -134,7 +139,8 @@ const css = [
   // comes after `basalt` on purpose: it is where a round shows an option the owner has not decided ("Option, not
   // shipped"), scoped to a wrapper that says so.
   "@layer review, basalt, review-options;",
-  fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
+  // The source stylesheet, with its core-glyph masks written in, as the package's build writes them.
+  withGlyphMasks(fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8")),
   // The accent classes are generated with the tokens; Badge's accent tone reads them.
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
   `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,
@@ -298,6 +304,7 @@ for (const id of rounds) {
   // Every step and state at the desktop width and at a phone's 390px, in both themes.
   let n = 1;
   for (const step of meta) {
+    if (only && !only.has(step.id)) { n++; continue; }
     for (const stateFull of ["default", ...step.states]) {
       // "name@1024" is a state shot at that one width. A step may also set `widths`, `scales` (1 for 1x, 2 for 2x) and `height`.
       const state = stateFull.split("@")[0];
@@ -311,7 +318,7 @@ for (const id of rounds) {
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : mode.endsWith("more-contrast") ? { contrast: "more" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || Boolean(step.touch && width < 720), isMobile: (id === "48" && state === "touch") || Boolean(step.touch && width < 720), ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.heights?.[`${state}@${width}`] ?? step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || Boolean(step.touch && width < 720), isMobile: (id === "48" && state === "touch") || Boolean(step.touch && width < 720), ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
           if (id === "25") {

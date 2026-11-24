@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -12,8 +12,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   var P = 'diagram';
   var serial = 0;
 
-  function options(base, spec) {
-    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden' };
+  function options(base, spec, viewer) {
+    return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden', viewer: viewer ? viewer.keys : undefined };
   }
   function slots(model, spec, base, open) {
     var kbd = function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; };
@@ -26,16 +26,23 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   }
 
   /** The figure's markup before script runs: its attributes and its inside, as compose.mjs writes it (and as this script writes it for a figure that has none). */
-  function markup(spec, base) {
-    var model = buildModel(spec);
-    var tree = figureTree(model, {}, options(base, spec));
+  function markup(spec, base, viewer) {
+    // An automatic figure's words are written on the placement compose.mjs made, in the type's own direction, so before script its cards are in their
+    // cells and not piled into one (Neon's B8 of the code review).
+    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var list = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
+    var first = spec.direction || (spec.type === 'flowchart' ? 'down' : 'right');
+    var placed = null;
+    for (var i = 0; i < list.length; i++) if (list[i].direction === first) placed = list[i];
+    var model = buildModel(spec, { placement: placed || list[0] });
+    var tree = figureTree(model, {}, options(base, spec, viewer));
     var html = toHtml(tree, slots(model, spec, base, false));
     var open = html.indexOf('>');
-    return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.warnings };
+    return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.errors.map(function (e) { return 'error: ' + e; }).concat(model.warnings) };
   }
 
   // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
-  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-layout', 'data-measured', 'data-bare'];
+  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-marks', 'data-layout', 'data-measured', 'data-bare'];
   var OWN_STYLE = ['--_cols', '--_gpad', '--_track'];
 
   /**
@@ -43,17 +50,25 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
    * markup, or `Basalt.diagram(figure, spec)` drawing new data into one that has some) the markup is written from the spec first, so the
    * words, the list and the sentences are the new data's.
    */
-  function draw(figure, spec, attach) {
+  function draw(figure, spec, attach, viewer) {
     if (figure.__diagram) figure.__diagram.stop();
     var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
-    var model = buildModel(spec);
+    // Right to left (DECISIONS 306, 1.7): the figure follows its computed direction, and the model is mirrored.
+    var rtl = getComputedStyle(figure).direction === 'rtl';
+    // Automatic layout (DECISIONS 306, 1.8): a page places at build time (compose.mjs writes `placement` for both directions); a page never holds elkjs.
+    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var placements = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
+    if (auto && !placements.length) console.warn('Basalt diagram: "layout": "auto" needs a placement, which compose.mjs writes at build time; drawn from script, place it with placeDiagram (@srasyndicate/basalt/diagram-layout) and pass "placement". The figure is stacked');
+    var order = spec.direction ? [spec.direction] : spec.type === 'flowchart' ? ['down', 'right'] : ['right', 'down'];
+    var placeOf = function (d) { for (var i = 0; i < placements.length; i++) if (placements[i].direction === d) return placements[i]; return undefined; };
+    var model = buildModel(spec, { rtl: rtl, placement: auto ? placeOf(order[0]) : undefined });
     if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
       // Keep the figure's base when it has ours, so its ids stay; otherwise take the next free one.
       if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
         while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
         base = 'dg' + serial;
       }
-      var made = markup(spec, base);
+      var made = markup(spec, base, viewer);
       var holder = document.createElement('div');
       holder.innerHTML = made.open + '</figure>';
       var fresh = holder.firstChild;
@@ -69,22 +84,56 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       figure.insertAdjacentHTML('beforeend', made.inner);
     }
     model.warnings.forEach(function (w) { console.warn('Basalt diagram: ' + w); });
-    var opts = options(base, spec);
+    // 5.1's first list is an error (the decider's ruling 1 on the re-check): console.error, and the figure is drawn as it would be anyway.
+    model.errors.forEach(function (e) { console.error('Basalt diagram: ' + e); });
+    if (model.motion.animated && model.motion.firstVisit && !figure.id) console.error('Basalt diagram: "entrance": "first-visit" needs an id on the figure: without one the entrance plays on every visit');
+    var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
-    var focusTrace = null, hoverTrace = null;
+    var focusTrace = null, hoverTrace = null, touchTrace = null;
     var warned = Object.create(null);
-    var warn = function (m) { if (!warned[m]) { warned[m] = 1; console.warn('Basalt diagram: ' + m); } };
+    var warn = function (m, level) { if (!warned[m]) { warned[m] = 1; (level === 'error' ? console.error : console.warn)('Basalt diagram: ' + m); } };
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
     var ink = figure.querySelector('.diagram-ink');
     var toggle = figure.querySelector('.diagram-toggle');
     // Motion (DECISIONS 292) is the diagram-motion module's: compose.mjs adds it to a page whose diagram says "motion": "animated". Without it the
     // figure is as still. `drawn` is the ink last written, so a measure that draws the same lines writes nothing.
-    var animated = model.motion.animated && typeof _.diagramMotion === 'function';
+    var animated = !viewer && model.motion.animated && typeof _.diagramMotion === 'function';
     var motion = null, drawn = null;
     var settle = function () { if (animated) settleEntrance(figure); };
 
-    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || hoverTrace); }
+    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || touchTrace || hoverTrace); syncClear(); }
+    // A trace on touch (DECISIONS 306, 1.5): "Clear highlight", last in the foot, is mounted whenever the figure is on touch and drawn with lines, and
+    // aria-disabled until a trace is up. "On touch" is the media's, or a figure that has taken a touch tap.
+    var clearBtn = null, touched = !viewer && matchMedia('(hover: none), (pointer: coarse)').matches;
+    function syncClear() {
+      var want = touched && !viewer && ink && ink.innerHTML !== '';
+      figure.toggleAttribute('data-touch', Boolean(touched && !viewer));
+      if (want && !clearBtn) {
+        var foot = figure.querySelector(':scope > .diagram-foot');
+        if (!foot) return;
+        clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn diagram-clear';
+        clearBtn.setAttribute('data-variant', 'secondary');
+        clearBtn.setAttribute('data-size', 'sm');
+        clearBtn.innerHTML = '<span>Clear highlight</span>';
+        clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
+        foot.appendChild(clearBtn);
+      } else if (!want && clearBtn) { clearBtn.remove(); clearBtn = null; }
+      // "Clear highlight" is last in the foot, after the motion module's buttons, which may be added after it (Neon's P7); never moved while it has focus.
+      if (clearBtn && clearBtn !== clearBtn.parentNode.lastElementChild && document.activeElement !== clearBtn) clearBtn.parentNode.appendChild(clearBtn);
+      if (clearBtn) { if (touchTrace) clearBtn.removeAttribute('aria-disabled'); else clearBtn.setAttribute('aria-disabled', 'true'); }
+    }
+    function onTap(event) {
+      if (event.defaultPrevented) return;
+      var next = tapTrace(figure, P, event, touchTrace);
+      if (next === undefined) return;
+      settle();
+      touched = true;
+      touchTrace = next;
+      retrace();
+    }
     // The toggle's words and state follow the list's (a stack drawn with no lines opens it).
     function syncToggle() {
       if (!toggle) return;
@@ -92,17 +141,63 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       toggle.firstElementChild.textContent = state.open ? 'Hide the list' : 'View as list';
     }
     function layout() {
-      measured = measureFigure(figure, model, P, base, state, apply, warn);
+      // An automatic figure: the first direction, in order, whose drawn layout fits at this width; none fits, the first, stacked.
+      if (auto && placements.length > 1 && !viewer) {
+        var chosen = null, why = [], fitsByWidth = false;
+        for (var k = 0; k < order.length && !chosen; k++) {
+          var place = placeOf(order[k]);
+          if (!place) continue;
+          var trial = buildModel(spec, { rtl: rtl, placement: place });
+          var said = [];
+          var t = measureFigure(figure, trial, P, base, {}, function (d) { syncAttributes(figure, figureTree(trial, d, opts)); }, function (w) { said.push(w); });
+          if (t.dyn.layout === 'drawn') { chosen = trial; break; }
+          var reasons = said.filter(function (w) { return w.indexOf('the drawn layout does not fit') === 0; }).map(function (w) { return w.replace(/^the drawn layout does not fit at \d+px: /, ''); });
+          if (reasons.length) fitsByWidth = true;
+          why.push('laid ' + order[k] + ' ' + (reasons.length ? reasons.join('; ') : 'it needs ' + Math.ceil(t.least || 0) + 'px'));
+        }
+        // When no direction draws and one had the width, one warning for the figure and its reasons (DECISIONS 322, rule 5), as React's.
+        if (!chosen && fitsByWidth) {
+          var key = why.join('; ').replace(/\d+px/g, '');
+          if (figure.__autoWarned !== key) { figure.__autoWarned = key; console.warn('Basalt diagram: layout="auto" draws in neither direction at ' + Math.round(figure.clientWidth) + 'px, so the figure is stacked: ' + why.join('; ') + '. Name a side on a line named here (fromSide, toSide), shorten a label named here, or write the figure authored: placeDiagram returns every cell to start from'); }
+        }
+        model = chosen || buildModel(spec, { rtl: rtl, placement: placeOf(order[0]) });
+      }
+      // In the viewer, the direction with the larger Fit in the stage; a tie keeps the type's own (DECISIONS 310, 9.3).
+      if (auto && placements.length > 1 && viewer && !spec.direction && viewer.room) {
+        var room = viewer.room(), best = -1, pickM = null;
+        for (var j = 0; j < order.length; j++) {
+          var pl = placeOf(order[j]);
+          if (!pl) continue;
+          var tm = buildModel(spec, { rtl: rtl, placement: pl });
+          var tr = viewer.measure(figure, tm, P, base, {}, function (d) { syncAttributes(figure, figureTree(tm, d, opts)); });
+          if (tr.dyn.layout !== 'drawn') continue;
+          // Fit as the viewer takes it (whole per cents, 200% at most), so a tie at 200% keeps the type's own direction.
+          var fit = Math.min(2, Math.floor(Math.min(room.w / figure.offsetWidth, room.h / figure.offsetHeight) * 100 + 1e-6) / 100);
+          if (fit > best + 1e-6) { best = fit; pickM = tm; }
+        }
+        if (pickM) model = pickM;
+      }
+      // The viewer's figure (DECISIONS 310, the diagram-zoom module) is laid out at the stage's width and measured only at 100%.
+      measured = (viewer ? viewer.measure : measureFigure)(figure, model, P, base, state, apply, warn);
       state = measured.dyn;
       apply(state);
       syncToggle();
+      // The key hint follows the layout: four arrows where the drawn figure has rows and columns (DECISIONS 306, 1.5).
+      var hintEl = figure.querySelector(':scope > .diagram-hint');
+      if (hintEl) { var hintHtml = hintEntries(model, state.layout === 'drawn').map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
       // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
-      if (!hasStops(model, state)) hoverTrace = null;
+      if (!hasStops(model, state)) hoverTrace = touchTrace = null;
       var fresh = ink && measured.ink !== drawn;
       if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
       retrace();
       // In the frame an animated figure's lines are first drawn it is pending; after that the motion module follows a drawing that changed.
-      if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length)); if (fresh && motion) motion.redrawn(); }
+      // The text variant (DECISIONS 306, 1.2): the art where its widest line fits the block (the diagram-text module's), the transcript otherwise; in the
+      // viewer, the art at its own width (9.3). Written before the entrance reads it (its art is its lines) and before the viewer reads the figure's size.
+      var hadArt = model.text ? figure.querySelector('.diagram-text[data-art]') : null;
+      if (model.text && typeof _.diagramText === 'function') _.diagramText(figure, model, spec, viewer);
+      var art = model.text ? figure.querySelector('.diagram-text[data-art]') : null;
+      if (animated && measured.tokens) { entranceDrawn(figure, Boolean(measured.geo && measured.geo.lines.length) || Boolean(art)); if ((fresh || art !== hadArt) && motion) motion.redrawn(); }
+      if (viewer && viewer.onMeasured && measured.tokens) viewer.onMeasured(measured, figure);
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.
@@ -113,9 +208,10 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
       var node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
       settle();
-      if (event.key === 'Escape') { if (focusTrace || hoverTrace) { event.preventDefault(); focusTrace = hoverTrace = null; retrace(); } return; }
+      // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
+      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
-      var to = keyTarget(model, node.getAttribute('data-node'), event.key);
+      var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
       event.preventDefault();
       setStop(to);
@@ -158,6 +254,7 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
     figure.addEventListener('focusout', onFocusOut);
     figure.addEventListener('pointerover', onOver);
     figure.addEventListener('pointerleave', onLeave);
+    figure.addEventListener('click', onTap);
     if (toggle) toggle.addEventListener('click', onToggle);
     layout();
     var width = figure.clientWidth, frame = 0, live = true;
@@ -174,13 +271,21 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
     var marks = model.nodes.some(function (n) { return n.mark; });
     if (marks) forced.addEventListener('change', layout);
     if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
+    // "Expand" and the viewer (DECISIONS 310) are the diagram-zoom module's: compose.mjs adds it to a page unless every figure on it says "zoom": false.
+    var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated }) : null;
+    // "Download SVG" and "Download PNG" (DECISIONS 306, 1.7) are the diagram-export module's, for a figure that says "export": true.
+    var exportFoot = figure.querySelector(':scope > .diagram-foot');
+    var exports = !viewer && spec.export === true && exportFoot && typeof _.diagramExport === 'function' ? _.diagramExport(exportFoot, figure) : [];
     figure.__diagram = {
       stop: function () {
+        if (zoom) zoom.destroy();
+        exports.forEach(function (b) { b.remove(); });
         live = false; observer.disconnect(); cancelAnimationFrame(frame);
         if (marks) forced.removeEventListener('change', layout);
         if (motion) motion.destroy();
         figure.removeEventListener('keydown', onKey); figure.removeEventListener('focusin', onFocusIn); figure.removeEventListener('focusout', onFocusOut);
-        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave);
+        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave); figure.removeEventListener('click', onTap);
+        if (clearBtn) clearBtn.remove();
         if (toggle) toggle.removeEventListener('click', onToggle);
       },
       layout: layout,
@@ -207,6 +312,8 @@ import { applyTrace, buildModel, entranceDrawn, escapeHtml, figureTree, hasStops
   }
 
   _.diagramMarkup = markup;
+  // What the viewer (the diagram-zoom module) draws with: this module's engine, so that module holds no second copy of it.
+  _.diagramKit = { draw: draw, buildModel: buildModel, figureKey: figureKey, figureList: figureList, hintEntries: hintEntries, toHtml: toHtml, escapeHtml: escapeHtml, settleEntrance: settleEntrance, measureFigure: measureFigure };
   B.diagram = function (figure, spec) {
     var d = figure.__diagram;
     var key = d && d.send ? sendless(spec) : null;

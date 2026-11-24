@@ -10,6 +10,8 @@ The rules the owner set for the words on his sites, learned in the wording audit
 keeps its own voice; these rules hold on all of them. When a rule here and the owner's newer word disagree, his word wins: log it and fix
 this file.
 
+A changelog entry, a release's summary or release notes also follows `.agent/skills/release-words/SKILL.md` (DECISIONS 320): its rules add to these.
+
 ## Who decides
 
 - **His words are rulings; your words are proposals.** Draft from the record, never invent facts, and give delegated designers the exact

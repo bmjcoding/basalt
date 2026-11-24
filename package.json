@@ -19,6 +19,7 @@
     "ci:local": "node scripts/ci-local.mjs",
     "test:brand": "npm run build -w packages/tokens && node --test --test-timeout=120000 brand/test/*.test.mjs",
     "test:html-skill": "node --test --test-timeout=120000 tools/html-skill/test/*.test.mjs",
+    "test:changelog": "node --test --test-timeout=120000 tools/changelog/test/*.test.mjs",
     "test:sites": "node --test --test-timeout=120000 sites/test/*.test.mjs",
     "html-skill:shots": "node tools/html-skill/shoot.mjs"
   },
@@ -27,6 +28,9 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
+    "oxc-parser": "0.160.0",
+    "oxlint": "1.95.0",
+    "oxlint-tsgolint": "7.0.2008",
     "stylelint": "17.16.0"
   }
 }

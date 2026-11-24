@@ -1,7 +1,7 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import * as React from "react";
 
-import { Icon } from "./icon";
+import { ControlIcon, loadFlight } from "./control-icon";
 import type { IconComponent, PartProps } from "./types";
 import { withClass } from "./utils";
 import { takeClick, useJoinedRef, useLoopClock, usePressWait } from "./wait";
@@ -49,6 +49,10 @@ export function TextButton({ quiet = false, iconEnd, className, children, focusa
   const [rendered, handler] = takeClick(render, onClick);
   const wait = usePressWait(handler, { loading, waitForAnswer, submits: props.type === "submit", form: props.form });
   useLoopClock(wait.ref, wait.shown);
+  // An end icon that opens something in place (a chevron, with aria-expanded) changes its drawing on every press: the morph's engine is asked
+  // for at mount, so the first press morphs too (DECISIONS 316, ruling 3). Nothing is drawn differently at rest: ControlIcon is Icon until then.
+  const expands = props["aria-expanded"] !== undefined && iconEnd !== undefined;
+  React.useEffect(() => { if (expands) void loadFlight(); }, [expands]);
   return (
     <BaseButton
       {...props}
@@ -64,7 +68,7 @@ export function TextButton({ quiet = false, iconEnd, className, children, focusa
       onClick={wait.press}
     >
       <span className="basalt-text-button-label">{children}</span>
-      {iconEnd ? <Icon icon={iconEnd} size={16} /> : null}
+      {iconEnd ? <ControlIcon icon={iconEnd} size={16} /> : null}
     </BaseButton>
   );
 }

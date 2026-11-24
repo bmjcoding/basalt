@@ -749,7 +749,7 @@ export function layoutHeadless(spec: DiagramSpec, options: InteropOptions = {}):
 
   // Measure each node height and compute row track heights
   const nodeMeasured = new Map<string, { h: number; rows?: SceneTableRow[]; headerH?: number; mark?: SceneMark }>();
-  const rowHeights = new Array<number>(m.rows).fill(m.type === "data-flow" ? 56 : 0);
+  const rowHeights: number[] = Array.from({ length: m.rows }, () => (m.type === "data-flow" ? 56 : 0));
 
   for (const n of m.nodes) {
     const mark = resolveNodeMark(n, marksMode, options.resolveMark);
@@ -1135,7 +1135,7 @@ function layoutSequenceHeadless(m: Model, targetW: number, pad: number, id: stri
     if ("band" in s) {
       bands.push({ text: s.band, y: round2(y), h: 36, w: round2(targetW) });
       y += 36;
-    } else {
+    } else if ("n" in s) {
       const a = m.byId.get(s.from);
       const self = s.from === s.to;
       const selfSide: "start" | "end" | undefined = self ? (a && a.col === n ? "start" : "end") : undefined;
@@ -1371,7 +1371,7 @@ export function sceneFromMeasured(
         if ("band" in s) {
           bands.push({ text: s.band, y: round2(curY), h: 36, w: round2(geo.w) });
           curY += 36;
-        } else {
+        } else if ("n" in s) {
           const gl = lineByNum.get(s.n);
           const msgCenterY = gl ? (gl.pts[0]!.y + gl.pts[gl.pts.length - 1]!.y) / 2 : curY + 28;
           curY = Math.max(curY + 56, msgCenterY + 28);
@@ -1381,7 +1381,7 @@ export function sceneFromMeasured(
 
     const edges: SceneEdge[] = [];
     for (const s of m.steps) {
-      if ("band" in s) continue;
+      if (!("n" in s)) continue;
       const gl = lineByNum.get(s.n);
       const lf1 = lifeByP.get(s.from);
       const lf2 = lifeByP.get(s.to);

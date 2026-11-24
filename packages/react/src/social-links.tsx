@@ -35,7 +35,7 @@ interface RowState {
   size: SocialSize;
   iconOnly: boolean;
 }
-const RowContext = React.createContext<RowState>({ size: 16, iconOnly: false });
+const RowContext = /* @__PURE__ */ React.createContext<RowState>({ size: 16, iconOnly: false });
 
 export interface SocialLinksProps extends React.ComponentProps<"ul"> {
   /** The glyph beside the name: 16 beside 12 to 16px text (default), 20 beside 18 to 24px. */

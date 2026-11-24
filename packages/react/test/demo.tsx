@@ -8,6 +8,7 @@ import { CompletionFixtures } from "../examples/completion";
 
 import * as CoreSet from "../src/glyph-set";
 import type { GlyphIcon } from "../src/index";
+import { RunsFixture } from "./demo-runs";
 import {
   Accordion,
   AccordionItem,
@@ -579,6 +580,7 @@ function App() {
         <MotionFixture />
         <IconsFixture />
         <BenjiFixture />
+        <RunsFixture />
       </main>
      </ToastProvider>
     </TooltipProvider>

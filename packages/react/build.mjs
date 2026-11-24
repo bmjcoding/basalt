@@ -37,7 +37,7 @@ const packageDir = (name) => {
 // every file that entry shares with an ordinary import (utils, icon, kbd, Phosphor's icon base) is merged into one chunk
 // that the ordinary import then loads, whatever it needs: Spinner paid 12.7 KB for a 1 KB component, Skeleton 12 KB.
 // The panel is loaded on demand, so a second copy of those few files costs nothing until a menu opens.
-const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*"];
+const external = ["react", "react/*", "react-dom", "react-dom/*", "@base-ui/react", "@base-ui/react/*", "@phosphor-icons/react", "@phosphor-icons/react/*", "cmdk", "shiki", "shiki/*", "elkjs", "elkjs/*"];
 // The notice (without its comment marks) that the panel's banner carries and that the opt-in Phosphor plugin (src/tooling/phosphor.ts) puts
 // in front of the icons it trims. It is one string, so the two comments are identical and a bundler that holds both keeps one copy.
 const phosphorNotice = `Bundles four icons from @phosphor-icons/react.\n${fs.readFileSync(path.join(packageDir("@phosphor-icons/react"), "LICENSE"), "utf8").trim().replaceAll("*/", "* /")}`;
@@ -124,6 +124,41 @@ await esbuild.build({
   },
 });
 
+// elkjs as an ES module of its own (DECISIONS 306, 1.8): elkjs's own file, verbatim and unmodified, inside a wrapper that gives it a module and no global
+// require, written to dist/diagram-elk.js with its notice. Imported only by diagram-layout, on demand: bundled as CommonJS by an app, elkjs put the
+// bundler's CommonJS helpers in the chunk every component's bundle shares.
+fs.mkdirSync(dist, { recursive: true });
+{
+  const elk = fs.readFileSync(path.join(packageDir("elkjs"), "lib", "elk.bundled.js"), "utf8");
+  fs.writeFileSync(path.join(dist, "diagram-elk.js"), `/*! elkjs 0.12.1 (https://github.com/kieler/elkjs), the Eclipse Layout Kernel: EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0, unmodified. */
+const elkModule = { exports: {} };
+(function (module, exports, require, define) {
+${elk}
+}).call(globalThis, elkModule, elkModule.exports, undefined, undefined);
+export default elkModule.exports;
+`);
+  // Its licence goes with the copy (Neon's B11 of the code review): the package redistributes the file, so it carries the text it is distributed under.
+  fs.mkdirSync(path.join(dist, "elkjs"), { recursive: true });
+  fs.copyFileSync(path.join(packageDir("elkjs"), "LICENSE.md"), path.join(dist, "elkjs", "LICENSE.md"));
+}
+
+// The diagram viewer is the fourth (DECISIONS 310, 9.13): "Expand" loads it at its first hover, focus or touch, and it brings the form dialog's box (on a native
+// <dialog>, no Base UI dialog), the sheet's parts and the buttons with it, inlined for the same reason as the motion's. It imports the figure and the engine only as types: the figure hands them over when it opens
+// the viewer (ViewerKit), so this chunk never holds a second copy of the engine.
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/diagram-viewer.tsx")],
+  outdir: dist,
+  external: external.filter((name) => !name.startsWith("@phosphor-icons")),
+  plugins: [{ name: "lazy-flight", setup(build) { build.onResolve({ filter: /^\.\/glyph-flight$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./glyph-flight.js", external: true } : undefined)); } }],
+  banner: { js: `"use client";` },
+});
+
 // The root's map for the imports plugin (src/tooling/imports.ts): every name the root exports at run time, and the module that holds it, read from the barrel's source.
 // `export * from "./glyph-set"` is the one star, and glyph-set is itself a list of `export { X } from "./glyphs/x"`: each glyph maps to its own module. Every
 // `export` statement in the barrel must be one of the three forms below (`export { … } from "./x";`, `export type { … } from "./x";`, `export * from "./x";`, double
@@ -158,13 +193,65 @@ const readBarrel = (file, dir) => {
 };
 readBarrel(path.join(here, "src", "index.ts"), path.join(here, "src"));
 
+// The release notes' Sources popup is the fourth (a source line loads it on first use, release-notes.tsx), built the same way and for the same reason: a
+// page of releases draws no popup until a reader asks for one, so the popup, its positioning and Floating UI are not in ReleaseNotes' first load. It
+// imports nothing of Basalt's (the page draws what it holds and hands it in), and Base UI's popover is inlined too: left external, an app's bundler
+// finds Base UI's popover in both this lazy file and the static Popover (feedback.tsx) and makes it a shared chunk that every import of that module
+// then loads (ReleaseIndex went from 31 KB to 144 KB for an accordion), because it assigns chunks before it shakes. Only React stays external.
+const reactOnly = ["react", "react/*", "react-dom", "react-dom/*"];
+// Base UI reads use-sync-external-store, which is CommonJS that requires React: an ES module cannot inline it (its require would fail in a browser), and
+// left external it would be one more module shared with the static graph. Basalt needs React 19, which has useSyncExternalStore itself, and Base UI's
+// selector path (with-selector) runs only before React 19, so the two are answered from React here.
+const storeFromReact = {
+  name: "store-from-react",
+  setup(build) {
+    build.onResolve({ filter: /^use-sync-external-store\/shim(\/with-selector)?(\.js)?$/ }, (args) => ({ path: args.path, namespace: "store-from-react" }));
+    build.onLoad({ filter: /.*/, namespace: "store-from-react" }, (args) => ({
+      contents: /with-selector/.test(args.path)
+        ? 'import { useSyncExternalStore } from "react"; export function useSyncExternalStoreWithSelector(subscribe, getSnapshot, getServerSnapshot, selector) { return useSyncExternalStore(subscribe, () => selector(getSnapshot()), getServerSnapshot ? () => selector(getServerSnapshot()) : undefined); }'
+        : 'export { useSyncExternalStore } from "react";',
+      loader: "js",
+    }));
+  },
+};
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/release-sources.tsx")],
+  outdir: dist,
+  external: reactOnly,
+  plugins: [storeFromReact],
+  banner: { js: `"use client";` },
+});
+
+// The rail's tooltip for the version at the foot is the fifth (AppShell loads it when the rail shows a version), built the same way and, like the Sources
+// popup, with Base UI's tooltip inlined, so the shell's own import is what it was. Its one cost: the shell's TooltipProvider does not reach this copy, so
+// the version's tooltip keeps its own open delay rather than the rail's shared one.
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/rail-tooltip.tsx")],
+  outdir: dist,
+  external: reactOnly,
+  plugins: [storeFromReact, { name: "lazy-flight", setup(build) { build.onResolve({ filter: /^\.\/glyph-flight$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./glyph-flight.js", external: true } : undefined)); } }],
+  banner: { js: `"use client";` },
+});
+
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
   // The core glyphs are modules of their own (src/glyphs), so an app that imports HomeGlyph bundles only HomeGlyph.
   entryPoints: [
     // index.ts is not bundled: it is a barrel of `export { … } from "./module"` and is written as one, below, so each export comes from the module that holds it.
-    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && !["command-panel.tsx", "glyph-flight.tsx", "diagram-motion.tsx", "diagram-motion-core.ts", "diagram-interop.ts", "index.ts"].includes(f)).map((f) => path.join(here, "src", f)),
+    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && !["command-panel.tsx", "glyph-flight.tsx", "diagram-motion.tsx", "diagram-motion-core.ts", "diagram-interop.ts", "diagram-viewer.tsx", "diagram-zoom-core.ts", "diagram-elk.ts", "release-sources.tsx", "rail-tooltip.tsx", "index.ts"].includes(f)).map((f) => path.join(here, "src", f)),
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
     // The service marks (DECISIONS 292, 2.6): one module a mark under dist/marks, at @srasyndicate/basalt/marks/<id>, never imported by the index, so an
     // app pays for the marks it imports and no others. Generated by marks/generate.mjs.
@@ -175,7 +262,7 @@ await esbuild.build({
     ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
   define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice), __BASALT_ROOT_MAP__: JSON.stringify(JSON.stringify(rootMap)) },
-  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
+  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion|diagram-viewer|diagram-layout|diagram-text|diagram-elk|release-sources|rail-tooltip)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
   splitting: true,
@@ -228,7 +315,7 @@ const needsClient = (file, seen = new Set()) => {
   seen.add(file);
   return staticImports(fs.readFileSync(path.join(dist, file), "utf8")).some((specifier) => clientImport.test(specifier) || (/^\.\/chunk-/.test(specifier) && needsClient(specifier.slice(2), seen)));
 };
-for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && !["command-panel.js", "glyph-flight.js", "diagram-motion.js", "diagram-interop.js"].includes(f))) {
+for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && !["command-panel.js", "glyph-flight.js", "diagram-motion.js", "diagram-interop.js", "diagram-viewer.js", "diagram-elk.js", "release-sources.js", "rail-tooltip.js"].includes(f))) {
   const code = fs.readFileSync(path.join(dist, file), "utf8");
   if (needsClient(file)) fs.writeFileSync(path.join(dist, file), `"use client";\n${code}`);
 }
@@ -246,7 +333,9 @@ fs.writeFileSync(path.join(dist, "head", "loops.js"), loopsBootstrap);
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
 const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");
-const components = `${fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8")}\n${accents}`;
+// `%glyph-mask:name%` in the stylesheet is a core glyph's drawing as a mask (glyph-mask.mjs).
+const { withGlyphMasks } = await import(pathToFileURL(path.join(here, "glyph-mask.mjs")).href);
+const components = `${withGlyphMasks(fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8"))}\n${accents}`;
 
 // Geist Sans and Mono, variable (SIL OFL 1.1, licence shipped beside the files).
 const geist = path.join(packageDir("geist"), "dist", "fonts");

@@ -6,14 +6,25 @@ import { DotLine } from "./dot-sep";
 import { NavRailContext } from "./nav";
 import { usePinnedEdges } from "./pinned-edges";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
+import type { TooltipProps } from "./display";
 import { useMediaQuery } from "./use-media";
 import { join } from "./utils";
+import { RailTooltipContext, VersionContext, VersionPlaceContext } from "./version-place";
 
 // The app shell (decisions 96): a sidebar at 1024 and up, the rail from 720 to 1023, the phone tab bar under 720, and one
 // header over the content column. The document is the scroller, never an inner pane (a page's own pane beside it is
 // `PaneLayout`, sticky, like the sidebar). The layout lengths are tokens (size-sidebar-width, size-rail-width, size-header,
 // size-tab-bar and the breakpoints; decision 101). The capped form is --basalt-shell-width wide at most, centred: by default
 // size-sidebar-width plus size-page-width, so at the cap the column is exactly the page's own cap.
+
+// The rail's tooltip for the version, on demand: only a shell in the rail with a version loads it (rail-tooltip.tsx). Until it is there the number
+// stands alone, with its whole line in its name. A lazy component is made on first use, so loading this module does nothing.
+let railTooltip: React.ComponentType<TooltipProps> | undefined;
+function LazyRailTooltip(props: TooltipProps) {
+  railTooltip ??= React.lazy(() => import("./rail-tooltip").then((module) => ({ default: module.RailTooltip })));
+  const Tip = railTooltip;
+  return <React.Suspense fallback={props.children}><Tip {...props} /></React.Suspense>;
+}
 
 export interface AppShellProps extends Omit<React.ComponentProps<"div">, "children"> {
   /** The brand in the sidebar's 56px band: the lockup (mark and word). It links home and draws no line of its own. A brand file goes in as `<BrandSvg source={file} />`, which hides it and drops its title; the link's name is `brandLabel`. */
@@ -31,6 +42,11 @@ export interface AppShellProps extends Omit<React.ComponentProps<"div">, "childr
   sidebar: React.ReactNode;
   /** Account items pinned to the sidebar's foot: a second `Nav` (named "Account", say) holding Settings, Profile and the like. */
   account?: React.ReactNode;
+  /**
+   * The version this session runs, as a `VersionLink` to the release notes at that version. Drawn at the sidebar's foot under the account
+   * items, as the number alone in the rail (the date in its name and tooltip), and as the last row of `TabBarMore`'s sheet under 720.
+   */
+  version?: React.ReactNode;
   /** The `AppHeader`: it spans the content column only, never the sidebar. */
   header: React.ReactNode;
   /** The phone `TabBar`, for an app with three or more destinations. Content pads past it, and toasts sit above it. */
@@ -63,7 +79,7 @@ export interface AppShellProps extends Omit<React.ComponentProps<"div">, "childr
  * content column and sticks to the document, which is what scrolls: set `scrollbar-gutter: stable` on the page (the shell
  * does for the document it is in), and give the viewport meta `viewport-fit=cover` so the safe-area insets work.
  */
-export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar, account, header, tabBar, foot, mainProps, capped = false, className, children, ...props }: AppShellProps) {
+export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar, account, version, header, tabBar, foot, mainProps, capped = false, className, children, ...props }: AppShellProps) {
   const rail = useMediaQuery(`(width < ${breakpoint.lg}px)`);
   useScreenKeyboardLayout();
   usePinnedEdges(foot != null);
@@ -79,7 +95,16 @@ export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar
         <TooltipProvider>
           <NavRailContext.Provider value={rail}>
             <div className="basalt-app-nav">{sidebar}</div>
-            {account ? <div className="basalt-app-account">{account}</div> : null}
+            {account || version ? (
+              <div className="basalt-app-account">
+                {account}
+                {version ? (
+                  <div className="basalt-app-version">
+                    <VersionPlaceContext.Provider value={rail ? "rail" : "foot"}><RailTooltipContext.Provider value={LazyRailTooltip}>{version}</RailTooltipContext.Provider></VersionPlaceContext.Provider>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </NavRailContext.Provider>
         </TooltipProvider>
       </aside>
@@ -88,7 +113,7 @@ export function AppShell({ brand, brandLabel, homeHref = "/", brandMark, sidebar
         <main {...mainProps} className={join("basalt-app-main", mainProps?.className)}>{children}</main>
         {foot != null ? <div className="basalt-app-foot" data-pinned-edge="bottom">{foot}</div> : null}
       </div>
-      {tabBar}
+      {version ? <VersionContext.Provider value={version}>{tabBar}</VersionContext.Provider> : tabBar}
     </div>
   );
 }

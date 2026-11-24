@@ -75,16 +75,16 @@ function LinksDemo({ state }: { state: string }) {
       </Text>
       <Caption>Buttons rendered as links, xs to xl: new tab (the arrow takes the trailing slot) and same tab</Caption>
       <div style={row}>
-        {SIZES.map((size) => <Button key={size} size={size} render={<a href="https://console.example.test" target="_blank" />} nativeButton={false}>Open console</Button>)}
+        {SIZES.map((size) => <Button key={size} size={size} render={<a href="https://console.example.test" target="_blank" rel="noopener noreferrer" />} nativeButton={false}>Open console</Button>)}
       </div>
       <div style={row}>
         {SIZES.map((size) => <Button key={size} size={size} variant={size === "md" ? "primary" : "secondary"} render={<a href="https://console.example.test" />} nativeButton={false}>Open console</Button>)}
-        <Button variant="ghost" render={<a href="https://console.example.test" target="_blank" />} nativeButton={false}>Ghost</Button>
-        <Button variant="primary" render={<a href="https://console.example.test" target="_blank" />} nativeButton={false}>Primary</Button>
+        <Button variant="ghost" render={<a href="https://console.example.test" target="_blank" rel="noopener noreferrer" />} nativeButton={false}>Ghost</Button>
+        <Button variant="primary" render={<a href="https://console.example.test" target="_blank" rel="noopener noreferrer" />} nativeButton={false}>Primary</Button>
       </div>
       <Caption>An IconButton that opens a new tab says so in its label and has no second glyph; a link that holds only a logo keeps the words and skips the arrow</Caption>
       <div style={row}>
-        <IconButton icon={HomeGlyph} label="Open the home page" render={<a href="https://example.test" target="_blank" />} nativeButton={false} />
+        <IconButton icon={HomeGlyph} label="Open the home page" render={<a href="https://example.test" target="_blank" rel="noopener noreferrer" />} nativeButton={false} />
         <Link href="https://example.test" target="_blank" aria-label="Example"><span aria-hidden="true" style={{ display: "inline-block", width: 24, height: 24, borderRadius: 6, background: "var(--basalt-text-secondary)" }} /></Link>
       </div>
       <Caption>In a still-table cell: the label truncates and the arrow stays whole</Caption>
@@ -259,10 +259,10 @@ function TogglesDemo({ state }: { state: string }) {
     <div style={{ ...col, maxWidth: 760 }} ref={stage}>
       <Caption>Text toggles: a 16px seat at the label's start holds the check while pressed, so pressed and unpressed are one width. Secondary, then ghost. Primary and danger do not toggle.</Caption>
       <div style={row}>
-        <Button pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
-        <Button pressed={!on.mute} onClick={flip("mute")}>Mute thread</Button>
-        <Button variant="ghost" pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
-        <Button variant="ghost" pressed={!on.pin} onClick={flip("pin")}>Pin to top</Button>
+        <Button aria-pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
+        <Button aria-pressed={!on.mute} onClick={flip("mute")}>Mute thread</Button>
+        <Button variant="ghost" aria-pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
+        <Button variant="ghost" aria-pressed={!on.pin} onClick={flip("pin")}>Pin to top</Button>
       </div>
       <Caption>Icon toggles carry no check: the plate, the ink step and the glyph's selected form (a core glyph closes and fills; a fillSafe Phosphor glyph fills)</Caption>
       <div style={row}>
@@ -278,8 +278,8 @@ function TogglesDemo({ state }: { state: string }) {
       <Card style={{ width: "100%" }}>
         <CardContent>
           <div style={row}>
-            <Button pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
-            <Button variant="ghost" pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
+            <Button aria-pressed={on.mute} onClick={flip("mute")}>Mute thread</Button>
+            <Button variant="ghost" aria-pressed={on.pin} onClick={flip("pin")}>Pin to top</Button>
             <IconButton variant="secondary" icon={HomeGlyph} label="Home" pressed={on.home} onClick={flip("home")} />
             <Button variant="primary">Not a toggle</Button>
             <Button variant="danger">Not a toggle</Button>

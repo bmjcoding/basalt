@@ -4,7 +4,7 @@ import { useScreenKeyboardLayout } from "./screen-keyboard";
 
 // React context crosses portals. Each modal reserves space for its backdrop, content and
 // floating children; a nested modal then covers the entire preceding level.
-export const ModalDepth = React.createContext(0);
+export const ModalDepth = /* @__PURE__ */ React.createContext(0);
 
 export function useModalLayer() {
   const parent = React.useContext(ModalDepth);
@@ -40,7 +40,7 @@ export function useFloatingLayer() {
 // panels sit one above it, so a menu opened from a dialog is level 2.
 
 export type SurfaceLevel = 0 | 1 | 2 | 3;
-export const SurfaceLevelContext = React.createContext<SurfaceLevel>(0);
+export const SurfaceLevelContext = /* @__PURE__ */ React.createContext<SurfaceLevel>(0);
 
 const cap = (level: number): SurfaceLevel => Math.min(level, 3) as SurfaceLevel;
 

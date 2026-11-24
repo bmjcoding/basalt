@@ -97,7 +97,7 @@ describe("slots on a side (Neon's finding 13)", () => {
 describe("the development checks cost production nothing (Neon's finding 14)", () => {
   // Phrases only the checks write (a property name such as `crossings` is code, not a check's words).
   const WORDS = ["share the cell at column", "main lines are drawn but", "is not a kind of line", "more than three is an error", "would leave the drawing", "in the drawn layout",
-    "third end lane", "stands for", "is used twice", "two columns apart", "closer than space-3"];
+    "fifth end lane", "stands for", "is used twice", "a third lane in its corridor", "closer than space-3", "states a cardinality but references nothing"];
   const bundle = async (entry, mode) => (await esbuild.build({
     stdin: { contents: entry, resolveDir: pkg, loader: "js" }, bundle: true, minify: true, format: "esm", write: false, logLevel: "silent",
     external: ["react", "react-dom", "react/jsx-runtime"], define: { "process.env.NODE_ENV": JSON.stringify(mode) },
@@ -119,7 +119,7 @@ describe("the development checks cost production nothing (Neon's finding 14)", (
   test("the motion module's production build holds none of its checks' words", async () => {
     const entry = `import { motionErrors } from "./dist/diagram-motion.js"; console.log(motionErrors);`;
     const [prod, dev] = [await bundle(entry, "production"), await bundle(entry, "development")];
-    for (const w of ["names both a pulse and a packet", "flows but has no label", "is dashed and flows", "no line joins them in that direction"]) {
+    for (const w of ["names both a pulse and a packet", "flows but has no label", "no line joins them in that direction"]) {
       assert.ok(!prod.includes(w), `production holds "${w}"`);
       assert.ok(dev.includes(w), `development lacks "${w}"`);
     }
@@ -195,6 +195,71 @@ describe("a decision no taller than it is wide (Fable's polish P4)", () => {
     // "Risk medium or lower?" on the CIMIP flowchart: widened over part of the band Fable measured, and taller than wide only where no box could help.
     assert.ok(widened.length > 0, "some width widens");
     console.log(`widened at ${widened.join(", ")}; taller than wide at ${over.join("; ") || "none"}`);
+    await page.close();
+  });
+});
+
+describe("section 4's three calls (DECISIONS 306; Neon's B12 of the code review)", () => {
+  test("call 1: from its first drawn width the CIMIP flowchart is drawn at every whole width to 1,440, and no decision is taller than it is wide", async () => {
+    const { page } = await figurePage();
+    await draw(page, [{ key: "flow", spec: DATA.flowchart }]);
+    let first = null;
+    const off = [];
+    for (let w = 930; w <= 1440; w++) {
+      await page.evaluate((w) => document.getElementById("root").style.setProperty("--w", `${w}px`), w);
+      await frames(page, 2);
+      const layout = await page.getAttribute("#fig-flow", "data-layout");
+      if (layout === "drawn") {
+        first ??= w;
+        const tall = await page.evaluate(() => [...document.querySelectorAll("#fig-flow .basalt-diagram-node[data-shape='decision']")].some((n) => { const r = n.getBoundingClientRect(); return r.height > r.width + 0.5; }));
+        if (tall) off.push(`${w}: a decision taller than wide`);
+      } else if (first !== null) off.push(`${w}: stacked after drawing at ${first}`);
+    }
+    assert.ok(first !== null && first <= 976, `first drawn at ${first}`);
+    assert.deepEqual(off, []);
+    await page.close();
+  });
+
+  test("call 2: a one-column schema's two overlapping turn-backs take two lanes space-3 apart, and the padding is the outermost lane plus space-1", async () => {
+    const { page } = await figurePage();
+    const t = (name, row, refs = []) => ({ name, col: 1, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
+    await draw(page, [{ key: "one", spec: { type: "schema", title: "One column", summary: "Keys.", legend: { plain: "A foreign key" }, tables: [t("a", 1), t("b", 2, ["c"]), t("c", 3, ["a"])] } }]);
+    assert.equal(await page.getAttribute("#fig-one", "data-layout"), "drawn");
+    const got = await page.evaluate(() => {
+      const fig = document.querySelector("#fig-one"), d = fig.querySelector(".basalt-diagram-drawing").getBoundingClientRect();
+      const right = Math.max(...[...fig.querySelectorAll(".basalt-diagram-node")].map((n) => n.getBoundingClientRect().right)) - d.left;
+      const lanes = [...fig.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line")].map((p) => Math.max(...p.getAttribute("d").match(/-?[\d.]+/g).map(Number).filter((_, k) => k % 2 === 0)) - right).sort((a, b) => a - b);
+      return { lanes, pad: d.width - right };
+    });
+    assert.equal(got.lanes.length, 2);
+    assert.ok(Math.abs(got.lanes[0] - 16) <= 0.5 && Math.abs(got.lanes[1] - 28) <= 0.5, JSON.stringify(got));
+    assert.ok(Math.abs(got.pad - 32) <= 0.5, `the padding is space-5 plus space-3 (${got.pad})`);
+    await page.close();
+  });
+
+  test("call 3: a card whose side holds a straight line and two others is 48 tall at every width from its first drawn one, its ports on the flat part and 8 apart", async () => {
+    const { page } = await figurePage();
+    const spec = { type: "architecture", title: "Ports", summary: "A fixture for the fit rule.", legend: { main: "Request", plain: "Call" },
+      nodes: [{ id: "a", name: "Incident response coordinator", col: 1, row: 2 }, { id: "b", name: "Queue", col: 2, row: 2 }, { id: "c", name: "Store", col: 2, row: 3 }, { id: "d", name: "Audit", col: 2, row: 4 }, { id: "e", name: "Search", col: 3, row: 2 }, { id: "f", name: "Mail", col: 4, row: 2 }],
+      edges: [{ from: "a", to: "b", kind: "main" }, { from: "a", to: "c", toSide: "left" }, { from: "a", to: "d", toSide: "left" }, { from: "b", to: "e" }, { from: "e", to: "f" }] };
+    await draw(page, [{ key: "ports", spec }]);
+    let first = null;
+    const off = [];
+    for (let w = 760; w <= 1440; w += 4) {
+      await page.evaluate((w) => document.getElementById("root").style.setProperty("--w", `${w}px`), w);
+      await frames(page, 2);
+      if ((await page.getAttribute("#fig-ports", "data-layout")) !== "drawn") { if (first !== null) off.push(`${w}: stacked`); continue; }
+      first ??= w;
+      const a = await page.evaluate(() => {
+        const n = document.querySelector('#fig-ports .basalt-diagram-node[data-node="a"]').getBoundingClientRect();
+        const ys = [...document.querySelectorAll("#fig-ports .basalt-diagram-edge")].filter((g) => g.dataset.from === "a").map((g) => Number(g.querySelector(".basalt-diagram-line").getAttribute("d").match(/-?[\d.]+/g)[1]) + document.querySelector("#fig-ports .basalt-diagram-drawing").getBoundingClientRect().top - n.top).sort((p, q) => p - q);
+        return { h: n.height, ys };
+      });
+      if (a.h < 48 - 0.5) off.push(`${w}: ${a.h} tall`);
+      if (a.ys[0] < 8 - 0.5 || a.ys[a.ys.length - 1] > a.h - 8 + 0.5 || a.ys.some((y, k) => k && y - a.ys[k - 1] < 8 - 0.5)) off.push(`${w}: ports ${a.ys.join(", ")} on ${a.h}`);
+    }
+    assert.ok(first !== null);
+    assert.deepEqual(off, []);
     await page.close();
   });
 });

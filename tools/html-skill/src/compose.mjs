@@ -33,6 +33,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +41,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const THEME_INIT = `(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
 
 // A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
+// The modules that draw a loop (their own held rules travel with them), and the toggle's.
+const LOOPING = new Set(["loops", "spinner", "braille", "sparkline", "ambient"]);
 const LOOPS_INIT = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;
 
 const read = (dir, name) => fs.readFileSync(path.join(dir, name), "utf8");
@@ -472,6 +475,26 @@ const staysInFile = (url) => /^(?:#|(?:data|blob|about|javascript|mailto|tel):)/
  */
 function externalReferences(held, markup) {
   const found = new Set();
+  // The URLs of a srcset, read the way HTML reads one: a URL runs to whitespace (a data: URL's own commas included; trailing commas end the
+  // candidate), then its descriptors run to the next comma outside parentheses.
+  const srcsetUrls = (value) => {
+    const out = [];
+    let at = 0;
+    while (at < value.length) {
+      while (at < value.length && /[\s,]/.test(value[at])) at++;
+      let end = at;
+      while (end < value.length && !/\s/.test(value[end])) end++;
+      let url = value.slice(at, end);
+      const bare = url.replace(/,+$/, "");
+      at = end;
+      if (bare.length === url.length) {
+        for (let depth = 0; at < value.length && (depth > 0 || value[at] !== ","); at++) depth += value[at] === "(" ? 1 : value[at] === ")" ? -1 : 0;
+      }
+      url = bare;
+      if (url) out.push(url);
+    }
+    return out;
+  };
   const tags = (text) => {
     for (let at = text.indexOf("<"); at !== -1; at = text.indexOf("<", at + 1)) {
       if (!isAlpha(text[at + 1] ?? "")) continue;
@@ -482,8 +505,12 @@ function externalReferences(held, markup) {
         if (tag.name === "link" && rel === "canonical" && key === "href") continue;
         if (key === "style") for (const url of cssUrls(value)) found.add(`<${tag.name} style> url(${url})`);
         if (!["src", "href", "xlink:href", "data", "poster", "srcset"].includes(key)) continue;
-        const urls = key === "srcset" ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]) : [value];
-        for (const url of urls) if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+        const urls = key === "srcset" ? srcsetUrls(value) : [value];
+        for (const url of urls) {
+          if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+          // A script link stays in the file but runs code when followed: listed, so a link written from data is seen (the safe-sinks rule; Basalt.safeHref refuses it).
+          else if (/^\s*javascript:/i.test(url)) found.add(`<${tag.name} ${key}="${url.slice(0, 40)}"> (a script link: runs code when followed)`);
+        }
       }
       at = tag.end - 1;
     }
@@ -555,7 +582,12 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
   const code = `${held.restore(markup, true)}\n${styles.map((style) => stripCssComments(style.css)).join("\n")}`;
-  const chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  let chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  // The diagram viewer (DECISIONS 310): a page with a figure has "Expand" and its dialog, unless every figure on it says "zoom": false. A figure drawn from
+  // script (Basalt.diagram) may want it, so it counts.
+  if (chosen.modules.includes("diagram") && !chosen.modules.includes("diagram-zoom") && "diagram-zoom" in manifest.modules && zoomWanted(held, code)) {
+    chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use: [...use, "diagram-zoom"], glyphNames: Object.keys(glyphFile) });
+  }
   // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
   const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
   const direct = detect(code, bare, [], { all, use }).modules;
@@ -587,7 +619,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     `<title>${title}</title>`,
     ...headTags,
     `<script>${THEME_INIT}</script>`,
-    ...(chosen.modules.includes("loops") ? [`<script>${LOOPS_INIT}</script>`] : []),
+    // Any page that draws a loop keeps a hold the reader stored on another page of the origin, not only a page with the toggle.
+    ...(chosen.modules.some((n) => LOOPING.has(n)) ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
     `<style>${css}</style>`,
     ...styles.map((style) => `<style${style.media === undefined ? "" : ` media="${style.media.replaceAll('"', "&quot;")}"`}>${style.css}</style>`),
@@ -601,6 +634,30 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "",
   ].join("\n");
   return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
+}
+
+/**
+ * An automatic diagram's placement for both directions (DECISIONS 306, 1.8), from parts/diagram-place.mjs run in a worker, waited for here: elk answers with
+ * a promise and compose is synchronous, so this thread sleeps on a shared flag until the worker has posted its answer and woken it.
+ */
+function placeNow(parts, spec) {
+  const signal = new SharedArrayBuffer(4);
+  const { port1, port2 } = new MessageChannel();
+  const worker = new Worker(path.join(parts, "diagram-place.mjs"), { workerData: { spec, port: port2, signal }, transferList: [port2] });
+  Atomics.wait(new Int32Array(signal), 0, 0, 60_000);
+  const got = receiveMessageOnPort(port1)?.message;
+  worker.terminate();
+  port1.close();
+  if (!got || got.error) throw new Error(got?.error ?? "the placer did not answer");
+  return got.placement;
+}
+
+/** Whether any figure on the page keeps its viewer: a `data-diagram` JSON without `"zoom": false`, or a figure drawn from script. */
+function zoomWanted(held, code) {
+  if (/Basalt\s*\.\s*diagram\b/.test(code)) return true;
+  const specs = held.saved.filter((item) => item.kind === "script" && item.attrs.some(([k]) => k === "data-diagram"));
+  if (!specs.length) return true;
+  return specs.some((item) => { try { return JSON.parse(item.inner).zoom !== false; } catch { return true; } });
 }
 
 /**
@@ -634,11 +691,24 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
     // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
     // the script reads carries the id and never a path.
-    if (spec && spec.type === "architecture" && Array.isArray(spec.nodes)) {
+    // An automatic figure (DECISIONS 306, 1.8) is placed here, at build time, for both directions; the page holds the placement and never elkjs.
+    if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema"].includes(spec.type)) {
+      try {
+        spec.placement = placeNow(parts, spec);
+        const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
+        item.text = item.text.replace(item.inner, () => inner);
+        item.inner = inner;
+      } catch (e) { notes.push(`${spec.title ?? "a diagram"} could not be placed (${String(e.message).split("\n")[0]}); it is stacked`); }
+    }
+    // An architecture's cards, a data flow's steps and a sequence's participants may carry one (DECISIONS 306, 1.6).
+    const cards = spec && (spec.type === "architecture" || spec.type === "data-flow") ? spec.nodes : spec && spec.type === "sequence" ? spec.participants : null;
+    if (Array.isArray(cards)) {
       let rewrote = false;
-      for (const n of spec.nodes) {
+      for (const n of cards) {
         if (!n || n.mark === undefined || n.mark === null) continue;
-        if (typeof n.mark === "string") useMark(marks, n.mark, n, notes);
+        // A data flow's step counts its lane's label as its words, as React's check does (DECISIONS 306, 1.6; Neon's B10 of the code review).
+        const lane = spec.type === "data-flow" && Array.isArray(spec.lanes) ? spec.lanes.find((l) => l && l.id === n.lane) : null;
+        if (typeof n.mark === "string") useMark(marks, n.mark, lane ? { ...n, laneLabel: lane.label } : n, notes);
         else { n.mark = ownMark(marks, n.mark); rewrote = true; }
       }
       if (rewrote) {
@@ -688,7 +758,7 @@ function useMark(marks, id, node, notes) {
 }
 function checkSays(file, id, node, notes) {
   const says = (Object.hasOwn(file.says, id) ? file.says[id] : undefined) ?? [];
-  const words = [node.name, node.kind, node.detail].filter(Boolean).join(" ").toLowerCase();
+  const words = [node.name, node.kind, node.detail, node.laneLabel].filter(Boolean).join(" ").toLowerCase();
   if (says.length && !says.some((w) => words.includes(w.toLowerCase()))) notes.push(`${node.id}'s mark (${id}) stands for ${says.join(" or ")}, and none of its words say so: a mark never carries a fact alone`);
 }
 

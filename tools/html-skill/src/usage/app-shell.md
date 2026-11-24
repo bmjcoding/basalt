@@ -23,3 +23,4 @@ An app's frame (React's `AppShell` and `AppHeader`): a sidebar at 1024 and up, t
 - `.brand-full` is the lockup, `.brand-rail` the mark alone (the rail shows it). The sidebar's brand band draws no line.
 - Don't use `.page` inside `.app-main`; it is already the page's width with the gutter. The shell needs `viewport-fit=cover` for the phone's safe areas: compose adds it.
 - `data-capped` on the shell holds it to the sidebar plus 72rem, centred; the page then fills its column. A page with a pane beside it: `--usage pane`.
+- The version this session runs: a `.version-link` in `div.app-version`, last in `.app-account`; the rail shows the number alone and the script gives it the whole line as a tooltip. No "What's new" item.
